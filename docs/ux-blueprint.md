@@ -1,0 +1,130 @@
+# Realtime UI/UX blueprint and acceptance path
+
+Version 0.1 — 9 October 2026. Owner: Boniface with Codex. Status: actionable design brief; **not approved final artwork, completed implementation or a usability test report**.
+
+Boniface has asked for proper UI/UX informed by the supplied Figma work, or a better result. The current synthetic web/admin/mobile preview is an engineering foundation. Its illustrated hero, small display text and provisional layouts are not the visual standard for the finished product. Keep the working domain/API/database evidence while improving the experience; changing the presentation does not discard that work.
+
+Boniface has explicitly authorized using best judgment and improving beyond Figma. Proceed with defensible design and implementation decisions under that approval, recording their rationale. An unresolved reference detail does not stop reversible replacement work; real asset rights, client facts and release acceptance still need their own evidence.
+
+The [design resource register](design-resource-register.md) records what was actually inspected and the access limits. At this draft checkpoint, exact Figma frame rendering through the connector was unavailable; browser/source/wireframe observations must not be represented as complete Figma specifications. Direct reuse of logos, photographs, fonts and vendor design assets still needs rights evidence. Use independently created layouts and properly licensed temporary imagery, clearly marked as examples. Do not publish synthetic property photographs as real stock.
+
+## 1. Brand direction and reference boundaries
+
+The legacy source audit identifies Realtime's primary burgundy as **#5E0202**, with off-white surfaces, dark/grey text, and a logo combining roof lines, an acacia tree and a golden sun. The tagline seen in the logo resource is “LIVE WHERE YOU LOVE”. A forest-green core brand is not supported by that audit. The old wireframes' blue controls are low-fidelity annotations rather than established company color tokens. The register should retain the underlying evidence and distinguish source constants from observed rendered screens.
+
+Carry forward the company's recognizable burgundy identity and useful workflows. Improve hierarchy, readable type, whitespace, responsive behavior, status clarity and operational speed. Use Bayut and Property Finder as quality references for discovery, clear property information and contact convenience; do not copy their branding, listings, proprietary artwork or broad marketplace feature scope. Realtime is a small agency paying a total recurring service price planned at KES 10,000/month, so design its immediate listing-to-enquiry operations before optional advertising, commissions or payment modules.
+
+Primary reference checks on **9 October 2026** identified these useful patterns:
+
+| Inspected reference | Observed input | Realtime adaptation |
+|---|---|---|
+| [Bayut homepage](https://www.bayut.com/) | Buy/Rent discovery; location, type, beds/baths and price; map discovery and broker information | A clear purpose-led search and credible agency context, using Kenyan location/currency/period rules. Maps remain optional when honest coordinates exist |
+| [Property Finder homepage](https://www.propertyfinder.ae/) | Rent/Buy; city/community/building, property type, beds/baths, price and amenities; WhatsApp contact | Useful combined filters and convenient verified business contact, with exact KES charges, studio/shared-bath distinctions, URL state and durable enquiry receipts |
+| Supplied Figma view-only browser inspection | A sampled navigation property uses Avenir Next 16/600 and selected Home blue #0055FF; complete frame/component/interaction coverage unavailable | Retain useful structure while resolving inconsistent legacy visual choices against Realtime's evidenced burgundy identity. Sampled text settings are reference observations, not a licensed font master or a whole-screen specification |
+
+These patterns guide usability quality; they do not turn a single-agency service into a regional marketplace or add paid map/advertising services automatically.
+
+The proposed visual direction is **photography first**: accurate, consistently cropped property imagery, a clear exact price, locality and useful specifications. Burgundy identifies primary actions and selected navigation; it does not compete with every photo. A home page should lead naturally into a real search. Avoid a large decorative scene that pushes useful stock and filters far below the first screen. Use an honest empty catalogue when no approved inventory exists.
+
+The inspected logo is only 192×116 pixels, so obtain an authorized vector or high-resolution master before final app icons, header and splash exports. Preserve its proportions and provide approved light/dark treatments. Use the source skyline illustration only if explicitly selected and licensed; it does not replace property photography in the finished discovery flow. The saved UAT capture called `public-mobile-width.jpg` is blank and provides no responsive-layout acceptance evidence.
+
+## 2. Shared visual system
+
+Create semantic tokens once and map them to web CSS variables and native theme values. Components share meaning and behavior; their implementations can respect browser and native conventions. Each agency supplies validated public brand configuration rather than a copied codebase. Credentials, signing keys and private contacts never belong in a theme file.
+
+| Token family | Realtime starting proposal | Acceptance requirement |
+|---|---|---|
+| Primary / on-primary / hover | Burgundy #5E0202 / white / darker burgundy | Prominent actions and selected states are recognizable, readable and keyboard operable; no reliance on color alone |
+| Accent | Muted gold, exact value to validate with logo | Decorative highlights; never assume it is readable small text on white |
+| Canvas / surface / border | Warm off-white / white / light neutral | Cards, fields and panels remain distinguishable at zoom and in sunlight; necessary control boundaries meet contrast requirements |
+| Text / secondary text | Dark charcoal / tested neutral grey | Normal body copy stays legible on every actual surface; body text is not a faint decorative grey |
+| Information / success / warning / danger | Separate semantic colors with readable paired backgrounds | Icon/text labels retain meaning in grayscale and for color-vision differences; company primary never substitutes for all semantic states |
+| Type | Licensed sans-serif or a system stack; proposed 16px body and 14px useful metadata | Final family/weights chosen from inspected references and license evidence; no copied font whose licensing is unknown. Old source font aliases conflict and must not be treated as reliable typography specifications |
+| Spacing / radius / elevation | Consistent small scale, restrained rounding and shadow | One component looks related across pages; avoid unrelated card styles and decorative layers obscuring data |
+| Interaction / motion | Clear hover, pressed, focus, loading and disabled states | Prevent double submission, preserve readable feedback, respect reduced motion; no automatic photo carousel needed for the pilot |
+
+Design components with their full states: buttons, fields, selects/comboboxes, filter chips, property cards, price blocks, galleries, status badges, form errors, upload rows, dialogs/sheets, notices, table/queue rows and pagination. Show loading, empty, success, permission denied, timeout, validation failure, stale version and offline examples in the design library. A screenshot of the happy path does not complete a component.
+
+Keep three listing concepts visible where staff need them: revision workflow, publication and availability. “Awaiting approval” never means “Published”; “Paused”, “Rented”, “Sold” and “Withdrawn” cannot be disguised by a generic green Active badge. Confirmation of ordinary administrative review must not imply independently verified ownership or property quality.
+
+## 3. Public website flows
+
+| Flow / template | Required design behavior | Proof before accepting the flow |
+|---|---|---|
+| Home and discovery | Clear Rent/Buy choice, useful location/purpose/type/room/price controls, consistent card anatomy and an agency introduction below useful stock. Show a period with rent and segregate periods in filtering. | Visitor finds a relevant synthetic property without guidance; keyboard and small-screen journeys work |
+| Results | URL represents applied filters; selected controls/chips, count and pagination match results. Exact minimum/maximum semantics are explicit. Invalid or duplicate known parameters give a useful error and no unconstrained result list. | AC-009/010 boundary, back/forward, refresh, deep-link and reset evidence |
+| Property detail | Photo gallery, title/locality, exact base price/currency/period, rooms, features, precise fee/deposit breakdown where supported, agency contact and a clear viewing request. Public area precision is explained without fabricated map pins. | Same approved content and price as card; unknown values labelled accurately; private fields absent |
+| Save and share | Clear saved state, appropriate sign-in explanation if sync is offered, working shareable listing URL and fallback copy link. Local saves are disclosed as local until accounts are connected. | State survives the promised scope; unavailable property handled honestly; no other agency's saves leak |
+| Enquiry / viewing request | Name, one validated reply channel, message and current privacy acknowledgement; no mandatory visitor account. Preserve input on recoverable failure. Receipt only after durable save; a requested time is not a confirmed appointment. | AC-017/021/026 including duplicate retry, delivery failure and rate-limit guidance |
+| Trust and support | Reviewed company contact/about/policies and a private “Report this listing” route. Advertising authority and availability badges require actual evidence/policy. | Real approved contacts and policies checked; report lands in the correct company queue |
+
+On a property card, prioritize photo, price, locality and purpose/type, then exact room counts and other metadata. Keep photos at a stable aspect ratio to reduce layout movement. A studio or bedsitter uses its correct distinct label; land does not invent bedrooms. Format exact values such as KES 50,001 / month. “50K” cannot be the only displayed comparison price. Unknown or quote-required mandatory charges must prevent an all-in-cost claim; hide unsupported charge editors rather than silently turning unknown into zero.
+
+On narrow screens, use a reachable Filter action with a clear active-filter count and an accessible sheet. Applying filters is explicit; the sheet preserves draft choices until Apply or Cancel. Keep the result count visible after applying. A sticky contact area on detail can provide Call, WhatsApp and Request a viewing without covering content, errors, focus or the on-screen keyboard. All contact links require verified configured business details and an understandable fallback.
+
+## 4. Admin and agent operations
+
+Design the first staff screen around work that needs attention: new unassigned enquiries, overdue next actions, upcoming proposed/confirmed viewings, pending review, stale availability and failed notification/upload jobs. Each count opens the exact filtered queue behind it. Empty, failed, loading and disabled queues have distinct states. Avoid vanity totals or fabricated enquiries/revenue that imply live operations before integration.
+
+| Staff journey | Required decisions and states |
+|---|---|
+| Catalogue and draft | Search/sort/filter company stock; agent sees assigned work. Steps cover details, pricing/location, photos, facilities and review. Autosave feedback distinguishes local draft, server saved and unsaved changes. Save incomplete work without pretending it can publish. |
+| Resilient photos | 4–12 accepted-photo submission rule explained before upload. Each file shows queued/uploading/processing/accepted/failed/cancelled state, progress and individual retry. Keep successful files when another fails. Reorder with buttons as well as drag, choose cover and write useful alt text. |
+| Review and publish | Admin sees the exact submitted revision, changes compared with the current publication, media readiness and private rejection reason. A stale version gets a conflict and refresh/diff choice. Same-person approval is disclosed and audited. |
+| Pause, unavailability and archive | Clear scope and consequence; record remains recoverable according to policy. Approving an edited revision must not undo an explicit pause/archive. Resumption is a separate permitted action. |
+| Lead triage | Queue shows assignment, status, age and next action without unnecessary exposed contact data. Detail shows contact, contacted property revision and chronological activity. Reassign only to active company staff; preserve creator history. Closing/reopening requires the appropriate reason. |
+| Viewing coordination | Request → proposed slot → confirmed after agreement → outcome. Time displays in Africa/Nairobi with explicit customer agreement. Reschedule retains history; unavailable property prompts staff follow-up rather than silently deleting appointments. |
+| Staff and configuration | Company administrators manage approved roles and brand/policy settings through scoped operations. Preview a theme before activation and retain safe text/contrast defaults. Changing the logo cannot change authorization. |
+
+The administrator and agent share a maintained application shell with role-appropriate actions. Unavailable actions are not misleading enabled buttons. A hidden control is not the security boundary; every operation must still pass server authorization. After sign-out or membership revocation, clear private caches, drafts and subscriptions across tabs and devices. A private record reopened from an old link must fail safely.
+
+Public users should not encounter administrative reasons, owner-evidence documents, staff notes, exact private residential addresses or contact exports. Destructive/operational confirmations explain the specific affected record and consequence. Prefer reversible archive/pause over an ambiguous Delete button.
+
+## 5. Mobile application and limited connectivity
+
+The mobile app uses the same company configuration, contract, labels, prices and API rules. It needs a mobile navigation structure, reachable primary actions, safe areas, readable dynamic text and platform back behavior; it is not a desktop admin screen reduced to phone width. Start with browse/search, saved properties, detail/gallery, enquiry/viewing receipt and account/activity where enabled. Keep agent tools separate from public navigation if staff mobile workflows are introduced later.
+
+The inspected source maps Home, Search, Saved and Profile as the four visitor destinations. Retain that familiar starting structure with visible labels, accessible names, selected-state announcements and adequate hit areas rather than icon-only ambiguity. Screens named in source are requirements evidence, not proof that the supplied APK has working navigation or device behavior.
+
+Cache approved public information selectively. Show “Saved information — last updated …” while offline and state that availability/prices need reconfirmation. Opening a cached favourite cannot imply the property is still available. Guest enquiries typed offline remain an **unsent draft** until the server confirms acceptance; no green “Sent” toast or confirmed viewing while disconnected. Retry must retain one idempotency key and reconcile the eventual receipt. Provide a clear retry when the connection returns.
+
+Private offline data needs an explicit storage, encryption, expiry and revocation design before enabling it. The pilot may keep private operations online-only; explain that state and preserve only data that policy permits. Do not put private staff contacts, messages or authorization tokens into ordinary unprotected local draft storage. Test process termination, connectivity loss, login expiry, device back, failed share/contact handoff and large text on actual devices. An Expo JavaScript export is not native usability/device evidence.
+
+## 6. Accessibility, responsive behavior and performance
+
+Target WCAG 2.2 AA for complete web processes. Its text contrast thresholds are 4.5:1 normally and 3:1 for qualifying large text; necessary non-text controls/states require 3:1. Minimum target size is 24×24 CSS pixels subject to the criterion's exceptions; this project's primary touch controls should be more generous. Preserve visible, unobscured focus, semantic labels, keyboard operation, error identification and status announcements. Reflow and text resizing need actual tests, including 320 CSS-pixel width and 200% text sizing. Automated scans alone do not establish conformance. [W3C WCAG 2.2](https://www.w3.org/TR/WCAG22/)
+
+Use 44×44 CSS pixels as this project's comfort target for primary web touch actions; that is a product design choice, distinct from the AA minimum and its spacing/other exceptions. Primary guidance checked 9 October 2026: [Understanding Target Size (Minimum)](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html).
+
+Adopt a 48dp minimum native touch target in the Android design specification and verify actual rendered hit areas rather than assuming an icon's padding is sufficient. Android's accessibility guidance describes that minimum and warns about overlapping expanded targets. This native proposal does not convert dp to CSS pixels or establish iOS acceptance. [Android accessibility defaults](https://developer.android.com/develop/ui/compose/accessibility/api-defaults)
+
+Check public and admin layouts at 320/375/768/1024/1440 CSS pixels, portrait/landscape where relevant, browser zoom, long addresses/names, empty results and large exact prices. A wide staff table may have a clearly labelled keyboard-scrollable region or a deliberate narrow-screen row layout; the whole page should not overflow because of it. Dialogs/sheets need focus entry, trapped focus where appropriate, Escape/back dismissal, labelled headings and focus return. Gallery interaction cannot require swiping alone. Screen-reader announcements should communicate useful changes without repeatedly reading every progress tick.
+
+Optimize licensed photographs with correctly sized derivatives, stable layout dimensions, appropriate compression and selective loading. Prioritize the actual first-screen image/content; lazy-load off-screen media. Do not force location access, autoplay video or an expensive map before the listing can be used. Proposed website performance targets are p75 LCP ≤2.5s, INP ≤200ms and CLS ≤0.1, measured separately for mobile/desktop. Lab checks are useful regression evidence; field targets need real traffic and cannot be certified by a single Lighthouse run. [Google Web Vitals](https://web.dev/articles/vitals)
+
+W3C, Android and Web Vitals primary guidance was checked on 9 October 2026. Native accessibility and browser behavior remain acceptance work, not inferred from these references.
+
+## 7. Design-to-finish checkpoints
+
+| Checkpoint | Concrete artifact | Gate and evidence |
+|---|---|---|
+| Reference and journey audit | Resource register, retained/redesigned workflow map, annotated problems and rights register | Observed facts distinguished from proposal; inaccessible Figma details remain explicitly open |
+| Structure and content | Public/admin/mobile navigation, page inventory, field/status vocabulary and realistic synthetic content | Listing-to-enquiry and operator journeys cover errors and recovery; no deferred blank modules |
+| Visual direction | One coherent Realtime home/results/detail set and one working staff queue at phone/desktop sizes | Burgundy brand, photo-led hierarchy, readable type and operator usefulness reviewed with Boniface; no invented claim of exact Figma fidelity |
+| Component and state library | Semantic tokens, reusable components and full state matrix | Contrast/focus/labels/responsive states reviewed; second-company theme exercised without rewriting components |
+| Interactive prototype | Browse/filter/contact and draft/review/enquiry/viewing task paths | Record task observations from prospective visitors and an actual Realtime operator; revise blockers before treating layouts as accepted |
+| Implemented vertical slice | Functional replacement UI against authorized API/database/media services | AC cases executed on the exact build; real delivery/persistence and permission evidence separate from screenshots |
+| Usability/accessibility/device review | Dated observations, recordings/screenshots where consented, audit gaps and retest results | Critical tasks completed without facilitator instructions; unresolved severe blockers remain open |
+| Release content and handover | Authorized stock/images/contact/policies, operator guide and support/monitoring runbook | Rights/account/operator and migration/cutover gates met; old live system retained until replacement acceptance and explicit cutover approval |
+
+For a budget-conscious formative round, aim for five prospective visitors with varied mobile familiarity and at least one actual agency operator; use smaller available rounds to uncover problems rather than postpone all feedback. Test finding a monthly rental under a budget, understanding initial charges, requesting a viewing, recovering an interrupted upload, reviewing a revision and triaging an enquiry. Record completion, assistance, misunderstandings, time and observed failures. The proposed usability gate is at least four of five visitors completing core discovery/contact tasks unassisted and the actual operator completing the staff task set; adjust targets with recorded client input. A small sample is directional evidence, not a statistical guarantee.
+
+Every design/implementation checkpoint records date, build or artifact version, reviewer, task, device/browser, expected/observed result, evidence path and the next change. Reuse AC-010/011/012/016/018/021/024/028/029/034 and the broader acceptance catalogue rather than inventing a second completion percentage. Stage 03 remains open until its design gate is actually met; engineering preview tests alone do not close it.
+
+## 8. Immediate execution order
+
+1. Finish the resource register and annotate the public home/results/detail and staff queue requirements against actual inspected references. Keep exact Figma frame measurements open if unavailable.
+2. Produce the Realtime visual direction with properly licensed photographic examples and deep burgundy tokens, then show a phone and desktop version in a reviewable artifact.
+3. Apply the chosen system to a connected listing-to-enquiry slice and its staff queue, retaining all tested domain/database permissions and calculations.
+4. Build and test the remaining pilot flows, collect operator/usability evidence, then validate second-agency reproduction and actual mobile devices.
+5. Complete the documented release/migration/handover gates. Do not label a prototype or attractive homepage as the finished Realtor Platform.

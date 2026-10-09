@@ -1,0 +1,68 @@
+# Replacement acceptance catalogue
+
+Version 0.1 — 9 October 2026. Implements [business-rules.md](business-rules.md). This is a test specification, **not an executed test report**. Every case starts NOT RUN. Add test ID, build/commit, environment, actor/device, input, expected/actual result and evidence when executing; failed and blocked cases remain open until a verified retest. Existing vendor UAT passes never count as replacement passes.
+
+## Evidence correction
+
+The initial requirements parser counted the UAT table header as R-001. The authoritative report contains **24 substantive confirmed-finding rows**, currently R-002 through R-025, rather than 25 unique defects. Keep R-001 reserved so later IDs and links remain stable. AC-001 verifies this correction and traceability integrity; it is not an invented product defect. The original 260 registered UAT checks are a separate count. Preserve the original evidence and record any source-index correction.
+
+## Required fixtures and execution layers
+
+Use two synthetic companies A/B, two agents A1/A2, administrator A0, customer AC and unauthenticated visitor; no real client PII or live writes. Include assigned/unassigned listings, approved revision plus pending edit, unknown bathroom/coordinate values, studio 0 and exact 7/8/9/10 bedrooms, all canonical types, available/paused/stale/unavailable stock, general enquiry and property enquiry. Include corrupt image, wrong extension/MIME, oversized/overpixel image, valid four/twelve photos, interruption and duplicate retry.
+
+Money boundaries are represented in minor units: for a KES 50,000 threshold test 4,999,999 / 5,000,000 / 5,000,001; for whole-KES display test 49,999 / 50,000 / 50,001 KES; repeat sale threshold KES 10,000,000. Keep these two precision sets distinct. Add zero, negative, one-minor-unit, fractional minor-unit, base-price ceiling and ceiling+1 cases. Every listing-price rule applies equally to create, edit, import and any direct API bypass. Zero computed subtotals are valid; totals must be safe integers even if greater than the defensive base-price ceiling. See the field/implementation mapping in business-rules.md: domain money is `KesMoney.minorUnits`, period is `rentalPeriod`, and the demo `priceMinor` field is an explicit alias.
+
+Run contract/unit tests for validation and calculations, real API/database/storage integration for denial and atomicity, browser/mobile end-to-end for user journeys, and manual device/accessibility/operator checks. In-memory mocks alone do not prove deployed row/storage policy, identity revocation, delivery or tenant isolation. At least two real browsers and actual Android/iOS devices remain gates for their release scope.
+
+## UAT finding-to-case mapping
+
+All 25 existing R IDs are accounted for; R-001 is the correction above. The cases below specify minimum coverage, not exhaustive permutations.
+
+| Requirement | Case | Arrange/action | Required result |
+|---|---|---|---|
+| R-001 reserved/header artefact | AC-001 traceability | Compare authoritative findings table to replacement map | Exactly 24 substantive rows; R-001 marked reserved, every substantive row has case/evidence linkage; no claim of 25 real defects |
+| R-002 listing roles | AC-002 role bypass | Guest/customer try listing route and direct create/update/media calls, including forged role | Protected data withheld; 401/403 as appropriate; no listing/object/job created. Assigned agent/admin permitted |
+| R-003 object ownership | AC-003 owner/tenant denial | A2 edits A1 listing; A1 sends B ID, tenant/actor/assignment values; inspect audit | Requests denied, unchanged records/media. Server derives actor; only authorized admin reassignment succeeds; all queries/exports/subscriptions scoped |
+| R-004 stale logout | AC-004 logout/revoke | Open private view in two tabs/mobile, sign out in one; retry cached edit and revoke membership | Private cards/reasons/drafts/subscriptions clear across tabs; requests denied after sign-out/revocation; no background repopulation |
+| R-005 uploads | AC-005 interruption/idempotency | Interrupt file 3/4, stall past timeout, retry same session/key, cancel and resume | Per-file error/retry, draft retained, accepted files reused, one listing result, no public partial revision; expired objects cleaned and audited |
+| R-006 password visibility | AC-006 authentication UI | Enter dummy password, activate reveal and hide by keyboard/screen reader | Masked initially; named toggle/state; no secret logs or evidence capture |
+| R-007 startup | AC-007 boot/recovery | Cold/deep-link load each app; fail API and chunk request, recover | No module/syntax errors in normal load; bounded loading, useful failure/retry and safe correlation reference, no endless blank page |
+| R-008 consistent minimum | AC-008 amount validation | Create/edit/import/API submit boundary amounts and period mismatch | Same rule everywhere; positive safe-integer minor units accepted within ceiling; invalid numbers/zero rejected; rent period required, sale null; no historical arbitrary floor |
+| R-009 Over endpoints | AC-009 price matching | Query inclusive min/max and Over at rent/sale boundary triplets | Closed min/max include exact boundary; Over excludes equal, includes +1 minor unit; invalid range rejected; period segregated |
+| R-010 stale filters | AC-010 navigation | Set combined filters, navigate away/back/forward, refresh/deep-link/reset | URL, controls, counts, pagination and result predicates agree; no stale selected chips over unfiltered result |
+| R-011 price rounding | AC-011 exact display | Show boundary-neighbour cards/details/favourites/admin/mobile | Distinct exact localized prices and currency/period; abbreviated price never sole comparison label |
+| R-012 fees/totals | AC-012 charges | Use sale999999+fee1500; rent20000+monthly1000+deposit20000+oneoff500; add blank/unknown fee | Sale known1,001,499; rent recurring21,000 and initial41,500 with deposit separated. Blank rows rejected; unknown mandatory fee prevents all-in claim. Initial domain supports known mandatory fees only: unsupported quote entry must be rejected or explicitly retained as an incomplete-cost limitation, not certified passed |
+| R-013 taxonomy | AC-013 canonical labels | Create each type with rent/sale where applicable; display admin/public, map unknown import type | Purpose and type retain correct distinct values/labels; unknown source quarantined; shared vocabulary has no accidental substitution |
+| R-014 rooms | AC-014 exact/grouped rooms | Search exact7/8/9/10 and7+; studio0; shared/private/unknown bathrooms | Exact matches preserve detail;7+ contains7,8,9,10; unknown not0; private/shared distinct and numeric bathroom filter excludes unknown |
+| R-015 phones | AC-015 normalization | Test equivalent 07/01/254/+254 valid examples, malformed short/double-prefix and another explicit country | Equivalent Kenya numbers yield one E.164 value; invalid rejected with field error; no blind+254 duplication; labels do not imply ownership verification |
+| R-016 moderation | AC-016 snapshot states | Submit draft, approve, edit approved, reject edit, pause/resume, stale concurrent decision | Pending never called live; rejected edit preserves old approved price/photos; pause excludes discovery; reason private; stale decision conflicts, state/history consistent |
+| R-017 viewing | AC-017 full viewing | Guest request, assign, propose, record agreement, confirm, reschedule, cancel/complete/no_show; simulate notification failure | Durable ordered transitions, requested≠confirmed, cancelled reminders suppressed, old token invalid, delivery retry visible; no payment/booking ledger claim |
+| R-018 photo minimum | AC-018 image-count boundary | Draft with0/3, submit3/4/12/13 accepted photos via UI and API | Draft may save incomplete; submit4/12 succeeds,3/13 fails everywhere with matching text; cover/order preserved |
+| R-019 real file validation | AC-019 hostile media | Text named.jpg, mismatched MIME, corrupt decode, >10MB, >40MP, valid JPEG/PNG/WebP | Invalid rejected before publication with per-file error; safe derivatives re-encoded/metadata stripped; private media inaccessible cross-tenant |
+| R-020 empty feedback | AC-020 feedback author/content | Submit empty/whitespace, forged author, signed-out feedback; valid signed-in feedback | Empty rejected and counter unchanged; auth/tenant/actor enforced; valid once, trimmed; report/enquiry separate guest flow remains usable |
+| R-021 contact/report | AC-021 contact and triage | Activate WhatsApp/call on web/Android/iOS; submit guest fake-listing report; resolve as admin | Correct encoded HTTPS/tel destination and visible fallback; report durable/private/rate limited; accessible receipt and audit resolution |
+| R-022 commission scope | AC-022 deferred money module | Inspect nav/routes/API for commissions/payments/earnings and future type references | No active payment/commission action or dollar earnings placeholder; intentional unavailable response; canonical KES/type contracts remain consistent. Ledger tests deferred, not passed |
+| R-023 admin empty modules | AC-023 operational queue | Open empty/populated report/support queue; trigger error/loading/disabled states | Clear distinct states, useful actions and retry, tenant scope; no blank body; paid ads hidden/deferred |
+| R-024 accessibility | AC-024 accessible journey | Complete browse/filter/media/enquiry/login/admin/viewing using keyboard and assistive tech; check reflow/contrast | Named controls, logical visible focus, operable chips/dialogs, labels and announced errors/progress; record WCAG2.2AA audit gaps and device evidence |
+| R-025 policies | AC-025 finished policies | Inspect policy pages/links, forms' notice versions, unpublished config | Reviewed company-specific text, correct contacts/links/version; no placeholders/editorial tails; release blocked until reviewer recorded |
+
+## Additional replacement gates
+
+| Case | Minimum acceptance |
+|---|---|
+| AC-026 enquiry durability and abuse | Guest sends without account; valid channel and nonblank message required. Repeated idempotency key yields one record; retry after lost response works. Limit breach returns429/retry time, no secret/PII leakage. No false delivery-success claim |
+| AC-027 lead state and assignment | Agent sees assigned only; admin reassigns to active tenant member; inactive/cross-company assignment rejected. Active post-contact lead has next action; close/reopen reason/history retained. Closed_won does not create payment |
+| AC-028 brand reproduction | Onboard synthetic second agency via validated configuration; company logo/colors/domains/contact/policies render across web/mobile/admin. No code fork or A content/contact/cache/storage/notification appearing in B |
+| AC-029 availability freshness | Advance clock around21/30days; prompt correctly, exclude stale at cutoff, reconfirm restores only eligible approved available stock. Pause/unavailable/archive precedence preserved |
+| AC-030 privacy lifecycle | Only public projection exposed; admin-only audited export; retention dry-run reviewed; deletion covers active/derived data and restore re-deletion. Logs contain no passwords/tokens/message body; reviewed hold prevents accidental deletion |
+| AC-031 migration reconciliation | Authorized staging import twice produces no duplicates; unknown/invalid quarantined; no UAT fixtures/plaintext credentials. Counts/checksums/mappings reconciled; unpublished stock requires confirmation; rollback restores known state |
+| AC-032 restore and failure recovery | Restore database plus media/config into isolated environment from independent backup; verify scoped records, image access and policy versions; record recovery duration/data-loss point against agreed RTO/RPO |
+| AC-033 budget and operations | Meter per-company bytes/listings/emails/staff and cost; validate alerts70/85/100% and optional-cost throttle. KES10,000 ceiling is not asserted as measured cost or unlimited service |
+| AC-034 public/private performance | Profile realistic cold/warm listing/search and slow network media recovery; record mobile/desktop separately. Field CWV requires real traffic; proposed p75 LCP≤2.5s,INP≤200ms,CLS≤0.1 is a target, not current result |
+| AC-035 concurrency and integrity | Race revisions/approval/reassignment/viewing updates; only matching version succeeds. No lost update, conflicting published snapshot, duplicate lead, orphan publicly accessible image or notification sent for rolled-back transaction |
+
+## Stage and release interpretation
+
+Stage 02 can produce a complete documented rule/default and case mapping while operator validation remains explicitly open. “Case specified” is not “case passed”. Foundation tests may prove pure money/filter/transition functions; production identity, tenancy, media and full application/device acceptance remain separate gates. R-017 transactional booking and R-022 commissions are deferred in this pilot: test truthful absence and the implemented viewing workflow, and preserve future ledger acceptance as deferred rather than silently deleting or marking it passed.
+
+Before a web/admin pilot, all applicable security, core correctness, migration, restore, privacy-policy, accessibility and operator scenarios must pass on the release build; document mobile exclusions visibly. Before full platform completion, complete actual Android/iOS, cross-browser and all required stage12–14 gates. No real customer enquiry, production migration, purchase or cutover is performed by this specification.

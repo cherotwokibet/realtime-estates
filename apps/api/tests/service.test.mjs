@@ -1,0 +1,211 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { PGlite } from "@electric-sql/pglite";
+import { createApiService, createLocalEnquiryLimiter } from "../dist/service.js";
+import { PostgresTransactionDatabase, assertSafeRuntimeConnection, DatabaseSafetyError } from "../dist/database.js";
+
+const migration = await readFile(new URL("../../../database/migrations/0001_foundation.sql", import.meta.url), "utf8");
+const id = number => `00000000-0000-4000-8000-${String(number).padStart(12, "0")}`;
+const T = id(1), OTHER = id(2), ADMIN = id(10), AGENT = id(11), PEER = id(12), CUSTOMER = id(13), OTHER_ADMIN = id(20);
+const PUBLIC = id(100), PEER_LISTING = id(101), OTHER_PUBLIC = id(200), CREATED = id(110);
+const content = { title: "Synthetic API studio", description: "Synthetic service integration listing, never production stock.", purpose: "rent", propertyType: "studio", currency: "KES", amountMinor: 2_000_000, rentPeriod: "month", bedrooms: 0, privateBathrooms: 1, sharedBathrooms: null, country: "KE", locality: "Synthetic locality", publicPrecision: "area", latitude: -1.3, longitude: 36.7, privateAddress: "PRIVATE SYNTHETIC ADDRESS" };
+
+async function bootstrapAs(db, tenant, actor, operation) {
+  await db.exec("BEGIN; SET LOCAL ROLE api_runtime;");
+  try {
+    await db.query(`SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)`, [tenant, actor]);
+    const result = await operation(db);
+    await db.exec("COMMIT");
+    return result;
+  } catch (error) { await db.exec("ROLLBACK"); throw error; }
+}
+async function fixture() {
+  const db = new PGlite();
+  await db.exec(migration);
+  await db.query(`INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'synthetic-a','Synthetic A'),($2,'synthetic-b','Synthetic B')`, [T, OTHER]);
+  for (const [tenant, user, role] of [[T, ADMIN, "admin"], [T, AGENT, "agent"], [T, PEER, "agent"], [T, CUSTOMER, "customer"], [OTHER, OTHER_ADMIN, "admin"]]) await db.query("INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,$3)", [tenant, user, role]);
+  for (const [tenant, listing, agent, admin] of [[T, PUBLIC, AGENT, ADMIN], [OTHER, OTHER_PUBLIC, OTHER_ADMIN, OTHER_ADMIN]]) {
+    await bootstrapAs(db, tenant, agent, async query => {
+      await query.query("SELECT app_api.create_listing($1,$2)", [listing, `synthetic-${listing.slice(-3)}`]);
+      await query.query("SELECT app_api.save_draft($1,1,0,$2::jsonb)", [listing, JSON.stringify(content)]);
+      await query.query("SELECT app_api.confirm_availability($1,1,'available')", [listing]);
+    });
+    // Trusted bootstrap test fixture only. This does NOT test upload bytes or a media processor.
+    for (let position = 0; position < 4; position++) await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
+      VALUES($1,$2,1,$3,$4,'image/webp',100,100,100,$5,'Synthetic test image',$6,true)`, [tenant, listing, id(Number(listing.slice(-3)) * 10 + position), `fixtures/synthetic-${listing.slice(-3)}-${position}.webp`, "a".repeat(64), position]);
+    await bootstrapAs(db, tenant, agent, query => query.query("SELECT app_api.submit_revision($1,1,2)", [listing]));
+    await bootstrapAs(db, tenant, admin, query => query.query("SELECT app_api.decide_revision($1,1,3,true)", [listing]));
+  }
+  await bootstrapAs(db, T, PEER, query => query.query("SELECT app_api.create_listing($1,'synthetic-peer')", [PEER_LISTING]));
+  await assert.rejects(() => assertSafeRuntimeConnection({ query: (sql, args) => db.query(sql, args) }), DatabaseSafetyError);
+  await db.exec("CREATE ROLE api_test_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT api_runtime TO api_test_login; SET SESSION AUTHORIZATION api_test_login;");
+  // PGlite is one connection: queue checkouts to model a pool without interleaving transactions.
+  let tail = Promise.resolve();
+  let destroyed = 0;
+  const pool = { async connect() {
+    let unlock;
+    const next = new Promise(resolve => { unlock = resolve; });
+    const previous = tail; tail = next; await previous;
+    return { query: (sql, args) => db.query(sql, args ? [...args] : []), release(destroy) { if (destroy) destroyed++; unlock(); } };
+  } };
+  const database = new PostgresTransactionDatabase(pool);
+  await database.checkConnection();
+  const subjects = { "Bearer test-agent": AGENT, "Bearer test-peer": PEER, "Bearer test-admin": ADMIN, "Bearer test-customer": CUSTOMER, "Bearer test-other-admin": OTHER_ADMIN };
+  const verifyAuthorization = async request => {
+    const actorId = subjects[request.headers.get("authorization")];
+    if (!actorId) throw new Error("Synthetic invalid token; never expose provider details.");
+    return { actorId };
+  };
+  const service = createApiService({ database, tenantId: T, privacyNoticeVersion: "synthetic-notice-v1", verifyAuthorization, limiter: createLocalEnquiryLimiter({ limit: 100 }), clientKey: () => "trusted-synthetic-socket" });
+  const other = createApiService({ database, tenantId: OTHER, privacyNoticeVersion: "synthetic-notice-v1", verifyAuthorization, limiter: createLocalEnquiryLimiter({ limit: 100 }) });
+  return { db, database, service, other, getDestroyed: () => destroyed };
+}
+function request(path, { method = "GET", actor, body, headers = {} } = {}) {
+  return new Request(`https://synthetic.invalid${path}`, { method, headers: { ...(body === undefined ? {} : { "Content-Type": "application/json" }), ...(actor ? { Authorization: `Bearer test-${actor}` } : {}), ...headers }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+}
+const enquiry = { listingId: PUBLIC, name: "Synthetic Prospect", phone: "0700000000", message: "Synthetic enquiry for an integration test.", origin: "web", noticeVersion: "synthetic-notice-v1", noticeAcknowledged: true };
+
+test("API service with actual PostgreSQL migration enforces identity, tenant isolation and persisted workflows", async t => {
+  const fixtureData = await fixture();
+  const { db, database, service, other } = fixtureData;
+  try {
+    await t.test("public projection is tenant-scoped and excludes private address, actors and enquiry contacts", async () => {
+      const result = await service(request("/v1/properties"));
+      assert.equal(result.status, 200);
+      const body = await result.json();
+      assert.equal(body.items.length, 1);
+      assert.equal(body.items[0].id, PUBLIC);
+      assert.equal(body.items[0].amountMinor, 2_000_000);
+      assert.equal(body.items[0].bedrooms, 0);
+      assert.equal(body.items[0].latitude, null);
+      assert.equal(body.items[0].longitude, null);
+      assert.equal(body.items[0].photos.length, 4);
+      for (const field of ["privateAddress", "private_address", "assignedAgentId", "createdById", "phone", "email"]) assert.equal(field in body.items[0], false, field);
+      assert.equal((await (await other(request("/v1/properties"))).json()).items[0].id, OTHER_PUBLIC);
+      assert.equal((await service(request("/v1/properties?limit=101"))).status, 400);
+    });
+    await t.test("guest, invalid token and customer cannot create staff records or access staff lists", async () => {
+      for (const [actor, status] of [[undefined, 401], ["invalid", 401], ["customer", 403]]) {
+        const result = await service(request("/v1/staff/listings", { method: "POST", actor, body: { id: CREATED, slug: "synthetic-created" } }));
+        assert.equal(result.status, status);
+        assert.equal((await service(request("/v1/staff/listings", { actor }))).status, status);
+      }
+    });
+    await t.test("body tenant/role/actor fields cannot grant access or switch company", async () => {
+      for (const field of ["tenantId", "role", "actorId", "createdById"]) {
+        const result = await service(request("/v1/staff/listings", { method: "POST", actor: "customer", body: { slug: "forged", [field]: field === "role" ? "admin" : OTHER } }));
+        assert.equal(result.status, 400);
+      }
+      assert.equal((await service(request("/v1/staff/listings", { actor: "other-admin" }))).status, 403);
+    });
+    await t.test("agent creates assigned-to-self and cannot assign another agent; admin may assign", async () => {
+      assert.equal((await service(request("/v1/staff/listings", { method: "POST", actor: "agent", body: { id: CREATED, slug: "synthetic-created" } }))).status, 201);
+      assert.equal((await service(request("/v1/staff/listings", { method: "POST", actor: "agent", body: { slug: "forbidden-assignment", assignedAgentId: PEER } }))).status, 403);
+      assert.equal((await service(request("/v1/staff/listings", { method: "POST", actor: "admin", body: { id: id(111), slug: "admin-assigned", assignedAgentId: PEER } }))).status, 201);
+      const own = (await (await service(request("/v1/staff/listings", { actor: "agent" }))).json()).items;
+      assert.ok(own.some(item => item.id === CREATED && item.createdById === AGENT && item.assignedAgentId === AGENT));
+      assert.equal(own.some(item => item.id === PEER_LISTING), false);
+      const peer = (await (await service(request("/v1/staff/listings", { actor: "peer" }))).json()).items;
+      assert.equal(peer.some(item => item.id === CREATED), false);
+    });
+    await t.test("persisted drafts require numeric versions, cannot cross assignment/company, and do not become public", async () => {
+      const route = `/v1/staff/listings/${CREATED}/drafts/1`;
+      const result = await service(request(route, { method: "PUT", actor: "agent", body: { expectedVersion: 0, content } }));
+      assert.equal(result.status, 200);
+      assert.equal((await result.json()).version, "2");
+      assert.equal((await service(request(route, { method: "PUT", actor: "agent", body: { content } }))).status, 400);
+      assert.equal((await service(request(route, { method: "PUT", actor: "agent", body: { expectedVersion: 1, content } }))).status, 409);
+      assert.equal((await service(request(route, { method: "PUT", actor: "peer", body: { expectedVersion: 2, content } }))).status, 404);
+      assert.equal((await other(request(route, { method: "PUT", actor: "other-admin", body: { expectedVersion: 2, content } }))).status, 404);
+      assert.equal((await service(request(route, { method: "PUT", actor: "agent", body: { expectedVersion: 2, content: { ...content, tenantId: OTHER } } }))).status, 400);
+      assert.equal((await (await service(request("/v1/properties"))).json()).items.length, 1);
+    });
+    await t.test("HTTP submit cannot bypass four accepted images or expose database diagnostics", async () => {
+      const result = await service(request(`/v1/staff/listings/${CREATED}/drafts/1/submit`, { method: "POST", actor: "agent", body: { expectedVersion: 2 } }));
+      assert.equal(result.status, 422);
+      const raw = await result.text();
+      assert.equal(raw.includes("app_private"), false);
+      assert.equal(raw.includes("Require 4"), false);
+      assert.equal((await service(request(`/v1/staff/listings/${CREATED}/drafts/1/submit`, { method: "POST", actor: "customer", body: { expectedVersion: 2 } }))).status, 403);
+    });
+    await t.test("guest enquiry normalizes phone and retry creates exactly one durable record", async () => {
+      const key = id(300);
+      const headers = { "Idempotency-Key": key };
+      const first = await service(request("/v1/enquiries", { method: "POST", body: enquiry, headers }));
+      const retry = await service(request("/v1/enquiries", { method: "POST", body: { ...enquiry, phone: "+254700000000" }, headers }));
+      assert.equal(first.status, 201); assert.equal(retry.status, 201);
+      const firstId = (await first.json()).id;
+      assert.equal((await retry.json()).id, firstId);
+      const rows = (await (await service(request("/v1/staff/enquiries", { actor: "admin" }))).json()).items;
+      assert.equal(rows.length, 1);
+      assert.equal(rows[0].phone, "+254700000000");
+      assert.equal((await (await service(request("/v1/staff/enquiries", { actor: "agent" }))).json()).items.length, 0);
+      await database.transaction({ tenantId: T, actorId: ADMIN, correlationId: "synthetic-assign" }, query => query.query("SELECT app_api.assign_enquiry($1,1,$2)", [firstId, AGENT]));
+      assert.equal((await (await service(request("/v1/staff/enquiries", { actor: "agent" }))).json()).items.length, 1);
+      assert.equal((await (await service(request("/v1/staff/enquiries", { actor: "peer" }))).json()).items.length, 0);
+    });
+    await t.test("same idempotency key with changed message conflicts and cannot overwrite original", async () => {
+      const result = await service(request("/v1/enquiries", { method: "POST", body: { ...enquiry, message: "A changed synthetic message." }, headers: { "Idempotency-Key": id(300) } }));
+      assert.equal(result.status, 409);
+      const rows = (await (await service(request("/v1/staff/enquiries", { actor: "admin" }))).json()).items;
+      assert.equal(rows.length, 1); assert.equal(rows[0].message, enquiry.message);
+    });
+    await t.test("invalid phone, blank fields, spoofed tenant and non-public listing references are rejected", async () => {
+      for (const body of [{ ...enquiry, phone: "+255700000000" }, { ...enquiry, name: " " }, { ...enquiry, message: " " }, { ...enquiry, tenantId: OTHER }, { ...enquiry, phone: null, email: null }]) {
+        assert.equal((await service(request("/v1/enquiries", { method: "POST", body, headers: { "Idempotency-Key": id(301) } }))).status, 400);
+      }
+      for (const listingId of [OTHER_PUBLIC, CREATED]) assert.equal((await service(request("/v1/enquiries", { method: "POST", body: { ...enquiry, listingId }, headers: { "Idempotency-Key": id(301) } }))).status, 404);
+      assert.equal((await service(request("/v1/enquiries", { method: "POST", body: enquiry }))).status, 400);
+    });
+    await t.test("an arbitrary notice version or missing/false acknowledgement cannot persist an enquiry", async () => {
+      for (const body of [{ ...enquiry, noticeVersion: "invented" }, { ...enquiry, noticeAcknowledged: undefined }, { ...enquiry, noticeAcknowledged: false }]) {
+        const result = await service(request("/v1/enquiries", { method: "POST", body, headers: { "Idempotency-Key": id(305) } }));
+        assert.equal(result.status, 400);
+        assert.equal((await result.json()).error.code, "NOTICE_ACKNOWLEDGEMENT_REQUIRED");
+      }
+      assert.equal((await (await service(request("/v1/staff/enquiries", { actor: "admin" }))).json()).items.length, 1);
+    });
+    await t.test("payload content type and streamed size are bounded", async () => {
+      assert.equal((await service(request("/v1/enquiries", { method: "POST", body: enquiry, headers: { "Content-Type": "text/plain", "Idempotency-Key": id(302) } }))).status, 415);
+      const oversized = new Request("https://synthetic.invalid/v1/enquiries", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": id(302) }, body: JSON.stringify({ ...enquiry, message: "x".repeat(17000) }) });
+      assert.equal((await service(oversized)).status, 413);
+      const malformed = new Request("https://synthetic.invalid/v1/enquiries", { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": id(302) }, body: "{" });
+      assert.equal((await service(malformed)).status, 400);
+    });
+    await t.test("transaction-local identity and role are cleared after successes and failures", async () => {
+      await service(request("/v1/staff/listings", { actor: "admin" }));
+      await service(request(`/v1/staff/listings/${CREATED}/drafts/1`, { method: "PUT", actor: "peer", body: { expectedVersion: 2, content } }));
+      const state = (await db.query(`SELECT current_user AS role,current_setting('realtor.actor_id',true) AS actor,current_setting('realtor.tenant_id',true) AS tenant`)).rows[0];
+      assert.equal(state.role, "api_test_login");
+      assert.ok(state.actor === "" || state.actor === null);
+      assert.ok(state.tenant === "" || state.tenant === null);
+      assert.equal(fixtureData.getDestroyed(), 0);
+    });
+    await t.test("reassignment immediately revokes creator's access on the next API request", async () => {
+      await database.transaction({ tenantId: T, actorId: ADMIN, correlationId: "synthetic-reassign" }, query => query.query("SELECT app_api.reassign_listing($1,1,$2)", [CREATED, PEER]));
+      const former = (await (await service(request("/v1/staff/listings", { actor: "agent" }))).json()).items;
+      assert.equal(former.some(row => row.id === CREATED), false);
+      assert.equal((await service(request(`/v1/staff/listings/${CREATED}/drafts/1`, { method: "PUT", actor: "agent", body: { expectedVersion: 2, content } }))).status, 404);
+    });
+  } finally { await db.close(); }
+});
+
+test("bounded local limiter expires quotas without evicting live entries to admit attackers", () => {
+  let now = 1000;
+  const limiter = createLocalEnquiryLimiter({ limit: 2, maxEntries: 1, windowMs: 10000, now: () => now });
+  assert.equal(limiter.consume("tenant:socket-a").allowed, true);
+  assert.equal(limiter.consume("tenant:socket-b").allowed, false);
+  assert.equal(limiter.consume("tenant:socket-a").allowed, true);
+  assert.deepEqual(limiter.consume("tenant:socket-a"), { allowed: false, retryAfterSeconds: 10 });
+  now = 11000;
+  assert.equal(limiter.consume("tenant:socket-b").allowed, true);
+});
+
+test("failed rollback destroys pooled connection rather than returning contaminated state", async () => {
+  let released;
+  const safe = { currentUser: "api_login", sessionUser: "api_login", superuser: false, bypassRls: false, inheritsRoles: false, ownerMember: false, runtimeMember: true, otherRoleMembership: false, schemaOwner: false, tableOwner: false, canCreateInApp: false, unsafeRuntime: false, runtimeOwnsData: false };
+  const database = new PostgresTransactionDatabase({ async connect() { return { async query(sql) { if (sql === "ROLLBACK") throw new Error("Synthetic broken connection"); return { rows: sql.startsWith("SELECT current_user") ? [safe] : [] }; }, release(destroy) { released = destroy; } }; } });
+  await assert.rejects(() => database.transaction({ tenantId: T, actorId: AGENT, correlationId: "synthetic" }, async () => { throw new Error("Synthetic transaction failure"); }));
+  assert.equal(released, true);
+});

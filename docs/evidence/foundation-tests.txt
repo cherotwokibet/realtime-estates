@@ -1,0 +1,155 @@
+
+> realtor-platform@0.1.0 test
+> npm run build:packages && npm run test --workspace=@realtor/domain && npm run test --workspace=@realtor/demo && npm run test --workspace=@realtor/api && npm run test:database
+
+
+> realtor-platform@0.1.0 build:packages
+> npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/demo
+
+
+> @realtor/domain@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/demo@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/domain@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ public brand config normalizes safe values and can be independently configured for another tenant (7.2842ms)
+✔ branding rejects secret/unknown fields, scriptable URLs, CSS injection and misleading feature types (1.822ms)
+✔ KES decimal text becomes exact minor units without floating point rounding (82.0816ms)
+✔ money rejects silent precision loss, currency coercion, negatives and formatted user text (1.3ms)
+✔ rent quote discloses refundable deposit separately and does not count it as recurring income (1.3803ms)
+✔ fee totals reject duplicates, zero amounts, rental fees on sales, and recurring deposits (0.8327ms)
+✔ Over is strict at the boundary; inclusive ranges and exact counts preserve 7, 8, 9, 10 (2.3918ms)
+✔ ranges fail clearly when contradictory or non-finite instead of silently yielding misleading results (0.5375ms)
+✔ Kenyan mobile contact normalization supports explicit 07/01 forms with formatting (0.792ms)
+✔ unsupported country/prefix, truncated number, double plus and extensions are rejected (0.5434ms)
+✔ guest/customer cannot create listings or inspect private stock (2.7827ms)
+✔ assigned agent can edit their tenant records but cannot review/publish (0.5601ms)
+✔ reassignment revokes the original creator's private access without changing creator history (1.2004ms)
+✔ cross-owner editing and arbitrary record attribution are denied (0.3617ms)
+✔ tenant admin is tenant-wide; inactive or other-tenant membership cannot grant authority (0.4548ms)
+✔ resource/context tenant mismatch denies even public reads and privileged roles (0.4901ms)
+✔ platform owner requires explicit matching tenant context with reason and audit identifier (1.9978ms)
+✔ unknown actions/roles deny by default (0.2899ms)
+✔ studio zero bedrooms and genuinely unknown coordinates are valid (5.9602ms)
+✔ create/edit use one submission validator for price, photos, rental period and location (4.3284ms)
+✔ sale omits rental period, images need stable unique IDs, and prices respect the declared ceiling (1.0142ms)
+✔ a draft cannot publish directly; pending revision cannot be silently changed or reviewed stale (1.8516ms)
+✔ published approved data survives draft changes, review requests and rejected revisions (1.9064ms)
+✔ changes requested/rejection require reason; self-approval requires explicit audited acknowledgement (0.9691ms)
+✔ availability is independent of approval; withdrawn/unpublished/archived do not appear publicly (0.9148ms)
+✔ domain and persistence availability enums use an explicit lossless adapter (0.5087ms)
+✔ purpose revisions cannot label old published rental data sold or new sale data let (0.8201ms)
+✔ listing snapshots do not share mutable draft input (1.4576ms)
+✔ enquiry lifecycle records attributable changes and refuses skips or reopening terminal outcomes (1.122ms)
+✔ viewing is a request until confirmed; terminal statuses cannot be rewritten (0.7444ms)
+✔ workflow timestamps require real calendar values and explicit timezone (0.4486ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 337.3081
+
+> @realtor/demo@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ search applies all URL filters together and inclusive exact maximum (2.4855ms)
+✔ duplicate known URL filters fail closed instead of silently dropping constraints (0.4507ms)
+✔ configured tenants reject inherited object keys and unknown names (0.5342ms)
+✔ malformed, overprecise and zero prices produce errors, never an unfiltered result set (0.8594ms)
+✔ reset has no stale filter state; foreign tenant data is excluded (0.2329ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 207.0937
+
+> @realtor/api@0.1.0 test
+> npm run build && node --test tests/*.test.mjs
+
+
+> @realtor/api@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ real RS256 signature yields only immutable verified subject identity, ignoring role/company claims (322.5965ms)
+✔ bearer header parser rejects missing, duplicate and malformed credentials (11.5872ms)
+✔ expired, future and overlong-lifetime claims fail closed (35.4347ms)
+✔ wrong issuer, audience and malformed subject are denied despite valid signature (31.3833ms)
+✔ issuer, audience, subject, expiry and issued-at are required (18.254ms)
+✔ counterfeit signature, unknown key and absent key ID are denied (11.2552ms)
+✔ HS256 algorithm confusion and unsigned/malformed tokens are denied (13.1687ms)
+✔ token-supplied key URL does not change the trusted JWKS endpoint (11.1491ms)
+✔ unavailable/malformed/redirecting JWKS endpoints deny without following redirects (36.2075ms)
+✔ trusted configuration is captured, not mutable through caller object (30.9296ms)
+✔ missing/untrusted identity configuration is rejected before any key fetch (1.4272ms)
+✔ explicit loopback HTTP exception is rejected in production mode (0.9973ms)
+✔ hostname resolves only configured company and does not grant membership (2.2648ms)
+✔ tenant configuration rejects host collisions, wildcards, duplicate IDs and invalid input (10.6097ms)
+✔ HTTP bridge derives client address from socket and preserves ambiguous authorization for rejection (163.5584ms)
+✔ HTTP bridge caps received bodies before application handler (27.1424ms)
+▶ API service with actual PostgreSQL migration enforces identity, tenant isolation and persisted workflows
+  ✔ public projection is tenant-scoped and excludes private address, actors and enquiry contacts (217.0051ms)
+  ✔ guest, invalid token and customer cannot create staff records or access staff lists (43.2409ms)
+  ✔ body tenant/role/actor fields cannot grant access or switch company (20.0084ms)
+  ✔ agent creates assigned-to-self and cannot assign another agent; admin may assign (75.6503ms)
+  ✔ persisted drafts require numeric versions, cannot cross assignment/company, and do not become public (77.7789ms)
+  ✔ HTTP submit cannot bypass four accepted images or expose database diagnostics (34.6231ms)
+  ✔ guest enquiry normalizes phone and retry creates exactly one durable record (127.0747ms)
+  ✔ same idempotency key with changed message conflicts and cannot overwrite original (23.8532ms)
+  ✔ invalid phone, blank fields, spoofed tenant and non-public listing references are rejected (34.5301ms)
+  ✔ an arbitrary notice version or missing/false acknowledgement cannot persist an enquiry (15.9159ms)
+  ✔ payload content type and streamed size are bounded (3.9819ms)
+  ✔ transaction-local identity and role are cleared after successes and failures (37.8319ms)
+  ✔ reassignment immediately revokes creator's access on the next API request (46.076ms)
+✔ API service with actual PostgreSQL migration enforces identity, tenant isolation and persisted workflows (7049.7217ms)
+✔ bounded local limiter expires quotas without evicting live entries to admit attackers (2.222ms)
+✔ failed rollback destroys pooled connection rather than returning contaminated state (1.4719ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7702.5432
+
+> realtor-platform@0.1.0 test:database
+> node --test database/tests/*.test.mjs
+
+✔ migration forces RLS and API role has neither owner membership nor direct writes (9019.545ms)
+✔ missing context and customer cannot create; agents cannot choose another assignee (4192.6801ms)
+✔ runtime private reads, edits, and reassignments respect company and assignment (7203.9494ms)
+✔ revoked membership and disabled tenant fail the next protected request (2267.6187ms)
+✔ composite foreign keys reject cross-company listing and revision relationships (6698.7466ms)
+✔ money, periods, canonical types, rooms and unknown privileged fields fail closed (7918.5068ms)
+✔ omitted concurrency versions cannot bypass protected updates (3672.5482ms)
+✔ accepted photos cannot make an incomplete draft publishable (6580.4714ms)
+✔ submission requires accepted photos and complete content; agent cannot approve (11245.4875ms)
+✔ approved snapshot excludes private address and precise area coordinates (12458.7436ms)
+✔ draft editing and rejection preserve published revision; stale review conflicts (2733.6654ms)
+✔ withdraw and resubmit preserve history; admin self-approval atomically replaces exact snapshot (1802.4706ms)
+✔ agent can pause/unavailable but only administrator resumes; stale stock excluded (3153.9197ms)
+✔ approval cannot resurrect a listing paused or archived while its revision was pending (4680.2159ms)
+✔ an older pending review cannot overwrite a newer approved snapshot (1576.5678ms)
+✔ enquiry receipt is durable/idempotent and never grants guest/customer private reads (2470.1924ms)
+✔ enquiry assignment, next actions, closure and version restrictions (2231.0668ms)
+✔ transaction-local actor context is cleared on connection reuse (2755.1617ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 93318.4236

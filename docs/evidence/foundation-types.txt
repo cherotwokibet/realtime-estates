@@ -1,0 +1,39 @@
+
+> realtor-platform@0.1.0 typecheck
+> npm run build:packages && npm run typecheck --workspaces --if-present
+
+
+> realtor-platform@0.1.0 build:packages
+> npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/demo
+
+
+> @realtor/domain@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/demo@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/admin@0.1.0 typecheck
+> tsc --noEmit
+
+
+> @realtor/api@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @realtor/mobile@0.1.0 typecheck
+> tsc --noEmit
+
+
+> @realtor/web@0.1.0 typecheck
+> tsc --noEmit
+
+
+> @realtor/demo@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit
+
+
+> @realtor/domain@0.1.0 typecheck
+> tsc -p tsconfig.json --noEmit

@@ -4,7 +4,7 @@ Source: UAT-2026-10-09/UAT-REPORT.md, 9 October 2026. Existing results are evide
 
 | ID | Priority | Existing finding | Decision | Replacement acceptance |
 |---|---|---|---|---|
-| R-001 | Priority | Finding | Redesign | Acceptance after fix |
+| R-001 | Retired | Table header accidentally parsed as a finding | Remove parsing artefact; retain ID history | No defect or implementation claim; authoritative report has 24 substantive findings |
 | R-002 | P1 | Regular role can create listings | Redesign | Enforce listing-role authorization on writes and routes. |
 | R-003 | P1 | Cross-account owner edit accepted | Redesign | Enforce authenticated owner on read/edit/write and derive actor from authenticated session. |
 | R-004 | P1 | Logout leaves private owner view in another tab | Redesign | Clear private state and subscriptions in every tab on sign-out; recheck server permissions. |
@@ -42,4 +42,4 @@ Source: UAT-2026-10-09/UAT-REPORT.md, 9 October 2026. Existing results are evide
 | Firebase Dynamic Links, placeholder policies, vendor code | Remove from replacement | Owned HTTPS links, reviewed policies, independently written code |
 | Per-realtor copies | Redesign | Shared versioned platform with brand/configuration and tenant isolation |
 
-Coverage: 25 confirmed finding rows mapped; detailed tests and evidence remain in the preserved UAT snapshot.
+Coverage corrected 9 October 2026: 24 substantive findings mapped; R-001 retires the mistakenly parsed table header; detailed tests and evidence remain in the preserved UAT snapshot.

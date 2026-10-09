@@ -1,0 +1,130 @@
+# Pilot business rules and data contract
+
+Version 0.1 — 9 October 2026. Owner: Boniface. Applies to the independently written replacement; it does not alter the vendor system.
+
+Boniface has approved continuing the rebuild, will build with Codex, and set KES 10,000 per agency per month as the total recurring service-price planning baseline. The rules below are **provisional implementation defaults under that approval**, not proof that Realtime staff have validated their actual working practices. Build and test with these defaults now; record any change against the acceptance catalogue. Client workflow validation, publication rights, real contacts and reviewed policy text remain release gates. Payments, booking deposits, commission settlement and paid advertising are outside the pilot.
+
+## 1. Actors, ownership and company boundaries
+
+Every protected resource has an immutable `tenantId`; every mutation records the authenticated `actorId`. Resolve the company from a validated domain or explicit configured context and verify current membership on the server. A client-supplied company ID, owner ID, role or display name never grants access. Unknown or suspended company contexts fail closed. Public responses contain approved public fields only; unpublished revisions, private addresses, lead contacts and moderation reasons are separate private projections.
+
+`createdById` is immutable historical attribution. `assignedAgentId` is current operational responsibility and may be changed only by an administrator. A listing belongs to the company; assignment grants limited working access and does not mean legal ownership of the property. Property owner/authority-to-advertise evidence is private and independent of staff account ownership.
+
+| Action | Guest | Customer account | Agent | Company administrator |
+|---|---|---|---|---|
+| Read available approved public stock | Yes | Yes | Yes | Yes |
+| Save favourites | On device | Own favourites | Own favourites | Own favourites |
+| Send enquiry / viewing request / report | Rate limited | Rate limited | Yes | Yes |
+| Create listing draft | No | No | Yes, assigned to self | Yes, choose active agent or self |
+| Read/edit private listing and upload media | No | No | Assigned listings only | Any in own company |
+| Submit listing revision for review | No | No | Assigned listings only | Yes |
+| Approve/reject submitted revision | No | No | No | Yes |
+| Pause assigned listing / mark unavailable | No | No | Yes | Yes |
+| Restore publication / reassign / archive | No | No | No | Yes |
+| Read and update leads/viewings | No | Own request receipt only, no staff notes | Assigned records only | Any in own company |
+| Manage staff, brand, policies, report queue, exports | No | No | No | Yes |
+| Read audit history | No | No | Own listing transition summary | Own company audit |
+
+A sole company administrator may create and approve their own listing; preserve both events and show that the same person performed them. Do not imply independent verification. Platform maintenance has no ordinary application role granting all-company data access. Any future support access must be explicit, time bounded and audited.
+
+Enforce permission and object ownership on every read, mutation, media URL, export, search, background job and subscription. Unauthenticated private requests return 401. Authenticated callers lacking an action permission receive 403; unknown and out-of-scope object IDs return a non-disclosing 404. Do not leak existence through filenames, errors or counts. Revoking membership takes effect on the next protected request. Logout clears private caches, open subscriptions and persisted drafts containing private data in every web tab and on the mobile device. A cached UI is never authorization.
+
+This policy follows the deny-by-default and per-request authorization approach in the [OWASP authorization guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html); automated tests must cover both roles and object relationships.
+
+## 2. Minimum data model
+
+IDs are opaque server-generated identifiers. Store instants in UTC and display operational dates/times in `Africa/Nairobi`; future viewing slots retain their intended zone. Use optimistic concurrency (`version`/ETag) for private updates; stale updates return a conflict rather than overwrite newer work. Text is trimmed, length bounded and rendered as text or sanitized with a deliberately restricted policy.
+
+| Entity | Required pilot fields and invariants |
+|---|---|
+| Company | ID, unique slug, display/legal names where supplied, enabled status, validated domains, logo asset, accessible brand tokens, published business contact, policy versions, feature flags and usage allowances |
+| Membership | Company, user, role `customer/agent/admin`, active status, created/revoked timestamps; no role self-promotion |
+| Listing | Company, stable ID/slug, createdById, assignedAgentId, availability `available/reserved/rented/sold/withdrawn`, active published revision ID or null, lastAvailabilityConfirmedAt, archive timestamp, version |
+| Listing revision | Listing/company, sequential revision, workflow state, title, description, purpose, type, location, pricing, rooms, amenities, media references, submission/decision actor/time, private decision reason |
+| Location | Country `KE`, county, town/locality, neighbourhood; optional validated latitude/longitude and private precise address; public precision `area/exact` explicitly chosen, default area |
+| Media | Company/listing/revision, opaque object key, content-derived MIME, bytes, width/height, checksum, processing state, order, cover flag and alternative-text description |
+| Enquiry | Company, optional listing + immutable contacted revision reference, contact name, normalized phone or email, message, origin, assignedAgentId, status, nextActionAt, notice version and timestamps |
+| Viewing | Company, enquiry, listing, requested alternatives, proposed/confirmed start/end/zone, assignedAgentId, status, cancellation/no-show/completion reason and timestamps |
+| Report/support item | Company, optional listing, category, nonblank description, optional reply contact, state, assigned admin, resolution and timestamps |
+| Audit event | Company, actor/service, action, object ID/type/version, timestamp, correlation ID, safe change summary; never password/token/full contact payload |
+
+Canonical `purpose` is `rent` or `sale`, stored separately from `propertyType`. Initial type vocabulary is `apartment`, `bedsitter`, `studio`, `bungalow`, `maisonette`, `townhouse`, `villa`, `commercial`, `land`; this is a proposed catalogue, not a claim about the vendor's nine labels. Review actual Realtime stock and map aliases before migration. Unknown source labels are quarantined for mapping rather than silently reclassified. The shared contract supplies labels to public/mobile/admin, including any later type additions.
+
+For residential types, bedrooms are exact nonnegative integers: studio/bedsitter use 0 and their distinct type. Preserve 7, 8, 9 and 10 as separate stored values. `7+` is a search group meaning `bedrooms >= 7`. Land has `bedrooms: null`; do not represent unknown or not-applicable as 0. Bathroom fields distinguish `privateBathrooms` and `sharedBathrooms` as nonnegative integers or null when unknown/not applicable; the UI labels unknown explicitly. Values must be credible but arbitrary limits from the old UI are not business rules. Bounds preventing abuse must be identical in server and shared client validation.
+
+Do not fabricate coordinates. Missing coordinates display an area label without a pin. Exact residential address and owner evidence remain private unless intentionally approved for publication. No listing receives a “verified” badge merely because an admin approved it; identity/advertising authority/availability verification requires recorded evidence and a separate future policy.
+
+## 3. Money, charges and search
+
+All monetary values use integer minor units, where one KES is 100 minor units. The implemented shared `KesMoney` shape is `{ currency: "KES", minorUnits: integer }`; `amountMinor` below is a logical field description, not a second competing money contract. Do decimal parsing/formatting explicitly; do not derive cents by unchecked floating-point multiplication. Contract values must remain safe integers; the initial defensive ceiling for a listing's base price is 100,000,000,000,000 minor units. Zero, negative, NaN, fractions of a minor unit and base prices above the ceiling fail both creation and editing. Totals may exceed the defensive base-price ceiling but must remain safe integers. A positive minimum of one minor unit is a technical floor, not a claim that such a listing is commercially reasonable. Remove the vendor's arbitrary KES 5,000 rent / KES 100,000 sale floor unless the client later supplies a documented rule.
+
+Rent requires `rentPeriod: day/week/month/year`; default the input to month but require confirmation. Sale requires null rental period. Cards, details, search and admin show exact localized prices such as **KES 50,001 / month**. Approximate “50K” may appear only as secondary information, never the sole comparison price. Keep currency and period visible in all quote summaries.
+
+An additional charge requires a nonblank name, recurrence `one_off/per_rental_period`, classification `fee/refundable_deposit`, mandatory flag and known/quote-required flag. A known charge has a positive amount; a quote-required charge has a null amount, never an invented zero. Reject blank placeholder rows. A refundable deposit is shown separately and never labelled a nonrefundable fee; in the pilot it is a one-off amount. `per_rental_period` applies only to rent and inherits its stated period. No commission formula, percentage or earnings ledger exists in the pilot.
+
+For a rent listing show base rent, each recurring charge, **known recurring total per stated period**, one-off fees and refundable deposits. If all mandatory amounts are known, show **known initial amount** = one first rental period + mandatory recurring charges for that period + mandatory one-off fees + refundable deposits. Explain that this calculation does not choose lease duration or a prorated move-in date. If a mandatory amount is quote-required, label the known subtotal and “additional amount to confirm”; never call it an all-in total. A sale summary shows sale price plus known mandatory one-off fees and separate refundable amounts; disclose omitted/quote-required costs. Taxes and third-party fees are not fabricated or assumed zero.
+
+Search applies to the **base advertised price**, never a fee-only or computed move-in total. Min/max are inclusive; `min <= max`. A displayed “Over KES 50,000” query uses strictly `>`; an inclusive query must say “KES 50,000 and above”. Rent search includes a required period, initially month; do not compare daily and monthly prices as if equivalent. Purpose, type, rooms, location and availability combine with logical AND. `7+` includes exact 7. Unknown bathroom counts do not match a numeric bathroom filter. Store filters in URL/query state; back, forward, refresh and deep links render results matching the visible controls. Resetting controls resets results. Only active available approved snapshots appear in normal discovery; totals/pagination reflect that same predicate. A listing's owner can see it in public discovery under the same public predicate.
+
+Example: sale KES 999,999 plus mandatory one-off fee KES 1,500 shows price 999,999, fee 1,500 and known amount 1,001,499. It never shows 1,500 as the property total. Monthly rent 20,000 + mandatory monthly service fee 1,000 + refundable deposit 20,000 + one-off fee 500 shows recurring 21,000, deposit 20,000 and known initial 41,500.
+
+## 4. Listing revision and publication lifecycle
+
+Revisions follow `draft -> pending -> approved/rejected`; a submitter can withdraw pending back to draft before decision. Drafts may be incomplete. Submission validates the entire model and all accepted media. Rejection requires a private, nonblank reason and returns editable work; resubmission creates a new review event. An approval references an exact immutable revision version and atomically replaces the published snapshot. A stale approve/reject attempt fails with a conflict.
+
+Editing an approved listing produces a separate draft. Public discovery continues showing the previous approved revision until the new revision is approved; rejection never destroys the approved content. Keep `publicationStatus` (unpublished/published/paused/archived), revision workflow and business availability distinct. Show precise labels: “Awaiting approval”, “Rejected — changes required”, “Published”, “Paused”, “Rented”, “Sold” or “Withdrawn”. Submitting never says “live”. An agent may immediately pause or mark their assigned stock unavailable; resuming public publication requires admin action against a still-valid approved revision. Archive is reversible privately and removes public discovery; destruction is a retention operation, not ordinary Delete.
+
+Proposed freshness default: prompt assigned staff after 21 days since availability confirmation; after 30 days, exclude stale stock from normal discovery until a permitted staff member reconfirms availability. Preserve the last public snapshot privately. The UI and audit record distinguish a freshness expiry from a rejection. Client validation may change these intervals before launch.
+
+## 5. Recoverable media
+
+Proposed submission rule: 4–12 accepted photos for a listing; drafts may have fewer. Keep the rule in one shared contract and enforce it on the server. Initial accepted formats: JPEG, PNG and WebP; maximum 10 MB input each, maximum decoded 40 megapixels, no video upload. External video links may be recorded only under a later approved provider policy. Check file signatures and successfully decode/re-encode server-side; filename/MIME alone is insufficient. Strip private metadata from public derivatives. Use generated object keys and optimized variants; never expose storage credentials.
+
+Upload sessions and final listing submission use idempotency keys. Each file has visible progress, bounded timeout (initial 60 seconds without progress), cancel and per-file retry. Keep a recoverable private draft and accepted files on recoverable failure; avoid forcing complete reselection. A failed file cannot produce a publicly visible partial revision. Cancelled/expired session objects are cleaned by a recorded job, initially within 24 hours. Deduplicate retries within the same session; submitting the same idempotency key returns the original result rather than duplicate listings. Production timeout/size choices must be verified on actual Kenyan mobile connections and devices.
+
+## 6. Enquiries, viewing and support operations
+
+Guests may enquire without an account. Require name, one valid reply channel (phone or email), a trimmed 1–2,000-character message, and acknowledgement of the current enquiry privacy notice. Marketing consent, if offered later, is separate and optional. Phone input accepts Kenyan `07…`, `01…`, `254…` and `+254…` forms and stores a validated E.164 value; do not concatenate prefixes blindly. Use a maintained phone parser and explicit country selection for other countries. Formatting acceptance does not prove number ownership.
+
+Apply tenant/contact/network limits with abuse escalation; provisional starting points are 5 submissions per 10 minutes per network/company and 3 equivalent submissions per hour per normalized contact/listing. Do not store raw IP indefinitely or treat these limits as identity proof. Return 429 with a retry time and an accessible alternative contact. Use an idempotency key for retry, preserve user input on recoverable errors and display a non-enumerable receipt/reference only after durable acceptance. Transactional delivery errors queue retry and visible admin status; never claim a message was received by the agent merely because the form saved.
+
+Enquiry states: `new -> assigned -> contacted -> qualified -> closed_won/closed_lost/spam`. Admin assigns to an active staff member; the assigned agent updates ordinary states. A closed record may be reopened with reason to `assigned` (or `new` if unassigned). Require next action date for active records after contact, and a reason for closed_lost/spam. Closed_won is a staff-reported outcome, not proof of payment. Record every transition. Proposed operating target is a first response within one business day; business hours and actual target remain client-validation items. Leads may be general, without a property; assignment is not silently inferred from visitor-selected user IDs.
+
+Viewing states: `requested -> proposed -> confirmed -> completed/no_show/cancelled`; requested/proposed can also be declined or cancelled. Agent proposes a real slot; confirmation requires recorded customer agreement (staff records phone agreement, or customer confirms through an expiring unguessable token). A requested date is not a confirmed appointment. Rescheduling creates a new proposed slot, invalidates old confirmation tokens and retains history. Cancellation requires actor/reason and suppresses future reminders. A listing becoming unavailable alerts assigned staff; uncompleted viewings need explicit cancellation or a recorded exception, never silent deletion. Use “Request a viewing”, not payment/booking-complete language. Pilot notifications use in-app staff queue and budgeted transactional email where configured; WhatsApp and call are direct links. No automated WhatsApp campaign or SMS purchase is assumed.
+
+WhatsApp uses the normalized digits in an HTTPS chat link with correctly encoded listing URL/text. Call uses `tel:` and an accessible visible number. Handle unavailable clients through visible contact details. Public “Report this listing” accepts a category and nonblank description without mandatory login; rate-limit and create a private admin queue. Support states are `new/in_review/resolved/dismissed`, with resolution/reason and audit. Feedback, if retained for signed-in customers, rejects whitespace-only content and cannot change the tenant/user author by payload. Empty queues, disabled features and service errors have clear distinct UI states. Hide deferred payment/ads/commission navigation; never ship blank modules or false promises.
+
+## 7. Privacy, accessibility and operational guardrails
+
+Collect only contact and operational data needed for the enquiry/viewing service. Publish no lead details, private owner evidence, precise addresses by default or administrative reasons. Restrict exports to admins and audit them; provide contact correction and privacy request handling. Do not log passwords, tokens, session cookies or contact-message bodies. Credentials belong in the identity system; no plaintext password field exists in domain models or migration exports.
+
+Proposed retention defaults for review: purge unsubmitted anonymous enquiries after 24 hours; review closed enquiry/viewing personal data after 180 days; retain a minimal operational audit for 12 months, with minimized identifiers; expire ordinary backups after 30 days. An approved business retention need/hold overrides scheduled deletion through a recorded, bounded process. Deletion must cover active database, search/cache/derived media and later backup expiry/restore re-deletion. Deletion/export requests require identity verification proportional to the data and a tracked queue. Exact periods, notices, processor terms, incident procedure and any registration/cross-border obligations need a Kenyan privacy review before production. These engineering defaults are **not legal certification**. Use the [ODPC guidance catalogue](https://www.odpc.go.ke/guidelines-2/) as the primary starting point for that review.
+
+Target [WCAG 2.2 AA](https://www.w3.org/TR/WCAG22/): keyboard paths, semantic names/states, visible focus, contrast, reflow, labelled fields, associated errors, live progress/error announcements and accessible authentication. A small component test or automated scan does not establish whole-product conformance. Password fields are masked by default with labelled opt-in reveal. Startup has a bounded loading state, safe retry and a correlation reference on failure, with no secret stack trace.
+
+## 8. Migration and pilot gate
+
+Migration runs only against an authorized, documented export with reuse rights. Preserve an immutable source snapshot and mapping version. Stage imports into a nonproduction tenant; validate money/periods/types/phones and quarantine invalid or unknown fields. Never invent missing prices, coordinates, customer consent or approved status. Exclude synthetic UAT fixtures, plaintext passwords, tokens and provider keys. Existing users are invited/reset through the new identity system; possession of an old password hash does not prove compatibility or permission to import it.
+
+Reconcile source/staged/accepted/rejected counts, mandatory fields and media checksums; sample old-to-new public and private projections. Import source provenance IDs privately so repeated runs are idempotent. Imported stock starts unpublished unless an authorized realtor explicitly confirms authority, price, media, availability and public fields. Test restore and rollback on the replacement before cutover. Keep the old service available until the agreed replacement scope passes its own acceptance, operator UAT and migration gate. New test passes cannot be inferred from the vendor UAT.
+
+## 9. Decisions still requiring client evidence
+
+Build continues with the defaults above. Before live pilot acceptance, Boniface and a Realtime operator must validate: actual catalogue labels; authority/media rights; published contacts and area precision; 4-photo rule; freshness intervals; staff and self-approval policy; notification inbox and hours; viewing agreement recording; retention/policy text; initial real stock and publisher/domain control. Optional payments, commissions and advertising require a separately costed scope and tests. Mark this document client-validated only after recording reviewer, date, changes and evidence; broad build approval is not a signed-off claim about those facts.
+
+## 10. Initial implementation mapping and limits
+
+The business model above is the target contract. The first `@realtor/domain` package implements a bounded subset; the draft `@realtor/demo` package supplies synthetic read-only UI data. Field mappings avoid treating a UI alias as a competing domain definition:
+
+| Logical rule | Initial source representation | Boundary |
+|---|---|---|
+| KES integer amount | `KesMoney.currency` + `minorUnits`; `kesFromMajor`, `kesFromMinor`, `formatKes` | A money value can be zero for computed subtotals; listing validation separately requires positive base price |
+| Base advertised amount | Domain property `price: KesMoney`; demo `priceMinor` is its numeric minor-unit alias | Convert explicitly at the demo/application boundary; never interpret `priceMinor` as KES shillings |
+| `rentPeriod` | `rentalPeriod: day/week/month/year` or null | Demo currently contains monthly/null examples only; formatting must use the actual period |
+| Additional known mandatory charge | `ListingFee { id, name, amount: KesMoney, timing, refundable }` | All initial entries are mandatory and known; optional/quote-required flags are specified future work, not implemented support |
+| Refundable deposit | `refundable: true`, `timing: one_off` | Keep separate `refundableDeposit`; initial helper rejects recurring refundable deposit |
+| Price summary | `calculatePriceBreakdown` with `recurringFees`, `nonRefundableOneOff`, `refundableDeposit`, `dueAtStart`, `recurringTotal` | `dueAtStart` is the known initial subtotal, not proof that every tax/third-party/unknown charge was supplied |
+| Inclusive/strict filter | `NumericRange` min/max with explicit `inclusive` booleans | Price callers pass integer minor units, room callers pass numeric counts; strict Over uses `inclusive: false` |
+| Kenyan phone format | `normalizeKenyanPhone` | Initial helper checks the supported Kenyan mobile-format forms only; no ownership/allocation verification or general international parser is implied |
+
+Until quote-required fees are represented and rendered, an application must refuse an incomplete pricing claim or label the supplied costs as a known subtotal and record the limitation. An empty fee array means “no additional amounts supplied”, not “no additional fees exist”. Initial pure helper tests do not prove authenticated API policy, storage isolation, durable state transitions, notifications, migration, backups, actual device behavior or production readiness. Record those tests against the separate acceptance cases when their implementations exist.

@@ -1,0 +1,29 @@
+{
+  "name": "realtor-platform",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24.3.0 <25"
+  },
+  "scripts": {
+    "build:packages": "npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/demo && npm run build --workspace=@realtor/api-client",
+    "test": "npm run build:packages && npm run test --workspace=@realtor/domain && npm run test --workspace=@realtor/demo && npm run test --workspace=@realtor/api && npm run test --workspace=@realtor/api-client && npm run test:integration --workspace=@realtor/api-client && npm run test:database",
+    "typecheck": "npm run build:packages && npm run typecheck --workspaces --if-present",
+    "build:web": "npm run build:packages && npm run build --workspace=@realtor/web && npm run build --workspace=@realtor/admin",
+    "dev:web": "npm run build:packages && npm run dev --workspace=@realtor/web",
+    "dev:admin": "npm run build:packages && npm run dev --workspace=@realtor/admin",
+    "dev:mobile": "npm run build:packages && npm run start --workspace=@realtor/mobile",
+    "test:database": "node --test database/tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
+  }
+}
