@@ -32,7 +32,10 @@ Treat new source as private pending an explicit licensing decision. No open-sour
 The realtor can publish accurate stock, receive and assign enquiries, schedule viewings and follow up without a parallel unmanaged spreadsheet. Establish baseline and target measures with the realtor: enquiry response time, listing freshness, lead follow-up completion and weekly active staff. No numeric business claims until agreed. Release requires role/tenant/ownership denial tests, upload recovery, exact pricing, device and accessibility checks, end-to-end UAT, backup restore rehearsal, migration reconciliation and rollback rehearsal.
 
 ## Open decisions
-Confirm builder/team availability and monthly running budget; permitted asset/data reuse; listing permissions; minimum prices; filter endpoints; photo minimum; viewing assignment and notification flow; account/store ownership. Recommended initial assumption: realtor staff publish listings, visitors enquire, no payments. These assumptions are not accepted business rules yet.
+Builder confirmed: Boniface with Codex. Total recurring service-price baseline: KES 10,000 per realtor per month; see service-budget.md. Weekly availability remains unknown. Confirm permitted asset/data reuse; listing permissions; minimum prices; filter endpoints; photo minimum; viewing assignment and notification flow; account/store ownership. Recommended initial assumption: realtor staff publish listings, visitors enquire, no payments. These assumptions are not accepted business rules yet.
+
+## Commercial and delivery baseline
+See [service-budget.md](service-budget.md) for confirmed staffing/price, sourced candidate costs, proposed limits and solo delivery sequence. Allocations are estimates; no suppliers provisioned.
 
 ## Next
 Review scope and account/rights questions, export design references, establish off-device backup/remote, then close Stage 01 and specify Stage 02 business rules. No live changes or vendor retirement occurred.
