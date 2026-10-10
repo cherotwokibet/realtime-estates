@@ -29,6 +29,12 @@ Direct API decision requests now validate original expectedVersion tokens before
 
 An initial integrated run passed265 checks. After the parser correction, focused API tests passed51/51. A subsequent full rerun encountered severe host memory pressure:587MiB free on a7,834MiB Windows host, and otherwise similar SQL cases took around100seconds. Only verified owned test runner/children were stopped; the first stop guard refused after one child finished and stopped nothing. The interrupted diagnostic output is preserved in moderation-retest-resource-stop.txt. Database, API integration and HTTP harness file concurrency is now bounded to one, retaining all cases. The final rerun is recorded separately in moderation-tests.txt; an interrupted run is never counted as a complete pass.
 
+## Final completed verification
+
+The final owned command completed with exit0 on10October2026: root npm test passed265 checks with0 failures/skips/cancellations; root npm run typecheck passed all seven workspaces; npm run build --workspace=@realtor/admin completed the optimized Next production build, including /reviews and its queue/detail/decision BFF routes. Logs: [full regression](moderation-tests.txt), [workspace typechecks](moderation-types.txt), [admin build](moderation-admin-build.txt). Test distribution:65 domain,5 demo,51 API,50 client transport,21 actual client/service integration,28 SQL,21 web,12 admin and12 real synthetic HTTP harness. No application runtime changed after that run; this follow-up adds documentation and completed logs.
+
+The earlier stopped rerun remains diagnostic evidence only. Its resource problem was not counted as a pass. Browser control recovered after the final checks; current dashboard exports18/19 were preserved before the verified baseline update. This recovery is not new application/device/accessibility acceptance. The new trusted-media command/runtime documents are reviewed proposals; no codec, upload command or provider was executed or provisioned.
+
 ## Remaining work
 
 Trusted photo-byte processing/storage, distinct-photo validation, processor-only finalize/remove/reorder commands with revision version increments, durable upload/recovery and real public image delivery remain open. Current accepted rows are bootstrap metadata only and can share keys/checksums; they do not establish verified photos or rights. See [trusted media plan](../trusted-media-plan.md).
