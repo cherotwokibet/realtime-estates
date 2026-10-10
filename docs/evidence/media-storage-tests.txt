@@ -1,0 +1,52 @@
+
+> realtor-platform@0.1.0 test:media
+> npm run test --workspace=@realtor/media
+
+
+> @realtor/media@0.1.0 test
+> npm run build && node --test --test-concurrency=1 tests/*.test.mjs
+
+
+> @realtor/media@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ independently constructed PNG pixels become a fresh WebP with exact derived manifest (57.0364ms)
+✔ real JPEG, progressive JPEG and static WebP are decoded and newly encoded (62.3238ms)
+✔ EXIF orientation changes pixels and dimensions while source metadata is removed (45.129ms)
+✔ resize bounds both axes to1920 without enlarging small sources and preserves alpha (274.2604ms)
+✔ input snapshot prevents ordinary Buffer mutation after the call from changing decode/hash (8.5888ms)
+✔ actual Buffer length and immutable policy enforce the10MiB cap before parsing (4.8093ms)
+✔ forged PNG headers exceed40MP or the separate16384-axis limit before decode (4.4056ms)
+✔ output cap uses actual freshly encoded bytes and trusted overrides can only tighten it (26.1026ms)
+✔ unsupported formats and signature-only spoofing do not produce output (5.1839ms)
+✔ container names compare literal bytes and never mask high-bit lookalikes (6.2209ms)
+✔ truncation, invalid PNG CRC/data and RIFF length/overflow fail closed (18.2444ms)
+✔ full APNG and APNG frame/control chunks are rejected rather than taking one frame (3.8024ms)
+✔ real animated WebP and each animation indicator are rejected (8.4763ms)
+✔ concatenated JPEGs, source trailing data and JPEG MPF are rejected (5.9112ms)
+✔ local synthetic flow preserves captured input and separately stores actual codec output (122.2626ms)
+✔ failed actual decoding leaves quarantine private and creates no output in the local flow (58.2376ms)
+✔ storage publication alone certifies byte identity, not image safety or SQL acceptance (59.8917ms)
+✔ generated owned root, opaque handle and actual stream receipt preserve only the yielded view (60.3296ms)
+✔ actual streamed10MiB limit stops at the first excess chunk and removes the partial file (179.1963ms)
+✔ invalid, empty and SharedArrayBuffer chunks never become stored objects (107.3764ms)
+✔ per-chunk snapshots keep written bytes and digest paired when the producer reuses its view (72.4911ms)
+✔ abort races a pending next(), asks cancellation once and consumes late producer rejection (69.2038ms)
+✔ producer failure and pre-aborted input close/delete partial work and release admission (89.5265ms)
+✔ bounded admission rejects extra operations and queued publication snapshots immediately (113.5517ms)
+✔ outputs are generated exclusive objects rather than overwriteable keys (52.6268ms)
+✔ forged, serialized, cross-store and disposed handles are not object capabilities (75.6807ms)
+✔ same-length altered and truncated stored bytes fail actual SHA/length revalidation (116.4613ms)
+✔ dispose cancels blocked ingestion, rejects queued writes, and preserves the supplied parent (58.4807ms)
+✔ file creation failure still requests producer cancellation (58.6022ms)
+✔ unknown entries prevent cleanup rather than deleting an unexpected tree (63.487ms)
+✔ substituted symlink or Windows junction fails closed and leaves outside bytes untouched (44.0002ms)
+✔ relative and non-directory parents are refused without creating a root (3.7727ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5769.2823

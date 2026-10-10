@@ -1,5 +1,7 @@
 # Next delivery: trusted image acceptance
 
+Latest local result: a separate disposable local store now implements streamed bounds, generated quarantine/output identities, integrity readback, cancellation and owned nonrecursive cleanup.32 focused codec/storage/integration tests and eight typechecks passed; see evidence/2026-10-10-media-storage.md. This is still not image/SQL acceptance or production retention. Next implement/test process containment in processor-containment-plan.md before automatic timeout cleanup/retry, then the authenticated command/provenance slice below. Historical paragraphs remain at-time planning evidence.
+
 10 October 2026, Africa/Nairobi. This is an implementation plan, not completed upload or production evidence. No package or provider was provisioned by this review. Use independently generated synthetic image bytes first; preserve vendor assets while reuse rights remain unresolved.
 
 ## Existing boundary and gaps

@@ -1,6 +1,6 @@
-# Local experimental synthetic image codec
+# Local experimental synthetic image codec and storage
 
-`@realtor/media` is a Node-only byte-conversion proof, independent of the vendor's code and images. It does not accept production uploads, mark media accepted, save objects, create database records, or connect a provider. `synthetic-codec-v1` identifies this experimental pipeline, not a production approval.
+`@realtor/media` provides a Node-only byte converter and a separate disposable local store, independent of the vendor's code and images. It does not accept production uploads, mark media accepted, save production listing objects, create database records, or connect a provider. `synthetic-codec-v1` identifies this experimental pipeline, not a production approval.
 
 ```ts
 import { convertSyntheticImage } from '@realtor/media';
@@ -23,4 +23,16 @@ npm run typecheck --workspace @realtor/media
 
 The test command builds first and runs test files sequentially. Tests create original synthetic pixels in memory. `tests/fixtures.mjs` independently constructs PNG/APNG chunks using Node zlib and a bit-at-a-time CRC; JPEG/WebP fixtures and output decoding use the same Sharp/libvips build as the codec, so they are not independent decoder verification. Forged large-dimension PNG headers prove early rejection without allocating a 40 MP fixture; they are explicitly not valid large decoded images. No external images or provider resources are used.
 
-Remaining boundaries: the complete input already exists in memory; copying and native decoding/encoding allocate additional memory. Pixel/header checks, JS heap settings and post-encode limits do not impose an OS/native-memory or wall-clock bound. There is no subprocess containment, process-tree termination, sandbox, network restriction, private filesystem/object storage, lease, authenticated intent, idempotency receipt or deletion/retention policy here. SharedArrayBuffer concurrency is outside this caller contract. Deployment architecture, licence/notices redistribution, decoder isolation/resource limits and the trusted finalize protocol still need separate implementation and verification before any real-media acceptance. This package imports only Sharp and Node built-ins; Sharp selects its installed native binding/libvips packages.
+Converter boundaries: the complete input already exists in memory; copying and native decoding/encoding allocate additional memory. Pixel/header checks, JS heap settings and post-encode limits do not impose an OS/native-memory or wall-clock bound. SharedArrayBuffer concurrency is outside the converter caller contract. Sharp selects its installed native binding/libvips packages.
+
+## Disposable local storage
+
+The separate `@realtor/media/local-store` subpath imports only Node built-ins and the fixed policy. `createLocalSyntheticStore(trustedAbsoluteParent)` creates a fresh generated directory with distinct quarantine/output directories. It accepts no client filename, object key or URL. `ingest(asyncByteSource, {signal})` bounds streamed bytes to 10 MiB; `read(handle)` rechecks the captured file identity, actual length and SHA-256; `publish(buffer)` snapshots ordinary bytes immediately and exclusively creates a fresh output. Receipts contain a frozen in-memory handle, kind, length and hash. A copied/serialized or other-store handle cannot read an object.
+
+This is storage byte identity, **not image acceptance**. A caller must separately run the codec and compare its input/output facts. Storage alone can hold arbitrary bounded bytes, creates no SQL record and supplies no durable job, lease, intent, authorization, retry receipt or public delivery. A demonstration integration test uses synthetic streamed PNG → captured read → actual codec → separate output → verified read; execution results are recorded separately in the evidence document.
+
+Abort/disposal stops adapter writes and requests producer `return()` without waiting forever for a suspended producer. It cannot force arbitrary producer code to stop. Disposal removes only known owned files and then empty known directories, with identity checks and no recursive fallback; unexpected entries or replacement files fail closed. This method is exclusively for a disposable local store. **Never use it for referenced listing objects, backups or retention cleanup.**
+
+The parent and filesystem must be trusted and stable. Best-effort no-follow, regular-file/link-count and identity checks reduce accidental traversal; they cannot defeat hostile same-user reparse/symlink races. Windows file modes do not establish an ACL boundary. No network-filesystem, crash-durability or filesystem-failure recovery guarantee follows from local success. Operations have bounded admission and execute sequentially; this is not a native memory/CPU quota or a wall-clock limit on filesystem calls.
+
+No subprocess containment, process-tree termination, OS sandbox or network restriction is implemented. The proposed Windows supervisor requires its own executed proof; see `docs/processor-containment-plan.md` from the repository root. Deployment architecture, licence/notices redistribution, decoder isolation/resource limits and trusted SQL finalization still need separate implementation and verification before any real-media acceptance.
