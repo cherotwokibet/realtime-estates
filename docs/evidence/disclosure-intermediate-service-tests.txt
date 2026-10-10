@@ -1,0 +1,57 @@
+▶ API service with actual PostgreSQL migration enforces identity, tenant isolation and persisted workflows
+  ✔ public projection is tenant-scoped and excludes private address, actors and enquiry contacts (238.617ms)
+  ✔ guest, invalid token and customer cannot create staff records or access staff lists (72.2667ms)
+  ✔ body tenant/role/actor fields cannot grant access or switch company (22.1138ms)
+  ✔ agent creates assigned-to-self and cannot assign another agent; admin may assign (117.9887ms)
+  ✔ persisted drafts require numeric versions, cannot cross assignment/company, and do not become public (120.3307ms)
+  ✔ HTTP submit cannot bypass four accepted images or expose database diagnostics (54.7603ms)
+  ✔ v2 public projection preserves explicit unknowns and v1 stays unchanged (48.514ms)
+  ✔ v2 draft writes and private reads preserve declared fees and nullable location (117.5111ms)
+  ✔ v2 private draft reads enforce identity, assignment and company scope (102.9941ms)
+  ✔ v2 rejects ambiguous, noncanonical and unsafe disclosure before any write (59.4168ms)
+  ✔ v2 uses optimistic locking and cannot cross assignment or company on writes (128.9895ms)
+  ✔ v2 atomic rent-to-sale edit replaces incompatible fees without an intermediate state (51.694ms)
+  ✔ v2 submit retains media gate and leaves a failed submission editable (45.5842ms)
+  ✔ bounded v2 body accepts valid Unicode field maxima and rejects oversized payloads (151.4092ms)
+  ✖ v2 rejects fractional money tokens before JSON rounding can turn them into safe integers (12.8469ms)
+  ✔ guest enquiry normalizes phone and retry creates exactly one durable record (171.0378ms)
+  ✔ same idempotency key with changed message conflicts and cannot overwrite original (39.4486ms)
+  ✔ invalid phone, blank fields, spoofed tenant and non-public listing references are rejected (44.2169ms)
+  ✔ an arbitrary notice version or missing/false acknowledgement cannot persist an enquiry (33.599ms)
+  ✔ payload content type and streamed size are bounded (4.5967ms)
+  ✔ transaction-local identity and role are cleared after successes and failures (35.4671ms)
+  ✔ reassignment immediately revokes creator's access on the next API request (60.2952ms)
+✖ API service with actual PostgreSQL migration enforces identity, tenant isolation and persisted workflows (10710.8789ms)
+✔ bounded local limiter expires quotas without evicting live entries to admit attackers (0.8069ms)
+✔ failed rollback destroys pooled connection rather than returning contaminated state (1.0305ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 23
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11696.7188
+
+✖ failing tests:
+
+test at apps\api\tests\service.test.mjs:248:13
+✖ v2 rejects fractional money tokens before JSON rounding can turn them into safe integers (12.8469ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'INVALID_JSON'
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/tests/service.test.mjs:256:16)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/tests/service.test.mjs:248:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'INVALID_JSON',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

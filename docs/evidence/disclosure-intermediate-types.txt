@@ -1,0 +1,28 @@
+
+> realtor-platform@0.1.0 typecheck
+> npm run build:packages && npm run typecheck --workspaces --if-present
+
+
+> realtor-platform@0.1.0 build:packages
+> npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/demo && npm run build --workspace=@realtor/api-client
+
+
+> @realtor/domain@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/demo@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+src/index.ts(2,41): error TS2305: Module '"@realtor/domain"' has no exported member 'parseListingJsonV2'.
+npm error Lifecycle script `build` failed with error:
+npm error code 2
+npm error path C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\packages\api-client
+npm error workspace @realtor/api-client@0.1.0
+npm error location C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\packages\api-client
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c tsc -p tsconfig.json

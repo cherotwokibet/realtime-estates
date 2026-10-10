@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 
-const migration = await readFile(new URL('../migrations/0001_foundation.sql', import.meta.url), 'utf8');
 const id = (number) => `00000000-0000-4000-8000-${String(number).padStart(12,'0')}`;
 const T = id(1), OTHER = id(2), ADMIN = id(10), AGENT = id(11), PEER = id(12), CUSTOMER = id(13), OTHERADMIN = id(20);
 const LISTING = id(100), SECOND = id(101), OTHERLISTING = id(200), ENQUIRY = id(300);
@@ -15,7 +14,7 @@ const content = {
 };
 async function fixture() {
   const db = new PGlite();
-  await db.exec(migration);
+  await applyTestMigrations(db);
   await db.query(`INSERT INTO app_private.tenants(id,slug,display_name) VALUES ($1,'realtime-test','Synthetic Realtime'),($2,'other-test','Synthetic Other')`, [T,OTHER]);
   for (const [tenant,user,role] of [[T,ADMIN,'admin'],[T,AGENT,'agent'],[T,PEER,'agent'],[T,CUSTOMER,'customer'],[OTHER,OTHERADMIN,'admin']]) {
     await db.query('INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,$3)',[tenant,user,role]);

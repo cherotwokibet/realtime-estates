@@ -1,4 +1,9 @@
-/** Narrow, explicitly validated DTOs for the existing /v1 API. No identity or business-rule inference. */
+import {
+  calculateWirePricingV2, kesFromMinor, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2,
+  type PricingDisclosure, type PublicLocationV2,
+} from '@realtor/domain';
+
+/** Narrow, explicitly validated public API contracts. Identity and tenant selection remain server concerns. */
 export interface PublicPhoto { readonly key: string; readonly alt: string }
 export type PropertyType = 'apartment' | 'bedsitter' | 'studio' | 'bungalow' | 'maisonette' | 'townhouse' | 'villa' | 'commercial' | 'land';
 export interface PublicProperty {
@@ -10,6 +15,13 @@ export interface PublicProperty {
   readonly latitude: number | null; readonly longitude: number | null; readonly photos: readonly PublicPhoto[];
 }
 export interface PropertyPage { readonly items: readonly PublicProperty[]; readonly limit: number }
+/** V2 derives known subtotals from validated inputs; undeclared or quote-required costs stay unresolved. */
+export interface PublicPropertyV2 extends PublicProperty {
+  readonly pricing: PricingDisclosure;
+  readonly location: PublicLocationV2;
+}
+export interface PropertyPageV2 { readonly items: readonly PublicPropertyV2[]; readonly limit: number }
+export type { PricingDisclosure, PublicLocationV2 } from '@realtor/domain';
 export interface EnquiryInput {
   readonly listingId?: string | null; readonly name: string; readonly phone?: string | null; readonly email?: string | null;
   readonly message: string; readonly origin: 'web' | 'mobile'; readonly noticeVersion: string; readonly noticeAcknowledged: true;
@@ -57,9 +69,11 @@ function record(input:unknown,fields:readonly string[],kind:'VALIDATION'|'INVALI
   if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!fields.includes(key)))return invalid(kind,'Unsupported or malformed fields.');
   return input as Record<string,unknown>;
 }
-function text(input:unknown,max:number,kind:'VALIDATION'|'INVALID_RESPONSE'|'CONFIGURATION',label:string):string{
-  if(typeof input!=='string'||input.trim().length<1||input.trim().length>max||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(input))return invalid(kind,`${label} is missing or invalid.`);
-  return input.trim();
+function text(input:unknown,max:number,kind:'VALIDATION'|'INVALID_RESPONSE'|'CONFIGURATION',label:string,codePointBound=false):string{
+  if(typeof input!=='string')return invalid(kind,`${label} is missing or invalid.`);
+  const trimmed=input.trim();const length=codePointBound?[...trimmed].length:trimmed.length;
+  if(length<1||length>max||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(input)||(codePointBound&&/[\ud800-\udfff]/u.test(input)))return invalid(kind,`${label} is missing or invalid.`);
+  return trimmed;
 }
 function uuid(input:unknown,kind:'VALIDATION'|'INVALID_RESPONSE',label:string):string{
   if(typeof input!=='string'||!UUID.test(input))return invalid(kind,`${label} must be a UUID.`);return input.toLowerCase();
@@ -82,12 +96,12 @@ function origin(options:ApiClientOptions):string{
   if(url.protocol!=='https:'&&!(url.protocol==='http:'&&options.allowLoopbackHttp===true&&loopback))return invalid('CONFIGURATION','Use HTTPS; local HTTP requires explicit loopback development opt-in.');
   return url.origin;
 }
-function publicProperty(input:unknown):PublicProperty{
+function publicProperty(input:unknown,codePointDisplayBounds=false):PublicProperty{
   const value=record(input,PUBLIC_FIELDS,'INVALID_RESPONSE');
   const id=uuid(value.id,'INVALID_RESPONSE','Property ID');
   const slug=text(value.slug,160,'INVALID_RESPONSE','Property slug');if(!/^[a-z\d]+(?:-[a-z\d]+)*$/.test(slug))return invalid('INVALID_RESPONSE','Invalid property slug.');
   const revision=integer(value.revision,1,2147483647,'INVALID_RESPONSE','Revision');
-  const title=text(value.title,160,'INVALID_RESPONSE','Title'),description=text(value.description,10000,'INVALID_RESPONSE','Description');
+  const title=text(value.title,160,'INVALID_RESPONSE','Title',codePointDisplayBounds),description=text(value.description,10000,'INVALID_RESPONSE','Description',codePointDisplayBounds);
   if(value.purpose!=='rent'&&value.purpose!=='sale')return invalid('INVALID_RESPONSE','Invalid purpose.');
   if(typeof value.propertyType!=='string'||!TYPES.includes(value.propertyType))return invalid('INVALID_RESPONSE','Invalid property type.');
   if(value.currency!=='KES'||value.country!=='KE')return invalid('INVALID_RESPONSE','Unsupported currency or country.');
@@ -95,7 +109,7 @@ function publicProperty(input:unknown):PublicProperty{
   if((value.purpose==='sale'&&value.rentPeriod!==null)||(value.purpose==='rent'&&(typeof value.rentPeriod!=='string'||!['day','week','month','year'].includes(value.rentPeriod))))return invalid('INVALID_RESPONSE','Invalid rental period.');
   const bedrooms=count(value.bedrooms),privateBathrooms=count(value.privateBathrooms),sharedBathrooms=count(value.sharedBathrooms);
   if((value.propertyType==='land'&&bedrooms!==null)||(RESIDENTIAL.includes(value.propertyType)&&bedrooms===null)||(['studio','bedsitter'].includes(value.propertyType)&&bedrooms!==0))return invalid('INVALID_RESPONSE','Rooms do not match the property type.');
-  const locality=text(value.locality,160,'INVALID_RESPONSE','Locality');
+  const locality=text(value.locality,160,'INVALID_RESPONSE','Locality',codePointDisplayBounds);
   if(value.publicPrecision!=='area'&&value.publicPrecision!=='exact')return invalid('INVALID_RESPONSE','Invalid public precision.');
   const latitude=coordinate(value.latitude,-90,90),longitude=coordinate(value.longitude,-180,180);
   if((latitude===null)!==(longitude===null)||(value.publicPrecision==='area'&&latitude!==null))return invalid('INVALID_RESPONSE','Unexpected precise or incomplete coordinates.');
@@ -105,10 +119,23 @@ function publicProperty(input:unknown):PublicProperty{
     const photo=record(inputPhoto,['key','alt'],'INVALID_RESPONSE');
     const key=text(photo.key,1024,'INVALID_RESPONSE','Photo key');
     if(!/^[A-Za-z\d][A-Za-z\d/_-]*\.(?:webp|jpg|png)$/.test(key)||keys.has(key))return invalid('INVALID_RESPONSE','Unsafe or repeated photo key.');
-    keys.add(key);return Object.freeze({key,alt:text(photo.alt,300,'INVALID_RESPONSE','Photo description')});
+    keys.add(key);return Object.freeze({key,alt:text(photo.alt,300,'INVALID_RESPONSE','Photo description',codePointDisplayBounds)});
   });
   return Object.freeze({id,slug,revision,title,description,purpose:value.purpose,propertyType:value.propertyType as PropertyType,currency:'KES',amountMinor,
     rentPeriod:value.rentPeriod as PublicProperty['rentPeriod'],bedrooms,privateBathrooms,sharedBathrooms,country:'KE',locality,publicPrecision:value.publicPrecision,latitude,longitude,photos:Object.freeze(photos)});
+}
+function publicPropertyV2(input:unknown):PublicPropertyV2{
+  const value=record(input,[...PUBLIC_FIELDS,'pricing','location'],'INVALID_RESPONSE');
+  const {pricing:rawPricing,location:rawLocation,...baseInput}=value;
+  const base=publicProperty(baseInput,true);
+  try{
+    const pricingInput=validatePricingInputV2(rawPricing);
+    const pricing=calculateWirePricingV2(kesFromMinor(base.amountMinor),base.purpose,base.rentPeriod,pricingInput);
+    const location=validatePublicLocationV2(rawLocation);
+    return Object.freeze({...base,pricing,location});
+  }catch{
+    return invalid('INVALID_RESPONSE','Invalid public pricing or location disclosure.');
+  }
 }
 function requestOptions(input:RequestOptions,extra:readonly string[]=[]):void{
   record(input,['bearerToken','signal','timeoutMs',...extra],'VALIDATION');
@@ -147,7 +174,13 @@ export class RealtorApiClient {
     requestOptions(options,['limit']);const limit=integer(options.limit??50,1,100,'VALIDATION','Limit');
     const data=record(await this.request(`/v1/properties?limit=${limit}`,'GET',options),['items','limit'],'INVALID_RESPONSE');
     if(data.limit!==limit||!Array.isArray(data.items)||data.items.length>limit)return invalid('INVALID_RESPONSE','Invalid property page.');
-    return Object.freeze({items:Object.freeze(data.items.map(publicProperty)),limit});
+    return Object.freeze({items:Object.freeze(data.items.map(input=>publicProperty(input))),limit});
+  }
+  async listPropertiesV2(options:RequestOptions&{readonly limit?:number}={}):Promise<PropertyPageV2>{
+    requestOptions(options,['limit']);const limit=integer(options.limit??50,1,100,'VALIDATION','Limit');
+    const data=record(await this.request(`/v2/properties?limit=${limit}`,'GET',options),['items','limit'],'INVALID_RESPONSE');
+    if(data.limit!==limit||!Array.isArray(data.items)||data.items.length>limit)return invalid('INVALID_RESPONSE','Invalid property page.');
+    return Object.freeze({items:Object.freeze(data.items.map(publicPropertyV2)),limit});
   }
   async submitEnquiry(input:EnquiryInput,options:EnquiryRequestOptions):Promise<EnquiryReceipt>{
     requestOptions(options,['idempotencyKey']);const key=uuid(options.idempotencyKey,'VALIDATION','Idempotency key');
@@ -178,7 +211,7 @@ export class RealtorApiClient {
         if(result.redirected||(result.status>=300&&result.status<400)||(result.url&&new URL(result.url).href!==new URL(url).href))throw new ApiClientError('REDIRECT','API redirects are not permitted.',{submissionUncertain:method==='POST'});
         if(!/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type')??''))throw new ApiClientError('INVALID_RESPONSE','Expected a JSON API response.',{status:result.status,submissionUncertain:method==='POST'});
         const raw=await result.text();if(raw.length>MAX_JSON_CHARACTERS)throw new ApiClientError('INVALID_RESPONSE','API response exceeded the supported size.',{status:result.status,submissionUncertain:method==='POST'});
-        let payload:unknown;try{payload=JSON.parse(raw);}catch{throw new ApiClientError('INVALID_RESPONSE','Malformed API JSON.',{status:result.status,submissionUncertain:method==='POST'});}
+        let payload:unknown;try{payload=method==='GET'&&path.startsWith('/v2/properties?')?parseListingJsonV2(raw):JSON.parse(raw);}catch{throw new ApiClientError('INVALID_RESPONSE','Malformed API JSON.',{status:result.status,submissionUncertain:method==='POST'});}
         if(!result.ok){
           const envelope=record(payload,['error','requestId'],'INVALID_RESPONSE');const serverError=record(envelope.error,['code','message'],'INVALID_RESPONSE');
           const requestId=uuid(envelope.requestId,'INVALID_RESPONSE','Request ID');

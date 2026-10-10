@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { normalizeKenyanPhone } from "@realtor/domain";
+import { calculateWirePricingV2, kesFromMinor, normalizeKenyanPhone, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2 } from "@realtor/domain";
 import { DatabaseSafetyError, type TransactionDatabase, type TransactionQuery } from "./database.js";
 
 export interface VerifiedIdentity { readonly actorId: string }
@@ -45,7 +45,7 @@ function limit(request: Request): number {
   return Number(value);
 }
 
-async function jsonBody(request: Request, maximum: number): Promise<unknown> {
+async function jsonBody(request: Request, maximum: number, integerMoney = false): Promise<unknown> {
   if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get("content-type") ?? "")) throw new HttpError(415, "JSON_REQUIRED", "Use application/json.");
   const declared = request.headers.get("content-length");
   if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > maximum)) throw new HttpError(413, "BODY_TOO_LARGE", "Request body is too large.");
@@ -65,8 +65,11 @@ async function jsonBody(request: Request, maximum: number): Promise<unknown> {
   const body = new Uint8Array(size);
   let offset = 0;
   for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
-  try { return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(body)); }
-  catch { throw new HttpError(400, "INVALID_JSON", "Request body must contain valid JSON."); }
+  try {
+    const source = new TextDecoder("utf-8", { fatal: true }).decode(body);
+    return integerMoney ? parseListingJsonV2(source) : JSON.parse(source);
+  }
+  catch { throw new HttpError(400, "INVALID_JSON", integerMoney ? "Request body must contain valid JSON with integer-literal minor-unit amounts." : "Request body must contain valid JSON."); }
 }
 
 /** Process-local development protection: bounded memory and fail-closed capacity. Use a distributed limiter before public launch. */
@@ -115,6 +118,34 @@ function scalar(result: { readonly rows: Record<string, unknown>[] }, key: strin
   return value;
 }
 
+const DRAFT_FIELDS = ["title", "description", "purpose", "propertyType", "currency", "amountMinor", "rentPeriod", "bedrooms", "privateBathrooms", "sharedBathrooms", "country", "locality", "publicPrecision", "latitude", "longitude", "privateAddress"] as const;
+function draftContentV2(input: unknown): Record<string, unknown> {
+  const content = record(input, [...DRAFT_FIELDS, "pricing", "location"]);
+  try {
+    const pricing = validatePricingInputV2(content.pricing);
+    const location = validatePublicLocationV2(content.location);
+    if (content.amountMinor != null && (typeof content.amountMinor !== "number" || !Number.isSafeInteger(content.amountMinor) || content.amountMinor <= 0 || content.amountMinor > 100_000_000_000_000)) throw new Error("Invalid base amount.");
+    // Incomplete drafts remain supported. Complete price inputs use the same arithmetic as the client.
+    if (content.amountMinor != null && (content.purpose === "rent" || content.purpose === "sale")) {
+      calculateWirePricingV2(kesFromMinor(content.amountMinor as number), content.purpose, content.rentPeriod as "day" | "week" | "month" | "year" | null, pricing);
+    }
+    return { ...content, pricing, location };
+  } catch { throw new HttpError(400, "INVALID_INPUT", "Supply valid v2 pricing and public location fields."); }
+}
+
+function publicRow(row: Record<string, unknown>): Record<string, unknown> {
+  return { ...row, amountMinor: Number(row.amountMinor), latitude: row.latitude === null ? null : Number(row.latitude), longitude: row.longitude === null ? null : Number(row.longitude) };
+}
+
+function publicRowV2(row: Record<string, unknown>): Record<string, unknown> {
+  const item = publicRow(row);
+  const pricing = validatePricingInputV2(item.pricing);
+  const location = validatePublicLocationV2(item.location);
+  // Fail closed if persisted disclosure no longer satisfies the shared exact-money contract.
+  calculateWirePricingV2(kesFromMinor(item.amountMinor as number), item.purpose as "rent" | "sale", item.rentPeriod as "day" | "week" | "month" | "year" | null, pricing);
+  return { ...item, pricing, location };
+}
+
 export function createApiService(options: ApiServiceOptions): (request: Request) => Promise<Response> {
   const tenantId = uuid(options.tenantId, "Configured tenant");
   const privacyNoticeVersion = text(options.privacyNoticeVersion, "Configured privacy notice version", 100);
@@ -134,14 +165,15 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method.toUpperCase();
-      if (path === "/v1/properties" && method === "GET") {
+      if ((path === "/v1/properties" || path === "/v2/properties") && method === "GET") {
         const pageLimit = limit(request);
+        const v2 = path === "/v2/properties";
         const result = await options.database.transaction({ tenantId, actorId: null, correlationId }, query => query.query(`SELECT listing_id AS id,slug,revision_no AS revision,title,description,purpose,
           property_type AS "propertyType",currency,amount_minor::text AS "amountMinor",rent_period AS "rentPeriod",bedrooms,
           private_bathrooms AS "privateBathrooms",shared_bathrooms AS "sharedBathrooms",country,locality,public_precision AS "publicPrecision",
-          latitude::text AS latitude,longitude::text AS longitude,photo_refs AS photos
-          FROM app_api.public_listings ORDER BY approved_at DESC,listing_id LIMIT $1`, [pageLimit]));
-        const items = result.rows.map(row => ({ ...row, amountMinor: Number(row.amountMinor), latitude: row.latitude === null ? null : Number(row.latitude), longitude: row.longitude === null ? null : Number(row.longitude) }));
+          latitude::text AS latitude,longitude::text AS longitude,photo_refs AS photos${v2 ? ",pricing,location" : ""}
+          FROM app_api.${v2 ? "public_listings_v2" : "public_listings"} ORDER BY approved_at DESC,listing_id LIMIT $1`, [pageLimit]));
+        const items = result.rows.map(v2 ? publicRowV2 : publicRow);
         return response(200, { items, limit: pageLimit }, correlationId);
       }
       if (path === "/v1/enquiries" && method === "POST") {
@@ -167,8 +199,9 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
         const result = await options.database.transaction({ tenantId, actorId, correlationId }, query => query.query("SELECT app_api.record_enquiry($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7,$8,$9) AS id", [newId(), key, listingId, name, phone, email, message, body.origin, noticeVersion]));
         return response(201, { id: scalar(result, "id") }, correlationId);
       }
-      const draftRoute = /^\/v1\/staff\/listings\/([^/]+)\/drafts\/([1-9]\d*)(\/submit)?$/.exec(path);
-      if (path.startsWith("/v1/staff/")) {
+      const draftRoute = /^\/v[12]\/staff\/listings\/([^/]+)\/drafts\/([1-9]\d*)(\/submit)?$/.exec(path);
+      const v2Draft = path.startsWith("/v2/staff/");
+      if (path.startsWith("/v1/staff/") || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
         if ((path === "/v1/staff/listings" || path === "/v1/staff/enquiries") && method === "GET") {
@@ -194,6 +227,22 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
           const id = uuid(draftRoute[1], "listingId");
           const revision = Number(draftRoute[2]);
           if (!Number.isSafeInteger(revision) || revision > 2147483647) throw new HttpError(400, "INVALID_INPUT", "revision is outside the supported range.");
+          if (v2Draft && !draftRoute[3] && method === "GET") {
+            const result = await options.database.transaction(context, async query => {
+              await assertStaff(query);
+              return query.query(`SELECT revision_no AS revision,state,version::text AS version,
+                title,description,purpose,property_type AS "propertyType",currency,amount_minor::text AS "amountMinor",rent_period AS "rentPeriod",
+                bedrooms,private_bathrooms AS "privateBathrooms",shared_bathrooms AS "sharedBathrooms",country,locality,public_precision AS "publicPrecision",
+                latitude::text AS latitude,longitude::text AS longitude,private_address AS "privateAddress",pricing,location
+                FROM app_private.listing_revisions WHERE tenant_id=$1::uuid AND listing_id=$2::uuid AND revision_no=$3::integer`, [tenantId, id, revision]);
+            });
+            const row = result.rows[0];
+            if (!row) throw new HttpError(404, "NOT_FOUND", "Resource is unavailable.");
+            const { revision: storedRevision, state, version: storedVersion, ...fields } = row;
+            // Staff alone may read the private address. Never reuse this projection for public routes.
+            const content = { ...publicRow(fields), amountMinor: fields.amountMinor === null ? null : Number(fields.amountMinor), pricing: validatePricingInputV2(fields.pricing), location: validatePublicLocationV2(fields.location) };
+            return response(200, { revision: storedRevision, state, version: String(storedVersion), content }, correlationId);
+          }
           if (draftRoute[3] && method === "POST") {
             const body = record(await jsonBody(request, 4096), ["expectedVersion"]);
             const expected = version(body.expectedVersion);
@@ -201,16 +250,17 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
             return response(200, { version: String(scalar(result, "version")) }, correlationId);
           }
           if (!draftRoute[3] && method === "PUT") {
-            const body = record(await jsonBody(request, 64 * 1024), ["expectedVersion", "content"]);
-            const content = record(body.content, ["title", "description", "purpose", "propertyType", "currency", "amountMinor", "rentPeriod", "bedrooms", "privateBathrooms", "sharedBathrooms", "country", "locality", "publicPrecision", "latitude", "longitude", "privateAddress"]);
+            // 32 bounded Unicode charge labels plus a full description can exceed 64 KiB.
+            const body = record(await jsonBody(request, (v2Draft ? 128 : 64) * 1024, v2Draft), ["expectedVersion", "content"]);
+            const content = v2Draft ? draftContentV2(body.content) : record(body.content, DRAFT_FIELDS);
             const expected = version(body.expectedVersion, true);
-            const result = await options.database.transaction(context, query => query.query("SELECT app_api.save_draft($1::uuid,$2::integer,$3::bigint,$4::jsonb) AS version", [id, revision, expected, JSON.stringify(content)]));
+            const result = await options.database.transaction(context, query => query.query(`SELECT app_api.${v2Draft ? "save_draft_v2" : "save_draft"}($1::uuid,$2::integer,$3::bigint,$4::jsonb) AS version`, [id, revision, expected, JSON.stringify(content)]));
             return response(200, { version: String(scalar(result, "version")) }, correlationId);
           }
-          throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method is not allowed for this route.", { Allow: draftRoute[3] ? "POST" : "PUT" });
+          throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method is not allowed for this route.", { Allow: draftRoute[3] ? "POST" : v2Draft ? "GET, PUT" : "PUT" });
         }
       }
-      const allowedMethods: Record<string, string> = { "/v1/properties": "GET", "/v1/enquiries": "POST", "/v1/staff/listings": "GET, POST", "/v1/staff/enquiries": "GET" };
+      const allowedMethods: Record<string, string> = { "/v1/properties": "GET", "/v2/properties": "GET", "/v1/enquiries": "POST", "/v1/staff/listings": "GET, POST", "/v1/staff/enquiries": "GET" };
       if (allowedMethods[path]) throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method is not allowed for this route.", { Allow: allowedMethods[path] });
       throw new HttpError(404, "NOT_FOUND", "Route is unavailable.");
     } catch (error) {

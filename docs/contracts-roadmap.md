@@ -1,10 +1,18 @@
 # Shared contract convergence — 10 October 2026
 
-Status: implementation plan, not a completed storage/API/UI feature. The pure pricing disclosure helper is implemented; the existing property draft, SQL and v1 client retain their bounded initial contracts. This transition is the next local integration task before connecting more screens.
+Status: local v2 storage/API/client integration implemented; connected UI and production acceptance remain open. The original six-step sequence below is retained as the implementation and remaining-delivery checklist.
 
 ## Current boundaries
 
-The domain property requires county/town and stores known mandatory `ListingFee` entries. SQL drafts and approved snapshots use flat `locality`, a base `amount_minor` and separate private/shared bathrooms, with no persisted charges. The demo uses `priceMinor`; the public v1 API/client uses `amountMinor`. These are explicit minor-unit aliases, not different currencies. The strict v1 client rejects unknown response fields, so silently adding pricing fields would break a currently verified consumer.
+The legacy domain property requires county/town and stores known mandatory `ListingFee` entries. That legacy shape and the synthetic demo remain unchanged. Ordered migration `0002_listing_disclosure.sql` adds exact raw pricing and nullable structured location to SQL drafts/approved snapshots; legacy `locality`, base `amount_minor` and separate private/shared bathrooms remain intact. The demo uses `priceMinor`; the public API uses `amountMinor`. These are explicit minor-unit aliases, not different currencies. V1 rejects unknown response fields and stays unchanged; the new `/v2/properties` and `listPropertiesV2()` opt in deliberately.
+
+## Implemented v2 boundary
+
+`validatePricingInputV2` and `validatePublicLocationV2` validate exact JSON inputs; `calculateWirePricingV2` delegates exact money arithmetic to the shared pricing helper. The v2 parser additionally requires raw money number tokens to use integer literals, preventing fractional JSON from rounding into an accepted integer. SQL independently validates the same shape, Unicode bounds, safe sums and charge semantics. Legacy/initial rows default to undeclared fees and all-null structured location. There is no inferred zero-fee claim or automatic county/town mapping.
+
+`save_draft_v2` replaces base content, pricing and location in a single update using existing current-assignment/version rules. Approval copies the exact reviewed inputs into the public snapshot. The v2 public route emits raw validated inputs alongside unchanged v1 fields, and the strict client derives an immutable disclosure. Authenticated v2 draft GET/PUT/submit support editing; no client totals are stored. See [service-boundary.md](../apps/api/docs/service-boundary.md) for precise fields and request limits.
+
+Actual local tests cover legacy migration, v1 compatibility, invalid/unsafe costs, atomic rent-to-sale edits, current assignment, two-company denial, draft/pending/rejection snapshot retention and paused/archive behavior. Evidence is [the v2 checkpoint](evidence/2026-10-10-disclosure-contract.md). This does not establish a connected publication UI, real media processing, hosted provider compatibility or geographic taxonomy accuracy.
 
 ## Intended sequence
 
@@ -20,3 +28,7 @@ The domain property requires county/town and stores known mandatory `ListingFee`
 Verify exact sale/rent examples, optional quotes, incomplete coverage, unsafe totals, invalid charge combinations and legacy-default migration. At the SQL boundary test cross-company denial, approval snapshot immutability, stale optimistic versions, current assignment, paused/archive preservation and private-field projection. At the actual API/client boundary test real serialized v2 data and v1 compatibility. Review screens with keyboard and assistive technology and on Android/iOS separately; a Node transport test or JS export is not that evidence.
 
 Synthetic fixture media remain bootstrap evidence only. A trusted upload processor, deployed identity/provider compatibility, real data rights and cutover approval remain separate prerequisites. This plan provisions no services and does not increase the KES 10,000 client-price baseline.
+
+## Next bounded delivery
+
+Connect the synthetic public discovery/detail screens to the v2 public client with explicit demo/connected/loading/empty/error states and full fee disclosure. Use an independently seeded disposable local service while production accounts are unresolved; never silently fall back to demo on a connected failure. Keep legacy DTO conversions explicit. Add a staff client and authenticated draft UI, trusted media processing and moderation route before claiming a complete publication journey. Browser/native transport, device accessibility, real identity and hosted database verification remain separately evidenced gates.

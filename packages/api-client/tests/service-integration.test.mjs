@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {applyTestMigrations} from '../../../database/test-helpers/migrations.mjs';
 import {PGlite} from '@electric-sql/pglite';
 import {createApiService,createLocalEnquiryLimiter} from '../../../apps/api/dist/service.js';
 import {PostgresTransactionDatabase} from '../../../apps/api/dist/database.js';
@@ -17,7 +17,7 @@ async function bootstrapAs(db,tenant,actor,operation){
 test('shared client exercises actual API service, restricted runtime transactions, tenant scope and durable idempotency in PGlite',async()=>{
   const db=new PGlite();
   try{
-    await db.exec(await readFile(new URL('../../../database/migrations/0001_foundation.sql',import.meta.url),'utf8'));
+    await applyTestMigrations(db);
     await db.query(`INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'client-a','Synthetic Client A'),($2,'client-b','Synthetic Client B')`,[TENANT,OTHER]);
     for(const [tenant,admin,listing] of [[TENANT,ADMIN,LISTING],[OTHER,OTHERADMIN,OTHERLISTING]]){
       await db.query(`INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'admin')`,[tenant,admin]);

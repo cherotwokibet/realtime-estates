@@ -1,11 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { applyTestMigrations } from "../../../database/test-helpers/migrations.mjs";
 import { PGlite } from "@electric-sql/pglite";
 import { createApiService, createLocalEnquiryLimiter } from "../dist/service.js";
 import { PostgresTransactionDatabase, assertSafeRuntimeConnection, DatabaseSafetyError } from "../dist/database.js";
 
-const migration = await readFile(new URL("../../../database/migrations/0001_foundation.sql", import.meta.url), "utf8");
 const id = number => `00000000-0000-4000-8000-${String(number).padStart(12, "0")}`;
 const T = id(1), OTHER = id(2), ADMIN = id(10), AGENT = id(11), PEER = id(12), CUSTOMER = id(13), OTHER_ADMIN = id(20);
 const PUBLIC = id(100), PEER_LISTING = id(101), OTHER_PUBLIC = id(200), CREATED = id(110);
@@ -22,7 +21,7 @@ async function bootstrapAs(db, tenant, actor, operation) {
 }
 async function fixture() {
   const db = new PGlite();
-  await db.exec(migration);
+  await applyTestMigrations(db);
   await db.query(`INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'synthetic-a','Synthetic A'),($2,'synthetic-b','Synthetic B')`, [T, OTHER]);
   for (const [tenant, user, role] of [[T, ADMIN, "admin"], [T, AGENT, "agent"], [T, PEER, "agent"], [T, CUSTOMER, "customer"], [OTHER, OTHER_ADMIN, "admin"]]) await db.query("INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,$3)", [tenant, user, role]);
   for (const [tenant, listing, agent, admin] of [[T, PUBLIC, AGENT, ADMIN], [OTHER, OTHER_PUBLIC, OTHER_ADMIN, OTHER_ADMIN]]) {
@@ -128,6 +127,138 @@ test("API service with actual PostgreSQL migration enforces identity, tenant iso
       assert.equal(raw.includes("app_private"), false);
       assert.equal(raw.includes("Require 4"), false);
       assert.equal((await service(request(`/v1/staff/listings/${CREATED}/drafts/1/submit`, { method: "POST", actor: "customer", body: { expectedVersion: 2 } }))).status, 403);
+    });
+    const v2Id = id(120), v2Route = `/v2/staff/listings/${v2Id}/drafts/1`;
+    const pricing = { declaration: "complete", charges: [
+      { id: "service", name: "Service charge", amountStatus: "known", amountMinor: 100_000, timing: "per_rental_period", classification: "fee", mandatory: true },
+      { id: "deposit", name: "Refundable deposit", amountStatus: "known", amountMinor: 2_000_000, timing: "one_off", classification: "refundable_deposit", mandatory: true },
+      { id: "parking", name: "Optional parking", amountStatus: "quote_required", amountMinor: null, timing: "per_rental_period", classification: "fee", mandatory: false },
+    ] };
+    const location = { county: "Nairobi", town: null, area: "Synthetic area" };
+    const v2Content = { ...content, pricing, location };
+    await t.test("v2 public projection preserves explicit unknowns and v1 stays unchanged", async () => {
+      const v2 = await service(request("/v2/properties?limit=1"));
+      assert.equal(v2.status, 200);
+      const body = await v2.json();
+      assert.equal(body.limit, 1);
+      assert.equal(body.items[0].id, PUBLIC);
+      assert.deepEqual(body.items[0].pricing, { declaration: "not_declared", charges: [] });
+      assert.deepEqual(body.items[0].location, { county: null, town: null, area: null });
+      const v1 = (await (await service(request("/v1/properties"))).json()).items[0];
+      assert.equal("pricing" in v1, false);
+      assert.equal("location" in v1, false);
+      const { pricing: ignoredPricing, location: ignoredLocation, ...unchanged } = body.items[0];
+      assert.deepEqual(unchanged, v1);
+      assert.equal((await service(request("/v2/properties?limit=101"))).status, 400);
+      const wrongMethod = await service(request("/v2/properties", { method: "DELETE" }));
+      assert.equal(wrongMethod.status, 405);
+      assert.equal(wrongMethod.headers.get("allow"), "GET");
+    });
+    await t.test("v2 draft writes and private reads preserve declared fees and nullable location", async () => {
+      assert.equal((await service(request("/v1/staff/listings", { method: "POST", actor: "agent", body: { id: v2Id, slug: "synthetic-v2" } }))).status, 201);
+      const saved = await service(request(v2Route, { method: "PUT", actor: "agent", body: { expectedVersion: 0, content: v2Content } }));
+      assert.equal(saved.status, 200);
+      assert.deepEqual(await saved.json(), { version: "2" });
+      const loaded = await service(request(v2Route, { actor: "agent" }));
+      assert.equal(loaded.status, 200);
+      const body = await loaded.json();
+      assert.equal(body.version, "2"); assert.equal(body.state, "draft"); assert.equal(body.revision, 1);
+      assert.deepEqual(body.content.pricing, pricing); assert.deepEqual(body.content.location, location);
+      assert.equal(body.content.amountMinor, content.amountMinor);
+      assert.equal(body.content.privateAddress, content.privateAddress);
+      assert.equal((await (await service(request("/v2/properties"))).json()).items.some(item => item.id === v2Id), false);
+    });
+    await t.test("v2 private draft reads enforce identity, assignment and company scope", async () => {
+      for (const [actor, status] of [[undefined, 401], ["invalid", 401], ["customer", 403], ["peer", 404], ["other-admin", 403]]) {
+        assert.equal((await service(request(v2Route, { actor }))).status, status, actor);
+      }
+      assert.equal((await service(request(v2Route, { actor: "admin" }))).status, 200);
+      assert.equal((await other(request(v2Route, { actor: "other-admin" }))).status, 404);
+      assert.equal((await service(request(`/v2/staff/listings/${v2Id}/drafts/2147483648`, { actor: "agent" }))).status, 400);
+    });
+    await t.test("v2 rejects ambiguous, noncanonical and unsafe disclosure before any write", async () => {
+      const badContents = [
+        { ...v2Content, pricing: undefined },
+        { ...v2Content, location: undefined },
+        { ...v2Content, tenantId: OTHER },
+        { ...v2Content, pricing: { ...pricing, guessedTotal: 10 } },
+        { ...v2Content, location: { ...location, town: " " } },
+        { ...v2Content, pricing: { ...pricing, charges: [pricing.charges[0], pricing.charges[0]] } },
+        { ...v2Content, pricing: { declaration: "complete", charges: [{ ...pricing.charges[0], amountMinor: Number.MAX_SAFE_INTEGER }] } },
+        { ...v2Content, pricing: { declaration: "complete", charges: [{ ...pricing.charges[2], amountMinor: 1 }] } },
+        { ...v2Content, purpose: "sale", rentPeriod: null },
+      ];
+      for (const badContent of badContents) {
+        const result = await service(request(v2Route, { method: "PUT", actor: "agent", body: { expectedVersion: 2, content: badContent } }));
+        assert.equal(result.status, 400, JSON.stringify(badContent));
+        assert.equal((await result.text()).includes("app_private"), false);
+      }
+      assert.equal((await (await service(request(v2Route, { actor: "agent" }))).json()).version, "2");
+    });
+    await t.test("v2 uses optimistic locking and cannot cross assignment or company on writes", async () => {
+      const body = { expectedVersion: 2, content: v2Content };
+      assert.equal((await service(request(v2Route, { method: "PUT", actor: "peer", body }))).status, 404);
+      assert.equal((await other(request(v2Route, { method: "PUT", actor: "other-admin", body }))).status, 404);
+      assert.equal((await service(request(v2Route, { method: "PUT", actor: "agent", body: { ...body, expectedVersion: 1 } }))).status, 409);
+      assert.equal((await service(request(v2Route, { method: "PUT", actor: "agent", body: { ...body, expectedVersion: "2" } }))).status, 400);
+      assert.equal((await service(request(v2Route, { method: "PUT", actor: "agent", body }))).status, 200);
+      assert.equal((await service(request(v2Route, { method: "PUT", actor: "agent", body }))).status, 409);
+      assert.equal((await (await service(request(v2Route, { actor: "agent" }))).json()).version, "3");
+    });
+    await t.test("v2 atomic rent-to-sale edit replaces incompatible fees without an intermediate state", async () => {
+      const sale = { ...v2Content, purpose: "sale", rentPeriod: null, pricing: { declaration: "incomplete", charges: [
+        { ...pricing.charges[0], amountStatus: "quote_required", amountMinor: null, timing: "one_off" },
+      ] } };
+      const saved = await service(request(v2Route, { method: "PUT", actor: "agent", body: { expectedVersion: 3, content: sale } }));
+      assert.equal(saved.status, 200);
+      assert.deepEqual(await saved.json(), { version: "4" });
+      const loaded = (await (await service(request(v2Route, { actor: "agent" }))).json()).content;
+      assert.equal(loaded.purpose, "sale"); assert.equal(loaded.rentPeriod, null);
+      assert.deepEqual(loaded.pricing, sale.pricing);
+    });
+    await t.test("v2 submit retains media gate and leaves a failed submission editable", async () => {
+      const result = await service(request(`${v2Route}/submit`, { method: "POST", actor: "agent", body: { expectedVersion: 4 } }));
+      assert.equal(result.status, 422);
+      assert.equal((await result.text()).includes("Require 4"), false);
+      const loaded = await (await service(request(v2Route, { actor: "agent" }))).json();
+      assert.equal(loaded.state, "draft"); assert.equal(loaded.version, "4");
+      const wrongMethod = await service(request(v2Route, { method: "POST", actor: "agent" }));
+      assert.equal(wrongMethod.status, 405); assert.equal(wrongMethod.headers.get("allow"), "GET, PUT");
+    });
+    await t.test("bounded v2 body accepts valid Unicode field maxima and rejects oversized payloads", async () => {
+      const largeId = id(121), route = `/v2/staff/listings/${largeId}/drafts/1`;
+      assert.equal((await service(request("/v1/staff/listings", { method: "POST", actor: "agent", body: { id: largeId, slug: "synthetic-unicode" } }))).status, 201);
+      const largeContent = { ...v2Content, description: "🏡".repeat(10_000), pricing: { declaration: "complete", charges: Array.from({ length: 32 }, (_, index) => ({
+        id: String(index).padStart(2, "0") + "🏡".repeat(62), name: "🏡".repeat(160), amountStatus: "known", amountMinor: 1,
+        timing: "one_off", classification: "fee", mandatory: true,
+      })) } };
+      const body = { expectedVersion: 0, content: largeContent };
+      assert.ok(Buffer.byteLength(JSON.stringify(body)) > 64 * 1024);
+      assert.ok(Buffer.byteLength(JSON.stringify(body)) < 128 * 1024);
+      const saved = await service(request(route, { method: "PUT", actor: "agent", body }));
+      assert.equal(saved.status, 200);
+      const loaded = (await (await service(request(route, { actor: "agent" }))).json()).content;
+      assert.deepEqual(loaded.pricing, largeContent.pricing);
+      assert.equal(loaded.description, largeContent.description);
+      const oversized = { expectedVersion: 2, content: { ...largeContent, description: "x".repeat(128 * 1024) } };
+      assert.equal((await service(request(route, { method: "PUT", actor: "agent", body: oversized }))).status, 413);
+      assert.equal((await service(request(`/v1/staff/listings/${largeId}/drafts/1`, { method: "PUT", actor: "agent", body: { expectedVersion: 2, content: { ...content, description: "x".repeat(64 * 1024) } } }))).status, 413);
+      assert.equal((await (await service(request(route, { actor: "agent" }))).json()).version, "2");
+    });
+    await t.test("v2 rejects fractional money tokens before JSON rounding can turn them into safe integers", async () => {
+      const wire = JSON.stringify({ expectedVersion: 4, content: { ...v2Content, pricing: { declaration: "complete", charges: [
+        { ...pricing.charges[0], amountMinor: Number.MAX_SAFE_INTEGER, timing: "one_off", mandatory: false },
+      ] } } });
+      const token = `"amountMinor":${Number.MAX_SAFE_INTEGER}`;
+      for (const replacement of [`"amountMinor":${Number.MAX_SAFE_INTEGER}.1`, `"amountMino\\u0072":${Number.MAX_SAFE_INTEGER}.1`, '"amountMinor":9e0']) {
+        const result = await service(new Request(`https://synthetic.invalid${v2Route}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: "Bearer test-agent" }, body: wire.replace(token, replacement) }));
+        assert.equal(result.status, 400, replacement);
+        assert.equal((await result.json()).error.code, "INVALID_JSON");
+      }
+      assert.equal((await (await service(request(v2Route, { actor: "agent" }))).json()).version, "4");
+      const valid = await service(new Request(`https://synthetic.invalid${v2Route}`, { method: "PUT", headers: { "Content-Type": "application/json", Authorization: "Bearer test-agent" }, body: wire }));
+      assert.equal(valid.status, 200);
+      assert.deepEqual(await valid.json(), { version: "5" });
     });
     await t.test("guest enquiry normalizes phone and retry creates exactly one durable record", async () => {
       const key = id(300);
