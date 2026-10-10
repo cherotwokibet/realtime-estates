@@ -1,5 +1,7 @@
 # Trusted media runtime review
 
+Later local result: Sharp 0.35.5 now executes on the pinned Windows x64 Node runtime through the experimental packages/media converter. Fourteen focused synthetic-byte tests and eight workspace typechecks passed; see evidence/2026-10-10-media-codec.md. The earlier review below records what was unrun at that time. No subprocess/native allocation sandbox, production runtime, storage adapter or budget proof has been established.
+
 10 October 2026. Preparatory review completed while moderation verification ran. No package installed, codec executed, provider selected or application runtime/schema changed. This document does not establish a passed upload, production compatibility, budget or release gate.
 
 ## Documented constraints

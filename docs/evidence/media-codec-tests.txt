@@ -1,0 +1,34 @@
+
+> realtor-platform@0.1.0 test:media
+> npm run test --workspace=@realtor/media
+
+
+> @realtor/media@0.1.0 test
+> npm run build && node --test --test-concurrency=1 tests/*.test.mjs
+
+
+> @realtor/media@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ independently constructed PNG pixels become a fresh WebP with exact derived manifest (37.3912ms)
+✔ real JPEG, progressive JPEG and static WebP are decoded and newly encoded (29.2789ms)
+✔ EXIF orientation changes pixels and dimensions while source metadata is removed (25.5336ms)
+✔ resize bounds both axes to1920 without enlarging small sources and preserves alpha (88.8813ms)
+✔ input snapshot prevents ordinary Buffer mutation after the call from changing decode/hash (3.6591ms)
+✔ actual Buffer length and immutable policy enforce the10MiB cap before parsing (2.0096ms)
+✔ forged PNG headers exceed40MP or the separate16384-axis limit before decode (1.2111ms)
+✔ output cap uses actual freshly encoded bytes and trusted overrides can only tighten it (11.5323ms)
+✔ unsupported formats and signature-only spoofing do not produce output (2.0922ms)
+✔ container names compare literal bytes and never mask high-bit lookalikes (1.9515ms)
+✔ truncation, invalid PNG CRC/data and RIFF length/overflow fail closed (8.7495ms)
+✔ full APNG and APNG frame/control chunks are rejected rather than taking one frame (0.7966ms)
+✔ real animated WebP and each animation indicator are rejected (3.2652ms)
+✔ concatenated JPEGs, source trailing data and JPEG MPF are rejected (2.9053ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 684.4063
