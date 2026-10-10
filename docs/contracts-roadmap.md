@@ -1,6 +1,6 @@
 # Shared contract convergence — 10 October 2026
 
-Status: local v2 storage/API/client integration implemented; connected UI and production acceptance remain open. The original six-step sequence below is retained as the implementation and remaining-delivery checklist.
+Status: local v2 storage/API/client integration and opt-in connected public web implemented; authenticated admin/native journeys and production acceptance remain open. The original six-step sequence below is retained as the implementation and remaining-delivery checklist.
 
 ## Current boundaries
 
@@ -31,4 +31,4 @@ Synthetic fixture media remain bootstrap evidence only. A trusted upload process
 
 ## Next bounded delivery
 
-Connect the synthetic public discovery/detail screens to the v2 public client with explicit demo/connected/loading/empty/error states and full fee disclosure. Use an independently seeded disposable local service while production accounts are unresolved; never silently fall back to demo on a connected failure. Keep legacy DTO conversions explicit. Add a staff client and authenticated draft UI, trusted media processing and moderation route before claiming a complete publication journey. Browser/native transport, device accessibility, real identity and hosted database verification remain separately evidenced gates.
+Public discovery/detail now deliberately uses v2 through a server-only loader and independently seeded disposable local service. Exact fee/unknown states, period-safe budgets, demo adapters and no connected fallback are verified; see evidence/2026-10-10-public-catalogue.md. Complete server-side pagination/search, exact-detail retrieval and trusted image delivery remain open. Next add a narrow authenticated staff client and recoverable draft UI with optimistic versions, then trusted media processing and moderation routes before claiming a complete publication journey. Browser/native transport, device accessibility, real identity and hosted database verification remain separately evidenced gates.

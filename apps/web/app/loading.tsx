@@ -1,0 +1,2 @@
+import {PublicHeader} from '../components/PublicShell';
+export default function Loading(){return <><div className="preview">Development preview · Loading properties</div><PublicHeader/><main id="main" className="container catalogue-loading" aria-busy="true"><div role="status" aria-live="polite"><span className="eyebrow">A MOMENT, PLEASE</span><h1>Finding the details for you.</h1><p>Loading property information and disclosed costs…</p></div><div className="loading-cards" aria-hidden="true"><div/><div/><div/></div></main></>;}
