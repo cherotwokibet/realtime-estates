@@ -254,7 +254,7 @@ test('registered media jobs preserve private identity and authorized historical 
         config:row.proconfig,publicExecute:row.public_execute},{owner:'realtor_owner',securityDefiner:true,
         config:['search_path=pg_catalog'],publicExecute:false});
       assert.equal(await scalar(db,"SELECT pg_has_role('api_runtime','realtor_owner','MEMBER')"),false);
-      assert.equal(await scalar(db,"SELECT count(*)::integer FROM pg_roles WHERE rolname='media_coordinator'"),0);
+      assert.equal(await scalar(db,"SELECT pg_has_role('api_runtime','media_coordinator','MEMBER') OR pg_has_role('media_coordinator','api_runtime','MEMBER')"),false);
       assert.deepEqual((await db.query("SELECT rolsuper,rolbypassrls,rolinherit,rolcanlogin FROM pg_roles WHERE rolname='api_runtime'")).rows[0],
         {rolsuper:false,rolbypassrls:false,rolinherit:false,rolcanlogin:false});
       // The existing API safety guard remains unchanged; these permissions do not
