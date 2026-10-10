@@ -1,6 +1,6 @@
 import {
   calculateWirePricingV2, kesFromMinor, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2,
-  type PricingDisclosure, type PublicLocationV2,
+  type PricingDisclosure, type PricingInputV2, type PublicLocationV2,
 } from '@realtor/domain';
 
 /** Narrow, explicitly validated public API contracts. Identity and tenant selection remain server concerns. */
@@ -21,7 +21,23 @@ export interface PublicPropertyV2 extends PublicProperty {
   readonly location: PublicLocationV2;
 }
 export interface PropertyPageV2 { readonly items: readonly PublicPropertyV2[]; readonly limit: number }
-export type { PricingDisclosure, PublicLocationV2 } from '@realtor/domain';
+export type { PricingDisclosure, PricingInputV2, PricingChargeV2, PublicLocationV2 } from '@realtor/domain';
+export interface StaffDraftContentV2 {
+  readonly title:string|null;readonly description:string|null;readonly purpose:'rent'|'sale'|null;readonly propertyType:PropertyType|null;
+  readonly currency:'KES';readonly amountMinor:number|null;readonly rentPeriod:PublicProperty['rentPeriod'];
+  readonly bedrooms:number|null;readonly privateBathrooms:number|null;readonly sharedBathrooms:number|null;
+  readonly country:'KE';readonly locality:string|null;readonly publicPrecision:'area'|'exact';
+  readonly latitude:number|null;readonly longitude:number|null;readonly privateAddress:string|null;
+  readonly pricing:PricingInputV2;readonly location:PublicLocationV2;
+}
+/** Save is full replacement: omitted base fields become null/defaults, not a partial patch. */
+export type StaffDraftContentInputV2=Partial<StaffDraftContentV2>&Pick<StaffDraftContentV2,'pricing'|'location'>;
+export interface StaffDraftV2 {
+  readonly revision:number;readonly state:'draft'|'pending'|'approved'|'rejected';readonly version:string;readonly content:StaffDraftContentV2;
+}
+export interface StaffVersionReceipt {readonly version:string}
+export interface StaffDraftSaveV2 {readonly expectedVersion:string;readonly content:StaffDraftContentInputV2}
+export interface StaffDraftSubmitV2 {readonly expectedVersion:string}
 export interface EnquiryInput {
   readonly listingId?: string | null; readonly name: string; readonly phone?: string | null; readonly email?: string | null;
   readonly message: string; readonly origin: 'web' | 'mobile'; readonly noticeVersion: string; readonly noticeAcknowledged: true;
@@ -32,10 +48,11 @@ export interface RequestOptions {
   readonly bearerToken?: string; readonly signal?: AbortSignal; readonly timeoutMs?: number;
 }
 export interface EnquiryRequestOptions extends RequestOptions { readonly idempotencyKey: string }
+export interface StaffRequestOptions extends RequestOptions {readonly bearerToken:string}
 export type ClientErrorKind = 'CONFIGURATION' | 'VALIDATION' | 'NETWORK' | 'TIMEOUT' | 'CANCELLED' | 'HTTP' | 'INVALID_RESPONSE' | 'REDIRECT';
 export interface ClientErrorDetails {
   readonly status?: number; readonly serverCode?: string; readonly requestId?: string; readonly retryAfterSeconds?: number;
-  /** A failed POST can have committed. Retry manually with the SAME key/body, never invent a new key. */
+  /** A failed write can have committed. Enquiries use their original key; staff writes require reconciliation before retry. */
   readonly submissionUncertain?: boolean;
 }
 export class ApiClientError extends Error {
@@ -62,6 +79,7 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 const TYPES:readonly string[]=['apartment','bedsitter','studio','bungalow','maisonette','townhouse','villa','commercial','land'];
 const RESIDENTIAL:readonly string[]=['apartment','bedsitter','studio','bungalow','maisonette','townhouse','villa'];
 const PUBLIC_FIELDS=['id','slug','revision','title','description','purpose','propertyType','currency','amountMinor','rentPeriod','bedrooms','privateBathrooms','sharedBathrooms','country','locality','publicPrecision','latitude','longitude','photos'] as const;
+const STAFF_CONTENT_FIELDS=['title','description','purpose','propertyType','currency','amountMinor','rentPeriod','bedrooms','privateBathrooms','sharedBathrooms','country','locality','publicPrecision','latitude','longitude','privateAddress','pricing','location'] as const;
 const MAX_JSON_CHARACTERS=3*1024*1024;
 const SERVER_CODES=new Set(['INVALID_INPUT','NOTICE_ACKNOWLEDGEMENT_REQUIRED','UNAUTHENTICATED','FORBIDDEN','NOT_FOUND','METHOD_NOT_ALLOWED','CONFLICT','BODY_TOO_LARGE','JSON_REQUIRED','INVALID_JSON','INVALID_STATE','RATE_LIMITED','SERVICE_UNAVAILABLE']);
 const invalid=(kind:'VALIDATION'|'INVALID_RESPONSE'|'CONFIGURATION',message:string):never=>{throw new ApiClientError(kind,message);};
@@ -137,6 +155,73 @@ function publicPropertyV2(input:unknown):PublicPropertyV2{
     return invalid('INVALID_RESPONSE','Invalid public pricing or location disclosure.');
   }
 }
+function staffVersion(input:unknown,kind:'VALIDATION'|'INVALID_RESPONSE',allowNew=false):string{
+  if(typeof input!=='string'||!/^(?:0|[1-9]\d{0,18})$/.test(input)||BigInt(input)>9223372036854775807n||(!allowNew&&input==='0'))return invalid(kind,'Use a canonical decimal version string.');
+  return input;
+}
+function expectedStaffVersion(input:unknown,allowNew:boolean):number{
+  const version=staffVersion(input,'VALIDATION',allowNew);
+  if(BigInt(version)>BigInt(Number.MAX_SAFE_INTEGER))return invalid('VALIDATION','This version cannot be sent safely by the current API contract.');
+  return Number(version);
+}
+function staffContent(input:unknown,kind:'VALIDATION'|'INVALID_RESPONSE',requireAll=false):StaffDraftContentV2{
+  const value=record(input,STAFF_CONTENT_FIELDS,kind);
+  if(requireAll&&STAFF_CONTENT_FIELDS.some(field=>!Object.hasOwn(value,field)))return invalid(kind,'Incomplete staff response fields.');
+  if(requireAll&&(value.currency!=='KES'||value.country!=='KE'||(value.publicPrecision!=='area'&&value.publicPrecision!=='exact')))return invalid(kind,'Invalid required staff defaults.');
+  const nullableText=(input:unknown,max:number,label:string):string|null=>input==null||(typeof input==='string'&&!input.trim())?null:text(input,max,kind,label,true);
+  const nullableCount=(input:unknown):number|null=>input==null?null:integer(input,0,100,kind,'Room count');
+  const nullableCoordinate=(input:unknown,min:number,max:number):number|null=>{
+    if(input==null)return null;if(typeof input!=='number'||!Number.isFinite(input)||input<min||input>max)return invalid(kind,'Invalid staff coordinates.');return input;
+  };
+  const title=nullableText(value.title,160,'Title'),description=nullableText(value.description,10000,'Description'),locality=nullableText(value.locality,160,'Locality');
+  const purpose=value.purpose??null;if(purpose!==null&&purpose!=='rent'&&purpose!=='sale')return invalid(kind,'Invalid purpose.');
+  const propertyType=value.propertyType??null;if(propertyType!==null&&(typeof propertyType!=='string'||!TYPES.includes(propertyType)))return invalid(kind,'Invalid property type.');
+  if((value.currency??'KES')!=='KES'||(value.country??'KE')!=='KE')return invalid(kind,'Unsupported currency or country.');
+  const amountMinor=value.amountMinor==null?null:integer(value.amountMinor,1,100000000000000,kind,'Price');
+  const rentPeriod=value.rentPeriod??null;
+  if(rentPeriod!==null&&(typeof rentPeriod!=='string'||!['day','week','month','year'].includes(rentPeriod)))return invalid(kind,'Invalid rental period.');
+  if(purpose==='sale'&&rentPeriod!==null)return invalid(kind,'Sale drafts require a null rental period.');
+  const bedrooms=nullableCount(value.bedrooms),privateBathrooms=nullableCount(value.privateBathrooms),sharedBathrooms=nullableCount(value.sharedBathrooms);
+  if((propertyType==='land'&&bedrooms!==null)||((propertyType==='studio'||propertyType==='bedsitter')&&bedrooms!==null&&bedrooms!==0))return invalid(kind,'Rooms do not match the property type.');
+  const publicPrecision=value.publicPrecision??'area';if(publicPrecision!=='area'&&publicPrecision!=='exact')return invalid(kind,'Invalid public precision.');
+  const latitude=nullableCoordinate(value.latitude,-90,90),longitude=nullableCoordinate(value.longitude,-180,180);
+  if((latitude===null)!==(longitude===null))return invalid(kind,'Staff coordinates must be supplied together.');
+  let privateAddress:string|null=null;
+  if(value.privateAddress!=null){
+    if(typeof value.privateAddress!=='string'||[...value.privateAddress].length>1000||/[\ud800-\udfff]/u.test(value.privateAddress)||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value.privateAddress))return invalid(kind,'Invalid private address.');
+    privateAddress=value.privateAddress;
+  }
+  let pricing:PricingInputV2;let location:PublicLocationV2;
+  try{
+    pricing=validatePricingInputV2(value.pricing);location=validatePublicLocationV2(value.location);
+    if(purpose===null&&pricing.charges.length)throw new Error('Charges need a purpose');
+    if(pricing.charges.some(charge=>(purpose!=='rent'&&charge.timing==='per_rental_period')||(charge.classification==='refundable_deposit'&&charge.timing!=='one_off')))throw new Error('Invalid charge purpose or classification');
+    // The API allows incomplete drafts; derive/check totals only when the actual base and purpose are supplied.
+    if(amountMinor!==null&&purpose!==null&&(purpose==='sale'||rentPeriod!==null))calculateWirePricingV2(kesFromMinor(amountMinor),purpose,rentPeriod as PublicProperty['rentPeriod'],pricing);
+  }catch{return invalid(kind,'Invalid staff pricing or location disclosure.');}
+  return Object.freeze({title,description,purpose,propertyType:propertyType as PropertyType|null,currency:'KES',amountMinor,rentPeriod:rentPeriod as PublicProperty['rentPeriod'],
+    bedrooms,privateBathrooms,sharedBathrooms,country:'KE',locality,publicPrecision,latitude,longitude,privateAddress,pricing,location});
+}
+/** Canonicalize a full replacement without inventing values for unfinished fields. Submission/media rules remain server gates. */
+export function validateStaffDraftContentV2(input:unknown):StaffDraftContentV2{return staffContent(input,'VALIDATION');}
+function staffDraft(input:unknown,revision:number):StaffDraftV2{
+  const value=record(input,['revision','state','version','content'],'INVALID_RESPONSE');
+  if(integer(value.revision,1,2147483647,'INVALID_RESPONSE','Revision')!==revision)return invalid('INVALID_RESPONSE','Unexpected staff revision.');
+  if(typeof value.state!=='string'||!['draft','pending','approved','rejected'].includes(value.state))return invalid('INVALID_RESPONSE','Invalid staff revision state.');
+  const version=staffVersion(value.version,'INVALID_RESPONSE'),content=staffContent(value.content,'INVALID_RESPONSE',true);
+  if(value.state!=='draft'&&(content.title===null||content.description===null||content.purpose===null||content.propertyType===null||content.amountMinor===null||content.locality===null||(content.purpose==='rent'&&content.rentPeriod===null)||(RESIDENTIAL.includes(content.propertyType)&&content.bedrooms===null)))return invalid('INVALID_RESPONSE','Incomplete reviewed staff revision.');
+  return Object.freeze({revision,state:value.state as StaffDraftV2['state'],version,content});
+}
+function staffPath(listingId:unknown,revision:unknown):string{
+  return `/v2/staff/listings/${uuid(listingId,'VALIDATION','Listing ID')}/drafts/${integer(revision,1,2147483647,'VALIDATION','Revision')}`;
+}
+function staffOptions(options:StaffRequestOptions):void{
+  requestOptions(options);if(typeof options.bearerToken!=='string'||!options.bearerToken)return invalid('VALIDATION','A bearer token is required for each staff call.');
+}
+function uncertainWriteError(error:unknown):never{
+  if(error instanceof ApiClientError&&error.kind==='INVALID_RESPONSE'&&!error.submissionUncertain)throw new ApiClientError(error.kind,error.message,{status:error.status,submissionUncertain:true});
+  throw error;
+}
 function requestOptions(input:RequestOptions,extra:readonly string[]=[]):void{
   record(input,['bearerToken','signal','timeoutMs',...extra],'VALIDATION');
   if(input.bearerToken!==undefined&&(typeof input.bearerToken!=='string'||input.bearerToken.length>8192||! /^[A-Za-z\d\-._~+/]+=*$/.test(input.bearerToken)))invalid('VALIDATION','Invalid bearer token.');
@@ -182,6 +267,27 @@ export class RealtorApiClient {
     if(data.limit!==limit||!Array.isArray(data.items)||data.items.length>limit)return invalid('INVALID_RESPONSE','Invalid property page.');
     return Object.freeze({items:Object.freeze(data.items.map(publicPropertyV2)),limit});
   }
+  async getStaffDraftV2(listingId:string,revision:number,options:StaffRequestOptions):Promise<StaffDraftV2>{
+    staffOptions(options);const path=staffPath(listingId,revision);
+    return staffDraft(await this.request(path,'GET',options),revision);
+  }
+  async saveStaffDraftV2(listingId:string,revision:number,input:StaffDraftSaveV2,options:StaffRequestOptions):Promise<StaffVersionReceipt>{
+    staffOptions(options);const path=staffPath(listingId,revision);
+    const value=record(input,['expectedVersion','content'],'VALIDATION');
+    const expectedVersion=expectedStaffVersion(value.expectedVersion,true),content=validateStaffDraftContentV2(value.content);
+    try{
+      const data=record(await this.request(path,'PUT',options,{expectedVersion,content}),['version'],'INVALID_RESPONSE');
+      return Object.freeze({version:staffVersion(data.version,'INVALID_RESPONSE')});
+    }catch(error){return uncertainWriteError(error);}
+  }
+  async submitStaffDraftV2(listingId:string,revision:number,input:StaffDraftSubmitV2,options:StaffRequestOptions):Promise<StaffVersionReceipt>{
+    staffOptions(options);const path=staffPath(listingId,revision)+'/submit';
+    const value=record(input,['expectedVersion'],'VALIDATION');const expectedVersion=expectedStaffVersion(value.expectedVersion,false);
+    try{
+      const data=record(await this.request(path,'POST',options,{expectedVersion}),['version'],'INVALID_RESPONSE');
+      return Object.freeze({version:staffVersion(data.version,'INVALID_RESPONSE')});
+    }catch(error){return uncertainWriteError(error);}
+  }
   async submitEnquiry(input:EnquiryInput,options:EnquiryRequestOptions):Promise<EnquiryReceipt>{
     requestOptions(options,['idempotencyKey']);const key=uuid(options.idempotencyKey,'VALIDATION','Idempotency key');
     const body=enquiryBody(input,this.currentNotice);
@@ -193,41 +299,43 @@ export class RealtorApiClient {
       throw error;
     }
   }
-  private async request(path:string,method:'GET'|'POST',options:RequestOptions,body?:Record<string,unknown>,key?:string):Promise<unknown>{
+  private async request(path:string,method:'GET'|'POST'|'PUT',options:RequestOptions,body?:Record<string,unknown>,key?:string):Promise<unknown>{
+    const writes=method!=='GET';
+    const expectedStatus=path==='/v1/enquiries'&&method==='POST'?201:200;
     if(options.signal?.aborted)throw new ApiClientError('CANCELLED','Request was cancelled.');
     const controller=new AbortController();let interruption:'CANCELLED'|'TIMEOUT'|undefined;let started=false;
     let rejectInterruption:(reason:ApiClientError)=>void=()=>{};
     const interrupted=new Promise<never>((_,reject)=>{rejectInterruption=reject;});
-    const stop=(kind:'CANCELLED'|'TIMEOUT')=>{interruption=kind;controller.abort();rejectInterruption(new ApiClientError(kind,kind==='TIMEOUT'?'Request timed out.':'Request was cancelled.',{submissionUncertain:method==='POST'&&started}));};
+    const stop=(kind:'CANCELLED'|'TIMEOUT')=>{interruption=kind;controller.abort();rejectInterruption(new ApiClientError(kind,kind==='TIMEOUT'?'Request timed out.':'Request was cancelled.',{submissionUncertain:writes&&started}));};
     const timer=setTimeout(()=>stop('TIMEOUT'),options.timeoutMs??this.defaultTimeout);
     const cancel=()=>stop('CANCELLED');options.signal?.addEventListener('abort',cancel,{once:true});
     try{
       const operation=(async()=>{
         const headers:Record<string,string>={Accept:'application/json'};
         if(options.bearerToken)headers.Authorization=`Bearer ${options.bearerToken}`;
-        if(body){headers['Content-Type']='application/json';headers['Idempotency-Key']=key!;}
+        if(body){headers['Content-Type']='application/json';if(key!==undefined)headers['Idempotency-Key']=key;}
         const url=this.apiOrigin+path;started=true;
         const result=await this.transport(url,{method,headers,credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal,...(body?{body:JSON.stringify(body)}:{})});
-        if(result.redirected||(result.status>=300&&result.status<400)||(result.url&&new URL(result.url).href!==new URL(url).href))throw new ApiClientError('REDIRECT','API redirects are not permitted.',{submissionUncertain:method==='POST'});
-        if(!/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type')??''))throw new ApiClientError('INVALID_RESPONSE','Expected a JSON API response.',{status:result.status,submissionUncertain:method==='POST'});
-        const raw=await result.text();if(raw.length>MAX_JSON_CHARACTERS)throw new ApiClientError('INVALID_RESPONSE','API response exceeded the supported size.',{status:result.status,submissionUncertain:method==='POST'});
-        let payload:unknown;try{payload=method==='GET'&&path.startsWith('/v2/properties?')?parseListingJsonV2(raw):JSON.parse(raw);}catch{throw new ApiClientError('INVALID_RESPONSE','Malformed API JSON.',{status:result.status,submissionUncertain:method==='POST'});}
+        if(result.redirected||(result.status>=300&&result.status<400)||(result.url&&new URL(result.url).href!==new URL(url).href))throw new ApiClientError('REDIRECT','API redirects are not permitted.',{submissionUncertain:writes});
+        if(!/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type')??''))throw new ApiClientError('INVALID_RESPONSE','Expected a JSON API response.',{status:result.status,submissionUncertain:writes});
+        const raw=await result.text();if(raw.length>MAX_JSON_CHARACTERS)throw new ApiClientError('INVALID_RESPONSE','API response exceeded the supported size.',{status:result.status,submissionUncertain:writes});
+        let payload:unknown;try{payload=path.startsWith('/v2/')?parseListingJsonV2(raw):JSON.parse(raw);}catch{throw new ApiClientError('INVALID_RESPONSE','Malformed API JSON.',{status:result.status,submissionUncertain:writes});}
         if(!result.ok){
           const envelope=record(payload,['error','requestId'],'INVALID_RESPONSE');const serverError=record(envelope.error,['code','message'],'INVALID_RESPONSE');
           const requestId=uuid(envelope.requestId,'INVALID_RESPONSE','Request ID');
           if(typeof serverError.code!=='string'||typeof serverError.message!=='string')return invalid('INVALID_RESPONSE','Malformed API error.');
           const headerId=result.headers.get('x-request-id');if(headerId!==null&&headerId.toLowerCase()!==requestId)invalid('INVALID_RESPONSE','Conflicting API request reference.');
           const retry=result.headers.get('retry-after');const retryAfterSeconds=retry!==null&&/^\d{1,8}$/.test(retry)?Number(retry):undefined;
-          throw new ApiClientError('HTTP','API request could not be completed.',{status:result.status,serverCode:SERVER_CODES.has(serverError.code)?serverError.code:undefined,requestId,...(retryAfterSeconds===undefined?{}:{retryAfterSeconds}),submissionUncertain:method==='POST'&&result.status>=500});
+          throw new ApiClientError('HTTP','API request could not be completed.',{status:result.status,serverCode:SERVER_CODES.has(serverError.code)?serverError.code:undefined,requestId,...(retryAfterSeconds===undefined?{}:{retryAfterSeconds}),submissionUncertain:writes&&result.status>=500});
         }
-        if(result.status!==(method==='POST'?201:200))throw new ApiClientError('INVALID_RESPONSE','Unexpected API success status.',{status:result.status,submissionUncertain:method==='POST'});
+        if(result.status!==expectedStatus)throw new ApiClientError('INVALID_RESPONSE','Unexpected API success status.',{status:result.status,submissionUncertain:writes});
         return payload;
       })();
       return await Promise.race([operation,interrupted]);
     }catch(error){
-      if(interruption)throw new ApiClientError(interruption,interruption==='TIMEOUT'?'Request timed out.':'Request was cancelled.',{submissionUncertain:method==='POST'&&started});
+      if(interruption)throw new ApiClientError(interruption,interruption==='TIMEOUT'?'Request timed out.':'Request was cancelled.',{submissionUncertain:writes&&started});
       if(error instanceof ApiClientError)throw error;
-      throw new ApiClientError('NETWORK','API could not be reached.',{submissionUncertain:method==='POST'&&started});
+      throw new ApiClientError('NETWORK','API could not be reached.',{submissionUncertain:writes&&started});
     }finally{clearTimeout(timer);options.signal?.removeEventListener('abort',cancel);}
   }
 }

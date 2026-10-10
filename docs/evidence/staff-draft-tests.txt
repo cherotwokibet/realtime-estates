@@ -1,0 +1,376 @@
+
+> realtor-platform@0.1.0 test
+> npm run build:packages && npm run test --workspace=@realtor/domain && npm run test --workspace=@realtor/demo && npm run test --workspace=@realtor/api && npm run test --workspace=@realtor/api-client && npm run test:integration --workspace=@realtor/api-client && npm run test:database && npm run test --workspace=@realtor/web && npm run test --workspace=@realtor/admin && node --test apps/api/dev/*.test.mjs
+
+
+> realtor-platform@0.1.0 build:packages
+> npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/demo && npm run build --workspace=@realtor/api-client
+
+
+> @realtor/domain@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/demo@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/domain@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ public brand config normalizes safe values and can be independently configured for another tenant (4.8942ms)
+✔ branding rejects secret/unknown fields, scriptable URLs, CSS injection and misleading feature types (2.5566ms)
+✔ v2 pricing round-trips exact known and quote-required rows without supplied derived totals (10.8495ms)
+✔ v2 wire requires every exact pricing and charge field and rejects wrong types or declaration aliases (1.8706ms)
+✔ v2 wire cannot infer completeness from legacy fees or translate unknown cost coverage into zero (2.4227ms)
+✔ charge bounds are inclusive, Unicode code-point based and reject controls or surrounding whitespace (4.8365ms)
+✔ charges require unique IDs and a dense plain array containing at most 32 rows (3.6741ms)
+✔ known amounts are positive safe integers while quote-required amounts are exactly null (1.4351ms)
+✔ plain exact records reject classes, inherited fields, accessors, hidden fields and symbol extras (1.0302ms)
+✔ public location preserves explicit unknowns and round-trips exact supplied county/town/area (1.4487ms)
+✔ public location rejects absent keys, legacy locality/defaults, hidden data and invalid text (2.3793ms)
+✔ v2 calculator delegates exact sale and rent totals and keeps deposits separate (2.3633ms)
+✔ mandatory quotes and optional quotes retain distinct completeness and known-subtotal behavior (1.0992ms)
+✔ calculator rejects recurring sale charges, recurring deposits, unsafe sums and invalid base/period using existing rules (4.6751ms)
+✔ canonical pricing and location are detached deeply frozen copies without mutating caller inputs (0.8094ms)
+✔ v2 JSON guard rejects a fractional money token that native JSON.parse rounds into a safe integer (5.7439ms)
+✔ all fractional and exponential amountMinor number literals are refused without arithmetic coercion (2.4698ms)
+✔ decoded escaped amountMinor keys receive the same check inside nested objects and arrays (0.9166ms)
+✔ JSON-looking text, escaped quotes, backslashes and other nonmatching keys cannot trigger money checks (1.0637ms)
+✔ coordinates and unrelated numbers retain decimals and scientific notation (0.5731ms)
+✔ quote-required null and exact safe integer charge inputs survive parsing and shared wire validation (1.6491ms)
+✔ guard leaves quoted/non-number amountMinor values to strict wire validation without coercion (0.828ms)
+✔ invalid JSON syntax and non-text input fail before token inspection (3.1653ms)
+✔ every duplicate amountMinor occurrence is checked even if JSON.parse would overwrite it (1.2202ms)
+✔ KES decimal text becomes exact minor units without floating point rounding (128.6986ms)
+✔ money rejects silent precision loss, currency coercion, negatives and formatted user text (0.9095ms)
+✔ rent quote discloses refundable deposit separately and does not count it as recurring income (0.7342ms)
+✔ fee totals reject duplicates, zero amounts, rental fees on sales, and recurring deposits (2.9662ms)
+✔ Over is strict at the boundary; inclusive ranges and exact counts preserve 7, 8, 9, 10 (2.4853ms)
+✔ ranges fail clearly when contradictory or non-finite instead of silently yielding misleading results (0.4307ms)
+✔ Kenyan mobile contact normalization supports explicit 07/01 forms with formatting (0.5935ms)
+✔ unsupported country/prefix, truncated number, double plus and extensions are rejected (0.3314ms)
+✔ guest/customer cannot create listings or inspect private stock (4.8255ms)
+✔ assigned agent can edit their tenant records but cannot review/publish (1.1175ms)
+✔ reassignment revokes the original creator's private access without changing creator history (5.4094ms)
+✔ cross-owner editing and arbitrary record attribution are denied (0.7605ms)
+✔ tenant admin is tenant-wide; inactive or other-tenant membership cannot grant authority (0.9853ms)
+✔ resource/context tenant mismatch denies even public reads and privileged roles (0.6313ms)
+✔ platform owner requires explicit matching tenant context with reason and audit identifier (2.2641ms)
+✔ unknown actions/roles deny by default (0.369ms)
+✔ sale 999999 + mandatory fee 1500 preserves the advertised price and shows known initial 1001499 (5.9598ms)
+✔ monthly 20000 + service 1000 + deposit 20000 + first fee 500 gives recurring 21000 and initial 41500 (7.906ms)
+✔ mandatory quotes remain unresolved even after a complete coverage declaration; only supplied amounts enter subtotals (4.0869ms)
+✔ optional known costs and optional quotes remain separate and do not inflate mandatory amounts (2.7879ms)
+✔ empty charges never imply complete zero extras without an explicit complete declaration (1.7682ms)
+✔ rent retains an explicitly chosen period and sale rejects every rental-period charge, including optional quotes (5.9555ms)
+✔ named rows require unique trimmed IDs, nonblank labels, explicit flags and valid classifications/timing (1.8755ms)
+✔ known charges require positive safe integer KES; quotes require exactly null rather than zero or missing money (3.269ms)
+✔ base prices retain the shared listing ceiling while safe computed totals may exceed it (4.072ms)
+✔ mandatory and optional subtotal sums reject unsafe overflow without floating point truncation (1.9054ms)
+✔ malformed pricing containers, missing charge arrays and unsupported completeness declarations fail explicitly (1.0615ms)
+✔ pricing snapshots trim labels and deeply freeze detached money, charge arrays, subtotals and quote IDs (0.8789ms)
+✔ studio zero bedrooms and genuinely unknown coordinates are valid (10.3594ms)
+✔ create/edit use one submission validator for price, photos, rental period and location (10.7091ms)
+✔ sale omits rental period, images need stable unique IDs, and prices respect the declared ceiling (0.7598ms)
+✔ a draft cannot publish directly; pending revision cannot be silently changed or reviewed stale (0.8677ms)
+✔ published approved data survives draft changes, review requests and rejected revisions (0.6595ms)
+✔ changes requested/rejection require reason; self-approval requires explicit audited acknowledgement (0.575ms)
+✔ availability is independent of approval; withdrawn/unpublished/archived do not appear publicly (0.5707ms)
+✔ domain and persistence availability enums use an explicit lossless adapter (0.4062ms)
+✔ purpose revisions cannot label old published rental data sold or new sale data let (0.6666ms)
+✔ listing snapshots do not share mutable draft input (0.6361ms)
+✔ enquiry lifecycle records attributable changes and refuses skips or reopening terminal outcomes (0.6285ms)
+✔ viewing is a request until confirmed; terminal statuses cannot be rewritten (0.5174ms)
+✔ workflow timestamps require real calendar values and explicit timezone (0.4415ms)
+ℹ tests 65
+ℹ suites 0
+ℹ pass 65
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 458.0647
+
+> @realtor/demo@0.1.0 test
+> node --test tests/*.test.mjs
+
+✔ search applies all URL filters together and inclusive exact maximum (4.0226ms)
+✔ duplicate known URL filters fail closed instead of silently dropping constraints (0.3557ms)
+✔ configured tenants reject inherited object keys and unknown names (0.5489ms)
+✔ malformed, overprecise and zero prices produce errors, never an unfiltered result set (1.1974ms)
+✔ reset has no stale filter state; foreign tenant data is excluded (0.2602ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 172.3964
+
+> @realtor/api@0.1.0 test
+> npm run build && node --test tests/*.test.mjs
+
+
+> @realtor/api@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ real RS256 signature yields only immutable verified subject identity, ignoring role/company claims (254.6381ms)
+✔ bearer header parser rejects missing, duplicate and malformed credentials (6.5487ms)
+✔ expired, future and overlong-lifetime claims fail closed (31.3144ms)
+✔ wrong issuer, audience and malformed subject are denied despite valid signature (29.8634ms)
+✔ issuer, audience, subject, expiry and issued-at are required (33.8434ms)
+✔ counterfeit signature, unknown key and absent key ID are denied (24.7768ms)
+✔ HS256 algorithm confusion and unsigned/malformed tokens are denied (11.8224ms)
+✔ token-supplied key URL does not change the trusted JWKS endpoint (14.7922ms)
+✔ unavailable/malformed/redirecting JWKS endpoints deny without following redirects (29.2624ms)
+✔ trusted configuration is captured, not mutable through caller object (16.9895ms)
+✔ missing/untrusted identity configuration is rejected before any key fetch (1.4845ms)
+✔ explicit loopback HTTP exception is rejected in production mode (0.4906ms)
+✔ hostname resolves only configured company and does not grant membership (2.2128ms)
+✔ tenant configuration rejects host collisions, wildcards, duplicate IDs and invalid input (0.6914ms)
+✔ HTTP bridge derives client address from socket and preserves ambiguous authorization for rejection (111.8455ms)
+✔ HTTP bridge caps received bodies before application handler (23.2944ms)
+✔ only exact v2 draft PUTs receive the larger UTF-8 body allowance (167.3474ms)
+✔ v2 draft body limit also applies to chunked requests without Content-Length (33.957ms)
+▶ API service with actual PostgreSQL migration enforces identity, tenant isolation and persisted workflows
+  ✔ public projection is tenant-scoped and excludes private address, actors and enquiry contacts (126.7476ms)
+  ✔ guest, invalid token and customer cannot create staff records or access staff lists (48.4839ms)
+  ✔ body tenant/role/actor fields cannot grant access or switch company (16.1203ms)
+  ✔ agent creates assigned-to-self and cannot assign another agent; admin may assign (59.7602ms)
+  ✔ persisted drafts require numeric versions, cannot cross assignment/company, and do not become public (56.4565ms)
+  ✔ HTTP submit cannot bypass four accepted images or expose database diagnostics (22.6109ms)
+  ✔ v2 public projection preserves explicit unknowns and v1 stays unchanged (28.0969ms)
+  ✔ v2 draft writes and private reads preserve declared fees and nullable location (57.6935ms)
+  ✔ v2 private draft reads enforce identity, assignment and company scope (49.4702ms)
+  ✔ v2 rejects ambiguous, noncanonical and unsafe disclosure before any write (25.9836ms)
+  ✔ v2 uses optimistic locking and cannot cross assignment or company on writes (64.3213ms)
+  ✔ v2 atomic rent-to-sale edit replaces incompatible fees without an intermediate state (20.9301ms)
+  ✔ v2 submit retains media gate and leaves a failed submission editable (19.1755ms)
+  ✔ bounded v2 body accepts valid Unicode field maxima and rejects oversized payloads (67.2803ms)
+  ✔ v2 rejects fractional money tokens before JSON rounding can turn them into safe integers (23.6656ms)
+  ✔ guest enquiry normalizes phone and retry creates exactly one durable record (68.8993ms)
+  ✔ same idempotency key with changed message conflicts and cannot overwrite original (22.3403ms)
+  ✔ invalid phone, blank fields, spoofed tenant and non-public listing references are rejected (21.6194ms)
+  ✔ an arbitrary notice version or missing/false acknowledgement cannot persist an enquiry (7.5795ms)
+  ✔ payload content type and streamed size are bounded (2.1507ms)
+  ✔ transaction-local identity and role are cleared after successes and failures (15.3199ms)
+  ✔ reassignment immediately revokes creator's access on the next API request (27.6274ms)
+✔ API service with actual PostgreSQL migration enforces identity, tenant isolation and persisted workflows (5120.8118ms)
+✔ bounded local limiter expires quotas without evicting live entries to admit attackers (0.231ms)
+✔ failed rollback destroys pooled connection rather than returning contaminated state (0.4044ms)
+ℹ tests 43
+ℹ suites 0
+ℹ pass 43
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5666.2136
+
+> @realtor/api-client@0.1.0 test
+> npm run build && node --test tests/transport.test.mjs tests/http-transport.test.mjs tests/v2.test.mjs tests/staff-v2.test.mjs
+
+
+> @realtor/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ Node Fetch refuses cross-origin 302 POST redirect before contacting destination (211.7133ms)
+✔ Node Fetch refuses cross-origin 303 POST redirect before contacting destination (41.0142ms)
+✔ Node Fetch refuses cross-origin 307 POST redirect before contacting destination (20.6087ms)
+✔ Node Fetch refuses cross-origin 308 POST redirect before contacting destination (16.3044ms)
+✔ Node Fetch marks a committed POST timeout uncertain; manual same-key/body retry returns its original receipt (773.1675ms)
+✔ staff canonical content supports incomplete full replacements and preserves private/coarse coordinates without invented values (8.1563ms)
+✔ every staff call requires its own bearer and never retains it for public or later requests (75.4749ms)
+✔ staff GET requires an exact immutable envelope and complete canonical fields while allowing unfinished drafts (21.1921ms)
+✔ staff PUT and submit POST send exact version numbers, no idempotency header, and expect HTTP 200 receipts (7.0688ms)
+✔ staff validation rejects unknown grants, invalid cents/charges and contradictory fields before transport (1.8992ms)
+✔ staff version strings retain PostgreSQL bigint precision but reject unsafe write conversion and malformed paths (3.4953ms)
+✔ staff authorization and stale-version HTTP failures remain distinct, safe and definite without retries (5.8244ms)
+✔ staff write transport failures, invalid receipts and server failures are uncertain and never auto-retried (9.8309ms)
+✔ staff pre-cancellation sends nothing while a started save/submit timeout remains uncertain (43.6535ms)
+✔ staff GET uses exact v2 JSON money parsing and preserves quote-required null amounts and null locations (3.5641ms)
+✔ API origin permits HTTPS or explicitly opted-in loopback HTTP only (22.2535ms)
+✔ public request uses no ambient credentials, refuses redirects, preserves exact money and unknown fields remain absent (98.2963ms)
+✔ bearer token is explicit per call and never persists to the next request (5.8372ms)
+✔ public DTO rejects unsafe money, currency/period/count/type errors and precise area leaks (22.0419ms)
+✔ public DTO rejects extra tenant/private fields at page, property and photo levels (8.6646ms)
+✔ public photo keys cannot be URLs/traversal, repeated or unreviewed-size arrays (8.3037ms)
+✔ malformed pages, responses and unexpected success statuses fail rather than defaulting empty data (17.2848ms)
+✔ redirect statuses and followed-response indicators are rejected without another call (3.8394ms)
+✔ enquiry requires caller-retained UUID key, current notice acknowledgement and a contact channel before network (2.3774ms)
+✔ manual retries preserve key and normalized body; no retry, delivery promise or zero-fee inference (6.6029ms)
+✔ typed HTTP errors contain safe code/reference/retry time, never the raw server message (1.8056ms)
+✔ POST network failures never auto-retry and flag uncertain submission without exposing transport details (1.0135ms)
+✔ pre-cancellation sends nothing; in-flight cancellation and timeouts are typed including body reads (50.0295ms)
+✔ a malformed receipt is not called accepted and remains retryable only with original key/body (2.9587ms)
+✔ v2 derives exact known mandatory subtotals and separates optional fees and refundable deposits (103.2377ms)
+✔ unknown coverage and mandatory quotes remain unresolved while optional quotes do not contaminate mandatory totals (14.2315ms)
+✔ sale disclosure has no rental recurring subtotal and nullable public components stay explicit (7.33ms)
+✔ v2 rejects unknown fields and supplied derived totals at every extension boundary (22.9944ms)
+✔ v2 pricing wire validation rejects unsafe amounts, contradictory states, duplicate IDs and unbounded text/arrays (21.0079ms)
+✔ v2 public location requires exactly three bounded nullable strings (13.8284ms)
+✔ v1 remains exact and v2 does not silently accept an old or malformed base response (8.1603ms)
+✔ v2 accepts SQL-valid astral display-text maxima while v1 retains its UTF-16 bounds for every item (6.1766ms)
+✔ v2 rejects max-plus-one code points and unpaired surrogates independently for every base display field (9.6525ms)
+✔ v2 validates raw money integer literals before rounding, including escaped keys, while v1 parsing stays unchanged (12.0032ms)
+✔ v2 validates options before transport and uses only explicit per-call credentials (5.442ms)
+✔ v2 keeps no-retry network, redirect and whole-request timeout behavior (31.8965ms)
+ℹ tests 41
+ℹ suites 0
+ℹ pass 41
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1364.6575
+
+> @realtor/api-client@0.1.0 test:integration
+> npm run build && node --test tests/service-integration.test.mjs tests/v2-service-integration.test.mjs tests/staff-v2-service-integration.test.mjs
+
+
+> @realtor/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ shared client exercises actual API service, restricted runtime transactions, tenant scope and durable idempotency in PGlite (10188.2023ms)
+▶ staff v2 client integrates with real service, SQL assignment checks and optimistic versions
+  ✔ invalid identity, customer, peer and foreign-company calls cannot read or mutate an assigned draft (263.7726ms)
+  ✔ assigned staff receives exact raw cents, quotes, nullable location and private fields without public leakage (32.8365ms)
+  ✔ a new incomplete full replacement saves but cannot bypass submit requirements (78.0708ms)
+  ✔ successful full replacement preserves unedited fields and a stale version cannot overwrite it (71.2327ms)
+  ✔ a lost response after an actual save commits is uncertain and requires read reconciliation (75.4ms)
+  ✔ a lost submit response leaves pending review, cannot replay or edit, and retains the approved snapshot (65.3566ms)
+✔ staff v2 client integrates with real service, SQL assignment checks and optimistic versions (10669.9197ms)
+▶ v2 client integrates with actual migrations, API service and restricted tenant transactions
+  ✔ v2 public projection preserves exact disclosure, omits private data and isolates two companies (150.6572ms)
+  ✔ v1 stays compatible and contains no v2 extension fields (19.8144ms)
+  ✔ pre-migration published rows expose explicitly undeclared fees and null structured location (23.6275ms)
+  ✔ changed draft, pending review and rejection keep the original published price and location snapshot (134.7818ms)
+  ✔ a subsequent new draft persists extensions without replacing the public snapshot or crossing company (83.0272ms)
+✔ v2 client integrates with actual migrations, API service and restricted tenant transactions (10493.3285ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11126.0415
+
+> realtor-platform@0.1.0 test:database
+> node --test database/tests/*.test.mjs
+
+✔ ordered migration gives legacy rows unknown disclosure/location and keeps v1 projection and restricted grants (8115.3494ms)
+✔ v2 saves exact charge/location inputs atomically with one actual optimistic increment and final-version audit (4230.6698ms)
+✔ pricing storage rejects malformed containers, unknown keys, invalid labels/types/amounts and duplicate IDs (4801.9152ms)
+✔ structured location rejects guessed/malformed shapes while nullable and Unicode code-point bounded inputs remain explicit (5319.6074ms)
+✔ quotes stay null, deposits stay one-off and only rent permits recurring charges; a null-purpose draft permits no charges (11310.9843ms)
+✔ numeric aggregate checks allow exact safe limits, reject mandatory/optional overflow and protect incompatible v1 edits (7648.8156ms)
+✔ v2 commands enforce current tenant, assignment, membership and expected revision version without direct runtime writes (6036.9687ms)
+✔ approval copies exact reviewed pricing/location; drafts, rejected/stale reviews and decided-revision attacks preserve public snapshot (2950.5455ms)
+✔ v2 snapshot replacement preserves operational pause/archive and only explicit admin restoration exposes new pricing (5452.0561ms)
+✔ v2 discovery inherits v1 enabled/fresh/available predicate and retains private/public location boundaries (3687.9419ms)
+✔ migration forces RLS and API role has neither owner membership nor direct writes (7835.6723ms)
+✔ missing context and customer cannot create; agents cannot choose another assignee (4113.7127ms)
+✔ runtime private reads, edits, and reassignments respect company and assignment (4316.9208ms)
+✔ revoked membership and disabled tenant fail the next protected request (4929.4145ms)
+✔ composite foreign keys reject cross-company listing and revision relationships (11437.9417ms)
+✔ money, periods, canonical types, rooms and unknown privileged fields fail closed (6309.7638ms)
+✔ omitted concurrency versions cannot bypass protected updates (7724.3508ms)
+✔ accepted photos cannot make an incomplete draft publishable (2838.2001ms)
+✔ submission requires accepted photos and complete content; agent cannot approve (3388.1084ms)
+✔ approved snapshot excludes private address and precise area coordinates (5430.3891ms)
+✔ draft editing and rejection preserve published revision; stale review conflicts (2466.7076ms)
+✔ withdraw and resubmit preserve history; admin self-approval atomically replaces exact snapshot (1954.1895ms)
+✔ agent can pause/unavailable but only administrator resumes; stale stock excluded (1883.493ms)
+✔ approval cannot resurrect a listing paused or archived while its revision was pending (4485.0006ms)
+✔ an older pending review cannot overwrite a newer approved snapshot (2564.5338ms)
+✔ enquiry receipt is durable/idempotent and never grants guest/customer private reads (2550.8863ms)
+✔ enquiry assignment, next actions, closure and version restrictions (2776.7737ms)
+✔ transaction-local actor context is cleared on connection reuse (2187.1748ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 79574.823
+
+> @realtor/web@0.1.0 test
+> tsc -p tsconfig.tests.json && node --test tests/*.test.mjs
+
+✔ default mode stays synthetic demo even with an API origin, with company-separated immutable fixtures (8.5079ms)
+✔ malformed deployment configuration fails generically and never triggers transport or demo fallback (1.8997ms)
+✔ loopback HTTP requires exact development-only opt-in (0.7158ms)
+✔ connected projection preserves exact v2 disclosure and location while undisclosed fields remain unknown (74.0421ms)
+✔ connected maximum-price filters compare exact cents inclusively and preserve existing invalid-input messages (5.6859ms)
+✔ rental price filters require an explicit period and never convert mixed rent periods or hide sales (17.3768ms)
+✔ rental period input validates malformed, repeated and unknown choices while keeping price validation specific (2.7746ms)
+✔ local location filtering uses known county, town, area and locality without converting nulls into places (5.3923ms)
+✔ all nine API property types can be filtered while malformed/repeated filters retain shared validation (25.8531ms)
+✔ connected upstream failures, malformed/private responses and precision violations never become demo or empty success (2.7764ms)
+✔ an empty connected catalogue is an explicit successful empty result (1.235ms)
+✔ a full bounded catalogue warns about truncation and a missing detail remains incomplete rather than a false 404 (48.0468ms)
+✔ every load makes a fresh no-store read and browser query values cannot select origin or company (2.7022ms)
+✔ connected source alone never declares data real or live (0.6733ms)
+✔ pricing presentation formats exact KES subtotals and retains the actual rental period (95.2812ms)
+✔ undeclared empty fees show none supplied and incomplete disclosure rather than claiming zero fees (1.1752ms)
+✔ mandatory quote-required charges retain names and never receive invented zero amounts (0.5545ms)
+✔ optional amounts and optional quotes stay separate from mandatory completeness and initial subtotal (0.4475ms)
+✔ incomplete and explicitly complete empty declarations retain different disclosure copy (0.3916ms)
+✔ sale presentation has no invented rental period or recurring price (0.3885ms)
+✔ presentation data is frozen and shares no mutable charge rows with callers (0.8583ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 415.9896
+
+> @realtor/admin@0.1.0 test
+> tsc -p tsconfig.tests.json && node --test tests/*.test.mjs
+
+✔ KES input preserves cents with integer arithmetic and rejects lossy notation (3.6459ms)
+✔ full form roundtrip retains unedited private data, exact coordinates, quote null and charge IDs (4.7582ms)
+✔ blank location stays unknown and incomplete drafts can be saved without fabricated defaults (0.4231ms)
+✔ valid small coordinate values roundtrip without changing money notation rules (0.6168ms)
+✔ uncertain write matching the readback is reconciled; a different version keeps local edits (2.3448ms)
+✔ invalid local input and state-only changes remain recoverable and never silently become a new baseline (0.4666ms)
+✔ synthetic identity is restricted to explicit development and an exact loopback origin (3.2024ms)
+✔ BFF rejects cross-origin writes, missing origin, selected client identity and rebinding hosts (53.4814ms)
+✔ malformed upstream success becomes failure; real authorization/conflict statuses survive (0.3856ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 236.2244
+✔ staff preview refuses production and unsafe/undefined synthetic configuration before opening listeners (4.0458ms)
+✔ actual RS256/JWKS staff HTTP journey verifies identity, saves/reloads, conflicts safely and submits only to pending review (7409.1457ms)
+✔ actual authenticated HTTP v2 draft saves and reloads valid Unicode above 64 KiB, rejecting more than 128 KiB without mutation (3865.1639ms)
+✔ genuinely signed synthetic customer, revoked and other-company actors fail current database membership authorization (8717.8746ms)
+✔ trusted Sample Homes startup reads its assigned draft without exposing the Realtime fixture (2150.5325ms)
+✔ without explicit synthetic accepted-media metadata, actual SQL submission is rejected and draft/version are retained (2240.3711ms)
+✔ synthetic preview rejects production and invalid startup configuration before creating a listener (4.6925ms)
+✔ normal Realtime preview uses real HTTP, v2 client/service and restricted SQL with exact synthetic disclosures (7141.8227ms)
+✔ Sample Homes startup selects only its own row and preserves exact cents with unknown charge coverage (3555.3912ms)
+✔ empty startup pauses configured synthetic stock through SQL instead of leaking other-company rows or falling back (3280.1774ms)
+✔ error startup returns the actual service safe unavailable error, never a successful empty/fallback catalogue (3266.3808ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 24992.5044

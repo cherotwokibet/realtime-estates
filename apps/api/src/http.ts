@@ -1,5 +1,7 @@
 import { createServer, type IncomingMessage } from 'node:http';
 const MAX_BODY_BYTES = 64 * 1024;
+const MAX_V2_DRAFT_BYTES = 128 * 1024;
+const V2_DRAFT_PATH = /^\/v2\/staff\/listings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/drafts\/([1-9]\d*)$/;
 type Handler = (request: Request) => Promise<Response>;
 /** Loopback development bridge. Only the socket address supplies the limiter key. */
 export function createDevelopmentServer(handler: Handler, clientAddresses: WeakMap<Request,string> = new WeakMap()) {
@@ -7,14 +9,18 @@ export function createDevelopmentServer(handler: Handler, clientAddresses: WeakM
     try {
       const host = incoming.headers.host;
       if (!host || /[\s/\\?#@,]/.test(host)) { outgoing.writeHead(400); outgoing.end(); return; }
-      const body = await readBody(incoming);
+      const method = incoming.method ?? 'GET';
+      const url = new URL(incoming.url ?? '/', `http://${host}`);
+      // Match the service's v2 draft save only; all other routes keep the existing cap.
+      const draft = method === 'PUT' && url.search === '' ? V2_DRAFT_PATH.exec(url.pathname) : null;
+      const maximum = draft && Number(draft[1]) <= 2147483647 ? MAX_V2_DRAFT_BYTES : MAX_BODY_BYTES;
+      const body = await readBody(incoming, maximum);
       const headers = new Headers();
       for (let i=0;i<incoming.rawHeaders.length;i+=2) {
         const key = incoming.rawHeaders[i]; const value = incoming.rawHeaders[i+1];
         if (key && value) headers.append(key,value);
       }
-      const method = incoming.method ?? 'GET';
-      const request = new Request(new URL(incoming.url ?? '/', `http://${host}`), {
+      const request = new Request(url, {
         method, headers, ...(method === 'GET' || method === 'HEAD' ? {} : { body:Uint8Array.from(body).buffer }),
       });
       clientAddresses.set(request,incoming.socket.remoteAddress ?? 'unknown-socket');
@@ -34,13 +40,13 @@ export function createDevelopmentServer(handler: Handler, clientAddresses: WeakM
   return server;
 }
 class BodyTooLarge extends Error {}
-async function readBody(incoming: IncomingMessage): Promise<Buffer> {
+async function readBody(incoming: IncomingMessage, maximum: number): Promise<Buffer> {
   const declared = incoming.headers['content-length'];
-  if (declared && (!/^\d+$/.test(declared) || Number(declared)>MAX_BODY_BYTES)) throw new BodyTooLarge();
+  if (declared && (!/^\d+$/.test(declared) || Number(declared)>maximum)) throw new BodyTooLarge();
   const chunks: Buffer[] = []; let length=0;
   for await (const raw of incoming) {
     const chunk=Buffer.isBuffer(raw)?raw:Buffer.from(raw); length+=chunk.length;
-    if(length>MAX_BODY_BYTES) throw new BodyTooLarge(); chunks.push(chunk);
+    if(length>maximum) throw new BodyTooLarge(); chunks.push(chunk);
   }
   return Buffer.concat(chunks,length);
 }

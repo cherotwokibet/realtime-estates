@@ -1,6 +1,6 @@
-# Shared public API client
+# Shared API client
 
-This TypeScript package implements `GET /v1/properties`, `GET /v2/properties` and `POST /v1/enquiries`, using the shared `@realtor/domain` package for v2 pricing and public-location validation. It requires Fetch, URL, AbortController and their web-platform types. It is not connected to the web or mobile previews. Staff workflows and authentication UI are outside this package.
+This TypeScript package implements public property reads, enquiries and the narrow authenticated v2 staff draft read/save/submit contract. It uses `@realtor/domain` for v2 pricing and location validation and requires Fetch, URL, AbortController and their web-platform types. Authentication UI, token acquisition/storage, staff listing creation, media processing and moderation decisions are outside this package. UI connections are separate application integrations.
 
 ```ts
 import { RealtorApiClient, ApiClientError } from '@realtor/api-client';
@@ -36,11 +36,11 @@ try {
 
 Use `allowLoopbackHttp: true` only for explicit local development with `http://localhost`, `http://127.0.0.1` or `http://[::1]`. Configuration accepts an origin only, without credentials, path, query or fragment. All other endpoints require HTTPS. HTTPS configuration is not proof of server ownership: deployment/account/hostname verification remains a launch gate.
 
-Every call may receive `signal`, `timeoutMs` and an explicit `bearerToken`; tokens are never stored as shared client configuration. GET also accepts `limit` (1–100). POST requires a caller-retained UUID idempotency key. There are no automatic retries. A receipt contains only its saved UUID. Notice version must match the configured current version; the server checks its own authoritative version again. The client does not generate notice text or infer consent from the presence of contact data.
+Every call may receive `signal`, `timeoutMs` and an explicit `bearerToken`; tokens are never stored as shared client configuration. Public catalogue reads also accept `limit` (1–100). Enquiry POST requires a caller-retained UUID idempotency key and returns its saved UUID. There are no automatic retries. Notice version must match the configured current version; the server checks its own authoritative version again. The client does not generate notice text or infer consent from the presence of contact data.
 
 Requests use `credentials: 'omit'`, `redirect: 'error'` and `cache: 'no-store'`. Node Fetch redirect behavior has a separate real-HTTP regression suite; controlled transport tests inspect these request flags. Browser and React Native device behavior have **not** been verified here. Before sending any real bearer token or enquiry on a native transport, prove that the exact pinned transport rejects redirects before following them and does not attach ambient credentials. A check of `response.redirected` happens after sending and cannot prevent a noncompliant transport from leaking data. Injected transports must enforce the Fetch contract; this package does not make an unsafe transport safe.
 
-The entire request and body read has a timeout (default 10 seconds, configurable 1–120000 ms). Errors have typed `kind`, optional safe server code, request UUID, status and numeric retry-after seconds. Raw server messages, contact data, tokens and low-level transport errors are not copied into client errors. A POST interrupted after starting, receiving an invalid response or returning a server failure has `submissionUncertain: true`; it may already have committed. Cancellation does not undo a server write. A compliant Fetch implementation is needed to abort underlying network work as well as settle the client promise.
+The entire request and body read has a timeout (default 10 seconds, configurable 1–120000 ms). Errors have typed `kind`, optional safe server code, request UUID, status and numeric retry-after seconds. Raw server messages, contact data, tokens and low-level transport errors are not copied into client errors. A PUT/POST interrupted after starting, receiving an invalid response or returning a server failure has `submissionUncertain: true`; it may already have committed. Cancellation does not undo a server write. A compliant Fetch implementation is needed to abort underlying network work as well as settle the client promise.
 
 Response validation uses strict field allowlists and immutable returned DTOs. It rejects unknown tenant/private fields, unsafe/invalid KES money, incompatible rental periods and room counts, malformed reviewed photo references and precise coordinates on area-only listings. It fails on malformed pages rather than presenting an empty catalogue. Current flat `amountMinor` and `rentPeriod` map conceptually to the domain's `KesMoney.minorUnits` and rental period; this deliberately narrow wire contract is not full domain convergence. Missing fee fields remain absent/unknown, never assumed zero. Photo keys are opaque references, not URLs: callers must use a separately trusted asset origin. Any wire-shape additions require deliberate client/server version work.
 
@@ -51,6 +51,32 @@ V2 display-text bounds count Unicode code points to match PostgreSQL `length(tex
 V2 response JSON additionally requires every numeric `amountMinor` token to be an integer literal, with no fractional or exponent notation, including escaped JSON field names. The shared parser checks the original text so an unsafe fractional input cannot become an apparently safe integer through JavaScript rounding. Normal coordinate decimals are unaffected. V1 and enquiry JSON parsing remain unchanged.
 
 Tenant scoping is the server's responsibility. The client sends no tenant or actor override, and a safe DTO alone cannot prove that a configured hostname belongs to the intended realtor. Authentication verification and database authorization remain server gates.
+
+## Staff draft v2
+
+`getStaffDraftV2(listingId, revision, options)`, `saveStaffDraftV2(listingId, revision, input, options)` and `submitStaffDraftV2(listingId, revision, input, options)` require a nonblank `bearerToken` on every call, including runtime validation. They use the actual `/v2/staff/listings/:id/drafts/:revision` GET/PUT and `/submit` POST endpoints. A token authorizes nothing by itself: verified identity, active tenant membership and authoritative assignment remain server/database decisions. No request accepts a role, actor or tenant grant.
+
+```ts
+const staffOptions = { bearerToken: tokenForThisRequest };
+const draft = await api.getStaffDraftV2(listingId, revision, staffOptions);
+if (draft.state === 'draft') {
+  const saved = await api.saveStaffDraftV2(listingId, revision, {
+    expectedVersion: draft.version,
+    content: { ...draft.content, title: 'Updated title' },
+  }, staffOptions);
+  // Submit only after the user reviews the saved draft and required media.
+  const submitted = await api.submitStaffDraftV2(listingId, revision, {
+    expectedVersion: saved.version,
+  }, staffOptions);
+  // This receipt is a new revision version; pending review does not publish it.
+}
+```
+
+`StaffDraftV2` contains the requested revision, its state, its revision version and raw `StaffDraftContentV2`. The content preserves `pricing: PricingInputV2` and `location: PublicLocationV2`; it does not replace editable inputs with derived totals. Private address and coordinates belong only in authenticated staff UI and must never be reused as a public property projection. Exact GET field allowlists, immutable canonical copies and original-text v2 money parsing apply. Nullable fields stay null, including unknown prices, counts and location components.
+
+`validateStaffDraftContentV2(unknown)` returns a canonical **full replacement**, not a partial patch. Required pricing/location objects must be present. Omitted base fields become null, with `KES`, `KE` and area precision defaults. Editors must preserve all loaded, unedited fields, including private address, coordinates and bathroom counts. Incomplete drafts are supported; base/purpose/period-dependent arithmetic runs only when those inputs exist. Final API/SQL validation and submission requirements remain authoritative; canonicalization does not promise acceptance or complete a missing rental period or media.
+
+Read versions are canonical positive decimal strings within PostgreSQL bigint range. Preserve `draft.version` exactly; a listing version is a different concurrency token. Writes require that string and reject values above `Number.MAX_SAFE_INTEGER` before converting to the current API's numeric `expectedVersion`. New revision creation may use `'0'` on save only; malformed/rounded versions are never inferred or repaired. Save/submit return `{ version: string }` and send no idempotency header. An HTTP 401/403/409 is a definite typed failure; a 409 must not automatically refresh the version and resubmit. After an uncertain write, read the draft and reconcile the actual content/state/version before any deliberate next action. No save or submit is automatically retried, and a submitted revision cannot be edited.
 
 The response character limit is checked **after** `response.text()` completes; it is a parsing cap, not a streaming download or memory bound. Current API responses have bounded item/photo/text fields. Connecting arbitrary/untrusted servers requires a separately enforced streaming/proxy byte limit. Browser CORS, TLS, persistent credential storage, native redirects/credentials, real provider identity, deployment and actual devices remain unverified.
 
@@ -63,11 +89,15 @@ npm run build --workspace @realtor/api-client
 node --test packages/api-client/tests/transport.test.mjs
 node --test packages/api-client/tests/http-transport.test.mjs
 node --test packages/api-client/tests/v2.test.mjs
+node --test packages/api-client/tests/staff-v2.test.mjs
 npm run build --workspace @realtor/api
 node --test packages/api-client/tests/service-integration.test.mjs
 node --test packages/api-client/tests/v2-service-integration.test.mjs
+node --test packages/api-client/tests/staff-v2-service-integration.test.mjs
 ```
 
 `transport.test.mjs` tests malformed data, credential flags/per-call tokens, redirect indicators, cancellation/timeouts, notice/key validation and no automatic retries using controlled Fetch responses. `http-transport.test.mjs` uses Node Fetch and ephemeral loopback HTTP servers with synthetic values. `service-integration.test.mjs` runs this client against the actual API handler and migration-backed in-memory PGlite with a nonowner/non-bypass login; it checks tenant isolation, exact money, private projection, durable replay/conflict and stale notices. The latter is an in-process service/database integration, not a live HTTP/cloud/Supabase/provider-auth test. It uses trusted synthetic accepted-media metadata, without testing upload bytes or a media processor. No production data or services are touched.
 
 `v2.test.mjs` covers shared disclosure derivation, strict extension validation and unchanged v1 behavior using controlled transport. `v2-service-integration.test.mjs` applies migrations 0001 and 0002 and exercises the actual API service and restricted SQL transactions, including two-company projection and preservation of the published snapshot while a replacement is drafted or rejected. These remain in-process tests with synthetic metadata, not device or deployment proof.
+
+`staff-v2.test.mjs` checks incomplete canonical content, per-call credentials, strict DTO/version/money validation, distinct authorization/conflict errors and uncertain write outcomes without retry. `staff-v2-service-integration.test.mjs` runs against both migrations, the actual API service and a restricted nonowner/non-bypass PGlite login. It proves assignment/company isolation, exact raw cents/quotes/null locations, stale-save preservation, server submission gates and actual committed save/submit operations whose responses are deliberately lost. Identity verification is injected synthetic test data, not provider-auth proof. Accepted media is trusted fixture metadata only; no real property, customer, upload or external service is used.

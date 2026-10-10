@@ -65,7 +65,7 @@ export default function Admin() {
       </aside>
       <main id="main">
         <div className="topbar"><p>Staff workspace <span aria-hidden="true">/</span> <strong>Overview</strong></p><span className="preview-pill"><span aria-hidden="true" />Read-only preview</span></div>
-        <div className="development-notice"><Icon name="info" /><p><strong>Development preview.</strong> All catalogue entries and operational queues are synthetic. Authentication, updates and notifications are not connected.</p></div>
+        <div className="development-notice"><Icon name="info" /><p><strong>Development preview.</strong> All catalogue entries and operational queues are synthetic. Authentication, updates and notifications are not connected on this overview.</p></div>
         <header id="overview" className="page-header"><div><p className="eyebrow">{brand.name}</p><h1>Operations overview</h1><p>Keep property information clear and the next follow-up in view.</p></div><a className="outline-link" href="#catalogue">View catalogue<Icon name="arrow" /></a></header>
         <section className="stats" aria-label="Synthetic workspace summary">
           {metrics.map(metric => <a className="metric-card" href={metric.href} key={metric.title}><div className="metric-top"><span>{metric.title}</span><Icon name={metric.icon} /></div><strong>{metric.count}</strong><div className="metric-bottom"><small>{metric.note}</small><Icon name="arrow" /></div></a>)}
