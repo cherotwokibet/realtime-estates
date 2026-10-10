@@ -45,7 +45,26 @@ function limit(request: Request): number {
   return Number(value);
 }
 
-async function jsonBody(request: Request, maximum: number, integerMoney = false): Promise<unknown> {
+function assertDecisionJsonTokens(source: string): void {
+  // Check original tokens before JSON.parse can round a fractional version. Whole
+  // string tokens keep reason text separate; decoding keys catches escaped duplicates.
+  // JSON.parse below independently rejects every syntax error or skipped character.
+  const tokens = source.match(/"(?:\\[\s\S]|[^"\\])*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\]:,]/g) ?? [];
+  const containers: (Set<string> | null)[] = [];
+  for (let index = 0; index < tokens.length; index++) {
+    const token = tokens[index]!;
+    if (token === "{") containers.push(new Set());
+    else if (token === "[") containers.push(null);
+    else if (token === "}" || token === "]") containers.pop();
+    else if (token.startsWith('"') && tokens[index + 1] === ":") {
+      const keys = containers.at(-1), key = JSON.parse(token) as string;
+      if (!keys || keys.has(key)) throw new Error("Duplicate JSON object key.");
+      keys.add(key);
+      if (key === "expectedVersion" && !/^[1-9]\d*$/.test(tokens[index + 2] ?? "")) throw new Error("Expected version requires a positive integer JSON literal.");
+    }
+  }
+}
+async function jsonBody(request: Request, maximum: number, integerMoney = false, strictDecision = false): Promise<unknown> {
   if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get("content-type") ?? "")) throw new HttpError(415, "JSON_REQUIRED", "Use application/json.");
   const declared = request.headers.get("content-length");
   if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > maximum)) throw new HttpError(413, "BODY_TOO_LARGE", "Request body is too large.");
@@ -67,6 +86,7 @@ async function jsonBody(request: Request, maximum: number, integerMoney = false)
   for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
   try {
     const source = new TextDecoder("utf-8", { fatal: true }).decode(body);
+    if (strictDecision) assertDecisionJsonTokens(source);
     return integerMoney ? parseListingJsonV2(source) : JSON.parse(source);
   }
   catch { throw new HttpError(400, "INVALID_JSON", integerMoney ? "Request body must contain valid JSON with integer-literal minor-unit amounts." : "Request body must contain valid JSON."); }
@@ -112,6 +132,10 @@ async function assertStaff(query: TransactionQuery): Promise<void> {
   const result = await query.query("SELECT app_private.staff_role() AS role");
   if (!["agent", "admin"].includes(String(result.rows[0]?.role))) throw new HttpError(403, "FORBIDDEN", "An active staff membership is required.");
 }
+async function assertAdmin(query: TransactionQuery): Promise<void> {
+  const result = await query.query("SELECT app_private.staff_role() AS role");
+  if (result.rows[0]?.role !== "admin") throw new HttpError(403, "FORBIDDEN", "An active admin membership is required.");
+}
 function scalar(result: { readonly rows: Record<string, unknown>[] }, key: string): unknown {
   const value = result.rows[0]?.[key];
   if (value === undefined || value === null) throw new Error("Unexpected database response.");
@@ -144,6 +168,28 @@ function publicRowV2(row: Record<string, unknown>): Record<string, unknown> {
   // Fail closed if persisted disclosure no longer satisfies the shared exact-money contract.
   calculateWirePricingV2(kesFromMinor(item.amountMinor as number), item.purpose as "rent" | "sale", item.rentPeriod as "day" | "week" | "month" | "year" | null, pricing);
   return { ...item, pricing, location };
+}
+
+const REVIEW_METADATA = `r.listing_id AS "listingId",l.slug,r.revision_no AS revision,r.state,r.version::text AS version,
+  l.version::text AS "listingVersion",r.title,r.purpose,r.property_type AS "propertyType",r.amount_minor::text AS "amountMinor",r.rent_period AS "rentPeriod",
+  r.submitted_at AS "submittedAt",r.submitted_by AS "submittedBy",l.publication_status AS "publicationStatus",l.published_revision_no AS "publishedRevision",
+  l.availability,l.last_availability_confirmed_at AS "lastAvailabilityConfirmedAt",
+  (SELECT count(*)::integer FROM app_private.revision_media m WHERE m.tenant_id=r.tenant_id AND m.listing_id=r.listing_id AND m.revision_no=r.revision_no AND m.accepted) AS "acceptedPhotoCount"`;
+const REVIEW_FIELDS = ["listingId", "slug", "revision", "state", "version", "listingVersion", "title", "purpose", "propertyType", "amountMinor", "rentPeriod", "submittedAt", "submittedBy", "publicationStatus", "publishedRevision", "availability", "lastAvailabilityConfirmedAt", "acceptedPhotoCount"] as const;
+function reviewMetadata(row: Record<string, unknown>): Record<string, unknown> {
+  const metadata = Object.fromEntries(REVIEW_FIELDS.map(field => [field, row[field]]));
+  return { ...metadata, amountMinor: row.amountMinor === null ? null : Number(row.amountMinor) };
+}
+function reviewQuery(url: URL, queue: boolean): void {
+  if ([...url.searchParams.keys()].some(key => !queue || key !== "limit") || url.searchParams.getAll("limit").length > 1) {
+    throw new HttpError(400, "INVALID_INPUT", "Review requests do not accept context overrides or unsupported query fields.");
+  }
+}
+function rejectionReason(input: unknown): string {
+  if (typeof input !== "string" || input !== input.trim() || input.length === 0 || [...input].length > 1000 || /[\u0000-\u001f\u007f-\u009f]/u.test(input) || /[\ud800-\udfff]/u.test(input)) {
+    throw new HttpError(400, "INVALID_INPUT", "Rejection needs trimmed, nonblank, control-free text of at most 1000 characters.");
+  }
+  return input;
 }
 
 export function createApiService(options: ApiServiceOptions): (request: Request) => Promise<Response> {
@@ -200,10 +246,61 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
         return response(201, { id: scalar(result, "id") }, correlationId);
       }
       const draftRoute = /^\/v[12]\/staff\/listings\/([^/]+)\/drafts\/([1-9]\d*)(\/submit)?$/.exec(path);
+      const reviewRoute = /^\/v2\/staff\/reviews\/([^/]+)\/revisions\/([1-9]\d*)(\/decision)?$/.exec(path);
       const v2Draft = path.startsWith("/v2/staff/");
       if (path.startsWith("/v1/staff/") || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        if (path === "/v2/staff/reviews" || reviewRoute) {
+          const queue = path === "/v2/staff/reviews";
+          reviewQuery(url, queue);
+          if (queue) {
+            if (method !== "GET") throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method is not allowed for this route.", { Allow: "GET" });
+            const pageLimit = limit(request);
+            const result = await options.database.transaction(context, async query => {
+              await assertAdmin(query);
+              return query.query(`SELECT ${REVIEW_METADATA} FROM app_private.listing_revisions r
+                JOIN app_private.listings l ON l.tenant_id=r.tenant_id AND l.id=r.listing_id
+                WHERE r.tenant_id=$1::uuid AND r.state='pending' ORDER BY r.submitted_at,r.listing_id,r.revision_no LIMIT $2`, [tenantId, pageLimit]);
+            });
+            return response(200, { items: result.rows.map(reviewMetadata), limit: pageLimit }, correlationId);
+          }
+          const id = uuid(reviewRoute![1], "listingId"), revision = Number(reviewRoute![2]);
+          if (!Number.isSafeInteger(revision) || revision > 2147483647) throw new HttpError(400, "INVALID_INPUT", "revision is outside the supported range.");
+          if (!reviewRoute![3] && method === "GET") {
+            const result = await options.database.transaction(context, async query => {
+              await assertAdmin(query);
+              return query.query(`SELECT ${REVIEW_METADATA},r.decided_at AS "decidedAt",r.decided_by AS "decidedBy",r.decision_reason AS "decisionReason",
+                r.description,r.currency,r.bedrooms,r.private_bathrooms AS "privateBathrooms",r.shared_bathrooms AS "sharedBathrooms",r.country,r.locality,
+                r.public_precision AS "publicPrecision",r.latitude::text AS latitude,r.longitude::text AS longitude,r.private_address AS "privateAddress",r.pricing,r.location,
+                coalesce((SELECT jsonb_agg(jsonb_build_object('key',m.public_object_key,'alt',m.alt_text) ORDER BY m.position)
+                  FROM app_private.revision_media m WHERE m.tenant_id=r.tenant_id AND m.listing_id=r.listing_id AND m.revision_no=r.revision_no AND m.accepted),'[]'::jsonb) AS photos
+                FROM app_private.listing_revisions r JOIN app_private.listings l ON l.tenant_id=r.tenant_id AND l.id=r.listing_id
+                WHERE r.tenant_id=$1::uuid AND r.listing_id=$2::uuid AND r.revision_no=$3::integer`, [tenantId, id, revision]);
+            });
+            const row = result.rows[0];
+            if (!row) throw new HttpError(404, "NOT_FOUND", "Resource is unavailable.");
+            const fields = Object.fromEntries(DRAFT_FIELDS.map(field => [field, row[field]]));
+            // An existing draft may legitimately omit purpose/price/period fields. Reading
+            // it must not apply the complete-price validation used when saving v2 input.
+            const content = { ...publicRow(fields), amountMinor: row.amountMinor === null ? null : Number(row.amountMinor), pricing: validatePricingInputV2(row.pricing), location: validatePublicLocationV2(row.location) };
+            return response(200, { ...reviewMetadata(row), decidedAt: row.decidedAt, decidedBy: row.decidedBy, decisionReason: row.decisionReason, content, photos: row.photos }, correlationId);
+          }
+          if (reviewRoute![3] && method === "POST") {
+            const body = record(await jsonBody(request, 8 * 1024, true, true), ["expectedVersion", "decision", "reason"]);
+            const expected = version(body.expectedVersion);
+            if (body.decision !== "approve" && body.decision !== "reject") throw new HttpError(400, "INVALID_INPUT", "Choose approve or reject.");
+            const approve = body.decision === "approve";
+            const reason = approve ? null : rejectionReason(body.reason);
+            if (approve && body.reason !== null) throw new HttpError(400, "INVALID_INPUT", "Approval reason must be explicitly null.");
+            const result = await options.database.transaction(context, async query => {
+              await assertAdmin(query);
+              return query.query("SELECT app_api.decide_revision($1::uuid,$2::integer,$3::bigint,$4::boolean,$5::text) AS version", [id, revision, expected, approve, reason]);
+            });
+            return response(200, { version: String(scalar(result, "version")), state: approve ? "approved" : "rejected" }, correlationId);
+          }
+          throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method is not allowed for this route.", { Allow: reviewRoute![3] ? "POST" : "GET" });
+        }
         if ((path === "/v1/staff/listings" || path === "/v1/staff/enquiries") && method === "GET") {
           const pageLimit = limit(request);
           const result = await options.database.transaction(context, async query => {

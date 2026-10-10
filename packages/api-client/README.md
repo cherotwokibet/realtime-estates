@@ -78,6 +78,26 @@ if (draft.state === 'draft') {
 
 Read versions are canonical positive decimal strings within PostgreSQL bigint range. Preserve `draft.version` exactly; a listing version is a different concurrency token. Writes require that string and reject values above `Number.MAX_SAFE_INTEGER` before converting to the current API's numeric `expectedVersion`. New revision creation may use `'0'` on save only; malformed/rounded versions are never inferred or repaired. Save/submit return `{ version: string }` and send no idempotency header. An HTTP 401/403/409 is a definite typed failure; a 409 must not automatically refresh the version and resubmit. After an uncertain write, read the draft and reconcile the actual content/state/version before any deliberate next action. No save or submit is automatically retried, and a submitted revision cannot be edited.
 
+## Moderation v2
+
+`listReviewsV2({ bearerToken, limit? })` reads `/v2/staff/reviews?limit=...` and returns `ReviewPageV2` with immutable, compact pending `ReviewSummaryV2` records. Limit is 1–100, default 50; the bounded page provides no total or cursor and must not be treated as the complete backlog when it reaches its limit. Compact records contain submitted listing metadata, revision and listing version strings, availability/publication metadata and accepted photo counts. They contain no full content or private address. Current tenant admin membership is checked by the server, including when an agent is assigned to the listing.
+
+`getReviewV2(listingId, revision, { bearerToken })` reads the exact review revision and returns `ReviewDetailV2`. Draft, pending, approved and rejected states are supported for explicit readback. It includes the canonical full staff content, raw pricing inputs, nullable location, accepted photo references and submission/decision metadata. Strict UUID/version/enum/timestamp/count/text validation applies; metadata must match the content, and returned photo references must match the accepted count. Timestamps use canonical ISO UTC milliseconds. These are admin-only private data and trusted metadata references, not independently verified image bytes.
+
+```ts
+const review = await api.getReviewV2(listingId, revision, { bearerToken });
+if (review.state === 'pending') {
+  const receipt = await api.decideReviewV2(listingId, revision, {
+    expectedVersion: review.version, // Revision version, never listingVersion.
+    decision: 'reject',
+    reason: 'Correct the location before approval.',
+  }, { bearerToken });
+  // Reload the exact review to reconcile its state and decision metadata.
+}
+```
+
+`decideReviewV2` posts only `expectedVersion`, `decision` and `reason` to the exact revision's `/decision` endpoint. Approval requires `reason: null`. Rejection requires an already-trimmed nonblank reason of at most 1000 Unicode code points, without control characters or unpaired surrogates; newline is a control character. It returns `ReviewDecisionReceiptV2` with a canonical version string and matching approved/rejected state. Every call requires its own bearer; no credential is retained. Revision versions use the same safe numeric write conversion as staff saves. No automatic retries or idempotency header are added. Authorization failures and stale 409 decisions remain definite; interrupted/malformed/server-failed writes can have committed and are marked uncertain. Reconcile by reading the exact revision before another action. A decision receipt alone does not prove public visibility, current availability or live deployment; those require separate readback and server publication gates.
+
 The response character limit is checked **after** `response.text()` completes; it is a parsing cap, not a streaming download or memory bound. Current API responses have bounded item/photo/text fields. Connecting arbitrary/untrusted servers requires a separately enforced streaming/proxy byte limit. Browser CORS, TLS, persistent credential storage, native redirects/credentials, real provider identity, deployment and actual devices remain unverified.
 
 ## Verification
@@ -90,10 +110,12 @@ node --test packages/api-client/tests/transport.test.mjs
 node --test packages/api-client/tests/http-transport.test.mjs
 node --test packages/api-client/tests/v2.test.mjs
 node --test packages/api-client/tests/staff-v2.test.mjs
+node --test packages/api-client/tests/moderation-v2.test.mjs
 npm run build --workspace @realtor/api
 node --test packages/api-client/tests/service-integration.test.mjs
 node --test packages/api-client/tests/v2-service-integration.test.mjs
 node --test packages/api-client/tests/staff-v2-service-integration.test.mjs
+node --test packages/api-client/tests/moderation-v2-service-integration.test.mjs
 ```
 
 `transport.test.mjs` tests malformed data, credential flags/per-call tokens, redirect indicators, cancellation/timeouts, notice/key validation and no automatic retries using controlled Fetch responses. `http-transport.test.mjs` uses Node Fetch and ephemeral loopback HTTP servers with synthetic values. `service-integration.test.mjs` runs this client against the actual API handler and migration-backed in-memory PGlite with a nonowner/non-bypass login; it checks tenant isolation, exact money, private projection, durable replay/conflict and stale notices. The latter is an in-process service/database integration, not a live HTTP/cloud/Supabase/provider-auth test. It uses trusted synthetic accepted-media metadata, without testing upload bytes or a media processor. No production data or services are touched.
@@ -101,3 +123,5 @@ node --test packages/api-client/tests/staff-v2-service-integration.test.mjs
 `v2.test.mjs` covers shared disclosure derivation, strict extension validation and unchanged v1 behavior using controlled transport. `v2-service-integration.test.mjs` applies migrations 0001 and 0002 and exercises the actual API service and restricted SQL transactions, including two-company projection and preservation of the published snapshot while a replacement is drafted or rejected. These remain in-process tests with synthetic metadata, not device or deployment proof.
 
 `staff-v2.test.mjs` checks incomplete canonical content, per-call credentials, strict DTO/version/money validation, distinct authorization/conflict errors and uncertain write outcomes without retry. `staff-v2-service-integration.test.mjs` runs against both migrations, the actual API service and a restricted nonowner/non-bypass PGlite login. It proves assignment/company isolation, exact raw cents/quotes/null locations, stale-save preservation, server submission gates and actual committed save/submit operations whose responses are deliberately lost. Identity verification is injected synthetic test data, not provider-auth proof. Accepted media is trusted fixture metadata only; no real property, customer, upload or external service is used.
+
+`moderation-v2.test.mjs` covers exact queue/detail contracts, metadata coherence, original-text money validation, decision reasons, required per-call credentials and definite/uncertain errors without retries. `moderation-v2-service-integration.test.mjs` exercises both migrations and the actual service with a restricted runtime login: admin/company isolation, private content boundaries, independent listing/revision tokens, stale decisions, rejection/pending preservation of the approved snapshot, replacement approval and an actual approval commit followed by a deliberately lost response. These are in-process synthetic integration tests, not production/provider/device proof.

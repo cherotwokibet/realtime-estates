@@ -15,7 +15,7 @@ import {createDevelopmentServer} from '../dist/http.js';
 
 const id=number=>`00000000-0000-4000-8000-${String(number).padStart(12,'0')}`;
 export const STAFF_PREVIEW_FIXTURES=Object.freeze({
-  realtimeListingId:id(400),realtimePeerListingId:id(401),sampleListingId:id(500),revision:1,initialVersion:'2',
+  realtimeListingId:id(400),realtimePeerListingId:id(401),realtimePausedReviewListingId:id(402),sampleListingId:id(500),samplePausedReviewListingId:id(502),revision:1,initialVersion:'2',
 });
 const COMPANIES=Object.freeze({
   'realtime-estates':Object.freeze({id:id(1),admin:id(10),agent:id(11),peer:id(12),customer:id(13),revoked:id(14),listing:id(400),name:'Synthetic Realtime Staff Preview'}),
@@ -24,13 +24,14 @@ const COMPANIES=Object.freeze({
 const LIFETIME_SECONDS=1800;
 const AUDIENCE='synthetic-realtor-staff-preview';
 class StaffPreviewConfigurationError extends Error {}
-function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',seedAcceptedMedia=true}={}){
+function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',seedAcceptedMedia=true,seedPendingReviews=false}={}){
   if(process.env.NODE_ENV==='production')throw new StaffPreviewConfigurationError('Staff preview refuses NODE_ENV=production.');
   if(typeof tenantSlug!=='string'||!Object.hasOwn(COMPANIES,tenantSlug))throw new StaffPreviewConfigurationError('Choose the configured realtime-estates or sample-homes synthetic company.');
   if(!Number.isSafeInteger(port)||port<0||port>65535)throw new StaffPreviewConfigurationError('Staff preview port must be an integer from 0 through 65535.');
-  if(!['agent','customer','revoked-agent','other-company-agent'].includes(actor))throw new StaffPreviewConfigurationError('Choose an explicitly defined synthetic actor.');
+  if(!['agent','admin','customer','revoked-agent','other-company-agent','other-company-admin'].includes(actor))throw new StaffPreviewConfigurationError('Choose an explicitly defined synthetic actor.');
   if(typeof seedAcceptedMedia!=='boolean')throw new StaffPreviewConfigurationError('Synthetic accepted-metadata fixture flag must be boolean.');
-  return {tenantSlug,port,actor,seedAcceptedMedia};
+  if(typeof seedPendingReviews!=='boolean'||(seedPendingReviews&&!seedAcceptedMedia))throw new StaffPreviewConfigurationError('Pending review fixtures require the explicit accepted-metadata fixture.');
+  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews};
 }
 function syntheticContent(title='Synthetic staff monthly studio'){
   return {
@@ -53,7 +54,7 @@ async function bootstrapAs(db,company,actor,operation){
     const result=await operation();await db.exec('COMMIT');return result;
   }catch(error){await db.exec('ROLLBACK');throw error;}
 }
-async function seed(db,seedAcceptedMedia){
+async function seed(db,seedAcceptedMedia,seedPendingReviews){
   for(const name of ['0001_foundation.sql','0002_listing_disclosure.sql'])await db.exec(await readFile(new URL(`../../../database/migrations/${name}`,import.meta.url),'utf8'));
   for(const [slug,company] of Object.entries(COMPANIES)){
     await db.query('INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,$2,$3)',[company.id,slug,company.name]);
@@ -64,12 +65,21 @@ async function seed(db,seedAcceptedMedia){
     {company:COMPANIES['realtime-estates'],listing:STAFF_PREVIEW_FIXTURES.realtimePeerListingId,assigned:COMPANIES['realtime-estates'].peer,title:'Synthetic peer-assigned studio'},
     {company:COMPANIES['sample-homes'],listing:STAFF_PREVIEW_FIXTURES.sampleListingId,assigned:COMPANIES['sample-homes'].agent,title:'Synthetic other-company draft'},
   ];
+  if(seedPendingReviews)fixtures.push(
+    {company:COMPANIES['realtime-estates'],listing:STAFF_PREVIEW_FIXTURES.realtimePausedReviewListingId,assigned:COMPANIES['realtime-estates'].agent,title:'Synthetic paused review studio',paused:true},
+    {company:COMPANIES['sample-homes'],listing:STAFF_PREVIEW_FIXTURES.samplePausedReviewListingId,assigned:COMPANIES['sample-homes'].agent,title:'Synthetic other-company paused review',paused:true},
+  );
   for(const fixture of fixtures){
     const {company,listing,assigned,title}=fixture;
     await bootstrapAs(db,company,company.admin,()=>db.query('SELECT app_api.create_listing($1,$2,$3)',[listing,`synthetic-staff-${listing.slice(-3)}`,assigned]));
     await bootstrapAs(db,company,assigned,()=>db.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)',[listing,JSON.stringify(syntheticContent(title))]));
     if(seedAcceptedMedia)for(let position=0;position<4;position++)await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
       VALUES($1,$2,1,$3,$4,'image/webp',100,100,100,$5,'Synthetic accepted metadata only; image bytes unavailable',$6,true)`,[company.id,listing,id(Number(listing.slice(-3))*10+position),`synthetic-staff-preview/${listing}/${position}.webp`,'0'.repeat(64),position]);
+    if(seedPendingReviews&&listing!==STAFF_PREVIEW_FIXTURES.realtimePeerListingId){
+      await bootstrapAs(db,company,assigned,()=>db.query("SELECT app_api.confirm_availability($1,1,'available')",[listing]));
+      await bootstrapAs(db,company,assigned,()=>db.query('SELECT app_api.submit_revision($1,1,2)',[listing]));
+      if(fixture.paused)await bootstrapAs(db,company,company.admin,()=>db.query("SELECT app_api.set_publication($1,2,'paused')",[listing]));
+    }
   }
 }
 function runtimePool(db){
@@ -103,12 +113,12 @@ async function closeServer(server){
 
 /** Token is handed only to the calling development launcher, never an HTTP login route. */
 export async function startStaffPreview(options={}){
-  const {tenantSlug,port,actor,seedAcceptedMedia}=configuration(options);
+  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews}=configuration(options);
   const company=COMPANIES[tenantSlug],other=COMPANIES[tenantSlug==='realtime-estates'?'sample-homes':'realtime-estates'];
-  const actorId=actor==='agent'?company.agent:actor==='customer'?company.customer:actor==='revoked-agent'?company.revoked:other.agent;
+  const actorId=actor==='agent'?company.agent:actor==='admin'?company.admin:actor==='customer'?company.customer:actor==='revoked-agent'?company.revoked:actor==='other-company-admin'?other.admin:other.agent;
   const db=new PGlite();let database;let apiServer;let jwksServer;
   try{
-    await seed(db,seedAcceptedMedia);
+    await seed(db,seedAcceptedMedia,seedPendingReviews);
     await db.exec('CREATE ROLE synthetic_staff_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT api_runtime TO synthetic_staff_login; SET SESSION AUTHORIZATION synthetic_staff_login;');
     database=new PostgresTransactionDatabase(runtimePool(db));await database.checkConnection();
     const {publicKey,privateKey}=await generateKeyPair('RS256');
@@ -135,11 +145,13 @@ export async function startStaffPreview(options={}){
       if(!allowedHosts.has(url.host)||!allowedHosts.has(request.headers.get('host')??''))return failure(404,'NOT_FOUND','Staff preview host is unavailable.');
       if(requestOrigin!==null&&requestOrigin!==origin)return failure(403,'FORBIDDEN','Staff preview origin is unavailable.');
       if(request.headers.has('cookie'))return failure(400,'INVALID_INPUT','Staff preview does not accept cookie credentials.');
-      if(url.search)return failure(400,'INVALID_INPUT','Staff preview does not accept query-selected context.');
+      const reviewQueue=url.pathname==='/v2/staff/reviews';
+      if(url.search&&(!reviewQueue||[...url.searchParams.keys()].some(key=>key!=='limit')||url.searchParams.getAll('limit').length>1))return failure(400,'INVALID_INPUT','Staff preview does not accept query-selected context.');
       if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,acceptedMediaMetadataOnly:seedAcceptedMedia,tokenExpiresAt:expiresAt});
       const route=/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/drafts\/1(\/submit)?$/i.exec(url.pathname);
-      if(!route)return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
-      const allowedMethods=route[1]?['POST']:['GET','PUT'];
+      const reviewRoute=/^\/v2\/staff\/reviews\/[0-9a-f-]{36}\/revisions\/1(\/decision)?$/i.exec(url.pathname);
+      if(!route&&!reviewRoute&&!reviewQueue)return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
+      const allowedMethods=reviewQueue?['GET']:reviewRoute?(reviewRoute[1]?['POST']:['GET']):route[1]?['POST']:['GET','PUT'];
       if(!allowedMethods.includes(request.method))return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for the staff fixture.',{Allow:allowedMethods.join(', ')});
       if(request.method!=='GET'&&!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')??''))return failure(415,'JSON_REQUIRED','Use application/json.');
       const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
@@ -149,7 +161,7 @@ export async function startStaffPreview(options={}){
     const close=()=>closing??=(async()=>{
       try{await Promise.all([closeServer(apiServer),closeServer(jwksServer)]);}finally{await database.close();}
     })();
-    const preview={origin,listingId:company.listing,revision:1,tenantSlug,expiresAt,acceptedMediaMetadataOnly:seedAcceptedMedia,close};
+    const preview={origin,listingId:company.listing,revision:1,tenantSlug,expiresAt,acceptedMediaMetadataOnly:seedAcceptedMedia,pendingReviewFixtures:seedPendingReviews,close};
     // Avoid incidental console/JSON dumps of a whole return object exposing its token.
     Object.defineProperty(preview,'bearerToken',{value:bearerToken,enumerable:false,writable:false,configurable:false});
     return Object.freeze(preview);

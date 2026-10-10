@@ -1,0 +1,27 @@
+# Next delivery: trusted image acceptance
+
+10 October 2026, Africa/Nairobi. This is an implementation plan, not completed upload or production evidence. No package or provider was provisioned by this review. Use independently generated synthetic image bytes first; preserve vendor assets while reuse rights remain unresolved.
+
+## Existing boundary and gaps
+
+The API runtime can read accepted media metadata but cannot insert/update it. Submitted revisions and their media are immutable. SQL bounds12 ordered positions,10MiB and40million pixels, but those stored values do not prove that bytes were inspected. Current fixtures are explicitly metadata-only. Duplicate keys/checksums can occupy different positions, and media writes currently do not increment the revision version. Do not count those rows as distinct verified photos or expose an `accepted=true` client command.
+
+## Smallest defensible implementation
+
+1. Add a loopback-only upload harness with actual streaming byte bounds, a private local object adapter and a disposable database. Authorize the current actor/company/assignment and draft before accepting bytes. Generate quarantine keys, never use supplied filenames or accept a client-chosen tenant/object path. Treat extension and Content-Type as hints. Layer signature, decoding and output validation; see the [OWASP upload guidance](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html).
+2. Initially allow only static JPEG, PNG and WebP. Decode actual pixels in an isolated, bounded worker, orient/resize and encode a fresh WebP. Exclude animation and unsupported formats. Derive checksum, dimensions and byte length from the verified output. Do not preserve source metadata. Sharp is a candidate to prove locally: [metadata inspection does not decode pixels](https://sharp.pixelplumbing.com/api-input/), its [constructor limits](https://sharp.pixelplumbing.com/api-constructor/) are only part of resource protection, and [output metadata behavior](https://sharp.pixelplumbing.com/api-output/) must be verified with fixtures. Select/pin a supported version and inspect its licence/security/runtime requirements before installing. Native decoder hosting compatibility is unproved; do not silently add an always-on paid API server.
+3. Add narrow trusted finalize/remove/reorder commands. The processor consumes a registered upload job; the caller cannot assert accepted metadata. Lock/recheck company, current membership/assignment, draft state and exact version. Write verified metadata, increment the revision token and audit in one transaction. Bind every job/output to company/listing/revision and an immutable generated key. Scope worker permissions narrowly; retain the application runtime's lack of arbitrary media DML.
+4. Persist an operation UUID, server-computed digest and receipt. Identical retries reconcile to one outcome; different bytes under the same operation conflict. Detect duplicate image outputs within the draft. Handle full storage, cancellation, timeout-after-commit and worker interruption with recoverable states and cleanup. Reassignment or submission racing with finalization must cause one defensible winner without an unreviewed snapshot change.
+5. Keep verified draft outputs private. Public delivery resolves only objects referenced by the approved snapshot, with safe content headers and no arbitrary-key proxy. Preserve media still used by an earlier published snapshot. Deletion/cleanup must account for retained snapshots and backups before removing outputs.
+
+## Required local evidence
+
+Generate minimal valid test images independently. Prove full conversion and derived metadata; reject spoofed headers, truncated/corrupt files, oversized bodies, excessive pixels, animation and unsupported formats. Prove metadata removal, duplicate detection, identical/changed retries, isolation, revoked/changed assignment, stale versions, cleanup and concurrent submit/finalize behavior. Deliberately lose a committed response and reconcile it. Only then connect an upload/recovery interface and replace bootstrap fixture metadata in the synthetic listing-to-publication journey.
+
+The local pipeline does not accept a hosted storage, real device, production security or release gate. Exact image-quality thresholds, real property rights, production worker isolation/resource quotas and independent database/media backup restore remain open.
+
+## Later storage adapter and budget
+
+R2 remains a candidate behind the object adapter. [Presigned PUT URLs](https://developers.cloudflare.com/r2/api/s3/presigned-urls/) are reusable until expiry; signing Content-Type binds a header, not image safety. Sign only generated quarantine keys and finalize into separate immutable verified output. Do not mark an upload accepted from the browser completion callback. Credential scopes, private delivery and abandoned-object cleanup need deployment tests.
+
+The [official R2 pricing page](https://developers.cloudflare.com/r2/pricing/) was reviewed for this planning step. It does not establish a measured complete service cost. Record decoder compute, requests/storage, database, independent backups, support, taxes and billed exchange rate against the KES10,000 total monthly client price and proposed KES6,000 external allowance. Production adapter/worker compatibility and costs must be demonstrated before a provider is selected. No purchase, account change or spending increase is authorized by this plan.

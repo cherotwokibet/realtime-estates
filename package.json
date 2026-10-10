@@ -11,14 +11,14 @@
   },
   "scripts": {
     "build:packages": "npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/demo && npm run build --workspace=@realtor/api-client",
-    "test": "npm run build:packages && npm run test --workspace=@realtor/domain && npm run test --workspace=@realtor/demo && npm run test --workspace=@realtor/api && npm run test --workspace=@realtor/api-client && npm run test:integration --workspace=@realtor/api-client && npm run test:database && npm run test --workspace=@realtor/web && npm run test --workspace=@realtor/admin && node --test apps/api/dev/*.test.mjs",
+    "test": "npm run build:packages && npm run test --workspace=@realtor/domain && npm run test --workspace=@realtor/demo && npm run test --workspace=@realtor/api && npm run test --workspace=@realtor/api-client && npm run test:integration --workspace=@realtor/api-client && npm run test:database && npm run test --workspace=@realtor/web && npm run test --workspace=@realtor/admin && node --test --test-concurrency=1 apps/api/dev/*.test.mjs",
     "typecheck": "npm run build:packages && npm run typecheck --workspaces --if-present",
     "build:web": "npm run build:packages && npm run build --workspace=@realtor/web && npm run build --workspace=@realtor/admin",
     "dev:web": "npm run build:packages && npm run dev --workspace=@realtor/web",
     "dev:admin": "npm run build:packages && npm run dev --workspace=@realtor/admin",
     "dev:staff-preview": "npm run build:packages && npm run build --workspace=@realtor/api && node scripts/staff-preview.mjs",
     "dev:mobile": "npm run build:packages && npm run start --workspace=@realtor/mobile",
-    "test:database": "node --test database/tests/*.test.mjs"
+    "test:database": "node --test --test-concurrency=1 database/tests/*.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",

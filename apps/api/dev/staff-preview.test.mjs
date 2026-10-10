@@ -4,6 +4,7 @@ import test from 'node:test';
 import {STAFF_PREVIEW_FIXTURES,startStaffPreview} from './staff-preview.mjs';
 
 const draftPath=(preview,listingId=preview.listingId)=>`/v2/staff/listings/${listingId}/drafts/${preview.revision}`;
+const reviewPath=(preview,listingId=preview.listingId)=>`/v2/staff/reviews/${listingId}/revisions/${preview.revision}`;
 const call=(preview,path=draftPath(preview),{method='GET',body,token=preview.bearerToken,headers={}}={})=>fetch(preview.origin+path,{
   method,headers:{...(token?{Authorization:`Bearer ${token}`}:{}) ,...(body===undefined?{}:{'Content-Type':'application/json'}),...headers},
   ...(body===undefined?{}:{body:typeof body==='string'?body:JSON.stringify(body)}),
@@ -15,7 +16,7 @@ const hostProbe=(preview,absolute=false)=>new Promise((resolve,reject)=>{
 });
 
 test('staff preview refuses production and unsafe/undefined synthetic configuration before opening listeners',async()=>{
-  for(const options of [{tenantSlug:'constructor'},{tenantSlug:'unconfigured'},{port:-1},{port:65536},{port:1.5},{actor:'admin-by-request'},{seedAcceptedMedia:'true'}])await assert.rejects(()=>startStaffPreview(options));
+  for(const options of [{tenantSlug:'constructor'},{tenantSlug:'unconfigured'},{port:-1},{port:65536},{port:1.5},{actor:'admin-by-request'},{seedAcceptedMedia:'true'},{seedPendingReviews:'true'},{seedPendingReviews:true,seedAcceptedMedia:false}])await assert.rejects(()=>startStaffPreview(options));
   const previous=process.env.NODE_ENV;process.env.NODE_ENV='production';
   try{await assert.rejects(()=>startStaffPreview({port:0}),/refuses NODE_ENV=production/);}
   finally{if(previous===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=previous;}
@@ -50,6 +51,8 @@ test('actual RS256/JWKS staff HTTP journey verifies identity, saves/reloads, con
     assert.equal((await call(preview,undefined,{headers:{Cookie:'synthetic=guard'}})).status,400);
     assert.equal((await call(preview,draftPath(preview)+'?tenantId=other')).status,400);
     assert.equal((await call(preview,'/v2/properties')).status,404);
+    assert.equal((await call(preview,'/v2/staff/reviews')).status,403);
+    assert.equal((await call(preview,reviewPath(preview))).status,403);
     assert.equal((await call(preview,'/v1/enquiries',{method:'POST',body:{}})).status,404);
     assert.equal((await call(preview,undefined,{method:'DELETE'})).status,405);
     assert.equal((await call(preview,undefined,{method:'PUT',body:'{}',headers:{'Content-Type':'text/plain'}})).status,415);
@@ -89,14 +92,46 @@ test('actual authenticated HTTP v2 draft saves and reloads valid Unicode above 6
 });
 
 test('genuinely signed synthetic customer, revoked and other-company actors fail current database membership authorization',async()=>{
-  for(const actor of ['customer','revoked-agent','other-company-agent']){
+  for(const actor of ['customer','revoked-agent','other-company-agent','other-company-admin']){
     const preview=await startStaffPreview({port:0,actor});
     try{
       const response=await call(preview);assert.equal(response.status,403,actor);assert.equal((await response.json()).error.code,'FORBIDDEN');
       const save=await call(preview,undefined,{method:'PUT',body:{expectedVersion:2,content:{pricing:{declaration:'not_declared',charges:[]},location:{county:null,town:null,area:null}}}});assert.equal(save.status,403,actor);
       assert.equal((await call(preview,draftPath(preview)+'/submit',{method:'POST',body:{expectedVersion:2}})).status,403,actor);
+      assert.equal((await call(preview,'/v2/staff/reviews')).status,403,actor);
+      assert.equal((await call(preview,reviewPath(preview))).status,403,actor);
+      assert.equal((await call(preview,reviewPath(preview)+'/decision',{method:'POST',body:{expectedVersion:2,decision:'approve',reason:null}})).status,403,actor);
     }finally{await preview.close();}
   }
+});
+
+test('signed local admin reviews two isolated pending fixtures and reads back exact approve/reject results without exposing a login or media-write route',async()=>{
+  const preview=await startStaffPreview({port:0,actor:'admin',seedPendingReviews:true});
+  try{
+    assert.equal(preview.pendingReviewFixtures,true);
+    assert.equal((await call(preview,'/v2/staff/reviews',{token:null})).status,401);
+    const queued=await call(preview,'/v2/staff/reviews?limit=100');assert.equal(queued.status,200);
+    const queue=await queued.json();assert.equal(queue.items.length,2);
+    assert.deepEqual(new Set(queue.items.map(row=>row.listingId)),new Set([preview.listingId,STAFF_PREVIEW_FIXTURES.realtimePausedReviewListingId]));
+    assert.ok(queue.items.every(row=>row.version==='3'&&row.state==='pending'&&row.acceptedPhotoCount===4));
+    assert.equal((await call(preview,'/v2/staff/reviews?tenantId=other')).status,400);
+    assert.equal((await call(preview,reviewPath(preview,STAFF_PREVIEW_FIXTURES.sampleListingId))).status,404);
+    const beforeResponse=await call(preview,reviewPath(preview));assert.equal(beforeResponse.status,200);
+    const before=await beforeResponse.json();assert.equal(before.listingVersion,'2');assert.equal(before.publicationStatus,'unpublished');assert.equal(before.photos.length,4);
+    assert.equal(before.content.privateAddress,'PRIVATE SYNTHETIC STAFF FIXTURE ADDRESS');
+    const approveBody={expectedVersion:3,decision:'approve',reason:null};
+    const approved=await call(preview,reviewPath(preview)+'/decision',{method:'POST',body:approveBody});assert.equal(approved.status,200);assert.deepEqual(await approved.json(),{version:'4',state:'approved'});
+    const readback=await (await call(preview,reviewPath(preview))).json();assert.equal(readback.state,'approved');assert.equal(readback.version,'4');assert.equal(readback.listingVersion,'3');assert.equal(readback.publicationStatus,'published');assert.equal(readback.publishedRevision,1);assert.deepEqual(readback.content,before.content);
+    assert.equal((await call(preview,reviewPath(preview)+'/decision',{method:'POST',body:approveBody})).status,409);
+    const pausedPath=reviewPath(preview,STAFF_PREVIEW_FIXTURES.realtimePausedReviewListingId),reason='Synthetic private reject reason; changes required.';
+    assert.equal((await call(preview,pausedPath+'/decision',{method:'POST',body:{expectedVersion:3,decision:'reject',reason:' '}})).status,400);
+    const rejected=await call(preview,pausedPath+'/decision',{method:'POST',body:{expectedVersion:3,decision:'reject',reason}});assert.equal(rejected.status,200);assert.deepEqual(await rejected.json(),{version:'4',state:'rejected'});
+    const rejectedDetail=await (await call(preview,pausedPath)).json();assert.equal(rejectedDetail.state,'rejected');assert.equal(rejectedDetail.decisionReason,reason);assert.equal(rejectedDetail.publicationStatus,'paused');assert.equal(rejectedDetail.listingVersion,'3');
+    assert.deepEqual((await (await call(preview,'/v2/staff/reviews')).json()).items,[]);
+    assert.equal((await call(preview,'/v2/properties')).status,404);assert.equal((await call(preview,'/login')).status,404);
+    assert.equal((await call(preview,'/v2/staff/media',{method:'POST',body:{accepted:true}})).status,404);
+    assert.equal(JSON.stringify(readback).includes(preview.bearerToken),false);
+  }finally{await preview.close();}
 });
 
 test('trusted Sample Homes startup reads its assigned draft without exposing the Realtime fixture',async()=>{

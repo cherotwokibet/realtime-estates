@@ -38,6 +38,24 @@ export interface StaffDraftV2 {
 export interface StaffVersionReceipt {readonly version:string}
 export interface StaffDraftSaveV2 {readonly expectedVersion:string;readonly content:StaffDraftContentInputV2}
 export interface StaffDraftSubmitV2 {readonly expectedVersion:string}
+export interface ReviewMetadataV2 {
+  readonly listingId:string;readonly slug:string;readonly revision:number;readonly version:string;readonly listingVersion:string;
+  readonly publicationStatus:'unpublished'|'published'|'paused'|'archived';readonly publishedRevision:number|null;
+  readonly availability:'available'|'reserved'|'rented'|'sold'|'withdrawn';readonly lastAvailabilityConfirmedAt:string|null;readonly acceptedPhotoCount:number;
+}
+export interface ReviewSummaryV2 extends ReviewMetadataV2 {
+  readonly state:'pending';readonly title:string;readonly purpose:'rent'|'sale';readonly propertyType:PropertyType;
+  readonly amountMinor:number;readonly rentPeriod:PublicProperty['rentPeriod'];readonly submittedAt:string;readonly submittedBy:string;
+}
+export interface ReviewPageV2 {readonly items:readonly ReviewSummaryV2[];readonly limit:number}
+export interface ReviewDetailV2 extends ReviewMetadataV2 {
+  readonly state:StaffDraftV2['state'];readonly title:string|null;readonly purpose:'rent'|'sale'|null;readonly propertyType:PropertyType|null;
+  readonly amountMinor:number|null;readonly rentPeriod:PublicProperty['rentPeriod'];readonly submittedAt:string|null;readonly submittedBy:string|null;
+  readonly decidedAt:string|null;readonly decidedBy:string|null;readonly decisionReason:string|null;
+  readonly content:StaffDraftContentV2;readonly photos:readonly PublicPhoto[];
+}
+export interface ReviewDecisionInputV2 {readonly expectedVersion:string;readonly decision:'approve'|'reject';readonly reason:string|null}
+export interface ReviewDecisionReceiptV2 {readonly version:string;readonly state:'approved'|'rejected'}
 export interface EnquiryInput {
   readonly listingId?: string | null; readonly name: string; readonly phone?: string | null; readonly email?: string | null;
   readonly message: string; readonly origin: 'web' | 'mobile'; readonly noticeVersion: string; readonly noticeAcknowledged: true;
@@ -80,6 +98,7 @@ const TYPES:readonly string[]=['apartment','bedsitter','studio','bungalow','mais
 const RESIDENTIAL:readonly string[]=['apartment','bedsitter','studio','bungalow','maisonette','townhouse','villa'];
 const PUBLIC_FIELDS=['id','slug','revision','title','description','purpose','propertyType','currency','amountMinor','rentPeriod','bedrooms','privateBathrooms','sharedBathrooms','country','locality','publicPrecision','latitude','longitude','photos'] as const;
 const STAFF_CONTENT_FIELDS=['title','description','purpose','propertyType','currency','amountMinor','rentPeriod','bedrooms','privateBathrooms','sharedBathrooms','country','locality','publicPrecision','latitude','longitude','privateAddress','pricing','location'] as const;
+const REVIEW_FIELDS=['listingId','slug','revision','state','version','listingVersion','title','purpose','propertyType','amountMinor','rentPeriod','submittedAt','submittedBy','publicationStatus','publishedRevision','availability','lastAvailabilityConfirmedAt','acceptedPhotoCount'] as const;
 const MAX_JSON_CHARACTERS=3*1024*1024;
 const SERVER_CODES=new Set(['INVALID_INPUT','NOTICE_ACKNOWLEDGEMENT_REQUIRED','UNAUTHENTICATED','FORBIDDEN','NOT_FOUND','METHOD_NOT_ALLOWED','CONFLICT','BODY_TOO_LARGE','JSON_REQUIRED','INVALID_JSON','INVALID_STATE','RATE_LIMITED','SERVICE_UNAVAILABLE']);
 const invalid=(kind:'VALIDATION'|'INVALID_RESPONSE'|'CONFIGURATION',message:string):never=>{throw new ApiClientError(kind,message);};
@@ -215,8 +234,68 @@ function staffDraft(input:unknown,revision:number):StaffDraftV2{
 function staffPath(listingId:unknown,revision:unknown):string{
   return `/v2/staff/listings/${uuid(listingId,'VALIDATION','Listing ID')}/drafts/${integer(revision,1,2147483647,'VALIDATION','Revision')}`;
 }
-function staffOptions(options:StaffRequestOptions):void{
-  requestOptions(options);if(typeof options.bearerToken!=='string'||!options.bearerToken)return invalid('VALIDATION','A bearer token is required for each staff call.');
+function staffOptions(options:StaffRequestOptions,extra:readonly string[]=[]):void{
+  requestOptions(options,extra);if(typeof options.bearerToken!=='string'||!options.bearerToken)return invalid('VALIDATION','A bearer token is required for each staff call.');
+}
+function timestamp(input:unknown,nullable=false):string|null{
+  if(nullable&&input===null)return null;
+  if(typeof input!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(input))return invalid('INVALID_RESPONSE','Invalid review timestamp.');
+  const parsed=new Date(input);if(!Number.isFinite(parsed.getTime())||parsed.toISOString()!==input)return invalid('INVALID_RESPONSE','Invalid review timestamp.');return input;
+}
+function decisionReason(input:unknown,kind:'VALIDATION'|'INVALID_RESPONSE'):string{
+  if(typeof input!=='string'||input!==input.trim()||[...input].length<1||[...input].length>1000||/[\u0000-\u001f\u007f-\u009f\ud800-\udfff]/u.test(input))return invalid(kind,'Provide a trimmed rejection reason within the supported length.');
+  return input;
+}
+function reviewMetadata(value:Record<string,unknown>):ReviewMetadataV2{
+  const slug=text(value.slug,160,'INVALID_RESPONSE','Listing slug');if(!/^[a-z\d]+(?:-[a-z\d]+)*$/.test(slug))return invalid('INVALID_RESPONSE','Invalid listing slug.');
+  const publicationStatus=value.publicationStatus,availability=value.availability;
+  if(typeof publicationStatus!=='string'||!['unpublished','published','paused','archived'].includes(publicationStatus))return invalid('INVALID_RESPONSE','Invalid publication status.');
+  if(typeof availability!=='string'||!['available','reserved','rented','sold','withdrawn'].includes(availability))return invalid('INVALID_RESPONSE','Invalid availability.');
+  return Object.freeze({listingId:uuid(value.listingId,'INVALID_RESPONSE','Listing ID'),slug,revision:integer(value.revision,1,2147483647,'INVALID_RESPONSE','Revision'),
+    version:staffVersion(value.version,'INVALID_RESPONSE'),listingVersion:staffVersion(value.listingVersion,'INVALID_RESPONSE'),
+    publicationStatus:publicationStatus as ReviewMetadataV2['publicationStatus'],publishedRevision:value.publishedRevision===null?null:integer(value.publishedRevision,1,2147483647,'INVALID_RESPONSE','Published revision'),
+    availability:availability as ReviewMetadataV2['availability'],lastAvailabilityConfirmedAt:timestamp(value.lastAvailabilityConfirmedAt,true),acceptedPhotoCount:integer(value.acceptedPhotoCount,0,12,'INVALID_RESPONSE','Accepted photo count')});
+}
+function reviewFields(value:Record<string,unknown>,state:StaffDraftV2['state']){
+  const nullable=state==='draft';
+  const title=nullable&&value.title===null?null:text(value.title,160,'INVALID_RESPONSE','Review title',true);
+  const purpose=value.purpose;if(purpose!=='rent'&&purpose!=='sale'&&!(nullable&&purpose===null))return invalid('INVALID_RESPONSE','Invalid review purpose.');
+  const propertyType=value.propertyType;if(!(nullable&&propertyType===null)&&(typeof propertyType!=='string'||!TYPES.includes(propertyType)))return invalid('INVALID_RESPONSE','Invalid review property type.');
+  const amountMinor=nullable&&value.amountMinor===null?null:integer(value.amountMinor,1,100000000000000,'INVALID_RESPONSE','Review price');
+  const rentPeriod=value.rentPeriod;
+  if(rentPeriod!==null&&(typeof rentPeriod!=='string'||!['day','week','month','year'].includes(rentPeriod)))return invalid('INVALID_RESPONSE','Invalid review rental period.');
+  if((purpose==='sale'&&rentPeriod!==null)||(!nullable&&purpose==='rent'&&rentPeriod===null))return invalid('INVALID_RESPONSE','Invalid review rental period.');
+  const submittedAt=timestamp(value.submittedAt,nullable),submittedBy=nullable&&value.submittedBy===null?null:uuid(value.submittedBy,'INVALID_RESPONSE','Submitted actor');
+  if((submittedAt===null)!==(submittedBy===null))return invalid('INVALID_RESPONSE','Incomplete submission metadata.');
+  return {title,purpose:purpose as ReviewDetailV2['purpose'],propertyType:propertyType as PropertyType|null,amountMinor,rentPeriod:rentPeriod as PublicProperty['rentPeriod'],submittedAt,submittedBy};
+}
+function reviewSummary(input:unknown):ReviewSummaryV2{
+  const value=record(input,REVIEW_FIELDS,'INVALID_RESPONSE');if(REVIEW_FIELDS.some(field=>!Object.hasOwn(value,field))||value.state!=='pending')return invalid('INVALID_RESPONSE','Invalid pending review fields.');
+  const fields=reviewFields(value,'pending');
+  return Object.freeze({...reviewMetadata(value),...fields,state:'pending'}) as ReviewSummaryV2;
+}
+function reviewDetail(input:unknown,listingId:string,revision:number):ReviewDetailV2{
+  const fields=[...REVIEW_FIELDS,'decidedAt','decidedBy','decisionReason','content','photos'];
+  const value=record(input,fields,'INVALID_RESPONSE');if(fields.some(field=>!Object.hasOwn(value,field)))return invalid('INVALID_RESPONSE','Incomplete review detail.');
+  const draft=staffDraft({revision:value.revision,state:value.state,version:value.version,content:value.content},revision);
+  const metadata=reviewMetadata(value);if(metadata.listingId!==listingId.toLowerCase())return invalid('INVALID_RESPONSE','Unexpected review listing.');
+  const base=reviewFields(value,draft.state);
+  for(const field of ['title','purpose','propertyType','amountMinor','rentPeriod'] as const)if(base[field]!==draft.content[field])return invalid('INVALID_RESPONSE','Conflicting review content.');
+  const decidedAt=timestamp(value.decidedAt,true),decidedBy=value.decidedBy===null?null:uuid(value.decidedBy,'INVALID_RESPONSE','Decision actor');
+  if((decidedAt===null)!==(decidedBy===null)||(['approved','rejected'].includes(draft.state)!==(decidedAt!==null)))return invalid('INVALID_RESPONSE','Invalid decision metadata.');
+  let reason:string|null=null;
+  if(draft.state==='rejected')reason=decisionReason(value.decisionReason,'INVALID_RESPONSE');
+  else if(value.decisionReason!==null)return invalid('INVALID_RESPONSE','Unexpected decision reason.');
+  if(!Array.isArray(value.photos)||value.photos.length!==metadata.acceptedPhotoCount)return invalid('INVALID_RESPONSE','Conflicting accepted photo metadata.');
+  const keys=new Set<string>();const photos=value.photos.map(input=>{
+    const photo=record(input,['key','alt'],'INVALID_RESPONSE'),key=text(photo.key,1024,'INVALID_RESPONSE','Photo key');
+    if(!/^[A-Za-z\d][A-Za-z\d/_-]*\.(?:webp|jpg|png)$/.test(key)||keys.has(key))return invalid('INVALID_RESPONSE','Unsafe or repeated photo key.');
+    keys.add(key);return Object.freeze({key,alt:text(photo.alt,300,'INVALID_RESPONSE','Photo description',true)});
+  });
+  return Object.freeze({...metadata,...base,state:draft.state,decidedAt,decidedBy,decisionReason:reason,content:draft.content,photos:Object.freeze(photos)});
+}
+function reviewPath(listingId:unknown,revision:unknown):string{
+  return `/v2/staff/reviews/${uuid(listingId,'VALIDATION','Listing ID')}/revisions/${integer(revision,1,2147483647,'VALIDATION','Revision')}`;
 }
 function uncertainWriteError(error:unknown):never{
   if(error instanceof ApiClientError&&error.kind==='INVALID_RESPONSE'&&!error.submissionUncertain)throw new ApiClientError(error.kind,error.message,{status:error.status,submissionUncertain:true});
@@ -286,6 +365,30 @@ export class RealtorApiClient {
     try{
       const data=record(await this.request(path,'POST',options,{expectedVersion}),['version'],'INVALID_RESPONSE');
       return Object.freeze({version:staffVersion(data.version,'INVALID_RESPONSE')});
+    }catch(error){return uncertainWriteError(error);}
+  }
+  async listReviewsV2(options:StaffRequestOptions&{readonly limit?:number}):Promise<ReviewPageV2>{
+    staffOptions(options,['limit']);const limit=integer(options.limit??50,1,100,'VALIDATION','Limit');
+    const data=record(await this.request(`/v2/staff/reviews?limit=${limit}`,'GET',options),['items','limit'],'INVALID_RESPONSE');
+    if(data.limit!==limit||!Array.isArray(data.items)||data.items.length>limit)return invalid('INVALID_RESPONSE','Invalid review page.');
+    const keys=new Set<string>();const items=data.items.map(input=>{
+      const item=reviewSummary(input),key=`${item.listingId}:${item.revision}`;if(keys.has(key))return invalid('INVALID_RESPONSE','Repeated review revision.');keys.add(key);return item;
+    });
+    return Object.freeze({items:Object.freeze(items),limit});
+  }
+  async getReviewV2(listingId:string,revision:number,options:StaffRequestOptions):Promise<ReviewDetailV2>{
+    staffOptions(options);const path=reviewPath(listingId,revision);
+    return reviewDetail(await this.request(path,'GET',options),listingId,revision);
+  }
+  async decideReviewV2(listingId:string,revision:number,input:ReviewDecisionInputV2,options:StaffRequestOptions):Promise<ReviewDecisionReceiptV2>{
+    staffOptions(options);const path=reviewPath(listingId,revision)+'/decision',value=record(input,['expectedVersion','decision','reason'],'VALIDATION');
+    const expectedVersion=expectedStaffVersion(value.expectedVersion,false);const decision=value.decision;
+    if(decision!=='approve'&&decision!=='reject')return invalid('VALIDATION','Choose approve or reject.');
+    const reason=decision==='reject'?decisionReason(value.reason,'VALIDATION'):value.reason===null?null:invalid('VALIDATION','Approval requires a null reason.');
+    try{
+      const receipt=record(await this.request(path,'POST',options,{expectedVersion,decision,reason}),['version','state'],'INVALID_RESPONSE');
+      const state=decision==='approve'?'approved':'rejected';if(receipt.state!==state)return invalid('INVALID_RESPONSE','Unexpected decision receipt state.');
+      return Object.freeze({version:staffVersion(receipt.version,'INVALID_RESPONSE'),state});
     }catch(error){return uncertainWriteError(error);}
   }
   async submitEnquiry(input:EnquiryInput,options:EnquiryRequestOptions):Promise<EnquiryReceipt>{

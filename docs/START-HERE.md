@@ -1,5 +1,7 @@
 # Rebuild foundation — 9 October 2026
 
+10 October moderation update: the local authenticated admin queue/detail/decision journey is implemented; see moderation.md and evidence/2026-10-10-moderation.md. Final verification is pending in the current CONTINUATION.md checkpoint. Trusted photo-byte processing remains the next implementation task; see trusted-media-plan.md. No stage/release gate is accepted.
+
 ## Verified work
 The local vendor resources, UAT folder and two delivery media folders were inventoried and snapshotted. SHA-256 hashes of every archived file were verified by reading the snapshots back. Generated build/cache directories and Git internals are excluded and listed in the manifest. Original files were not edited. Read-only snapshot copies live outside this repository in ../rebuild-preservation/2026-10-09. This is a same-device recovery copy, not an independent disaster-recovery backup.
 
