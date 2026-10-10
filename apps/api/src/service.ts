@@ -192,6 +192,29 @@ function rejectionReason(input: unknown): string {
   return input;
 }
 
+function mediaAltText(input: unknown): string {
+  if (typeof input !== "string" || input !== input.trim() || input.length === 0 || [...input].length > 300 || /[\u0000-\u001f\u007f-\u009f]/u.test(input) || /[\ud800-\udfff]/u.test(input)) {
+    throw new HttpError(400, "INVALID_INPUT", "altText needs trimmed, nonblank, control-free text of at most 300 characters.");
+  }
+  return input;
+}
+function mediaProjection(input: unknown, listingId: string, revision: number, job: boolean, resourceId: string | null): Record<string, unknown> {
+  // Never forward private storage context or future SQL fields through this endpoint.
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Unexpected media response.");
+  const row = input as Record<string, unknown>;
+  if (row.kind !== "register_media_upload" || row.listingId !== listingId || row.revision !== revision) throw new HttpError(404, "NOT_FOUND", "Resource is unavailable.");
+  if (resourceId !== null && row[job ? "jobId" : "operationId"] !== resourceId) throw new HttpError(404, "NOT_FOUND", "Resource is unavailable.");
+  if (job ? !["registered", "expired"].includes(String(row.state)) : row.outcome !== "registered") throw new Error("Unexpected media state.");
+  const fields = ["kind", "operationId", "jobId", "listingId", "revision", "expectedVersion", "altText", job ? "state" : "outcome"];
+  const projected = Object.fromEntries(fields.map(field => [field, row[field]]));
+  // JSONB timestamptz uses offsets/microseconds. The wire contract uses UTC milliseconds.
+  for (const field of ["registeredAt", "expiresAt"]) {
+    if (typeof row[field] !== "string" || !Number.isFinite(Date.parse(row[field]))) throw new Error("Unexpected media timestamp.");
+    projected[field] = new Date(row[field]).toISOString();
+  }
+  return projected;
+}
+
 export function createApiService(options: ApiServiceOptions): (request: Request) => Promise<Response> {
   const tenantId = uuid(options.tenantId, "Configured tenant");
   const privacyNoticeVersion = text(options.privacyNoticeVersion, "Configured privacy notice version", 100);
@@ -251,6 +274,27 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
       if (path.startsWith("/v1/staff/") || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const mediaRoute = /^\/v2\/staff\/listings\/([^/]+)\/revisions\/([1-9]\d*)\/(media-registrations|media-jobs)(?:\/([^/]+))?$/.exec(path);
+        if (mediaRoute) {
+          if (url.search) throw new HttpError(400, "INVALID_INPUT", "Media requests do not accept query fields.");
+          const id = uuid(mediaRoute[1], "listingId"), revision = Number(mediaRoute[2]);
+          if (!Number.isSafeInteger(revision) || revision > 2147483647) throw new HttpError(400, "INVALID_INPUT", "revision is outside the supported range.");
+          const job = mediaRoute[3] === "media-jobs", resourceId = mediaRoute[4] === undefined ? null : uuid(mediaRoute[4], job ? "jobId" : "registrationId");
+          if (job && resourceId === null) throw new HttpError(404, "NOT_FOUND", "Resource is unavailable.");
+          const allowedMethod = resourceId === null ? "POST" : "GET";
+          if (method !== allowedMethod) throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method is not allowed for this route.", { Allow: allowedMethod });
+          let registration: { registrationId: string; expected: number; altText: string } | undefined;
+          if (resourceId === null) {
+            const body = record(await jsonBody(request, 8 * 1024, false, true), ["registrationId", "expectedVersion", "altText"]);
+            registration = { registrationId: uuid(body.registrationId, "registrationId"), expected: version(body.expectedVersion), altText: mediaAltText(body.altText) };
+          }
+          const result = await options.database.transaction(context, async query => {
+            await assertStaff(query);
+            if (registration) return query.query("SELECT app_api.register_media_upload($1::uuid,$2::integer,$3::bigint,$4::uuid,$5::text) AS receipt", [id, revision, registration.expected, registration.registrationId, registration.altText]);
+            return query.query(job ? "SELECT app_api.read_media_job($1::uuid) AS receipt" : "SELECT app_api.read_media_registration($1::uuid) AS receipt", [resourceId]);
+          });
+          return response(200, mediaProjection(scalar(result, "receipt"), id, revision, job, resourceId), correlationId);
+        }
         if (path === "/v2/staff/reviews" || reviewRoute) {
           const queue = path === "/v2/staff/reviews";
           reviewQuery(url, queue);

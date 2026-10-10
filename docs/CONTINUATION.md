@@ -1,5 +1,11 @@
 # Rebuild continuation checkpoint
 
+## Authenticated media registration checkpoint — 11 October 2026
+
+202 affected API/SQL/SDK/HTTP regression tests and all eight workspace typechecks passed, with zero failures/skips/cancellations. Migration0003, authenticated registration/readback routes and strict shared SDK now preserve one immutable historical receipt across lost responses, later saves/submission/approval and expiry, under current authorization and original requester. Registration changes no draft version or accepted-photo count and issues no capability. See media-registration.md and evidence/2026-10-11-media-registration.md; logs media-registration-tests.txt/media-registration-types.txt. Initial SDK fixture permission errors were corrected without widening runtime privileges; failed probe remains preserved.
+
+Next implement persisted synthetic processing claims/leases, captured input identity and sealed output from the supervised codec, then explicit authenticated attach-intent/finalize/remove/reorder and provenance submission gates. No bytes are bound to registered jobs yet. Real PostgreSQL races, quotas/retention, production/provider isolation, devices/operator UAT and every release gate remain open. Earlier paragraphs below are at-time history. Preserve vendor originals/live systems and KES10,000 total monthly price. Inspect latest Git/recovery/publication records; never rerun old checkpoint generators. No UI production build, unchanged51-media-suite rerun or full-platform acceptance is claimed.
+
 ## Local Windows image-worker checkpoint — 10 October 2026
 
 Windows local processor checkpoint:51 focused synthetic media tests and all eight workspace typechecks passed. Atomic Job Object launch, actual zero-membership barriers, timeout/cancel, a surviving detached child/grandchild and actual child-codec/storage flow are verified locally. Unknown outcomes block reuse and retain attempts. See evidence/2026-10-10-media-processor.md and media-processor-tests.txt/media-processor-types.txt. This establishes process lifetime only, not a production filesystem/network/resource sandbox, durable jobs or listing acceptance. Earlier checkpoint paragraphs remain at-time history; every release gate stays open.

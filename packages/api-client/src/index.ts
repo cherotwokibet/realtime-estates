@@ -56,6 +56,16 @@ export interface ReviewDetailV2 extends ReviewMetadataV2 {
 }
 export interface ReviewDecisionInputV2 {readonly expectedVersion:string;readonly decision:'approve'|'reject';readonly reason:string|null}
 export interface ReviewDecisionReceiptV2 {readonly version:string;readonly state:'approved'|'rejected'}
+/** Registration creates private job metadata only; it grants no upload or attachment capability. */
+export interface MediaRegistrationInputV2 {readonly registrationId:string;readonly expectedVersion:string;readonly altText:string}
+export interface MediaRegistrationFactsV2 {
+  readonly kind:'register_media_upload';readonly operationId:string;readonly jobId:string;readonly listingId:string;
+  readonly revision:number;readonly expectedVersion:string;readonly altText:string;readonly registeredAt:string;readonly expiresAt:string;
+}
+/** A historical immutable result; expiry or later draft changes do not rewrite this receipt. */
+export interface MediaRegistrationReceiptV2 extends MediaRegistrationFactsV2 {readonly outcome:'registered'}
+/** Current bounded job projection, separate from the historical registration result. */
+export interface MediaJobV2 extends MediaRegistrationFactsV2 {readonly state:'registered'|'expired'}
 export interface EnquiryInput {
   readonly listingId?: string | null; readonly name: string; readonly phone?: string | null; readonly email?: string | null;
   readonly message: string; readonly origin: 'web' | 'mobile'; readonly noticeVersion: string; readonly noticeAcknowledged: true;
@@ -297,6 +307,56 @@ function reviewDetail(input:unknown,listingId:string,revision:number):ReviewDeta
 function reviewPath(listingId:unknown,revision:unknown):string{
   return `/v2/staff/reviews/${uuid(listingId,'VALIDATION','Listing ID')}/revisions/${integer(revision,1,2147483647,'VALIDATION','Revision')}`;
 }
+function mediaPath(listingId:unknown,revision:unknown):string{
+  return `/v2/staff/listings/${uuid(listingId,'VALIDATION','Listing ID')}/revisions/${integer(revision,1,2147483647,'VALIDATION','Revision')}`;
+}
+function mediaAltText(input:unknown,kind:'VALIDATION'|'INVALID_RESPONSE'):string{
+  if(typeof input!=='string'||input!==input.trim()||[...input].length<1||[...input].length>300||/[\u0000-\u001f\u007f-\u009f\ud800-\udfff]/u.test(input))return invalid(kind,'Provide a trimmed photo description within the supported length.');
+  return input;
+}
+function mediaVersion(input:unknown):string{
+  const value=staffVersion(input,'INVALID_RESPONSE');
+  if(BigInt(value)>BigInt(Number.MAX_SAFE_INTEGER))return invalid('INVALID_RESPONSE','Unsupported registration version.');
+  return value;
+}
+function mediaFacts(value:Record<string,unknown>,listingId:string,revision:number):MediaRegistrationFactsV2{
+  if(value.kind!=='register_media_upload'||uuid(value.listingId,'INVALID_RESPONSE','Listing ID')!==listingId.toLowerCase()||integer(value.revision,1,2147483647,'INVALID_RESPONSE','Revision')!==revision)return invalid('INVALID_RESPONSE','Unexpected media resource.');
+  const registeredAt=timestamp(value.registeredAt),expiresAt=timestamp(value.expiresAt);
+  if(registeredAt===null||expiresAt===null||Date.parse(expiresAt)-Date.parse(registeredAt)!==86400000)return invalid('INVALID_RESPONSE','Invalid registration expiry.');
+  const operationId=uuid(value.operationId,'INVALID_RESPONSE','Registration ID'),jobId=uuid(value.jobId,'INVALID_RESPONSE','Job ID');
+  if(operationId===jobId)return invalid('INVALID_RESPONSE','Registration and job identities must differ.');
+  return Object.freeze({kind:'register_media_upload',operationId,jobId,
+    listingId:listingId.toLowerCase(),revision,expectedVersion:mediaVersion(value.expectedVersion),altText:mediaAltText(value.altText,'INVALID_RESPONSE'),registeredAt,expiresAt});
+}
+const MEDIA_FACT_FIELDS=['kind','operationId','jobId','listingId','revision','expectedVersion','altText','registeredAt','expiresAt'] as const;
+function mediaRegistration(input:unknown,listingId:string,revision:number,registrationId:string,request?:MediaRegistrationInputV2):MediaRegistrationReceiptV2{
+  const fields=[...MEDIA_FACT_FIELDS,'outcome'],value=record(input,fields,'INVALID_RESPONSE');
+  if(fields.some(field=>!Object.hasOwn(value,field))||value.outcome!=='registered')return invalid('INVALID_RESPONSE','Invalid registration receipt.');
+  const facts=mediaFacts(value,listingId,revision);
+  if(facts.operationId!==registrationId.toLowerCase()||(request&&(facts.expectedVersion!==request.expectedVersion||facts.altText!==request.altText)))return invalid('INVALID_RESPONSE','Conflicting registration receipt.');
+  return Object.freeze({...facts,outcome:'registered'});
+}
+function mediaJob(input:unknown,listingId:string,revision:number,jobId:string):MediaJobV2{
+  const fields=[...MEDIA_FACT_FIELDS,'state'],value=record(input,fields,'INVALID_RESPONSE');
+  if(fields.some(field=>!Object.hasOwn(value,field))||(value.state!=='registered'&&value.state!=='expired'))return invalid('INVALID_RESPONSE','Invalid media job.');
+  const facts=mediaFacts(value,listingId,revision);if(facts.jobId!==jobId.toLowerCase())return invalid('INVALID_RESPONSE','Unexpected media job.');
+  return Object.freeze({...facts,state:value.state});
+}
+function assertMediaJsonTokens(source:string):void{
+  // The existing v2 parser checks syntax and money tokens. Media projections also
+  // reject decoded duplicate keys and revision tokens before numeric rounding.
+  const tokens=source.match(/"(?:\\[\s\S]|[^"\\])*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\]:,]/g)??[];
+  const containers:(Set<string>|null)[]=[];
+  for(let index=0;index<tokens.length;index++){
+    const token=tokens[index]!;
+    if(token==='{')containers.push(new Set());else if(token==='[')containers.push(null);else if(token==='}'||token===']')containers.pop();
+    else if(token.startsWith('"')&&tokens[index+1]===':'){
+      const keys=containers.at(-1),key=JSON.parse(token) as string;
+      if(!keys||keys.has(key))throw new Error('Duplicate media response key.');keys.add(key);
+      if(key==='revision'&&!/^[1-9]\d*$/.test(tokens[index+2]??''))throw new Error('Invalid media revision token.');
+    }
+  }
+}
 function uncertainWriteError(error:unknown):never{
   if(error instanceof ApiClientError&&error.kind==='INVALID_RESPONSE'&&!error.submissionUncertain)throw new ApiClientError(error.kind,error.message,{status:error.status,submissionUncertain:true});
   throw error;
@@ -391,6 +451,22 @@ export class RealtorApiClient {
       return Object.freeze({version:staffVersion(receipt.version,'INVALID_RESPONSE'),state});
     }catch(error){return uncertainWriteError(error);}
   }
+  /** Supply and retain the original UUID/body for explicit retry; no automatic retry or version refresh occurs. */
+  async registerMediaUploadV2(listingId:string,revision:number,input:MediaRegistrationInputV2,options:StaffRequestOptions):Promise<MediaRegistrationReceiptV2>{
+    staffOptions(options);const path=mediaPath(listingId,revision)+'/media-registrations',value=record(input,['registrationId','expectedVersion','altText'],'VALIDATION');
+    const registrationId=uuid(value.registrationId,'VALIDATION','Registration ID'),expectedVersion=expectedStaffVersion(value.expectedVersion,false),altText=mediaAltText(value.altText,'VALIDATION');
+    const canonical=Object.freeze({registrationId,expectedVersion:String(expectedVersion),altText});
+    try{return mediaRegistration(await this.request(path,'POST',options,{registrationId,expectedVersion,altText}),listingId,revision,registrationId,canonical);}
+    catch(error){return uncertainWriteError(error);}
+  }
+  async getMediaRegistrationV2(listingId:string,revision:number,registrationId:string,options:StaffRequestOptions):Promise<MediaRegistrationReceiptV2>{
+    staffOptions(options);const path=mediaPath(listingId,revision),id=uuid(registrationId,'VALIDATION','Registration ID');
+    return mediaRegistration(await this.request(`${path}/media-registrations/${id}`,'GET',options),listingId,revision,id);
+  }
+  async getMediaJobV2(listingId:string,revision:number,jobId:string,options:StaffRequestOptions):Promise<MediaJobV2>{
+    staffOptions(options);const path=mediaPath(listingId,revision),id=uuid(jobId,'VALIDATION','Job ID');
+    return mediaJob(await this.request(`${path}/media-jobs/${id}`,'GET',options),listingId,revision,id);
+  }
   async submitEnquiry(input:EnquiryInput,options:EnquiryRequestOptions):Promise<EnquiryReceipt>{
     requestOptions(options,['idempotencyKey']);const key=uuid(options.idempotencyKey,'VALIDATION','Idempotency key');
     const body=enquiryBody(input,this.currentNotice);
@@ -422,7 +498,10 @@ export class RealtorApiClient {
         if(result.redirected||(result.status>=300&&result.status<400)||(result.url&&new URL(result.url).href!==new URL(url).href))throw new ApiClientError('REDIRECT','API redirects are not permitted.',{submissionUncertain:writes});
         if(!/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type')??''))throw new ApiClientError('INVALID_RESPONSE','Expected a JSON API response.',{status:result.status,submissionUncertain:writes});
         const raw=await result.text();if(raw.length>MAX_JSON_CHARACTERS)throw new ApiClientError('INVALID_RESPONSE','API response exceeded the supported size.',{status:result.status,submissionUncertain:writes});
-        let payload:unknown;try{payload=path.startsWith('/v2/')?parseListingJsonV2(raw):JSON.parse(raw);}catch{throw new ApiClientError('INVALID_RESPONSE','Malformed API JSON.',{status:result.status,submissionUncertain:writes});}
+        let payload:unknown;try{
+          if(/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/(?:media-registrations|media-jobs)(?:\/[^/]+)?$/.test(path))assertMediaJsonTokens(raw);
+          payload=path.startsWith('/v2/')?parseListingJsonV2(raw):JSON.parse(raw);
+        }catch{throw new ApiClientError('INVALID_RESPONSE','Malformed API JSON.',{status:result.status,submissionUncertain:writes});}
         if(!result.ok){
           const envelope=record(payload,['error','requestId'],'INVALID_RESPONSE');const serverError=record(envelope.error,['code','message'],'INVALID_RESPONSE');
           const requestId=uuid(envelope.requestId,'INVALID_RESPONSE','Request ID');

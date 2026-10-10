@@ -5,14 +5,16 @@ This is independently written replacement code. It creates no cloud resources, r
 From the monorepo root, after installing the root development dependencies:
 
 ```powershell
-node --test database/tests/*.test.mjs
+node --test --test-concurrency=1 database/tests/*.test.mjs
 ```
 
 `migrations/0001_foundation.sql` is a one-time transactional bootstrap for a fresh dedicated database. It deliberately fails if its roles/schemas already exist; it is not a migration-history runner. A migration administrator must be permitted to create roles, create schemas owned by `realtor_owner` and set that role. No deployment has been attempted on a managed service. Test its actual provider permissions, PostgreSQL version, role behavior, transaction pool and backups in a separate nonproduction environment before deployment. Never run bootstrap through an application login.
 
 ## Data included
 
-Eight private tables hold companies, memberships, stable listings, revision content, media-processing metadata, public snapshots, enquiries and audit events. Tenant-owned relationships use **composite company/object foreign keys**, including listing assignments, publication revision references and the exact revision contacted by an enquiry. `created_by_id` records attribution while `assigned_agent_id` controls operational access.
+Ten private tables now include immutable media operation receipts and registered jobs alongside the original eight company/listing/revision/media/snapshot/enquiry/audit tables. Apply ordered migrations0001,0002 and0003; the bootstrap alone is not the current schema. Tenant-owned relationships use **composite company/object foreign keys**, including listing assignments, publication revision references and the exact revision contacted by an enquiry. `created_by_id` records attribution while `assigned_agent_id` controls operational access.
+
+`0003_registered_media_jobs.sql` adds metadata-only registration and currently authorized historical readback. It grants no direct runtime job/operation reads or DML and accepts no uploaded bytes. New job identity is generated only after an operation miss; identical explicit retries recover the original receipt. See [media registration](../docs/media-registration.md). Claims/leases, decoder provenance, accepted-media attachment and retention are separate future migrations.
 
 `amount_minor` is positive `bigint`, capped at `100000000000000`, and `currency` is always `KES`. Rental periods are `day/week/month/year`; sale rejects a rental period. Canonical property types, exact bedroom counts, null bathroom counts, paired valid coordinates and area/exact public precision have database constraints. Incomplete drafts are allowed; submission requires complete content and 4–12 accepted media rows. `private_address` never enters the public snapshot. Area precision omits stored coordinates from the public snapshot.
 

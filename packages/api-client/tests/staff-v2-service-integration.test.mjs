@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {applyTestMigrations} from '../../../database/test-helpers/migrations.mjs';
 import {PGlite} from '@electric-sql/pglite';
 import {createApiService} from '../../../apps/api/dist/service.js';
 import {PostgresTransactionDatabase} from '../../../apps/api/dist/database.js';
@@ -34,7 +34,7 @@ const isHttp=(status,code)=>error=>error instanceof ApiClientError&&error.kind==
 test('staff v2 client integrates with real service, SQL assignment checks and optimistic versions',async t=>{
   const db=new PGlite();
   try{
-    for(const migration of ['0001_foundation.sql','0002_listing_disclosure.sql'])await db.exec(await readFile(new URL(`../../../database/migrations/${migration}`,import.meta.url),'utf8'));
+    await applyTestMigrations(db);
     await db.query(`INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'staff-client-a','Synthetic Staff A'),($2,'staff-client-b','Synthetic Staff B')`,[TENANT,OTHER]);
     for(const [tenant,actor,role] of [[TENANT,ADMIN,'admin'],[TENANT,AGENT,'agent'],[TENANT,PEER,'agent'],[TENANT,CUSTOMER,'customer'],[OTHER,OTHERADMIN,'admin']])await db.query('INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,$3)',[tenant,actor,role]);
     for(const [tenant,actor,listing] of [[TENANT,AGENT,LISTING],[TENANT,PEER,PEERLISTING],[TENANT,AGENT,EMPTY],[OTHER,OTHERADMIN,OTHERLISTING]])await bootstrapAs(db,tenant,actor,query=>query.query('SELECT app_api.create_listing($1,$2)',[listing,`synthetic-staff-${listing.slice(-3)}`]));

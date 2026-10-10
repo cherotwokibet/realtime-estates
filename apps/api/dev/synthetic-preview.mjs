@@ -5,7 +5,7 @@
  * Never deploy this harness or treat its synthetic identity context as authentication.
  */
 import {randomUUID} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
+import {applyTestMigrations} from '../../../database/test-helpers/migrations.mjs';
 import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {PGlite} from '@electric-sql/pglite';
@@ -63,7 +63,7 @@ async function bootstrapAs(db,company,operation){
   }catch(error){await db.exec('ROLLBACK');throw error;}
 }
 async function seed(db,scenario,tenantSlug){
-  for(const name of ['0001_foundation.sql','0002_listing_disclosure.sql'])await db.exec(await readFile(new URL(`../../../database/migrations/${name}`,import.meta.url),'utf8'));
+  await applyTestMigrations(db);
   for(const [slug,company] of Object.entries(COMPANIES)){
     await db.query('INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,$2,$3)',[company.id,slug,company.name]);
     await db.query(`INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'admin')`,[company.id,company.admin]);

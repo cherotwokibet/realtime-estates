@@ -4,7 +4,7 @@
  * Tokens/private keys are never logged, persisted or returned from an HTTP endpoint.
  */
 import {randomUUID} from 'node:crypto';
-import {readFile} from 'node:fs/promises';
+import {applyTestMigrations} from '../../../database/test-helpers/migrations.mjs';
 import {createServer} from 'node:http';
 import {exportJWK,generateKeyPair,SignJWT} from 'jose';
 import {PGlite} from '@electric-sql/pglite';
@@ -55,7 +55,7 @@ async function bootstrapAs(db,company,actor,operation){
   }catch(error){await db.exec('ROLLBACK');throw error;}
 }
 async function seed(db,seedAcceptedMedia,seedPendingReviews){
-  for(const name of ['0001_foundation.sql','0002_listing_disclosure.sql'])await db.exec(await readFile(new URL(`../../../database/migrations/${name}`,import.meta.url),'utf8'));
+  await applyTestMigrations(db);
   for(const [slug,company] of Object.entries(COMPANIES)){
     await db.query('INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,$2,$3)',[company.id,slug,company.name]);
     for(const [actor,role,active] of [[company.admin,'admin',true],[company.agent,'agent',true],[company.peer,'agent',true],[company.customer,'customer',true],[company.revoked,'agent',false]])await db.query(`INSERT INTO app_private.memberships(tenant_id,user_id,role,active,revoked_at) VALUES($1,$2,$3,$4,CASE WHEN $4 THEN NULL ELSE now() END)`,[company.id,actor,role,active]);
@@ -150,8 +150,10 @@ export async function startStaffPreview(options={}){
       if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,acceptedMediaMetadataOnly:seedAcceptedMedia,tokenExpiresAt:expiresAt});
       const route=/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/drafts\/1(\/submit)?$/i.exec(url.pathname);
       const reviewRoute=/^\/v2\/staff\/reviews\/[0-9a-f-]{36}\/revisions\/1(\/decision)?$/i.exec(url.pathname);
-      if(!route&&!reviewRoute&&!reviewQueue)return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
-      const allowedMethods=reviewQueue?['GET']:reviewRoute?(reviewRoute[1]?['POST']:['GET']):route[1]?['POST']:['GET','PUT'];
+      const mediaRoute=/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/(media-registrations|media-jobs)(?:\/([0-9a-f-]{36}))?$/i.exec(url.pathname);
+      if(!route&&!reviewRoute&&!reviewQueue&&!mediaRoute)return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
+      if(mediaRoute&&mediaRoute[1]==='media-jobs'&&!mediaRoute[2])return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
+      const allowedMethods=mediaRoute?(mediaRoute[2]?['GET']:['POST']):reviewQueue?['GET']:reviewRoute?(reviewRoute[1]?['POST']:['GET']):route[1]?['POST']:['GET','PUT'];
       if(!allowedMethods.includes(request.method))return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for the staff fixture.',{Allow:allowedMethods.join(', ')});
       if(request.method!=='GET'&&!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')??''))return failure(415,'JSON_REQUIRED','Use application/json.');
       const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
