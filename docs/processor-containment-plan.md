@@ -1,5 +1,7 @@
 # Windows image processor containment review
 
+Windows local processor checkpoint:51 focused synthetic media tests and all eight workspace typechecks passed. Atomic Job Object launch, actual zero-membership barriers, timeout/cancel, a surviving detached child/grandchild and actual child-codec/storage flow are verified locally. Unknown outcomes block reuse and retain attempts. See evidence/2026-10-10-media-processor.md and media-processor-tests.txt/media-processor-types.txt. This establishes process lifetime only, not a production filesystem/network/resource sandbox, durable jobs or listing acceptance. Earlier checkpoint paragraphs remain at-time history; every release gate stays open.
+
 Reviewed: 10 October 2026. Scope: the next **local, synthetic-only** image-processing experiment for this rebuild. This is a design review, not an implementation or termination-test report.
 
 ## Decision for the next checkpoint

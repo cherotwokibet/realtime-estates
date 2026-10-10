@@ -1,5 +1,7 @@
 # Next delivery: trusted image acceptance
 
+Windows local processor checkpoint:51 focused synthetic media tests and all eight workspace typechecks passed. Atomic Job Object launch, actual zero-membership barriers, timeout/cancel, a surviving detached child/grandchild and actual child-codec/storage flow are verified locally. Unknown outcomes block reuse and retain attempts. See evidence/2026-10-10-media-processor.md and media-processor-tests.txt/media-processor-types.txt. This establishes process lifetime only, not a production filesystem/network/resource sandbox, durable jobs or listing acceptance. Earlier checkpoint paragraphs remain at-time history; every release gate stays open.
+
 Latest local result: a separate disposable local store now implements streamed bounds, generated quarantine/output identities, integrity readback, cancellation and owned nonrecursive cleanup.32 focused codec/storage/integration tests and eight typechecks passed; see evidence/2026-10-10-media-storage.md. This is still not image/SQL acceptance or production retention. Next implement/test process containment in processor-containment-plan.md before automatic timeout cleanup/retry, then the authenticated command/provenance slice below. Historical paragraphs remain at-time planning evidence.
 
 10 October 2026, Africa/Nairobi. This is an implementation plan, not completed upload or production evidence. No package or provider was provisioned by this review. Use independently generated synthetic image bytes first; preserve vendor assets while reuse rights remain unresolved.

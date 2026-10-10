@@ -1,0 +1,69 @@
+
+> @realtor/media@0.1.0 test
+> npm run build && node --test --test-concurrency=1 tests/*.test.mjs
+
+
+> @realtor/media@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ independently constructed PNG pixels become a fresh WebP with exact derived manifest (65.2281ms)
+✔ real JPEG, progressive JPEG and static WebP are decoded and newly encoded (67.257ms)
+✔ EXIF orientation changes pixels and dimensions while source metadata is removed (63.2003ms)
+✔ resize bounds both axes to1920 without enlarging small sources and preserves alpha (259.6141ms)
+✔ input snapshot prevents ordinary Buffer mutation after the call from changing decode/hash (7.5831ms)
+✔ actual Buffer length and immutable policy enforce the10MiB cap before parsing (4.1692ms)
+✔ forged PNG headers exceed40MP or the separate16384-axis limit before decode (5.1268ms)
+✔ output cap uses actual freshly encoded bytes and trusted overrides can only tighten it (26.0193ms)
+✔ unsupported formats and signature-only spoofing do not produce output (4.774ms)
+✔ container names compare literal bytes and never mask high-bit lookalikes (7.5343ms)
+✔ truncation, invalid PNG CRC/data and RIFF length/overflow fail closed (21.2391ms)
+✔ full APNG and APNG frame/control chunks are rejected rather than taking one frame (2.7455ms)
+✔ real animated WebP and each animation indicator are rejected (7.2776ms)
+✔ concatenated JPEGs, source trailing data and JPEG MPF are rejected (6.7349ms)
+✔ local synthetic flow preserves captured input and separately stores actual codec output (253.8293ms)
+✔ failed actual decoding leaves quarantine private and creates no output in the local flow (118.8734ms)
+✔ storage publication alone certifies byte identity, not image safety or SQL acceptance (117.8459ms)
+✔ generated owned root, opaque handle and actual stream receipt preserve only the yielded view (142.9386ms)
+✔ actual streamed10MiB limit stops at the first excess chunk and removes the partial file (378.968ms)
+✔ invalid, empty and SharedArrayBuffer chunks never become stored objects (242.1306ms)
+✔ per-chunk snapshots keep written bytes and digest paired when the producer reuses its view (116.3294ms)
+✔ abort races a pending next(), asks cancellation once and consumes late producer rejection (114.1902ms)
+✔ producer failure and pre-aborted input close/delete partial work and release admission (136.2126ms)
+✔ bounded admission rejects extra operations and queued publication snapshots immediately (160.7989ms)
+✔ outputs are generated exclusive objects rather than overwriteable keys (126.7486ms)
+✔ forged, serialized, cross-store and disposed handles are not object capabilities (169.4481ms)
+✔ same-length altered and truncated stored bytes fail actual SHA/length revalidation (137.6686ms)
+✔ dispose cancels blocked ingestion, rejects queued writes, and preserves the supplied parent (82.3096ms)
+✔ file creation failure still requests producer cancellation (76.9445ms)
+✔ unknown entries prevent cleanup rather than deleting an unexpected tree (64.421ms)
+✔ substituted symlink or Windows junction fails closed and leaves outside bytes untouched (71.2646ms)
+✔ relative and non-directory parents are refused without creating a root (7.3163ms)
+✔ actual child codec produces hash-matched WebP and a sidecar before local storage publication (5938.5832ms)
+✔ actual child rejects corrupt bytes and leaves only private source after a confirmed barrier (4015.5705ms)
+✔ exclusive sidecar collision cannot be accepted and partial output waits for confirmed termination cleanup (4097.1931ms)
+✔ pure readback matches actual encoded dimensions/hashes and snapshots ordinary buffers (43.491ms)
+✔ sidecar cannot override input/output facts, encoder, pipeline or operations (13.8161ms)
+✔ bounded canonical sidecar rejects duplicate/escaped keys, rounded tokens and invalid UTF-8 (12.8012ms)
+✔ static coded headers reject metadata, animation, unknown/trailing chunks and canvas mismatch (28.0418ms)
+✔ readback enforces actual byte caps and rejects shared memory before parsing (7.4765ms)
+✔ strict protocol preserves only a confirmed native zero-membership receipt (6.7058ms)
+✔ close-like, malformed and contradictory protocol cannot certify an empty job (1.0699ms)
+✔ duplicate decoded keys and noncanonical numeric tokens fail before rounded interpretation (0.6029ms)
+✔ bounded protocol rejects oversized data and omits unknown native accounting facts (0.6543ms)
+✔ normal and nonzero direct exits both require actual native empty-job barriers (7107.4197ms)
+✔ hanging and JS-busy children are terminated by deadline before zero-count receipts (9140.3595ms)
+✔ explicit cancellation and BUSY admission settle one job and permit only a fresh next attempt (7160.6721ms)
+✔ parent exit with live child and grandchild plus closed pipes is detected and drained by owned job accounting (4300.6067ms)
+✔ minimal child environment strips preload/credential sentinels and Windows quoting preserves data (3576.5211ms)
+✔ invalid signal/configuration never launches and does not consume a fresh attempt (3648.6439ms)
+✔ misconfigured owned supervisor close without a native receipt remains unknown and blocks the instance (918.488ms)
+ℹ Missing-receipt fixture tooling retained: C:\Users\BONIFACE\AppData\Local\Temp\realtor supervisor missing-receipt tools 8IcC1i
+ℹ Unconfirmed synthetic attempt retained: C:\Users\BONIFACE\AppData\Local\Temp\realtor supervisor tests 0JvJYt\owned attempt LyLoCc
+ℹ tests 51
+ℹ suites 0
+ℹ pass 51
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 55610.6487

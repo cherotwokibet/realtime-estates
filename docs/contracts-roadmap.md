@@ -1,5 +1,7 @@
 # Shared contract convergence — 10 October 2026
 
+Windows local processor checkpoint:51 focused synthetic media tests and all eight workspace typechecks passed. Atomic Job Object launch, actual zero-membership barriers, timeout/cancel, a surviving detached child/grandchild and actual child-codec/storage flow are verified locally. Unknown outcomes block reuse and retain attempts. See evidence/2026-10-10-media-processor.md and media-processor-tests.txt/media-processor-types.txt. This establishes process lifetime only, not a production filesystem/network/resource sandbox, durable jobs or listing acceptance. Earlier checkpoint paragraphs remain at-time history; every release gate stays open.
+
 Latest local media result: streamed disposable quarantine/output storage and the actual codec/storage flow passed32 focused tests and all eight workspace typechecks. Storage byte receipts supply no image/SQL acceptance; see evidence/2026-10-10-media-storage.md. The next boundary is the unimplemented process supervisor in processor-containment-plan.md, followed by authenticated media commands/provenance. Earlier API/UI evidence below remains separate.
 
 Status: local v2 storage/API/client integration and opt-in connected public web implemented; local authenticated staff draft/moderator journeys are implemented; native operational integration and production acceptance remain open. The original six-step sequence below is retained as the implementation and remaining-delivery checklist.
