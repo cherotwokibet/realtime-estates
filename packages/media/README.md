@@ -1,5 +1,7 @@
 # Local experimental synthetic image codec and storage
 
+Private upload preparation now includes `@realtor/media/upload-body` for bounded cancellable byte collection and `@realtor/media/upload-request` for immutable original bindings with fresh-only one-use admission. These helpers authenticate nobody and expose no HTTP route. See [the admission contract](../../docs/private-upload-admission.md); authenticated ingress, browser controls and delivery remain separate.
+
 `@realtor/media` provides a Node-only byte converter, disposable local store, restart-readable synthetic store, Windows supervisor, attempt journal, persistent worker admission and separate restricted processing database adapter, independent of the vendor's code and images. It does not accept production uploads, mark media accepted, save production listing objects or connect a provider. The codec/store alone create no database records. `synthetic-codec-v1` identifies this experimental pipeline, not a production approval.
 
 ```ts
