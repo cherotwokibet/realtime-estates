@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { applyTestMigrations } from "../../../database/test-helpers/migrations.mjs";
+import {seedSyntheticSealedMedia} from '../../../database/test-helpers/synthetic-sealed-media.mjs';
 import { PGlite } from "@electric-sql/pglite";
 import { createApiService, createLocalEnquiryLimiter } from "../dist/service.js";
 import { PostgresTransactionDatabase, assertSafeRuntimeConnection, DatabaseSafetyError } from "../dist/database.js";
@@ -30,9 +31,9 @@ async function fixture() {
       await query.query("SELECT app_api.save_draft($1,1,0,$2::jsonb)", [listing, JSON.stringify(content)]);
       await query.query("SELECT app_api.confirm_availability($1,1,'available')", [listing]);
     });
-    // Trusted bootstrap test fixture only. This does NOT test upload bytes or a media processor.
-    for (let position = 0; position < 4; position++) await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
-      VALUES($1,$2,1,$3,$4,'image/webp',100,100,100,$5,'Synthetic test image',$6,true)`, [tenant, listing, id(Number(listing.slice(-3)) * 10 + position), `fixtures/synthetic-${listing.slice(-3)}-${position}.webp`, "a".repeat(64), position]);
+    // Privileged SQL-only relational provenance; no image bytes or processor run.
+    for(let position=0;position<4;position++)await seedSyntheticSealedMedia(db,{tenantId:tenant,listingId:listing,
+      mediaId:id(Number(listing.slice(-3))*10+position),position});
     await bootstrapAs(db, tenant, agent, query => query.query("SELECT app_api.submit_revision($1,1,2)", [listing]));
     await bootstrapAs(db, tenant, admin, query => query.query("SELECT app_api.decide_revision($1,1,3,true)", [listing]));
   }

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {seedSyntheticSealedMedia} from '../../../database/test-helpers/synthetic-sealed-media.mjs';
 import {PGlite} from '@electric-sql/pglite';
 import {createApiService,createLocalEnquiryLimiter} from '../../../apps/api/dist/service.js';
 import {PostgresTransactionDatabase} from '../../../apps/api/dist/database.js';
@@ -21,10 +22,17 @@ async function bootstrapAs(db,tenant,actor,operation){
     const result=await operation(db);await db.exec('COMMIT');return result;
   }catch(error){await db.exec('ROLLBACK');throw error;}
 }
-async function syntheticMedia(db,tenant,listing,revision){
-  // Trusted accepted metadata only: this does not test uploaded bytes or a media processor.
-  for(let position=0;position<4;position++)await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
-    VALUES($1,$2,$3,$4,$5,'image/webp',100,100,100,$6,'Synthetic accepted concept view',$7,true)`,[tenant,listing,revision,id(Number(listing.slice(-3))*100+revision*10+position),`synthetic/v2/${listing}-${revision}-${position}.webp`,'a'.repeat(64),position]);
+async function syntheticMedia(db,tenant,listing,revision,sealed=true){
+  for(let position=0;position<4;position++){
+    const mediaId=id(Number(listing.slice(-3))*100+revision*10+position);
+    if(sealed)await seedSyntheticSealedMedia(db,{tenantId:tenant,listingId:listing,revision,mediaId,position});
+    else{
+      // Intentionally pre0002, unverified legacy metadata. Never backfill it as sealed.
+      await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
+        VALUES($1,$2,$3,$4,$5,'image/webp',100,100,100,$6,'Unverified legacy synthetic concept view',$7,true)`,
+        [tenant,listing,revision,mediaId,`synthetic/v2/${listing}-${revision}-${position}.webp`,'a'.repeat(64),position]);
+    }
+  }
 }
 async function seedPublished(db,tenant,admin,listing,listingContent,v2){
   await bootstrapAs(db,tenant,admin,async query=>{
@@ -32,7 +40,7 @@ async function seedPublished(db,tenant,admin,listing,listingContent,v2){
     await query.query(`SELECT app_api.${v2?'save_draft_v2':'save_draft'}($1,1,0,$2::jsonb)`,[listing,JSON.stringify(listingContent)]);
     await query.query(`SELECT app_api.confirm_availability($1,1,'available')`,[listing]);
   });
-  await syntheticMedia(db,tenant,listing,1);
+  await syntheticMedia(db,tenant,listing,1,v2);
   await bootstrapAs(db,tenant,admin,async query=>{
     await query.query('SELECT app_api.submit_revision($1,1,2)',[listing]);
     await query.query('SELECT app_api.decide_revision($1,1,3,true)',[listing]);
@@ -51,9 +59,10 @@ test('v2 client integrates with actual migrations, API service and restricted te
     await db.exec(await readFile(new URL('../../../database/migrations/0003_registered_media_jobs.sql',import.meta.url),'utf8'));
     await db.exec(await readFile(new URL('../../../database/migrations/0004_media_processing.sql',import.meta.url),'utf8'));
     await db.exec(await readFile(new URL('../../../database/migrations/0005_media_upload_context.sql',import.meta.url),'utf8'));
+    await db.exec(await readFile(new URL('../../../database/migrations/0006_media_attachment.sql',import.meta.url),'utf8'));
     await seedPublished(db,TENANT,ADMIN,LISTING,content,true);
     await seedPublished(db,OTHER,OTHERADMIN,OTHERLISTING,{...content,title:'Synthetic other-company studio',amountMinor:9900001,pricing:{declaration:'complete',charges:[]},location:{county:'Synthetic County B',town:null,area:null}},true);
-    // Prepare accepted revision-2 metadata as a trusted fixture while still the bootstrap owner.
+    // Prepare privileged SQL-only revision-2 provenance, with no actual image bytes.
     // The runtime below edits/submits/rejects it exclusively through restricted RPCs.
     await bootstrapAs(db,TENANT,ADMIN,query=>query.query('SELECT app_api.save_draft_v2($1,2,0,$2::jsonb)',[LISTING,JSON.stringify({...content,title:'Synthetic initial replacement draft'})]));
     await syntheticMedia(db,TENANT,LISTING,2);

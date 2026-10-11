@@ -66,6 +66,18 @@ export interface MediaRegistrationFactsV2 {
 export interface MediaRegistrationReceiptV2 extends MediaRegistrationFactsV2 {readonly outcome:'registered'}
 /** Current bounded job projection, separate from the historical registration result. */
 export interface MediaJobV2 extends MediaRegistrationFactsV2 {readonly state:'registered'|'expired'}
+export interface MediaAttachIntentInputV2 {readonly operationId:string;readonly jobId:string;readonly expectedVersion:string}
+export interface MediaAttachFactsV2 {
+  readonly kind:'attach_media';readonly operationId:string;readonly jobId:string;readonly listingId:string;readonly revision:number;readonly expectedVersion:string;
+}
+export type MediaAttachFailureReasonV2='VERSION_CONFLICT'|'ASSIGNMENT_CHANGED'|'REVISION_NOT_DRAFT'|'JOB_EXPIRED'|'DUPLICATE_OUTPUT'|'CAPACITY_REACHED'|'JOB_ALREADY_ATTACHED'|'PROVENANCE_CHANGED';
+export type MediaAttachReceiptV2=MediaAttachFactsV2&(
+  | Readonly<{version:string;outcome:'applied';reason:null;mediaId:string;position:number;completedAt:string}>
+  | Readonly<{version:string;outcome:'conflict'|'rejected'|'expired';reason:MediaAttachFailureReasonV2;mediaId:null;position:null;completedAt:string}>);
+/** Ready is an acknowledgement only. Applied media exists only in the immutable terminal receipt. */
+export type MediaAttachIntentV2=MediaAttachFactsV2&Readonly<{altText:string}>&(
+  | Readonly<{status:'ready';receipt:null}>
+  | Readonly<{status:'applied'|'conflict'|'rejected'|'expired';receipt:MediaAttachReceiptV2}>);
 export interface EnquiryInput {
   readonly listingId?: string | null; readonly name: string; readonly phone?: string | null; readonly email?: string | null;
   readonly message: string; readonly origin: 'web' | 'mobile'; readonly noticeVersion: string; readonly noticeAcknowledged: true;
@@ -342,6 +354,34 @@ function mediaJob(input:unknown,listingId:string,revision:number,jobId:string):M
   const facts=mediaFacts(value,listingId,revision);if(facts.jobId!==jobId.toLowerCase())return invalid('INVALID_RESPONSE','Unexpected media job.');
   return Object.freeze({...facts,state:value.state});
 }
+function attachRecord(input:unknown,fields:readonly string[],kind:'VALIDATION'|'INVALID_RESPONSE'):Record<string,unknown>{
+  if(!input||typeof input!=='object'||(Object.getPrototypeOf(input)!==Object.prototype&&Object.getPrototypeOf(input)!==null))return invalid(kind,'Malformed attachment fields.');
+  const own=Reflect.ownKeys(input),value:Record<string,unknown>={};if(own.length!==fields.length)return invalid(kind,'Malformed attachment fields.');
+  for(const key of own){if(typeof key!=='string'||!fields.includes(key))return invalid(kind,'Malformed attachment fields.');const field=Object.getOwnPropertyDescriptor(input,key);if(!field?.enumerable||!Object.hasOwn(field,'value'))return invalid(kind,'Malformed attachment fields.');value[key]=field.value;}return value;
+}
+const ATTACH_FACT_FIELDS=['kind','operationId','jobId','listingId','revision','expectedVersion'] as const;
+const ATTACH_REASONS={conflict:['VERSION_CONFLICT','ASSIGNMENT_CHANGED'],rejected:['REVISION_NOT_DRAFT','DUPLICATE_OUTPUT','CAPACITY_REACHED','JOB_ALREADY_ATTACHED','PROVENANCE_CHANGED'],expired:['JOB_EXPIRED']} as const;
+function mediaAttachIntent(input:unknown,listingId:string,revision:number,operationId:string,request?:MediaAttachIntentInputV2):MediaAttachIntentV2{
+  const value=attachRecord(input,[...ATTACH_FACT_FIELDS,'altText','status','receipt'],'INVALID_RESPONSE');
+  const jobId=uuid(value.jobId,'INVALID_RESPONSE','Job ID'),expectedVersion=mediaVersion(value.expectedVersion);
+  if(value.kind!=='attach_media'||uuid(value.operationId,'INVALID_RESPONSE','Operation ID')!==operationId||jobId===operationId||uuid(value.listingId,'INVALID_RESPONSE','Listing ID')!==listingId.toLowerCase()||integer(value.revision,1,2147483647,'INVALID_RESPONSE','Revision')!==revision||BigInt(expectedVersion)>BigInt(Number.MAX_SAFE_INTEGER-1)||(request&&(request.jobId!==jobId||request.expectedVersion!==expectedVersion)))return invalid('INVALID_RESPONSE','Conflicting attachment intent.');
+  const facts=Object.freeze({kind:'attach_media' as const,operationId,jobId,listingId:listingId.toLowerCase(),revision,expectedVersion}),altText=mediaAltText(value.altText,'INVALID_RESPONSE');
+  if(value.status==='ready'){if(value.receipt!==null)return invalid('INVALID_RESPONSE','Ready intent cannot carry a receipt.');return Object.freeze({...facts,altText,status:'ready',receipt:null});}
+  if(!['applied','conflict','rejected','expired'].includes(value.status as string))return invalid('INVALID_RESPONSE','Invalid attachment status.');
+  const raw=attachRecord(value.receipt,[...ATTACH_FACT_FIELDS,'version','outcome','reason','mediaId','position','completedAt'],'INVALID_RESPONSE');
+  if(ATTACH_FACT_FIELDS.some(field=>raw[field]!==facts[field])||raw.outcome!==value.status)return invalid('INVALID_RESPONSE','Conflicting attachment receipt.');
+  const version=mediaVersion(raw.version),completedAt=timestamp(raw.completedAt);if(completedAt===null)return invalid('INVALID_RESPONSE','Invalid attachment timestamp.');
+  let receipt:MediaAttachReceiptV2;
+  if(value.status==='applied'){
+    if(raw.reason!==null||BigInt(version)!==BigInt(expectedVersion)+1n)return invalid('INVALID_RESPONSE','Invalid applied attachment.');
+    const mediaId=uuid(raw.mediaId,'INVALID_RESPONSE','Media ID');if(mediaId===operationId||mediaId===jobId)return invalid('INVALID_RESPONSE','Conflicting attachment media identity.');
+    receipt=Object.freeze({...facts,version,outcome:'applied',reason:null,mediaId,position:integer(raw.position,0,11,'INVALID_RESPONSE','Photo position'),completedAt});
+  }else{
+    const status=value.status as 'conflict'|'rejected'|'expired';if(raw.mediaId!==null||raw.position!==null||!ATTACH_REASONS[status].includes(raw.reason as never))return invalid('INVALID_RESPONSE','Invalid attachment failure.');
+    receipt=Object.freeze({...facts,version,outcome:status,reason:raw.reason as MediaAttachFailureReasonV2,mediaId:null,position:null,completedAt});
+  }
+  return Object.freeze({...facts,altText,status:value.status as 'applied'|'conflict'|'rejected'|'expired',receipt});
+}
 function assertMediaJsonTokens(source:string):void{
   // The existing v2 parser checks syntax and money tokens. Media projections also
   // reject decoded duplicate keys and revision tokens before numeric rounding.
@@ -354,6 +394,7 @@ function assertMediaJsonTokens(source:string):void{
       const keys=containers.at(-1),key=JSON.parse(token) as string;
       if(!keys||keys.has(key))throw new Error('Duplicate media response key.');keys.add(key);
       if(key==='revision'&&!/^[1-9]\d*$/.test(tokens[index+2]??''))throw new Error('Invalid media revision token.');
+      if(key==='position'&&!/^(?:null|0|[1-9]\d*)$/.test(tokens[index+2]??''))throw new Error('Invalid media position token.');
     }
   }
 }
@@ -467,6 +508,18 @@ export class RealtorApiClient {
     staffOptions(options);const path=mediaPath(listingId,revision),id=uuid(jobId,'VALIDATION','Job ID');
     return mediaJob(await this.request(`${path}/media-jobs/${id}`,'GET',options),listingId,revision,id);
   }
+  /** Retain the original UUID/job/version; explicit replay never adopts a newer version or finalizes media. */
+  async createMediaAttachIntentV2(listingId:string,revision:number,input:MediaAttachIntentInputV2,options:StaffRequestOptions):Promise<MediaAttachIntentV2>{
+    staffOptions(options);const path=mediaPath(listingId,revision)+'/media-attach-intents',value=attachRecord(input,['operationId','jobId','expectedVersion'],'VALIDATION');
+    const operationId=uuid(value.operationId,'VALIDATION','Operation ID'),jobId=uuid(value.jobId,'VALIDATION','Job ID'),expectedVersion=expectedStaffVersion(value.expectedVersion,false);
+    if(operationId===jobId||expectedVersion>Number.MAX_SAFE_INTEGER-1)return invalid('VALIDATION','Unsupported attachment identity or version.');
+    const canonical=Object.freeze({operationId,jobId,expectedVersion:String(expectedVersion)});
+    try{return mediaAttachIntent(await this.request(path,'POST',options,{operationId,jobId,expectedVersion}),listingId,revision,operationId,canonical);}catch(error){return uncertainWriteError(error);}
+  }
+  async getMediaAttachIntentV2(listingId:string,revision:number,operationId:string,options:StaffRequestOptions):Promise<MediaAttachIntentV2>{
+    staffOptions(options);const path=mediaPath(listingId,revision),id=uuid(operationId,'VALIDATION','Operation ID');
+    return mediaAttachIntent(await this.request(`${path}/media-attach-intents/${id}`,'GET',options),listingId,revision,id);
+  }
   async submitEnquiry(input:EnquiryInput,options:EnquiryRequestOptions):Promise<EnquiryReceipt>{
     requestOptions(options,['idempotencyKey']);const key=uuid(options.idempotencyKey,'VALIDATION','Idempotency key');
     const body=enquiryBody(input,this.currentNotice);
@@ -499,7 +552,7 @@ export class RealtorApiClient {
         if(!/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type')??''))throw new ApiClientError('INVALID_RESPONSE','Expected a JSON API response.',{status:result.status,submissionUncertain:writes});
         const raw=await result.text();if(raw.length>MAX_JSON_CHARACTERS)throw new ApiClientError('INVALID_RESPONSE','API response exceeded the supported size.',{status:result.status,submissionUncertain:writes});
         let payload:unknown;try{
-          if(/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/(?:media-registrations|media-jobs)(?:\/[^/]+)?$/.test(path))assertMediaJsonTokens(raw);
+          if(/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/(?:media-registrations|media-jobs|media-attach-intents)(?:\/[^/]+)?$/.test(path))assertMediaJsonTokens(raw);
           payload=path.startsWith('/v2/')?parseListingJsonV2(raw):JSON.parse(raw);
         }catch{throw new ApiClientError('INVALID_RESPONSE','Malformed API JSON.',{status:result.status,submissionUncertain:writes});}
         if(!result.ok){

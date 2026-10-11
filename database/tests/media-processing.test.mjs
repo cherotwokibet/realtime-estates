@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
+import {seedSyntheticSealedMedia} from '../test-helpers/synthetic-sealed-media.mjs';
 
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const T=id(1),OTHER=id(2),ADMIN=id(10),AGENT=id(11),PEER=id(12),OTHERADMIN=id(20);
@@ -173,11 +174,10 @@ test('synthetic coordinator processing preserves captured input and fenced immut
       await actor(db,AGENT,()=>db.query('SELECT app_api.save_draft($1,1,2,$2::jsonb)',[x.listing,JSON.stringify({...content,title:'Later synthetic title'})]));
       const lease=await claim(db,x.job,id(6060));const verified=await seal(db,x.job,lease);
       assert.equal((await versions(db,x.listing))[0].revision,'3');
-      // Existing submission still counts metadata-only fixtures. This does not
-      // claim the new verified job is attached or submission has provenance gates.
-      for(let p=0;p<4;p++)await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,
-        content_type,bytes,width,height,sha256,alt_text,position,accepted) VALUES($1,$2,1,$3,$4,'image/webp',100,100,100,$5,'Metadata fixture',$6,true)`,
-        [T,x.listing,id(30000+p),`synthetic/processing/${p}.webp`,INPUT,p]);
+      // Separate privileged SQL-only provenance fixtures satisfy submission.
+      // This job itself remains unattached; no image bytes/native proof is supplied here.
+      for(let position=0;position<4;position++)await seedSyntheticSealedMedia(db,{tenantId:T,listingId:x.listing,
+        mediaId:id(30000+position),position});
       await actor(db,AGENT,()=>db.query('SELECT app_api.submit_revision($1,1,3)',[x.listing]));
       assert.deepEqual(await seal(db,x.job,lease),verified);assert.deepEqual(await capture(db,x.job), (await read(db,x.job)).capture);
       assert.deepEqual(await claim(db,x.job,id(6060)),lease);assert.equal((await read(db,x.job)).state,'verified');
@@ -241,7 +241,7 @@ test('synthetic coordinator processing preserves captured input and fenced immut
         has_function_privilege('api_runtime',p.oid,'EXECUTE') AS api_execute,
         EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE') AS public_execute
         FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles r ON r.oid=p.proowner WHERE n.nspname='app_media'`);
-      assert.deepEqual(functions.rows.map(row=>row.proname).sort(),['capture_input','claim_processing','read_processing','read_upload_context','seal_output']);
+      assert.deepEqual(functions.rows.map(row=>row.proname).sort(),['capture_input','claim_processing','finalize_media','read_media_attach_intent','read_processing','read_upload_context','seal_output']);
       for(const row of functions.rows)assert.deepEqual({owner:row.owner,security:row.prosecdef,config:row.proconfig,
         coordinator:row.coordinator_execute,api:row.api_execute,public:row.public_execute},
         {owner:'realtor_owner',security:true,config:['search_path=pg_catalog'],coordinator:true,api:false,public:false});

@@ -34,6 +34,17 @@ export interface MediaProcessingView {
   readonly jobId:string;readonly state:'registered'|'captured'|'processing'|'verified'|'expired';
   readonly capture:MediaCaptureReceipt|null;readonly lease:MediaProcessingLease|null;readonly verified:MediaVerifiedReceipt|null;
 }
+export type MediaAttachReason='VERSION_CONFLICT'|'REVISION_NOT_DRAFT'|'ASSIGNMENT_CHANGED'|'JOB_EXPIRED'|'DUPLICATE_OUTPUT'|'CAPACITY_REACHED'|'JOB_ALREADY_ATTACHED'|'PROVENANCE_CHANGED';
+export interface MediaAttachTerminalReceipt {
+  readonly kind:'attach_media';readonly operationId:string;readonly jobId:string;readonly listingId:string;readonly revision:number;
+  readonly expectedVersion:string;readonly version:string;readonly outcome:'applied'|'conflict'|'rejected'|'expired';
+  readonly reason:MediaAttachReason|null;readonly mediaId:string|null;readonly position:number|null;readonly completedAt:string;
+}
+export interface MediaAttachIntentView {
+  readonly kind:'attach_media';readonly operationId:string;readonly jobId:string;readonly listingId:string;readonly revision:number;
+  readonly expectedVersion:string;readonly altText:string;readonly status:'ready'|'applied'|'conflict'|'rejected'|'expired';
+  readonly receipt:MediaAttachTerminalReceipt|null;
+}
 
 const FUNCTIONS=Object.freeze([
   {name:'capture_input',arguments:['uuid','uuid','int8','text']},
@@ -41,6 +52,8 @@ const FUNCTIONS=Object.freeze([
   {name:'seal_output',arguments:['uuid','int4','uuid','jsonb']},
   {name:'read_processing',arguments:['uuid']},
   {name:'read_upload_context',arguments:['uuid']},
+  {name:'finalize_media',arguments:['uuid']},
+  {name:'read_media_attach_intent',arguments:['uuid']},
 ] as const);
 // Catalog lookup avoids resolving app_media through the NOINHERIT login's
 // namespace privileges before SET ROLE. Argument types resolve only pg_catalog.
@@ -169,6 +182,35 @@ function processingView(value:unknown,jobId:string):MediaProcessingView{
   if(verified&&lease&&(verified.attempt!==lease.attempt||verified.leaseNonce!==lease.leaseNonce||verified.outputId!==lease.outputId||verified.manifest.inputBytes!==lease.input.bytes||verified.manifest.inputSha256!==lease.input.sha256))badResponse();
   return Object.freeze({jobId,state:row.state as MediaProcessingView['state'],capture,lease,verified});
 }
+const ATTACH_BINDING=['kind','operationId','jobId','listingId','revision','expectedVersion'] as const;
+function attachVersion(value:unknown,maximum:bigint):string{
+  if(typeof value!=='string'||!/^[1-9]\d{0,15}$/.test(value)||BigInt(value)>maximum)badResponse();
+  return value;
+}
+function attachIntent(value:unknown,operationId:string):MediaAttachIntentView{
+  const row=plain(value,[...ATTACH_BINDING,'altText','status','receipt'],badResponse);
+  if(row.kind!=='attach_media'||uuid(row.operationId,badResponse)!==operationId)badResponse();
+  const jobId=uuid(row.jobId,badResponse),listingId=uuid(row.listingId,badResponse),revision=bounded(row.revision,1,2147483647,badResponse),expectedVersion=attachVersion(row.expectedVersion,9007199254740990n);
+  if(jobId===operationId||typeof row.altText!=='string'||row.altText!==row.altText.trim()||[...row.altText].length<1||[...row.altText].length>300||/[\u0000-\u001f\u007f-\u009f\ud800-\udfff]/u.test(row.altText)||typeof row.status!=='string'||!['ready','applied','conflict','rejected','expired'].includes(row.status))badResponse();
+  let receipt:MediaAttachTerminalReceipt|null=null;
+  if(row.status==='ready'){if(row.receipt!==null)badResponse();}
+  else{
+    const result=plain(row.receipt,[...ATTACH_BINDING,'version','outcome','reason','mediaId','position','completedAt'],badResponse);
+    if(result.kind!=='attach_media'||uuid(result.operationId,badResponse)!==operationId||uuid(result.jobId,badResponse)!==jobId||uuid(result.listingId,badResponse)!==listingId||bounded(result.revision,1,2147483647,badResponse)!==revision||attachVersion(result.expectedVersion,9007199254740990n)!==expectedVersion||result.outcome!==row.status)badResponse();
+    const version=attachVersion(result.version,9007199254740991n),completedAt=time(result.completedAt,badResponse);
+    let mediaId:string|null=null,position:number|null=null;
+    if(result.outcome==='applied'){
+      if(result.reason!==null||BigInt(version)!==BigInt(expectedVersion)+1n)badResponse();
+      mediaId=uuid(result.mediaId,badResponse);if(mediaId===operationId||mediaId===jobId)badResponse();position=bounded(result.position,0,11,badResponse);
+    }else{
+      if(result.mediaId!==null||result.position!==null)badResponse();
+      const reasons=result.outcome==='conflict'?['VERSION_CONFLICT','ASSIGNMENT_CHANGED']:result.outcome==='expired'?['JOB_EXPIRED']:['REVISION_NOT_DRAFT','DUPLICATE_OUTPUT','CAPACITY_REACHED','JOB_ALREADY_ATTACHED','PROVENANCE_CHANGED'];
+      if(typeof result.reason!=='string'||!reasons.includes(result.reason))badResponse();
+    }
+    receipt=Object.freeze({kind:'attach_media',operationId,jobId,listingId,revision,expectedVersion,version,outcome:result.outcome as MediaAttachTerminalReceipt['outcome'],reason:result.reason as MediaAttachReason|null,mediaId,position,completedAt});
+  }
+  return Object.freeze({kind:'attach_media',operationId,jobId,listingId,revision,expectedVersion,altText:row.altText as string,status:row.status as MediaAttachIntentView['status'],receipt});
+}
 function sqlState(error:unknown):string|undefined{
   if(error&&typeof error==='object'&&'code' in error&&typeof error.code==='string'&&/^[0-9A-Z]{5}$/.test(error.code))return error.code;
   return undefined;
@@ -204,6 +246,14 @@ export class MediaCoordinatorDatabase {
   }
   async readProcessing(jobId:string):Promise<MediaProcessingView>{
     const job=uuid(jobId,badInput);return this.#command('SELECT app_media.read_processing($1::uuid) AS receipt',[job],value=>processingView(value,job));
+  }
+  /** Consumes only a persisted authenticated intent. No actor, job, version or manifest arguments. */
+  async finalizeMedia(operationId:string):Promise<MediaAttachIntentView>{
+    const operation=uuid(operationId,badInput);return this.#command('SELECT app_media.finalize_media($1::uuid) AS receipt',[operation],value=>{const result=attachIntent(value,operation);if(result.status==='ready')badResponse();return result;});
+  }
+  /** Historical fact recovery only; never refreshes or finalizes an intent. */
+  async readMediaAttachIntent(operationId:string):Promise<MediaAttachIntentView>{
+    const operation=uuid(operationId,badInput);return this.#command('SELECT app_media.read_media_attach_intent($1::uuid) AS receipt',[operation],value=>attachIntent(value,operation));
   }
   async #command<T>(sql:string,values:readonly unknown[],parse:(value:unknown)=>T):Promise<T>{
     const client=await this.#checkout();let began=false,destroy=false,commitStarted=false;

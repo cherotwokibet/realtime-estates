@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {applyTestMigrations} from '../../../database/test-helpers/migrations.mjs';
+import {seedSyntheticSealedMedia} from '../../../database/test-helpers/synthetic-sealed-media.mjs';
 import {PGlite} from '@electric-sql/pglite';
 import {createApiService,createLocalEnquiryLimiter} from '../../../apps/api/dist/service.js';
 import {PostgresTransactionDatabase} from '../../../apps/api/dist/database.js';
@@ -26,9 +27,9 @@ test('shared client exercises actual API service, restricted runtime transaction
         await query.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)',[listing,JSON.stringify(content)]);
         await query.query(`SELECT app_api.confirm_availability($1,1,'available')`,[listing]);
       });
-      // Trusted synthetic media metadata fixture, not a processor/upload-byte test.
-      for(let position=0;position<4;position++)await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
-        VALUES($1,$2,1,$3,$4,'image/webp',100,100,100,$5,'Synthetic view',$6,true)`,[tenant,listing,id(Number(listing.slice(-3))*10+position),`synthetic/${listing}-${position}.webp`,'a'.repeat(64),position]);
+      // Privileged SQL-only provenance, not actual uploaded/decoded image bytes.
+      for(let position=0;position<4;position++)await seedSyntheticSealedMedia(db,{tenantId:tenant,listingId:listing,
+        mediaId:id(Number(listing.slice(-3))*10+position),position});
       await bootstrapAs(db,tenant,admin,async query=>{await query.query('SELECT app_api.submit_revision($1,1,2)',[listing]);await query.query('SELECT app_api.decide_revision($1,1,3,true)',[listing]);});
     }
     await db.exec('CREATE ROLE api_client_test_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT api_runtime TO api_client_test_login; SET SESSION AUTHORIZATION api_client_test_login;');

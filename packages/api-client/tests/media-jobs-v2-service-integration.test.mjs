@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PGlite} from '@electric-sql/pglite';
 import {applyTestMigrations} from '../../../database/test-helpers/migrations.mjs';
+import {seedSyntheticSealedMedia} from '../../../database/test-helpers/synthetic-sealed-media.mjs';
 import {createApiService} from '../../../apps/api/dist/service.js';
 import {PostgresTransactionDatabase} from '../../../apps/api/dist/database.js';
 import {ApiClientError,RealtorApiClient} from '../dist/index.js';
@@ -35,10 +36,10 @@ test('media SDK executes actual restricted API/SQL registration and historical r
       await query.query('SELECT app_api.create_listing($1,$2)',[listing,`synthetic-media-sdk-${listing.slice(-3)}`]);
       await query.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)',[listing,JSON.stringify(content)]);
     });
-    // Submission coverage uses existing accepted metadata fixtures only. These
-    // rows are not proof of uploaded bytes, decoding or sealed job provenance.
-    for(let position=0;position<4;position++)await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
-      VALUES($1,$2,1,$3,$4,'image/webp',100,100,100,$5,'Synthetic metadata-only view',$6,true)`,[TENANT,SUBMITTED,id(1000+position),`synthetic/media-sdk/${position}.webp`,'a'.repeat(64),position]);
+    // Privileged fabricated SQL provenance isolates registration recovery after
+    // submission; no uploaded bytes/decoder/native process is represented.
+    for(let position=0;position<4;position++)await seedSyntheticSealedMedia(db,{tenantId:TENANT,listingId:SUBMITTED,
+      mediaId:id(1000+position),position});
     await db.exec('CREATE ROLE api_media_sdk_test_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT api_runtime TO api_media_sdk_test_login; SET SESSION AUTHORIZATION api_media_sdk_test_login;');
     let tail=Promise.resolve();
     const pool={async connect(){let unlock;const next=new Promise(resolve=>{unlock=resolve;});const previous=tail;tail=next;await previous;return {query:(sql,args)=>db.query(sql,args?[...args]:[]),release(){unlock();}};}};

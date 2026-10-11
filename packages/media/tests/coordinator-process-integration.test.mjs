@@ -65,6 +65,8 @@ test('actual isolated connection guard rejects changed grants, roles and command
     ['GRANT EXECUTE ON FUNCTION app_media.read_processing(uuid) TO media_coordinator WITH GRANT OPTION','REVOKE GRANT OPTION FOR EXECUTE ON FUNCTION app_media.read_processing(uuid) FROM media_coordinator'],
     ['GRANT media_coordinator TO synthetic_media_login WITH ADMIN OPTION','REVOKE ADMIN OPTION FOR media_coordinator FROM synthetic_media_login'],
     ["ALTER FUNCTION app_media.read_processing(uuid) SET search_path=pg_catalog,public","ALTER FUNCTION app_media.read_processing(uuid) SET search_path=pg_catalog"],
+    ["ALTER FUNCTION app_media.finalize_media(uuid) SET search_path=pg_catalog,public","ALTER FUNCTION app_media.finalize_media(uuid) SET search_path=pg_catalog"],
+    ['REVOKE EXECUTE ON FUNCTION app_media.read_media_attach_intent(uuid) FROM media_coordinator','GRANT EXECUTE ON FUNCTION app_media.read_media_attach_intent(uuid) TO media_coordinator'],
   ];
   for(const [alter,restore] of attacks){
     await e.asBootstrap(db=>db.exec(alter));

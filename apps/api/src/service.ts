@@ -214,6 +214,37 @@ function mediaProjection(input: unknown, listingId: string, revision: number, jo
   }
   return projected;
 }
+const ATTACH_REASONS = {
+  conflict: ["VERSION_CONFLICT", "ASSIGNMENT_CHANGED"],
+  rejected: ["REVISION_NOT_DRAFT", "DUPLICATE_OUTPUT", "CAPACITY_REACHED", "JOB_ALREADY_ATTACHED", "PROVENANCE_CHANGED"],
+  expired: ["JOB_EXPIRED"],
+} as const;
+function attachProjection(input: unknown, listingId: string, revision: number, operationId: string, request?: { jobId: string; expected: number }): Record<string, unknown> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Unexpected attachment response.");
+  const row = input as Record<string, unknown>;
+  if (row.kind !== "attach_media" || row.listingId !== listingId || row.revision !== revision || row.operationId !== operationId) throw new HttpError(404, "NOT_FOUND", "Resource is unavailable.");
+  if (typeof row.jobId !== "string" || !UUID.test(row.jobId) || row.jobId === operationId || typeof row.expectedVersion !== "string" || !/^[1-9]\d*$/.test(row.expectedVersion) || BigInt(row.expectedVersion) > BigInt(Number.MAX_SAFE_INTEGER - 1)) throw new Error("Unexpected attachment identity.");
+  if (request && (row.jobId !== request.jobId || row.expectedVersion !== String(request.expected))) throw new Error("Conflicting attachment response.");
+  let altText: string;
+  try { altText = mediaAltText(row.altText); } catch { throw new Error("Unexpected attachment description."); }
+  const fields = ["kind", "operationId", "jobId", "listingId", "revision", "expectedVersion"];
+  const common = Object.fromEntries(fields.map(field => [field, row[field]]));
+  if (row.status === "ready") {
+    if (row.receipt !== null) throw new Error("Unexpected attachment receipt.");
+    return { ...common, altText, status: "ready", receipt: null };
+  }
+  if (typeof row.status !== "string" || !["applied", "conflict", "rejected", "expired"].includes(row.status) || !row.receipt || typeof row.receipt !== "object" || Array.isArray(row.receipt)) throw new Error("Unexpected attachment status.");
+  const terminal = row.receipt as Record<string, unknown>;
+  if (fields.some(field => terminal[field] !== row[field]) || terminal.outcome !== row.status || typeof terminal.version !== "string" || !/^[1-9]\d*$/.test(terminal.version) || BigInt(terminal.version) > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Conflicting attachment receipt.");
+  if (row.status === "applied") {
+    if (terminal.reason !== null || typeof terminal.mediaId !== "string" || !UUID.test(terminal.mediaId) || [row.operationId, row.jobId].includes(terminal.mediaId.toLowerCase()) || typeof terminal.position !== "number" || !Number.isInteger(terminal.position) || terminal.position < 0 || terminal.position > 11 || BigInt(terminal.version) !== BigInt(row.expectedVersion) + 1n) throw new Error("Unexpected applied attachment.");
+  } else if (terminal.mediaId !== null || terminal.position !== null || !ATTACH_REASONS[row.status as keyof typeof ATTACH_REASONS].includes(terminal.reason as never)) throw new Error("Unexpected attachment failure.");
+  if (typeof terminal.completedAt !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(terminal.completedAt)) throw new Error("Unexpected attachment timestamp.");
+  const completedAt = terminal.completedAt.slice(0, 23) + "Z", instant = Date.parse(completedAt);
+  if (!Number.isFinite(instant) || new Date(instant).toISOString() !== completedAt) throw new Error("Unexpected attachment timestamp.");
+  const receipt = { ...common, version: terminal.version, outcome: terminal.outcome, reason: terminal.reason, mediaId: terminal.mediaId, position: terminal.position, completedAt };
+  return { ...common, altText, status: row.status, receipt };
+}
 
 export function createApiService(options: ApiServiceOptions): (request: Request) => Promise<Response> {
   const tenantId = uuid(options.tenantId, "Configured tenant");
@@ -274,6 +305,28 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
       if (path.startsWith("/v1/staff/") || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const attachRoute = /^\/v2\/staff\/listings\/([^/]+)\/revisions\/([1-9]\d*)\/media-attach-intents(?:\/([^/]+))?$/.exec(path);
+        if (attachRoute) {
+          if (url.search) throw new HttpError(400, "INVALID_INPUT", "Media requests do not accept query fields.");
+          const id = uuid(attachRoute[1], "listingId"), revision = Number(attachRoute[2]);
+          if (!Number.isSafeInteger(revision) || revision > 2147483647) throw new HttpError(400, "INVALID_INPUT", "revision is outside the supported range.");
+          const readId = attachRoute[3] === undefined ? null : uuid(attachRoute[3], "operationId"), allowedMethod = readId === null ? "POST" : "GET";
+          if (method !== allowedMethod) throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method is not allowed for this route.", { Allow: allowedMethod });
+          let creation: { operationId: string; jobId: string; expected: number } | undefined;
+          if (readId === null) {
+            const body = record(await jsonBody(request, 8 * 1024, false, true), ["operationId", "jobId", "expectedVersion"]), expected = version(body.expectedVersion);
+            if (expected > Number.MAX_SAFE_INTEGER - 1) throw new HttpError(400, "INVALID_INPUT", "expectedVersion is outside the attachment range.");
+            creation = { operationId: uuid(body.operationId, "operationId"), jobId: uuid(body.jobId, "jobId"), expected };
+            if (creation.operationId === creation.jobId) throw new HttpError(400, "INVALID_INPUT", "Attachment operation and job identities must differ.");
+          }
+          const result = await options.database.transaction(context, async query => {
+            await assertStaff(query);
+            // The tuple-bearing SQL command validates URL context before allocating intent state.
+            if (creation) return query.query("SELECT app_api.create_media_attach_intent($1::uuid,$2::integer,$3::bigint,$4::uuid,$5::uuid) AS receipt", [id, revision, creation.expected, creation.operationId, creation.jobId]);
+            return query.query("SELECT app_api.read_media_attach_intent($1::uuid) AS receipt", [readId]);
+          });
+          return response(200, attachProjection(scalar(result, "receipt"), id, revision, creation?.operationId ?? readId!, creation), correlationId);
+        }
         const mediaRoute = /^\/v2\/staff\/listings\/([^/]+)\/revisions\/([1-9]\d*)\/(media-registrations|media-jobs)(?:\/([^/]+))?$/.exec(path);
         if (mediaRoute) {
           if (url.search) throw new HttpError(400, "INVALID_INPUT", "Media requests do not accept query fields.");

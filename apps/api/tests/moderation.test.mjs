@@ -2,10 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {PGlite} from '@electric-sql/pglite';
 import {applyTestMigrations} from '../../../database/test-helpers/migrations.mjs';
+import {seedSyntheticSealedMedia} from '../../../database/test-helpers/synthetic-sealed-media.mjs';
 import {createApiService} from '../dist/service.js';
 import {PostgresTransactionDatabase} from '../dist/database.js';
 
-// Independently authored fixtures. Accepted media metadata is not uploaded/decoded photo proof.
+// Independently authored SQL-only provenance fixtures, never uploaded/decoded photo proof.
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const T=id(1),OTHER=id(2),ADMIN=id(10),AGENT=id(11),CUSTOMER=id(12),REVOKED=id(13),OTHER_ADMIN=id(20);
 const REVIEW=id(100),REJECT=id(101),PAUSED=id(102),ARCHIVED=id(103),SUPERSEDED=id(104),SELF=id(105),BLOCKED=id(106),DRAFT=id(107),FOREIGN=id(200);
@@ -26,8 +27,8 @@ async function bootstrap(db,tenant,actor,operation){
   catch(error){await db.exec('ROLLBACK');throw error;}
 }
 async function media(db,tenant,listing,revision){
-  for(let position=0;position<4;position++)await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
-    VALUES($1,$2,$3,$4,$5,'image/webp',100,100,100,$6,'Synthetic accepted metadata only',$7,true)`,[tenant,listing,revision,id(Number(listing.slice(-3))*100+revision*10+position),`synthetic-review/${listing}/${revision}/${position}.webp`,'a'.repeat(64),position]);
+  for(let position=0;position<4;position++)await seedSyntheticSealedMedia(db,{tenantId:tenant,listingId:listing,revision,
+    mediaId:id(Number(listing.slice(-3))*100+revision*10+position),position});
 }
 async function fixture(){
   const db=new PGlite();await applyTestMigrations(db);

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {applyTestMigrations} from '../../../database/test-helpers/migrations.mjs';
+import {seedSyntheticSealedMedia} from '../../../database/test-helpers/synthetic-sealed-media.mjs';
 import {PGlite} from '@electric-sql/pglite';
 import {createApiService} from '../../../apps/api/dist/service.js';
 import {PostgresTransactionDatabase} from '../../../apps/api/dist/database.js';
@@ -25,9 +26,9 @@ async function bootstrapAs(db,tenantId,actorId,operation){
   }catch(error){await db.exec('ROLLBACK');throw error;}
 }
 async function syntheticMedia(db,tenant,listing,revision){
-  // Trusted fixture metadata, never uploaded bytes or proof of a media processor.
-  for(let position=0;position<4;position++)await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
-    VALUES($1,$2,$3,$4,$5,'image/webp',100,100,100,$6,'Synthetic accepted view',$7,true)`,[tenant,listing,revision,id(Number(listing.slice(-3))*100+revision*10+position),`synthetic/staff/${listing}-${revision}-${position}.webp`,'a'.repeat(64),position]);
+  // Fabricated privileged provenance, never uploaded bytes or processor proof.
+  for(let position=0;position<4;position++)await seedSyntheticSealedMedia(db,{tenantId:tenant,listingId:listing,revision,
+    mediaId:id(Number(listing.slice(-3))*100+revision*10+position),position});
 }
 const isHttp=(status,code)=>error=>error instanceof ApiClientError&&error.kind==='HTTP'&&error.status===status&&error.serverCode===code&&!error.submissionUncertain;
 

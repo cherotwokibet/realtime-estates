@@ -1,5 +1,7 @@
 # Synthetic processing coordinator foundation — 11 October 2026
 
+Current attachment extension: migration0006 and the coordinator adapter require seven reviewed functions, adding UUID-only finalize_media/read_media_attach_intent to the five processing commands described below. See media-attachment.md for the current association/provenance contract.
+
 ## Persistent worker admission checkpoint — 11 October 2026
 
 117 focused media tests and all eight workspace typechecks passed, zero failures/skips/cancellations; media build and initial34-case probe passed. New stable worker/journal-bound exclusive admission blocks other jobs and reopened instances around unconfirmed work. One-use same-instance journal ticket consumption precedes arm/launch; only a live unarmed not_launched release or exact confirmed-empty journal/native flow preserves completion and archives the slot. Unknown history remains retained and blocked. Actual codec/storage/restricted SQL integration includes admission/archive/reopen, with independent byte verification and no accepted-photo/version mutation. See synthetic-worker-admission.md and evidence/2026-10-11-media-worker-admission.md; tracked media-worker-admission-tests.txt/media-worker-admission-types.txt. Earlier318 combined tests are separate, not a combined337/full-platform/UI/device run.

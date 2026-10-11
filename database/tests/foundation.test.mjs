@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
+import {seedSyntheticSealedMedia} from '../test-helpers/synthetic-sealed-media.mjs';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 
@@ -36,9 +37,8 @@ async function createDraft(db,listing=LISTING,actor=AGENT) {
 }
 async function seedMedia(db,listing=LISTING,revision=1,count=4) {
   for(let position=0;position<count;position++) {
-    await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
-      VALUES($1,$2,$3,$4,$5,'image/webp',1234,1000,1000,$6,'Synthetic photo',$7,true)`,
-      [T,listing,revision,id(Number(listing.slice(-3))*100+revision*10+position),`test/${listing}/${revision}/${position}.webp`,'a'.repeat(64),position]);
+    await seedSyntheticSealedMedia(db,{tenantId:T,listingId:listing,revision,position,
+      mediaId:id(Number(listing.slice(-3))*100+revision*10+position)});
   }
 }
 async function publish(db) {
@@ -55,7 +55,7 @@ const denied = (fn,code='42501') => assert.rejects(fn,(error)=>error.code===code
 test('migration forces RLS and API role has neither owner membership nor direct writes',async()=>{
   const db=await fixture();try {
     const tables=await db.query(`SELECT relname,relrowsecurity,relforcerowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='app_private' AND relkind='r'`);
-    assert.deepEqual(tables.rows.map(row=>row.relname).sort(),['audit_events','enquiries','listing_revisions','listings','media_input_captures','media_jobs','media_operations','media_processing_leases','media_verified_outputs','memberships','public_snapshots','revision_media','tenants']);
+    assert.deepEqual(tables.rows.map(row=>row.relname).sort(),['audit_events','enquiries','listing_revisions','listings','media_attach_intents','media_attach_results','media_attachments','media_input_captures','media_jobs','media_operations','media_processing_leases','media_verified_outputs','memberships','public_snapshots','revision_media','tenants']);
     assert.ok(tables.rows.every(row=>row.relrowsecurity && row.relforcerowsecurity));
     const flags=await db.query(`SELECT rolsuper,rolbypassrls,rolinherit FROM pg_roles WHERE rolname='api_runtime'`);
     assert.deepEqual(flags.rows[0],{rolsuper:false,rolbypassrls:false,rolinherit:false});
@@ -141,14 +141,27 @@ test('accepted photos cannot make an incomplete draft publishable',async()=>{
     assert.equal(await scalar(db,'SELECT state FROM app_private.listing_revisions'),'draft');
   } finally {await db.close();}
 });
+test('legacy accepted metadata remains unverified and cannot submit a complete draft',async()=>{
+  const db=await fixture();try{
+    const version=await createDraft(db);
+    for(let position=0;position<4;position++)await db.query(`INSERT INTO app_private.revision_media
+      (tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
+      VALUES($1,$2,1,$3,$4,'image/webp',100,100,100,$5,'Legacy metadata; no sealed provenance',$6,true)`,
+      [T,LISTING,id(25000+position),`legacy/${position}.webp`,String(position+1).repeat(64),position]);
+    await denied(()=>asActor(db,T,AGENT,()=>db.query('SELECT app_api.submit_revision($1,1,$2)',[LISTING,version])),'23514');
+    assert.deepEqual((await db.query(`SELECT state,version::text FROM app_private.listing_revisions WHERE listing_id=$1`,[LISTING])).rows,
+      [{state:'draft',version:String(version)}]);
+    assert.equal(await scalar(db,'SELECT count(*)::integer FROM app_private.revision_media WHERE sealed_job_id IS NOT NULL'),0);
+    assert.equal(await asActor(db,T,null,()=>scalar(db,'SELECT count(*)::integer FROM app_api.public_listings')),0);
+  }finally{await db.close();}
+});
 test('submission requires accepted photos and complete content; agent cannot approve',async()=>{
   const db=await fixture();try {
     const version=await createDraft(db);
     await denied(()=>asActor(db,T,AGENT,()=>db.query('SELECT app_api.submit_revision($1,1,$2)',[LISTING,version])),'23514');
     await seedMedia(db,LISTING,1,3);
     await denied(()=>asActor(db,T,AGENT,()=>db.query('SELECT app_api.submit_revision($1,1,$2)',[LISTING,version])),'23514');
-    await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
-      VALUES($1,$2,1,$3,'test/four.webp','image/webp',100,100,100,$4,'Synthetic fourth',3,true)`,[T,LISTING,id(19999),'b'.repeat(64)]);
+    await seedSyntheticSealedMedia(db,{tenantId:T,listingId:LISTING,mediaId:id(19999),position:3});
     const pending=await asActor(db,T,AGENT,()=>scalar(db,'SELECT app_api.submit_revision($1,1,$2)',[LISTING,version]));
     await denied(()=>asActor(db,T,AGENT,()=>db.query('SELECT app_api.decide_revision($1,1,$2,true)',[LISTING,pending])));
     await denied(()=>asActor(db,T,ADMIN,()=>db.query('SELECT app_api.decide_revision($1,1,$2,true)',[LISTING,pending])),'23514');

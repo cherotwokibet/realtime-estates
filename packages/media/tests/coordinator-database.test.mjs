@@ -26,10 +26,10 @@ const rejectsInput=operation=>assert.rejects(operation,MediaCoordinatorInputErro
 const rejectsSafe=operation=>assert.rejects(operation,error=>error instanceof MediaCoordinatorSafetyError&&!error.message.includes('PRIVATE'));
 const rejectsDatabase=(operation,uncertain=false,state)=>assert.rejects(operation,error=>error instanceof MediaCoordinatorDatabaseError&&error.commitUncertain===uncertain&&(state===undefined||error.sqlState===state)&&!error.message.includes('PRIVATE'));
 
-test('dedicated guard accepts only complete safe role metadata and queries the five exact reviewed signatures',async()=>{
+test('dedicated guard accepts only complete safe role metadata and queries the seven exact reviewed signatures',async()=>{
   let query;await assertSafeMediaCoordinatorConnection({async query(sql){query=sql;return {rows:[safe()]};}});
-  for(const name of ['capture_input','claim_processing','seal_output','read_processing','read_upload_context'])assert.ok(query.includes(`p.proname='${name}'`));
-  assert.ok(query.includes('expected)<>5'));
+  for(const name of ['capture_input','claim_processing','seal_output','read_processing','read_upload_context','finalize_media','read_media_attach_intent'])assert.ok(query.includes(`p.proname='${name}'`));
+  assert.ok(query.includes('expected)<>7'));
   assert.ok(query.includes("p.proargtypes[3]='pg_catalog.text'::pg_catalog.regtype"));assert.ok(query.includes("p.proargtypes[3]='pg_catalog.jsonb'::pg_catalog.regtype"));assert.equal(query.includes('to_regprocedure'),false);
   for(const name of ['pg_roles','pg_auth_members','pg_class','pg_namespace','pg_proc','pg_has_role','has_table_privilege','has_schema_privilege','has_function_privilege','aclexplode','acldefault'])assert.equal(new RegExp('(?<![\\w.])'+name+'\\b').test(query),false,name);
   assert.ok(query.includes('has_any_column_privilege'));assert.ok(query.includes('aclexplode'));assert.ok(query.includes('search_path=pg_catalog'));
@@ -168,4 +168,60 @@ test('response envelope requires exactly one receipt row rather than silently ch
     let released;const api=new MediaCoordinatorDatabase({async connect(){return {async query(sql){return sql.startsWith('SELECT current_user')?{rows:[safe()]}:sql.startsWith('SELECT app_media.')?response:{rows:[]};},release(destroy){released=destroy;}};}});
     await rejectsDatabase(()=>api.readProcessing(JOB));assert.equal(released,false);
   }
+});
+
+const OPERATION=id(800),LISTING=id(900),MEDIA=id(1000);
+const readyAttach={kind:'attach_media',operationId:OPERATION,jobId:JOB,listingId:LISTING,revision:1,expectedVersion:'2',altText:'Synthetic apartment',status:'ready',receipt:null};
+const appliedAttach={...readyAttach,status:'applied',receipt:{kind:'attach_media',operationId:OPERATION,jobId:JOB,listingId:LISTING,revision:1,expectedVersion:'2',version:'3',outcome:'applied',reason:null,mediaId:MEDIA,position:0,completedAt:TIME}};
+
+test('attachment finalize and historical read expose only persisted intent UUID commands and immutable results',async()=>{
+  for(const [receipt,method,statement] of [[readyAttach,'readMediaAttachIntent','read_media_attach_intent'],[appliedAttach,'readMediaAttachIntent','read_media_attach_intent'],[appliedAttach,'finalizeMedia','finalize_media']]){
+    const f=fixture({receipt}),result=await f.database[method](OPERATION);
+    assert.deepEqual(result,receipt);assert.ok(Object.isFrozen(result));if(result.receipt)assert.ok(Object.isFrozen(result.receipt));
+    assert.deepEqual(f.calls.slice(1).map(c=>c.sql),['BEGIN','SET LOCAL ROLE media_coordinator',`SELECT app_media.${statement}($1::uuid) AS receipt`,'COMMIT']);
+    assert.deepEqual(f.calls[3].values,[OPERATION]);assert.ok(f.calls.every(c=>!c.sql.includes('set_config')));
+  }
+});
+
+test('invalid attachment operation arguments fail before checkout and finalization refuses a ready acknowledgement',async()=>{
+  const f=fixture({receipt:readyAttach});
+  for(const input of ['bad',null,{},[OPERATION],{operationId:OPERATION,expectedVersion:2}]){
+    await rejectsInput(()=>f.database.finalizeMedia(input));await rejectsInput(()=>f.database.readMediaAttachIntent(input));
+  }
+  assert.equal(f.checkouts,0);await rejectsDatabase(()=>f.database.finalizeMedia(OPERATION));
+  assert.equal(f.calls.at(-1).sql,'ROLLBACK');assert.equal(f.calls.some(c=>c.sql==='COMMIT'),false);
+});
+
+test('attachment receipts reject crossed immutable tuples, malformed versions and unknown fields before commit',async()=>{
+  const mutations=[
+    r=>({...r,operationId:OTHER}),r=>({...r,jobId:OPERATION}),r=>({...r,revision:1.5}),
+    r=>({...r,expectedVersion:'02'}),r=>({...r,expectedVersion:'9007199254740991'}),r=>({...r,expectedVersion:'2e0'}),
+    r=>({...r,altText:' untrimmed'}),r=>({...r,altText:'bad\u0000'}),r=>({...r,altText:'\ud800'}),r=>({...r,privateOutput:'PRIVATE'}),
+    r=>({...r,status:'ready'}),r=>({...r,receipt:null}),r=>({...r,receipt:{...r.receipt,jobId:OTHER}}),
+    r=>({...r,receipt:{...r.receipt,listingId:OTHER}}),r=>({...r,receipt:{...r.receipt,revision:2}}),
+    r=>({...r,receipt:{...r.receipt,expectedVersion:'3'}}),r=>({...r,receipt:{...r.receipt,version:'4'}}),
+    r=>({...r,receipt:{...r.receipt,version:'9007199254740992'}}),r=>({...r,receipt:{...r.receipt,outcome:'expired'}}),
+    r=>({...r,receipt:{...r.receipt,reason:'VERSION_CONFLICT'}}),r=>({...r,receipt:{...r.receipt,mediaId:null}}),
+    r=>({...r,receipt:{...r.receipt,mediaId:OPERATION}}),r=>({...r,receipt:{...r.receipt,mediaId:JOB}}),
+    r=>({...r,receipt:{...r.receipt,position:12}}),r=>({...r,receipt:{...r.receipt,completedAt:'2026-02-30T00:00:00.123456Z'}}),
+    r=>({...r,receipt:{...r.receipt,storageKey:'PRIVATE'}}),
+  ];
+  for(const mutate of mutations){const f=fixture({receipt:mutate(copy(appliedAttach))});await rejectsDatabase(()=>f.database.readMediaAttachIntent(OPERATION));assert.equal(f.calls.at(-1).sql,'ROLLBACK');assert.equal(f.calls.some(c=>c.sql==='COMMIT'),false);}
+});
+
+test('attachment terminal conflicts and failures preserve exact historical versions and typed outcomes',async()=>{
+  for(const [status,reason] of [['conflict','VERSION_CONFLICT'],['conflict','ASSIGNMENT_CHANGED'],['expired','JOB_EXPIRED'],...['REVISION_NOT_DRAFT','DUPLICATE_OUTPUT','CAPACITY_REACHED','JOB_ALREADY_ATTACHED','PROVENANCE_CHANGED'].map(reason=>['rejected',reason])]){
+    const receipt={...readyAttach,status,receipt:{...appliedAttach.receipt,version:'8',outcome:status,reason,mediaId:null,position:null}};
+    assert.deepEqual(await fixture({receipt}).database.finalizeMedia(OPERATION),receipt);
+    for(const patch of [{reason:null},{mediaId:MEDIA},{position:0},{reason:'PRIVATE'},...(status==='expired'?[{reason:'VERSION_CONFLICT'}]:[])])await rejectsDatabase(()=>fixture({receipt:{...receipt,receipt:{...receipt.receipt,...patch}}}).database.readMediaAttachIntent(OPERATION));
+  }
+  const edge={...appliedAttach,expectedVersion:'9007199254740990',receipt:{...appliedAttach.receipt,expectedVersion:'9007199254740990',version:'9007199254740991'}};
+  assert.deepEqual(await fixture({receipt:edge}).database.finalizeMedia(OPERATION),edge);
+});
+
+test('lost attachment COMMIT acknowledgement destroys checkout without retrying or pretending the result failed',async()=>{
+  const f=fixture({receipt:appliedAttach,fail(sql){if(sql==='COMMIT')throw new Error('PRIVATE lost response');}});
+  await rejectsDatabase(()=>f.database.finalizeMedia(OPERATION),true);
+  assert.equal(f.checkouts,1);assert.equal(f.calls.filter(c=>c.sql.startsWith('SELECT app_media.finalize_media')).length,1);
+  assert.deepEqual(f.releases,[true]);
 });

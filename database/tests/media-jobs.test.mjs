@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
+import {seedSyntheticSealedMedia} from '../test-helpers/synthetic-sealed-media.mjs';
 
 const id = value => `00000000-0000-4000-8000-${String(value).padStart(12, '0')}`;
 const T=id(1), OTHER=id(2), ADMIN=id(10), AGENT=id(11), PEER=id(12), CUSTOMER=id(13), OTHERADMIN=id(20);
@@ -47,12 +48,10 @@ async function counts(db) {
     (SELECT count(*)::integer FROM app_private.revision_media) AS media,
     (SELECT count(*)::integer FROM app_private.audit_events WHERE action='media.registered') AS audits`)).rows[0];
 }
-async function metadataOnlyPhotos(db,listing) {
-  // These accepted fixture rows are metadata only, not decoded bytes or verified jobs.
-  for(let position=0;position<4;position++) await db.query(`INSERT INTO app_private.revision_media
-    (tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
-    VALUES($1,$2,1,$3,$4,'image/webp',100,100,100,$5,'Synthetic metadata only',$6,true)`,
-    [T,listing,id(9000+Number(listing.slice(-3))*4+position),`synthetic/${listing}/${position}.webp`,'a'.repeat(64),position]);
+async function sqlOnlyPhotos(db,listing) {
+  // Privileged fabricated provenance isolates registration replay, not bytes/processing proof.
+  for(let position=0;position<4;position++)await seedSyntheticSealedMedia(db,{tenantId:T,listingId:listing,position,
+    mediaId:id(9000+Number(listing.slice(-3))*4+position)});
 }
 async function seedHistorical(db,{listing,operation,jobId,created='2000-01-01T00:00:00.000Z',kind='register_media_upload'}) {
   const alt='Historical synthetic photo'; const createdAt=new Date(created).toISOString();
@@ -103,11 +102,12 @@ test('registered media jobs preserve private identity and authorized historical 
     await t.test('lost-response retry recovers the same receipt after save, submit and approval',async()=>{
       const listing=id(101),operation=id(301); await draft(db,listing);
       await register(db,listing,operation); // Caller deliberately discards the committed response.
-      const original=await receipt(db,operation); const registeredCounts=await counts(db);
+      const original=await receipt(db,operation);
       const edited=await asActor(db,T,AGENT,()=>scalar(db,'SELECT app_api.save_draft($1,1,2,$2::jsonb)',
         [listing,JSON.stringify({...content,title:'Synthetic later content'})]));
       assert.equal(String(edited),'3'); assert.deepEqual(await register(db,listing,operation),original);
-      await metadataOnlyPhotos(db,listing);
+      await sqlOnlyPhotos(db,listing);
+      const registeredCounts=await counts(db);
       await asActor(db,T,AGENT,()=>db.query(`SELECT app_api.confirm_availability($1,1,'available')`,[listing]));
       const pending=await asActor(db,T,AGENT,()=>scalar(db,'SELECT app_api.submit_revision($1,1,3)',[listing]));
       assert.deepEqual(await register(db,listing,operation),original);

@@ -1,10 +1,12 @@
 /**
  * Independently authored local staff fixture, never a provider/login implementation.
  * Ephemeral RS256 keys, loopback JWKS, disposable PGlite and synthetic metadata only.
+ * Fabricated sealed SQL provenance is not actual workflow/decoder/native/storage proof.
  * Tokens/private keys are never logged, persisted or returned from an HTTP endpoint.
  */
 import {randomUUID} from 'node:crypto';
 import {applyTestMigrations} from '../../../database/test-helpers/migrations.mjs';
+import {seedSyntheticSealedMedia} from '../../../database/test-helpers/synthetic-sealed-media.mjs';
 import {createServer} from 'node:http';
 import {exportJWK,generateKeyPair,SignJWT} from 'jose';
 import {PGlite} from '@electric-sql/pglite';
@@ -73,8 +75,8 @@ async function seed(db,seedAcceptedMedia,seedPendingReviews){
     const {company,listing,assigned,title}=fixture;
     await bootstrapAs(db,company,company.admin,()=>db.query('SELECT app_api.create_listing($1,$2,$3)',[listing,`synthetic-staff-${listing.slice(-3)}`,assigned]));
     await bootstrapAs(db,company,assigned,()=>db.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)',[listing,JSON.stringify(syntheticContent(title))]));
-    if(seedAcceptedMedia)for(let position=0;position<4;position++)await db.query(`INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted)
-      VALUES($1,$2,1,$3,$4,'image/webp',100,100,100,$5,'Synthetic accepted metadata only; image bytes unavailable',$6,true)`,[company.id,listing,id(Number(listing.slice(-3))*10+position),`synthetic-staff-preview/${listing}/${position}.webp`,'0'.repeat(64),position]);
+    if(seedAcceptedMedia)for(let position=0;position<4;position++)await seedSyntheticSealedMedia(db,{tenantId:company.id,listingId:listing,
+      mediaId:id(Number(listing.slice(-3))*10+position),position,altText:'Synthetic SQL-only accepted metadata; image bytes unavailable'});
     if(seedPendingReviews&&listing!==STAFF_PREVIEW_FIXTURES.realtimePeerListingId){
       await bootstrapAs(db,company,assigned,()=>db.query("SELECT app_api.confirm_availability($1,1,'available')",[listing]));
       await bootstrapAs(db,company,assigned,()=>db.query('SELECT app_api.submit_revision($1,1,2)',[listing]));

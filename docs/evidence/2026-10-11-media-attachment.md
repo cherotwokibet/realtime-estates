@@ -1,0 +1,23 @@
+# Authenticated synthetic photo attachment — executed evidence
+
+Date: 11 October 2026. Stage06 In progress; checklist13/97 and accepted gates0/14. Synthetic local data only; original vendor resources/live services untouched. KES10,000 total monthly client price unchanged; no dependency version, provider, account or paid service change.
+
+## Executed checks
+
+410 combined affected SQL, API, SDK, HTTP/dev-preview and media tests passed with zero failures, skips, cancellations or todos. All eight workspace typechecks passed; shared-package/API builds passed. Commands, durations and frozen source hashes are in verification-attachment-final-1.json outside checkout; complete successful logs are media-attachment-tests.txt and media-attachment-types.txt beside this file. These are affected regressions, not a full-platform/UI build, remote CI, mobile device or operator UAT run. Earlier142/318 evidence remains separate, not additive.
+
+The corrected focused probe passed64 checks. Unit probe1 found a stale five-function test expectation after the seven-function guard extension; corrected unit probe passed22 checks. Focused probe1 had61/64 passing, including two setup defects counted with the SQL parent failure: a reused registration UUID with changed alt text and a nonexistent content column in the later-edit assertion. Both fixtures were corrected. A reviewed runtime gap was also closed before the successful probe: an attachment operation cannot reuse its own job generation, claim or lease identities. Failed logs/manifests remain preserved outside checkout; no gate was weakened.
+
+## Implemented behavior
+
+Migration0006 adds append-only authenticated intents, terminal results and attachment provenance. Intent creation binds the URL tuple/original principal/exact version/seal, changes no accepted row or token and acknowledges ready only. Coordinator finalization accepts only the original UUID, derives business context, rechecks current authorization, and either atomically applies one association/revision increment/derived audit/receipt or commits a bounded typed failure. Exact historical replay never reapplies work; no API table DML or browser finalize route exists. API/SDK validate original JSON number tokens, duplicates, fixed projections, canonical timestamps and immutable response correlations without automatic mutation retry.
+
+Submission/new approval require4–12 distinct accepted fully provenanced photos. Legacy metadata rows are retained unverified and cannot pass; existing historical approved snapshots remain retained. Tests cover namespace/tuple/principal/version/role/company denial, GUC forgery, current authorization after revocation/reassignment, competing same-version intents, explicit fresh authorization after stale conflict, exact FK metadata, duplicate checksum/key, capacity/gaps, full rollback, immutable recovery and strict grants/RLS.
+
+The Windows/PGlite integration uses an actual supervised PNG conversion, confirmed empty Job Object, bounded independent WebP/sidecar verification and actual stored-byte readback before SQL seal. Authenticated intent then restricted coordinator finalization attaches exact facts. A wrapper forwards successful COMMIT then deliberately drops its acknowledgement: one finalize write, one destroyed logical checkout, one resulting photo/token/audit, read-only original recovery and stable explicit historical replay. A later description edit does not change the historical receipt. This is controlled response-loss proof; the PGlite database remains alive. No crash, power-loss, production object delivery or durable-store orchestration claim follows from this fixture.
+
+Existing policy/moderation tests and two local previews use a documented privileged SQL-only fixture helper fabricating sealed provenance without bytes, native work, audit or token increments. Those fixtures are distinct from the actual-byte integration and never backfill production verification.
+
+## Limits and next steps
+
+Next exact-version removal/reordering with complete ID sets, deferrable position uniqueness, contiguous positions and retained historical references; then gallery UI and public upload/delivery. Unsupported intervening bigint tokens abort conservatively rather than clamp or invent a terminal result. Current synthetic keys do not establish a public storage route. Unknown native work stays retained/blocked; no automatic retry/relaunch/reclaim/delete/root rotation. Real PostgreSQL concurrency, production isolation/providers, quotas/retention/backup restore, private source remote, rights/accounts, device/operator UAT and every release gate remain open. No original vendor resource or old live service was changed.
