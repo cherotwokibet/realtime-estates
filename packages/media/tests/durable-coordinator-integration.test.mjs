@@ -6,18 +6,36 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createDurableSyntheticStore, reopenDurableSyntheticStore } from '@realtor/media/durable-store';
 import { createSyntheticAttemptJournal } from '@realtor/media/attempt-journal';
+import { createSyntheticWorkerAdmission, reopenSyntheticWorkerAdmission } from '@realtor/media/worker-admission';
 import { verifySyntheticProcessReadback } from '@realtor/media/process-readback';
 import { syntheticPng } from './fixtures.mjs';
 import { environment, boundedRead, WINDOWS_ONLY } from './coordinator-fixture.mjs';
 
 // Narrow process-to-storage integration. Private SQL object IDs come from the
 // reviewed fixed command under the isolated coordinator login, never public API.
-test('durable attempt observation and reopened bytes reconcile actual supervised output with restricted SQL facts',WINDOWS_ONLY,async t=>{
+test('persistent worker admission and reopened history/bytes reconcile actual supervised output with restricted SQL facts',WINDOWS_ONLY,async t=>{
   const e=await environment(t),parent=await mkdtemp(path.join(tmpdir(),'realtor durable SQL '));
-  let store,root,storeId,journal,journalStore,journalRoot,journalId,safeToClean=true;
+  let store,root,storeId,journal,journalStore,journalRoot,journalId,worker,workerRoot,workerId,safeToClean=true;
   t.after(async()=>{
     if(!safeToClean||!store||!root){t.diagnostic(`Durable synthetic objects retained: ${parent}`);return;}
-    await journal?.close();await store.close();
+    await worker?.close();await journal?.close();await store.close();
+    if(workerRoot){
+      assert.equal(path.dirname(workerRoot),parent);
+      assert.deepEqual((await readdir(workerRoot)).sort(),['history','worker.json']);
+      const history=path.join(workerRoot,'history');
+      for(const name of await readdir(history)){
+        assert.match(name,/^[0-9a-f-]{36}$/);const envelope=path.join(history,name);
+        assert.deepEqual(await readdir(envelope),['slot']);const slot=path.join(envelope,'slot');
+        const files=await readdir(slot);assert.ok(files.includes('owner.json')&&files.includes('completion.json'));
+        for(const file of files){
+          assert.ok(['owner.json','launch.json','completion.json'].includes(file));const target=path.join(slot,file),s=await lstat(target);
+          assert.ok(s.isFile()&&!s.isSymbolicLink()&&s.nlink===1);await unlink(target);
+        }
+        await rmdir(slot);await rmdir(envelope);
+      }
+      await rmdir(history);const marker=path.join(workerRoot,'worker.json'),s=await lstat(marker);
+      assert.ok(s.isFile()&&!s.isSymbolicLink()&&s.nlink===1);await unlink(marker);await rmdir(workerRoot);
+    }
     // Explicit owned fixture cleanup only; never a retained-object sweep.
     for(const ownedRoot of [root,journalRoot].filter(Boolean)){
       assert.equal(path.dirname(ownedRoot),parent);
@@ -40,6 +58,10 @@ test('durable attempt observation and reopened bytes reconcile actual supervised
     await rmdir(parent);
   });
   store=await createDurableSyntheticStore(parent);root=store.rootDirectory;storeId=store.storeId;
+  journalStore=await createDurableSyntheticStore(parent);journalRoot=journalStore.rootDirectory;journalId=journalStore.storeId;
+  journal=await createSyntheticAttemptJournal({store:journalStore,attemptParent:e.attemptParent});
+  worker=await createSyntheticWorkerAdmission({parentDirectory:parent,journal});workerRoot=worker.rootDirectory;workerId=worker.workerId;
+  const claimId=randomUUID(),slot=await worker.reserve({jobId:e.jobId,claimId});
   const input=syntheticPng(41,29,(x,y)=>[x*5,y*8,60,255]);
   const inputRef={jobId:e.jobId,objectId:e.storageIds.quarantineId,generationId:randomUUID(),kind:'quarantine'};
   const captured=await store.install(inputRef,input);
@@ -49,22 +71,30 @@ test('durable attempt observation and reopened bytes reconcile actual supervised
   const recoveredInput=await store.read(inputRef),before=await e.coordinator.readProcessing(e.jobId);
   assert.deepEqual(recoveredInput.receipt,captured);assert.deepEqual(recoveredInput.data,input);
   assert.equal(before.capture.generationId,captured.generationId);assert.equal(before.capture.inputBytes,captured.bytes);assert.equal(before.capture.inputSha256,captured.sha256);
-  const claimId=randomUUID(),lease=await e.coordinator.claimProcessing(e.jobId,claimId);
+  const lease=await e.coordinator.claimProcessing(e.jobId,claimId);
   assert.equal(lease.quarantineId,inputRef.objectId);assert.equal(lease.outputId,e.storageIds.outputId);
-  journalStore=await createDurableSyntheticStore(parent);journalRoot=journalStore.rootDirectory;journalId=journalStore.storeId;
-  journal=await createSyntheticAttemptJournal({store:journalStore,attemptParent:e.attemptParent});
   const binding={jobId:e.jobId,claimId:lease.claimId,attempt:lease.attempt,leaseNonce:lease.leaseNonce};
   const reservation=await journal.reserve(binding);
   assert.equal((await journal.inspect(binding)).state,'blocked');
   const attemptDirectory=reservation.intent.attemptDirectory;
   await writeFile(path.join(attemptDirectory,'source.input'),recoveredInput.data,{flag:'wx',mode:0o600});
+  await worker.arm(slot.permit,reservation);
+  assert.equal((await worker.inspect()).state,'blocked');
   safeToClean=false;
   const outcome=await e.run(attemptDirectory);safeToClean=outcome.termination==='job_empty'&&outcome.activeProcesses===0;
   assert.equal(outcome.exitCode,0);
-  const terminal=await journal.recordTermination(reservation.ticket,outcome);
+  const completion=await worker.confirmTermination(slot.permit,outcome);assert.equal(completion.state,'job_empty');
+  const terminal=completion.terminal;
   assert.deepEqual(terminal.outcome,outcome);
+  assert.equal((await worker.inspect()).state,'idle');
+  await worker.close();
   await journal.close();journalStore=await reopenDurableSyntheticStore(journalRoot,journalId);
   journal=await createSyntheticAttemptJournal({store:journalStore,attemptParent:e.attemptParent});
+  worker=await reopenSyntheticWorkerAdmission({rootDirectory:workerRoot,workerId,journal});
+  assert.equal((await worker.inspect()).state,'idle');
+  await assert.rejects(()=>worker.releaseBeforeLaunch(slot.permit),error=>error.code==='INVALID_PERMIT');
+  const next=await worker.reserve({jobId:randomUUID(),claimId:randomUUID()});
+  assert.equal((await worker.releaseBeforeLaunch(next.permit)).state,'not_launched');
   const recorded=await journal.inspect(binding);assert.equal(recorded.state,'termination_recorded');assert.deepEqual(recorded.terminal,terminal);
   await assert.rejects(()=>journal.reserve(binding),error=>error.code==='BLOCKED');
   const output=await boundedRead(attemptDirectory,'converted.webp',10*1024*1024),sidecar=await boundedRead(attemptDirectory,'manifest.json',4096);

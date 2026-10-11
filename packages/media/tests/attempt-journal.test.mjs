@@ -289,3 +289,22 @@ test('journal requires a separate existing trusted attempt parent',async t=>{
   try{await assert.rejects(createSyntheticAttemptJournal({store:f.store,attemptParent:file}),code('INVALID_CONFIGURATION'));}
   finally{await unlink(file);}
 });
+
+test('launch consumption requires a fresh same-instance ticket and never revives observed or historical attempts',async t=>{
+  const f=await fixture(t),journal=await f.open(),value=f.binding(),reserved=await journal.reserve(value);f.attemptPath(value);
+  assert.throws(()=>journal.consumeLaunchTicket({...reserved.ticket}),code('INVALID_TICKET'));
+  assert.deepEqual(journal.consumeLaunchTicket(reserved.ticket),reserved.intent);
+  assert.throws(()=>journal.consumeLaunchTicket(reserved.ticket),code('INVALID_TICKET'));
+  const terminal=await journal.recordTermination(reserved.ticket,empty());
+  assert.deepEqual(terminal.outcome,empty());
+  const second=f.binding(),observed=await journal.reserve(second);f.attemptPath(second);
+  await journal.recordTermination(observed.ticket,unknown());
+  assert.throws(()=>journal.consumeLaunchTicket(observed.ticket),code('INVALID_TICKET'));
+  const third=f.binding(),pending=journal.reserve(third);f.attemptPath(third);
+  assert.throws(()=>journal.consumeLaunchTicket(reserved.ticket),code('BUSY'));
+  const final=await pending;await journal.close();
+  assert.throws(()=>journal.consumeLaunchTicket(final.ticket),code('CLOSED'));
+  const reopened=await f.open();
+  assert.throws(()=>reopened.consumeLaunchTicket(final.ticket),code('INVALID_TICKET'));
+  assert.deepEqual((await reopened.inspect(value)).terminal,terminal);
+});

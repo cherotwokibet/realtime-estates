@@ -20,6 +20,8 @@ export type SyntheticAttemptInspection=
 export interface SyntheticAttemptJournal {
   readonly journalId:string;readonly rootDirectory:string;readonly attemptParent:string;
   reserve(binding:SyntheticAttemptBinding):Promise<SyntheticAttemptReservation>;
+  /** Consumes one fresh live ticket. Historical inspection never recreates it. */
+  consumeLaunchTicket(ticket:SyntheticAttemptTicket):SyntheticAttemptIntent;
   recordTermination(ticket:SyntheticAttemptTicket,outcome:WindowsSyntheticOutcome):Promise<SyntheticAttemptTerminal>;
   /** An immutable recorded observation only; never launch, cleanup, read or promotion authority. */
   inspect(binding:SyntheticAttemptBinding):Promise<SyntheticAttemptInspection>;
@@ -136,7 +138,7 @@ export async function createSyntheticAttemptJournal(configuration:SyntheticAttem
     if(contained(rootDirectory,attemptParent)||contained(attemptParent,rootDirectory))fail('INVALID_CONFIGURATION');
     directories=[...await ancestors(rootDirectory),await directory(path.join(rootDirectory,'objects')),...await ancestors(attemptParent)];await guard(directories);
   }catch{return fail('INVALID_CONFIGURATION');}
-  const tickets=new WeakMap<SyntheticAttemptTicket,LiveTicket>();let busy=false,closing=false,tail:Promise<void>=Promise.resolve(),closed:Promise<void>|undefined;
+  const tickets=new WeakMap<SyntheticAttemptTicket,LiveTicket>(),consumed=new WeakSet<SyntheticAttemptTicket>(),observed=new WeakSet<SyntheticAttemptTicket>();let busy=false,closing=false,tail:Promise<void>=Promise.resolve(),closed:Promise<void>|undefined;
   function admitted<T>(operation:()=>Promise<T>):Promise<T>{
     if(closing)return Promise.reject(new SyntheticAttemptJournalError('CLOSED'));if(busy)return Promise.reject(new SyntheticAttemptJournalError('BUSY'));busy=true;
     const work=(async()=>{try{await guard(directories);return await operation();}catch(error){throw mapped(error);}finally{busy=false;}})();
@@ -165,12 +167,19 @@ export async function createSyntheticAttemptJournal(configuration:SyntheticAttem
       return Object.freeze({ticket,intent:committed});
     });
   }
+  function consumeLaunchTicket(ticket:SyntheticAttemptTicket):SyntheticAttemptIntent{
+    if(closing)fail('CLOSED');if(busy)fail('BUSY');
+    const live=ticket&&typeof ticket==='object'?tickets.get(ticket):undefined;
+    if(!live||consumed.has(ticket)||observed.has(ticket))fail('INVALID_TICKET');
+    consumed.add(ticket);return live.intent;
+  }
   function recordTermination(ticket:SyntheticAttemptTicket,value:WindowsSyntheticOutcome):Promise<SyntheticAttemptTerminal>{
     let live:LiveTicket,terminal:SyntheticAttemptTerminal,terminalBytes:Buffer;
     try{
       const found=ticket&&typeof ticket==='object'?tickets.get(ticket):undefined;if(!found)fail('INVALID_TICKET');live=found;
       terminal=Object.freeze({...live.intent,outcome:outcome(value,'INVALID_OUTCOME')});terminalBytes=encoded(terminal,'INVALID_OUTCOME');
     }catch(error){return Promise.reject(mapped(error));}
+    observed.add(ticket);
     return admitted(async()=>{
       await guard([...directories,live.directory]);
       const committed=await readIntent(live.intent);if(!committed)fail('INTEGRITY');
@@ -193,5 +202,5 @@ export async function createSyntheticAttemptJournal(configuration:SyntheticAttem
     });
   }
   function close():Promise<void>{closing=true;closed??=tail.then(async()=>{try{await storage.close();}catch(error){throw mapped(error);}});return closed;}
-  return Object.freeze({journalId,rootDirectory,attemptParent,reserve,recordTermination,inspect,close});
+  return Object.freeze({journalId,rootDirectory,attemptParent,reserve,consumeLaunchTicket,recordTermination,inspect,close});
 }
