@@ -1,5 +1,11 @@
 # Synthetic processing coordinator foundation — 11 October 2026
 
+## Restart-readable synthetic storage checkpoint — 11 October 2026
+
+83 focused media tests and all eight workspace typechecks passed, zero failures/skips/cancellations; media build passed. New durable-store subpath commits canonical byte-checked identities, reopens exact objects and retains incomplete/conflicting objects. A separate Node writer commits, exits on controlled stop and its receipt is recovered. Actual supervised codec output is stored/reopened and reconciled with restricted historical SQL; no draft version/accepted-photo change. See durable-synthetic-store.md and evidence/2026-10-11-media-durable-store.md; tracked media-durable-store-tests.txt/media-durable-store-types.txt. The earlier283-test checkpoint is separate; no combined296/full-platform/UI/device acceptance is claimed.
+
+Next: bounded durable worker-attempt journal/admission and explicit startup reconciliation, plus a reviewed private job-context lookup, then exact-version authenticated attachment/provenance. Store reopening never proves worker termination. SQL expiry never releases an unknown process attempt. Permanent job/kind reservations block later generations; no cleanup/repair/sweeper or worker restart authority exists. PGlite stayed alive; private object IDs used privileged fixture bootstrap only. Power loss, real PostgreSQL races, production isolation/provider accounts, quotas/retention/audit, devices/operator UAT and all14 gates remain open. Checklist13/97; KES10,000 total monthly baseline; vendor originals/live untouched. Earlier paragraphs are at-time history; inspect Git/recovery/publication records and never rerun old checkpoint generators.
+
 This checkpoint is a private local processing foundation, separate from HTTP uploads, user attachment and production operations. Its agreed contract is recorded before implementation. Actual executed evidence is recorded separately; a proposed state transition is not a passed test.
 
 ## Frozen boundaries
