@@ -76,7 +76,7 @@ async function seed(db,seedAcceptedMedia,seedPendingReviews){
     await bootstrapAs(db,company,company.admin,()=>db.query('SELECT app_api.create_listing($1,$2,$3)',[listing,`synthetic-staff-${listing.slice(-3)}`,assigned]));
     await bootstrapAs(db,company,assigned,()=>db.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)',[listing,JSON.stringify(syntheticContent(title))]));
     if(seedAcceptedMedia)for(let position=0;position<4;position++)await seedSyntheticSealedMedia(db,{tenantId:company.id,listingId:listing,
-      mediaId:id(Number(listing.slice(-3))*10+position),position,altText:'Synthetic SQL-only accepted metadata; image bytes unavailable'});
+      mediaId:id(Number(listing.slice(-3))*10+position),position,altText:`Synthetic photo ${position+1} — SQL-only accepted metadata; image bytes unavailable`});
     if(seedPendingReviews&&listing!==STAFF_PREVIEW_FIXTURES.realtimePeerListingId){
       await bootstrapAs(db,company,assigned,()=>db.query("SELECT app_api.confirm_availability($1,1,'available')",[listing]));
       await bootstrapAs(db,company,assigned,()=>db.query('SELECT app_api.submit_revision($1,1,2)',[listing]));
@@ -153,9 +153,11 @@ export async function startStaffPreview(options={}){
       const route=/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/drafts\/1(\/submit)?$/i.exec(url.pathname);
       const reviewRoute=/^\/v2\/staff\/reviews\/[0-9a-f-]{36}\/revisions\/1(\/decision)?$/i.exec(url.pathname);
       const mediaRoute=/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/(media-registrations|media-jobs)(?:\/([0-9a-f-]{36}))?$/i.exec(url.pathname);
-      if(!route&&!reviewRoute&&!reviewQueue&&!mediaRoute)return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
+      const galleryRoute=/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/(workspace|media-removals|media-reorders|media-operations)(?:\/([0-9a-f-]{36}))?$/i.exec(url.pathname);
+      if(!route&&!reviewRoute&&!reviewQueue&&!mediaRoute&&!galleryRoute)return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
       if(mediaRoute&&mediaRoute[1]==='media-jobs'&&!mediaRoute[2])return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
-      const allowedMethods=mediaRoute?(mediaRoute[2]?['GET']:['POST']):reviewQueue?['GET']:reviewRoute?(reviewRoute[1]?['POST']:['GET']):route[1]?['POST']:['GET','PUT'];
+      if(galleryRoute&&((galleryRoute[1]==='media-operations')!==!!galleryRoute[2]))return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
+      const allowedMethods=galleryRoute?(['workspace','media-operations'].includes(galleryRoute[1])?['GET']:['POST']):mediaRoute?(mediaRoute[2]?['GET']:['POST']):reviewQueue?['GET']:reviewRoute?(reviewRoute[1]?['POST']:['GET']):route[1]?['POST']:['GET','PUT'];
       if(!allowedMethods.includes(request.method))return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for the staff fixture.',{Allow:allowedMethods.join(', ')});
       if(request.method!=='GET'&&!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')??''))return failure(415,'JSON_REQUIRED','Use application/json.');
       const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;

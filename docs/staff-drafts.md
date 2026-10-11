@@ -36,8 +36,10 @@ The harness does not expose a login/token endpoint. Four accepted media metadata
 
 API/SQL independently verify the signature, current company membership, current assignment, draft state and version on each request. The local BFF is a synthetic developer identity adapter, **not a production session/sign-in implementation**. It refuses production. Do not deploy the harness, expose these listeners remotely, put real data in it or describe this as hosted authentication. Production needs a reviewed provider session/BFF integration with secure cookies, logout/revocation and deployed authorization evidence; no identity provider has been provisioned.
 
-## Still open
+## Current follow-up — 11 October 2026
 
-Creating/listing drafts from real queues, rejected-revision successors, durable recovery, real sessions, trusted uploads, media validation/storage/processing, moderator decision endpoints and the complete publication journey remain open. Native staff flows, hosted PostgreSQL/PostGIS/TLS/pooling, real provider compatibility, mobile/assistive-technology/operator UAT and cutover approval require separate evidence. This preview adds no paid services and preserves the KES10,000 total recurring client price baseline.
+The later [admin gallery checkpoint](admin-gallery.md) adds atomic draft/photo reads, ordering, confirmed removal and explicit conflict recovery while preserving raw local text. Separate later checkpoints implement local processing/attachment and moderator decisions; the original10 October evidence below remains historical.
+
+Creating/listing drafts from real queues, rejected-revision successors, durable browser recovery, production sessions, public upload/delivery integration and the complete deployed publication journey remain open. Native staff flows, hosted PostgreSQL/PostGIS/TLS/pooling, real provider compatibility, mobile/assistive-technology/operator UAT and cutover approval require separate evidence. This preview adds no paid services and preserves the KES10,000 total recurring client price baseline.
 
 See `evidence/2026-10-10-staff-drafts.md` for checks actually run and their limits.

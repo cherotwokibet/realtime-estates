@@ -277,6 +277,27 @@ function galleryProjection(input: unknown, listingId: string, revision: number, 
   return { kind: row.kind, operationId, listingId, revision, expectedVersion: row.expectedVersion, version: row.version, outcome: row.outcome, reason: row.reason, mediaId: row.mediaId, orderedIds, completedAt };
 }
 
+function workspaceProjection(row: Record<string, unknown>, listingId: string, revision: number): Record<string, unknown> {
+  if (row.listingId !== listingId || row.revision !== revision) throw new Error("Unexpected workspace identity.");
+  if (typeof row.version !== "string" || !/^[1-9]\d{0,18}$/.test(row.version) || BigInt(row.version) > 9223372036854775807n || !["draft", "pending", "approved", "rejected"].includes(String(row.state))) throw new Error("Unexpected workspace revision.");
+  const fields = Object.fromEntries(DRAFT_FIELDS.map(field => [field, row[field]]));
+  const content = { ...publicRow(fields), amountMinor: row.amountMinor === null ? null : Number(row.amountMinor), pricing: validatePricingInputV2(row.pricing), location: validatePublicLocationV2(row.location) };
+  if (!Array.isArray(row.photos) || row.photos.length > 12) throw new Error("Unexpected workspace gallery.");
+  const ids = new Set<string>(); let previous = -1;
+  const photos = row.photos.map(input => {
+    if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Unexpected workspace photo.");
+    const photo = input as Record<string, unknown>;
+    if (typeof photo.id !== "string" || !UUID.test(photo.id) || ids.has(photo.id.toLowerCase()) || typeof photo.position !== "number" || !Number.isInteger(photo.position) || photo.position < 0 || photo.position > 11 || photo.position <= previous || typeof photo.accepted !== "boolean" || !["sealed", "legacy"].includes(String(photo.provenance)) || (photo.provenance === "sealed" && !photo.accepted)) throw new Error("Unexpected workspace photo identity or provenance.");
+    if (typeof photo.altText !== "string" || photo.altText.length > 4096 || [...photo.altText.replace(/^ +| +$/g, "")].length < 1 || [...photo.altText.replace(/^ +| +$/g, "")].length > 300) throw new Error("Unexpected workspace photo description.");
+    if (photo.provenance === "sealed") { try { mediaAltText(photo.altText); } catch { throw new Error("Unexpected sealed photo description."); } }
+    ids.add(photo.id.toLowerCase()); previous = photo.position;
+    // Deliberate projection: storage, provenance identifiers and coordinator details
+    // are never forwarded, even if a database adapter unexpectedly adds fields.
+    return { id: photo.id.toLowerCase(), position: photo.position, altText: photo.altText, accepted: photo.accepted, provenance: photo.provenance };
+  });
+  return { listingId, draft: { revision, state: row.state, version: row.version, content }, photos };
+}
+
 export function createApiService(options: ApiServiceOptions): (request: Request) => Promise<Response> {
   const tenantId = uuid(options.tenantId, "Configured tenant");
   const privacyNoticeVersion = text(options.privacyNoticeVersion, "Configured privacy notice version", 100);
@@ -336,6 +357,29 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
       if (path.startsWith("/v1/staff/") || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const workspaceRoute = /^\/v2\/staff\/listings\/([^/]+)\/revisions\/([1-9]\d*)\/workspace$/.exec(path);
+        if (workspaceRoute) {
+          if (url.search) throw new HttpError(400, "INVALID_INPUT", "Workspace requests do not accept query fields.");
+          const id = uuid(workspaceRoute[1], "listingId"), revision = Number(workspaceRoute[2]);
+          if (!Number.isSafeInteger(revision) || revision > 2147483647) throw new HttpError(400, "INVALID_INPUT", "revision is outside the supported range.");
+          if (method !== "GET") throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method is not allowed for this route.", { Allow: "GET" });
+          const result = await options.database.transaction(context, async query => {
+            await assertStaff(query);
+            // One statement snapshot binds the optimistic token to this full order.
+            // RLS applies independently to the revision and correlated media rows.
+            return query.query(`SELECT r.listing_id AS "listingId",r.revision_no AS revision,r.state,r.version::text AS version,
+              r.title,r.description,r.purpose,r.property_type AS "propertyType",r.currency,r.amount_minor::text AS "amountMinor",r.rent_period AS "rentPeriod",
+              r.bedrooms,r.private_bathrooms AS "privateBathrooms",r.shared_bathrooms AS "sharedBathrooms",r.country,r.locality,r.public_precision AS "publicPrecision",
+              r.latitude::text AS latitude,r.longitude::text AS longitude,r.private_address AS "privateAddress",r.pricing,r.location,
+              coalesce((SELECT jsonb_agg(jsonb_build_object('id',m.id,'position',m.position,'altText',m.alt_text,'accepted',m.accepted,
+                'provenance',CASE WHEN m.sealed_job_id IS NOT NULL THEN 'sealed' ELSE 'legacy' END) ORDER BY m.position)
+                FROM app_private.revision_media m WHERE m.tenant_id=r.tenant_id AND m.listing_id=r.listing_id AND m.revision_no=r.revision_no),'[]'::jsonb) AS photos
+              FROM app_private.listing_revisions r WHERE r.tenant_id=$1::uuid AND r.listing_id=$2::uuid AND r.revision_no=$3::integer`, [tenantId, id, revision]);
+          });
+          const row = result.rows[0];
+          if (!row) throw new HttpError(404, "NOT_FOUND", "Resource is unavailable.");
+          return response(200, workspaceProjection(row, id, revision), correlationId);
+        }
         const galleryRoute = /^\/v2\/staff\/listings\/([^/]+)\/revisions\/([1-9]\d*)\/(media-removals|media-reorders|media-operations)(?:\/([^/]+))?$/.exec(path);
         if (galleryRoute) {
           if (url.search) throw new HttpError(400, "INVALID_INPUT", "Media requests do not accept query fields.");

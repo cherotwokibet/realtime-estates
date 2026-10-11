@@ -1,6 +1,6 @@
 # Realtor Platform
 
-Latest local checkpoint: exact-version draft photo removal/ordering and immutable historical recovery. 456 affected tests and eight workspace typechecks passed. See [gallery contract](docs/media-gallery-commands.md) and [executed evidence](docs/evidence/2026-10-11-media-gallery.md). Production, device/operator UAT and all release gates remain open.
+Latest local checkpoint: admin draft gallery ordering/removal with explicit conflict recovery and preservation of unsaved text. 272 affected tests, eight workspace typechecks and the admin production build passed. See [gallery UI](docs/admin-gallery.md) and [executed evidence](docs/evidence/2026-10-11-admin-gallery.md). Uploads/image previews, production, device/operator UAT and all release gates remain open.
 
 Independent replacement for Realtime Estates Ltd, designed for additional realtor businesses. Foundation work started 9 October 2026. Local web/admin/mobile previews, shared domain rules, JWT verification, PostgreSQL policies and an API slice are implemented. Production integration and release acceptance remain open.
 

@@ -35,6 +35,10 @@ export type StaffDraftContentInputV2=Partial<StaffDraftContentV2>&Pick<StaffDraf
 export interface StaffDraftV2 {
   readonly revision:number;readonly state:'draft'|'pending'|'approved'|'rejected';readonly version:string;readonly content:StaffDraftContentV2;
 }
+/** Current staff-only gallery metadata, including unfinished legacy associations. */
+export interface StaffGalleryPhotoV2 {readonly id:string;readonly position:number;readonly altText:string;readonly accepted:boolean;readonly provenance:'sealed'|'legacy'}
+/** One authorized statement snapshot; the version belongs to this exact draft and gallery. */
+export interface StaffDraftWorkspaceV2 {readonly listingId:string;readonly draft:StaffDraftV2;readonly photos:readonly StaffGalleryPhotoV2[]}
 export interface StaffVersionReceipt {readonly version:string}
 export interface StaffDraftSaveV2 {readonly expectedVersion:string;readonly content:StaffDraftContentInputV2}
 export interface StaffDraftSubmitV2 {readonly expectedVersion:string}
@@ -271,6 +275,32 @@ function staffDraft(input:unknown,revision:number):StaffDraftV2{
 function staffPath(listingId:unknown,revision:unknown):string{
   return `/v2/staff/listings/${uuid(listingId,'VALIDATION','Listing ID')}/drafts/${integer(revision,1,2147483647,'VALIDATION','Revision')}`;
 }
+/** Validate an untrusted staff BFF response without retaining identity or transport state. */
+export function validateStaffDraftWorkspaceV2(input:unknown,listingId:string,revision:number):StaffDraftWorkspaceV2{
+  const id=uuid(listingId,'VALIDATION','Listing ID'),number=integer(revision,1,2147483647,'VALIDATION','Revision');
+  const value=attachRecord(input,['listingId','draft','photos'],'INVALID_RESPONSE');
+  if(uuid(value.listingId,'INVALID_RESPONSE','Listing ID')!==id)return invalid('INVALID_RESPONSE','Unexpected staff workspace.');
+  const draftValue=attachRecord(value.draft,['revision','state','version','content'],'INVALID_RESPONSE');
+  attachRecord(draftValue.content,STAFF_CONTENT_FIELDS,'INVALID_RESPONSE');
+  const draft=staffDraft(draftValue,number);
+  if(!Array.isArray(value.photos)||Object.getPrototypeOf(value.photos)!==Array.prototype||value.photos.length>12||Reflect.ownKeys(value.photos).length!==value.photos.length+1)return invalid('INVALID_RESPONSE','Invalid staff gallery.');
+  let previous=-1;const ids=new Set<string>();
+  const photos=Array.from({length:value.photos.length},(_,index)=>{
+    const descriptor=Object.getOwnPropertyDescriptor(value.photos,index);
+    if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return invalid('INVALID_RESPONSE','Invalid staff gallery entries.');
+    const input=descriptor.value;
+    const photo=attachRecord(input,['id','position','altText','accepted','provenance'],'INVALID_RESPONSE');
+    const photoId=uuid(photo.id,'INVALID_RESPONSE','Photo ID'),position=integer(photo.position,0,11,'INVALID_RESPONSE','Photo position');
+    if(ids.has(photoId)||position<=previous||typeof photo.accepted!=='boolean'||(photo.provenance!=='sealed'&&photo.provenance!=='legacy')||(photo.provenance==='sealed'&&!photo.accepted))return invalid('INVALID_RESPONSE','Invalid staff gallery order or provenance.');
+    ids.add(photoId);previous=position;
+    // Old associations used btrim/length checks. Preserve their original labels so
+    // staff can explicitly remove or repair them instead of hiding those rows.
+    const altText=photo.provenance==='sealed'?mediaAltText(photo.altText,'INVALID_RESPONSE'):photo.altText;
+    if(typeof altText!=='string'||altText.length>4096||altText.replace(/^ +| +$/g,'').length<1||[...altText.replace(/^ +| +$/g,'')].length>300)return invalid('INVALID_RESPONSE','Invalid legacy photo description.');
+    return Object.freeze({id:photoId,position,altText,accepted:photo.accepted,provenance:photo.provenance as StaffGalleryPhotoV2['provenance']});
+  });
+  return Object.freeze({listingId:id,draft,photos:Object.freeze(photos)});
+}
 function staffOptions(options:StaffRequestOptions,extra:readonly string[]=[]):void{
   requestOptions(options,extra);if(typeof options.bearerToken!=='string'||!options.bearerToken)return invalid('VALIDATION','A bearer token is required for each staff call.');
 }
@@ -445,6 +475,11 @@ function uncertainWriteError(error:unknown):never{
   if(error instanceof ApiClientError&&error.kind==='INVALID_RESPONSE'&&!error.submissionUncertain)throw new ApiClientError(error.kind,error.message,{status:error.status,submissionUncertain:true});
   throw error;
 }
+/** Validate historical facts only. Bind original write intent separately before recovery. */
+export function validateMediaOperationReceiptV2(input:unknown,listingId:string,revision:number,operationId:string):MediaOperationReceiptV2{
+  const id=uuid(listingId,'VALIDATION','Listing ID'),number=integer(revision,1,2147483647,'VALIDATION','Revision'),operation=uuid(operationId,'VALIDATION','Operation ID');
+  return mediaOperation(input,id,number,operation);
+}
 function requestOptions(input:RequestOptions,extra:readonly string[]=[]):void{
   record(input,['bearerToken','signal','timeoutMs',...extra],'VALIDATION');
   if(input.bearerToken!==undefined&&(typeof input.bearerToken!=='string'||input.bearerToken.length>8192||! /^[A-Za-z\d\-._~+/]+=*$/.test(input.bearerToken)))invalid('VALIDATION','Invalid bearer token.');
@@ -493,6 +528,10 @@ export class RealtorApiClient {
   async getStaffDraftV2(listingId:string,revision:number,options:StaffRequestOptions):Promise<StaffDraftV2>{
     staffOptions(options);const path=staffPath(listingId,revision);
     return staffDraft(await this.request(path,'GET',options),revision);
+  }
+  async getStaffDraftWorkspaceV2(listingId:string,revision:number,options:StaffRequestOptions):Promise<StaffDraftWorkspaceV2>{
+    staffOptions(options);const path=mediaPath(listingId,revision);
+    return validateStaffDraftWorkspaceV2(await this.request(`${path}/workspace`,'GET',options),listingId,revision);
   }
   async saveStaffDraftV2(listingId:string,revision:number,input:StaffDraftSaveV2,options:StaffRequestOptions):Promise<StaffVersionReceipt>{
     staffOptions(options);const path=staffPath(listingId,revision);
@@ -614,7 +653,7 @@ export class RealtorApiClient {
         if(!/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type')??''))throw new ApiClientError('INVALID_RESPONSE','Expected a JSON API response.',{status:result.status,submissionUncertain:writes});
         const raw=await result.text();if(raw.length>MAX_JSON_CHARACTERS)throw new ApiClientError('INVALID_RESPONSE','API response exceeded the supported size.',{status:result.status,submissionUncertain:writes});
         let payload:unknown;try{
-          if(/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/(?:media-registrations|media-jobs|media-attach-intents|media-removals|media-reorders|media-operations)(?:\/[^/]+)?$/.test(path))assertMediaJsonTokens(raw);
+          if(/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/(?:workspace|media-registrations|media-jobs|media-attach-intents|media-removals|media-reorders|media-operations)(?:\/[^/]+)?$/.test(path))assertMediaJsonTokens(raw);
           payload=path.startsWith('/v2/')?parseListingJsonV2(raw):JSON.parse(raw);
         }catch{throw new ApiClientError('INVALID_RESPONSE','Malformed API JSON.',{status:result.status,submissionUncertain:writes});}
         if(!result.ok){
