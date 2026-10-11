@@ -1,0 +1,27 @@
+# Executed authenticated development upload evidence
+
+11 October 2026, Africa/Nairobi. Local synthetic loopback integration, independently authored. Vendor resources and live services are preserved. The default API entry point does not yet enable the optional upload composition.
+
+## Executed checks
+
+**551 affected API, development-preview, database, media and shared-client tests passed**, zero failures/skips/cancellations/todos. Shared package builds, the API build and all eight workspace typechecks passed. See [test log](stream-upload-tests.txt), [typecheck log](stream-upload-types.txt) and [build log](stream-upload-build.txt). The final manifest `verification-stream-upload-final-1.json` outside the checkout retains all commands, 121 unchanged affected source hashes and raw logs. A separate focused probe passed46 checks; these overlap the final run and are not added to its count. Earlier178/272/456 checkpoints remain separate. No failed test run is hidden or counted as passed.
+
+The new SQL test uses an actual isolated NOINHERIT API login in local PGlite. Ten child cases cover original agent/admin requester, exact tuple, tenant/visitor/identity denial, revoked/downgraded membership, disabled tenant, assignment change, non-draft and expired new work, distinct historical read eligibility, null/range errors, unchanged revision tokens, privilege isolation and no data/audit mutation.
+
+Socket tests verify exact raw path scope, a denial response before the client sends/ends its body, lazy iterator return without losing that denial, large binary collection, unchanged general JSON limits, duplicate authorization/Host handling, PUT/GET disconnect signals and417 without100 Continue. Service/API tests verify both authorization checks, revocation after collection, source remaining unread on denial, safe errors, strict original principal/resource/input joins, one-use admission, read-only history, instance singleflight and close/drain behavior. Processing status is descriptive, not a liveness guarantee. Repeated PUT may consume a bounded body before durable replay rejection.
+
+## Actual signed HTTP and native integration
+
+A real loopback JWKS server and signed RS256 access token feed the existing issuer/audience verifier. Current staff authorization runs through a restricted API login and migration0008. Synthetic PNG pixels are sent in13-byte chunks to the exact PUT endpoint. Short authorization transactions complete before body/native work. The durable upload record joins the existing supervised Windows processor, private durable input/output and restricted coordinator commands to one verified output.
+
+The test holds the completed successful API response before the bridge can send headers, destroys the actual client and observes its error, then releases the held reply. It closes and reopens the API and transport journal. A new authenticated GET returns only the original upload/job/listing/revision and verified status. Native invocation count remains exactly1. Independent hashing and length checks on actual stored output match the sealed manifest; the original input hash matches the upload record. Duplicate PUT is blocked and a signed different requester is denied. The draft remains version2 with zero photo associations and one verified output; nothing is attached or published.
+
+PGlite, photo/request stores, worker and attempt journal remain open during that recovery. This proves a lost completed HTTP reply and clean API/upload-journal reopening, not a whole-process crash/restart, all-store reopen, power loss or provider failover. Requests are serialized against PGlite's shared session; this is not a production concurrency claim. Unknown native outcomes retain fixture roots; observed cleanup is limited to enumerated owned disposable fixtures.
+
+## Limits and exact next step
+
+The optional hook is available to explicitly configured loopback development compositions; the default API executable remains unchanged. No shared binary SDK, browser gallery upload/attachment, image delivery, real user/provider session deployment, CORS/browser acceptance, UI production build, remote CI, real PostgreSQL races, device/accessibility/operator UAT or launch acceptance was established. Existing general JSON routes still buffer before their application authentication; their limits remain unchanged. This slice does not claim a public upload service.
+
+Metadata-only reservation still leaves a conservatively blocked gap before processor input/request installation. There is no automatic retry, new historical ticket, decoder restart, root rotation, version adoption, repair or deletion. Instance singleflight is not a global/multi-instance quota; native_failed has no durable terminal failure receipt. Hostile filesystem resistance, production ACL/network/resource isolation, provider hosting, retention, independent backup, rights/account evidence and all14 gates remain open. Checklist stays13/97. KES10,000 remains the total recurring client price; no paid service was added.
+
+Next wire a synthetic development composition with stable owned storage/worker roots and lifecycle handling, add explicit shared client binary upload and original-status reads, then sequential gallery attachment and authorized image previews. Preserve original operation identity and unsaved draft fields through recovery/conflicts. See [transport contract](../development-streaming-uploads.md).
