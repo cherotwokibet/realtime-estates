@@ -63,4 +63,44 @@ test('actual supervised image attaches once through persisted authorization and 
   });
   assert.deepEqual(await e.coordinator.readMediaAttachIntent(operation),recovered);
   assert.equal(finalizeWrites,1);assert.deepEqual(await e.store.read(published.handle),output);
+
+  // Gallery commands exercise this actual stored output without deleting bytes.
+  // The existing fixture bootstrap supplies API context; production identity and
+  // independent PostgreSQL connection races remain separate acceptance work.
+  const mediaId=recovered.receipt.mediaId,orderOperation=randomUUID(),removeOperation=randomUUID();
+  async function gallery(sql,values,{loseReply=false}={}) {
+    return e.asBootstrap(async db=>{
+      await db.exec('BEGIN; SET LOCAL ROLE api_runtime;');
+      let committed=false;
+      try {
+        await db.query("SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",[TENANT,AGENT]);
+        const result=await scalar(db,sql,values);
+        await db.exec('COMMIT');committed=true;
+        if(loseReply)throw new Error('Synthetic lost gallery response after actual COMMIT');
+        return result;
+      } catch(error) {if(!committed)await db.exec('ROLLBACK');throw error;}
+    });
+  }
+  const noop=await gallery('SELECT app_api.reorder_draft_media($1,1,4,$2,$3::uuid[])',[LISTING,orderOperation,[mediaId]]);
+  assert.equal(noop.outcome,'noop');assert.equal(noop.version,'4');assert.deepEqual(noop.orderedIds,[mediaId]);
+  await assert.rejects(()=>gallery('SELECT app_api.remove_draft_media($1,1,4,$2,$3)',
+    [LISTING,removeOperation,mediaId],{loseReply:true}),/lost gallery response after actual COMMIT/);
+  const removed=await gallery('SELECT app_api.read_media_operation($1)',[removeOperation]);
+  assert.equal(removed.outcome,'applied');assert.equal(removed.expectedVersion,'4');assert.equal(removed.version,'5');
+  assert.equal(removed.mediaId,mediaId);assert.deepEqual(removed.orderedIds,[]);
+  assert.deepEqual(await gallery('SELECT app_api.remove_draft_media($1,1,4,$2,$3)',[LISTING,removeOperation,mediaId]),removed);
+  await e.asBootstrap(async db=>{
+    assert.equal(await scalar(db,'SELECT count(*)::integer FROM app_private.revision_media WHERE listing_id=$1',[LISTING]),0);
+    assert.equal(await scalar(db,'SELECT count(*)::integer FROM app_private.media_attachments WHERE operation_id=$1',[operation]),1);
+    assert.equal(await scalar(db,'SELECT count(*)::integer FROM app_private.media_verified_outputs WHERE job_id=$1',[e.jobId]),1);
+    assert.equal(await scalar(db,"SELECT count(*)::integer FROM app_private.audit_events WHERE object_id=$1 AND action='media.removed'",[LISTING]),1);
+    assert.equal(await scalar(db,"SELECT count(*)::integer FROM app_private.audit_events WHERE object_id=$1 AND action='media.reordered'",[LISTING]),0);
+    assert.equal(await scalar(db,'SELECT version::text FROM app_private.listing_revisions WHERE listing_id=$1 AND revision_no=1',[LISTING]),'5');
+    await db.query("UPDATE app_private.listing_revisions SET description='Later edit after photo removal' WHERE listing_id=$1 AND revision_no=1",[LISTING]);
+  });
+  assert.deepEqual(await gallery('SELECT app_api.read_media_operation($1)',[removeOperation]),removed);
+  assert.deepEqual(await gallery('SELECT app_api.read_media_operation($1)',[orderOperation]),noop);
+  assert.deepEqual(await e.coordinator.readMediaAttachIntent(operation),recovered);
+  assert.deepEqual(await e.coordinator.finalizeMedia(operation),recovered);
+  assert.deepEqual(await e.store.read(published.handle),output);
 });

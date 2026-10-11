@@ -246,6 +246,37 @@ function attachProjection(input: unknown, listingId: string, revision: number, o
   return { ...common, altText, status: row.status, receipt };
 }
 
+function galleryIds(input: unknown): string[] {
+  if (!Array.isArray(input) || input.length > 12) throw new HttpError(400, "INVALID_INPUT", "orderedIds must contain at most 12 distinct photo UUIDs.");
+  const ids = input.map(value => uuid(value, "mediaId"));
+  if (new Set(ids).size !== ids.length) throw new HttpError(400, "INVALID_INPUT", "orderedIds must contain distinct photo UUIDs.");
+  return ids;
+}
+interface GalleryRequest { readonly kind: "remove_media" | "reorder_media"; readonly operationId: string; readonly expected: number; readonly mediaId: string | null; readonly orderedIds: readonly string[] }
+function galleryProjection(input: unknown, listingId: string, revision: number, operationId: string, request?: GalleryRequest): Record<string, unknown> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Unexpected gallery response.");
+  const row = input as Record<string, unknown>;
+  if (row.listingId !== listingId || row.revision !== revision || row.operationId !== operationId) throw new HttpError(404, "NOT_FOUND", "Resource is unavailable.");
+  if (!["remove_media", "reorder_media"].includes(String(row.kind)) || typeof row.expectedVersion !== "string" || !/^[1-9]\d*$/.test(row.expectedVersion) || BigInt(row.expectedVersion) > BigInt(Number.MAX_SAFE_INTEGER - 1) || typeof row.version !== "string" || !/^[1-9]\d*$/.test(row.version) || BigInt(row.version) > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Unexpected gallery identity or version.");
+  let orderedIds: string[];
+  try { orderedIds = galleryIds(row.orderedIds); } catch { throw new Error("Unexpected gallery order."); }
+  if (row.kind === "remove_media" ? typeof row.mediaId !== "string" || !UUID.test(row.mediaId) : row.mediaId !== null) throw new Error("Unexpected gallery target.");
+  if (request && (row.kind !== request.kind || row.expectedVersion !== String(request.expected) || row.mediaId !== request.mediaId || (request.kind === "reorder_media" && JSON.stringify(orderedIds) !== JSON.stringify(request.orderedIds)))) throw new Error("Conflicting gallery response.");
+  if (row.outcome === "applied") {
+    if (row.reason !== null || BigInt(row.version) !== BigInt(row.expectedVersion) + 1n || (row.kind === "remove_media" && orderedIds.includes(String(row.mediaId)))) throw new Error("Unexpected applied gallery response.");
+  } else if (row.outcome === "noop") {
+    if (row.kind !== "reorder_media" || row.reason !== null || row.version !== row.expectedVersion) throw new Error("Unexpected gallery noop.");
+  } else if (row.outcome === "conflict") {
+    if (row.reason !== "VERSION_CONFLICT" || row.version === row.expectedVersion) throw new Error("Unexpected gallery conflict.");
+  } else if (row.outcome === "rejected") {
+    if (!["REVISION_NOT_DRAFT", "MEDIA_SET_CHANGED", ...(row.kind === "remove_media" ? ["MEDIA_NOT_FOUND"] : [])].includes(String(row.reason)) || (row.reason === "MEDIA_NOT_FOUND" && orderedIds.includes(String(row.mediaId)))) throw new Error("Unexpected gallery rejection.");
+  } else throw new Error("Unexpected gallery outcome.");
+  if (typeof row.completedAt !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(row.completedAt)) throw new Error("Unexpected gallery timestamp.");
+  const completedAt = row.completedAt.slice(0, 23) + "Z", instant = Date.parse(completedAt);
+  if (!Number.isFinite(instant) || new Date(instant).toISOString() !== completedAt) throw new Error("Unexpected gallery timestamp.");
+  return { kind: row.kind, operationId, listingId, revision, expectedVersion: row.expectedVersion, version: row.version, outcome: row.outcome, reason: row.reason, mediaId: row.mediaId, orderedIds, completedAt };
+}
+
 export function createApiService(options: ApiServiceOptions): (request: Request) => Promise<Response> {
   const tenantId = uuid(options.tenantId, "Configured tenant");
   const privacyNoticeVersion = text(options.privacyNoticeVersion, "Configured privacy notice version", 100);
@@ -305,6 +336,30 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
       if (path.startsWith("/v1/staff/") || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const galleryRoute = /^\/v2\/staff\/listings\/([^/]+)\/revisions\/([1-9]\d*)\/(media-removals|media-reorders|media-operations)(?:\/([^/]+))?$/.exec(path);
+        if (galleryRoute) {
+          if (url.search) throw new HttpError(400, "INVALID_INPUT", "Media requests do not accept query fields.");
+          const id = uuid(galleryRoute[1], "listingId"), revision = Number(galleryRoute[2]);
+          if (!Number.isSafeInteger(revision) || revision > 2147483647) throw new HttpError(400, "INVALID_INPUT", "revision is outside the supported range.");
+          const read = galleryRoute[3] === "media-operations", readId = galleryRoute[4] === undefined ? null : uuid(galleryRoute[4], "operationId");
+          if (read ? readId === null : readId !== null) throw new HttpError(404, "NOT_FOUND", "Resource is unavailable.");
+          const allowedMethod = read ? "GET" : "POST";
+          if (method !== allowedMethod) throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method is not allowed for this route.", { Allow: allowedMethod });
+          let command: GalleryRequest | undefined;
+          if (!read) {
+            const remove = galleryRoute[3] === "media-removals", body = record(await jsonBody(request, 8 * 1024, false, true), ["operationId", "expectedVersion", remove ? "mediaId" : "orderedIds"]), expected = version(body.expectedVersion);
+            if (expected > Number.MAX_SAFE_INTEGER - 1) throw new HttpError(400, "INVALID_INPUT", "expectedVersion is outside the incrementable media range.");
+            command = { kind: remove ? "remove_media" : "reorder_media", operationId: uuid(body.operationId, "operationId"), expected, mediaId: remove ? uuid(body.mediaId, "mediaId") : null, orderedIds: remove ? [] : galleryIds(body.orderedIds) };
+          }
+          const result = await options.database.transaction(context, async query => {
+            await assertStaff(query);
+            if (!command) return query.query("SELECT app_api.read_media_operation($1::uuid) AS receipt", [readId]);
+            return command.kind === "remove_media"
+              ? query.query("SELECT app_api.remove_draft_media($1::uuid,$2::integer,$3::bigint,$4::uuid,$5::uuid) AS receipt", [id, revision, command.expected, command.operationId, command.mediaId])
+              : query.query("SELECT app_api.reorder_draft_media($1::uuid,$2::integer,$3::bigint,$4::uuid,$5::uuid[]) AS receipt", [id, revision, command.expected, command.operationId, command.orderedIds]);
+          });
+          return response(200, galleryProjection(scalar(result, "receipt"), id, revision, command?.operationId ?? readId!, command), correlationId);
+        }
         const attachRoute = /^\/v2\/staff\/listings\/([^/]+)\/revisions\/([1-9]\d*)\/media-attach-intents(?:\/([^/]+))?$/.exec(path);
         if (attachRoute) {
           if (url.search) throw new HttpError(400, "INVALID_INPUT", "Media requests do not accept query fields.");

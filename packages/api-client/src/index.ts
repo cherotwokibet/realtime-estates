@@ -78,6 +78,21 @@ export type MediaAttachReceiptV2=MediaAttachFactsV2&(
 export type MediaAttachIntentV2=MediaAttachFactsV2&Readonly<{altText:string}>&(
   | Readonly<{status:'ready';receipt:null}>
   | Readonly<{status:'applied'|'conflict'|'rejected'|'expired';receipt:MediaAttachReceiptV2}>);
+export interface MediaRemovalInputV2 {readonly operationId:string;readonly mediaId:string;readonly expectedVersion:string}
+export interface MediaReorderInputV2 {readonly operationId:string;readonly orderedIds:readonly string[];readonly expectedVersion:string}
+export type MediaOperationFailureReasonV2='VERSION_CONFLICT'|'REVISION_NOT_DRAFT'|'MEDIA_NOT_FOUND'|'MEDIA_SET_CHANGED';
+/** Immutable historical order, not the current gallery. Removed objects remain retained. */
+export type MediaOperationReceiptV2=Readonly<{
+  operationId:string;listingId:string;revision:number;expectedVersion:string;version:string;orderedIds:readonly string[];completedAt:string;
+}>&(
+  | Readonly<{kind:'remove_media';mediaId:string}>&(
+    | Readonly<{outcome:'applied';reason:null}>
+    | Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT'}>
+    | Readonly<{outcome:'rejected';reason:'REVISION_NOT_DRAFT'|'MEDIA_NOT_FOUND'|'MEDIA_SET_CHANGED'}>)
+  | Readonly<{kind:'reorder_media';mediaId:null}>&(
+    | Readonly<{outcome:'applied'|'noop';reason:null}>
+    | Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT'}>
+    | Readonly<{outcome:'rejected';reason:'REVISION_NOT_DRAFT'|'MEDIA_SET_CHANGED'}>));
 export interface EnquiryInput {
   readonly listingId?: string | null; readonly name: string; readonly phone?: string | null; readonly email?: string | null;
   readonly message: string; readonly origin: 'web' | 'mobile'; readonly noticeVersion: string; readonly noticeAcknowledged: true;
@@ -382,6 +397,34 @@ function mediaAttachIntent(input:unknown,listingId:string,revision:number,operat
   }
   return Object.freeze({...facts,altText,status:value.status as 'applied'|'conflict'|'rejected'|'expired',receipt});
 }
+function galleryIds(input:unknown,kind:'VALIDATION'|'INVALID_RESPONSE'):readonly string[]{
+  if(!Array.isArray(input)||Object.getPrototypeOf(input)!==Array.prototype||input.length>12||Reflect.ownKeys(input).length!==input.length+1)return invalid(kind,'Use a dense array of at most 12 distinct photo UUIDs.');
+  const ids:string[]=[];
+  for(let index=0;index<input.length;index++){
+    const field=Object.getOwnPropertyDescriptor(input,String(index));if(!field?.enumerable||!Object.hasOwn(field,'value'))return invalid(kind,'Use ordinary own photo IDs.');
+    ids.push(uuid(field.value,kind,'Media ID'));
+  }
+  if(new Set(ids).size!==ids.length)return invalid(kind,'Photo IDs must be distinct.');
+  return Object.freeze(ids);
+}
+interface GalleryRequest {readonly kind:'remove_media'|'reorder_media';readonly expectedVersion:string;readonly mediaId:string|null;readonly orderedIds:readonly string[]}
+function mediaOperation(input:unknown,listingId:string,revision:number,operationId:string,request?:GalleryRequest):MediaOperationReceiptV2{
+  const value=attachRecord(input,['kind','operationId','listingId','revision','expectedVersion','version','outcome','reason','mediaId','orderedIds','completedAt'],'INVALID_RESPONSE');
+  const expectedVersion=mediaVersion(value.expectedVersion),version=mediaVersion(value.version),orderedIds=galleryIds(value.orderedIds,'INVALID_RESPONSE'),completedAt=timestamp(value.completedAt);
+  if((value.kind!=='remove_media'&&value.kind!=='reorder_media')||uuid(value.operationId,'INVALID_RESPONSE','Operation ID')!==operationId||uuid(value.listingId,'INVALID_RESPONSE','Listing ID')!==listingId.toLowerCase()||integer(value.revision,1,2147483647,'INVALID_RESPONSE','Revision')!==revision||BigInt(expectedVersion)>BigInt(Number.MAX_SAFE_INTEGER-1)||completedAt===null)return invalid('INVALID_RESPONSE','Unexpected gallery receipt identity.');
+  const mediaId=value.kind==='remove_media'?uuid(value.mediaId,'INVALID_RESPONSE','Media ID'):value.mediaId===null?null:invalid('INVALID_RESPONSE','Unexpected reorder media ID.');
+  if(request&&(value.kind!==request.kind||expectedVersion!==request.expectedVersion||mediaId!==request.mediaId||(request.kind==='reorder_media'&&JSON.stringify(orderedIds)!==JSON.stringify(request.orderedIds))))return invalid('INVALID_RESPONSE','Conflicting gallery receipt.');
+  if(value.outcome==='applied'){
+    if(value.reason!==null||BigInt(version)!==BigInt(expectedVersion)+1n||(value.kind==='remove_media'&&orderedIds.includes(mediaId!)))return invalid('INVALID_RESPONSE','Invalid applied gallery receipt.');
+  }else if(value.outcome==='noop'){
+    if(value.kind!=='reorder_media'||value.reason!==null||version!==expectedVersion)return invalid('INVALID_RESPONSE','Invalid gallery noop.');
+  }else if(value.outcome==='conflict'){
+    if(value.reason!=='VERSION_CONFLICT'||version===expectedVersion)return invalid('INVALID_RESPONSE','Invalid gallery conflict.');
+  }else if(value.outcome==='rejected'){
+    if(!['REVISION_NOT_DRAFT','MEDIA_SET_CHANGED',...(value.kind==='remove_media'?['MEDIA_NOT_FOUND']:[])].includes(String(value.reason))||(value.reason==='MEDIA_NOT_FOUND'&&orderedIds.includes(mediaId!)))return invalid('INVALID_RESPONSE','Invalid gallery rejection.');
+  }else return invalid('INVALID_RESPONSE','Invalid gallery outcome.');
+  return Object.freeze({kind:value.kind,operationId,listingId:listingId.toLowerCase(),revision,expectedVersion,version,outcome:value.outcome,reason:value.reason,mediaId,orderedIds,completedAt}) as MediaOperationReceiptV2;
+}
 function assertMediaJsonTokens(source:string):void{
   // The existing v2 parser checks syntax and money tokens. Media projections also
   // reject decoded duplicate keys and revision tokens before numeric rounding.
@@ -520,6 +563,25 @@ export class RealtorApiClient {
     staffOptions(options);const path=mediaPath(listingId,revision),id=uuid(operationId,'VALIDATION','Operation ID');
     return mediaAttachIntent(await this.request(`${path}/media-attach-intents/${id}`,'GET',options),listingId,revision,id);
   }
+  /** Send once with the original operation/body; reconcile uncertainty through getMediaOperationV2. */
+  async removeDraftMediaV2(listingId:string,revision:number,input:MediaRemovalInputV2,options:StaffRequestOptions):Promise<MediaOperationReceiptV2>{
+    staffOptions(options);const path=mediaPath(listingId,revision)+'/media-removals',value=attachRecord(input,['operationId','mediaId','expectedVersion'],'VALIDATION');
+    const operationId=uuid(value.operationId,'VALIDATION','Operation ID'),mediaId=uuid(value.mediaId,'VALIDATION','Media ID'),expectedVersion=expectedStaffVersion(value.expectedVersion,false);
+    if(expectedVersion>Number.MAX_SAFE_INTEGER-1)return invalid('VALIDATION','Unsupported incrementable photo version.');
+    const canonical=Object.freeze({kind:'remove_media' as const,mediaId,expectedVersion:String(expectedVersion),orderedIds:Object.freeze([])});
+    try{return mediaOperation(await this.request(path,'POST',options,{operationId,mediaId,expectedVersion}),listingId,revision,operationId,canonical);}catch(error){return uncertainWriteError(error);}
+  }
+  async reorderDraftMediaV2(listingId:string,revision:number,input:MediaReorderInputV2,options:StaffRequestOptions):Promise<MediaOperationReceiptV2>{
+    staffOptions(options);const path=mediaPath(listingId,revision)+'/media-reorders',value=attachRecord(input,['operationId','orderedIds','expectedVersion'],'VALIDATION');
+    const operationId=uuid(value.operationId,'VALIDATION','Operation ID'),orderedIds=galleryIds(value.orderedIds,'VALIDATION'),expectedVersion=expectedStaffVersion(value.expectedVersion,false);
+    if(expectedVersion>Number.MAX_SAFE_INTEGER-1)return invalid('VALIDATION','Unsupported incrementable photo version.');
+    const canonical=Object.freeze({kind:'reorder_media' as const,mediaId:null,expectedVersion:String(expectedVersion),orderedIds});
+    try{return mediaOperation(await this.request(path,'POST',options,{operationId,orderedIds,expectedVersion}),listingId,revision,operationId,canonical);}catch(error){return uncertainWriteError(error);}
+  }
+  async getMediaOperationV2(listingId:string,revision:number,operationId:string,options:StaffRequestOptions):Promise<MediaOperationReceiptV2>{
+    staffOptions(options);const path=mediaPath(listingId,revision),id=uuid(operationId,'VALIDATION','Operation ID');
+    return mediaOperation(await this.request(`${path}/media-operations/${id}`,'GET',options),listingId,revision,id);
+  }
   async submitEnquiry(input:EnquiryInput,options:EnquiryRequestOptions):Promise<EnquiryReceipt>{
     requestOptions(options,['idempotencyKey']);const key=uuid(options.idempotencyKey,'VALIDATION','Idempotency key');
     const body=enquiryBody(input,this.currentNotice);
@@ -552,7 +614,7 @@ export class RealtorApiClient {
         if(!/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type')??''))throw new ApiClientError('INVALID_RESPONSE','Expected a JSON API response.',{status:result.status,submissionUncertain:writes});
         const raw=await result.text();if(raw.length>MAX_JSON_CHARACTERS)throw new ApiClientError('INVALID_RESPONSE','API response exceeded the supported size.',{status:result.status,submissionUncertain:writes});
         let payload:unknown;try{
-          if(/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/(?:media-registrations|media-jobs|media-attach-intents)(?:\/[^/]+)?$/.test(path))assertMediaJsonTokens(raw);
+          if(/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/(?:media-registrations|media-jobs|media-attach-intents|media-removals|media-reorders|media-operations)(?:\/[^/]+)?$/.test(path))assertMediaJsonTokens(raw);
           payload=path.startsWith('/v2/')?parseListingJsonV2(raw):JSON.parse(raw);
         }catch{throw new ApiClientError('INVALID_RESPONSE','Malformed API JSON.',{status:result.status,submissionUncertain:writes});}
         if(!result.ok){
