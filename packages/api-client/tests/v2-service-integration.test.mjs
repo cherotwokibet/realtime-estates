@@ -50,6 +50,7 @@ test('v2 client integrates with actual migrations, API service and restricted te
     await db.exec(await readFile(new URL('../../../database/migrations/0002_listing_disclosure.sql',import.meta.url),'utf8'));
     await db.exec(await readFile(new URL('../../../database/migrations/0003_registered_media_jobs.sql',import.meta.url),'utf8'));
     await db.exec(await readFile(new URL('../../../database/migrations/0004_media_processing.sql',import.meta.url),'utf8'));
+    await db.exec(await readFile(new URL('../../../database/migrations/0005_media_upload_context.sql',import.meta.url),'utf8'));
     await seedPublished(db,TENANT,ADMIN,LISTING,content,true);
     await seedPublished(db,OTHER,OTHERADMIN,OTHERLISTING,{...content,title:'Synthetic other-company studio',amountMinor:9900001,pricing:{declaration:'complete',charges:[]},location:{county:'Synthetic County B',town:null,area:null}},true);
     // Prepare accepted revision-2 metadata as a trusted fixture while still the bootstrap owner.

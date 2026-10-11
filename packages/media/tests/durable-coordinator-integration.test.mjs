@@ -5,35 +5,39 @@ import { mkdtemp, readdir, lstat, unlink, rmdir, writeFile } from 'node:fs/promi
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createDurableSyntheticStore, reopenDurableSyntheticStore } from '@realtor/media/durable-store';
+import { createSyntheticAttemptJournal } from '@realtor/media/attempt-journal';
 import { verifySyntheticProcessReadback } from '@realtor/media/process-readback';
 import { syntheticPng } from './fixtures.mjs';
 import { environment, boundedRead, WINDOWS_ONLY } from './coordinator-fixture.mjs';
 
-// Narrow process-to-storage integration. Private SQL object IDs below come from
-// trusted migration-owner fixture setup, not a new runtime/public lookup grant.
-test('restart-readable stored identities reconcile actual supervised output and historical restricted SQL facts',WINDOWS_ONLY,async t=>{
+// Narrow process-to-storage integration. Private SQL object IDs come from the
+// reviewed fixed command under the isolated coordinator login, never public API.
+test('durable attempt observation and reopened bytes reconcile actual supervised output with restricted SQL facts',WINDOWS_ONLY,async t=>{
   const e=await environment(t),parent=await mkdtemp(path.join(tmpdir(),'realtor durable SQL '));
-  let store,root,storeId,safeToClean=true;
+  let store,root,storeId,journal,journalStore,journalRoot,journalId,safeToClean=true;
   t.after(async()=>{
     if(!safeToClean||!store||!root){t.diagnostic(`Durable synthetic objects retained: ${parent}`);return;}
-    await store.close();
-    assert.equal(path.dirname(root),parent);
+    await journal?.close();await store.close();
     // Explicit owned fixture cleanup only; never a retained-object sweep.
-    assert.deepEqual((await readdir(root)).sort(),['objects','store.json']);
-    const objects=path.join(root,'objects');assert.deepEqual(await readdir(objects),[e.jobId]);
-    const job=path.join(objects,e.jobId);
-    for(const kind of await readdir(job)){
-      assert.ok(['quarantine','output'].includes(kind));const directory=path.join(job,kind);
-      const stat=await lstat(directory);assert.ok(stat.isDirectory()&&!stat.isSymbolicLink());
-      for(const name of await readdir(directory)){
-        assert.ok(['data.bin','receipt.json'].includes(name));const file=path.join(directory,name),s=await lstat(file);
-        assert.ok(s.isFile()&&!s.isSymbolicLink()&&s.nlink===1);await unlink(file);
+    for(const ownedRoot of [root,journalRoot].filter(Boolean)){
+      assert.equal(path.dirname(ownedRoot),parent);
+      assert.deepEqual((await readdir(ownedRoot)).sort(),['objects','store.json']);
+      const objects=path.join(ownedRoot,'objects');assert.deepEqual(await readdir(objects),[e.jobId]);
+      const job=path.join(objects,e.jobId);
+      for(const kind of await readdir(job)){
+        assert.ok(['quarantine','output'].includes(kind));const directory=path.join(job,kind);
+        const stat=await lstat(directory);assert.ok(stat.isDirectory()&&!stat.isSymbolicLink());
+        for(const name of await readdir(directory)){
+          assert.ok(['data.bin','receipt.json'].includes(name));const file=path.join(directory,name),s=await lstat(file);
+          assert.ok(s.isFile()&&!s.isSymbolicLink()&&s.nlink===1);await unlink(file);
+        }
+        await rmdir(directory);
       }
-      await rmdir(directory);
+      await rmdir(job);await rmdir(objects);
+      const marker=path.join(ownedRoot,'store.json'),markerStat=await lstat(marker);assert.ok(markerStat.isFile()&&!markerStat.isSymbolicLink()&&markerStat.nlink===1);await unlink(marker);
+      await rmdir(ownedRoot);
     }
-    await rmdir(job);await rmdir(objects);
-    const marker=path.join(root,'store.json'),markerStat=await lstat(marker);assert.ok(markerStat.isFile()&&!markerStat.isSymbolicLink()&&markerStat.nlink===1);await unlink(marker);
-    await rmdir(root);await rmdir(parent);
+    await rmdir(parent);
   });
   store=await createDurableSyntheticStore(parent);root=store.rootDirectory;storeId=store.storeId;
   const input=syntheticPng(41,29,(x,y)=>[x*5,y*8,60,255]);
@@ -47,11 +51,23 @@ test('restart-readable stored identities reconcile actual supervised output and 
   assert.equal(before.capture.generationId,captured.generationId);assert.equal(before.capture.inputBytes,captured.bytes);assert.equal(before.capture.inputSha256,captured.sha256);
   const claimId=randomUUID(),lease=await e.coordinator.claimProcessing(e.jobId,claimId);
   assert.equal(lease.quarantineId,inputRef.objectId);assert.equal(lease.outputId,e.storageIds.outputId);
-  await writeFile(path.join(e.attempt,'source.input'),recoveredInput.data,{flag:'wx',mode:0o600});
+  journalStore=await createDurableSyntheticStore(parent);journalRoot=journalStore.rootDirectory;journalId=journalStore.storeId;
+  journal=await createSyntheticAttemptJournal({store:journalStore,attemptParent:e.attemptParent});
+  const binding={jobId:e.jobId,claimId:lease.claimId,attempt:lease.attempt,leaseNonce:lease.leaseNonce};
+  const reservation=await journal.reserve(binding);
+  assert.equal((await journal.inspect(binding)).state,'blocked');
+  const attemptDirectory=reservation.intent.attemptDirectory;
+  await writeFile(path.join(attemptDirectory,'source.input'),recoveredInput.data,{flag:'wx',mode:0o600});
   safeToClean=false;
-  const outcome=await e.run();safeToClean=outcome.termination==='job_empty'&&outcome.activeProcesses===0;
+  const outcome=await e.run(attemptDirectory);safeToClean=outcome.termination==='job_empty'&&outcome.activeProcesses===0;
   assert.equal(outcome.exitCode,0);
-  const output=await boundedRead(e.attempt,'converted.webp',10*1024*1024),sidecar=await boundedRead(e.attempt,'manifest.json',4096);
+  const terminal=await journal.recordTermination(reservation.ticket,outcome);
+  assert.deepEqual(terminal.outcome,outcome);
+  await journal.close();journalStore=await reopenDurableSyntheticStore(journalRoot,journalId);
+  journal=await createSyntheticAttemptJournal({store:journalStore,attemptParent:e.attemptParent});
+  const recorded=await journal.inspect(binding);assert.equal(recorded.state,'termination_recorded');assert.deepEqual(recorded.terminal,terminal);
+  await assert.rejects(()=>journal.reserve(binding),error=>error.code==='BLOCKED');
+  const output=await boundedRead(attemptDirectory,'converted.webp',10*1024*1024),sidecar=await boundedRead(attemptDirectory,'manifest.json',4096);
   const verified=verifySyntheticProcessReadback(recoveredInput.data,output,sidecar);
   const outputRef={jobId:e.jobId,objectId:lease.outputId,generationId:lease.leaseNonce,kind:'output'};
   const installed=await store.install(outputRef,verified.data);
@@ -70,6 +86,7 @@ test('restart-readable stored identities reconcile actual supervised output and 
   await assert.rejects(()=>store.install({...outputRef,generationId:randomUUID()},output),error=>error.code==='CONFLICT');
   assert.deepEqual(await e.coordinator.sealOutput(e.jobId,seal),sealed);
   await e.inspectUnchanged(1);
-  // No decoder relaunch or inferred termination occurs on reopen. This test
-  // keeps PGlite alive; it does not prove database crash/restore or worker recovery.
+  // No decoder relaunch occurs on reopen. A recorded observation confers no
+  // output/cleanup authority: actual native accounting plus independent readback
+  // above are still required. PGlite stays alive; no DB crash/restore is proved.
 });

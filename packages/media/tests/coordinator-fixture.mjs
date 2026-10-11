@@ -38,15 +38,20 @@ export async function environment(t){
   const parent=await mkdtemp(path.join(tmpdir(),'realtor processing SQL '));
   const attemptParent=await mkdtemp(path.join(parent,'attempts ')),attempt=await mkdtemp(path.join(attemptParent,'owned '));
   const store=await createLocalSyntheticStore(parent),supervisor=await createWindowsSyntheticSupervisor({powerShellPath:POWER_SHELL,attemptParent});
-  let cleanupAllowed=true;
+  let cleanupAllowed=true;const ownedAttempts=new Set([attempt]);
   t.after(async()=>{
     if(!cleanupAllowed){t.diagnostic(`Unconfirmed attempt retained, including store: ${parent}`);return;}
     await store.dispose();
-    for(const name of await readdir(attempt)){
-      assert.ok(['source.input','converted.webp','manifest.json'].includes(name));
-      const location=path.join(attempt,name),stat=await lstat(location);assert.ok(stat.isFile()&&!stat.isSymbolicLink());await unlink(location);
+    for(const owned of ownedAttempts){
+      assert.equal(path.dirname(owned),attemptParent);
+      const directoryStat=await lstat(owned);assert.ok(directoryStat.isDirectory()&&!directoryStat.isSymbolicLink());
+      for(const name of await readdir(owned)){
+        assert.ok(['source.input','converted.webp','manifest.json'].includes(name));
+        const location=path.join(owned,name),stat=await lstat(location);assert.ok(stat.isFile()&&!stat.isSymbolicLink()&&stat.nlink===1);await unlink(location);
+      }
+      await rmdir(owned);
     }
-    await rmdir(attempt);await rmdir(attemptParent);await rmdir(parent);
+    await rmdir(attemptParent);await rmdir(parent);
   });
   const db=new PGlite();t.after(()=>db.close());await applyTestMigrations(db);
   const bootstrapUser=await scalar(db,'SELECT session_user');
@@ -62,15 +67,16 @@ export async function environment(t){
     registration=await scalar(db,'SELECT app_api.register_media_upload($1,1,2,$2,$3)',[LISTING,randomUUID(),'Synthetic processed apartment']);
     await db.exec('COMMIT');
   }catch(error){await db.exec('ROLLBACK');throw error;}
-  // Migration-owner fixture context only; no application lookup/grant is added.
-  const storageIds=(await db.query('SELECT quarantine_id AS "quarantineId",output_id AS "outputId" FROM app_private.media_jobs WHERE id=$1',[registration.jobId])).rows[0];
   await db.exec('CREATE ROLE synthetic_media_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS;GRANT media_coordinator TO synthetic_media_login;SET SESSION AUTHORIZATION synthetic_media_login;');
   let tail=Promise.resolve();
   const pool={async connect(){let unlock;const next=new Promise(resolve=>{unlock=resolve;});const previous=tail;tail=next;await previous;return{query:(sql,values)=>db.query(sql,values?[...values]:[]),release(){unlock();}};}};
   const coordinator=new MediaCoordinatorDatabase(pool);await coordinator.checkConnection();
-  async function run(){
+  // Reviewed private command under the actual isolated login; no owner ID lookup.
+  const storageIds=await coordinator.readUploadContext(registration.jobId);
+  async function run(workingDirectory=attempt){
+    assert.equal(path.dirname(workingDirectory),attemptParent);ownedAttempts.add(workingDirectory);
     cleanupAllowed=false;
-    const result=await supervisor.run({executablePath:process.execPath,arguments:[ENTRY],workingDirectory:attempt,timeoutMs:10_000});
+    const result=await supervisor.run({executablePath:process.execPath,arguments:[ENTRY],workingDirectory,timeoutMs:10_000});
     cleanupAllowed=result.termination==='job_empty';assert.equal(result.termination,'job_empty');assert.equal(result.activeProcesses,0);assert.equal(result.state,'exited',JSON.stringify(result));return result;
   }
   async function asBootstrap(operation){
@@ -87,5 +93,5 @@ export async function environment(t){
     });
     await coordinator.checkConnection();
   }
-  return{store,attempt,coordinator,jobId:registration.jobId,run,inspectUnchanged,asBootstrap,db,storageIds};
+  return{store,attempt,attemptParent,coordinator,jobId:registration.jobId,run,inspectUnchanged,asBootstrap,db,storageIds};
 }

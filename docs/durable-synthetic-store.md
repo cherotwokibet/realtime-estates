@@ -1,5 +1,11 @@
 # Restart-readable synthetic object storage — 11 October 2026
 
+## Synthetic attempt history checkpoint — 11 October 2026
+
+318 combined affected API/SQL/SDK/HTTP/media tests and all eight workspace typechecks passed, zero failures/skips/cancellations; media build and initial53-case probe passed. Additive0005 plus strict five-command coordinator guard provide private eligible upload context without owner ID lookup. New attempt-journal records exclusive intent and immutable termination observations; incomplete/unknown history stays blocked and never yields a reconstructed ticket. Actual supervised codec integration records/reopens history while retaining independent native accounting and byte readback before SQL seal. No accepted-photo or draft-version mutation. See synthetic-attempt-journal.md and evidence/2026-10-11-media-attempt-journal.md; tracked media-attempt-journal-tests.txt/media-attempt-journal-types.txt.
+
+Next bounded local orchestrator with one explicit attempt, persistent worker admission and conservative explicit startup reconciliation; then exact-version authenticated attachment/provenance. Journal I/O admission is not a global worker lock, and recorded termination supplies no relaunch/output/cleanup authority. SQL expiry/PID disappearance/store reopen never clears unknown history; no rotating trusted roots to evade it. No automatic retry/repair/delete, power-loss/DB restart/worker-crash/production recovery proof. PostgreSQL races, production isolation/providers, quotas/retention/audit, rights/accounts, devices/operator UAT and all14 gates remain open. Checklist13/97; KES10,000 total monthly baseline; originals/live untouched. Earlier paragraphs are at-time history; inspect Git/recovery/publication records and never rerun old checkpoint generators.
+
 Stage06 work started: replace the previous test-only UUID→opaque-handle Map with immutable, restart-readable private object identities. This is a storage-only dependency for later bounded orchestration. The contract below is agreed before implementation; executed evidence is recorded separately. No production durability, worker recovery or accepted-media claim follows from this design.
 
 ## Frozen interface

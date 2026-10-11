@@ -6,6 +6,7 @@ const id=number=>`00000000-0000-4000-8000-${String(number).padStart(12,'0')}`;
 const JOB=id(100),GEN=id(200),CLAIM=id(300),NONCE=id(400),QUARANTINE=id(500),OUTPUT=id(600),OTHER=id(700);
 const TIME='2026-10-11T00:00:00.123456Z',EXPIRY='2026-10-11T00:03:00.123456Z';
 const input={generationId:GEN,bytes:100,sha256:'a'.repeat(64)};
+const context={jobId:JOB,quarantineId:QUARANTINE,outputId:OUTPUT,expiresAt:EXPIRY,pipeline:'synthetic-codec-v1'};
 const capture={jobId:JOB,generationId:GEN,inputBytes:100,inputSha256:input.sha256,capturedAt:TIME};
 const lease={jobId:JOB,claimId:CLAIM,attempt:1,leaseNonce:NONCE,leaseExpiresAt:EXPIRY,quarantineId:QUARANTINE,outputId:OUTPUT,input,pipeline:'synthetic-codec-v1'};
 const manifest={pipeline:'synthetic-codec-v1',sourceFormat:'png',inputSha256:input.sha256,inputBytes:100,format:'webp',mimeType:'image/webp',sha256:'b'.repeat(64),width:40,height:30,bytes:80,encoder:{sharp:'0.35.5',vips:'8.18.7'},operations:['auto-orient','resize-inside-1920-without-enlargement','strip-metadata','webp-quality-82-effort-4']};
@@ -25,9 +26,10 @@ const rejectsInput=operation=>assert.rejects(operation,MediaCoordinatorInputErro
 const rejectsSafe=operation=>assert.rejects(operation,error=>error instanceof MediaCoordinatorSafetyError&&!error.message.includes('PRIVATE'));
 const rejectsDatabase=(operation,uncertain=false,state)=>assert.rejects(operation,error=>error instanceof MediaCoordinatorDatabaseError&&error.commitUncertain===uncertain&&(state===undefined||error.sqlState===state)&&!error.message.includes('PRIVATE'));
 
-test('dedicated guard accepts only complete safe role metadata and queries the four exact reviewed signatures',async()=>{
+test('dedicated guard accepts only complete safe role metadata and queries the five exact reviewed signatures',async()=>{
   let query;await assertSafeMediaCoordinatorConnection({async query(sql){query=sql;return {rows:[safe()]};}});
-  for(const name of ['capture_input','claim_processing','seal_output','read_processing'])assert.ok(query.includes(`p.proname='${name}'`));
+  for(const name of ['capture_input','claim_processing','seal_output','read_processing','read_upload_context'])assert.ok(query.includes(`p.proname='${name}'`));
+  assert.ok(query.includes('expected)<>5'));
   assert.ok(query.includes("p.proargtypes[3]='pg_catalog.text'::pg_catalog.regtype"));assert.ok(query.includes("p.proargtypes[3]='pg_catalog.jsonb'::pg_catalog.regtype"));assert.equal(query.includes('to_regprocedure'),false);
   for(const name of ['pg_roles','pg_auth_members','pg_class','pg_namespace','pg_proc','pg_has_role','has_table_privilege','has_schema_privilege','has_function_privilege','aclexplode','acldefault'])assert.equal(new RegExp('(?<![\\w.])'+name+'\\b').test(query),false,name);
   assert.ok(query.includes('has_any_column_privilege'));assert.ok(query.includes('aclexplode'));assert.ok(query.includes('search_path=pg_catalog'));
@@ -58,8 +60,9 @@ test('guard is rechecked on every checkout rather than trusting a previous succe
   assert.equal(f.checkouts,2);assert.deepEqual(f.releases,[false,true]);assert.equal(f.calls.filter(call=>call.sql==='BEGIN').length,0);
 });
 
-test('four fixed commands use parameterized SQL in short transactions with no caller SQL or actor GUC surface',async()=>{
+test('five fixed commands use parameterized SQL in short transactions with no caller SQL or actor GUC surface',async()=>{
   for(const [receipt,call,statement,values] of [
+    [context,api=>api.readUploadContext(JOB),'SELECT app_media.read_upload_context($1::uuid) AS receipt',[JOB]],
     [capture,api=>api.captureInput(JOB,input),'SELECT app_media.capture_input($1::uuid,$2::uuid,$3::bigint,$4::text) AS receipt',[JOB,GEN,100,input.sha256]],
     [lease,api=>api.claimProcessing(JOB,CLAIM),'SELECT app_media.claim_processing($1::uuid,$2::uuid) AS receipt',[JOB,CLAIM]],
     [verified,api=>api.sealOutput(JOB,seal),'SELECT app_media.seal_output($1::uuid,$2::integer,$3::uuid,$4::jsonb) AS receipt',[JOB,1,NONCE,JSON.stringify(manifest)]],
@@ -74,7 +77,9 @@ test('four fixed commands use parameterized SQL in short transactions with no ca
 
 test('invalid command identities, bounds and unsupported grant/manifest fields fail before a checkout',async()=>{
   const f=fixture();
-  for(const value of ['bad','../private',null,undefined])await rejectsInput(()=>f.database.readProcessing(value));
+  for(const value of ['bad','../private',null,undefined]){
+    await rejectsInput(()=>f.database.readProcessing(value));await rejectsInput(()=>f.database.readUploadContext(value));
+  }
   for(const patch of [{generationId:'bad'},{bytes:0},{bytes:10485761},{bytes:1.5},{bytes:NaN},{sha256:'A'.repeat(64)},{sha256:'bad'},{actorId:OTHER},{tenantId:OTHER},{storageKey:'private'}])await rejectsInput(()=>f.database.captureInput(JOB,{...input,...patch}));
   for(const patch of [{attempt:0},{attempt:4},{attempt:1.5},{leaseNonce:'bad'},{actorId:OTHER}])await rejectsInput(()=>f.database.sealOutput(JOB,{...seal,...patch}));
   for(const patch of [{pipeline:'other'},{sourceFormat:'gif'},{inputBytes:0},{bytes:10485761},{width:1921},{height:0},{sha256:'bad'},{mimeType:'image/png'},{accepted:true},{encoder:{sharp:'unknown',vips:'8.18.7'}},{operations:['strip-metadata']}])await rejectsInput(()=>f.database.sealOutput(JOB,{...seal,manifest:{...manifest,...patch}}));
@@ -83,6 +88,21 @@ test('invalid command identities, bounds and unsupported grant/manifest fields f
   const sparse=[...manifest.operations];delete sparse[1];await rejectsInput(()=>f.database.sealOutput(JOB,{...seal,manifest:{...manifest,operations:sparse}}));
   const operations=[...manifest.operations];Object.defineProperty(operations,'0',{enumerable:true,get(){throw new Error('PRIVATE accessor');}});await rejectsInput(()=>f.database.sealOutput(JOB,{...seal,manifest:{...manifest,operations}}));
   assert.equal(f.checkouts,0);
+});
+
+test('private upload context is exact, frozen and rejects crossed identities, fields, pipeline or impossible dates',async()=>{
+  const f=fixture({receipt:context});const result=await f.database.readUploadContext(JOB);
+  assert.deepEqual(result,context);assert.ok(Object.isFrozen(result));
+  for(const changed of [
+    {...context,jobId:OTHER},{...context,quarantineId:JOB},{...context,outputId:JOB},
+    {...context,outputId:QUARANTINE},{...context,quarantineId:'bad'},{...context,pipeline:'other'},
+    {...context,expiresAt:'2026-02-30T00:00:00.123456Z'},
+    {...context,expiresAt:'2026-10-11T00:00:00.123Z'}, {...context,tenantId:OTHER},
+    {...context,uploadUrl:'PRIVATE'},{...context,token:'PRIVATE'},
+  ]){
+    const invalid=fixture({receipt:changed});await rejectsDatabase(()=>invalid.database.readUploadContext(JOB));
+    assert.equal(invalid.calls.at(-1).sql,'ROLLBACK');assert.equal(invalid.calls.some(call=>call.sql==='COMMIT'),false);
+  }
 });
 
 test('capture and manifest snapshots precede checkout awaits and returned receipts are deeply immutable',async()=>{

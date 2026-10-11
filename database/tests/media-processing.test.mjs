@@ -241,7 +241,7 @@ test('synthetic coordinator processing preserves captured input and fenced immut
         has_function_privilege('api_runtime',p.oid,'EXECUTE') AS api_execute,
         EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE') AS public_execute
         FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles r ON r.oid=p.proowner WHERE n.nspname='app_media'`);
-      assert.deepEqual(functions.rows.map(row=>row.proname).sort(),['capture_input','claim_processing','read_processing','seal_output']);
+      assert.deepEqual(functions.rows.map(row=>row.proname).sort(),['capture_input','claim_processing','read_processing','read_upload_context','seal_output']);
       for(const row of functions.rows)assert.deepEqual({owner:row.owner,security:row.prosecdef,config:row.proconfig,
         coordinator:row.coordinator_execute,api:row.api_execute,public:row.public_execute},
         {owner:'realtor_owner',security:true,config:['search_path=pg_catalog'],coordinator:true,api:false,public:false});

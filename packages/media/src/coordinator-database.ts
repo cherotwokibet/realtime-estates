@@ -17,6 +17,9 @@ export class MediaCoordinatorDatabaseError extends Error {
   constructor(readonly commitUncertain:boolean,readonly sqlState?:string){super('Media coordinator database command could not be confirmed.');}
 }
 export interface MediaCaptureInput {readonly generationId:string;readonly bytes:number;readonly sha256:string}
+export interface MediaUploadContext {
+  readonly jobId:string;readonly quarantineId:string;readonly outputId:string;readonly expiresAt:string;readonly pipeline:'synthetic-codec-v1';
+}
 export interface MediaCaptureReceipt {readonly jobId:string;readonly generationId:string;readonly inputBytes:number;readonly inputSha256:string;readonly capturedAt:string}
 export interface MediaProcessingLease {
   readonly jobId:string;readonly claimId:string;readonly attempt:number;readonly leaseNonce:string;readonly leaseExpiresAt:string;
@@ -37,6 +40,7 @@ const FUNCTIONS=Object.freeze([
   {name:'claim_processing',arguments:['uuid','uuid']},
   {name:'seal_output',arguments:['uuid','int4','uuid','jsonb']},
   {name:'read_processing',arguments:['uuid']},
+  {name:'read_upload_context',arguments:['uuid']},
 ] as const);
 // Catalog lookup avoids resolving app_media through the NOINHERIT login's
 // namespace privileges before SET ROLE. Argument types resolve only pg_catalog.
@@ -75,7 +79,7 @@ const GUARD_SQL=`SELECT current_user AS "currentUser",session_user AS "sessionUs
   EXISTS(SELECT 1 FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='app_media' AND
     (pg_catalog.has_function_privilege(session_user,p.oid,'EXECUTE') OR pg_catalog.has_function_privilege('media_coordinator',p.oid,'EXECUTE')) AND
     p.oid NOT IN (${EXPECTED_OIDS_SQL})) AS "unexpectedFunctionPrivilege",
-  ((SELECT pg_catalog.count(*) FROM (${EXPECTED_OIDS_SQL}) expected)<>4 OR EXISTS(SELECT 1 FROM (${EXPECTED_OIDS_SQL}) expected
+  ((SELECT pg_catalog.count(*) FROM (${EXPECTED_OIDS_SQL}) expected)<>${FUNCTIONS.length} OR EXISTS(SELECT 1 FROM (${EXPECTED_OIDS_SQL}) expected
     WHERE NOT pg_catalog.has_function_privilege('media_coordinator',expected.oid,'EXECUTE'))) AS "missingFunctionPrivilege",
   EXISTS(SELECT 1 FROM pg_catalog.pg_proc p WHERE p.oid IN (${EXPECTED_OIDS_SQL}) AND
     (pg_catalog.pg_get_userbyid(p.proowner)<>'realtor_owner' OR NOT p.prosecdef OR p.prokind<>'f' OR p.prorettype<>'pg_catalog.jsonb'::pg_catalog.regtype OR p.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog']::pg_catalog.text[])) AS "unsafeFunctionDefinition",
@@ -123,6 +127,13 @@ function time(value:unknown,reject:Reject):string{
 function captureInput(value:unknown,reject:Reject):MediaCaptureInput{
   const row=plain(value,['generationId','bytes','sha256'],reject);
   return Object.freeze({generationId:uuid(row.generationId,reject),bytes:bounded(row.bytes,1,10485760,reject),sha256:hash(row.sha256,reject)});
+}
+function uploadContext(value:unknown,jobId:string):MediaUploadContext{
+  const row=plain(value,['jobId','quarantineId','outputId','expiresAt','pipeline'],badResponse);
+  if(uuid(row.jobId,badResponse)!==jobId||row.pipeline!=='synthetic-codec-v1')badResponse();
+  const quarantineId=uuid(row.quarantineId,badResponse),outputId=uuid(row.outputId,badResponse);
+  if(quarantineId===outputId||quarantineId===jobId||outputId===jobId)badResponse();
+  return Object.freeze({jobId,quarantineId,outputId,expiresAt:time(row.expiresAt,badResponse),pipeline:'synthetic-codec-v1'});
 }
 function captureReceipt(value:unknown,jobId:string):MediaCaptureReceipt{
   const row=plain(value,['jobId','generationId','inputBytes','inputSha256','capturedAt'],badResponse);
@@ -177,6 +188,9 @@ export class MediaCoordinatorDatabase {
     return this.#command('SELECT app_media.capture_input($1::uuid,$2::uuid,$3::bigint,$4::text) AS receipt',[job,captured.generationId,captured.bytes,captured.sha256],value=>{
       const result=captureReceipt(value,job);if(result.generationId!==captured.generationId||result.inputBytes!==captured.bytes||result.inputSha256!==captured.sha256)badResponse();return result;
     });
+  }
+  async readUploadContext(jobId:string):Promise<MediaUploadContext>{
+    const job=uuid(jobId,badInput);return this.#command('SELECT app_media.read_upload_context($1::uuid) AS receipt',[job],value=>uploadContext(value,job));
   }
   async claimProcessing(jobId:string,claimId:string):Promise<MediaProcessingLease>{
     const job=uuid(jobId,badInput),claim=uuid(claimId,badInput);
