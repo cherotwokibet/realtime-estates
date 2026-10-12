@@ -14,6 +14,8 @@ import {createIdentityVerifier,parseBearerHeader} from '../dist/auth.js';
 import {createApiService} from '../dist/service.js';
 import {DatabaseSafetyError,PostgresTransactionDatabase} from '../dist/database.js';
 import {createDevelopmentServer} from '../dist/http.js';
+import {MediaCoordinatorDatabase} from '@realtor/media/coordinator-database';
+import {createNativeMediaPreview,nativeMediaPreviewConfiguration} from './media-preview.mjs';
 
 const id=number=>`00000000-0000-4000-8000-${String(number).padStart(12,'0')}`;
 export const STAFF_PREVIEW_FIXTURES=Object.freeze({
@@ -26,14 +28,18 @@ const COMPANIES=Object.freeze({
 const LIFETIME_SECONDS=1800;
 const AUDIENCE='synthetic-realtor-staff-preview';
 class StaffPreviewConfigurationError extends Error {}
-function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',seedAcceptedMedia=true,seedPendingReviews=false}={}){
+function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,seedAcceptedMedia=nativeUploads===undefined,seedPendingReviews=false}={}){
   if(process.env.NODE_ENV==='production')throw new StaffPreviewConfigurationError('Staff preview refuses NODE_ENV=production.');
   if(typeof tenantSlug!=='string'||!Object.hasOwn(COMPANIES,tenantSlug))throw new StaffPreviewConfigurationError('Choose the configured realtime-estates or sample-homes synthetic company.');
   if(!Number.isSafeInteger(port)||port<0||port>65535)throw new StaffPreviewConfigurationError('Staff preview port must be an integer from 0 through 65535.');
   if(!['agent','admin','customer','revoked-agent','other-company-agent','other-company-admin'].includes(actor))throw new StaffPreviewConfigurationError('Choose an explicitly defined synthetic actor.');
   if(typeof seedAcceptedMedia!=='boolean')throw new StaffPreviewConfigurationError('Synthetic accepted-metadata fixture flag must be boolean.');
   if(typeof seedPendingReviews!=='boolean'||(seedPendingReviews&&!seedAcceptedMedia))throw new StaffPreviewConfigurationError('Pending review fixtures require the explicit accepted-metadata fixture.');
-  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews};
+  if(nativeUploads!==undefined){
+    nativeUploads=nativeMediaPreviewConfiguration(nativeUploads);
+    if(seedAcceptedMedia||seedPendingReviews)throw new StaffPreviewConfigurationError('Native media preview starts without fabricated accepted-media or pending-review fixtures.');
+  }
+  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads};
 }
 function syntheticContent(title='Synthetic staff monthly studio'){
   return {
@@ -84,18 +90,24 @@ async function seed(db,seedAcceptedMedia,seedPendingReviews){
     }
   }
 }
-function runtimePool(db){
-  let tail=Promise.resolve();let closed=false;
-  return {
+function runtimePools(db,withMedia){
+  let tail=Promise.resolve();let closed=false,poisoned=false,closing;
+  function pool(login){return {
     async connect(){
-      if(closed)throw new DatabaseSafetyError();
+      if(closed||poisoned)throw new DatabaseSafetyError();
       let unlock;const next=new Promise(resolve=>{unlock=resolve;});const previous=tail;tail=next;await previous;
-      if(closed){unlock();throw new DatabaseSafetyError();}
+      if(closed||poisoned){unlock();throw new DatabaseSafetyError();}
+      try{
+        // PGlite has one session. A shared queue changes only between two fixed,
+        // separately granted logins; request SQL never receives bootstrap access.
+        await db.exec(`SET SESSION AUTHORIZATION ${login}; RESET ROLE;`);
+      }catch(error){poisoned=true;unlock();throw error;}
       let released=false;
-      return {query:(sql,args)=>db.query(sql,args?[...args]:[]),release(){if(!released){released=true;unlock();}}};
+      return {query:(sql,args)=>db.query(sql,args?[...args]:[]),release(destroy=false){if(!released){released=true;if(destroy)poisoned=true;unlock();}}};
     },
-    async end(){closed=true;await tail;await db.close();},
-  };
+  };}
+  const close=()=>closing??=(async()=>{closed=true;await tail;await db.close();})();
+  return {api:{...pool('synthetic_staff_login'),end:close},media:withMedia?pool('synthetic_staff_media_login'):undefined,close};
 }
 function json(status,payload,extra={}){
   return new Response(JSON.stringify(payload),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff','X-Synthetic-Staff-Preview':'true',...extra}});
@@ -115,14 +127,17 @@ async function closeServer(server){
 
 /** Token is handed only to the calling development launcher, never an HTTP login route. */
 export async function startStaffPreview(options={}){
-  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews}=configuration(options);
+  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads}=configuration(options);
   const company=COMPANIES[tenantSlug],other=COMPANIES[tenantSlug==='realtime-estates'?'sample-homes':'realtime-estates'];
   const actorId=actor==='agent'?company.agent:actor==='admin'?company.admin:actor==='customer'?company.customer:actor==='revoked-agent'?company.revoked:actor==='other-company-admin'?other.admin:other.agent;
-  const db=new PGlite();let database;let apiServer;let jwksServer;
+  const db=new PGlite();let database,coordinator,nativeMedia;let apiServer;let jwksServer;
   try{
     await seed(db,seedAcceptedMedia,seedPendingReviews);
-    await db.exec('CREATE ROLE synthetic_staff_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT api_runtime TO synthetic_staff_login; SET SESSION AUTHORIZATION synthetic_staff_login;');
-    database=new PostgresTransactionDatabase(runtimePool(db));await database.checkConnection();
+    await db.exec('CREATE ROLE synthetic_staff_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT api_runtime TO synthetic_staff_login;');
+    if(nativeUploads)await db.exec('CREATE ROLE synthetic_staff_media_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT media_coordinator TO synthetic_staff_media_login;');
+    const pools=runtimePools(db,!!nativeUploads);
+    database=new PostgresTransactionDatabase(pools.api);await database.checkConnection();
+    if(nativeUploads){coordinator=new MediaCoordinatorDatabase(pools.media);await coordinator.checkConnection();}
     const {publicKey,privateKey}=await generateKeyPair('RS256');
     const kid=randomUUID(),keys={keys:[{...await exportJWK(publicKey),kid,alg:'RS256',use:'sig'}]};
     let issuer;
@@ -141,38 +156,52 @@ export async function startStaffPreview(options={}){
     const bearerToken=await new SignJWT({synthetic:true}).setProtectedHeader({alg:'RS256',kid,typ:'JWT'}).setIssuer(issuer).setAudience(AUDIENCE).setSubject(actorId).setIssuedAt(now).setExpirationTime(now+LIFETIME_SECONDS).sign(privateKey);
     await verify(bearerToken); // Exercise the real loopback JWKS resolver before handing off.
     const service=createApiService({database,tenantId:company.id,privacyNoticeVersion:'synthetic-staff-notice-v1',verifyAuthorization:request=>verify(parseBearerHeader(request.headers.get('authorization')??undefined))});
+    if(nativeUploads)nativeMedia=await createNativeMediaPreview({nativeUploads,tenant:{tenantId:company.id,slug:tenantSlug,hostnames:['127.0.0.1','localhost']},database,coordinator,verifyBearer:verify});
     let origin;let allowedHosts=new Set();
-    apiServer=createDevelopmentServer(async request=>{
+    const guard=request=>{
       const url=new URL(request.url),requestOrigin=request.headers.get('origin');
       if(!allowedHosts.has(url.host)||!allowedHosts.has(request.headers.get('host')??''))return failure(404,'NOT_FOUND','Staff preview host is unavailable.');
       if(requestOrigin!==null&&requestOrigin!==origin)return failure(403,'FORBIDDEN','Staff preview origin is unavailable.');
       if(request.headers.has('cookie'))return failure(400,'INVALID_INPUT','Staff preview does not accept cookie credentials.');
       const reviewQueue=url.pathname==='/v2/staff/reviews';
       if(url.search&&(!reviewQueue||[...url.searchParams.keys()].some(key=>key!=='limit')||url.searchParams.getAll('limit').length>1))return failure(400,'INVALID_INPUT','Staff preview does not accept query-selected context.');
-      if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,acceptedMediaMetadataOnly:seedAcceptedMedia,tokenExpiresAt:expiresAt});
+      return undefined;
+    };
+    apiServer=createDevelopmentServer(async request=>{
+      const denied=guard(request);if(denied)return denied;
+      const url=new URL(request.url),reviewQueue=url.pathname==='/v2/staff/reviews';
+      if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,acceptedMediaMetadataOnly:seedAcceptedMedia,nativeUploads:!!nativeMedia,retainedSyntheticMedia:!!nativeMedia,tokenExpiresAt:expiresAt});
+      const finalizeRoute=nativeMedia&&/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/media-attach-intents\/[0-9a-f-]{36}\/finalize$/i.test(url.pathname);
+      if(finalizeRoute){const response=await nativeMedia.handleFinalize(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;}
       const route=/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/drafts\/1(\/submit)?$/i.exec(url.pathname);
       const reviewRoute=/^\/v2\/staff\/reviews\/[0-9a-f-]{36}\/revisions\/1(\/decision)?$/i.exec(url.pathname);
       const mediaRoute=/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/(media-registrations|media-jobs)(?:\/([0-9a-f-]{36}))?$/i.exec(url.pathname);
       const galleryRoute=/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/(workspace|media-removals|media-reorders|media-operations)(?:\/([0-9a-f-]{36}))?$/i.exec(url.pathname);
-      if(!route&&!reviewRoute&&!reviewQueue&&!mediaRoute&&!galleryRoute)return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
+      const attachRoute=nativeMedia?/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/media-attach-intents(?:\/([0-9a-f-]{36}))?$/i.exec(url.pathname):null;
+      if(!route&&!reviewRoute&&!reviewQueue&&!mediaRoute&&!galleryRoute&&!attachRoute)return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
       if(mediaRoute&&mediaRoute[1]==='media-jobs'&&!mediaRoute[2])return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
       if(galleryRoute&&((galleryRoute[1]==='media-operations')!==!!galleryRoute[2]))return failure(404,'NOT_FOUND','Staff preview route is unavailable.');
-      const allowedMethods=galleryRoute?(['workspace','media-operations'].includes(galleryRoute[1])?['GET']:['POST']):mediaRoute?(mediaRoute[2]?['GET']:['POST']):reviewQueue?['GET']:reviewRoute?(reviewRoute[1]?['POST']:['GET']):route[1]?['POST']:['GET','PUT'];
+      const allowedMethods=attachRoute?(attachRoute[1]?['GET']:['POST']):galleryRoute?(['workspace','media-operations'].includes(galleryRoute[1])?['GET']:['POST']):mediaRoute?(mediaRoute[2]?['GET']:['POST']):reviewQueue?['GET']:reviewRoute?(reviewRoute[1]?['POST']:['GET']):route[1]?['POST']:['GET','PUT'];
       if(!allowedMethods.includes(request.method))return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for the staff fixture.',{Allow:allowedMethods.join(', ')});
       if(request.method!=='GET'&&!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')??''))return failure(415,'JSON_REQUIRED','Use application/json.');
       const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
-    });
+    },new WeakMap(),nativeMedia?async(request,source)=>{
+      const denied=guard(request);if(denied)return denied;
+      const url=new URL(request.url);
+      if(!/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/media-jobs\/[0-9a-f-]{36}\/uploads\/[0-9a-f-]{36}$/i.test(url.pathname))return failure(404,'NOT_FOUND','Staff preview upload route is unavailable.');
+      const response=await nativeMedia.handleUpload(request,source);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
+    }:undefined);
     origin=await listen(apiServer,port);allowedHosts=new Set([new URL(origin).host,`localhost:${new URL(origin).port}`]);
     let closing;
     const close=()=>closing??=(async()=>{
-      try{await Promise.all([closeServer(apiServer),closeServer(jwksServer)]);}finally{await database.close();}
+      try{await Promise.all([closeServer(apiServer),closeServer(jwksServer),nativeMedia?.close()]);}finally{try{await nativeMedia?.close();await coordinator?.close();}finally{await database.close();}}
     })();
-    const preview={origin,listingId:company.listing,revision:1,tenantSlug,expiresAt,acceptedMediaMetadataOnly:seedAcceptedMedia,pendingReviewFixtures:seedPendingReviews,close};
+    const preview={origin,listingId:company.listing,revision:1,tenantSlug,expiresAt,acceptedMediaMetadataOnly:seedAcceptedMedia,pendingReviewFixtures:seedPendingReviews,nativeUploads:!!nativeMedia,close};
     // Avoid incidental console/JSON dumps of a whole return object exposing its token.
     Object.defineProperty(preview,'bearerToken',{value:bearerToken,enumerable:false,writable:false,configurable:false});
     return Object.freeze(preview);
   }catch(error){
-    try{await Promise.all([closeServer(apiServer),closeServer(jwksServer)]);}finally{if(database)await database.close();else await db.close();}
+    try{await Promise.all([closeServer(apiServer),closeServer(jwksServer),nativeMedia?.close()]);}finally{try{await coordinator?.close();}finally{if(database)await database.close();else await db.close();}}
     throw error;
   }
 }

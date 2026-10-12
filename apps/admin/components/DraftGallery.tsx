@@ -18,9 +18,9 @@ export default function DraftGallery(props:Props){
   return <section className="draft-panel gallery-panel" aria-labelledby="gallery-heading">
     <div className="draft-section-heading"><span>04</span><div><h2 id="gallery-heading">Photos &amp; cover</h2><p>Put the strongest photo first. Save the full order when you are ready.</p></div></div>
     <div className="gallery-summary"><strong>{workspace.photos.length} of 12 photos</strong><span>{accepted} accepted records · 4 required for review</span></div>
-    <p className="gallery-fixture">Synthetic photo records. Image previews and adding uploads are not available in this local workspace yet.</p>
+    <p className="gallery-fixture">Saved image previews are not connected yet. Default preview fixtures are metadata only.</p>
     {needsRepair&&<p className="gallery-warning">The saved positions have gaps. Save the complete photo order to repair them before removing a photo.</p>}
-    {order.length===0?<div className="gallery-empty"><strong>Your gallery is empty</strong><p>Photo uploads will be connected in the next delivery stage.</p></div>:<ol className="gallery-grid" aria-label="Photo order">{order.map((id,index)=>{
+    {order.length===0?<div className="gallery-empty"><strong>Your gallery is empty</strong><p>Add a verified photo using the controls below when the synthetic photo preview is enabled.</p></div>:<ol className="gallery-grid" aria-label="Photo order">{order.map((id,index)=>{
       const photo=workspace.photos.find(item=>item.id===id);if(!photo)return null;
       return <li className="gallery-card" key={id}>
         <div className="gallery-placeholder" aria-label={`Photo ${index+1}: preview unavailable`}><svg viewBox="0 0 48 36" fill="none" aria-hidden="true"><rect x="1" y="1" width="46" height="34" rx="5"/><circle cx="34" cy="11" r="4"/><path d="m2 30 12-14 10 12 7-7 16 13"/></svg><span>Preview unavailable</span>{index===0&&<strong className="gallery-cover">Cover photo</strong>}</div>

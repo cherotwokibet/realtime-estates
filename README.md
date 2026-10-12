@@ -1,5 +1,7 @@
 # Realtor Platform
 
+Latest checkpoint: [local admin photo upload and attachment](docs/admin-photo-upload.md), with [627 affected checks, desktop upload/conflict proof and remaining limits](docs/evidence/2026-10-12-admin-photo.md). Saved private image previews are next; production and launch gates remain open.
+
 Latest local checkpoint: optional authenticated loopback photo transport with original-status recovery. 551 affected tests, shared package/API builds and eight typechecks passed. See [transport contract](docs/development-streaming-uploads.md) and [executed evidence](docs/evidence/2026-10-11-streaming-upload.md). Default server composition, browser uploads/image delivery, production/devices/operator UAT and all release gates remain open.
 
 Independent replacement for Realtime Estates Ltd, designed for additional realtor businesses. Foundation work started 9 October 2026. Local web/admin/mobile previews, shared domain rules, JWT verification, PostgreSQL policies and an API slice are implemented. Production integration and release acceptance remain open.

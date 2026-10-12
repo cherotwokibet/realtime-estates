@@ -108,6 +108,11 @@ export interface RequestOptions {
 }
 export interface EnquiryRequestOptions extends RequestOptions { readonly idempotencyKey: string }
 export interface StaffRequestOptions extends RequestOptions {readonly bearerToken:string}
+/** Local development ingress status. Verification alone neither attaches nor publishes a photo. */
+export interface MediaUploadStatusV2 {
+  readonly uploadId:string;readonly jobId:string;readonly listingId:string;readonly revision:number;
+  readonly state:'verified'|'processing'|'blocked'|'native_failed';
+}
 export type ClientErrorKind = 'CONFIGURATION' | 'VALIDATION' | 'NETWORK' | 'TIMEOUT' | 'CANCELLED' | 'HTTP' | 'INVALID_RESPONSE' | 'REDIRECT';
 export interface ClientErrorDetails {
   readonly status?: number; readonly serverCode?: string; readonly requestId?: string; readonly retryAfterSeconds?: number;
@@ -142,6 +147,17 @@ const STAFF_CONTENT_FIELDS=['title','description','purpose','propertyType','curr
 const REVIEW_FIELDS=['listingId','slug','revision','state','version','listingVersion','title','purpose','propertyType','amountMinor','rentPeriod','submittedAt','submittedBy','publicationStatus','publishedRevision','availability','lastAvailabilityConfirmedAt','acceptedPhotoCount'] as const;
 const MAX_JSON_CHARACTERS=3*1024*1024;
 const SERVER_CODES=new Set(['INVALID_INPUT','NOTICE_ACKNOWLEDGEMENT_REQUIRED','UNAUTHENTICATED','FORBIDDEN','NOT_FOUND','METHOD_NOT_ALLOWED','CONFLICT','BODY_TOO_LARGE','JSON_REQUIRED','INVALID_JSON','INVALID_STATE','RATE_LIMITED','SERVICE_UNAVAILABLE']);
+const UPLOAD_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['INVALID_UPLOAD',400],['UNAUTHENTICATED',401],['EXPECTATION_FAILED',417],['BINARY_REQUIRED',415],['BODY_TOO_LARGE',413],['UPLOAD_BUSY',409],['UPLOAD_UNCONFIRMED',409],['SERVICE_UNAVAILABLE',503],['UPLOAD_TIMEOUT',408],['UPLOAD_ABORTED',400]]);
+const UPLOAD_PATH=/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/media-jobs\/[^/]+\/uploads\/[^/]+$/;
+const FINALIZE_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['INVALID_INPUT',400],['FORBIDDEN',403],['UNAUTHENTICATED',401],['REQUEST_ABORTED',400],['ATTACHMENT_UNCONFIRMED',503],['SERVICE_UNAVAILABLE',503]]);
+const FINALIZE_PATH=/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/media-attach-intents\/[^/]+\/finalize$/;
+const nativeTypedArray=Object.getPrototypeOf(Uint8Array.prototype) as object;
+const nativeTypedArrayBuffer=Object.getOwnPropertyDescriptor(nativeTypedArray,'buffer')!.get!;
+const nativeTypedArrayOffset=Object.getOwnPropertyDescriptor(nativeTypedArray,'byteOffset')!.get!;
+const nativeTypedArrayLength=Object.getOwnPropertyDescriptor(nativeTypedArray,'byteLength')!.get!;
+const nativeTypedArrayKind=Object.getOwnPropertyDescriptor(nativeTypedArray,Symbol.toStringTag)!.get!;
+const nativeArrayBufferLength=Object.getOwnPropertyDescriptor(ArrayBuffer.prototype,'byteLength')!.get!;
+const nativeByteCopy=Uint8Array.prototype.set;
 const invalid=(kind:'VALIDATION'|'INVALID_RESPONSE'|'CONFIGURATION',message:string):never=>{throw new ApiClientError(kind,message);};
 function record(input:unknown,fields:readonly string[],kind:'VALIDATION'|'INVALID_RESPONSE'|'CONFIGURATION'):Record<string,unknown>{
   if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).some(key=>!fields.includes(key)))return invalid(kind,'Unsupported or malformed fields.');
@@ -480,6 +496,51 @@ export function validateMediaOperationReceiptV2(input:unknown,listingId:string,r
   const id=uuid(listingId,'VALIDATION','Listing ID'),number=integer(revision,1,2147483647,'VALIDATION','Revision'),operation=uuid(operationId,'VALIDATION','Operation ID');
   return mediaOperation(input,id,number,operation);
 }
+/** Parse safe registration history, optionally bound to the exact original command. */
+export function validateMediaRegistrationReceiptV2(input:unknown,listingId:string,revision:number,registrationId:string,request?:MediaRegistrationInputV2):MediaRegistrationReceiptV2{
+  const listing=uuid(listingId,'VALIDATION','Listing ID'),number=integer(revision,1,2147483647,'VALIDATION','Revision'),registration=uuid(registrationId,'VALIDATION','Registration ID');
+  let original:MediaRegistrationInputV2|undefined;
+  if(request!==undefined){
+    const row=attachRecord(request,['registrationId','expectedVersion','altText'],'VALIDATION'),id=uuid(row.registrationId,'VALIDATION','Registration ID'),expectedVersion=staffVersion(row.expectedVersion,'VALIDATION'),altText=mediaAltText(row.altText,'VALIDATION');
+    if(id!==registration||BigInt(expectedVersion)>BigInt(Number.MAX_SAFE_INTEGER))return invalid('VALIDATION','Invalid original registration command.');
+    original=Object.freeze({registrationId:id,expectedVersion,altText});
+  }
+  return mediaRegistration(attachRecord(input,[...MEDIA_FACT_FIELDS,'outcome'],'INVALID_RESPONSE'),listing,number,registration,original);
+}
+/** Parse safe attachment history, optionally bound to the exact original command. */
+export function validateMediaAttachIntentV2(input:unknown,listingId:string,revision:number,operationId:string,request?:MediaAttachIntentInputV2):MediaAttachIntentV2{
+  const listing=uuid(listingId,'VALIDATION','Listing ID'),number=integer(revision,1,2147483647,'VALIDATION','Revision'),operation=uuid(operationId,'VALIDATION','Operation ID');
+  let original:MediaAttachIntentInputV2|undefined;
+  if(request!==undefined){
+    const row=attachRecord(request,['operationId','jobId','expectedVersion'],'VALIDATION'),id=uuid(row.operationId,'VALIDATION','Operation ID'),jobId=uuid(row.jobId,'VALIDATION','Job ID'),expectedVersion=staffVersion(row.expectedVersion,'VALIDATION');
+    if(id!==operation||jobId===operation||BigInt(expectedVersion)>BigInt(Number.MAX_SAFE_INTEGER-1))return invalid('VALIDATION','Invalid original attachment command.');
+    original=Object.freeze({operationId:id,jobId,expectedVersion});
+  }
+  return mediaAttachIntent(input,listing,number,operation,original);
+}
+/** Pure parser for an untrusted BFF status; resource/principal authorization remains server-owned. */
+export function validateMediaUploadStatusV2(input:unknown,listingId:string,revision:number,jobId:string,uploadId:string):MediaUploadStatusV2{
+  const listing=uuid(listingId,'VALIDATION','Listing ID'),number=integer(revision,1,2147483647,'VALIDATION','Revision'),job=uuid(jobId,'VALIDATION','Job ID'),upload=uuid(uploadId,'VALIDATION','Upload ID');
+  const row=attachRecord(input,['uploadId','jobId','listingId','revision','state'],'INVALID_RESPONSE');
+  if(uuid(row.uploadId,'INVALID_RESPONSE','Upload ID')!==upload||uuid(row.jobId,'INVALID_RESPONSE','Job ID')!==job||uuid(row.listingId,'INVALID_RESPONSE','Listing ID')!==listing||integer(row.revision,1,2147483647,'INVALID_RESPONSE','Revision')!==number||typeof row.state!=='string'||!['verified','processing','blocked','native_failed'].includes(row.state))return invalid('INVALID_RESPONSE','Unexpected private upload status.');
+  return Object.freeze({uploadId:upload,jobId:job,listingId:listing,revision:number,state:row.state as MediaUploadStatusV2['state']});
+}
+function uploadBytes(input:unknown):Uint8Array<ArrayBuffer>{
+  try{
+    if(!ArrayBuffer.isView(input)||Reflect.apply(nativeTypedArrayKind,input,[])!=='Uint8Array')return invalid('VALIDATION','Supply an ordinary byte array within the upload limit.');
+    const backing=Reflect.apply(nativeTypedArrayBuffer,input,[]) as ArrayBuffer,offset=Reflect.apply(nativeTypedArrayOffset,input,[]) as number,length=Reflect.apply(nativeTypedArrayLength,input,[]) as number;
+    // The ArrayBuffer intrinsic rejects SharedArrayBuffer without relying on a
+    // browser exposing that constructor or caller-owned .buffer/.length fields.
+    Reflect.apply(nativeArrayBufferLength,backing,[]);
+    if(length<1||length>10485760)return invalid('VALIDATION','Private uploads require 1 byte through 10 MiB.');
+    const snapshot=new Uint8Array(length);Reflect.apply(nativeByteCopy,snapshot,[new Uint8Array(backing,offset,length),0]);return snapshot;
+  }catch(error){if(error instanceof ApiClientError)throw error;return invalid('VALIDATION','Supply an ordinary byte array within the upload limit.');}
+}
+function uploadOptions(input:StaffRequestOptions):StaffRequestOptions{
+  if(!input||typeof input!=='object'||(Object.getPrototypeOf(input)!==Object.prototype&&Object.getPrototypeOf(input)!==null))return invalid('VALIDATION','Supply exact staff request options.');
+  const keys=Reflect.ownKeys(input);if(keys.some(key=>typeof key!=='string'||!['bearerToken','signal','timeoutMs'].includes(key)))return invalid('VALIDATION','Supply exact staff request options.');
+  const snapshot=attachRecord(input,keys as string[],'VALIDATION') as unknown as StaffRequestOptions;staffOptions(snapshot);return Object.freeze(snapshot);
+}
 function requestOptions(input:RequestOptions,extra:readonly string[]=[]):void{
   record(input,['bearerToken','signal','timeoutMs',...extra],'VALIDATION');
   if(input.bearerToken!==undefined&&(typeof input.bearerToken!=='string'||input.bearerToken.length>8192||! /^[A-Za-z\d\-._~+/]+=*$/.test(input.bearerToken)))invalid('VALIDATION','Invalid bearer token.');
@@ -602,6 +663,15 @@ export class RealtorApiClient {
     staffOptions(options);const path=mediaPath(listingId,revision),id=uuid(operationId,'VALIDATION','Operation ID');
     return mediaAttachIntent(await this.request(`${path}/media-attach-intents/${id}`,'GET',options),listingId,revision,id);
   }
+  /** Explicitly finalize the retained original intent once. Uncertain results require status readback. */
+  async finalizeMediaAttachIntentV2(listingId:string,revision:number,operationId:string,options:StaffRequestOptions):Promise<MediaAttachIntentV2>{
+    const captured=uploadOptions(options),path=mediaPath(listingId,revision),id=uuid(operationId,'VALIDATION','Operation ID');
+    try{
+      const value=validateMediaAttachIntentV2(await this.request(`${path}/media-attach-intents/${id}/finalize`,'POST',captured),listingId,revision,id);
+      if(value.status==='ready')return invalid('INVALID_RESPONSE','Attachment finalization was not confirmed.');
+      return value;
+    }catch(error){return uncertainWriteError(error);}
+  }
   /** Send once with the original operation/body; reconcile uncertainty through getMediaOperationV2. */
   async removeDraftMediaV2(listingId:string,revision:number,input:MediaRemovalInputV2,options:StaffRequestOptions):Promise<MediaOperationReceiptV2>{
     staffOptions(options);const path=mediaPath(listingId,revision)+'/media-removals',value=attachRecord(input,['operationId','mediaId','expectedVersion'],'VALIDATION');
@@ -621,6 +691,16 @@ export class RealtorApiClient {
     staffOptions(options);const path=mediaPath(listingId,revision),id=uuid(operationId,'VALIDATION','Operation ID');
     return mediaOperation(await this.request(`${path}/media-operations/${id}`,'GET',options),listingId,revision,id);
   }
+  /** Send one snapshotted binary body. Retain the original job/upload UUIDs and reconcile uncertainty explicitly. */
+  async uploadMediaInputV2(listingId:string,revision:number,jobId:string,uploadId:string,input:Uint8Array,options:StaffRequestOptions):Promise<MediaUploadStatusV2>{
+    const captured=uploadOptions(options),path=mediaPath(listingId,revision),job=uuid(jobId,'VALIDATION','Job ID'),upload=uuid(uploadId,'VALIDATION','Upload ID'),bytes=uploadBytes(input);
+    try{return validateMediaUploadStatusV2(await this.request(`${path}/media-jobs/${job}/uploads/${upload}`,'PUT',captured,undefined,undefined,bytes),listingId,revision,job,upload);}catch(error){return uncertainWriteError(error);}
+  }
+  /** Current authorized original-status readback; never resends bytes or restarts processing. */
+  async getMediaUploadStatusV2(listingId:string,revision:number,jobId:string,uploadId:string,options:StaffRequestOptions):Promise<MediaUploadStatusV2>{
+    const captured=uploadOptions(options),path=mediaPath(listingId,revision),job=uuid(jobId,'VALIDATION','Job ID'),upload=uuid(uploadId,'VALIDATION','Upload ID');
+    return validateMediaUploadStatusV2(await this.request(`${path}/media-jobs/${job}/uploads/${upload}`,'GET',captured),listingId,revision,job,upload);
+  }
   async submitEnquiry(input:EnquiryInput,options:EnquiryRequestOptions):Promise<EnquiryReceipt>{
     requestOptions(options,['idempotencyKey']);const key=uuid(options.idempotencyKey,'VALIDATION','Idempotency key');
     const body=enquiryBody(input,this.currentNotice);
@@ -632,8 +712,9 @@ export class RealtorApiClient {
       throw error;
     }
   }
-  private async request(path:string,method:'GET'|'POST'|'PUT',options:RequestOptions,body?:Record<string,unknown>,key?:string):Promise<unknown>{
+  private async request(path:string,method:'GET'|'POST'|'PUT',options:RequestOptions,body?:Record<string,unknown>,key?:string,binary?:Uint8Array<ArrayBuffer>):Promise<unknown>{
     const writes=method!=='GET';
+    const upload=UPLOAD_PATH.test(path),finalization=FINALIZE_PATH.test(path);
     const expectedStatus=path==='/v1/enquiries'&&method==='POST'?201:200;
     if(options.signal?.aborted)throw new ApiClientError('CANCELLED','Request was cancelled.');
     const controller=new AbortController();let interruption:'CANCELLED'|'TIMEOUT'|undefined;let started=false;
@@ -647,16 +728,30 @@ export class RealtorApiClient {
         const headers:Record<string,string>={Accept:'application/json'};
         if(options.bearerToken)headers.Authorization=`Bearer ${options.bearerToken}`;
         if(body){headers['Content-Type']='application/json';if(key!==undefined)headers['Idempotency-Key']=key;}
+        if(binary)headers['Content-Type']='application/octet-stream';
         const url=this.apiOrigin+path;started=true;
-        const result=await this.transport(url,{method,headers,credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal,...(body?{body:JSON.stringify(body)}:{})});
+        const result=await this.transport(url,{method,headers,credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal,...(binary?{body:binary}:body?{body:JSON.stringify(body)}:{})});
         if(result.redirected||(result.status>=300&&result.status<400)||(result.url&&new URL(result.url).href!==new URL(url).href))throw new ApiClientError('REDIRECT','API redirects are not permitted.',{submissionUncertain:writes});
         if(!/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type')??''))throw new ApiClientError('INVALID_RESPONSE','Expected a JSON API response.',{status:result.status,submissionUncertain:writes});
-        const raw=await result.text();if(raw.length>MAX_JSON_CHARACTERS)throw new ApiClientError('INVALID_RESPONSE','API response exceeded the supported size.',{status:result.status,submissionUncertain:writes});
+        const raw=await result.text();if(raw.length>(upload||finalization?4096:MAX_JSON_CHARACTERS))throw new ApiClientError('INVALID_RESPONSE','API response exceeded the supported size.',{status:result.status,submissionUncertain:writes});
         let payload:unknown;try{
-          if(/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/(?:workspace|media-registrations|media-jobs|media-attach-intents|media-removals|media-reorders|media-operations)(?:\/[^/]+)?$/.test(path))assertMediaJsonTokens(raw);
+          if(upload||/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/(?:workspace|media-registrations|media-jobs|media-attach-intents|media-removals|media-reorders|media-operations)(?:\/[^/]+)?(?:\/finalize)?$/.test(path))assertMediaJsonTokens(raw);
           payload=path.startsWith('/v2/')?parseListingJsonV2(raw):JSON.parse(raw);
         }catch{throw new ApiClientError('INVALID_RESPONSE','Malformed API JSON.',{status:result.status,submissionUncertain:writes});}
         if(!result.ok){
+          if(upload){
+            const envelope=attachRecord(payload,['error'],'INVALID_RESPONSE'),code=envelope.error;
+            if(typeof code!=='string'||UPLOAD_SERVER_STATUS.get(code)!==result.status)return invalid('INVALID_RESPONSE','Malformed private upload error.');
+            const requestId=uuid(result.headers.get('x-request-id'),'INVALID_RESPONSE','Request ID');
+            throw new ApiClientError('HTTP','Private upload request could not be completed.',{status:result.status,serverCode:code,requestId,submissionUncertain:writes&&(result.status>=500||code==='UPLOAD_UNCONFIRMED')});
+          }
+          if(finalization){
+            const hasUncertain=payload!==null&&typeof payload==='object'&&Object.hasOwn(payload,'submissionUncertain');
+            const envelope=attachRecord(payload,['error','requestId',...(hasUncertain?['submissionUncertain']:[])],'INVALID_RESPONSE'),serverError=attachRecord(envelope.error,['code','message'],'INVALID_RESPONSE');
+            const code=serverError.code,requestId=uuid(envelope.requestId,'INVALID_RESPONSE','Request ID'),headerId=uuid(result.headers.get('x-request-id'),'INVALID_RESPONSE','Request ID');
+            if(typeof code!=='string'||FINALIZE_SERVER_STATUS.get(code)!==result.status||typeof serverError.message!=='string'||serverError.message.length<1||serverError.message.length>1024||requestId!==headerId||(hasUncertain&&envelope.submissionUncertain!==true))return invalid('INVALID_RESPONSE','Malformed attachment finalization error.');
+            throw new ApiClientError('HTTP','Attachment finalization could not be confirmed.',{status:result.status,serverCode:code,requestId,submissionUncertain:result.status>=500||envelope.submissionUncertain===true});
+          }
           const envelope=record(payload,['error','requestId'],'INVALID_RESPONSE');const serverError=record(envelope.error,['code','message'],'INVALID_RESPONSE');
           const requestId=uuid(envelope.requestId,'INVALID_RESPONSE','Request ID');
           if(typeof serverError.code!=='string'||typeof serverError.message!=='string')return invalid('INVALID_RESPONSE','Malformed API error.');
