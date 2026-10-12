@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {RealtorApiClient,type PublicEnquiryAttempt} from '@realtor/api-client';
+import {RealtorApiClient,createEnquiryProxyTransport,type PublicEnquiryAttempt} from '@realtor/api-client';
 
 export default function IntakeWorkspace({instanceId}:{instanceId:string}){
  const [name,setName]=useState(''),[email,setEmail]=useState(''),[message,setMessage]=useState(''),[notice,setNotice]=useState(false),[status,setStatus]=useState('editing'),[feedback,setFeedback]=useState('');
@@ -8,16 +8,10 @@ export default function IntakeWorkspace({instanceId}:{instanceId:string}){
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;controller.current?.abort();};},[]);
  useEffect(()=>{const guard=(event:BeforeUnloadEvent)=>{if(attempt.current?.state.status==='uncertain'||busy.current){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',guard);return()=>window.removeEventListener('beforeunload',guard);},[]);
  async function send(replay=false){
-  if(busy.current)return;busy.current=true;
+  if(busy.current||attempt.current?.state.status==='received'||(!replay&&attempt.current?.state.status==='uncertain'))return;busy.current=true;
   try{
    if(!replay){
-    const api=new RealtorApiClient({baseUrl:window.location.origin,privacyNoticeVersion:'synthetic-staff-notice-v1',allowLoopbackHttp:true,fetch:async(url,init)=>{
-     if(new URL(String(url)).pathname!=='/v1/enquiries')throw new Error('Unsupported intake operation.');
-     const response=await fetch('/api/enquiry-intake',{...init,headers:{...init?.headers,'X-Preview-Instance':instanceId},cache:'no-store'});
-     if(response.redirected||response.url!==window.location.origin+'/api/enquiry-intake')throw new Error('Unexpected intake destination.');
-     // The SDK validates its API URL. This fixed same-origin adapter has already validated the BFF destination.
-     return new Response(response.body,{status:response.status,headers:response.headers});
-    }});
+    const api=new RealtorApiClient({baseUrl:window.location.origin,privacyNoticeVersion:'synthetic-staff-notice-v1',allowLoopbackHttp:true,fetch:createEnquiryProxyTransport({origin:window.location.origin,instanceId,fetch:globalThis.fetch.bind(globalThis)})});
     attempt.current=api.preparePublicEnquiry({listingId:null,name,email:email||null,phone:null,message,origin:'web',noticeVersion:'synthetic-staff-notice-v1',noticeAcknowledged:notice as true},crypto.randomUUID());
    }
    if(!attempt.current)throw new Error();controller.current=new AbortController();setStatus('sending');setFeedback('Saving your synthetic enquiry…');

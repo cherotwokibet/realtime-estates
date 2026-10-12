@@ -1,5 +1,9 @@
 # Rebuild continuation checkpoint
 
+## Shared guest transport checkpoint — 12 October 2026
+
+Shared same-origin enquiry transport now omits ambient cookies, refuses redirects and rejects caller identity/tenant headers. Admin form uses it; actual synthetic desktop save verified. 170/170 API-client tests, eight workspace typechecks and admin production build passed. See enquiry-proxy.md and four logs. Next explicitly opt in public-web server configuration/route, then eligible property context; public controls remain disabled. Checklist16/97, gates0/14, price/vendor/live preserved.
+
 ## Connected synthetic intake form — 12 October 2026
 
 Opt-in local admin preview now includes guest enquiry capture at /enquiry-intake, backed by fixed same-origin bounded proxy and guest-only API allowlist. Actual browser saved a fictional general web enquiry and opened its version1 record in the shared admin inbox. Final32/32 affected tests, admin production build and eight workspace typechecks passed. See enquiry-intake-form.md, three evidence logs and private screenshots. Initial route/notice/adapter issues were corrected and documented.
