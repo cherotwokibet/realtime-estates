@@ -1,5 +1,11 @@
 # Rebuild foundation — 9 October 2026
 
+## Public intake attempt checkpoint — 12 October 2026
+
+Shared public enquiry attempt retains validated raw form values and original key, locks concurrent sends and requires explicit same-body replay after an uncertain reply. 165 API-client tests, one actual API/restricted SQL lost-committed-reply integration and eight workspace typechecks passed. See enquiry-intake.md and its three evidence logs. Earlier 800-test inbox proof remains historical.
+
+Next connect the opt-in synthetic public form through server-controlled configuration and notice; then protected staff intake/contact history. No browser form or device verification claimed here. Memory-only attempt state is not reload/crash persistent. Checklist16/97, gates0/14; vendor/live systems and KES10,000 price preserved.
+
 ## Connected enquiry inbox checkpoint — 12 October 2026
 
 800/800 affected tests, shared package/API builds, admin test compilation/production build and eight workspace typechecks passed on 209 frozen source hashes; zero failures/skips/cancellations/todos. Opt-in synthetic admin/assigned-agent inbox now connects server-only identities to assignment, contact and Nairobi follow-up, separate historical receipt/current comparison and explicit adoption. Actual desktop handover and stale admin conflict retained raw reason and exact follow-up timestamp. See enquiry-inbox.md and evidence/2026-10-12-enquiry-ui.md. Earlier755 backend evidence remains separate; focused counts overlap.

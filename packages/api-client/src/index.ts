@@ -107,6 +107,15 @@ export interface EnquiryInput {
   readonly message: string; readonly origin: 'web' | 'mobile'; readonly noticeVersion: string; readonly noticeAcknowledged: true;
 }
 export interface EnquiryReceipt { readonly id: string }
+/** In-memory public intake intent. Explicit replay retains the exact original key and values. */
+export interface PublicEnquiryAttempt {
+  readonly input: EnquiryInput;
+  readonly idempotencyKey: string;
+  readonly state: Readonly<{status:'ready'|'sending'|'uncertain'|'received'|'rejected';receipt:EnquiryReceipt|null}>;
+  submit(options?:Readonly<{signal?:AbortSignal;timeoutMs?:number}>):Promise<EnquiryReceipt>;
+  /** May create the original enquiry if the first request never reached the server. Not a read-only lookup. */
+  retryOriginal(options?:Readonly<{signal?:AbortSignal;timeoutMs?:number}>):Promise<EnquiryReceipt>;
+}
 /** Persisted staff workflow vocabulary; deliberately separate from the legacy domain exports. */
 export type StaffEnquiryStatusV2='new'|'assigned'|'contacted'|'qualified'|'closed_won'|'closed_lost'|'spam';
 export interface StaffEnquirySummaryV2 {
@@ -896,6 +905,29 @@ export class RealtorApiClient {
   async getEnquiryOperationV2(enquiryId:string,operationId:string,options:StaffRequestOptions):Promise<EnquiryOperationReceiptV2>{
     const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),operation=uuid(operationId,'VALIDATION','Operation ID');
     return enquiryOperation(await this.request(`/v2/staff/enquiries/${id}/operations/${operation}`,'GET',captured),id,operation);
+  }
+  preparePublicEnquiry(input:EnquiryInput,idempotencyKey:string):PublicEnquiryAttempt{
+    // Validate and copy before any network work; raw spelling/spacing stays available to the form.
+    record(input,['listingId','name','phone','email','message','origin','noticeVersion','noticeAcknowledged'],'VALIDATION');
+    const captured=Object.freeze({...input});enquiryBody(captured,this.currentNotice);
+    const key=uuid(idempotencyKey,'VALIDATION','Idempotency key');
+    let state:PublicEnquiryAttempt['state']=Object.freeze({status:'ready',receipt:null});
+    const run=async(replay:boolean,options:Readonly<{signal?:AbortSignal;timeoutMs?:number}>={})=>{
+      record(options,['signal','timeoutMs'],'VALIDATION');
+      requestOptions(options,[]);
+      if(state.status!==(replay?'uncertain':'ready'))throw new ApiClientError('VALIDATION','This enquiry attempt cannot be sent in its current state.');
+      const wasUncertain=state.status==='uncertain',request={signal:options.signal,timeoutMs:options.timeoutMs,idempotencyKey:key};
+      state=Object.freeze({status:'sending',receipt:null});
+      try{
+        const receipt=await this.submitEnquiry(captured,request);
+        state=Object.freeze({status:'received',receipt});return receipt;
+      }catch(error){
+        // A later denial/validation error cannot disprove an earlier uncertain commit.
+        const uncertain=wasUncertain||!(error instanceof ApiClientError)||error.submissionUncertain;
+        state=Object.freeze({status:uncertain?'uncertain':'rejected',receipt:null});throw error;
+      }
+    };
+    return Object.freeze({input:captured,idempotencyKey:key,get state(){return state;},submit:(options?:Readonly<{signal?:AbortSignal;timeoutMs?:number}>)=>run(false,options),retryOriginal:(options?:Readonly<{signal?:AbortSignal;timeoutMs?:number}>)=>run(true,options)});
   }
   async submitEnquiry(input:EnquiryInput,options:EnquiryRequestOptions):Promise<EnquiryReceipt>{
     requestOptions(options,['idempotencyKey']);const key=uuid(options.idempotencyKey,'VALIDATION','Idempotency key');

@@ -37,7 +37,7 @@ test('shared client exercises actual API service, restricted runtime transaction
     const database=new PostgresTransactionDatabase(pool);await database.checkConnection();
     const makeService=tenantId=>createApiService({database,tenantId,privacyNoticeVersion:'synthetic-v1',verifyAuthorization:async()=>{throw new Error('No identity provider in this guest integration test.');},limiter:createLocalEnquiryLimiter({limit:100})});
     const service=makeService(TENANT),other=makeService(OTHER);
-    let calls=0;const fetch=async(input,init)=>{calls++;return service(new Request(input,init));};
+    let calls=0,loseReply=false;const fetch=async(input,init)=>{calls++;const response=await service(new Request(input,init));if(loseReply){loseReply=false;throw Error('Synthetic reply lost after committed service response.');}return response;};
     const api=new RealtorApiClient({baseUrl:'https://client-a.example.invalid',privacyNoticeVersion:'synthetic-v1',fetch});
     const page=await api.listProperties();assert.deepEqual(page.items.map(row=>row.id),[LISTING]);assert.equal(page.items[0].amountMinor,2000001);assert.equal(page.items[0].latitude,null);assert.equal('privateAddress' in page.items[0],false);
     const otherClient=new RealtorApiClient({baseUrl:'https://client-b.example.invalid',privacyNoticeVersion:'synthetic-v1',fetch:async(input,init)=>other(new Request(input,init))});
@@ -51,5 +51,15 @@ test('shared client exercises actual API service, restricted runtime transaction
     const stale=new RealtorApiClient({baseUrl:'https://client-a.example.invalid',privacyNoticeVersion:'old-notice',fetch});
     await assert.rejects(()=>stale.submitEnquiry({...enquiry,noticeVersion:'old-notice'},{idempotencyKey:id(301)}),error=>error.kind==='HTTP'&&error.status===400&&error.serverCode==='NOTICE_ACKNOWLEDGEMENT_REQUIRED');
     assert.equal(calls,5); // One list, two equivalent POSTs, one conflict and one stale-notice POST; no hidden retry.
+    const raw={...enquiry,name:'  Synthetic retained name  ',message:'  Original captured message  '};
+    const attempt=api.preparePublicEnquiry(raw,id(302));loseReply=true;
+    await assert.rejects(attempt.submit(),error=>error.submissionUncertain);
+    assert.equal(attempt.state.status,'uncertain');assert.equal(calls,6);
+    raw.message='Changed after the lost reply';
+    const beforeRecovery=await database.transaction({tenantId:TENANT,actorId:ADMIN,correlationId:id(502)},query=>query.query('SELECT id,message FROM app_private.enquiries WHERE idempotency_key=$1',[id(302)]));
+    assert.equal(beforeRecovery.rows.length,1);assert.equal(beforeRecovery.rows[0].message,'Original captured message');
+    const recovered=await attempt.retryOriginal();assert.equal(recovered.id,beforeRecovery.rows[0].id);assert.equal(attempt.state.status,'received');assert.equal(calls,7);
+    const afterRecovery=await database.transaction({tenantId:TENANT,actorId:ADMIN,correlationId:id(503)},query=>query.query('SELECT count(*)::integer AS count FROM app_private.enquiries WHERE idempotency_key=$1',[id(302)]));
+    assert.equal(afterRecovery.rows[0].count,1);assert.equal(attempt.input.message,'  Original captured message  ');
   }finally{await db.close();}
 });
