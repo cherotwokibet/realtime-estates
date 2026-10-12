@@ -4,7 +4,10 @@
 
 800/800 affected tests, shared package/API builds, admin test compilation/production build and eight workspace typechecks passed on 209 frozen source hashes; zero failures/skips/cancellations/todos. Opt-in synthetic admin/assigned-agent inbox now connects server-only identities to assignment, contact and Nairobi follow-up, separate historical receipt/current comparison and explicit adoption. Actual desktop handover and stale admin conflict retained raw reason and exact follow-up timestamp. See enquiry-inbox.md and evidence/2026-10-12-enquiry-ui.md. Earlier755 backend evidence remains separate; focused counts overlap.
 
-Next connect reviewed public/protected-staff enquiry intake with notice/idempotent original capture recovery; then attributable contact history and separate viewing scheduling. Browser lost-reply/reload, physical devices, broader responsive/operator/accessibility proof, production identity/persistence, real PostgreSQL concurrency, independent backup/private platform remote, rights/accounts and all launch gates remain open. Preview identities expire30min and data is disposable; tab-local drafts/uncertain commands are not crash-persistent. KES10,000 total monthly price, checklist13/97, gates0/14 and originals/live preserved. Never rerun historical checkpoint generators.
+Next connect reviewed public/protected-staff enquiry intake with notice/idempotent original capture recovery; then attributable contact history and separate viewing scheduling. Browser lost-reply/reload, physical devices, broader responsive/operator/accessibility proof, production identity/persistence, real PostgreSQL concurrency, independent backup/private platform remote, rights/accounts and all launch gates remain open. Preview identities expire30min and data is disposable; tab-local drafts/uncertain commands are not crash-persistent. KES10,000 total monthly price, checklist16/97, gates0/14 and originals/live preserved. Never rerun historical checkpoint generators.
+
+
+Progress audit closed previously uncredited implementation items04-1,05-2,05-3 with evidence; no gate accepted. See progress-audit.md. The tracker separates verified local capabilities from full delivery completion.
 
 ## Staff enquiry operations checkpoint — 12 October 2026
 

@@ -27,3 +27,7 @@ After the800-check/build/typecheck run, a fresh disposable preview confirmed age
 The viewport override was measured at390×844 with document scrollWidth390, one358.4px content column and324.8px inputs. Actual full-page screenshot enquiry-ui-agent-390.jpg was inspected; stacked cards/controls fit the document width. This proves that browser viewport, not a physical phone, native app, all breakpoints or complete accessibility. Override reset, owned QA tabs closed, local preview stopped with Ctrl+C and no port3001 listener remained. Original user Figma/tracker tabs were preserved. See external enquiry-ui-browser-final.json for the exact observed facts and screenshot hashes.
 
 Documentation recording used the host default code page and failed during historical-document reading. Historical CONTINUATION/START-HERE bodies were restored exactly from fe496dd and verified, and this evidence template regenerated in UTF-8 before preservation. Runtime source did not change. A corrective documentation/generated-file commit records the final state.
+
+## Checklist audit
+
+Following Boniface’s progress question, evidence review closes04-1,05-2,05-3 as implemented foundation deliverables: checklist16/97, gates0/14. This supersedes the earlier13/97 count in this at-time evidence without changing the800-test result. See progress-audit.md for exact scope and remaining production work.
