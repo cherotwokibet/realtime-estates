@@ -3,7 +3,7 @@ const headers={'Cache-Control':'private, no-store, max-age=0','X-Content-Type-Op
 const error=(status:number,code:string)=>Response.json({error:{code,message:'The synthetic enquiry could not be confirmed.'},requestId:crypto.randomUUID()},{status,headers});
 const maximum=16384;
 /** Guest-only synthetic capture. Fixed deployment origin, no forwarded identity, bounded body and no retries. */
-export async function handleSyntheticEnquiry(request:Request, config:{apiOrigin:string;noticeVersion:string;authorize:(request:Request)=>void}):Promise<Response>{
+export async function handleSyntheticEnquiry(request:Request, config:{apiOrigin:string;noticeVersion:string;allowProperty?:boolean;authorize:(request:Request)=>void}):Promise<Response>{
  try{config.authorize(request);}catch{return error(403,'FORBIDDEN');}
  if(request.method!=='POST')return error(405,'METHOD_NOT_ALLOWED');
  const url=new URL(request.url);
@@ -30,7 +30,9 @@ export async function handleSyntheticEnquiry(request:Request, config:{apiOrigin:
   // Inputs are scalar only. Reject escaped duplicate keys rather than silently replacing a contact or notice.
   const tokens=source.match(/"(?:\\[\s\S]|[^"\\])*"|[{}\[\]:,]|true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g)??[];const keys=new Set<string>();
   for(let i=0;i<tokens.length;i++)if(tokens[i]!.startsWith('"')&&tokens[i+1]===':'){const k=JSON.parse(tokens[i]!);if(keys.has(k))return error(400,'INVALID_INPUT');keys.add(k);}
-  const input=body as EnquiryInput;if(input.origin!=='web'||input.listingId!==null)return error(400,'INVALID_INPUT');
+  const input=body as EnquiryInput;if(input.origin!=='web'||(input.listingId!==null&&!(config.allowProperty===true&&typeof input.listingId==='string')))return error(400,'INVALID_INPUT');
+  // A property ID is untrusted selection, never tenant authority. The fixed upstream SQL
+  // checks current tenant/public eligibility for first capture and returns original receipts on replay.
   const client=new RealtorApiClient({baseUrl:config.apiOrigin,privacyNoticeVersion:config.noticeVersion,allowLoopbackHttp:true});
   const attempt=client.preparePublicEnquiry(input,key);dispatched=true;
   const receipt=await attempt.submit({signal:request.signal,timeoutMs:15000});

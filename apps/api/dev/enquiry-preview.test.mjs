@@ -10,6 +10,28 @@ const call=(preview,path,{role='admin',token=preview.enquiryStaff?.[role].bearer
 });
 async function read(preview,path,options){const response=await call(preview,path,options);assert.equal(response.status,200);return response.json();}
 const base='/v2/staff/enquiries';
+test('published synthetic catalogue binds property capture to the fixed company and original receipt',async()=>{
+ const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1'});
+ try{
+  const catalogue=await read(preview,'/v2/properties?limit=100',{token:null});assert.equal(catalogue.items.length,1);assert.equal(catalogue.items[0].id,preview.listingId);
+  const body={listingId:preview.listingId,name:'Synthetic property prospect',email:'property@example.invalid',phone:null,message:'Fictional property enquiry',origin:'web',noticeVersion:'synthetic-staff-notice-v1',noticeAcknowledged:true};
+  const options={token:null,method:'POST',body,headers:{'Idempotency-Key':randomUUID()}};
+  const saved=await call(preview,'/v1/enquiries',options);assert.equal(saved.status,201);const receipt=await saved.json();
+  const replay=await call(preview,'/v1/enquiries',options);assert.equal(replay.status,201);assert.deepEqual(await replay.json(),receipt);
+  const detail=await read(preview,base+'/'+receipt.id);assert.equal(detail.listingId,preview.listingId);assert.equal(detail.origin,'web');
+  for(const listingId of ['00000000-0000-4000-8000-000000000401','00000000-0000-4000-8000-000000000500']){
+    const response=await call(preview,'/v1/enquiries',{...options,body:{...body,listingId},headers:{'Idempotency-Key':randomUUID()}});assert.ok(response.status>=400);
+  }
+  assert.equal((await read(preview,base)).items.length,6);
+  assert.equal((await call(preview,'/v2/properties?tenantId=other',{token:null})).status,400);
+  assert.equal((await call(preview,'/v2/properties',{method:'POST',token:null,body:{}})).status,403);
+ }finally{await preview.close();}
+});
+test('property catalogue requires its own exact opt-in and stays absent from general intake',async()=>{
+ for(const enquiryCatalogue of [true,'synthetic','constructor'])await assert.rejects(()=>startStaffPreview({port:0,enquiryPreview:'synthetic-v1',enquiryCatalogue}));
+ await assert.rejects(()=>startStaffPreview({port:0,enquiryCatalogue:'synthetic-v1'}));
+ const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1'});try{assert.equal((await call(preview,'/v2/properties',{token:null})).status,404);}finally{await preview.close();}
+});
 test('guest intake enters the same private inbox and exact replay creates one row',async()=>{
  const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1'});
  try{

@@ -32,7 +32,7 @@ const COMPANIES=Object.freeze({
 const LIFETIME_SECONDS=1800;
 const AUDIENCE='synthetic-realtor-staff-preview';
 class StaffPreviewConfigurationError extends Error {}
-function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,enquiryPreview,
+function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,enquiryPreview,enquiryCatalogue,
   seedAcceptedMedia=nativeUploads===undefined&&enquiryPreview===undefined,seedPendingReviews=false}={}){
   if(process.env.NODE_ENV==='production')throw new StaffPreviewConfigurationError('Staff preview refuses NODE_ENV=production.');
   if(typeof tenantSlug!=='string'||!Object.hasOwn(COMPANIES,tenantSlug))throw new StaffPreviewConfigurationError('Choose the configured realtime-estates or sample-homes synthetic company.');
@@ -41,12 +41,13 @@ function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',na
   if(typeof seedAcceptedMedia!=='boolean')throw new StaffPreviewConfigurationError('Synthetic accepted-metadata fixture flag must be boolean.');
   if(typeof seedPendingReviews!=='boolean'||(seedPendingReviews&&!seedAcceptedMedia))throw new StaffPreviewConfigurationError('Pending review fixtures require the explicit accepted-metadata fixture.');
   if(enquiryPreview!==undefined&&enquiryPreview!=='synthetic-v1')throw new StaffPreviewConfigurationError('Choose the explicit synthetic-v1 enquiry preview mode or omit it.');
+  if(enquiryCatalogue!==undefined&&(enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Synthetic enquiry catalogue requires explicit enquiry mode.');
   if(enquiryPreview!==undefined&&(nativeUploads!==undefined||seedAcceptedMedia||seedPendingReviews))throw new StaffPreviewConfigurationError('Enquiry preview does not combine with image or pending-review fixtures.');
   if(nativeUploads!==undefined){
     nativeUploads=nativeMediaPreviewConfiguration(nativeUploads);
     if(seedAcceptedMedia||seedPendingReviews)throw new StaffPreviewConfigurationError('Native media preview starts without fabricated accepted-media or pending-review fixtures.');
   }
-  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview};
+  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue};
 }
 function syntheticContent(title='Synthetic staff monthly studio'){
   return {
@@ -95,6 +96,15 @@ async function seed(db,seedAcceptedMedia,seedPendingReviews){
       await bootstrapAs(db,company,assigned,()=>db.query('SELECT app_api.submit_revision($1,1,2)',[listing]));
       if(fixture.paused)await bootstrapAs(db,company,company.admin,()=>db.query("SELECT app_api.set_publication($1,2,'paused')",[listing]));
     }
+  }
+}
+async function seedEnquiryCatalogue(db){
+  // Synthetic SQL provenance only: these fixtures have no image bytes and prove no upload workflow.
+  for(const company of Object.values(COMPANIES)){
+    for(let position=0;position<4;position++)await seedSyntheticSealedMedia(db,{tenantId:company.id,listingId:company.listing,mediaId:id(Number(company.listing.slice(-3))*10+position),position});
+    await bootstrapAs(db,company,company.agent,()=>db.query("SELECT app_api.confirm_availability($1,1,'available')",[company.listing]));
+    const pending=await bootstrapAs(db,company,company.agent,()=>db.query('SELECT app_api.submit_revision($1,1,2) AS version',[company.listing]));
+    await bootstrapAs(db,company,company.admin,()=>db.query('SELECT app_api.decide_revision($1,1,$2,true)',[company.listing,pending.rows[0].version]));
   }
 }
 async function seedEnquiries(db){
@@ -155,12 +165,13 @@ async function closeServer(server){
 
 /** Token is handed only to the calling development launcher, never an HTTP login route. */
 export async function startStaffPreview(options={}){
-  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview}=configuration(options);
+  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue}=configuration(options);
   const company=COMPANIES[tenantSlug],other=COMPANIES[tenantSlug==='realtime-estates'?'sample-homes':'realtime-estates'];
   const actorId=actor==='agent'?company.agent:actor==='admin'?company.admin:actor==='customer'?company.customer:actor==='revoked-agent'?company.revoked:actor==='other-company-admin'?other.admin:other.agent;
   const db=new PGlite();let database,coordinator,nativeMedia;let apiServer;let jwksServer;
   try{
     await seed(db,seedAcceptedMedia,seedPendingReviews);
+    if(enquiryCatalogue)await seedEnquiryCatalogue(db);
     if(enquiryPreview)await seedEnquiries(db);
     await db.exec('CREATE ROLE synthetic_staff_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT api_runtime TO synthetic_staff_login;');
     if(nativeUploads)await db.exec('CREATE ROLE synthetic_staff_media_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT media_coordinator TO synthetic_staff_media_login;');
@@ -202,7 +213,7 @@ export async function startStaffPreview(options={}){
       if(requestOrigin!==null&&requestOrigin!==origin)return failure(403,'FORBIDDEN','Staff preview origin is unavailable.');
       if(request.headers.has('cookie'))return failure(400,'INVALID_INPUT','Staff preview does not accept cookie credentials.');
       const reviewQueue=url.pathname==='/v2/staff/reviews';
-      const enquiryQueue=enquiryPreview&&(url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees');
+      const enquiryQueue=enquiryPreview&&(url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees'||(enquiryCatalogue&&url.pathname==='/v2/properties'));
       if(url.search&&(!(reviewQueue||enquiryQueue)||[...url.searchParams.keys()].some(key=>key!=='limit')||url.searchParams.getAll('limit').length>1))return failure(400,'INVALID_INPUT','Staff preview does not accept query-selected context.');
       return undefined;
     };
@@ -211,6 +222,10 @@ export async function startStaffPreview(options={}){
       const url=new URL(request.url),reviewQueue=url.pathname==='/v2/staff/reviews';
       if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,acceptedMediaMetadataOnly:seedAcceptedMedia,nativeUploads:!!nativeMedia,privateMediaPreviews:!!nativeMedia,retainedSyntheticMedia:!!nativeMedia,tokenExpiresAt:expiresAt});
       if(enquiryPreview){
+        if(enquiryCatalogue&&url.pathname==='/v2/properties'){
+          if(request.method!=='GET'||request.headers.has('authorization'))return failure(403,'FORBIDDEN','Synthetic public catalogue is guest read-only.');
+          const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
+        }
         if(url.pathname==='/v1/enquiries'){
           if(request.method!=='POST')return failure(405,'METHOD_NOT_ALLOWED','Guest intake accepts POST only.',{Allow:'POST'});
           if(request.headers.has('authorization'))return failure(403,'FORBIDDEN','Guest intake does not accept staff identity.');
@@ -252,7 +267,7 @@ export async function startStaffPreview(options={}){
     const close=()=>closing??=(async()=>{
       try{await Promise.all([closeServer(apiServer),closeServer(jwksServer),nativeMedia?.close()]);}finally{try{await nativeMedia?.close();await coordinator?.close();}finally{await database.close();}}
     })();
-    const preview={origin,listingId:company.listing,revision:1,tenantSlug,expiresAt,acceptedMediaMetadataOnly:seedAcceptedMedia,pendingReviewFixtures:seedPendingReviews,nativeUploads:!!nativeMedia,close};
+    const preview={origin,listingId:company.listing,revision:1,tenantSlug,expiresAt,acceptedMediaMetadataOnly:seedAcceptedMedia,enquiryCatalogueMetadataOnly:!!enquiryCatalogue,pendingReviewFixtures:seedPendingReviews,nativeUploads:!!nativeMedia,close};
     // Avoid incidental console/JSON dumps of a whole return object exposing its token.
     Object.defineProperty(preview,'bearerToken',{value:bearerToken,enumerable:false,writable:false,configurable:false});
     if(enquiryStaff){

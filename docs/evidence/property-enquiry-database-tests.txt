@@ -1,0 +1,28 @@
+✔ migration forces RLS and API role has neither owner membership nor direct writes (3041.9346ms)
+✔ missing context and customer cannot create; agents cannot choose another assignee (1600.1894ms)
+✔ runtime private reads, edits, and reassignments respect company and assignment (1511.6429ms)
+✔ revoked membership and disabled tenant fail the next protected request (1395.7043ms)
+✔ composite foreign keys reject cross-company listing and revision relationships (1476.3297ms)
+✔ money, periods, canonical types, rooms and unknown privileged fields fail closed (1553.9193ms)
+✔ omitted concurrency versions cannot bypass protected updates (1441.2842ms)
+✔ accepted photos cannot make an incomplete draft publishable (1467.472ms)
+✔ legacy accepted metadata remains unverified and cannot submit a complete draft (1408.9595ms)
+✔ submission requires accepted photos and complete content; agent cannot approve (1458.2711ms)
+✔ approved snapshot excludes private address and precise area coordinates (1417.4263ms)
+✔ draft editing and rejection preserve published revision; stale review conflicts (1310.341ms)
+✔ withdraw and resubmit preserve history; admin self-approval atomically replaces exact snapshot (1271.7859ms)
+✔ agent can pause/unavailable but only administrator resumes; stale stock excluded (1222.5836ms)
+✔ approval cannot resurrect a listing paused or archived while its revision was pending (3422.6744ms)
+✔ an older pending review cannot overwrite a newer approved snapshot (2264.6179ms)
+✔ enquiry receipt is durable/idempotent and never grants guest/customer private reads (1395.7275ms)
+✔ paused property denies fresh capture while original enquiry replay retains contacted revision (1311.4759ms)
+✔ enquiry assignment, next actions, closure and version restrictions (1244.3797ms)
+✔ transaction-local actor context is cleared on connection reuse (1177.6919ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 32578.8732

@@ -1,5 +1,9 @@
 # Rebuild foundation — 9 October 2026
 
+## Property-linked enquiry checkpoint — 12 October 2026
+
+Opt-in connected synthetic catalogue→property→enquiry→staff detail verified with listing ID and original contacted revision1. Foreign/unpublished selections denied. Exact receipt replay after pause verified in SQL. 26web,19boundary,9API,170client,20database tests; eight typechecks and both builds passed. See property-enquiry.md/eight logs. First DB assertion column typo fixed before final20pass. Next protected attributable staff capture, then contact history/viewings. Narrow/device/UAT/production remain open. Checklist16/97,gates0/14,price/vendor/live preserved.
+
 ## Public website general enquiry checkpoint — 12 October 2026
 
 Opt-in public /enquire now saves fictional general web enquiries into the shared admin inbox; shared form/CSS and bounded handler serve both applications. Actual catalogue→form→saved admin detail browser proof recorded. 24 web,26 affected boundary and170 API-client tests passed; eight typechecks and both production builds passed. See public-enquiry.md/six logs. Narrow override did not apply to the tested tab;390px not passed. Next eligible published synthetic property context, then staff capture/contact history. Checklist16/97,gates0/14,price/vendor/live preserved.

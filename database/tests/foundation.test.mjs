@@ -289,6 +289,20 @@ test('enquiry receipt is durable/idempotent and never grants guest/customer priv
     assert.deepEqual(audit.rows[0].summary,{});
   } finally {await db.close();}
 });
+test('paused property denies fresh capture while original enquiry replay retains contacted revision',async()=>{
+ const db=await fixture();try{
+  await publish(db);
+  const args=[ENQUIRY,id(311),LISTING,'Synthetic property guest',null,'property@example.invalid','Fictional property request','web','synthetic-v1'];
+  const sql='SELECT app_api.record_enquiry($1,$2,$3,$4,$5,$6,$7,$8,$9)';
+  assert.equal(await asActor(db,T,null,()=>scalar(db,sql,args)),ENQUIRY);
+  const version=await scalar(db,'SELECT version FROM app_private.listings WHERE id=$1',[LISTING]);
+  await asActor(db,T,ADMIN,()=>db.query("SELECT app_api.set_publication($1,$2,'paused')",[LISTING,version]));
+  assert.equal(await asActor(db,T,null,()=>scalar(db,sql,[id(312),...args.slice(1)])),ENQUIRY);
+  await assert.rejects(()=>asActor(db,T,null,()=>db.query(sql,[id(313),id(314),...args.slice(2)])));
+  assert.equal(await asActor(db,T,ADMIN,()=>scalar(db,'SELECT count(*)::integer FROM app_private.enquiries')),1);
+  assert.equal(await asActor(db,T,ADMIN,()=>scalar(db,'SELECT contacted_revision_no FROM app_private.enquiries WHERE id=$1',[ENQUIRY])),1);
+ }finally{await db.close();}
+});
 test('enquiry assignment, next actions, closure and version restrictions',async()=>{
   const db=await fixture();try {
     await asActor(db,T,null,()=>db.query('SELECT app_api.record_enquiry($1,$2,NULL,\'Synthetic customer\',\'+254712345678\',NULL,\'General question\',\'web\',\'synthetic-v1\')',[ENQUIRY,id(301)]));

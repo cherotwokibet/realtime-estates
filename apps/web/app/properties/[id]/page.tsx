@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import {publicIntakeConfig} from '../../../lib/intake-config';
 import Link from 'next/link';
 import {notFound} from 'next/navigation';
 import {formatKes,kesFromMinor} from '@realtor/domain';
@@ -14,6 +15,7 @@ export default async function Property({params}:{params:Promise<{id:string}>}) {
  if(result.status==='not_found')notFound();
  if(result.status==='incomplete')return <><CatalogueBanner mode={result.mode}/><PublicHeader/><main id="main" className="container detail-page"><CatalogueProblem message={result.message} incomplete/></main><PublicFooter mode={result.mode}/></>;
  const p=result.property,mode=result.mode,synthetic=result.dataKind==='synthetic';
+ let propertyEnquiry=false;try{propertyEnquiry=publicIntakeConfig(process.env).allowProperty&&mode==='connected'&&synthetic;}catch{}
  const price=formatKes(kesFromMinor(p.priceMinor));
  const location=[p.location.area,p.location.town,p.location.county].filter(Boolean).join(', ')||p.locality;
  const family=p.type==='bedsitter'||p.id==='demo-kitengela-1'?'bedsitter':'studio';
@@ -39,7 +41,7 @@ export default async function Property({params}:{params:Promise<{id:string}>}) {
      <h2>Features &amp; amenities</h2>{p.amenitiesKnown?<ul className="amenities">{p.amenities.map(amenity=><li key={amenity}>{amenity}</li>)}</ul>:<p>Amenities have not been supplied.</p>}
      <div className="location-note"><h2>The neighbourhood</h2><p>{location}. {p.publicPrecision==='exact'&&p.latitude!==null?'A map is not available in this preview.':'No exact address or map pin is shown.'}</p>{!p.location.area&&!p.location.town&&!p.location.county&&<p>Area, town and county have not been supplied separately.</p>}</div>
     </section>
-    <aside className="price-card" aria-label="Property costs and next steps"><PricingDisclosureCard pricing={p.pricing} preview={synthetic}/><div className="contact-preview"><h3>Like what you see?</h3><p>Enquiries and viewing requests are disabled in this development preview. No messages or bookings will be sent.</p></div><Link href="/" className="primary">Explore more properties →</Link></aside>
+    <aside className="price-card" aria-label="Property costs and next steps"><PricingDisclosureCard pricing={p.pricing} preview={synthetic}/><div className="contact-preview"><h3>Like what you see?</h3>{propertyEnquiry?<><p>Test an enquiry about this synthetic property. No messages or viewing bookings are sent.</p><Link href={'/enquire?property='+encodeURIComponent(p.id)} className="primary">Test a property enquiry →</Link></>:<p>Enquiries and viewing requests are disabled in this development preview. No messages or bookings will be sent.</p>}</div><Link href="/" className="primary">Explore more properties →</Link></aside>
    </div>
    <p className="detail-bottom-note">{synthetic?'This is a synthetic listing for development review. Its price, location and features do not represent an available property.':'Development preview. Confirm current availability and all payable costs with the agency before making a commitment.'}</p>
   </main><PublicFooter mode={mode}/>

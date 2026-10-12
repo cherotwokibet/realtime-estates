@@ -23,7 +23,7 @@ async function stop(){
   })();
 }
 try{
-  preview=await startStaffPreview({tenantSlug:process.env.TENANT_SLUG??'realtime-estates',enquiryPreview:'synthetic-v1'});
+  preview=await startStaffPreview({tenantSlug:process.env.TENANT_SLUG??'realtime-estates',enquiryPreview:'synthetic-v1',...(process.argv.includes('--web')?{enquiryCatalogue:'synthetic-v1'}:{})});
   const {admin,agent}=preview.enquiryStaff;
   child=spawn(process.execPath,[next,'dev','apps/admin','-p','3001','-H','127.0.0.1'],{cwd:root,stdio:'inherit',env:{...process.env,
     NODE_ENV:'development',TENANT_SLUG:preview.tenantSlug,
@@ -38,7 +38,7 @@ try{
   if(process.argv.includes('--web')){
     // No staff credentials are inherited by the public web process.
     const publicEnv=Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.startsWith('STAFF_')));
-    webChild=spawn(process.execPath,[next,'dev','apps/web','-p','3002','-H','127.0.0.1'],{cwd:root,stdio:'inherit',env:{...publicEnv,NODE_ENV:'development',TENANT_SLUG:preview.tenantSlug,WEB_CATALOGUE_MODE:'demo',WEB_ENQUIRY_PREVIEW_MODE:'synthetic-v1',WEB_ENQUIRY_API_ORIGIN:preview.origin,WEB_ENQUIRY_INSTANCE:randomUUID()}});
+    webChild=spawn(process.execPath,[next,'dev','apps/web','-p','3002','-H','127.0.0.1'],{cwd:root,stdio:'inherit',env:{...publicEnv,NODE_ENV:'development',TENANT_SLUG:preview.tenantSlug,WEB_CATALOGUE_MODE:'connected',WEB_CATALOGUE_DATA:'synthetic',API_ORIGIN:preview.origin,ALLOW_LOOPBACK_API:'true',WEB_ENQUIRY_PROPERTY_MODE:'synthetic-v1',WEB_ENQUIRY_PREVIEW_MODE:'synthetic-v1',WEB_ENQUIRY_API_ORIGIN:preview.origin,WEB_ENQUIRY_INSTANCE:randomUUID()}});
     webChild.once('error',()=>{process.exitCode=1;console.error('The public enquiry preview could not start.');void stop();});
     webChild.once('exit',code=>{if(!closing)process.exitCode=code??1;void stop();});
     console.log('Synthetic public website enquiry: http://127.0.0.1:3002/enquire');
