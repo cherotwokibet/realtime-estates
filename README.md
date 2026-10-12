@@ -17,3 +17,10 @@ Independent replacement for Realtime Estates Ltd, designed for additional realto
 See docs/START-HERE.md and docs/requirements-traceability.md. Existing vendor applications stay operational until replacement acceptance and rehearsed cutover. The shared API client now validates public catalogue/enquiry transport; previews remain synthetic until the secure connected journeys are implemented.
 
 Run `npm ci`, `npm test`, `npm run typecheck` and `npm run build:web` from this directory. Setup and precise verification limits are in docs/development.md. Current work and exact next steps are in docs/CONTINUATION.md. Design sources and the improved UX plan are in docs/design-resource-register.md and docs/ux-blueprint.md.
+
+## Connected enquiry inbox checkpoint — 12 October 2026
+
+800/800 affected tests, shared package/API builds, admin test compilation/production build and eight workspace typechecks passed on 209 frozen source hashes; zero failures/skips/cancellations/todos. Opt-in synthetic admin/assigned-agent inbox now connects server-only identities to assignment, contact and Nairobi follow-up, separate historical receipt/current comparison and explicit adoption. Actual desktop handover and stale admin conflict retained raw reason and exact follow-up timestamp. See enquiry-inbox.md and evidence/2026-10-12-enquiry-ui.md. Earlier755 backend evidence remains separate; focused counts overlap.
+
+Next connect reviewed public/protected-staff enquiry intake with notice/idempotent original capture recovery; then attributable contact history and separate viewing scheduling. Browser lost-reply/reload/physical/narrow/operator/accessibility proof, production identity/persistence, real PostgreSQL concurrency, independent backup/private platform remote, rights/accounts and all launch gates remain open. Preview identities expire30min and data is disposable; tab-local drafts/uncertain commands are not crash-persistent. KES10,000 total monthly price, checklist13/97, gates0/14 and originals/live preserved. Never rerun historical checkpoint generators.
+

@@ -56,6 +56,7 @@ export default function Admin() {
         <nav className="workspace-nav" aria-label="Jump to workspace section">
           <a href="#overview"><Icon name="overview" />Overview</a>
           <a href="#enquiries"><Icon name="enquiries" />Enquiry inbox<span className="nav-count">{enquiries.length}</span></a>
+          {process.env.NODE_ENV==='development' && process.env.STAFF_ENQUIRY_PREVIEW_MODE==='synthetic-v1' && <a href="/enquiries/admin"><Icon name="enquiries" />Connected synthetic inbox ↗</a>}
           <a href="#reviews"><Icon name="reviews" />Review queue<span className="nav-count">{reviews.length}</span></a>
           <a href="#catalogue"><Icon name="catalogue" />Property catalogue</a>
           <a href="#actions"><Icon name="actions" />Next actions</a>
