@@ -211,6 +211,11 @@ export async function startStaffPreview(options={}){
       const url=new URL(request.url),reviewQueue=url.pathname==='/v2/staff/reviews';
       if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,acceptedMediaMetadataOnly:seedAcceptedMedia,nativeUploads:!!nativeMedia,privateMediaPreviews:!!nativeMedia,retainedSyntheticMedia:!!nativeMedia,tokenExpiresAt:expiresAt});
       if(enquiryPreview){
+        if(url.pathname==='/v1/enquiries'){
+          if(request.method!=='POST')return failure(405,'METHOD_NOT_ALLOWED','Guest intake accepts POST only.',{Allow:'POST'});
+          if(request.headers.has('authorization'))return failure(403,'FORBIDDEN','Guest intake does not accept staff identity.');
+          const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
+        }
         const queue=url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees';
         const enquiryRoute=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}(?:\/(operations)(?:\/([0-9a-f-]{36}))?)?$/i.exec(url.pathname);
         if(!queue&&!enquiryRoute)return failure(404,'NOT_FOUND','Enquiry preview route is unavailable.');

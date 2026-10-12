@@ -10,6 +10,19 @@ const call=(preview,path,{role='admin',token=preview.enquiryStaff?.[role].bearer
 });
 async function read(preview,path,options){const response=await call(preview,path,options);assert.equal(response.status,200);return response.json();}
 const base='/v2/staff/enquiries';
+test('guest intake enters the same private inbox and exact replay creates one row',async()=>{
+ const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1'});
+ try{
+  const body={listingId:null,name:'Synthetic guest intake',email:'guest@example.invalid',phone:null,message:'Fictional guest capture',origin:'web',noticeVersion:'synthetic-staff-notice-v1',noticeAcknowledged:true},key=randomUUID();
+  const options={token:null,method:'POST',body,headers:{'Idempotency-Key':key}};
+  const first=await call(preview,'/v1/enquiries',options);assert.equal(first.status,201);const receipt=await first.json();
+  const replay=await call(preview,'/v1/enquiries',options);assert.equal(replay.status,201);assert.deepEqual(await replay.json(),receipt);
+  const admin=await read(preview,base);assert.equal(admin.items.length,6);assert.equal(admin.items.filter(row=>row.id===receipt.id).length,1);
+  const detail=await read(preview,base+'/'+receipt.id);assert.equal(detail.email,body.email);assert.equal(detail.message,body.message);assert.equal(detail.status,'new');
+  assert.equal((await call(preview,base+'/'+receipt.id,{role:'agent'})).status,404);
+  assert.equal((await call(preview,'/v1/enquiries',{...options,token:preview.enquiryStaff.admin.bearerToken})).status,403);
+ }finally{await preview.close();}
+});
 const assign=(operationId,expectedVersion,assignedAgentId)=>({operationId,kind:'assign',expectedVersion,assignedAgentId,status:null,nextActionAt:null,reason:null});
 const transition=(operationId,expectedVersion,status,nextActionAt=null,reason=null)=>({operationId,kind:'transition',expectedVersion,assignedAgentId:null,status,nextActionAt,reason});
 const reschedule=(operationId,expectedVersion,nextActionAt)=>({operationId,kind:'reschedule',expectedVersion,assignedAgentId:null,status:null,nextActionAt,reason:null});
@@ -85,8 +98,9 @@ test('opt-in allowlist refuses unsafe context, credentials, extra routes and met
     assert.equal((await call(preview,base,{token:null})).status,401);
     assert.equal((await call(preview,base,{token:'forged'})).status,401);
     for(const path of [base+'?tenantId=foreign',base+'?actor=admin',base+'?limit=1&limit=2',base+'?limit=01',base+'?limit=101',detail+'?limit=1',operations+'?limit=1','/v2/staff/enquiry-assignees?actor=agent'])assert.equal((await call(preview,path)).status,400,path);
-    for(const path of ['/login','/token','/credentials','/v1/enquiries','/v2/properties',`/v2/staff/listings/${preview.listingId}/drafts/1`,detail+'/transitions',operations+'/'+randomUUID()+'/finalize'])assert.equal((await call(preview,path)).status,404,path);
+    for(const path of ['/login','/token','/credentials','/v2/properties',`/v2/staff/listings/${preview.listingId}/drafts/1`,detail+'/transitions',operations+'/'+randomUUID()+'/finalize'])assert.equal((await call(preview,path)).status,404,path);
     assert.equal((await call(preview,base,{method:'POST',body:{}})).status,405);
+    assert.equal((await call(preview,'/v1/enquiries',{token:null})).status,405);
     assert.equal((await call(preview,operations)).status,405);
     assert.equal((await call(preview,operations,{method:'POST',body:'{}',headers:{'Content-Type':'text/plain'}})).status,415);
     assert.equal((await call(preview,base,{headers:{Origin:'https://synthetic-untrusted.invalid'}})).status,403);

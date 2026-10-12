@@ -36,6 +36,7 @@ try{
   child.once('error',()=>{process.exitCode=1;console.error('The synthetic enquiry UI could not start.');void stop();});
   child.once('exit',code=>{if(!closing)process.exitCode=code??1;void stop();});
   for(const signal of ['SIGINT','SIGTERM'])process.once(signal,()=>{process.exitCode=0;void stop();});
+  console.log('Synthetic guest intake: http://127.0.0.1:3001/enquiry-intake');
   console.log('Synthetic admin enquiries: http://127.0.0.1:3001/enquiries/admin');
   console.log('Synthetic assigned-agent enquiries: http://127.0.0.1:3001/enquiries/agent');
   console.log('Shared disposable synthetic database; identity expires in 30 minutes. Changes disappear on stop.');

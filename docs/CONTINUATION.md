@@ -1,5 +1,11 @@
 # Rebuild continuation checkpoint
 
+## Connected synthetic intake form — 12 October 2026
+
+Opt-in local admin preview now includes guest enquiry capture at /enquiry-intake, backed by fixed same-origin bounded proxy and guest-only API allowlist. Actual browser saved a fictional general web enquiry and opened its version1 record in the shared admin inbox. Final32/32 affected tests, admin production build and eight workspace typechecks passed. See enquiry-intake-form.md, three evidence logs and private screenshots. Initial route/notice/adapter issues were corrected and documented.
+
+Next connect the validated form/transport to the public website with server-owned tenant/property context; then attributable staff capture/contact history. Main public-site form remains disabled; no responsive/device/UAT or browser lost-reply proof claimed here. Memory-only recovery and disposable restart remain limitations. Checklist16/97, gates0/14; originals/live and KES10,000 price preserved.
+
 ## Public intake attempt checkpoint — 12 October 2026
 
 Shared public enquiry attempt retains validated raw form values and original key, locks concurrent sends and requires explicit same-body replay after an uncertain reply. 165 API-client tests, one actual API/restricted SQL lost-committed-reply integration and eight workspace typechecks passed. See enquiry-intake.md and its three evidence logs. Earlier 800-test inbox proof remains historical.

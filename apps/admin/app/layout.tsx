@@ -1,3 +1,4 @@
+import './intake.css';
 import './styles.css';
 import './reviews.css';
 import './gallery.css';
