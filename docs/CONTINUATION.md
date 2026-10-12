@@ -1,5 +1,9 @@
 # Rebuild continuation checkpoint
 
+## Public website general enquiry checkpoint — 12 October 2026
+
+Opt-in public /enquire now saves fictional general web enquiries into the shared admin inbox; shared form/CSS and bounded handler serve both applications. Actual catalogue→form→saved admin detail browser proof recorded. 24 web,26 affected boundary and170 API-client tests passed; eight typechecks and both production builds passed. See public-enquiry.md/six logs. Narrow override did not apply to the tested tab;390px not passed. Next eligible published synthetic property context, then staff capture/contact history. Checklist16/97,gates0/14,price/vendor/live preserved.
+
 ## Shared guest transport checkpoint — 12 October 2026
 
 Shared same-origin enquiry transport now omits ambient cookies, refuses redirects and rejects caller identity/tenant headers. Admin form uses it; actual synthetic desktop save verified. 170/170 API-client tests, eight workspace typechecks and admin production build passed. See enquiry-proxy.md and four logs. Next explicitly opt in public-web server configuration/route, then eligible property context; public controls remain disabled. Checklist16/97, gates0/14, price/vendor/live preserved.

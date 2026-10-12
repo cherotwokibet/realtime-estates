@@ -1,12 +1,14 @@
 import Link from 'next/link';
 import {tenantBrand} from '../lib/tenant';
+import {publicIntakeConfig} from '../lib/intake-config';
+function intakeEnabled(){try{publicIntakeConfig(process.env);return true;}catch{return false;}}
 
 export function PublicHeader({purpose}:{purpose?:string}) {
  const brand=tenantBrand;
- return <header className="site-header container"><Link href="/" className="brand" aria-label={brand.name+' home'}><span className="brand-mark">{brand.initials}</span><span>{brand.name}<small>Find your next place</small></span></Link><nav aria-label="Main navigation"><Link href="/?purpose=rent" aria-current={purpose==='rent'?'page':undefined}>Rent</Link><Link href="/?purpose=sale" aria-current={purpose==='sale'?'page':undefined}>Buy</Link><Link href="/#how">Our approach</Link></nav><Link href="/" className="header-link">Explore properties →</Link></header>;
+ return <header className="site-header container"><Link href="/" className="brand" aria-label={brand.name+' home'}><span className="brand-mark">{brand.initials}</span><span>{brand.name}<small>Find your next place</small></span></Link><nav aria-label="Main navigation"><Link href="/?purpose=rent" aria-current={purpose==='rent'?'page':undefined}>Rent</Link><Link href="/?purpose=sale" aria-current={purpose==='sale'?'page':undefined}>Buy</Link><Link href="/#how">Our approach</Link></nav><Link href={intakeEnabled()?'/enquire':'/'} className="header-link">{intakeEnabled()?'Test a general enquiry →':'Explore properties →'}</Link></header>;
 }
 export function CatalogueBanner({mode}:{mode:'demo'|'connected'|'unavailable'}) {
- return <div className="preview"><span className="preview-dot"/>{mode==='demo'?'Design preview · Sample listings and illustrative AI images. Enquiries are disabled.':mode==='connected'?'API-connected development preview · Enquiries and viewing requests are disabled.':'Development preview · Property service unavailable. Enquiries are disabled.'}</div>;
+ return <div className="preview"><span className="preview-dot"/>{intakeEnabled()?'Synthetic preview · General test enquiries enabled. Property enquiries and viewings are disabled.':mode==='demo'?'Design preview · Sample listings and illustrative AI images. Enquiries are disabled.':mode==='connected'?'API-connected development preview · Enquiries and viewing requests are disabled.':'Development preview · Property service unavailable. Enquiries are disabled.'}</div>;
 }
 export function PublicFooter({mode}:{mode:'demo'|'connected'|'unavailable'}) {
  const brand=tenantBrand;

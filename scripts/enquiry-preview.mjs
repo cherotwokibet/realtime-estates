@@ -7,16 +7,16 @@ import {startStaffPreview} from '../apps/api/dev/staff-preview.mjs';
 if(process.env.NODE_ENV==='production')throw new Error('Enquiry preview refuses production.');
 const root=fileURLToPath(new URL('../',import.meta.url));
 const next=fileURLToPath(new URL('../node_modules/next/dist/bin/next',import.meta.url));
-let preview,child,closing;
+let preview,child,webChild,closing;
 async function stop(){
   return closing??=(async()=>{
     try{
-      if(child&&child.exitCode===null&&child.signalCode===null){
-        const exited=new Promise(resolve=>child.once('exit',resolve));let timeout;
+      for(const running of [child,webChild])if(running&&running.exitCode===null&&running.signalCode===null){
+        const exited=new Promise(resolve=>running.once('exit',resolve));let timeout;
         try{
-          child.kill();
+          running.kill();
           await Promise.race([exited,new Promise(resolve=>{timeout=setTimeout(resolve,3000);timeout.unref();})]);
-          if(child.exitCode===null&&child.signalCode===null)child.kill('SIGKILL');
+          if(running.exitCode===null&&running.signalCode===null)running.kill('SIGKILL');
         }finally{clearTimeout(timeout);}
       }
     }finally{await preview?.close();}
@@ -35,6 +35,14 @@ try{
   }});
   child.once('error',()=>{process.exitCode=1;console.error('The synthetic enquiry UI could not start.');void stop();});
   child.once('exit',code=>{if(!closing)process.exitCode=code??1;void stop();});
+  if(process.argv.includes('--web')){
+    // No staff credentials are inherited by the public web process.
+    const publicEnv=Object.fromEntries(Object.entries(process.env).filter(([key])=>!key.startsWith('STAFF_')));
+    webChild=spawn(process.execPath,[next,'dev','apps/web','-p','3002','-H','127.0.0.1'],{cwd:root,stdio:'inherit',env:{...publicEnv,NODE_ENV:'development',TENANT_SLUG:preview.tenantSlug,WEB_CATALOGUE_MODE:'demo',WEB_ENQUIRY_PREVIEW_MODE:'synthetic-v1',WEB_ENQUIRY_API_ORIGIN:preview.origin,WEB_ENQUIRY_INSTANCE:randomUUID()}});
+    webChild.once('error',()=>{process.exitCode=1;console.error('The public enquiry preview could not start.');void stop();});
+    webChild.once('exit',code=>{if(!closing)process.exitCode=code??1;void stop();});
+    console.log('Synthetic public website enquiry: http://127.0.0.1:3002/enquire');
+  }
   for(const signal of ['SIGINT','SIGTERM'])process.once(signal,()=>{process.exitCode=0;void stop();});
   console.log('Synthetic guest intake: http://127.0.0.1:3001/enquiry-intake');
   console.log('Synthetic admin enquiries: http://127.0.0.1:3001/enquiries/admin');
