@@ -1,0 +1,196 @@
+
+> @realtor/api@0.1.0 test
+> npm run build && node --test --test-concurrency=1 tests/*.test.mjs
+
+
+> @realtor/api@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ real RS256 signature yields only immutable verified subject identity, ignoring role/company claims (115.3975ms)
+✔ bearer header parser rejects missing, duplicate and malformed credentials (2.3353ms)
+✔ expired, future and overlong-lifetime claims fail closed (26.4388ms)
+✔ wrong issuer, audience and malformed subject are denied despite valid signature (15.3587ms)
+✔ issuer, audience, subject, expiry and issued-at are required (15.0035ms)
+✔ counterfeit signature, unknown key and absent key ID are denied (7.7775ms)
+✔ HS256 algorithm confusion and unsigned/malformed tokens are denied (8.2297ms)
+✔ token-supplied key URL does not change the trusted JWKS endpoint (6.846ms)
+✔ unavailable/malformed/redirecting JWKS endpoints deny without following redirects (21.0086ms)
+✔ trusted configuration is captured, not mutable through caller object (19.2091ms)
+✔ missing/untrusted identity configuration is rejected before any key fetch (0.7889ms)
+✔ explicit loopback HTTP exception is rejected in production mode (0.2098ms)
+✔ hostname resolves only configured company and does not grant membership (0.9178ms)
+✔ tenant configuration rejects host collisions, wildcards, duplicate IDs and invalid input (0.26ms)
+✔ staff enquiry v2 keeps verified identity and fixed tenant separate from request context (34.3775ms)
+✔ bounded stable summary pages fetch one extra and never forward contact or private storage facts (2.4575ms)
+✔ detail exposes only agreed contact fields, preserves general/property references and canonical dates (0.9344ms)
+✔ admin assignee picker has a bounded explicit page and only real IDs and roles (0.6619ms)
+✖ query, resource and method guards refuse unsupported selectors before a database transaction (5.6031ms)
+✔ each exact original command crosses one RPC with server context and returns only its matching durable snapshot (3.1817ms)
+✔ strict original JSON rejects fractional/exponent versions, escaped duplicate keys and omitted or irrelevant selectors (7.4037ms)
+✔ dated follow-up accepts a past due instant and refuses ambiguous time, reason and body framing inputs (3.434ms)
+✔ read-only recovery uses only exact original identities and returns historical outcome instead of current-state inference (0.6048ms)
+✔ durable noops, stale conflicts and business rejections keep their original expected and result versions (1.2672ms)
+✔ malformed or mismatched database receipts fail closed without disclosing SQL or contact payloads (3.4389ms)
+✔ applied and noop receipts bind status and closure facts to the original kind and reason (1.917ms)
+✔ malformed list, detail and directory projections cannot become success or leak private fields (4.0373ms)
+✔ database permission, missing, conflict and safety failures keep existing safe status/error mapping (1.5277ms)
+✔ protected staff capture derives attribution and canonical contact within fixed session context (0.8188ms)
+✔ staff capture rejects unauthenticated, nonstaff and caller attribution without a write (1.7217ms)
+✔ workspace binds current draft and all photos in one parameterized read statement (33.4837ms)
+✔ workspace represents empty and full bounded galleries and safe bigint versions (2.1889ms)
+✔ workspace projects no private storage, actor or future adapter fields (0.9516ms)
+✔ workspace rejects malformed persisted gallery metadata and revision identity (7.4503ms)
+✔ workspace requires verified identity and active staff membership before the read (2.2722ms)
+✔ workspace accepts only exact GET paths without query context overrides (4.1983ms)
+✔ workspace SQL failure details remain bounded safe errors (1.2066ms)
+✔ private preview hook receives exact raw path/socket/header context before any body is consumed (29.587ms)
+✔ private preview aliases cannot reach the hook after URL normalization; exact method decisions remain with handler (24.0518ms)
+✔ Expect on exact private preview is refused without 100 Continue or handler/body admission (6.1312ms)
+✔ ordinary default bridge does not enable private media preview (2.9765ms)
+✔ upload hook receives headers and socket context before the client sends or ends its declared body (32.2332ms)
+✔ only exact raw upload paths and GET or PUT methods reach the streaming hook (30.0483ms)
+✔ the hook lazily receives binary bytes beyond the ordinary JSON cap without attaching them to Request (4.6451ms)
+✔ returning from a partially consumed upload iterator permits the denial response before closing the unread body (3.86ms)
+✔ installing the hook preserves the general 64-KiB and exact draft 128-KiB body caps (10.3909ms)
+✔ raw duplicate authorization values remain ambiguous for the actual bearer parser (5.5042ms)
+✔ ambiguous Host headers are rejected before either handler (1.9573ms)
+✔ client interruption aborts the headers-only Request for incomplete PUT and complete GET requests (4.8932ms)
+✔ upload Expect headers receive 417 without an interim 100 or hook/body admission (3.3886ms)
+✔ HTTP bridge derives client address from socket and preserves ambiguous authorization for rejection (39.1378ms)
+✔ HTTP bridge caps received bodies before application handler (9.4441ms)
+✔ only exact v2 draft PUTs receive the larger UTF-8 body allowance (144.5721ms)
+✔ v2 draft body limit also applies to chunked requests without Content-Length (10.9332ms)
+✔ attach creation sends the URL tuple to SQL before mutation and returns acknowledgement only (25.8142ms)
+✔ attach commands and receipt reads require verified identity and current staff role (2.5314ms)
+✔ attach bodies admit exactly operation, job and original safe integer version (3.3813ms)
+✔ attach checks original version tokens and decoded duplicate keys before JSON numeric coercion (3.0359ms)
+✔ attach rejects query context, wrong methods, bad paths and oversized/non-JSON input (2.5735ms)
+✔ attach readback binds URL identity and projects only public envelope and terminal fields (2.7147ms)
+✔ attach response validates terminal outcome, reason, resulting version and media facts (4.1132ms)
+✔ attach SQL failures return safe definite errors without exposing private details (1.5856ms)
+✔ explicit finalization verifies the original tuple twice around one operation-only coordinator command (23.012ms)
+✔ missing, duplicate and unverified bearer identities never reach SQL or finalization (1.689ms)
+✔ exact loopback host, URL tuple, methods and context aliases are checked before authorization (1.8257ms)
+✔ finalize accepts no posted metadata or framing, including untyped bytes, before SQL (2.4941ms)
+✔ current SQL principal/access denial and wrong original URL tuple prevent coordinator invocation (1.4081ms)
+✔ authorized terminal original history returns without rerunning coordinator or creating another intent (1.1076ms)
+✔ lost coordinator success is recovered only by original authenticated read, while ready stays uncertain (0.6087ms)
+✔ post-command authorization loss, binding change or conflicting coordinator result never returns accepted media (1.5652ms)
+✔ projection strips future private fields and rejects malformed immutable facts before authority is used (1.3292ms)
+✔ known cancellation before finalization does not grant a new command; close drains admitted work only (0.7967ms)
+✔ development finalization factory refuses production without invoking dependencies (0.5528ms)
+✔ gallery removal sends exact URL tuple and original command to SQL (23.2568ms)
+✔ gallery reorder sends the complete order and historical read sends only operation UUID (1.1904ms)
+✔ all gallery commands require verified identity and current staff membership (4.0083ms)
+✔ gallery rejects context overrides and arbitrary metadata before SQL (6.7914ms)
+✔ gallery raw version literals and decoded duplicate keys are checked before parse (3.3633ms)
+✔ gallery complete-order structural validation includes empty order and case-insensitive duplicates (1.6365ms)
+✔ gallery paths, methods, content type and body bounds fail before SQL (2.02ms)
+✔ gallery receipt read projects allowed fields and rejects wrong URL tuple (1.5534ms)
+✔ gallery projection validates correlated outcome, order, version and strict timestamps (3.3304ms)
+✔ gallery SQL failures expose bounded safe HTTP errors (1.4028ms)
+✔ media registration sends only canonical command facts under trusted tenant and verified actor (23.4507ms)
+✔ media routes require bearer verification and active staff before a command or read (2.0174ms)
+✔ registration rejects unsupported context, capability, job and acceptance fields before SQL (2.2488ms)
+✔ registration validates original integer tokens and decoded duplicate keys (1.5705ms)
+✔ registration enforces Unicode alt bounds, strict whitespace and control-free input (2.9821ms)
+✔ media body parser bounds actual bytes, rejects invalid UTF8 and requires JSON (1.0886ms)
+✔ media method, path identity and query overrides are refused (1.1859ms)
+✔ historical registration readback is narrowly projected and bound to the requested resource tuple (0.6991ms)
+✔ job readback reports expiry distinctly without converting historical receipt into a capability (0.6038ms)
+✔ media SQL errors map to safe HTTP errors without private details (1.5492ms)
+✔ private preview authorizes before trusted IO and again before returning exact independently hashed bytes (26.9068ms)
+✔ trusted prototype database instances work and store IDs/read methods are captured at construction (1.4011ms)
+✔ verified bearer is required before SQL or any request/seal/output IO (2.1858ms)
+✔ current foreign/customer/revoked/missing and stale SQL denial occurs before any configured IO (1.909ms)
+✔ removal/revocation/stale changes found after IO never emit image bytes or rerun the reads (1.8902ms)
+✔ before/after entire authorization fingerprint and SQL manifest identity must remain unchanged (2.8646ms)
+✔ current assigned agent and admin can read a sealed association without original uploader ownership (2.5379ms)
+✔ malformed joined SQL facts and future/private fields fail closed before IO (5.8126ms)
+✔ configured original processing request is exact and cannot select another principal context or store (2.8782ms)
+✔ original seal must match configured request/output stores and complete SQL lease/manifest provenance (3.8484ms)
+✔ output receipt, bound object identity, byte count and actual hash must all agree (9.5209ms)
+✔ independently matching hashes still cannot authorize wrong RIFF/WebP header or RIFF length (1.1441ms)
+✔ returned bytes are an owned immutable snapshot across the post-IO authorization await (0.664ms)
+✔ exact loopback URL/method/version and header denials occur before verification or IO (3.5879ms)
+✔ preview version is an explicit canonical positive safe decimal and preserves maximum string identity (1.7233ms)
+✔ any GET body is refused without iteration, including an empty stream representation (1.05ms)
+✔ cancellation before authorization and during configured IO returns no image and grants no continuation (1.3893ms)
+✔ close drains admitted reads, rejects new admission and leaves caller-owned stores open (0.741ms)
+✔ trusted construction refuses production and accessor/proxy/ambiguous store authority without invoking getters (0.6996ms)
+▶ moderation routes enforce current admin membership and exact reviewed snapshots through restricted PostgreSQL transactions
+  ✔ queue and detail require current admin membership and reject context overrides (92.9572ms)
+  ✔ queue is bounded and detail exposes exact private review content and accepted reference metadata only (40.9148ms)
+  ✔ decision input is exact, requires a bounded explicit reject reason, and retains state after invalid attempts (12.0131ms)
+  ✔ approval conflicts safely, publishes exact v2 reviewed values, and supports readback after an ignored receipt (44.4548ms)
+  ✔ rejection keeps the prior public snapshot and private reason; correction cannot edit the rejected revision (24.4107ms)
+  ✔ paused and archived approvals preserve operational state and fresh availability remains a separate gate (68.5673ms)
+  ✔ self approval is explicit in append-only audit with the reviewed revision version (14.7744ms)
+✔ moderation routes enforce current admin membership and exact reviewed snapshots through restricted PostgreSQL transactions (2875.8931ms)
+▶ API service with actual PostgreSQL migration enforces identity, tenant isolation and persisted workflows
+  ✔ public projection is tenant-scoped and excludes private address, actors and enquiry contacts (33.0378ms)
+  ✔ guest, invalid token and customer cannot create staff records or access staff lists (11.3452ms)
+  ✔ body tenant/role/actor fields cannot grant access or switch company (5.1605ms)
+  ✔ agent creates assigned-to-self and cannot assign another agent; admin may assign (20.737ms)
+  ✔ persisted drafts require numeric versions, cannot cross assignment/company, and do not become public (26.6249ms)
+  ✔ HTTP submit cannot bypass four accepted images or expose database diagnostics (8.2484ms)
+  ✔ v2 public projection preserves explicit unknowns and v1 stays unchanged (10.3999ms)
+  ✔ v2 draft writes and private reads preserve declared fees and nullable location (22.7322ms)
+  ✔ v2 private draft reads enforce identity, assignment and company scope (19.5672ms)
+  ✔ v2 rejects ambiguous, noncanonical and unsafe disclosure before any write (10.1244ms)
+  ✔ v2 uses optimistic locking and cannot cross assignment or company on writes (26.1701ms)
+  ✔ v2 atomic rent-to-sale edit replaces incompatible fees without an intermediate state (11.5432ms)
+  ✔ v2 submit retains media gate and leaves a failed submission editable (11.0428ms)
+  ✔ bounded v2 body accepts valid Unicode field maxima and rejects oversized payloads (36.6805ms)
+  ✔ v2 rejects fractional money tokens before JSON rounding can turn them into safe integers (13.066ms)
+  ✔ guest enquiry normalizes phone and retry creates exactly one durable record (31.8015ms)
+  ✔ same idempotency key with changed message conflicts and cannot overwrite original (11.309ms)
+  ✔ invalid phone, blank fields, spoofed tenant and non-public listing references are rejected (10.5563ms)
+  ✔ an arbitrary notice version or missing/false acknowledgement cannot persist an enquiry (4.7366ms)
+  ✔ payload content type and streamed size are bounded (0.6788ms)
+  ✔ transaction-local identity and role are cleared after successes and failures (9.502ms)
+  ✔ reassignment immediately revokes creator's access on the next API request (12.5802ms)
+✔ API service with actual PostgreSQL migration enforces identity, tenant isolation and persisted workflows (2241.2719ms)
+✔ bounded local limiter expires quotas without evicting live entries to admit attackers (0.1792ms)
+✔ failed rollback destroys pooled connection rather than returning contaminated state (0.2345ms)
+✔ signed staff HTTP upload loses its completed reply, then reopens original read-only status without a second decoder (4789.6468ms)
+✔ upload boundary rejects missing/duplicate/unverified identities before SQL or source iteration (23.054ms)
+✔ configured hostname and exact tuple reject aliases without consuming bytes (1.1946ms)
+✔ SQL authorization denials and mismatched returned tuple stop before the first byte (2.5546ms)
+✔ invalid transport metadata and unconfirmed SQL remain bounded and reveal no internals (1.0866ms)
+✔ synthetic upload factory refuses production before creating a service (0.4728ms)
+ℹ tests 151
+ℹ suites 0
+ℹ pass 150
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13225.7022
+
+✖ failing tests:
+
+test at tests\enquiries-v2.test.mjs:95:1
+✖ query, resource and method guards refuse unsupported selectors before a database transaction (5.6031ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  400 !== 405
+  
+      at safeFailure (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/tests/enquiries-v2.test.mjs:43:10)
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/tests/enquiries-v2.test.mjs:103:66)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 405,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\apps\api
+npm error workspace @realtor/api@0.1.0
+npm error location C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\apps\api
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c npm run build && node --test --test-concurrency=1 tests/*.test.mjs

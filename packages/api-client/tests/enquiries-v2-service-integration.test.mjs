@@ -84,6 +84,16 @@ test('enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL 
    await assert.rejects(()=>api.getEnquiryOperationV2(second,id(1000),admin),denied(404));await assert.rejects(()=>api.applyEnquiryOperationV2(second,assign(id(1000),'1',AGENT),admin),denied(409));
    const otherClient=new RealtorApiClient({baseUrl:'https://synthetic-other.invalid',privacyNoticeVersion:'synthetic-v1',fetch:(input,init)=>serviceFor(OTHER)(new Request(input,init))});await assert.rejects(()=>otherClient.getStaffEnquiryV2(enquiry,foreign),denied(404));
   });
+  await t.test('staff capture persists verified attribution and exact actor-bound receipt replay',async()=>{
+   const {origin:ignored,...body}=contact,key=id(550);
+   const capture=(identity,value=body)=>fetch(origin+'/v2/staff/enquiry-captures',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':key,...(identity?{Authorization:'Bearer '+identity.bearerToken}:{})},body:JSON.stringify(value)});
+   for(const identity of [null,customer,foreign,inactive])assert.equal((await capture(identity)).status,identity?403:401);
+   const saved=await capture(admin);assert.equal(saved.status,201);const receipt=await saved.json();
+   const stored=await asOwner(async q=>(await q.query('SELECT origin,requested_by_id AS actor FROM app_private.enquiries WHERE tenant_id=$1 AND id=$2',[TENANT,receipt.id])).rows[0]);assert.deepEqual(stored,{origin:'staff',actor:ADMIN});
+   const before=await counts(receipt.id);const replay=await capture(admin);assert.equal(replay.status,201);assert.deepEqual(await replay.json(),receipt);assert.deepEqual(await counts(receipt.id),before);
+   assert.equal((await capture(agent)).status,409);assert.equal((await capture(admin,{...body,message:'Changed original'})).status,409);
+   assert.equal((await capture(admin,{...body,origin:'web'})).status,400);assert.deepEqual(await counts(receipt.id),before);
+  });
   await t.test('reads leave records/audits/operations intact; runtime has no receipt DML or unscoped directory',async()=>{
    const before=await counts(enquiry);await api.listStaffEnquiriesV2(admin);await api.listEnquiryAssigneesV2(admin);await api.getStaffEnquiryV2(enquiry,peer);await api.getEnquiryOperationV2(enquiry,id(1000),admin);assert.deepEqual(await counts(enquiry),before);
    for(const sql of ['SELECT * FROM app_private.enquiry_operations','DELETE FROM app_private.enquiry_operations','UPDATE app_private.enquiries SET status=\'new\''])await assert.rejects(()=>db.query(sql),error=>error.code==='42501');

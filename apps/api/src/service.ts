@@ -459,17 +459,20 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
         const items = result.rows.map(v2 ? publicRowV2 : publicRow);
         return response(200, { items, limit: pageLimit }, correlationId);
       }
-      if (path === "/v1/enquiries" && method === "POST") {
-        const quota = await limiter.consume(`${tenantId}:${options.clientKey?.(request) ?? "shared-local"}`);
+      if ((path === "/v1/enquiries" || path === "/v2/staff/enquiry-captures") && method === "POST") {
+        const staffCapture = path === "/v2/staff/enquiry-captures";
+        const captureActor = staffCapture ? await identity(request, true) : undefined;
+        if (staffCapture) enquiryQuery(url, false);
+        const quota = await limiter.consume(`${tenantId}:${staffCapture ? `staff:${captureActor}` : "public"}:${options.clientKey?.(request) ?? "shared-local"}`);
         if (!quota.allowed) throw new HttpError(429, "RATE_LIMITED", "Please wait before trying again.", { "Retry-After": String(quota.retryAfterSeconds) });
         const key = uuid(request.headers.get("idempotency-key"), "Idempotency-Key");
-        const body = record(await jsonBody(request, 16 * 1024), ["listingId", "name", "phone", "email", "message", "origin", "noticeVersion", "noticeAcknowledged"]);
+        const body = record(await jsonBody(request, 16 * 1024), ["listingId", "name", "phone", "email", "message", ...(staffCapture ? [] : ["origin"]), "noticeVersion", "noticeAcknowledged"]);
         const listingId = body.listingId == null ? null : uuid(body.listingId, "listingId");
         const name = text(body.name, "name", 160);
         const message = text(body.message, "message", 2000);
         const noticeVersion = text(body.noticeVersion, "noticeVersion", 100);
         if (noticeVersion !== privacyNoticeVersion || body.noticeAcknowledged !== true) throw new HttpError(400, "NOTICE_ACKNOWLEDGEMENT_REQUIRED", "Acknowledge the current enquiry privacy notice.");
-        if (body.origin !== "web" && body.origin !== "mobile") throw new HttpError(400, "INVALID_INPUT", "origin must be web or mobile.");
+        if (!staffCapture && body.origin !== "web" && body.origin !== "mobile") throw new HttpError(400, "INVALID_INPUT", "origin must be web or mobile.");
         let phone: string | null = null;
         if (body.phone !== undefined && body.phone !== null) {
           try { phone = normalizeKenyanPhone(text(body.phone, "phone", 40)); }
@@ -478,8 +481,11 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
         const email = body.email == null ? null : text(body.email, "email", 254).toLowerCase();
         if (email !== null && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, "INVALID_INPUT", "Use a valid contact email.");
         if (!phone && !email) throw new HttpError(400, "INVALID_INPUT", "Provide a phone number or email.");
-        const actorId = await identity(request, false);
-        const result = await options.database.transaction({ tenantId, actorId, correlationId }, query => query.query("SELECT app_api.record_enquiry($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7,$8,$9) AS id", [newId(), key, listingId, name, phone, email, message, body.origin, noticeVersion]));
+        const actorId = staffCapture ? captureActor! : await identity(request, false);
+        const result = await options.database.transaction({ tenantId, actorId, correlationId }, async query => {
+          if (staffCapture) await assertStaff(query);
+          return query.query("SELECT app_api.record_enquiry($1::uuid,$2::uuid,$3::uuid,$4,$5,$6,$7,$8,$9) AS id", [newId(), key, listingId, name, phone, email, message, staffCapture ? "staff" : body.origin, noticeVersion]);
+        });
         return response(201, { id: scalar(result, "id") }, correlationId);
       }
       const draftRoute = /^\/v[12]\/staff\/listings\/([^/]+)\/drafts\/([1-9]\d*)(\/submit)?$/.exec(path);

@@ -1,5 +1,10 @@
 # Rebuild continuation checkpoint
 
+## Protected staff capture API � 13 October 2026
+
+Distinct POST /v2/staff/enquiry-captures derives staff origin and verified actor, fixes tenant, requires active admin/agent and existing notice/contact/idempotency contracts. Final151 API tests/build and8 actual signed-identity HTTP/restricted-SQL integration checks passed. Exact requester-bound replay keeps audit/version counts; changed actor/body conflicts. Public/per-staff limiter namespaces separated after an initial integration failure. See staff-enquiry-capture.md and final/failed logs. Next typed staff SDK/immutable attempt, then protected preview BFF/form; none of those UI/client capabilities is claimed yet. Checklist16/97,gates0/14. Dashboard publication of this backend-only checkpoint remains pending; preserve/export browser notes before changing its baseline.
+
+
 ## Property-linked enquiry checkpoint — 12 October 2026
 
 Opt-in connected synthetic catalogue→property→enquiry→staff detail verified with listing ID and original contacted revision1. Foreign/unpublished selections denied. Exact receipt replay after pause verified in SQL. 26web,19boundary,9API,170client,20database tests; eight typechecks and both builds passed. See property-enquiry.md/eight logs. First DB assertion column typo fixed before final20pass. Next protected attributable staff capture, then contact history/viewings. Narrow/device/UAT/production remain open. Checklist16/97,gates0/14,price/vendor/live preserved.

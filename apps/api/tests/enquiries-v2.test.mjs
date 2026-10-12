@@ -21,6 +21,7 @@ function fixture({role='admin',rows=[summary()],privateDetail=detail(),directory
   const calls=[],contexts=[];
   const database={async transaction(context,work){contexts.push({...context});return work({async query(sql,args=[]){
     calls.push({sql,args:structuredClone(args)});
+    if(sql.includes('app_api.record_enquiry'))return {rows:[{id:ENQUIRY}]};
     if(sql.includes('app_private.staff_role'))return {rows:[{role}]};
     if(failure)throw failure;
     if(sql.includes('list_enquiry_assignees'))return {rows:[{page:directory}]};
@@ -200,4 +201,21 @@ test('database permission, missing, conflict and safety failures keep existing s
     assert.equal(f.calls.filter(c=>c.sql.includes('execute_enquiry_operation')).length,1);
   }
   const f=fixture({failure:new DatabaseSafetyError()});await safeFailure(await f.service(request(base)),503,'SERVICE_UNAVAILABLE');
+});
+
+const captureBody=()=>({listingId:null,name:'Fictional Prospect',email:'PROSPECT@example.invalid',message:'Fictional staff intake',noticeVersion:'synthetic-notice-v1',noticeAcknowledged:true});
+test('protected staff capture derives attribution and canonical contact within fixed session context',async()=>{
+  for(const actor of ['admin','agent']){
+    const f=fixture({role:actor});const result=await f.service(request('/v2/staff/enquiry-captures',{method:'POST',actor,body:captureBody(),headers:{'Idempotency-Key':OP}}));
+    assert.equal(result.status,201);assert.deepEqual(await result.json(),{id:ENQUIRY});
+    assert.equal(f.contexts[0].tenantId,TENANT);assert.equal(f.contexts[0].actorId,actor==='admin'?ADMIN:AGENT);
+    assert.equal(f.calls[0].sql.includes('staff_role'),true);
+    const call=f.calls.find(c=>c.sql.includes('record_enquiry'));assert.equal(call.args[1],OP);assert.equal(call.args[5],'prospect@example.invalid');assert.equal(call.args[7],'staff');
+  }
+});
+test('staff capture rejects unauthenticated, nonstaff and caller attribution without a write',async()=>{
+  for(const actor of [null,'invalid']){const f=fixture();await safeFailure(await f.service(request('/v2/staff/enquiry-captures',{method:'POST',actor,body:captureBody(),headers:{'Idempotency-Key':OP}})),401,'UNAUTHENTICATED');assert.equal(f.contexts.length,0);}
+  const denied=fixture({role:'customer'});await safeFailure(await denied.service(request('/v2/staff/enquiry-captures',{method:'POST',body:captureBody(),headers:{'Idempotency-Key':OP}})),403,'FORBIDDEN');assert.equal(denied.calls.length,1);
+  for(const field of ['origin','actorId','tenantId','requestedById']){const f=fixture();await safeFailure(await f.service(request('/v2/staff/enquiry-captures',{method:'POST',body:{...captureBody(),[field]:ADMIN},headers:{'Idempotency-Key':OP}})),400,'INVALID_INPUT');assert.equal(f.calls.length,0);}
+  const query=fixture();await safeFailure(await query.service(request('/v2/staff/enquiry-captures?limit=1',{method:'POST',body:captureBody(),headers:{'Idempotency-Key':OP}})),400,'INVALID_INPUT');assert.equal(query.calls.length,0);
 });

@@ -1,3 +1,5 @@
+Latest 13 October checkpoint: protected staff capture API and signed-identity/restricted-SQL replay proof; see staff-enquiry-capture.md and CONTINUATION.md. Next shared staff capture client/attempt then protected preview form. Dashboard publication pending.
+
 # Rebuild foundation — 9 October 2026
 
 ## Property-linked enquiry checkpoint — 12 October 2026
