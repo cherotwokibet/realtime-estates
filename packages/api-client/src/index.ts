@@ -39,6 +39,11 @@ export interface StaffDraftV2 {
 export interface StaffGalleryPhotoV2 {readonly id:string;readonly position:number;readonly altText:string;readonly accepted:boolean;readonly provenance:'sealed'|'legacy'}
 /** One authorized statement snapshot; the version belongs to this exact draft and gallery. */
 export interface StaffDraftWorkspaceV2 {readonly listingId:string;readonly draft:StaffDraftV2;readonly photos:readonly StaffGalleryPhotoV2[]}
+/** Private saved-version image bytes. The caller owns data and must release any derived Blob URLs. */
+export interface StaffMediaPreviewV2 {
+  readonly listingId:string;readonly revision:number;readonly mediaId:string;readonly version:string;
+  readonly mimeType:'image/webp';readonly data:Uint8Array<ArrayBuffer>;
+}
 export interface StaffVersionReceipt {readonly version:string}
 export interface StaffDraftSaveV2 {readonly expectedVersion:string;readonly content:StaffDraftContentInputV2}
 export interface StaffDraftSubmitV2 {readonly expectedVersion:string}
@@ -151,6 +156,8 @@ const UPLOAD_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_NO
 const UPLOAD_PATH=/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/media-jobs\/[^/]+\/uploads\/[^/]+$/;
 const FINALIZE_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['INVALID_INPUT',400],['FORBIDDEN',403],['UNAUTHENTICATED',401],['REQUEST_ABORTED',400],['ATTACHMENT_UNCONFIRMED',503],['SERVICE_UNAVAILABLE',503]]);
 const FINALIZE_PATH=/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/media-attach-intents\/[^/]+\/finalize$/;
+const PREVIEW_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['INVALID_INPUT',400],['FORBIDDEN',403],['UNAUTHENTICATED',401],['VERSION_CONFLICT',409],['REQUEST_ABORTED',400],['SERVICE_UNAVAILABLE',503]]);
+const MAX_PREVIEW_BYTES=10485760;
 const nativeTypedArray=Object.getPrototypeOf(Uint8Array.prototype) as object;
 const nativeTypedArrayBuffer=Object.getOwnPropertyDescriptor(nativeTypedArray,'buffer')!.get!;
 const nativeTypedArrayOffset=Object.getOwnPropertyDescriptor(nativeTypedArray,'byteOffset')!.get!;
@@ -541,6 +548,22 @@ function uploadOptions(input:StaffRequestOptions):StaffRequestOptions{
   const keys=Reflect.ownKeys(input);if(keys.some(key=>typeof key!=='string'||!['bearerToken','signal','timeoutMs'].includes(key)))return invalid('VALIDATION','Supply exact staff request options.');
   const snapshot=attachRecord(input,keys as string[],'VALIDATION') as unknown as StaffRequestOptions;staffOptions(snapshot);return Object.freeze(snapshot);
 }
+function appendPreviewBytes(destination:Uint8Array<ArrayBuffer>,offset:number,input:unknown):number{
+  try{
+    if(!ArrayBuffer.isView(input)||Reflect.apply(nativeTypedArrayKind,input,[])!=='Uint8Array')return invalid('INVALID_RESPONSE','Malformed private image response bytes.');
+    const backing=Reflect.apply(nativeTypedArrayBuffer,input,[]) as ArrayBuffer,start=Reflect.apply(nativeTypedArrayOffset,input,[]) as number,length=Reflect.apply(nativeTypedArrayLength,input,[]) as number;
+    Reflect.apply(nativeArrayBufferLength,backing,[]);
+    if(length>destination.byteLength-offset)return invalid('INVALID_RESPONSE','Private image response exceeded its supported length.');
+    Reflect.apply(nativeByteCopy,destination,[new Uint8Array(backing,start,length),offset]);return offset+length;
+  }catch(error){if(error instanceof ApiClientError)throw error;return invalid('INVALID_RESPONSE','Malformed private image response bytes.');}
+}
+function previewLength(input:string|null,min:number,max:number):number{
+  if(input===null||!/^(?:0|[1-9]\d{0,7})$/.test(input))return invalid('INVALID_RESPONSE','Invalid private image response length.');
+  const length=Number(input);if(length<min||length>max)return invalid('INVALID_RESPONSE','Invalid private image response length.');return length;
+}
+function previewContainer(data:Uint8Array<ArrayBuffer>):void{
+  if(data.byteLength<20||data[0]!==82||data[1]!==73||data[2]!==70||data[3]!==70||data[8]!==87||data[9]!==69||data[10]!==66||data[11]!==80||new DataView(data.buffer,data.byteOffset,data.byteLength).getUint32(4,true)!==data.byteLength-8)return invalid('INVALID_RESPONSE','Malformed private WebP image container.');
+}
 function requestOptions(input:RequestOptions,extra:readonly string[]=[]):void{
   record(input,['bearerToken','signal','timeoutMs',...extra],'VALIDATION');
   if(input.bearerToken!==undefined&&(typeof input.bearerToken!=='string'||input.bearerToken.length>8192||! /^[A-Za-z\d\-._~+/]+=*$/.test(input.bearerToken)))invalid('VALIDATION','Invalid bearer token.');
@@ -593,6 +616,13 @@ export class RealtorApiClient {
   async getStaffDraftWorkspaceV2(listingId:string,revision:number,options:StaffRequestOptions):Promise<StaffDraftWorkspaceV2>{
     staffOptions(options);const path=mediaPath(listingId,revision);
     return validateStaffDraftWorkspaceV2(await this.request(`${path}/workspace`,'GET',options),listingId,revision);
+  }
+  /** Read one current authorized saved-version image. This never processes or mutates media and never retries. */
+  async getStaffMediaPreviewV2(listingId:string,revision:number,mediaId:string,expectedVersion:string,options:StaffRequestOptions):Promise<StaffMediaPreviewV2>{
+    const captured=uploadOptions(options),listing=uuid(listingId,'VALIDATION','Listing ID'),number=integer(revision,1,2147483647,'VALIDATION','Revision'),media=uuid(mediaId,'VALIDATION','Media ID'),version=staffVersion(expectedVersion,'VALIDATION');
+    if(BigInt(version)>BigInt(Number.MAX_SAFE_INTEGER))return invalid('VALIDATION','Unsupported private image version.');
+    const data=await this.previewRequest(`${mediaPath(listing,number)}/media/${media}/preview`,version,captured);
+    return Object.freeze({listingId:listing,revision:number,mediaId:media,version,mimeType:'image/webp',data});
   }
   async saveStaffDraftV2(listingId:string,revision:number,input:StaffDraftSaveV2,options:StaffRequestOptions):Promise<StaffVersionReceipt>{
     staffOptions(options);const path=staffPath(listingId,revision);
@@ -711,6 +741,60 @@ export class RealtorApiClient {
       if(error instanceof ApiClientError&&error.kind==='INVALID_RESPONSE'&&!error.submissionUncertain)throw new ApiClientError(error.kind,error.message,{status:error.status,submissionUncertain:true});
       throw error;
     }
+  }
+  private async previewRequest(path:string,version:string,options:StaffRequestOptions):Promise<Uint8Array<ArrayBuffer>>{
+    if(options.signal?.aborted)throw new ApiClientError('CANCELLED','Request was cancelled.');
+    const controller=new AbortController(),duration=options.timeoutMs??this.defaultTimeout;
+    const now=()=>globalThis.performance?.now()??Date.now(),started=now();
+    let interruption:'CANCELLED'|'TIMEOUT'|undefined,response:Response|undefined,reader:ReadableStreamDefaultReader<Uint8Array>|undefined;
+    let rejectInterruption:(reason:ApiClientError)=>void=()=>{};
+    const interrupted=new Promise<never>((_,reject)=>{rejectInterruption=reject;});
+    const cancelBody=()=>{try{const pending=reader?reader.cancel():response?.body?.cancel();if(pending)void pending.catch(()=>undefined);}catch{/* Cancellation must not delay or replace the safe result. */}};
+    const stopped=()=>new ApiClientError(interruption??'CANCELLED',interruption==='TIMEOUT'?'Request timed out.':'Request was cancelled.');
+    const stop=(kind:'CANCELLED'|'TIMEOUT')=>{if(interruption)return;interruption=kind;controller.abort();cancelBody();try{reader?.releaseLock();}catch{/* Cancellation still settles independently of transport cleanup. */}rejectInterruption(stopped());};
+    const check=()=>{if(options.signal?.aborted)stop('CANCELLED');if(!interruption&&now()-started>=duration)stop('TIMEOUT');if(interruption)throw stopped();};
+    const timer=setTimeout(()=>stop('TIMEOUT'),duration),cancel=()=>stop('CANCELLED');options.signal?.addEventListener('abort',cancel,{once:true});
+    const collect=async(cap:number,exact?:number):Promise<Uint8Array<ArrayBuffer>>=>{
+      check();if(!response?.body||typeof response.body.getReader!=='function')return invalid('INVALID_RESPONSE','A bounded readable private image response is required.');
+      reader=response.body.getReader();const data=new Uint8Array(exact??cap);let used=0;
+      while(true){
+        check();let part:ReadableStreamReadResult<Uint8Array>;
+        try{part=await reader.read();}catch{check();throw new ApiClientError('NETWORK','Private image response could not be read.');}check();
+        if(!part||typeof part.done!=='boolean')return invalid('INVALID_RESPONSE','Malformed private image response stream.');
+        if(part.done)break;used=appendPreviewBytes(data,used,part.value);
+      }
+      if(exact!==undefined&&used!==exact)return invalid('INVALID_RESPONSE','Private image response length did not match its declaration.');
+      return used===data.byteLength?data:data.slice(0,used);
+    };
+    try{
+      const operation=(async()=>{
+        try{
+          check();const url=this.apiOrigin+path;
+          try{response=await this.transport(url,{method:'GET',headers:{Accept:'image/webp',Authorization:`Bearer ${options.bearerToken}`,'X-Revision-Version':version},credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal});}
+          catch{check();throw new ApiClientError('NETWORK','Private image API could not be reached.');}check();
+          if(response.redirected||(response.status>=300&&response.status<400)||(response.url&&new URL(response.url).href!==new URL(url).href))throw new ApiClientError('REDIRECT','API redirects are not permitted.');
+          if(response.headers.has('content-encoding')||response.headers.has('content-range'))return invalid('INVALID_RESPONSE','Unsupported private image response encoding or range.');
+          if(response.ok){
+            if(response.status!==200||response.headers.get('content-type')!=='image/webp')return invalid('INVALID_RESPONSE','Expected a private WebP image response.');
+            const length=previewLength(response.headers.get('content-length'),20,MAX_PREVIEW_BYTES),data=await collect(MAX_PREVIEW_BYTES,length);
+            check();previewContainer(data);return data;
+          }
+          if(!/^application\/json(?:\s*;[^\r\n]*)?$/i.test(response.headers.get('content-type')??''))return invalid('INVALID_RESPONSE','Expected a safe private image error response.');
+          const length=response.headers.get('content-length');if(length!==null)previewLength(length,1,4096);
+          const data=await collect(4096,length===null?undefined:Number(length));let payload:unknown;
+          try{const raw=new TextDecoder('utf-8',{fatal:true}).decode(data);assertMediaJsonTokens(raw);payload=JSON.parse(raw);}catch{return invalid('INVALID_RESPONSE','Malformed private image error JSON.');}
+          const envelope=attachRecord(payload,['error','requestId'],'INVALID_RESPONSE'),serverError=attachRecord(envelope.error,['code','message'],'INVALID_RESPONSE');
+          const code=serverError.code,requestId=uuid(envelope.requestId,'INVALID_RESPONSE','Request ID'),headerId=uuid(response.headers.get('x-request-id'),'INVALID_RESPONSE','Request ID');
+          if(typeof code!=='string'||PREVIEW_SERVER_STATUS.get(code)!==response.status||typeof serverError.message!=='string'||serverError.message.length<1||serverError.message.length>1024||requestId!==headerId)return invalid('INVALID_RESPONSE','Malformed private image error.');
+          throw new ApiClientError('HTTP','Private image preview is unavailable.',{status:response.status,serverCode:code,requestId});
+        }finally{cancelBody();try{reader?.releaseLock();}catch{/* A cancelled transport may still hold a pending read. */}}
+      })();
+      return await Promise.race([operation,interrupted]);
+    }catch(error){
+      if(interruption)throw stopped();
+      if(error instanceof ApiClientError)throw error;
+      throw new ApiClientError('NETWORK','Private image API could not be reached.');
+    }finally{clearTimeout(timer);options.signal?.removeEventListener('abort',cancel);}
   }
   private async request(path:string,method:'GET'|'POST'|'PUT',options:RequestOptions,body?:Record<string,unknown>,key?:string,binary?:Uint8Array<ArrayBuffer>):Promise<unknown>{
     const writes=method!=='GET';

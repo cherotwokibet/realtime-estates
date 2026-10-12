@@ -71,6 +71,6 @@ export default function PhotoUpload(props:Props){
       {!['registered','verified','ready'].includes(stage!)&&<button type="button" className="draft-secondary" disabled={props.busy} onClick={()=>void recover()}>{terminal?'Read current gallery':'Check original photo result'}</button>}
       <p className="draft-help">Your text edits stay in this tab. Other saved changes are paused until this original photo request is resolved.</p></>}
     {message&&<p className="photo-message" role="status" aria-live="polite">{message}</p>}
-    <p className="draft-help">Saved image previews are a separate delivery step.</p>
+    <p className="draft-help">After adding a photo, read and explicitly use the current gallery to display it. Existing synthetic metadata cards have no image bytes.</p>
   </div>;
 }

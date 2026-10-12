@@ -1,11 +1,15 @@
 'use client';
+import {useEffect,useRef,useState} from 'react';
 import type {MediaOperationReceiptV2,StaffDraftWorkspaceV2} from '@realtor/api-client';
 import type {GalleryCommand} from '../lib/gallery-model';
+import {createPrivateImageBatch,privateGalleryScope,privateImageKey,type PrivateImageBatch,type PrivateImageState,type PrivateImageTuple} from '../lib/private-image';
+import PrivateGalleryImage from './PrivateGalleryImage';
 
 export interface GalleryWork {command:GalleryCommand;receipt:MediaOperationReceiptV2|null;refused:boolean}
 interface Props {
   workspace:StaffDraftWorkspaceV2;order:readonly string[];busy:boolean;blocked:boolean;changed:boolean;needsRepair:boolean;
   work:GalleryWork|null;current:StaffDraftWorkspaceV2|null;removeTarget:string|null;
+  instanceId:string;imagesEnabled:boolean;onImageStale:(tuple:PrivateImageTuple)=>void;onImageDenied:(tuple:PrivateImageTuple)=>void;
   onMove:(id:string,direction:'up'|'down')=>void;onReset:()=>void;onSave:()=>void;
   onSelectRemoval:(id:string|null)=>void;onRemove:()=>void;onRecover:()=>void;
 }
@@ -15,15 +19,27 @@ export default function DraftGallery(props:Props){
   const editable=workspace.draft.state==='draft'&&!busy&&!blocked&&!work;
   const accepted=workspace.photos.filter(photo=>photo.accepted&&photo.provenance==='sealed').length;
   const target=workspace.photos.find(photo=>photo.id===removeTarget);
+  const scope=privateGalleryScope(workspace,props.instanceId,props.imagesEnabled&&!blocked&&!work),scopeRef=useRef(scope);scopeRef.current=scope;
+  const staleCallback=useRef(props.onImageStale);staleCallback.current=props.onImageStale;
+  const deniedCallback=useRef(props.onImageDenied);deniedCallback.current=props.onImageDenied;
+  const [imageEpoch,setImageEpoch]=useState(0),imageScopeKey=JSON.stringify([scope.key,imageEpoch]);
+  const batch=useRef<PrivateImageBatch|null>(null),[images,setImages]=useState<Readonly<{key:string;items:Readonly<Record<string,PrivateImageState>>}>>({key:'',items:{}});
+  useEffect(()=>{
+    const original=scopeRef.current;
+    const current=createPrivateImageBatch(original.resources,{onState:state=>setImages(previous=>({key:imageScopeKey,items:{...(previous.key===imageScopeKey?previous.items:{}),[state.mediaId]:state}})),onStale:tuple=>staleCallback.current(tuple),onDenied:tuple=>deniedCallback.current(tuple)});
+    batch.current=current;current.start();
+    return()=>{if(batch.current===current)batch.current=null;current.close();};
+  },[scope.key,imageEpoch]);
   return <section className="draft-panel gallery-panel" aria-labelledby="gallery-heading">
     <div className="draft-section-heading"><span>04</span><div><h2 id="gallery-heading">Photos &amp; cover</h2><p>Put the strongest photo first. Save the full order when you are ready.</p></div></div>
     <div className="gallery-summary"><strong>{workspace.photos.length} of 12 photos</strong><span>{accepted} accepted records · 4 required for review</span></div>
-    <p className="gallery-fixture">Saved image previews are not connected yet. Default preview fixtures are metadata only.</p>
+    <p className="gallery-fixture">{props.imagesEnabled?'Private images use this exact saved draft version. After a photo change, read and explicitly use the current gallery to display its photos.':'Default preview fixtures are metadata only; they have no image bytes.'}</p>
+    {props.imagesEnabled&&<div className="gallery-preview-actions"><p>Image failures are not retried automatically. Reloading checks this saved version again.</p><button type="button" className="draft-secondary" disabled={busy||blocked||!!work||scope.resources.length===0} onClick={()=>setImageEpoch(epoch=>epoch+1)}>Reload photo previews</button></div>}
     {needsRepair&&<p className="gallery-warning">The saved positions have gaps. Save the complete photo order to repair them before removing a photo.</p>}
     {order.length===0?<div className="gallery-empty"><strong>Your gallery is empty</strong><p>Add a verified photo using the controls below when the synthetic photo preview is enabled.</p></div>:<ol className="gallery-grid" aria-label="Photo order">{order.map((id,index)=>{
       const photo=workspace.photos.find(item=>item.id===id);if(!photo)return null;
       return <li className="gallery-card" key={id}>
-        <div className="gallery-placeholder" aria-label={`Photo ${index+1}: preview unavailable`}><svg viewBox="0 0 48 36" fill="none" aria-hidden="true"><rect x="1" y="1" width="46" height="34" rx="5"/><circle cx="34" cy="11" r="4"/><path d="m2 30 12-14 10 12 7-7 16 13"/></svg><span>Preview unavailable</span>{index===0&&<strong className="gallery-cover">Cover photo</strong>}</div>
+        <PrivateGalleryImage state={images.key===imageScopeKey&&images.items[id]?.key===privateImageKey({instanceId:props.instanceId,listingId:workspace.listingId,revision:workspace.draft.revision,version:workspace.draft.version,mediaId:id})?images.items[id]:undefined} alt={photo.altText} index={index} cover={index===0} eligible={props.imagesEnabled&&workspace.draft.state==='draft'&&photo.accepted&&photo.provenance==='sealed'} paused={blocked||!!work} onDecodeError={url=>batch.current?.decodeFailed(id,url)}/>
         <div className="gallery-card-body"><strong>Photo {index+1}</strong><p>{photo.altText}</p><span className={`gallery-badge ${photo.accepted&&photo.provenance==='sealed'?'':'gallery-badge-waiting'}`}>{photo.accepted&&photo.provenance==='sealed'?'Accepted record':'Needs verification'}</span>
           <div className="gallery-controls"><button type="button" className="draft-secondary" aria-label={`Move photo ${index+1} earlier`} disabled={!editable||index===0||!!removeTarget} onClick={()=>props.onMove(id,'up')}>↑</button><button type="button" className="draft-secondary" aria-label={`Move photo ${index+1} later`} disabled={!editable||index===order.length-1||!!removeTarget} onClick={()=>props.onMove(id,'down')}>↓</button><button type="button" className="draft-text-button" disabled={!editable||changed||needsRepair||!!removeTarget} onClick={()=>props.onSelectRemoval(id)} aria-label={`Remove photo ${index+1}`}>Remove</button></div>
         </div>
