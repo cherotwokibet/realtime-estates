@@ -1,5 +1,10 @@
 # Rebuild continuation checkpoint
 
+## Protected staff preview proxy - 13 October 2026
+
+Server-only fixed-role capture routes now enforce bounded same-origin/instance requests, reject caller authority/source and forward signed staff identity. Final24 admin boundary,10 actual preview API,173 client,26 web checks;8 typechecks and admin build passed. See staff-enquiry-capture.md and proxy logs. Next source-free strict same-origin browser client/form, explicit original recovery and truthful fixed-actor receipt. No browser bearer placeholders. Agent-created unassigned receipt/inbox visibility needs explicit UX. UI/device/UAT/production remain open;16/97 tasks,0/14 gates. Inspect latest tracker before editing.
+
+
 ## Shared staff client - 13 October 2026
 
 Typed staff capture/immutable original replay verified:173 client tests,8 signed-identity HTTP/restricted SQL checks and8 workspace typechecks passed. See staff-enquiry-capture.md and verified logs. Next protected server-only preview BFF/form and attributable receipt UI. Memory-only state, captured-token expiry, device/UAT/production remain open. Checklist16/97,gates0/14. Inspect tracker publication state before next edit.

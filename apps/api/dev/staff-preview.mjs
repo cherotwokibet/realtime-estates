@@ -231,10 +231,11 @@ export async function startStaffPreview(options={}){
           if(request.headers.has('authorization'))return failure(403,'FORBIDDEN','Guest intake does not accept staff identity.');
           const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
         }
+        const capture=url.pathname==='/v2/staff/enquiry-captures';
         const queue=url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees';
         const enquiryRoute=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}(?:\/(operations)(?:\/([0-9a-f-]{36}))?)?$/i.exec(url.pathname);
-        if(!queue&&!enquiryRoute)return failure(404,'NOT_FOUND','Enquiry preview route is unavailable.');
-        const allowedMethod=enquiryRoute?.[1]&&!enquiryRoute[2]?'POST':'GET';
+        if(!capture&&!queue&&!enquiryRoute)return failure(404,'NOT_FOUND','Enquiry preview route is unavailable.');
+        const allowedMethod=capture||(enquiryRoute?.[1]&&!enquiryRoute[2])?'POST':'GET';
         if(request.method!==allowedMethod)return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for the enquiry fixture.',{Allow:allowedMethod});
         if(allowedMethod==='POST'&&!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')??''))return failure(415,'JSON_REQUIRED','Use application/json.');
         const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;

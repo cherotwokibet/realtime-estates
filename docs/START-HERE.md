@@ -1,3 +1,5 @@
+Latest: protected staff preview proxy verified; next browser client/form. See CONTINUATION.md. Earlier sections are at-time history.
+
 Latest shared staff client verified; next protected preview BFF/form. See CONTINUATION.md.
 
 Latest 13 October checkpoint: protected staff capture API and signed-identity/restricted-SQL replay proof; see staff-enquiry-capture.md and CONTINUATION.md. Next shared staff capture client/attempt then protected preview form. Dashboard publication pending.

@@ -1,5 +1,5 @@
 import 'server-only';
-import {ApiClientError,RealtorApiClient,type EnquiryOperationInputV2} from '@realtor/api-client';
+import {handleSyntheticEnquiry,ApiClientError,RealtorApiClient,type EnquiryOperationInputV2} from '@realtor/api-client';
 import {assertPreviewRequest} from './staff-preview-policy.ts';
 
 type Actor='admin'|'agent';
@@ -140,4 +140,12 @@ export async function enquiryPreviewRequest(request:Request,params:{actor:string
     else{writeDispatched=true;result=await client.applyEnquiryOperationV2(params.id!,command!,options);}
     return Response.json(result,{status:200,headers:HEADERS});
   }catch(error){return failure(error,writeDispatched);}
+}
+
+/** Fixed synthetic staff identity remains server-only; browser cannot choose upstream credentials. */
+export async function staffCapturePreviewRequest(request:Request,actor:string):Promise<Response>{
+  let scope:ReturnType<typeof configuration>;
+  try{scope=configuration(actor,process.env);}catch{return reply(403,'PREVIEW_UNAVAILABLE');}
+  return handleSyntheticEnquiry(request,{apiOrigin:scope.origin,noticeVersion:'synthetic-staff-notice-v1',
+    staff:{actor:scope.role,bearerToken:scope.bearerToken},authorize:incoming=>assertPreviewRequest(incoming,scope.instanceId)});
 }

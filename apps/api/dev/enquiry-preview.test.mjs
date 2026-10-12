@@ -143,3 +143,14 @@ test('configured second realtor gets its own fixed signed identities and synthet
     assert.equal((await read(preview,base,{role:'agent'})).items.length,3);
   }finally{await preview.close();}
 });
+
+test('staff capture preview requires signed identity and binds original receipt to the requester',async()=>{
+ const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1'});
+ try{
+ const path='/v2/staff/enquiry-captures',body={listingId:null,name:'Fictional operator intake',email:'operator@example.invalid',message:'Synthetic only',noticeVersion:'synthetic-staff-notice-v1',noticeAcknowledged:true},options={method:'POST',body,headers:{'Idempotency-Key':randomUUID()}};
+ assert.equal((await call(preview,path,{...options,token:null})).status,401);
+ const saved=await call(preview,path,options);assert.equal(saved.status,201);const receipt=await saved.json();const replay=await call(preview,path,options);assert.equal(replay.status,201);assert.deepEqual(await replay.json(),receipt);
+ assert.equal((await call(preview,path,{...options,role:'agent'})).status,409);const detail=await read(preview,base+'/'+receipt.id);assert.equal(detail.origin,'staff');assert.equal(detail.version,'1');
+ assert.equal((await call(preview,path,{...options,body:{...body,origin:'web'}})).status,400);assert.equal((await call(preview,path,{method:'GET'})).status,405);
+ }finally{await preview.close();}
+});
