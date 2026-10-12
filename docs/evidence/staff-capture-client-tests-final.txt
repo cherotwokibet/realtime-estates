@@ -1,0 +1,233 @@
+
+> @realtor/api-client@0.1.0 test
+> npm run build && node --test tests/transport.test.mjs tests/http-transport.test.mjs tests/v2.test.mjs tests/staff-v2.test.mjs tests/moderation-v2.test.mjs tests/media-jobs-v2.test.mjs tests/media-attachments-v2.test.mjs tests/media-gallery-v2.test.mjs tests/gallery-workspace-v2.test.mjs tests/media-upload-v2.test.mjs tests/media-upload-v2-finalize.test.mjs tests/media-preview-v2.test.mjs tests/enquiries-v2.test.mjs tests/enquiry-intake-attempt.test.mjs tests/enquiry-proxy.test.mjs tests/staff-enquiry-capture.test.mjs
+
+
+> @realtor/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ bounded staff pages and assignee picker use only explicit per-call identity and freeze narrow projections (64.1807ms)
+✔ detail preserves legitimate multiline original contact text and canonicalizes only UUID selectors (2.4853ms)
+✔ staff options and limits are strict own snapshotted data and reject authority overrides before IO (9.625ms)
+✔ invalid resource selectors and every malformed command fail before IO (4.5083ms)
+✔ command POST snapshots the complete original request and sends a safe numeric version exactly once (25.1556ms)
+✔ valid assignment, transition, reopening, reschedule, noop and historical failure receipts remain explicit (17.5833ms)
+✔ response pages reject oversize, incomplete truncation, private fields, duplicates and wrong limits (4.6914ms)
+✔ summary and detail validators enforce scope, canonical dates, bounded versions and private contacts (12.4469ms)
+✔ ordinary exact data records reject inherited, hidden, accessor and symbol fields without evaluation (0.7841ms)
+✔ POST rejects mismatched original identity and request facts as uncertain without retrying (3.8089ms)
+✔ receipt outcomes, versions and resulting workflow facts cannot contradict their original command (7.5413ms)
+✔ raw decoded duplicate keys and noncanonical integer tokens are rejected before numeric rounding (2.6491ms)
+✔ safe staff errors require matching references and exact code/status while withholding upstream text (6.9142ms)
+✔ lost successful POST replies reconcile through historical GET without resending or adopting current state (5.4761ms)
+✔ timeout and cancellation bound ignored transports and mark only dispatched writes uncertain (31.826ms)
+✔ malformed success status, redirects, non-JSON and lost text reads never produce write success (6.101ms)
+✔ enquiry options never leak to subsequent calls or change unchanged public enquiry transport (1.4546ms)
+✔ preparation validates without a request and freezes a private raw copy (2.9755ms)
+✔ one request is locked synchronously and a received enquiry cannot be resubmitted (46.7607ms)
+✔ lost reply requires explicit original replay with byte-identical body/key and no bearer (3.0646ms)
+✔ later definite rejection does not erase an earlier uncertain commit (1.5256ms)
+✔ public attempt refuses authority/key overrides and invalid timeouts before state changes (1.6906ms)
+✔ already cancelled initial request is definite; invalid successful receipt stays uncertain (2.2183ms)
+✔ transport freezes its destination and instance, omits cookies and refuses redirects (57.2726ms)
+✔ wrong origins, paths, methods and identity headers never reach fetch (1.5391ms)
+✔ destination mismatch or redirected response stays uncertain without automatic replay (5.7692ms)
+✔ configuration permits HTTPS and explicit loopback only (1.8285ms)
+✔ same-origin response supports explicit byte-identical retry after a lost reply (2.4841ms)
+✔ workspace SDK reads one exact authorized current snapshot and freezes complete sparse metadata (75.2432ms)
+✔ workspace pure parser preserves bounded legacy text and accepts empty/full galleries without inventing content (1.0929ms)
+✔ workspace exact envelope, content and photo descriptors reject unknown/private fields (2.0217ms)
+✔ workspace metadata refuses duplicate IDs/positions, unknown provenance and impossible sealed rows (1.8424ms)
+✔ workspace transport rejects rounded revision/position tokens, duplicate decoded keys and malformed content (19.6183ms)
+✔ workspace per-call authentication, path bounds and pure validator argument bounds fail before transport (2.6678ms)
+✔ workspace read network/HTTP failure is definite and never invokes a write or automatic retry (1.6971ms)
+✔ pure gallery receipt validator enforces exact historical identity and kind without transport state (2.6086ms)
+✔ Node Fetch refuses cross-origin 302 POST redirect before contacting destination (85.2334ms)
+✔ Node Fetch refuses cross-origin 303 POST redirect before contacting destination (22.4105ms)
+✔ Node Fetch refuses cross-origin 307 POST redirect before contacting destination (13.2465ms)
+✔ Node Fetch refuses cross-origin 308 POST redirect before contacting destination (13.0774ms)
+✔ Node Fetch marks a committed POST timeout uncertain; manual same-key/body retry returns its original receipt (772.9425ms)
+✔ attach calls require per-call bearer and public requests retain no credentials (49.9514ms)
+✔ attach sends the exact tuple and original command while ready remains an acknowledgement (1.391ms)
+✔ attach snapshots strict own input data before transport and explicit replay retains body (2.2533ms)
+✔ attach validates original UUIDs, exact fields and the supported incrementable version before transport (7.0014ms)
+✔ attach GET binds the exact path and returns a frozen immutable terminal receipt after historical expiry (3.2856ms)
+✔ attach response binds original intent facts and rejects unexpected or inconsistent envelopes (16.9907ms)
+✔ terminal parser requires exact outcome correlations, complete identity, media facts and resulting version (20.5385ms)
+✔ attach raw JSON rejects duplicate nested keys and original revision/position token aliases (11.5306ms)
+✔ attach explicit creation replay can recover terminal status without adopting a newer request version (1.0277ms)
+✔ attach definite HTTP failures are safe and do not trigger automatic mutation retries (2.9892ms)
+✔ attach lost writes, timeout, redirects, malformed success and server errors stay uncertain without retry (48.9908ms)
+✔ attach cancellation before admission sends nothing and cancellation after transport remains uncertain (5.1004ms)
+✔ gallery commands and history require per-call bearer; public requests retain no credentials (65.5674ms)
+✔ gallery sends exact original command, URL tuple and no idempotency header (2.4793ms)
+✔ gallery snapshots original own input and dense order before transport (8.07ms)
+✔ gallery validates exact fields, UUIDs and canonical incrementable decimal version (5.3214ms)
+✔ gallery rejects malformed full order before transport and supports canonical empty reorder noop (1.646ms)
+✔ gallery GET binds exact history URL and accepts historical result without current version adoption (4.6097ms)
+✔ gallery mutation receipts bind original kind, target, expected version and full requested order (7.0181ms)
+✔ gallery terminal parser checks every field and correlated state, version, order and timestamp (14.2898ms)
+✔ gallery raw response checks duplicate decoded keys and original integer revision literals (6.1845ms)
+✔ gallery typed durable conflicts return facts without retry or adopting later version (5.2369ms)
+✔ gallery safe definite HTTP failures cause no mutation retry (4.791ms)
+✔ gallery uncertain writes stay single-attempt across loss, malformed success, redirect and timeout (73.7947ms)
+✔ gallery cancellation before admission sends nothing; after admission remains uncertain (11.6684ms)
+✔ every media call requires its own bearer and public calls retain no staff credentials (84.9698ms)
+✔ registration sends exact explicit identity/version/body and freezes a capability-free historical receipt (4.3939ms)
+✔ registration snapshots request facts before transport and explicit replay sends the original body once per call (6.0225ms)
+✔ registration validates UUIDs, canonical safe version and trimmed bounded Unicode alt before transport (7.7136ms)
+✔ registration response requires exact fields and original tuple/operation/version/alt facts (22.1041ms)
+✔ registration and job GET bind exact paths and do not equate historical receipt with current state (4.3813ms)
+✔ media timestamps are canonical, exactly 24h apart and historical expiry is accepted without renewal (3.9061ms)
+✔ media raw response rejects decoded duplicate keys and fractional/exponent revision aliases before rounding (3.4073ms)
+✔ media definite HTTP authorization/input/state conflicts expose safe codes and never retry (2.191ms)
+✔ media write loss, timeout, redirects, invalid receipts and server failure remain uncertain without automatic retry (25.0977ms)
+✔ pre-cancelled registration sends nothing; cancellation after transport starts remains uncertain (1.9864ms)
+✔ media read transport failure is never labelled an uncertain write (0.725ms)
+✔ saved image GET binds the exact tuple/version without putting credentials or selectors in the URL (59.545ms)
+✔ private image resources and canonical positive safe version strings validate before IO (4.2971ms)
+✔ staff options are strict snapshotted own data and cannot add transport authority (21.1722ms)
+✔ incremental reads snapshot reused byte subviews without invoking caller byte descriptors (1.3908ms)
+✔ bounded native readable streams accept exact chunked bodies through the 10 MiB cap (20.2107ms)
+✔ unsupported declared lengths fail before reading bytes and cancel the body (3.0553ms)
+✔ exact body length is enforced incrementally on truncation and oversized chunks (2.9647ms)
+✔ only ordinary nonshared Uint8 chunks are accepted without coercion or fallback (3.9525ms)
+✔ RIFF and WEBP bytes and little-endian length are exact, including high-bit rejection (7.0725ms)
+✔ image success requires exact MIME/status and refuses encoding/range before body collection (3.4637ms)
+✔ redirect status, followed flags and any changed response URL are refused without retries (1.7878ms)
+✔ safe image HTTP errors validate exact status/reference and never expose server details or uncertainty (3.3004ms)
+✔ error envelopes reject extra facts, mismatched references, code/status aliases and duplicate decoded keys (4.4226ms)
+✔ error collection is bounded at 4 KiB and enforces an optional declared exact length (2.0683ms)
+✔ pre-cancellation prevents transport and in-flight fetch cancellation sends only one request (0.7559ms)
+✔ deadline includes ignored fetch and streamed body waits without awaiting uncooperative cancellation (23.117ms)
+✔ cancellation during native body read cancels stream, releases its lock and ignores late response work (4.1332ms)
+✔ an endless resolved stream of empty chunks cannot starve the overall deadline (5.9024ms)
+✔ transport and mid-body failures remain safe read errors with no uncertain-write flag or retry (1.3101ms)
+✔ completion removes cancellation work and preserves HTTPS and explicit loopback-only HTTP policy (1.8957ms)
+✔ pure registration and attachment validators retain exact frozen original facts without transport (5.6591ms)
+✔ pure validators reject malformed resource and original commands before interpreting history (1.5665ms)
+✔ pure validators bind original registration alt/version and attachment job/version without adoption (1.2511ms)
+✔ pure validators refuse hidden, symbolic, inherited and accessor fields without invoking getters (0.9758ms)
+✔ finalization is an explicit single POST with no body/content type or regenerated identity (65.5934ms)
+✔ finalization supports terminal failure facts but refuses successful ready or mismatched receipts as uncertain (26.1386ms)
+✔ finalization requires per-call strict authority and a valid original URL tuple (4.0886ms)
+✔ finalization raw JSON guards cover the nested finalize path and terminal receipt tokens (2.5087ms)
+✔ finalization lost write reply is single-attempt and original GET readback never finalizes again (30.4083ms)
+✔ finalization preserves explicit post-invocation uncertainty even when current authorization is revoked (2.7898ms)
+✔ finalization errors require exact safe envelopes, matching reference and valid optional uncertainty (4.7178ms)
+✔ finalization cancellation before send is definite and after sending remains uncertain (1.1601ms)
+✔ private binary ingress sends exact original tuple and raw bytes once with isolated per-call credentials (55.7569ms)
+✔ private ingress snapshots the exact byte subview and staff options before transport yields (8.9453ms)
+✔ binary input is bounded to 1 byte through 10 MiB and only ordinary Uint8 bytes are accepted (10.2023ms)
+✔ private upload/status validate all URL identities and int32 revision before contacting transport (2.1634ms)
+✔ private options reject hidden/accessor/inherited authority and require a fresh valid bearer (2.9533ms)
+✔ all narrow upload states are accepted without granting attachment or exposing internals (5.9556ms)
+✔ upload status parser rejects missing/extra fields and every mismatched original tuple fact (6.6439ms)
+✔ pure upload parser validates resource arguments and strict own descriptors without executing getters (0.7137ms)
+✔ upload raw JSON rejects duplicate decoded keys and pre-rounding numeric aliases (4.8237ms)
+✔ private adapter definite errors use exact safe code/status/header facts with no retry (4.4393ms)
+✔ unconfirmed ingress and service failure retain uncertain write identity for explicit status GET (4.1499ms)
+✔ malformed/private/incorrect-status error envelopes fail closed and never expose server details (2.1203ms)
+✔ upload write loss, malformed success and redirect remain uncertain and single-attempt (3.4359ms)
+✔ upload cancellation before send is definite and cancellation/deadline after send remain uncertain (74.6811ms)
+✔ response-body read cancellation is within the same upload deadline (29.1996ms)
+✔ moderation queue validates bounded immutable pending metadata and requires a bearer on each request (61.742ms)
+✔ review details retain raw private content, exact money/quotes/nulls and distinct listing/revision versions (9.5922ms)
+✔ review responses fail closed on unknown/missing fields, nonpending queue states and unsafe numeric metadata (16.2442ms)
+✔ review timestamp, decision-state and requested-resource metadata must be coherent (18.3155ms)
+✔ review accepted-photo references must match the count and remain bounded safe metadata (4.7721ms)
+✔ moderation decisions send a safe numeric revision version and enforce exact decision/reason input before transport (2.061ms)
+✔ moderation HTTP authorization/state conflicts are definite typed outcomes with no retries (1.6776ms)
+✔ moderation decision loss, timeout, redirects and invalid receipts remain uncertain without automatic retries (33.0277ms)
+✔ moderation v2 parses original money tokens before rounding in summaries and full detail content (2.9959ms)
+✖ staff capture fixes command route, omits origin and validates identity before transport (45.9928ms)
+✖ staff attempt snapshots raw input and identity; exact explicit replay recovers a lost reply (4.0475ms)
+✔ staff attempt locks concurrent writes and preserves uncertainty after subsequent denial (1.683ms)
+✔ staff canonical content supports incomplete full replacements and preserves private/coarse coordinates without invented values (5.8063ms)
+✔ every staff call requires its own bearer and never retains it for public or later requests (44.1872ms)
+✔ staff GET requires an exact immutable envelope and complete canonical fields while allowing unfinished drafts (7.4916ms)
+✔ staff PUT and submit POST send exact version numbers, no idempotency header, and expect HTTP 200 receipts (3.4413ms)
+✔ staff validation rejects unknown grants, invalid cents/charges and contradictory fields before transport (0.9493ms)
+✔ staff version strings retain PostgreSQL bigint precision but reject unsafe write conversion and malformed paths (1.9558ms)
+✔ staff authorization and stale-version HTTP failures remain distinct, safe and definite without retries (2.6904ms)
+✔ staff write transport failures, invalid receipts and server failures are uncertain and never auto-retried (2.5653ms)
+✔ staff pre-cancellation sends nothing while a started save/submit timeout remains uncertain (22.1677ms)
+✔ staff GET uses exact v2 JSON money parsing and preserves quote-required null amounts and null locations (1.7738ms)
+✔ API origin permits HTTPS or explicitly opted-in loopback HTTP only (3.5333ms)
+✔ public request uses no ambient credentials, refuses redirects, preserves exact money and unknown fields remain absent (41.102ms)
+✔ bearer token is explicit per call and never persists to the next request (1.9666ms)
+✔ public DTO rejects unsafe money, currency/period/count/type errors and precise area leaks (10.4998ms)
+✔ public DTO rejects extra tenant/private fields at page, property and photo levels (3.7842ms)
+✔ public photo keys cannot be URLs/traversal, repeated or unreviewed-size arrays (4.6076ms)
+✔ malformed pages, responses and unexpected success statuses fail rather than defaulting empty data (10.0165ms)
+✔ redirect statuses and followed-response indicators are rejected without another call (1.3122ms)
+✔ enquiry requires caller-retained UUID key, current notice acknowledgement and a contact channel before network (1.3016ms)
+✔ manual retries preserve key and normalized body; no retry, delivery promise or zero-fee inference (3.1517ms)
+✔ typed HTTP errors contain safe code/reference/retry time, never the raw server message (0.9469ms)
+✔ POST network failures never auto-retry and flag uncertain submission without exposing transport details (0.499ms)
+✔ pre-cancellation sends nothing; in-flight cancellation and timeouts are typed including body reads (21.3064ms)
+✔ a malformed receipt is not called accepted and remains retryable only with original key/body (2.6211ms)
+✔ v2 derives exact known mandatory subtotals and separates optional fees and refundable deposits (43.0147ms)
+✔ unknown coverage and mandatory quotes remain unresolved while optional quotes do not contaminate mandatory totals (6.2427ms)
+✔ sale disclosure has no rental recurring subtotal and nullable public components stay explicit (3.0715ms)
+✔ v2 rejects unknown fields and supplied derived totals at every extension boundary (8.9043ms)
+✔ v2 pricing wire validation rejects unsafe amounts, contradictory states, duplicate IDs and unbounded text/arrays (10.4002ms)
+✔ v2 public location requires exactly three bounded nullable strings (5.0279ms)
+✔ v1 remains exact and v2 does not silently accept an old or malformed base response (3.3267ms)
+✔ v2 accepts SQL-valid astral display-text maxima while v1 retains its UTF-16 bounds for every item (3.2429ms)
+✔ v2 rejects max-plus-one code points and unpaired surrogates independently for every base display field (3.48ms)
+✔ v2 validates raw money integer literals before rounding, including escaped keys, while v1 parsing stays unchanged (3.1709ms)
+✔ v2 validates options before transport and uses only explicit per-call credentials (0.7795ms)
+✔ v2 keeps no-retry network, redirect and whole-request timeout behavior (7.2087ms)
+ℹ tests 173
+ℹ suites 0
+ℹ pass 171
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1186.4097
+
+✖ failing tests:
+
+test at tests\staff-enquiry-capture.test.mjs:8:1
+✖ staff capture fixes command route, omits origin and validates identity before transport (45.9928ms)
+  Error [ApiClientError]: Unexpected API success status.
+      at file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:1379:27
+      at async RealtorApiClient.request (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:1382:20)
+      at async RealtorApiClient.captureStaffEnquiryV2 (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:1092:33)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/tests/staff-enquiry-capture.test.mjs:12:2)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    kind: 'INVALID_RESPONSE',
+    status: 201,
+    serverCode: undefined,
+    requestId: undefined,
+    retryAfterSeconds: undefined,
+    submissionUncertain: true
+  }
+
+test at tests\staff-enquiry-capture.test.mjs:14:1
+✖ staff attempt snapshots raw input and identity; exact explicit replay recovers a lost reply (4.0475ms)
+  Error [ApiClientError]: Unexpected API success status.
+      at file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:1379:27
+      at async RealtorApiClient.request (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:1382:20)
+      at async RealtorApiClient.captureStaffEnquiryV2 (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:1092:33)
+      at async run (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:1118:33)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/tests/staff-enquiry-capture.test.mjs:19:19)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    kind: 'INVALID_RESPONSE',
+    status: 201,
+    serverCode: undefined,
+    requestId: undefined,
+    retryAfterSeconds: undefined,
+    submissionUncertain: true
+  }
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\packages\api-client
+npm error workspace @realtor/api-client@0.1.0
+npm error location C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\packages\api-client
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c npm run build && node --test tests/transport.test.mjs tests/http-transport.test.mjs tests/v2.test.mjs tests/staff-v2.test.mjs tests/moderation-v2.test.mjs tests/media-jobs-v2.test.mjs tests/media-attachments-v2.test.mjs tests/media-gallery-v2.test.mjs tests/gallery-workspace-v2.test.mjs tests/media-upload-v2.test.mjs tests/media-upload-v2-finalize.test.mjs tests/media-preview-v2.test.mjs tests/enquiries-v2.test.mjs tests/enquiry-intake-attempt.test.mjs tests/enquiry-proxy.test.mjs tests/staff-enquiry-capture.test.mjs

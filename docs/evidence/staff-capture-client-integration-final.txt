@@ -1,0 +1,39 @@
+▶ enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL with original-command recovery
+  ✔ guest capture remains durable/idempotent and bounded staff views reveal no public contacts (194.2363ms)
+  ✔ admin picker and exact assignment control current agent visibility (119.7451ms)
+  ✔ contact and separate follow-up dates use exact versions; noops and rejected writes do not advance (102.5648ms)
+  ✔ a lost successful HTTP reply recovers the original result after later work with one submission (90.9034ms)
+  ✔ reassignment and original requester checks restrict historical recovery under current authorization (162.1059ms)
+  ✖ staff capture persists verified attribution and exact actor-bound receipt replay (78.2252ms)
+  ✔ reads leave records/audits/operations intact; runtime has no receipt DML or unscoped directory (80.1511ms)
+✖ enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL with original-command recovery (2778.4864ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 6
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3074.2364
+
+✖ failing tests:
+
+test at packages\api-client\tests\enquiries-v2-service-integration.test.mjs:87:11
+✖ staff capture persists verified attribution and exact actor-bound receipt replay (78.2252ms)
+  Error [ApiClientError]: Unexpected API success status.
+      at file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:1379:27
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async RealtorApiClient.request (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:1382:20)
+      at async RealtorApiClient.captureStaffEnquiryV2 (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:1092:33)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/tests/enquiries-v2-service-integration.test.mjs:91:18)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/tests/enquiries-v2-service-integration.test.mjs:87:3)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    kind: 'INVALID_RESPONSE',
+    status: 201,
+    serverCode: undefined,
+    requestId: undefined,
+    retryAfterSeconds: undefined,
+    submissionUncertain: true
+  }

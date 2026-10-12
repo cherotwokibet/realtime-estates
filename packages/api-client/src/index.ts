@@ -116,6 +116,9 @@ export interface PublicEnquiryAttempt {
   /** May create the original enquiry if the first request never reached the server. Not a read-only lookup. */
   retryOriginal(options?:Readonly<{signal?:AbortSignal;timeoutMs?:number}>):Promise<EnquiryReceipt>;
 }
+/** Server derives staff origin and requester; callers cannot select attribution. */
+export type StaffEnquiryInput=Omit<EnquiryInput,'origin'>;
+export interface StaffEnquiryAttempt extends Omit<PublicEnquiryAttempt,'input'> {readonly input:StaffEnquiryInput}
 /** Persisted staff workflow vocabulary; deliberately separate from the legacy domain exports. */
 export type StaffEnquiryStatusV2='new'|'assigned'|'contacted'|'qualified'|'closed_won'|'closed_lost'|'spam';
 export interface StaffEnquirySummaryV2 {
@@ -229,7 +232,7 @@ function coordinate(input:unknown,min:number,max:number):number|null{
   if(input===null)return null;if(typeof input!=='number'||!Number.isFinite(input)||input<min||input>max)return invalid('INVALID_RESPONSE','Invalid coordinates.');return input;
 }
 function timeout(input:unknown,kind:'VALIDATION'|'CONFIGURATION'):number{
-  if(typeof input!=='number'||!Number.isSafeInteger(input)||input<1||input>120000)return invalid(kind,'Timeout must be 1–120000 milliseconds.');return input;
+  if(typeof input!=='number'||!Number.isSafeInteger(input)||input<1||input>120000)return invalid(kind,'Timeout must be 1ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“120000 milliseconds.');return input;
 }
 function origin(options:ApiClientOptions):string{
   if(typeof options.baseUrl!=='string'||options.baseUrl.trim()!==options.baseUrl)return invalid('CONFIGURATION','Use an absolute API origin.');
@@ -256,7 +259,7 @@ function publicProperty(input:unknown,codePointDisplayBounds=false):PublicProper
   if(value.publicPrecision!=='area'&&value.publicPrecision!=='exact')return invalid('INVALID_RESPONSE','Invalid public precision.');
   const latitude=coordinate(value.latitude,-90,90),longitude=coordinate(value.longitude,-180,180);
   if((latitude===null)!==(longitude===null)||(value.publicPrecision==='area'&&latitude!==null))return invalid('INVALID_RESPONSE','Unexpected precise or incomplete coordinates.');
-  if(!Array.isArray(value.photos)||value.photos.length<4||value.photos.length>12)return invalid('INVALID_RESPONSE','Expected 4–12 reviewed photos.');
+  if(!Array.isArray(value.photos)||value.photos.length<4||value.photos.length>12)return invalid('INVALID_RESPONSE','Expected 4ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“12 reviewed photos.');
   const keys=new Set<string>();
   const photos=value.photos.map(inputPhoto=>{
     const photo=record(inputPhoto,['key','alt'],'INVALID_RESPONSE');
@@ -906,6 +909,40 @@ export class RealtorApiClient {
     const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),operation=uuid(operationId,'VALIDATION','Operation ID');
     return enquiryOperation(await this.request(`/v2/staff/enquiries/${id}/operations/${operation}`,'GET',captured),id,operation);
   }
+  async captureStaffEnquiryV2(input:StaffEnquiryInput,options:StaffRequestOptions&{readonly idempotencyKey:string}):Promise<EnquiryReceipt>{
+    record(input,['listingId','name','phone','email','message','noticeVersion','noticeAcknowledged'],'VALIDATION');
+    staffOptions(options,['idempotencyKey']);
+    const key=uuid(options.idempotencyKey,'VALIDATION','Idempotency key');
+    const {origin:ignored,...body}=enquiryBody({...input,origin:'web'},this.currentNotice);
+    try{
+      const data=record(await this.request('/v2/staff/enquiry-captures','POST',options,body,key),['id'],'INVALID_RESPONSE');
+      return Object.freeze({id:uuid(data.id,'INVALID_RESPONSE','Receipt ID')});
+    }catch(error){
+      if(error instanceof ApiClientError&&error.kind==='INVALID_RESPONSE'&&!error.submissionUncertain)throw new ApiClientError(error.kind,error.message,{status:error.status,submissionUncertain:true});
+      throw error;
+    }
+  }
+  prepareStaffEnquiryV2(input:StaffEnquiryInput,idempotencyKey:string,identity:Readonly<{bearerToken:string}>):StaffEnquiryAttempt{
+    record(identity,['bearerToken'],'VALIDATION');staffOptions(identity);
+    const bearerToken=identity.bearerToken;
+    record(input,['listingId','name','phone','email','message','noticeVersion','noticeAcknowledged'],'VALIDATION');
+    const captured=Object.freeze({...input});enquiryBody({...captured,origin:'web'},this.currentNotice);
+    const key=uuid(idempotencyKey,'VALIDATION','Idempotency key');
+    let state:PublicEnquiryAttempt['state']=Object.freeze({status:'ready',receipt:null});
+    const run=async(replay:boolean,options:Readonly<{signal?:AbortSignal;timeoutMs?:number}>={})=>{
+      record(options,['signal','timeoutMs'],'VALIDATION');requestOptions(options,[]);
+      if(state.status!==(replay?'uncertain':'ready'))throw new ApiClientError('VALIDATION','This enquiry attempt cannot be sent in its current state.');
+      const wasUncertain=state.status==='uncertain';state=Object.freeze({status:'sending',receipt:null});
+      try{
+        const receipt=await this.captureStaffEnquiryV2(captured,{bearerToken,idempotencyKey:key,signal:options.signal,timeoutMs:options.timeoutMs});
+        state=Object.freeze({status:'received',receipt});return receipt;
+      }catch(error){
+        const uncertain=wasUncertain||!(error instanceof ApiClientError)||error.submissionUncertain;
+        state=Object.freeze({status:uncertain?'uncertain':'rejected',receipt:null});throw error;
+      }
+    };
+    return Object.freeze({input:captured,idempotencyKey:key,get state(){return state;},submit:(options?:Readonly<{signal?:AbortSignal;timeoutMs?:number}>)=>run(false,options),retryOriginal:(options?:Readonly<{signal?:AbortSignal;timeoutMs?:number}>)=>run(true,options)});
+  }
   preparePublicEnquiry(input:EnquiryInput,idempotencyKey:string):PublicEnquiryAttempt{
     // Validate and copy before any network work; raw spelling/spacing stays available to the form.
     record(input,['listingId','name','phone','email','message','origin','noticeVersion','noticeAcknowledged'],'VALIDATION');
@@ -997,7 +1034,7 @@ export class RealtorApiClient {
   private async request(path:string,method:'GET'|'POST'|'PUT',options:RequestOptions,body?:Record<string,unknown>,key?:string,binary?:Uint8Array<ArrayBuffer>):Promise<unknown>{
     const writes=method!=='GET';
     const upload=UPLOAD_PATH.test(path),finalization=FINALIZE_PATH.test(path),enquiry=STAFF_ENQUIRY_PATH.test(path);
-    const expectedStatus=path==='/v1/enquiries'&&method==='POST'?201:200;
+    const expectedStatus=(path==='/v1/enquiries'||path==='/v2/staff/enquiry-captures')&&method==='POST'?201:200;
     if(options.signal?.aborted)throw new ApiClientError('CANCELLED','Request was cancelled.');
     const controller=new AbortController();let interruption:'CANCELLED'|'TIMEOUT'|undefined;let started=false;
     let rejectInterruption:(reason:ApiClientError)=>void=()=>{};

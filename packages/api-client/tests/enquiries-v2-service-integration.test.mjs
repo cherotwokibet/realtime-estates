@@ -88,7 +88,7 @@ test('enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL 
    const {origin:ignored,...body}=contact,key=id(550);
    const capture=(identity,value=body)=>fetch(origin+'/v2/staff/enquiry-captures',{method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':key,...(identity?{Authorization:'Bearer '+identity.bearerToken}:{})},body:JSON.stringify(value)});
    for(const identity of [null,customer,foreign,inactive])assert.equal((await capture(identity)).status,identity?403:401);
-   const saved=await capture(admin);assert.equal(saved.status,201);const receipt=await saved.json();
+   const receipt=await api.captureStaffEnquiryV2(body,{...admin,idempotencyKey:key});
    const stored=await asOwner(async q=>(await q.query('SELECT origin,requested_by_id AS actor FROM app_private.enquiries WHERE tenant_id=$1 AND id=$2',[TENANT,receipt.id])).rows[0]);assert.deepEqual(stored,{origin:'staff',actor:ADMIN});
    const before=await counts(receipt.id);const replay=await capture(admin);assert.equal(replay.status,201);assert.deepEqual(await replay.json(),receipt);assert.deepEqual(await counts(receipt.id),before);
    assert.equal((await capture(agent)).status,409);assert.equal((await capture(admin,{...body,message:'Changed original'})).status,409);
