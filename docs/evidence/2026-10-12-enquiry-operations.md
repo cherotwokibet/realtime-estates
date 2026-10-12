@@ -1,0 +1,30 @@
+# Staff enquiry operations evidence
+
+12 October 2026, Africa/Nairobi. Independently written replacement; synthetic data. Owner: Boniface + Codex.
+
+755/755 combined affected API/development-preview/database/media/shared-client/admin tests passed with zero failures, skips, cancellations or todos. Shared package/API builds, admin test compilation, admin production build and all eight workspace typechecks passed on 192 frozen source hashes. [Full TAP](enquiry-operations-tests.txt), [typechecks](enquiry-operations-types.txt), [build output](enquiry-operations-build.txt). Exact commands, hashes and timing remain in the external verification-enquiry-operations-final-1.json; counts from focused or older checkpoints are not added.
+
+## Implemented and verified
+
+- Additive0010 keeps the persisted enquiry statuses and legacy RPCs/domain exports intact. Current active company membership and current assignment guard every command and recovery. Admin-only assignment and a narrow active staff ID/role picker do not widen membership SELECT or invent staff names. General and property enquiries retain their exact contacted revision independently of later listing edits.
+- Private bounded lists expose name, ownership, status, dates and contacted reference, with limit/truncated metadata. Phone, email, message, notice and closure context appear only in current authorized detail. Up to100 rows is a slice, not a complete overdue/company count. Tenant/actor/role/filter/query overrides are refused; safe errors and narrow projections expose no SQL/store internals.
+- Exact seven-field commands carry an operation UUID, kind, expected version and explicit unused nulls. Assignment, persisted transitions/reasoned reopening and separate same-state follow-up rescheduling retain immutable original receipts. Applied changes advance one version and audit; noops, stale conflicts and lifecycle/assignee refusals retain their original historical outcomes. Current authorization and original requester are checked before replay/readback; assignment history additionally requires current admin role. No automatic retry, fresh-token adoption or current-record-as-original-success inference.
+- The shared SDK snapshots per-call identity and original command, validates bounded DTOs/correlated outcome/version/status/date/reason, and preserves uncertain-write errors. UTC millisecond timestamps, dates including past-due work, canonical versions and strict raw duplicate/integer selectors are checked. Existing valid multiline/tab/C1 message text remains compatible with guest capture; command reasons remain bounded and stricter. UI rendering of contact text must use escaped text.
+
+## Actual signed HTTP and restricted SQL integration
+
+The new enquiries-v2-service-integration.test.mjs generates an ephemeral RS256 key/JWKS and signed identities, serves the actual loopback HTTP adapter/API, and uses PostgresTransactionDatabase through a NOINHERIT, NOSUPERUSER, NOBYPASSRLS api_runtime login. SDK calls capture one durable guest enquiry, check bounded admin/agent views and picker, assign, contact, reschedule, qualify, close and reasonedly reopen. Guest/customer/foreign/inactive/peer access and original-requester history are denied as appropriate. Reassignment changes current agent visibility.
+
+A controlled transport consumes a successful actual HTTP operation reply after SQL commit and then discards it. The SDK reports uncertainty after one submission; GET recovers the immutable original receipt. Later closure advances current state, while readback and exact explicit replay return the original earlier result without another change/audit. Changed intent conflicts. Read commands leave versions, audits and operation counts unchanged. These are actual loopback/server/SQL tests; the response loss is an injected transport condition, not proof of every socket/network failure.
+
+PGlite has one serialized connection: this proves real role/RLS/function boundaries and statement behavior, not independent production PostgreSQL races, remote identity ownership, crash recovery or browser acceptance. Ephemeral server/token/database fixtures are closed by the test.
+
+## Focused attempts and review
+
+API build and14/14 new boundary tests passed (the captured repeat is not additive). SDK build and36/36 enquiry plus existing transport tests passed, including17 new enquiry groups. Database focused attempts first failed14 fixtures due to omitted revoked_at, then13/14 passed with the final historical-revision fixture incomplete; corrected new+foundation run33/33 passed. Those fixture failures are preserved in the archive and are not claimed as runtime successes. Root then corrected a forged-receipt test helper so malformed outcome checks reach their intended guards, and added a positive structural control before the final combined run. Independent source review is retained in enquiry-independent-audit.md; it is separate from executed test proof. Earlier703 gallery checks remain historical, not added.
+
+## Next and limits
+
+Next build the opt-in staff enquiry inbox and detail controls with server-only proxies, explicit original-command recovery and current-state comparison that preserve raw input. Provide admin and assigned-agent fixtures against the same synthetic database; show Nairobi follow-up dates and disclose bounded queues. Then separately connect reviewed public and protected staff intake, contact history and viewing scheduling. No outbound notification follows from saving an enquiry.
+
+Local synthetic backend/shared-client proof only. The admin enquiry inbox, public/staff form enablement, contact-history UI, overdue reminders, viewing calendar, physical/narrow devices, accessibility/operator UAT, production identity/provider/persistence, real PostgreSQL concurrency, distributed rate controls, private source remote/independent backup, rights/account evidence and all launch gates remain open. Existing vendor/live systems and KES10,000 total monthly client price are preserved. No new dependency, provider or paid service was provisioned. Checklist13/97 and accepted gates0/14 remain unchanged.

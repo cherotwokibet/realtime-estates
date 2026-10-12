@@ -107,6 +107,37 @@ export interface EnquiryInput {
   readonly message: string; readonly origin: 'web' | 'mobile'; readonly noticeVersion: string; readonly noticeAcknowledged: true;
 }
 export interface EnquiryReceipt { readonly id: string }
+/** Persisted staff workflow vocabulary; deliberately separate from the legacy domain exports. */
+export type StaffEnquiryStatusV2='new'|'assigned'|'contacted'|'qualified'|'closed_won'|'closed_lost'|'spam';
+export interface StaffEnquirySummaryV2 {
+  readonly id:string;readonly listingId:string|null;readonly contactedRevision:number|null;readonly name:string;
+  readonly origin:'web'|'mobile'|'staff';readonly status:StaffEnquiryStatusV2;readonly assignedAgentId:string|null;
+  readonly nextActionAt:string|null;readonly version:string;readonly createdAt:string;readonly updatedAt:string;
+}
+export interface StaffEnquiryDetailV2 extends StaffEnquirySummaryV2 {
+  readonly phone:string|null;readonly email:string|null;readonly message:string;readonly noticeVersion:string;readonly closureReason:string|null;
+}
+/** A bounded visible slice, not a count of every company enquiry. */
+export interface StaffEnquiryPageV2 {readonly items:readonly StaffEnquirySummaryV2[];readonly limit:number;readonly truncated:boolean}
+export interface EnquiryAssigneeV2 {readonly userId:string;readonly role:'agent'|'admin'}
+export interface EnquiryAssigneePageV2 {readonly items:readonly EnquiryAssigneeV2[];readonly limit:number;readonly truncated:boolean}
+export type EnquiryOperationKindV2='assign'|'transition'|'reschedule';
+export interface EnquiryOperationRequestV2 {
+  readonly assignedAgentId:string|null;readonly status:StaffEnquiryStatusV2|null;readonly nextActionAt:string|null;readonly reason:string|null;
+}
+/** Every unused field is explicitly null; keep the original UUID/body until its result is known. */
+export interface EnquiryOperationInputV2 extends EnquiryOperationRequestV2 {
+  readonly operationId:string;readonly kind:EnquiryOperationKindV2;readonly expectedVersion:string;
+}
+export interface EnquiryOperationResultV2 {
+  readonly version:string;readonly status:StaffEnquiryStatusV2;readonly assignedAgentId:string|null;readonly nextActionAt:string|null;readonly closureReason:string|null;
+}
+/** Immutable historical facts only. This result never adopts the current enquiry version. */
+export interface EnquiryOperationReceiptV2 {
+  readonly operationId:string;readonly enquiryId:string;readonly kind:EnquiryOperationKindV2;readonly expectedVersion:string;
+  readonly request:EnquiryOperationRequestV2;readonly outcome:'applied'|'noop'|'conflict'|'rejected';
+  readonly reason:null|'VERSION_CONFLICT'|'ASSIGNEE_UNAVAILABLE'|'INVALID_TRANSITION';readonly result:EnquiryOperationResultV2;readonly completedAt:string;
+}
 export interface RequestOptions {
   /** Raw bearer token for this call only. Never put credentials in baseUrl or a public brand configuration. */
   readonly bearerToken?: string; readonly signal?: AbortSignal; readonly timeoutMs?: number;
@@ -157,6 +188,8 @@ const UPLOAD_PATH=/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/media-jobs\/
 const FINALIZE_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['INVALID_INPUT',400],['FORBIDDEN',403],['UNAUTHENTICATED',401],['REQUEST_ABORTED',400],['ATTACHMENT_UNCONFIRMED',503],['SERVICE_UNAVAILABLE',503]]);
 const FINALIZE_PATH=/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/media-attach-intents\/[^/]+\/finalize$/;
 const PREVIEW_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['INVALID_INPUT',400],['FORBIDDEN',403],['UNAUTHENTICATED',401],['VERSION_CONFLICT',409],['REQUEST_ABORTED',400],['SERVICE_UNAVAILABLE',503]]);
+const ENQUIRY_SERVER_STATUS=new Map<string,number>([['INVALID_INPUT',400],['INVALID_JSON',400],['UNAUTHENTICATED',401],['FORBIDDEN',403],['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['CONFLICT',409],['INVALID_STATE',422],['JSON_REQUIRED',415],['BODY_TOO_LARGE',413],['RATE_LIMITED',429],['SERVICE_UNAVAILABLE',503]]);
+const STAFF_ENQUIRY_PATH=/^\/v2\/staff\/(?:enquiries(?:\/[^/?]+(?:\/operations(?:\/[^/?]+)?)?)?|enquiry-assignees)(?:\?limit=[1-9]\d*)?$/;
 const MAX_PREVIEW_BYTES=10485760;
 const nativeTypedArray=Object.getPrototypeOf(Uint8Array.prototype) as object;
 const nativeTypedArrayBuffer=Object.getOwnPropertyDescriptor(nativeTypedArray,'buffer')!.get!;
@@ -498,6 +531,108 @@ function uncertainWriteError(error:unknown):never{
   if(error instanceof ApiClientError&&error.kind==='INVALID_RESPONSE'&&!error.submissionUncertain)throw new ApiClientError(error.kind,error.message,{status:error.status,submissionUncertain:true});
   throw error;
 }
+const ENQUIRY_SUMMARY_FIELDS=['id','listingId','contactedRevision','name','origin','status','assignedAgentId','nextActionAt','version','createdAt','updatedAt'] as const;
+const ENQUIRY_DETAIL_FIELDS=[...ENQUIRY_SUMMARY_FIELDS,'phone','email','message','noticeVersion','closureReason'] as const;
+const ENQUIRY_REQUEST_FIELDS=['assignedAgentId','status','nextActionAt','reason'] as const;
+const ENQUIRY_STATUSES:readonly StaffEnquiryStatusV2[]=['new','assigned','contacted','qualified','closed_won','closed_lost','spam'];
+type EnquiryValidationKind='VALIDATION'|'INVALID_RESPONSE';
+function enquiryVersion(input:unknown,kind:EnquiryValidationKind,incrementable=false):string{
+  if(typeof input!=='string'||!/^[1-9]\d{0,15}$/.test(input)||BigInt(input)>(incrementable?9007199254740990n:9007199254740991n))return invalid(kind,'Unsupported enquiry version.');return input;
+}
+function enquiryTime(input:unknown,kind:EnquiryValidationKind,nullable=false):string|null{
+  if(input===null&&nullable)return null;
+  if(typeof input!=='string'||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(input)||input.startsWith('0000-')||!Number.isFinite(Date.parse(input))||new Date(input).toISOString()!==input)return invalid(kind,'Invalid enquiry timestamp.');return input;
+}
+function enquiryStatus(input:unknown,kind:EnquiryValidationKind):StaffEnquiryStatusV2{
+  if(typeof input!=='string'||!ENQUIRY_STATUSES.includes(input as StaffEnquiryStatusV2))return invalid(kind,'Invalid enquiry status.');return input as StaffEnquiryStatusV2;
+}
+function enquiryText(input:unknown,maximum:number,kind:EnquiryValidationKind,trimmed=false,multiline=false):string{
+  const controls=multiline?/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\ud800-\udfff]/u:/[\u0000-\u001f\u007f-\u009f\ud800-\udfff]/u;
+  if(typeof input!=='string'||input.trim().length===0||[...input].length>maximum||(trimmed&&input!==input.trim())||controls.test(input))return invalid(kind,'Invalid enquiry text.');return input;
+}
+function enquiryNullableId(input:unknown,kind:EnquiryValidationKind):string|null{return input===null?null:uuid(input,kind,'Staff ID');}
+function enquirySummary(value:Record<string,unknown>):StaffEnquirySummaryV2 {
+  const id=uuid(value.id,'INVALID_RESPONSE','Enquiry ID'),listingId=value.listingId===null?null:uuid(value.listingId,'INVALID_RESPONSE','Listing ID'),contactedRevision=value.contactedRevision===null?null:integer(value.contactedRevision,1,2147483647,'INVALID_RESPONSE','Contacted revision');
+  if((listingId===null)!==(contactedRevision===null)||!['web','mobile','staff'].includes(value.origin as string))return invalid('INVALID_RESPONSE','Invalid enquiry reference or origin.');
+  const status=enquiryStatus(value.status,'INVALID_RESPONSE'),nextActionAt=enquiryTime(value.nextActionAt,'INVALID_RESPONSE',true),createdAt=enquiryTime(value.createdAt,'INVALID_RESPONSE')!,updatedAt=enquiryTime(value.updatedAt,'INVALID_RESPONSE')!;
+  if((['contacted','qualified'].includes(status)&&nextActionAt===null)||Date.parse(updatedAt)<Date.parse(createdAt))return invalid('INVALID_RESPONSE','Conflicting enquiry state or timestamps.');
+  return Object.freeze({id,listingId,contactedRevision,name:enquiryText(value.name,160,'INVALID_RESPONSE'),origin:value.origin as StaffEnquirySummaryV2['origin'],status,assignedAgentId:enquiryNullableId(value.assignedAgentId,'INVALID_RESPONSE'),nextActionAt,version:enquiryVersion(value.version,'INVALID_RESPONSE'),createdAt,updatedAt});
+}
+/** A safe list row with no phone, email or private message. */
+export function validateStaffEnquirySummaryV2(input:unknown):StaffEnquirySummaryV2{return enquirySummary(attachRecord(input,ENQUIRY_SUMMARY_FIELDS,'INVALID_RESPONSE'));}
+export function validateStaffEnquiryDetailV2(input:unknown,enquiryId:string):StaffEnquiryDetailV2{
+  const id=uuid(enquiryId,'VALIDATION','Enquiry ID'),value=attachRecord(input,ENQUIRY_DETAIL_FIELDS,'INVALID_RESPONSE'),summary=enquirySummary(value);
+  if(summary.id!==id)return invalid('INVALID_RESPONSE','Unexpected enquiry identity.');
+  const phone=value.phone,email=value.email;
+  if(phone!==null&&(typeof phone!=='string'||!/^\+[1-9][0-9]{7,14}$/.test(phone)))return invalid('INVALID_RESPONSE','Invalid enquiry phone.');
+  if(email!==null&&(typeof email!=='string'||email.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||/[\u0000-\u001f\u007f-\u009f\ud800-\udfff]/u.test(email)))return invalid('INVALID_RESPONSE','Invalid enquiry email.');
+  if(phone===null&&email===null)return invalid('INVALID_RESPONSE','Enquiry contact is missing.');
+  const closureReason=value.closureReason===null?null:enquiryText(value.closureReason,1000,'INVALID_RESPONSE',true);
+  if(['closed_lost','spam'].includes(summary.status)&&closureReason===null)return invalid('INVALID_RESPONSE','Enquiry closure reason is missing.');
+  return Object.freeze({...summary,phone:phone as string|null,email:email as string|null,message:enquiryText(value.message,2000,'INVALID_RESPONSE',false,true),noticeVersion:enquiryText(value.noticeVersion,100,'INVALID_RESPONSE'),closureReason});
+}
+function enquiryRequest(input:unknown,kind:EnquiryOperationKindV2,validation:EnquiryValidationKind):EnquiryOperationRequestV2 {
+  const value=attachRecord(input,ENQUIRY_REQUEST_FIELDS,validation),assignedAgentId=enquiryNullableId(value.assignedAgentId,validation),status=value.status===null?null:enquiryStatus(value.status,validation),nextActionAt=enquiryTime(value.nextActionAt,validation,true),reason=value.reason===null?null:enquiryText(value.reason,1000,validation,true);
+  if(kind==='assign'){
+    if(assignedAgentId===null||status!==null||nextActionAt!==null||reason!==null)return invalid(validation,'Invalid assignment request.');
+  }else if(kind==='reschedule'){
+    if(assignedAgentId!==null||status!==null||nextActionAt===null||reason!==null)return invalid(validation,'Invalid reschedule request.');
+  }else{
+    if(assignedAgentId!==null||status===null||(['contacted','qualified'].includes(status))!==(nextActionAt!==null)||(['new','assigned','closed_lost','spam'].includes(status))!==(reason!==null))return invalid(validation,'Invalid transition request.');
+  }
+  return Object.freeze({assignedAgentId,status,nextActionAt,reason});
+}
+function enquiryCommand(input:unknown,validation:EnquiryValidationKind):EnquiryOperationInputV2 {
+  const value=attachRecord(input,['operationId','kind','expectedVersion',...ENQUIRY_REQUEST_FIELDS],validation);
+  if(!['assign','transition','reschedule'].includes(value.kind as string))return invalid(validation,'Invalid enquiry operation.');
+  const kind=value.kind as EnquiryOperationKindV2,request=enquiryRequest(Object.fromEntries(ENQUIRY_REQUEST_FIELDS.map(field=>[field,value[field]])),kind,validation);
+  return Object.freeze({operationId:uuid(value.operationId,validation,'Operation ID'),kind,expectedVersion:enquiryVersion(value.expectedVersion,validation,true),...request});
+}
+function enquiryOperation(input:unknown,enquiryId:string,operationId:string,original?:EnquiryOperationInputV2):EnquiryOperationReceiptV2 {
+  const value=attachRecord(input,['operationId','enquiryId','kind','expectedVersion','request','outcome','reason','result','completedAt'],'INVALID_RESPONSE');
+  if(uuid(value.operationId,'INVALID_RESPONSE','Operation ID')!==operationId||uuid(value.enquiryId,'INVALID_RESPONSE','Enquiry ID')!==enquiryId||!['assign','transition','reschedule'].includes(value.kind as string))return invalid('INVALID_RESPONSE','Unexpected enquiry operation identity.');
+  const kind=value.kind as EnquiryOperationKindV2,expectedVersion=enquiryVersion(value.expectedVersion,'INVALID_RESPONSE',true),request=enquiryRequest(value.request,kind,'INVALID_RESPONSE'),raw=attachRecord(value.result,['version','status','assignedAgentId','nextActionAt','closureReason'],'INVALID_RESPONSE');
+  if(original&&(original.operationId!==operationId||original.kind!==kind||original.expectedVersion!==expectedVersion||ENQUIRY_REQUEST_FIELDS.some(field=>request[field]!==original[field])))return invalid('INVALID_RESPONSE','Conflicting original enquiry request.');
+  const result=Object.freeze({version:enquiryVersion(raw.version,'INVALID_RESPONSE'),status:enquiryStatus(raw.status,'INVALID_RESPONSE'),assignedAgentId:enquiryNullableId(raw.assignedAgentId,'INVALID_RESPONSE'),nextActionAt:enquiryTime(raw.nextActionAt,'INVALID_RESPONSE',true),closureReason:raw.closureReason===null?null:enquiryText(raw.closureReason,1000,'INVALID_RESPONSE',true)});
+  if((['contacted','qualified'].includes(result.status)&&result.nextActionAt===null)||(['closed_lost','spam'].includes(result.status)&&result.closureReason===null))return invalid('INVALID_RESPONSE','Invalid operation result state.');
+  if(value.outcome==='applied'){
+    if(value.reason!==null||BigInt(result.version)!==BigInt(expectedVersion)+1n)return invalid('INVALID_RESPONSE','Invalid applied enquiry operation.');
+  }else if(value.outcome==='noop'){
+    if(kind==='transition'||value.reason!==null||result.version!==expectedVersion)return invalid('INVALID_RESPONSE','Invalid enquiry noop.');
+  }else if(value.outcome==='conflict'){
+    if(value.reason!=='VERSION_CONFLICT'||result.version===expectedVersion)return invalid('INVALID_RESPONSE','Invalid enquiry conflict.');
+  }else if(value.outcome==='rejected'){
+    if(value.reason!==(kind==='assign'?'ASSIGNEE_UNAVAILABLE':'INVALID_TRANSITION')||result.version!==expectedVersion)return invalid('INVALID_RESPONSE','Invalid enquiry rejection.');
+  }else return invalid('INVALID_RESPONSE','Invalid enquiry outcome.');
+  if(value.outcome==='applied'||value.outcome==='noop'){
+    if(kind==='assign'&&(result.assignedAgentId!==request.assignedAgentId||result.status==='new'))return invalid('INVALID_RESPONSE','Conflicting assignment result.');
+    if(kind==='reschedule'&&(!['contacted','qualified'].includes(result.status)||result.nextActionAt!==request.nextActionAt))return invalid('INVALID_RESPONSE','Conflicting reschedule result.');
+    if(kind==='transition'&&(result.status!==request.status||result.nextActionAt!==request.nextActionAt||result.closureReason!==request.reason))return invalid('INVALID_RESPONSE','Conflicting transition result.');
+  }
+  return Object.freeze({operationId,enquiryId,kind,expectedVersion,request,outcome:value.outcome,reason:value.reason,result,completedAt:enquiryTime(value.completedAt,'INVALID_RESPONSE')!}) as EnquiryOperationReceiptV2;
+}
+/** Optionally bind the complete retained command; history alone is not a current enquiry snapshot. */
+export function validateEnquiryOperationReceiptV2(input:unknown,enquiryId:string,operationId:string,request?:EnquiryOperationInputV2):EnquiryOperationReceiptV2 {
+  const id=uuid(enquiryId,'VALIDATION','Enquiry ID'),operation=uuid(operationId,'VALIDATION','Operation ID'),original=request===undefined?undefined:enquiryCommand(request,'VALIDATION');
+  if(original&&original.operationId!==operation)return invalid('VALIDATION','Original operation identity differs.');return enquiryOperation(input,id,operation,original);
+}
+function enquiryArray(input:unknown,maximum:number):readonly unknown[]{
+  if(!Array.isArray(input)||Object.getPrototypeOf(input)!==Array.prototype||input.length>maximum||Reflect.ownKeys(input).length!==input.length+1)return invalid('INVALID_RESPONSE','Invalid bounded enquiry page.');
+  const items:unknown[]=[];for(let index=0;index<input.length;index++){const item=Object.getOwnPropertyDescriptor(input,String(index));if(!item?.enumerable||!Object.hasOwn(item,'value'))return invalid('INVALID_RESPONSE','Invalid bounded enquiry page.');items.push(item.value);}return items;
+}
+function enquiryOptions(input:StaffRequestOptions&{readonly limit?:number},defaultLimit:number):Readonly<{options:StaffRequestOptions;limit:number}> {
+  if(!input||typeof input!=='object')return invalid('VALIDATION','Staff options are required.');
+  const keys=Reflect.ownKeys(input);if(keys.some(key=>typeof key!=='string'||!['bearerToken','signal','timeoutMs','limit'].includes(key)))return invalid('VALIDATION','Invalid staff enquiry options.');
+  const value=attachRecord(input,keys as string[],'VALIDATION'),limit=integer(value.limit===undefined?defaultLimit:value.limit,1,100,'VALIDATION','Limit');delete value.limit;
+  return Object.freeze({options:uploadOptions(value as unknown as StaffRequestOptions),limit});
+}
+function assertEnquiryJsonTokens(source:string):void {
+  assertMediaJsonTokens(source);
+  const tokens=source.match(/"(?:\\[\s\S]|[^"\\])*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\]:,]/g)??[];
+  for(let index=0;index<tokens.length;index++){const token=tokens[index]!;if(!token.startsWith('"')||tokens[index+1]!==':')continue;const key=JSON.parse(token) as string,value=tokens[index+2]??'';
+    if((key==='limit'&&!/^[1-9]\d*$/.test(value))||(key==='contactedRevision'&&!/^(?:null|[1-9]\d*)$/.test(value)))throw new Error('Invalid enquiry integer token.');
+  }
+}
 /** Validate historical facts only. Bind original write intent separately before recovery. */
 export function validateMediaOperationReceiptV2(input:unknown,listingId:string,revision:number,operationId:string):MediaOperationReceiptV2{
   const id=uuid(listingId,'VALIDATION','Listing ID'),number=integer(revision,1,2147483647,'VALIDATION','Revision'),operation=uuid(operationId,'VALIDATION','Operation ID');
@@ -731,6 +866,37 @@ export class RealtorApiClient {
     const captured=uploadOptions(options),path=mediaPath(listingId,revision),job=uuid(jobId,'VALIDATION','Job ID'),upload=uuid(uploadId,'VALIDATION','Upload ID');
     return validateMediaUploadStatusV2(await this.request(`${path}/media-jobs/${job}/uploads/${upload}`,'GET',captured),listingId,revision,job,upload);
   }
+  /** A bounded current authorized slice; truncated is not a count of all enquiries. */
+  async listStaffEnquiriesV2(options:StaffRequestOptions&{readonly limit?:number}):Promise<StaffEnquiryPageV2>{
+    const captured=enquiryOptions(options,50),data=attachRecord(await this.request(`/v2/staff/enquiries?limit=${captured.limit}`,'GET',captured.options),['items','limit','truncated'],'INVALID_RESPONSE');
+    const rows=enquiryArray(data.items,captured.limit);
+    if(data.limit!==captured.limit||typeof data.truncated!=='boolean'||(data.truncated&&rows.length!==captured.limit))return invalid('INVALID_RESPONSE','Invalid bounded enquiry page.');
+    const items=rows.map(validateStaffEnquirySummaryV2);if(new Set(items.map(item=>item.id)).size!==items.length)return invalid('INVALID_RESPONSE','Repeated enquiry identity.');
+    return Object.freeze({items:Object.freeze(items),limit:captured.limit,truncated:data.truncated});
+  }
+  async getStaffEnquiryV2(enquiryId:string,options:StaffRequestOptions):Promise<StaffEnquiryDetailV2>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID');
+    return validateStaffEnquiryDetailV2(await this.request(`/v2/staff/enquiries/${id}`,'GET',captured),id);
+  }
+  /** The authorized role picker exposes only active staff IDs and roles. */
+  async listEnquiryAssigneesV2(options:StaffRequestOptions&{readonly limit?:number}):Promise<EnquiryAssigneePageV2>{
+    const captured=enquiryOptions(options,100),data=attachRecord(await this.request(`/v2/staff/enquiry-assignees?limit=${captured.limit}`,'GET',captured.options),['items','limit','truncated'],'INVALID_RESPONSE');
+    const rows=enquiryArray(data.items,captured.limit);
+    if(data.limit!==captured.limit||typeof data.truncated!=='boolean'||(data.truncated&&rows.length!==captured.limit))return invalid('INVALID_RESPONSE','Invalid bounded assignee page.');
+    const items=rows.map(input=>{const value=attachRecord(input,['userId','role'],'INVALID_RESPONSE');if(value.role!=='agent'&&value.role!=='admin')return invalid('INVALID_RESPONSE','Invalid enquiry assignee role.');return Object.freeze({userId:uuid(value.userId,'INVALID_RESPONSE','Staff ID'),role:value.role});});
+    if(new Set(items.map(item=>item.userId)).size!==items.length)return invalid('INVALID_RESPONSE','Repeated enquiry assignee identity.');
+    return Object.freeze({items:Object.freeze(items),limit:captured.limit,truncated:data.truncated});
+  }
+  /** Send the retained original command once; uncertainty is reconciled with a read, never an automatic retry. */
+  async applyEnquiryOperationV2(enquiryId:string,input:EnquiryOperationInputV2,options:StaffRequestOptions):Promise<EnquiryOperationReceiptV2>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),command=enquiryCommand(input,'VALIDATION');
+    try{return enquiryOperation(await this.request(`/v2/staff/enquiries/${id}/operations`,'POST',captured,{...command,expectedVersion:Number(command.expectedVersion)}),id,command.operationId,command);}catch(error){return uncertainWriteError(error);}
+  }
+  /** Historical original-operation proof only; no current enquiry version is adopted. */
+  async getEnquiryOperationV2(enquiryId:string,operationId:string,options:StaffRequestOptions):Promise<EnquiryOperationReceiptV2>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),operation=uuid(operationId,'VALIDATION','Operation ID');
+    return enquiryOperation(await this.request(`/v2/staff/enquiries/${id}/operations/${operation}`,'GET',captured),id,operation);
+  }
   async submitEnquiry(input:EnquiryInput,options:EnquiryRequestOptions):Promise<EnquiryReceipt>{
     requestOptions(options,['idempotencyKey']);const key=uuid(options.idempotencyKey,'VALIDATION','Idempotency key');
     const body=enquiryBody(input,this.currentNotice);
@@ -798,7 +964,7 @@ export class RealtorApiClient {
   }
   private async request(path:string,method:'GET'|'POST'|'PUT',options:RequestOptions,body?:Record<string,unknown>,key?:string,binary?:Uint8Array<ArrayBuffer>):Promise<unknown>{
     const writes=method!=='GET';
-    const upload=UPLOAD_PATH.test(path),finalization=FINALIZE_PATH.test(path);
+    const upload=UPLOAD_PATH.test(path),finalization=FINALIZE_PATH.test(path),enquiry=STAFF_ENQUIRY_PATH.test(path);
     const expectedStatus=path==='/v1/enquiries'&&method==='POST'?201:200;
     if(options.signal?.aborted)throw new ApiClientError('CANCELLED','Request was cancelled.');
     const controller=new AbortController();let interruption:'CANCELLED'|'TIMEOUT'|undefined;let started=false;
@@ -819,7 +985,8 @@ export class RealtorApiClient {
         if(!/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type')??''))throw new ApiClientError('INVALID_RESPONSE','Expected a JSON API response.',{status:result.status,submissionUncertain:writes});
         const raw=await result.text();if(raw.length>(upload||finalization?4096:MAX_JSON_CHARACTERS))throw new ApiClientError('INVALID_RESPONSE','API response exceeded the supported size.',{status:result.status,submissionUncertain:writes});
         let payload:unknown;try{
-          if(upload||/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/(?:workspace|media-registrations|media-jobs|media-attach-intents|media-removals|media-reorders|media-operations)(?:\/[^/]+)?(?:\/finalize)?$/.test(path))assertMediaJsonTokens(raw);
+          if(enquiry)assertEnquiryJsonTokens(raw);
+          else if(upload||/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/(?:workspace|media-registrations|media-jobs|media-attach-intents|media-removals|media-reorders|media-operations)(?:\/[^/]+)?(?:\/finalize)?$/.test(path))assertMediaJsonTokens(raw);
           payload=path.startsWith('/v2/')?parseListingJsonV2(raw):JSON.parse(raw);
         }catch{throw new ApiClientError('INVALID_RESPONSE','Malformed API JSON.',{status:result.status,submissionUncertain:writes});}
         if(!result.ok){
@@ -835,6 +1002,13 @@ export class RealtorApiClient {
             const code=serverError.code,requestId=uuid(envelope.requestId,'INVALID_RESPONSE','Request ID'),headerId=uuid(result.headers.get('x-request-id'),'INVALID_RESPONSE','Request ID');
             if(typeof code!=='string'||FINALIZE_SERVER_STATUS.get(code)!==result.status||typeof serverError.message!=='string'||serverError.message.length<1||serverError.message.length>1024||requestId!==headerId||(hasUncertain&&envelope.submissionUncertain!==true))return invalid('INVALID_RESPONSE','Malformed attachment finalization error.');
             throw new ApiClientError('HTTP','Attachment finalization could not be confirmed.',{status:result.status,serverCode:code,requestId,submissionUncertain:result.status>=500||envelope.submissionUncertain===true});
+          }
+          if(enquiry){
+            const envelope=attachRecord(payload,['error','requestId'],'INVALID_RESPONSE'),serverError=attachRecord(envelope.error,['code','message'],'INVALID_RESPONSE');
+            const code=serverError.code,requestId=uuid(envelope.requestId,'INVALID_RESPONSE','Request ID'),headerId=uuid(result.headers.get('x-request-id'),'INVALID_RESPONSE','Request ID');
+            if(typeof code!=='string'||ENQUIRY_SERVER_STATUS.get(code)!==result.status||typeof serverError.message!=='string'||serverError.message.length<1||serverError.message.length>1024||requestId!==headerId)return invalid('INVALID_RESPONSE','Malformed staff enquiry error.');
+            const retry=result.headers.get('retry-after'),retryAfterSeconds=retry!==null&&/^\d{1,8}$/.test(retry)?Number(retry):undefined;
+            throw new ApiClientError('HTTP','Staff enquiry request could not be completed.',{status:result.status,serverCode:code,requestId,...(retryAfterSeconds===undefined?{}:{retryAfterSeconds}),submissionUncertain:writes&&result.status>=500});
           }
           const envelope=record(payload,['error','requestId'],'INVALID_RESPONSE');const serverError=record(envelope.error,['code','message'],'INVALID_RESPONSE');
           const requestId=uuid(envelope.requestId,'INVALID_RESPONSE','Request ID');

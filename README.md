@@ -1,5 +1,7 @@
 # Realtor Platform
 
+Latest checkpoint: [staff enquiry operations](docs/enquiry-operations.md), with [actual signed HTTP/restricted SQL evidence and remaining limits](docs/evidence/2026-10-12-enquiry-operations.md). Staff inbox UI and operator acceptance are next.
+
 Latest checkpoint: [private saved admin gallery images](docs/private-gallery-images.md), with [703 affected checks, actual desktop evidence and remaining limits](docs/evidence/2026-10-12-gallery-images.md). Enquiry assignment and dated follow-up are the next operational slice; production and launch gates remain open.
 
 Latest checkpoint: [private saved-photo backend access](docs/private-media-preview.md), with [630 affected checks and actual signed HTTP/native byte evidence](docs/evidence/2026-10-12-private-preview.md). Shared binary client and displayed admin gallery photos are next; production and launch gates remain open.

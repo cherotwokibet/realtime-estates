@@ -298,6 +298,137 @@ function workspaceProjection(row: Record<string, unknown>, listingId: string, re
   return { listingId, draft: { revision, state: row.state, version: row.version, content }, photos };
 }
 
+const ENQUIRY_STATUSES = ["new", "assigned", "contacted", "qualified", "closed_won", "closed_lost", "spam"] as const;
+const ENQUIRY_SUMMARY_FIELDS = ["id", "listingId", "contactedRevision", "name", "origin", "status", "assignedAgentId", "nextActionAt", "version", "createdAt", "updatedAt"] as const;
+const ENQUIRY_SELECT = `e.id,e.listing_id AS "listingId",e.contacted_revision_no AS "contactedRevision",e.contact_name AS name,
+  e.origin,e.status,e.assigned_agent_id AS "assignedAgentId",e.version::text AS version,
+  to_char(e.next_action_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "nextActionAt",
+  to_char(e.created_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt",
+  to_char(e.updated_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "updatedAt"`;
+type EnquiryKind = "assign" | "transition" | "reschedule";
+interface EnquiryCommand {
+  readonly operationId: string; readonly kind: EnquiryKind; readonly expected: number;
+  readonly assignedAgentId: string | null; readonly status: string | null;
+  readonly nextActionAt: string | null; readonly reason: string | null;
+}
+function enquiryQuery(url: URL, page: boolean, defaultLimit = 50): number {
+  if ([...url.searchParams.keys()].some(key => !page || key !== "limit") || url.searchParams.getAll("limit").length > 1) {
+    throw new HttpError(400, "INVALID_INPUT", "Enquiry requests do not accept context overrides or unsupported query fields.");
+  }
+  const selected = url.searchParams.get("limit");
+  if (selected === null) return defaultLimit;
+  if (!/^[1-9]\d*$/.test(selected) || Number(selected) > 100) throw new HttpError(400, "INVALID_INPUT", "limit must be a canonical integer between 1 and 100.");
+  return Number(selected);
+}
+function enquiryInstant(input: unknown, stored = false): string {
+  if (typeof input !== "string" || !/^(?!0000)\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}(?:\d{3})?Z$/.test(input) || (!stored && input.length !== 24)) throw new Error("Invalid enquiry timestamp.");
+  const wire = input.length === 27 ? input.slice(0, 23) + "Z" : input;
+  if (!Number.isFinite(Date.parse(wire)) || new Date(wire).toISOString() !== wire) throw new Error("Invalid enquiry timestamp.");
+  return wire;
+}
+function enquiryReason(input: unknown): string | null {
+  if (input === null) return null;
+  if (typeof input !== "string" || input !== input.trim() || input.length === 0 || [...input].length > 1000 || /[\u0000-\u001f\u007f-\u009f]/u.test(input) || /[\ud800-\udfff]/u.test(input)) throw new Error("Invalid enquiry reason.");
+  return input;
+}
+function enquiryCommand(input: unknown): EnquiryCommand {
+  const fields = ["operationId", "kind", "expectedVersion", "assignedAgentId", "status", "nextActionAt", "reason"];
+  // Every named field is required; unused selectors are explicitly null,
+  // never omitted or inferred from the current enquiry.
+  const body = record(input, fields);
+  if (fields.some(field => !Object.hasOwn(body, field)) || Object.keys(body).length !== fields.length) throw new HttpError(400, "INVALID_INPUT", "Supply every enquiry command field, including unused null fields.");
+  const expected = version(body.expectedVersion);
+  if (expected > Number.MAX_SAFE_INTEGER - 1) throw new HttpError(400, "INVALID_INPUT", "expectedVersion is outside the incrementable enquiry range.");
+  const operationId = uuid(body.operationId, "operationId");
+  const kind = body.kind;
+  if (kind !== "assign" && kind !== "transition" && kind !== "reschedule") throw new HttpError(400, "INVALID_INPUT", "Unsupported enquiry operation kind.");
+  try {
+    const assignedAgentId = body.assignedAgentId === null ? null : uuid(body.assignedAgentId, "assignedAgentId");
+    const status = body.status;
+    if (status !== null && !ENQUIRY_STATUSES.includes(status as never)) throw new Error("Invalid enquiry status.");
+    const nextActionAt = body.nextActionAt === null ? null : enquiryInstant(body.nextActionAt);
+    const reason = enquiryReason(body.reason);
+    if (kind === "assign" ? assignedAgentId === null || status !== null || nextActionAt !== null || reason !== null
+      : kind === "reschedule" ? assignedAgentId !== null || status !== null || nextActionAt === null || reason !== null
+      : assignedAgentId !== null || status === null || (["contacted", "qualified"].includes(String(status)) ? nextActionAt === null : nextActionAt !== null) || (["closed_lost", "spam", "new", "assigned"].includes(String(status)) ? reason === null : reason !== null)) throw new Error("Invalid enquiry selectors.");
+    return { operationId, kind, expected, assignedAgentId, status: status as string | null, nextActionAt, reason };
+  } catch { throw new HttpError(400, "INVALID_INPUT", "Supply valid enquiry command selectors, UTC millisecond dates and bounded reason text."); }
+}
+function enquiryVersion(input: unknown, incrementable = false): string {
+  if (typeof input !== "string" || !/^[1-9]\d*$/.test(input) || BigInt(input) > BigInt(Number.MAX_SAFE_INTEGER - (incrementable ? 1 : 0))) throw new Error("Invalid enquiry version.");
+  return input;
+}
+function enquiryStoredId(input: unknown, nullable = false): string | null {
+  if (nullable && input === null) return null;
+  if (typeof input !== "string" || !UUID.test(input) || input !== input.toLowerCase()) throw new Error("Invalid enquiry identity.");
+  return input;
+}
+function enquiryState(input: Record<string, unknown>): Record<string, unknown> {
+  const status = input.status;
+  if (!ENQUIRY_STATUSES.includes(status as never)) throw new Error("Invalid stored enquiry status.");
+  const version = enquiryVersion(input.version), assignedAgentId = enquiryStoredId(input.assignedAgentId, true);
+  const nextActionAt = input.nextActionAt === null ? null : enquiryInstant(input.nextActionAt, true);
+  const closureReason = enquiryReason(input.closureReason);
+  if (["contacted", "qualified"].includes(String(status)) && nextActionAt === null) throw new Error("Missing stored next action.");
+  if (["closed_lost", "spam"].includes(String(status)) && closureReason === null) throw new Error("Missing stored closure reason.");
+  return { version, status, assignedAgentId, nextActionAt, closureReason };
+}
+function enquiryProjection(input: unknown, detail: boolean, resourceId?: string): Record<string, unknown> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid enquiry response.");
+  const row = input as Record<string, unknown>, id = enquiryStoredId(row.id), listingId = enquiryStoredId(row.listingId, true);
+  if (resourceId !== undefined && id !== resourceId) throw new Error("Conflicting enquiry response.");
+  if (listingId === null ? row.contactedRevision !== null : typeof row.contactedRevision !== "number" || !Number.isSafeInteger(row.contactedRevision) || row.contactedRevision < 1 || row.contactedRevision > 2147483647) throw new Error("Invalid contacted revision.");
+  if (typeof row.name !== "string" || row.name.trim().length < 1 || [...row.name].length > 160 || /[\u0000-\u001f\u007f-\u009f]/u.test(row.name) || /[\ud800-\udfff]/u.test(row.name) || !["web", "mobile", "staff"].includes(String(row.origin)) || !ENQUIRY_STATUSES.includes(row.status as never)) throw new Error("Invalid enquiry summary.");
+  const version = enquiryVersion(row.version), assignedAgentId = enquiryStoredId(row.assignedAgentId, true);
+  const nextActionAt = row.nextActionAt === null ? null : enquiryInstant(row.nextActionAt, true);
+  if (["contacted", "qualified"].includes(String(row.status)) && nextActionAt === null) throw new Error("Missing next action.");
+  const createdAt = enquiryInstant(row.createdAt, true), updatedAt = enquiryInstant(row.updatedAt, true);
+  const summary = Object.fromEntries(ENQUIRY_SUMMARY_FIELDS.map(field => [field, row[field]]));
+  const projected = { ...summary, id, listingId, assignedAgentId, version, nextActionAt, createdAt, updatedAt };
+  if (!detail) return projected;
+  const phone = row.phone, email = row.email;
+  if (phone !== null && (typeof phone !== "string" || !/^\+[1-9]\d{7,14}$/.test(phone))) throw new Error("Invalid stored phone.");
+  if (email !== null && (typeof email !== "string" || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) throw new Error("Invalid stored email.");
+  if (phone === null && email === null) throw new Error("Missing stored contact.");
+  if (typeof row.message !== "string" || row.message.trim().length < 1 || [...row.message].length > 2000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(row.message) || /[\ud800-\udfff]/u.test(row.message)) throw new Error("Invalid stored message.");
+  if (typeof row.noticeVersion !== "string" || row.noticeVersion.trim().length < 1 || [...row.noticeVersion].length > 100 || /[\u0000-\u001f\u007f-\u009f]/u.test(row.noticeVersion) || /[\ud800-\udfff]/u.test(row.noticeVersion)) throw new Error("Invalid stored notice.");
+  const closureReason = enquiryReason(row.closureReason);
+  if (["closed_lost", "spam"].includes(String(row.status)) && closureReason === null) throw new Error("Missing stored closure reason.");
+  return { ...projected, phone, email, message: row.message, noticeVersion: row.noticeVersion, closureReason };
+}
+function enquiryOperationProjection(input: unknown, enquiryId: string, operationId: string, command?: EnquiryCommand): Record<string, unknown> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Invalid enquiry receipt.");
+  const row = input as Record<string, unknown>;
+  if (row.enquiryId !== enquiryId || row.operationId !== operationId || !["assign", "transition", "reschedule"].includes(String(row.kind))) throw new Error("Conflicting enquiry receipt identity.");
+  const expectedVersion = enquiryVersion(row.expectedVersion, true);
+  let captured: EnquiryCommand;
+  try {
+    const requested = record(row.request, ["assignedAgentId", "status", "nextActionAt", "reason"]);
+    captured = enquiryCommand({ ...requested, operationId, kind: row.kind, expectedVersion: Number(expectedVersion) });
+  } catch { throw new Error("Invalid stored enquiry request."); }
+  if (command && (command.kind !== captured.kind || command.expected !== captured.expected || command.assignedAgentId !== captured.assignedAgentId || command.status !== captured.status || command.nextActionAt !== captured.nextActionAt || command.reason !== captured.reason)) throw new Error("Conflicting enquiry command receipt.");
+  if (!row.result || typeof row.result !== "object" || Array.isArray(row.result)) throw new Error("Invalid enquiry result.");
+  const result = enquiryState(row.result as Record<string, unknown>), outcome = row.outcome;
+  if (outcome === "applied") {
+    if (row.reason !== null || BigInt(String(result.version)) !== BigInt(expectedVersion) + 1n) throw new Error("Invalid applied enquiry receipt.");
+    if (captured.kind === "assign" && result.assignedAgentId !== captured.assignedAgentId || captured.kind === "transition" && result.status !== captured.status || (captured.kind === "transition" || captured.kind === "reschedule") && result.nextActionAt !== captured.nextActionAt) throw new Error("Enquiry result does not match command.");
+  } else if (outcome === "noop") {
+    if (row.reason !== null || result.version !== expectedVersion || captured.kind === "transition" || (captured.kind === "assign" ? result.assignedAgentId !== captured.assignedAgentId : result.nextActionAt !== captured.nextActionAt)) throw new Error("Invalid enquiry noop.");
+  } else if (outcome === "conflict") {
+    if (row.reason !== "VERSION_CONFLICT" || result.version === expectedVersion) throw new Error("Invalid enquiry conflict.");
+  } else if (outcome === "rejected") {
+    if (result.version !== expectedVersion || !["ASSIGNEE_UNAVAILABLE", "INVALID_TRANSITION"].includes(String(row.reason)) || (row.reason === "ASSIGNEE_UNAVAILABLE" ? captured.kind !== "assign" : captured.kind === "assign")) throw new Error("Invalid rejected enquiry receipt.");
+  } else throw new Error("Invalid enquiry operation outcome.");
+  if (outcome === "applied" || outcome === "noop") {
+    if (captured.kind === "assign" && result.status === "new" ||
+        captured.kind === "transition" && result.closureReason !== captured.reason ||
+        captured.kind === "reschedule" && !["contacted", "qualified"].includes(String(result.status))) throw new Error("Enquiry result has inconsistent workflow facts.");
+  }
+  return { operationId, enquiryId, kind: captured.kind, expectedVersion,
+    request: { assignedAgentId: captured.assignedAgentId, status: captured.status, nextActionAt: captured.nextActionAt, reason: captured.reason },
+    outcome, reason: row.reason, result, completedAt: enquiryInstant(row.completedAt, true) };
+}
+
 export function createApiService(options: ApiServiceOptions): (request: Request) => Promise<Response> {
   const tenantId = uuid(options.tenantId, "Configured tenant");
   const privacyNoticeVersion = text(options.privacyNoticeVersion, "Configured privacy notice version", 100);
@@ -357,6 +488,55 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
       if (path.startsWith("/v1/staff/") || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        if (path === "/v2/staff/enquiries" || path === "/v2/staff/enquiry-assignees") {
+          const directory = path.endsWith("/enquiry-assignees"), pageLimit = enquiryQuery(url, true, directory ? 100 : 50);
+          if (method !== "GET") throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method is not allowed for this route.", { Allow: "GET" });
+          const result = await options.database.transaction(context, async query => {
+            if (directory) {
+              await assertAdmin(query);
+              return query.query("SELECT app_api.list_enquiry_assignees($1::integer) AS page", [pageLimit]);
+            }
+            await assertStaff(query);
+            return query.query(`SELECT ${ENQUIRY_SELECT} FROM app_private.enquiries e WHERE e.tenant_id=$1::uuid ORDER BY e.created_at DESC,e.id ASC LIMIT $2`, [tenantId, pageLimit + 1]);
+          });
+          if (directory) {
+            const page = scalar(result, "page");
+            if (!page || typeof page !== "object" || Array.isArray(page)) throw new Error("Invalid assignee page.");
+            const source = page as Record<string, unknown>;
+            if (!Array.isArray(source.items) || source.items.length > pageLimit || source.limit !== pageLimit || typeof source.truncated !== "boolean" || source.truncated && source.items.length !== pageLimit) throw new Error("Invalid assignee page bounds.");
+            const items = source.items.map(item => {
+              if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Invalid assignee record.");
+              const row = item as Record<string, unknown>, userId = enquiryStoredId(row.userId);
+              if (row.role !== "agent" && row.role !== "admin") throw new Error("Invalid assignee role.");
+              return { userId, role: row.role };
+            });
+            if (new Set(items.map(item => item.userId)).size !== items.length) throw new Error("Duplicate assignee record.");
+            return response(200, { items, limit: pageLimit, truncated: source.truncated }, correlationId);
+          }
+          if (result.rows.length > pageLimit + 1) throw new Error("Invalid enquiry page bounds.");
+          const projected = result.rows.map(row => enquiryProjection(row, false));
+          if (new Set(projected.map(row => row.id)).size !== projected.length) throw new Error("Duplicate enquiry record.");
+          return response(200, { items: projected.slice(0, pageLimit), limit: pageLimit, truncated: projected.length > pageLimit }, correlationId);
+        }
+        const enquiryRoute = /^\/v2\/staff\/enquiries\/([^/]+)(?:\/(operations)(?:\/([^/]+))?)?$/.exec(path);
+        if (enquiryRoute) {
+          enquiryQuery(url, false);
+          const id = uuid(enquiryRoute[1], "enquiryId"), operations = enquiryRoute[2] !== undefined;
+          const operationId = enquiryRoute[3] === undefined ? null : uuid(enquiryRoute[3], "operationId");
+          const allowedMethod = operations && operationId === null ? "POST" : "GET";
+          if (method !== allowedMethod) throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method is not allowed for this route.", { Allow: allowedMethod });
+          const command = allowedMethod === "POST" ? enquiryCommand(await jsonBody(request, 8 * 1024, false, true)) : undefined;
+          const result = await options.database.transaction(context, async query => {
+            await assertStaff(query);
+            if (command) return query.query("SELECT app_api.execute_enquiry_operation($1::uuid,$2::uuid,$3::bigint,$4::text,$5::uuid,$6::text,$7::timestamptz,$8::text) AS receipt", [id, command.operationId, command.expected, command.kind, command.assignedAgentId, command.status, command.nextActionAt, command.reason]);
+            if (operationId !== null) return query.query("SELECT app_api.read_enquiry_operation($1::uuid,$2::uuid) AS receipt", [id, operationId]);
+            return query.query(`SELECT ${ENQUIRY_SELECT},e.phone_e164 AS phone,e.email,e.message,e.notice_version AS "noticeVersion",e.closure_reason AS "closureReason" FROM app_private.enquiries e WHERE e.tenant_id=$1::uuid AND e.id=$2::uuid`, [tenantId, id]);
+          });
+          if (operations) return response(200, enquiryOperationProjection(scalar(result, "receipt"), id, command?.operationId ?? operationId!, command), correlationId);
+          const row = result.rows[0];
+          if (!row) throw new HttpError(404, "NOT_FOUND", "Resource is unavailable.");
+          return response(200, enquiryProjection(row, true, id), correlationId);
+        }
         const workspaceRoute = /^\/v2\/staff\/listings\/([^/]+)\/revisions\/([1-9]\d*)\/workspace$/.exec(path);
         if (workspaceRoute) {
           if (url.search) throw new HttpError(400, "INVALID_INPUT", "Workspace requests do not accept query fields.");
