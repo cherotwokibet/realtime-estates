@@ -9,9 +9,11 @@ import {createSyntheticAttemptJournal} from '@realtor/media/attempt-journal';
 import {createSyntheticWorkerAdmission} from '@realtor/media/worker-admission';
 import {createSyntheticOneAttemptProcessor} from '@realtor/media/one-attempt';
 import {createSyntheticUploadRequests} from '@realtor/media/upload-request';
+import {createSyntheticProcessingRequests} from '@realtor/media/processing-request';
 import {createWindowsSyntheticSupervisor} from '@realtor/media/windows-supervisor';
 import {createDevelopmentUploadApi} from '../dist/upload.js';
 import {createDevelopmentMediaFinalizeApi} from '../dist/media-finalize.js';
+import {createDevelopmentMediaPreviewApi} from '../dist/media-preview.js';
 
 const MODE='synthetic-native-v1';
 class NativeMediaPreviewConfigurationError extends Error {
@@ -73,10 +75,10 @@ export async function createNativeMediaPreview({nativeUploads,tenant,database,co
   const executable=await lstat(config.powerShellPath);
   if(!executable.isFile()||executable.isSymbolicLink()||executable.nlink!==1||canonical(path.resolve(await realpath(config.powerShellPath)))!==canonical(config.powerShellPath))invalid();
   await exclusiveRecord(root,'preview-owner.json',{version:1,mode:MODE,ownerId:randomUUID(),processId:process.pid,createdAt:new Date().toISOString(),disposableDatabase:true},identity);
-  const stores=[];let journal,worker,requests,upload,finalize,closing;
+  const stores=[];let journal,worker,requests,upload,finalize,images,imageRequests,closing;
   const close=()=>closing??=(async()=>{
-    const admissions=await Promise.allSettled([upload?.close(),finalize?.close()]);
-    const resources=await Promise.allSettled([requests?.close(),worker?.close()]);
+    const admissions=await Promise.allSettled([upload?.close(),finalize?.close(),images?.close()]);
+    const resources=await Promise.allSettled([requests?.close(),worker?.close(),imageRequests?.close()]);
     const journalResult=await Promise.allSettled([journal?.close()]);
     const storage=await Promise.allSettled(stores.map(store=>store.close()));
     const failed=[...admissions,...resources,...journalResult,...storage].find(result=>result.status==='rejected');if(failed)throw failed.reason;
@@ -93,12 +95,14 @@ export async function createNativeMediaPreview({nativeUploads,tenant,database,co
     const createProcessor=()=>createSyntheticOneAttemptProcessor({coordinator,inputStore:photos,requestStore:processing,worker,journal,supervisor,nodeExecutablePath:process.execPath,codecEntryPath});
     upload=createDevelopmentUploadApi({tenant,database,verifyBearer,requests,createProcessor});
     finalize=createDevelopmentMediaFinalizeApi({tenant,database,verifyBearer,coordinator});
+    imageRequests=await createSyntheticProcessingRequests({store:processing});
+    images=createDevelopmentMediaPreviewApi({tenant,database,verifyBearer,processingRequests:imageRequests,outputStore:photos});
     const expected=new Map([['preview-owner.json','file'],['attempts','directory'],...stores.map(store=>[path.basename(store.rootDirectory),'directory']),[path.basename(worker.rootDirectory),'directory']]);
     await knownRoot(root,expected,identity);
     await exclusiveRecord(root,'preview-resources.json',{version:1,mode:MODE,attemptParent:'attempts',
       stores:{photos:{root:path.basename(photos.rootDirectory),id:photos.storeId},processing:{root:path.basename(processing.rootDirectory),id:processing.storeId},journal:{root:path.basename(journalStore.rootDirectory),id:journalStore.storeId},transport:{root:path.basename(transport.rootDirectory),id:transport.storeId}},
       worker:{root:path.basename(worker.rootDirectory),id:worker.workerId,journalId:worker.journalId}},identity);
     expected.set('preview-resources.json','file');await knownRoot(root,expected,identity);
-    return Object.freeze({mode:MODE,handleUpload:(request,source)=>upload.handle(request,source),handleFinalize:request=>finalize.handle(request),close});
+    return Object.freeze({mode:MODE,handleUpload:(request,source)=>upload.handle(request,source),handleFinalize:request=>finalize.handle(request),handlePreview:request=>images.handle(request),close});
   }catch(error){await close().catch(()=>undefined);throw error;}
 }

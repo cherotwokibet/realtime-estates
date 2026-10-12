@@ -70,7 +70,7 @@ test('partial startup retains its exclusive owner and stable roots; another star
   }finally{await removeKnownTree(root,path.dirname(root));}
 });
 
-test('explicit staff preview composes signed HTTP, restricted API/coordinator roles, actual native bytes and one attachment; close retains roots',WINDOWS,async t=>{
+test('explicit staff preview composes signed HTTP/native attachment and private verified bytes; removed/tampered images deny and close retains roots',WINDOWS,async t=>{
   const root=await mkdtemp(path.join(tmpdir(),'realtor-native-preview-'));let preview,safe=true,completed=false;
   t.after(async()=>{await preview?.close();if(!safe){t.diagnostic(`Unconfirmed native preview roots retained at ${root}`);return;}await removeKnownTree(root,path.dirname(root));});
   preview=await startStaffPreview({port:0,nativeUploads:nativeUploads(root)});
@@ -91,7 +91,7 @@ test('explicit staff preview composes signed HTTP, restricted API/coordinator ro
   assert.deepEqual(await readdir(path.join(root,'attempts')),[]);
   safe=false;
   const uploaded=await json(await fetch(preview.origin+uploadPath,binary));assert.deepEqual(uploaded,{uploadId,jobId:registration.jobId,listingId:preview.listingId,revision:1,state:'verified'});
-  const stores=[],closers=[];
+  const stores=[],closers=[];let expectedOutput,outputPath;
   try{
     const reopen=async role=>{const item=resources.stores[role],store=await reopenDurableSyntheticStore(path.join(root,item.root),item.id);stores.push(store);return store;};
     const transport=await reopen('transport'),ledger=await createSyntheticUploadRequests({store:transport});closers.push(ledger);
@@ -104,6 +104,7 @@ test('explicit staff preview composes signed HTTP, restricted API/coordinator ro
     const photos=await reopen('photos'),output=await photos.read({jobId:original.jobId,objectId:seal.output.objectId,generationId:seal.output.generationId,kind:'output'});
     assert.equal(output.data.length,seal.seal.manifest.bytes);assert.equal(createHash('sha256').update(output.data).digest('hex'),seal.seal.manifest.sha256);
     assert.equal(output.data.toString('ascii',0,4),'RIFF');assert.equal(output.data.toString('ascii',8,12),'WEBP');
+    expectedOutput=Buffer.from(output.data);outputPath=path.join(photos.rootDirectory,'objects',original.jobId,'output','data.bin');
   }finally{for(const closer of closers)await closer.close();for(const store of stores)await store.close();}
   const attempts=await readdir(path.join(root,'attempts'));assert.equal(attempts.length,1);
   assert.deepEqual(await json(await call(preview,uploadPath)),uploaded);
@@ -116,6 +117,29 @@ test('explicit staff preview composes signed HTTP, restricted API/coordinator ro
   const applied=await json(await call(preview,intentPath+'/finalize',{method:'POST'}));assert.equal(applied.status,'applied');assert.equal(applied.receipt.expectedVersion,'2');assert.equal(applied.receipt.version,'3');
   assert.deepEqual(await json(await call(preview,intentPath)),applied);assert.deepEqual(await json(await call(preview,intentPath+'/finalize',{method:'POST'})),applied);
   const attached=await json(await call(preview,workspacePath));assert.equal(attached.draft.version,'3');assert.equal(attached.photos.length,1);assert.equal(attached.photos[0].accepted,true);assert.equal(attached.photos[0].provenance,'sealed');assert.equal(attached.photos[0].id,applied.receipt.mediaId);
+  const imagePath=prefix+`/media/${applied.receipt.mediaId}/preview`;
+  const image=await call(preview,imagePath,{headers:{'X-Revision-Version':'3'}});assert.equal(image.status,200,await image.clone().text());
+  assert.equal(image.headers.get('content-type'),'image/webp');assert.match(image.headers.get('cache-control'),/no-store/);assert.match(image.headers.get('cache-control'),/private/);
+  assert.equal(image.headers.get('x-content-type-options'),'nosniff');assert.equal(image.headers.has('etag'),false);assert.equal(image.headers.has('last-modified'),false);
+  const actualImage=Buffer.from(await image.arrayBuffer());assert.deepEqual(actualImage,expectedOutput);assert.equal(createHash('sha256').update(actualImage).digest('hex'),createHash('sha256').update(expectedOutput).digest('hex'));
+  assert.equal((await call(preview,imagePath,{token:null,headers:{'X-Revision-Version':'3'}})).status,401);
+  assert.equal((await call(preview,imagePath,{headers:{'X-Revision-Version':'2'}})).status,409);
+  assert.equal((await call(preview,imagePath)).status,400);
+  assert.equal((await call(preview,imagePath.replace(preview.listingId,STAFF_PREVIEW_FIXTURES.sampleListingId),{headers:{'X-Revision-Version':'3'}})).status,404);
+  assert.equal((await call(preview,imagePath+'?version=3',{headers:{'X-Revision-Version':'3'}})).status,400);
+  assert.equal((await call(preview,imagePath,{headers:{'X-Revision-Version':'3',Range:'bytes=0-9'}})).status,400);
+  assert.equal((await call(preview,imagePath,{headers:{'X-Revision-Version':'3','If-None-Match':'*'}})).status,400);
+  assert.deepEqual(await json(await call(preview,workspacePath)),attached,'Private reads never mutate the draft or gallery.');
+  assert.deepEqual(await json(await call(preview,intentPath)),applied,'Private reads never change attachment history.');
+  assert.deepEqual(await readdir(path.join(root,'attempts')),attempts,'Private reads never launch another conversion.');
+  // Deliberate corruption of this completed, disposable synthetic test output.
+  // The reader refuses it; it is never repaired, reprocessed or retried.
+  const corrupt=Buffer.from(expectedOutput);corrupt[corrupt.length-1]^=1;await writeFile(outputPath,corrupt);
+  assert.equal((await call(preview,imagePath,{headers:{'X-Revision-Version':'3'}})).status,503);
+  assert.deepEqual(await json(await call(preview,workspacePath)),attached);
+  const removal=await json(await call(preview,prefix+'/media-removals',{method:'POST',body:{operationId:randomUUID(),mediaId:applied.receipt.mediaId,expectedVersion:3}}));assert.equal(removal.outcome,'applied');assert.equal(removal.version,'4');
+  assert.equal((await call(preview,imagePath,{headers:{'X-Revision-Version':'4'}})).status,404);
+  assert.deepEqual(await readFile(outputPath),corrupt,'Removal keeps the physical output; denial does not repair it.');
   assert.deepEqual(await readdir(path.join(root,'attempts')),attempts);assert.equal(await readFile(path.join(root,'preview-owner.json'),'utf8'),owner);
   const names=(await readdir(root)).sort();await preview.close();await preview.close();completed=true;
   assert.deepEqual((await readdir(root)).sort(),names);assert.equal(await readFile(path.join(root,'preview-owner.json'),'utf8'),owner);await assert.rejects(()=>fetch(preview.origin+'/health'));
@@ -130,6 +154,7 @@ test('signed customer cannot enter native admission or finalization and leaves t
     const prefix=`/v2/staff/listings/${preview.listingId}/revisions/1`,upload=prefix+`/media-jobs/${randomUUID()}/uploads/${randomUUID()}`;
     assert.equal((await fetch(preview.origin+upload,{method:'PUT',headers:{Authorization:`Bearer ${preview.bearerToken}`,'Content-Type':'application/octet-stream'},body:Buffer.from([1])})).status,404);
     assert.equal((await call(preview,prefix+`/media-attach-intents/${randomUUID()}/finalize`,{method:'POST'})).status,404);
+    assert.equal((await call(preview,prefix+`/media/${randomUUID()}/preview`,{headers:{'X-Revision-Version':'2'}})).status,404);
     assert.deepEqual(await readdir(path.join(root,'attempts')),[]);
   }finally{await preview?.close();await removeKnownTree(root,path.dirname(root));}
 });

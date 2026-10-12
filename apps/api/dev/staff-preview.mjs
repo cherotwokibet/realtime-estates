@@ -170,7 +170,7 @@ export async function startStaffPreview(options={}){
     apiServer=createDevelopmentServer(async request=>{
       const denied=guard(request);if(denied)return denied;
       const url=new URL(request.url),reviewQueue=url.pathname==='/v2/staff/reviews';
-      if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,acceptedMediaMetadataOnly:seedAcceptedMedia,nativeUploads:!!nativeMedia,retainedSyntheticMedia:!!nativeMedia,tokenExpiresAt:expiresAt});
+      if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,acceptedMediaMetadataOnly:seedAcceptedMedia,nativeUploads:!!nativeMedia,privateMediaPreviews:!!nativeMedia,retainedSyntheticMedia:!!nativeMedia,tokenExpiresAt:expiresAt});
       const finalizeRoute=nativeMedia&&/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/media-attach-intents\/[0-9a-f-]{36}\/finalize$/i.test(url.pathname);
       if(finalizeRoute){const response=await nativeMedia.handleFinalize(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;}
       const route=/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/drafts\/1(\/submit)?$/i.exec(url.pathname);
@@ -190,6 +190,9 @@ export async function startStaffPreview(options={}){
       const url=new URL(request.url);
       if(!/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/media-jobs\/[0-9a-f-]{36}\/uploads\/[0-9a-f-]{36}$/i.test(url.pathname))return failure(404,'NOT_FOUND','Staff preview upload route is unavailable.');
       const response=await nativeMedia.handleUpload(request,source);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
+    }:undefined,nativeMedia?async request=>{
+      const denied=guard(request);if(denied)return denied;
+      const response=await nativeMedia.handlePreview(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
     }:undefined);
     origin=await listen(apiServer,port);allowedHosts=new Set([new URL(origin).host,`localhost:${new URL(origin).port}`]);
     let closing;

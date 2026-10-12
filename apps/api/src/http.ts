@@ -6,13 +6,18 @@ type Handler = (request: Request) => Promise<Response>;
 type UploadHandler = (request: Request, source: AsyncIterable<Uint8Array>) => Promise<Response>;
 const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}';
 const V2_UPLOAD_PATH = new RegExp(`^/v2/staff/listings/${UUID}/revisions/([1-9]\\d*)/media-jobs/${UUID}/uploads/${UUID}$`);
+const V2_PREVIEW_PATH = new RegExp(`^/v2/staff/listings/${UUID}/revisions/([1-9]\\d*)/media/${UUID}/preview$`);
+function previewPath(incoming: IncomingMessage): boolean {
+  const match=V2_PREVIEW_PATH.exec(incoming.url??'');
+  return !!match&&Number(match[1])<=2147483647;
+}
 function uploadPath(incoming: IncomingMessage): boolean {
   if(incoming.method!=='GET'&&incoming.method!=='PUT')return false;
   const match=V2_UPLOAD_PATH.exec(incoming.url??'');
   return !!match&&Number(match[1])<=2147483647;
 }
 /** Loopback development bridge. Only the socket address supplies the limiter key. */
-export function createDevelopmentServer(handler: Handler, clientAddresses: WeakMap<Request,string> = new WeakMap(), uploadHandler?: UploadHandler) {
+export function createDevelopmentServer(handler: Handler, clientAddresses: WeakMap<Request,string> = new WeakMap(), uploadHandler?: UploadHandler, previewHandler?: Handler) {
   const dispatch = async (incoming: IncomingMessage, outgoing: ServerResponse) => {
     let streaming=false;let cleanup:()=>void=()=>undefined;
     try {
@@ -21,12 +26,33 @@ export function createDevelopmentServer(handler: Handler, clientAddresses: WeakM
       const host = hosts[0];
       if (hosts.length!==1 || !host || /[\s/\\?#@,]/.test(host)) { outgoing.writeHead(400,{'Connection':'close'}); outgoing.end(); return; }
       const method = incoming.method ?? 'GET';
+      const privatePreview=previewHandler!==undefined&&previewPath(incoming);
       const url = new URL(incoming.url ?? '/', `http://${host}`);
       const headers = new Headers();
       for (let i=0;i<incoming.rawHeaders.length;i+=2) {
         const key = incoming.rawHeaders[i]; const value = incoming.rawHeaders[i+1];
         // Appending all raw values retains ambiguous credentials for fail-closed parsing.
         if (key && value!==undefined) headers.append(key,value);
+      }
+      // Match the unnormalized incoming target before any ordinary handler can
+      // turn an alias into an authorized image request. Read no request body.
+      if(previewHandler&&privatePreview){
+        streaming=true;
+        if(headers.has('expect')){
+          await sendResponse(incoming,outgoing,new Response(JSON.stringify({error:'EXPECTATION_FAILED'}),{status:417,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}}),true);
+          return;
+        }
+        const controller=new AbortController();
+        const onAborted=()=>controller.abort();
+        const onClose=()=>{if(!outgoing.writableFinished)controller.abort();};
+        incoming.on('aborted',onAborted);incoming.on('error',onAborted);outgoing.on('close',onClose);
+        cleanup=()=>{incoming.off('aborted',onAborted);incoming.off('error',onAborted);outgoing.off('close',onClose);};
+        if(incoming.aborted||(outgoing.destroyed&&!outgoing.writableFinished))controller.abort();
+        const request=new Request(url,{method,headers,signal:controller.signal});
+        clientAddresses.set(request,incoming.socket.remoteAddress??'unknown-socket');
+        const response=await previewHandler(request);
+        await sendResponse(incoming,outgoing,response,true);
+        return;
       }
       if(uploadHandler&&uploadPath(incoming)){
         streaming=true;
@@ -69,10 +95,12 @@ export function createDevelopmentServer(handler: Handler, clientAddresses: WeakM
   const server = createServer((incoming,outgoing)=>{void dispatch(incoming,outgoing);});
   // Node otherwise sends 100 automatically before the application sees the body.
   server.on('checkContinue',(incoming,outgoing)=>{
+    if(previewHandler&&previewPath(incoming)){void dispatch(incoming,outgoing);return;}
     if(uploadHandler&&uploadPath(incoming)){void dispatch(incoming,outgoing);return;}
     outgoing.writeContinue();void dispatch(incoming,outgoing);
   });
   server.on('checkExpectation',(incoming,outgoing)=>{
+    if(previewHandler&&previewPath(incoming)){void dispatch(incoming,outgoing);return;}
     if(uploadHandler&&uploadPath(incoming)){void dispatch(incoming,outgoing);return;}
     outgoing.writeHead(417);outgoing.end();
   });
