@@ -6,7 +6,9 @@ Actual browser exact-original replay after a committed invalid reply returned or
 
 Final121/121 admin checks (two added uncooperative deferred-read guard contexts),admin typecheck and production build passed. Logs contact-replay-admin-tests-final.txt/contact-replay-types.txt/contact-replay-build.txt. Model race checks are not concurrent browser race injection. Prior13 API preview checks not rerun because API/database unchanged.488px actual viewport only;literal socket disconnect,expiry/revocation,390px/devices/UAT/production remain open.
 
-Next publish evidence preserving canonical/browser notes,then separate viewing workflow:first read existing business/schema rules and implement guarded synthetic scheduling with original idempotent receipt recovery,current access and optimistic versions. Browser replay/feed/activity denial checks now verified; don't repeat them without new changes.16/97 tasks,0/14 gates,KES10,000 total recurring price/vendor/live preserved.
+Evidence published owner-private at tracker2b32616f58743bc4c91aec9a8ee5df479866db1f, baseline contact-replay-2026-10-13-46, deployment appgdep_6ace7c4bd76c81918305675416beb221 succeeded. All175 canonical notes retained,3 added; browser merge/export behavior unchanged,no import/reset. Source7445ed0 full-history bundle verified,fresh clone matched HEAD and fsck passed;same-device recovery only. Local preview stopped after checks.
+
+Next separate viewing workflow:begin with docs/business-rules.md section6 (requested→proposed→confirmed→completed/no_show/cancelled,requested/proposed also declined/cancelled;agreement required for confirmation,rescheduling invalidates old confirmation). No viewing SQL was found in existing migrations. Define the first guarded synthetic scheduling slice with original idempotent receipt recovery,current access and optimistic versions before implementation. Browser replay/feed/activity denial checks now verified;don't repeat them without new changes.16/97 tasks,0/14 gates,KES10,000 total recurring price/vendor/live preserved.
 
 ## Contact reply corruption and access-loss recovery — 13 October 2026
 

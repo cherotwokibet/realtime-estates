@@ -1,4 +1,4 @@
-Latest: browser exact original contact replay and feed/activity denial verified; contact/activity share workspace stale-read guard.121 admin checks,typecheck/build passed. Next separate guarded viewing workflow;publication details in CONTINUATION.md. Remaining browser race/expiry/device/UAT/production cases stay open.
+Latest: browser exact original contact replay and feed/activity denial verified; shared stale-read guard,121 admin checks,typecheck/build passed. Evidence published owner-private at dashboard46. Next guarded viewing workflow from business-rules.md section6;see CONTINUATION.md. Remaining browser race/expiry/device/UAT/production cases stay open.
 
 Latest: contact original-attempt controller verified (119 admin checks); next operator form/feed and signed/browser verification. Dashboard publication pending. See CONTINUATION.md.
 
