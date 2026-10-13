@@ -1,0 +1,3 @@
+# Browser original replay and feed-denial verification started
+
+13 October 2026, Boniface + Codex, stages06/08/12. Clean source c92ccea; no active local enquiry preview found. Continue from dashboard45 without changing broad task/gate counts (16/97,0/14). Use new disposable signed synthetic fixture with invalid-first-contact-reply; test explicit original replay and then feed-read denial after reassignment. Preserve notes, working version, original identity and one-contact invariant. Do not claim a simulated reply is a socket disconnect or a manual browser check is a new automated test. Vendor/live resources and KES10,000 total monthly price preserved.

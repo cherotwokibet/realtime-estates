@@ -1,4 +1,4 @@
-Latest: browser uncertain contact recovery verified across assignment loss/restoration; fixed stale private detail/activity visibility on contact denial.13 signed preview/119 admin tests,admin typecheck/build passed; evidence published privately at dashboard45. Next browser replay/feed-denial/stale-read regressions; see CONTINUATION.md.
+Latest: browser exact original contact replay and feed/activity denial verified; contact/activity share workspace stale-read guard.121 admin checks,typecheck/build passed. Next separate guarded viewing workflow;publication details in CONTINUATION.md. Remaining browser race/expiry/device/UAT/production cases stay open.
 
 Latest: contact original-attempt controller verified (119 admin checks); next operator form/feed and signed/browser verification. Dashboard publication pending. See CONTINUATION.md.
 

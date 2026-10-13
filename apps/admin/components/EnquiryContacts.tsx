@@ -4,11 +4,12 @@ import type {ContactChannel,ContactOutcome,ContactPage} from '@realtor/api-clien
 import {createEnquiryPreviewClient,EnquiryPreviewError} from '../lib/enquiry-client';
 import {prepareContactAttempt,type ContactAttempt} from '../lib/contact-attempt';
 import {formatEnquiryTime,fromNairobiInput} from '../lib/enquiry-model';
+import type {EnquiryReadGuard} from '../lib/enquiry-read-guard';
 
 const channels:Record<ContactChannel,string>={call:'Call',whatsapp:'WhatsApp',email:'Email',in_person:'In person',other:'Other'};
 const outcomes:Record<ContactOutcome,string>={connected:'Connected',no_response:'No response',left_message:'Left a message',wrong_contact:'Wrong contact',other:'Other'};
-type Props={actor:'admin'|'agent';instanceId:string;enquiryId:string;version:string|null;onGuard:(guard:boolean)=>void;onAccessDenied:(error:unknown)=>void};
-export default function EnquiryContacts({actor,instanceId,enquiryId,version,onGuard,onAccessDenied}:Props){
+type Props={actor:'admin'|'agent';instanceId:string;enquiryId:string;version:string|null;onGuard:(guard:boolean)=>void;onAccessDenied:(error:unknown)=>void;readGuard:EnquiryReadGuard};
+export default function EnquiryContacts({actor,instanceId,enquiryId,version,onGuard,onAccessDenied,readGuard}:Props){
  const client=useMemo(()=>createEnquiryPreviewClient({basePath:`/api/enquiry-preview/${actor}`,instanceId}),[actor,instanceId]);
  const [channel,setChannel]=useState<ContactChannel>('call'),[outcome,setOutcome]=useState<ContactOutcome>('connected');
  const [occurred,setOccurred]=useState(''),[notes,setNotes]=useState(''),[attempt,setAttempt]=useState<ContactAttempt|null>(null);
@@ -18,9 +19,9 @@ export default function EnquiryContacts({actor,instanceId,enquiryId,version,onGu
  const generation=useRef(0),reader=useRef<AbortController|null>(null);
  function guard(){onGuard(true);}
  async function refresh(){
-  const turn=++generation.current;reader.current?.abort();const controller=new AbortController();reader.current=controller;
+  const turn=++generation.current;reader.current?.abort();const controller=new AbortController();reader.current=controller;const mayApply=readGuard.capture();
   setPage(null);setReadError(false);setReading(true);
-  try{const value=await client.contacts(enquiryId,controller.signal);if(alive.current&&turn===generation.current)setPage(value);}
+  try{const value=await client.contacts(enquiryId,controller.signal);if(alive.current&&turn===generation.current&&mayApply())setPage(value);}
   catch(error){if(alive.current&&turn===generation.current){setReadError(true);if(error instanceof EnquiryPreviewError&&[401,403,404].includes(error.status))onAccessDenied(error);}}
   finally{if(alive.current&&turn===generation.current)setReading(false);}
  }

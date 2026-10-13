@@ -3,7 +3,7 @@ import test from 'node:test';
 import {createEnquiryReadGuard} from '../dist/tests/lib/enquiry-read-guard.js';
 
 function deferred(){let resolve;const promise=new Promise(complete=>{resolve=complete;});return {promise,resolve};}
-const contexts=['queue','detail','current comparison','staff directory'];
+const contexts=['queue','detail','current comparison','staff directory','contact feed','recorded activity'];
 
 test('captured reads remain valid until invalidation and retired captures never revive',()=>{
   const guard=createEnquiryReadGuard();assert.equal(Object.isFrozen(guard),true);

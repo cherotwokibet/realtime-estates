@@ -1,5 +1,13 @@
 # Rebuild continuation checkpoint
 
+## Browser contact replay and shared read denial guard — 13 October 2026
+
+Actual browser exact-original replay after a committed invalid reply returned original version2 receipt and one feed row with exact raw notes. Admin reassignment then feed-read denial hid saved email/feed/activity while preserving unsaved draft. Added shared EnquiryReadGuard to contact feed/activity successful reads; activity401/403/404 now invokes parent denial too. Admin restored assignment4,agent explicitly compared/adopted4,admin reassigned5; denied activity refresh again hid all saved details and retained exact draft. Evidence docs/evidence/2026-10-13-contact-replay-browser.md/four screenshots. No messages,lifecycle changes or implicit version adoption.
+
+Final121/121 admin checks (two added uncooperative deferred-read guard contexts),admin typecheck and production build passed. Logs contact-replay-admin-tests-final.txt/contact-replay-types.txt/contact-replay-build.txt. Model race checks are not concurrent browser race injection. Prior13 API preview checks not rerun because API/database unchanged.488px actual viewport only;literal socket disconnect,expiry/revocation,390px/devices/UAT/production remain open.
+
+Next publish evidence preserving canonical/browser notes,then separate viewing workflow:first read existing business/schema rules and implement guarded synthetic scheduling with original idempotent receipt recovery,current access and optimistic versions. Browser replay/feed/activity denial checks now verified; don't repeat them without new changes.16/97 tasks,0/14 gates,KES10,000 total recurring price/vendor/live preserved.
+
 ## Contact reply corruption and access-loss recovery — 13 October 2026
 
 Added explicit process-only synthetic one-shot invalid contact receipt after normal commit; launch node scripts/enquiry-preview.mjs --invalid-first-contact-reply. Normal mode unchanged; production refusal and signed route guards retained.13/13 signed preview tests passed (new fault/recovery/replay invariants),119/119 existing admin checks passed. Final admin typecheck and production build passed; logs contact-access-types.txt/contact-access-build.txt.

@@ -1,16 +1,17 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import type {EnquiryActivityPage} from '@realtor/api-client';
-import {createEnquiryPreviewClient} from '../lib/enquiry-client';
+import {createEnquiryPreviewClient,EnquiryPreviewError} from '../lib/enquiry-client';
+import type {EnquiryReadGuard} from '../lib/enquiry-read-guard';
 import {formatEnquiryTime,enquiryStatusLabel} from '../lib/enquiry-model';
-export default function EnquiryActivity({actor,instanceId,enquiryId}:{actor:'admin'|'agent';instanceId:string;enquiryId:string}){
+export default function EnquiryActivity({actor,instanceId,enquiryId,readGuard,onAccessDenied}:{actor:'admin'|'agent';instanceId:string;enquiryId:string;readGuard:EnquiryReadGuard;onAccessDenied:(error:unknown)=>void}){
  const client=useMemo(()=>createEnquiryPreviewClient({basePath:`/api/enquiry-preview/${actor}`,instanceId}),[actor,instanceId]);
  const [page,setPage]=useState<EnquiryActivityPage|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(false);
  const controller=useRef<AbortController|null>(null),generation=useRef(0);
  async function refresh(){
-  const current=++generation.current;controller.current?.abort();const next=new AbortController();controller.current=next;setPage(null);setError(false);setBusy(true);
-  try{const result=await client.activity(enquiryId,next.signal);if(current===generation.current)setPage(result);}
-  catch{if(current===generation.current)setError(true);}
+  const current=++generation.current;controller.current?.abort();const next=new AbortController();controller.current=next;const mayApply=readGuard.capture();setPage(null);setError(false);setBusy(true);
+  try{const result=await client.activity(enquiryId,next.signal);if(current===generation.current&&mayApply())setPage(result);}
+  catch(error){if(current===generation.current){setError(true);if(error instanceof EnquiryPreviewError&&[401,403,404].includes(error.status))onAccessDenied(error);}}
   finally{if(current===generation.current){setBusy(false);controller.current=null;}}
  }
  useEffect(()=>{void refresh();return()=>{generation.current++;controller.current?.abort();};},[client,enquiryId]);
