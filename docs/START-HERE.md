@@ -1,3 +1,5 @@
+Latest: protected activity API/shared client verified; next staff proxy/timeline. See CONTINUATION.md. Earlier sections are at-time history.
+
 Latest: minimal protected enquiry activity SQL verified; next API/client then timeline. See CONTINUATION.md. Older sections are historical.
 
 Latest: connected staff capture forms verified; next attributable contact-history timeline. See CONTINUATION.md; older sections are historical.

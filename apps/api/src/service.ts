@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { calculateWirePricingV2, kesFromMinor, normalizeKenyanPhone, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2 } from "@realtor/domain";
+import { validateEnquiryActivityPage,calculateWirePricingV2, kesFromMinor, normalizeKenyanPhone, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2 } from "@realtor/domain";
 import { DatabaseSafetyError, type TransactionDatabase, type TransactionQuery } from "./database.js";
 
 export interface VerifiedIdentity { readonly actorId: string }
@@ -523,6 +523,15 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
           const projected = result.rows.map(row => enquiryProjection(row, false));
           if (new Set(projected.map(row => row.id)).size !== projected.length) throw new Error("Duplicate enquiry record.");
           return response(200, { items: projected.slice(0, pageLimit), limit: pageLimit, truncated: projected.length > pageLimit }, correlationId);
+        }
+        const activityRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/activity$/.exec(path);
+        if(activityRoute){
+          const id=uuid(activityRoute[1],"enquiryId"),pageLimit=enquiryQuery(url,true,50);
+          if(method!=="GET")throw new HttpError(405,"METHOD_NOT_ALLOWED","Method is not allowed for this route.",{Allow:"GET"});
+          const result=await options.database.transaction(context,async query=>{
+            await assertStaff(query);return query.query("SELECT app_api.list_enquiry_activity($1::uuid,$2::integer) AS page",[id,pageLimit]);
+          });
+          return response(200,validateEnquiryActivityPage(scalar(result,"page"),pageLimit),correlationId);
         }
         const enquiryRoute = /^\/v2\/staff\/enquiries\/([^/]+)(?:\/(operations)(?:\/([^/]+))?)?$/.exec(path);
         if (enquiryRoute) {

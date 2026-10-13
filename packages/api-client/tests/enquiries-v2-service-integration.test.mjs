@@ -94,6 +94,11 @@ test('enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL 
    assert.equal((await capture(agent)).status,409);assert.equal((await capture(admin,{...body,message:'Changed original'})).status,409);
    assert.equal((await capture(admin,{...body,origin:'web'})).status,400);assert.deepEqual(await counts(receipt.id),before);
   });
+  await t.test('shared activity read uses current authorization, historical actors and no writes',async()=>{
+   const before=await counts(enquiry),page=await api.listEnquiryActivityV2(enquiry,{...peer,limit:2});assert.equal(page.coverage,'capture-and-v2-operations');assert.equal(page.currentVersion,'9');assert.equal(page.items.length,2);assert.equal(page.truncated,true);assert.equal(page.items[0].kind,'assign');assert.equal(page.items[0].actorId,ADMIN);assert.equal(page.items[0].version,'9');assert.deepEqual(await counts(enquiry),before);
+   await assert.rejects(()=>api.listEnquiryActivityV2(enquiry,agent),denied(404));for(const identity of [customer,foreign,inactive])await assert.rejects(()=>api.listEnquiryActivityV2(enquiry,identity),denied(403));
+   assert.doesNotMatch(JSON.stringify(page),/closureReason|email|phone|message|request_payload/);
+  });
   await t.test('reads leave records/audits/operations intact; runtime has no receipt DML or unscoped directory',async()=>{
    const before=await counts(enquiry);await api.listStaffEnquiriesV2(admin);await api.listEnquiryAssigneesV2(admin);await api.getStaffEnquiryV2(enquiry,peer);await api.getEnquiryOperationV2(enquiry,id(1000),admin);assert.deepEqual(await counts(enquiry),before);
    for(const sql of ['SELECT * FROM app_private.enquiry_operations','DELETE FROM app_private.enquiry_operations','UPDATE app_private.enquiries SET status=\'new\''])await assert.rejects(()=>db.query(sql),error=>error.code==='42501');

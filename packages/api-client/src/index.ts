@@ -1,7 +1,9 @@
 import {
-  calculateWirePricingV2, kesFromMinor, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2,
+  validateEnquiryActivityPage,type EnquiryActivityPage,calculateWirePricingV2, kesFromMinor, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2,
   type PricingDisclosure, type PricingInputV2, type PublicLocationV2,
 } from '@realtor/domain';
+
+export type {EnquiryActivityPage,EnquiryActivityEvent} from '@realtor/domain';
 
 /** Narrow, explicitly validated public API contracts. Identity and tenant selection remain server concerns. */
 export interface PublicPhoto { readonly key: string; readonly alt: string }
@@ -891,6 +893,11 @@ export class RealtorApiClient {
     if(data.limit!==captured.limit||typeof data.truncated!=='boolean'||(data.truncated&&rows.length!==captured.limit))return invalid('INVALID_RESPONSE','Invalid bounded enquiry page.');
     const items=rows.map(validateStaffEnquirySummaryV2);if(new Set(items.map(item=>item.id)).size!==items.length)return invalid('INVALID_RESPONSE','Repeated enquiry identity.');
     return Object.freeze({items:Object.freeze(items),limit:captured.limit,truncated:data.truncated});
+  }
+  async listEnquiryActivityV2(enquiryId:string,options:StaffRequestOptions&{readonly limit?:number}):Promise<EnquiryActivityPage>{
+    const {options:captured,limit}=enquiryOptions(options,50),id=uuid(enquiryId,'VALIDATION','Enquiry ID');
+    const data=await this.request(`/v2/staff/enquiries/${id}/activity?limit=${limit}`,'GET',captured);
+    try{return validateEnquiryActivityPage(data,limit);}catch{return invalid('INVALID_RESPONSE','Invalid enquiry activity.');}
   }
   async getStaffEnquiryV2(enquiryId:string,options:StaffRequestOptions):Promise<StaffEnquiryDetailV2>{
     const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID');

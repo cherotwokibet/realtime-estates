@@ -17,13 +17,14 @@ function receipt(body=command(),extra={}){
     request:{assignedAgentId:body.assignedAgentId,status:body.status,nextActionAt:body.nextActionAt,reason:body.reason},
     outcome:'applied',reason:null,result:{version:String(body.expectedVersion+1),status:body.kind==='assign'?'assigned':body.kind==='transition'?body.status:'contacted',assignedAgentId:AGENT,nextActionAt:body.nextActionAt,closureReason:body.reason},completedAt:NOW,...extra};
 }
-function fixture({role='admin',rows=[summary()],privateDetail=detail(),directory={items:[{userId:AGENT,role:'agent'}],limit:100,truncated:false},operation=receipt(),failure}={}){
+function fixture({role='admin',rows=[summary()],privateDetail=detail(),directory={items:[{userId:AGENT,role:'agent'}],limit:100,truncated:false},operation=receipt(),activity={items:[{eventId:ENQUIRY,kind:'received',actorId:null,occurredAt:NOW,version:'1',status:'new',assignedAgentId:null,nextActionAt:null}],limit:50,truncated:false,coverage:'capture-and-v2-operations',currentVersion:'1'},failure}={}){
   const calls=[],contexts=[];
   const database={async transaction(context,work){contexts.push({...context});return work({async query(sql,args=[]){
     calls.push({sql,args:structuredClone(args)});
     if(sql.includes('app_api.record_enquiry'))return {rows:[{id:ENQUIRY}]};
     if(sql.includes('app_private.staff_role'))return {rows:[{role}]};
     if(failure)throw failure;
+    if(sql.includes('list_enquiry_activity'))return {rows:[{page:activity}]};
     if(sql.includes('list_enquiry_assignees'))return {rows:[{page:directory}]};
     if(sql.includes('execute_enquiry_operation')||sql.includes('read_enquiry_operation'))return {rows:[{receipt:operation}]};
     if(sql.includes('e.id=$2'))return {rows:privateDetail===null?[]:[privateDetail]};
@@ -218,4 +219,12 @@ test('staff capture rejects unauthenticated, nonstaff and caller attribution wit
   const denied=fixture({role:'customer'});await safeFailure(await denied.service(request('/v2/staff/enquiry-captures',{method:'POST',body:captureBody(),headers:{'Idempotency-Key':OP}})),403,'FORBIDDEN');assert.equal(denied.calls.length,1);
   for(const field of ['origin','actorId','tenantId','requestedById']){const f=fixture();await safeFailure(await f.service(request('/v2/staff/enquiry-captures',{method:'POST',body:{...captureBody(),[field]:ADMIN},headers:{'Idempotency-Key':OP}})),400,'INVALID_INPUT');assert.equal(f.calls.length,0);}
   const query=fixture();await safeFailure(await query.service(request('/v2/staff/enquiry-captures?limit=1',{method:'POST',body:captureBody(),headers:{'Idempotency-Key':OP}})),400,'INVALID_INPUT');assert.equal(query.calls.length,0);
+});
+
+test('activity route is authenticated bounded read with fixed transaction identity and strict minimal projection',async()=>{
+ const path=base+'/'+ENQUIRY+'/activity',f=fixture();const response=await f.service(request(path));assert.equal(response.status,200);assert.equal((await response.json()).coverage,'capture-and-v2-operations');assert.equal(f.contexts[0].actorId,ADMIN);assert.deepEqual(f.calls.at(-1).args,[ENQUIRY,50]);
+ for(const actor of [null,'invalid'])await safeFailure(await fixture().service(request(path,{actor})),401,'UNAUTHENTICATED');await safeFailure(await fixture({role:'customer'}).service(request(path)),403,'FORBIDDEN');
+ for(const suffix of ['?tenantId=other','?limit=0','?limit=101','?limit=1&limit=2'])await safeFailure(await fixture().service(request(path+suffix)),400,'INVALID_INPUT');
+ await safeFailure(await fixture().service(request(path,{method:'POST',body:{}})),405,'METHOD_NOT_ALLOWED');
+ await safeFailure(await fixture({activity:{items:[],limit:50,truncated:false,coverage:'complete',currentVersion:'1'}}).service(request(path)),503,'SERVICE_UNAVAILABLE');
 });

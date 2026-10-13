@@ -9,3 +9,5 @@ export * from "./permissions.js";
 export * from "./property.js";
 export * from "./enquiries.js";
 export * from "./branding.js";
+
+export * from "./enquiry-activity.js";

@@ -166,3 +166,10 @@ test('enquiry options never leak to subsequent calls or change unchanged public 
  await api.getStaffEnquiryV2(ENQUIRY,OPTIONS);await api.submitEnquiry({name:'Synthetic',phone:'0712345678',email:null,message:'General synthetic enquiry',origin:'web',noticeVersion:'synthetic-v1',noticeAcknowledged:true},{idempotencyKey:OPERATION});
  assert.equal(calls[0].init.headers.Authorization,'Bearer synthetic-staff');assert.equal(calls[1].init.headers.Authorization,undefined);assert.equal(calls[1].url,ORIGIN+'/v1/enquiries');assert.equal(calls[1].init.headers['Idempotency-Key'],OPERATION);
 });
+
+test('activity SDK uses explicit identity and validates minimal supported coverage',async()=>{
+ const page={items:[{eventId:ENQUIRY,kind:'received',actorId:null,occurredAt:NOW,version:'1',status:'new',assignedAgentId:null,nextActionAt:null}],limit:50,truncated:false,coverage:'capture-and-v2-operations',currentVersion:'1'},calls=[];
+ const api=client(async(url,init)=>{calls.push({url,init});return json(page);});assert.equal((await api.listEnquiryActivityV2(ENQUIRY,OPTIONS)).currentVersion,'1');assert.equal(calls[0].url,ORIGIN+'/v2/staff/enquiries/'+ENQUIRY+'/activity?limit=50');assert.equal(calls[0].init.method,'GET');assert.equal(calls[0].init.headers.Authorization,'Bearer synthetic-staff');
+ await assert.rejects(api.listEnquiryActivityV2(ENQUIRY,{...OPTIONS,tenantId:OTHER}));
+ await assert.rejects(client(async()=>json({...page,coverage:'complete'})).listEnquiryActivityV2(ENQUIRY,OPTIONS),e=>e.kind==='INVALID_RESPONSE');
+});

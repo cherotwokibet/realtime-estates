@@ -1,5 +1,10 @@
 # Rebuild continuation checkpoint
 
+## Activity API/shared client - 13 October 2026
+
+Protected bounded activity GET and typed SDK use one shared strict domain validator; fixed staff/company context and SQL current-assignment guards retained. Final68 domain,152 API,174 client,9 signed HTTP/restricted SQL integration checks and8 typechecks passed; package/API builds passed. See enquiry-activity.md and six logs. Initial helper-name compile issue corrected. Next synthetic preview activity allowlist, protected staff BFF and independently loaded timeline; no activity UI/browser/device/UAT/production claim. Preserve working-version/input and private receipt boundaries.16/97 tasks,0/14 gates,price/vendor/live preserved. Inspect tracker state before edits.
+
+
 ## Minimal enquiry activity SQL - 13 October 2026
 
 Additive0011 protected bounded activity read projects capture/applied v2 changes with actor IDs and historical next-action facts, excludes private command/contact/reason fields and non-applied attempts. Current role/company/assignment enforced; explicit capture-and-v2-operations coverage/currentVersion avoids inventing legacy history. Final17 enquiry SQL checks plus20 foundation checks passed. See enquiry-activity.md and two final logs. Next bounded protected API/typed client, then proxy/timeline; none exists yet for activity.16/97 tasks,0/14 gates,price/vendor/live preserved. Inspect tracker publication/source before edits.
