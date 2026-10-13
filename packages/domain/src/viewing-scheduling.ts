@@ -17,6 +17,10 @@ export interface ConfirmedViewingSchedule extends Omit<ViewingSchedule,'status'|
 export type ViewingConfirmationPlan=Readonly<{outcome:'applied';reason:null;next:ConfirmedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';next:null}>|Readonly<{outcome:'refused';reason:'INVALID_STATE'|'PROPOSED_SLOT_MISMATCH'|'SLOT_NOT_FUTURE'|'AGREEMENT_BEFORE_PROPOSAL'|'AGREEMENT_IN_FUTURE';next:null}>;
 export type ViewingConfirmationReceipt=Readonly<{operationId:string;enquiryId:string;viewingId:string;actorId:string;kind:'confirm';expectedVersion:string;observedVersion:string;request:Readonly<{slot:ViewingSlot;channel:'phone';agreedAt:string;notes:string}>;completedAt:string}>&(
  Readonly<{outcome:'applied';reason:null;result:ConfirmedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';result:null}>|Readonly<{outcome:'refused';reason:'ENQUIRY_CLOSED'|'LISTING_UNAVAILABLE'|'INVALID_STATE'|'PROPOSED_SLOT_MISMATCH'|'SLOT_NOT_FUTURE'|'AGREEMENT_BEFORE_PROPOSAL'|'AGREEMENT_IN_FUTURE';result:null}>);
+export type ViewingTerminationKind='cancel'|'decline';
+export interface ViewingTerminationCommand {readonly operationId:string;readonly expectedVersion:string;readonly reason:string}
+export interface TerminatedViewingSchedule extends Omit<ViewingSchedule,'status'> {readonly status:'cancelled'|'declined';readonly termination:Readonly<{kind:ViewingTerminationKind;fromStatus:ViewingSchedule['status'];reason:string;endedAt:string;previousUpdatedAt:string}>}
+export type ViewingTerminationPlan=Readonly<{outcome:'applied';reason:null;next:TerminatedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';next:null}>|Readonly<{outcome:'refused';reason:'INVALID_STATE'|'RECORD_TIME_IN_FUTURE';next:null}>;
 const fail=():never=>{throw new Error('Invalid viewing scheduling contract.');};
 function record(input:unknown,fields:readonly string[]):Record<string,unknown>{
  if(!input||typeof input!=='object'||![Object.prototype,null].includes(Object.getPrototypeOf(input)))return fail();
@@ -51,6 +55,22 @@ export function validateViewingConfirmationCommand(input:unknown):ViewingConfirm
  const value=record(input,['operationId','expectedVersion','slot','channel','agreedAt','notes']);
  if(value.channel!=='phone')return fail();
  return Object.freeze({operationId:uuid(value.operationId),expectedVersion:version(value.expectedVersion,true),slot:validateViewingSlot(value.slot),channel:'phone',agreedAt:instant(value.agreedAt),notes:privateNotes(value.notes)});
+}
+/** Time-independent original reason; kind is an explicit operation, never caller authority. */
+export function validateViewingTerminationCommand(input:unknown):ViewingTerminationCommand{
+ const value=record(input,['operationId','expectedVersion','reason']),reason=privateNotes(value.reason);
+ if([...reason].length>1000)return fail();
+ return Object.freeze({operationId:uuid(value.operationId),expectedVersion:version(value.expectedVersion,true),reason});
+}
+/** First cancel/decline plan only. No deletion, stored receipt, authorization or reminder dispatch. */
+export function planViewingTermination(input:ViewingDetail,kind:ViewingTerminationKind,commandInput:ViewingTerminationCommand,now:string):ViewingTerminationPlan{
+ if(kind!=='cancel'&&kind!=='decline'||!input||typeof input!=='object')return fail();
+ const descriptor=Object.getOwnPropertyDescriptor(input,'schedule');if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return fail();
+ const schedule=validateViewingSchedule(descriptor.value),current=validateViewingDetail(input,schedule.enquiryId),command=validateViewingTerminationCommand(commandInput),clock=instant(now);
+ if(command.expectedVersion!==schedule.version)return Object.freeze({outcome:'conflict',reason:'VERSION_CONFLICT',next:null});
+ if(kind==='decline'&&schedule.status==='confirmed')return Object.freeze({outcome:'refused',reason:'INVALID_STATE',next:null});
+ if(clock<current.updatedAt)return Object.freeze({outcome:'refused',reason:'RECORD_TIME_IN_FUTURE',next:null});
+ return Object.freeze({outcome:'applied',reason:null,next:Object.freeze({...schedule,status:kind==='cancel'?'cancelled':'declined',version:String(BigInt(schedule.version)+1n),termination:Object.freeze({kind,fromStatus:schedule.status,reason:command.reason,endedAt:clock,previousUpdatedAt:current.updatedAt})})});
 }
 /** Pure first execution plan only. Does not authorize, store a receipt, confirm in SQL or send anything. */
 export function planViewingConfirmation(input:ViewingDetail,proposal:ViewingConfirmationCommand,now:string):ViewingConfirmationPlan{

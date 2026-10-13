@@ -1,6 +1,10 @@
 # Viewing scheduling foundation — 13 October 2026
 
-## Phone agreement operator workflow — 14 October
+## Cancellation/decline domain foundation — 14 October
+
+Reasoned immutable commands/pure first terminalplans verified:106domain/build/8types. No terminalstorage/API/UI yet;oldrequest/proposal/phoneevidence preserved byplan. See viewing-termination.md for exactbounds/provisionalrules and0015integration requirements.
+
+## Earlier phone agreement operator workflow — 14 October
 
 Protected BFF/browser attempt/explicitphoneform verified:145admin,15signedpreview,typecheck/build;actualdesktopbrowser confirmation/staleconflict/deniedrecovery/restoredexactreplay→oneconfirmedviewing andunchanged evidence. See viewing-confirmation.md and evidence/2026-10-14-viewing-confirmation-operator-browser.md. Next cancellation/decline/reschedule/lifecycle;device/UAT/release open.
 

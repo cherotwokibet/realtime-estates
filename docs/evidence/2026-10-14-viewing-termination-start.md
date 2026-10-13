@@ -1,0 +1,3 @@
+# Viewing cancellation/decline domain work initiated — 14 October 2026
+
+Starting clean6c904f0operator checkpoint;145admin/15preview/typecheck/build and actualdesktopconfirmation/conflict/deniedrecovery/restoredreplay passed. No preview active. Stages02/06/08/12. Define strict reasoned cancellation/decline commands and pure terminal plans preserving request/proposal/phone evidence. No deletion,implicit reschedule or reminder dispatch. Cancel requested/proposed/confirmed;decline requested/proposed only per business-rules.md section6. Original replay remains timeless. Storage/API/UI and reminder suppression require separate durable integration.16/97tasks,0/14gates,KES10,000totalmonthlyprice/vendor/livepreserved.
