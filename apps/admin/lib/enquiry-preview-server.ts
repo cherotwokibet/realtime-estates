@@ -1,9 +1,9 @@
 import 'server-only';
-import {handleSyntheticEnquiry,ApiClientError,RealtorApiClient,type EnquiryOperationInputV2} from '@realtor/api-client';
+import {validateContactCommand,type ContactCommand,handleSyntheticEnquiry,ApiClientError,RealtorApiClient,type EnquiryOperationInputV2} from '@realtor/api-client';
 import {assertPreviewRequest} from './staff-preview-policy.ts';
 
 type Actor='admin'|'agent';
-type Action='list'|'detail'|'assignees'|'command'|'operation'|'activity';
+type Action='list'|'detail'|'assignees'|'command'|'operation'|'activity'|'contacts'|'contact-record'|'contact-recover';
 type Environment=Readonly<Record<string,string|undefined>>;
 type Scope=Readonly<{actorId:string;role:Actor;instanceId:string}>;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -48,37 +48,40 @@ function failure(error:unknown,writeDispatched:boolean):Response{
 }
 
 function requestShape(request:Request,params:{actor:string;id?:string;operationId?:string},action:Action):number|undefined{
+  const contact=action==='contact-record'||action==='contact-recover',bodyAction=action==='command'||contact;
   const url=new URL(request.url),base=`/api/enquiry-preview/${params.actor}`;
   if(url.hash||request.url.includes('#')||[params.id,params.operationId].some(value=>value!==undefined&&!UUID.test(value)))throw new BoundaryError(400,'INVALID_INPUT');
   const path=action==='list'?`${base}/enquiries`:action==='assignees'?`${base}/assignees`:
-    action==='activity'?`${base}/enquiries/${params.id}/activity`:action==='detail'?`${base}/enquiries/${params.id}`:action==='command'?`${base}/enquiries/${params.id}/operations`:`${base}/enquiries/${params.id}/operations/${params.operationId}`;
+    action==='contacts'||action==='contact-record'?`${base}/enquiries/${params.id}/contacts`:action==='contact-recover'?`${base}/enquiries/${params.id}/contacts/recover`:action==='activity'?`${base}/enquiries/${params.id}/activity`:action==='detail'?`${base}/enquiries/${params.id}`:action==='command'?`${base}/enquiries/${params.id}/operations`:`${base}/enquiries/${params.id}/operations/${params.operationId}`;
   if(url.pathname!==path||(['list','assignees'].includes(action)?params.id!==undefined||params.operationId!==undefined:!params.id)
     ||(action==='operation'?!params.operationId:params.operationId!==undefined))throw new BoundaryError(400,'INVALID_INPUT');
   if(params.actor==='agent'&&action==='assignees')throw new BoundaryError(403,'FORBIDDEN');
   let limit:number|undefined;
-  if(action==='list'||action==='assignees'||action==='activity'){
+  if(action==='list'||action==='assignees'||action==='activity'||action==='contacts'){
     if(request.url.includes('?')&&!/^\?limit=[1-9]\d{0,2}$/.test(url.search))throw new BoundaryError(400,'INVALID_INPUT');
-    limit=url.search?Number(url.search.slice(7)):action==='assignees'?100:50;
-    if(limit<1||limit>100)throw new BoundaryError(400,'INVALID_INPUT');
+    limit=url.search?Number(url.search.slice(7)):action==='contacts'?25:action==='assignees'?100:50;
+    if(limit<1||limit>(action==='contacts'?25:100))throw new BoundaryError(400,'INVALID_INPUT');
   }else if(url.search||request.url.includes('?'))throw new BoundaryError(400,'INVALID_INPUT');
   let forbidden=false;
   request.headers.forEach((_,name)=>{
     if(['cookie','content-encoding','expect','range','transfer-encoding','x-actor-id','x-tenant-id','x-role','x-actor','x-tenant','x-revision-version'].includes(name)||name.startsWith('if-'))forbidden=true;
-    if(action!=='command'&&['content-length','content-type'].includes(name))forbidden=true;
+    if(!bodyAction&&['content-length','content-type'].includes(name))forbidden=true;
   });
-  if(forbidden||(action!=='command'&&request.body!==null))throw new BoundaryError(400,'INVALID_INPUT');
-  if(action==='command'){
+  if(forbidden||(!bodyAction&&request.body!==null))throw new BoundaryError(400,'INVALID_INPUT');
+  if(bodyAction){
     if(!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')??''))throw new BoundaryError(400,'INVALID_INPUT');
     const length=request.headers.get('content-length');
-    if(length!==null&&(!/^[1-9]\d{0,3}$/.test(length)||Number(length)>MAX_BYTES))throw new BoundaryError(400,'INVALID_INPUT');
+    if(length!==null&&(!/^[1-9]\d{0,4}$/.test(length)||Number(length)>(contact?16384:MAX_BYTES)))throw new BoundaryError(400,'INVALID_INPUT');
   }
   return limit;
 }
 
-async function commandBody(request:Request):Promise<EnquiryOperationInputV2>{
+async function commandBody(request:Request):Promise<EnquiryOperationInputV2>;
+async function commandBody(request:Request,contact:true):Promise<ContactCommand>;
+async function commandBody(request:Request,contact=false):Promise<EnquiryOperationInputV2|ContactCommand>{
   if(request.signal.aborted)throw new BoundaryError(499,'CANCELLED');
   const reader=request.body?.getReader();if(!reader)throw new BoundaryError(400,'INVALID_INPUT');
-  const bytes=new Uint8Array(MAX_BYTES),started=performance.now();let size=0,stop:BoundaryError|undefined;
+  const maximum=contact?16384:MAX_BYTES,bytes=new Uint8Array(maximum),started=performance.now();let size=0,stop:BoundaryError|undefined;
   let rejectStop:(error:BoundaryError)=>void=()=>{};
   const stopped=new Promise<never>((_,reject)=>{rejectStop=reject;});
   void stopped.catch(()=>undefined);
@@ -91,7 +94,7 @@ async function commandBody(request:Request):Promise<EnquiryOperationInputV2>{
       if(request.signal.aborted)aborted();if(performance.now()-started>=BODY_TIMEOUT_MS)interrupt(504,'PREVIEW_UNAVAILABLE');if(stop)throw stop;
       const item=await Promise.race([reader.read(),stopped]);if(stop)throw stop;
       if(item.done)break;
-      if(!(item.value instanceof Uint8Array)||item.value.byteLength===0||item.value.byteLength>MAX_BYTES-size)throw new BoundaryError(400,'INVALID_INPUT');
+      if(!(item.value instanceof Uint8Array)||item.value.byteLength===0||item.value.byteLength>maximum-size)throw new BoundaryError(400,'INVALID_INPUT');
       bytes.set(item.value,size);size+=item.value.byteLength;
     }
     const declared=request.headers.get('content-length');
@@ -109,10 +112,11 @@ async function commandBody(request:Request):Promise<EnquiryOperationInputV2>{
         if(key==='expectedVersion'&&!/^[1-9]\d*$/.test(tokens[index+2]??''))throw new BoundaryError(400,'INVALID_INPUT');
       }
     }
-    const fields=['operationId','kind','expectedVersion','assignedAgentId','status','nextActionAt','reason'];
+    const fields=contact?['operationId','expectedVersion','channel','outcome','occurredAt','notes']:['operationId','kind','expectedVersion','assignedAgentId','status','nextActionAt','reason'];
     if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).length!==fields.length||fields.some(field=>!Object.hasOwn(value,field)))throw new BoundaryError(400,'INVALID_INPUT');
     const record=value as Record<string,unknown>,version=record.expectedVersion;
-    if(typeof version!=='number'||!Number.isSafeInteger(version)||version<1||version>Number.MAX_SAFE_INTEGER-1)throw new BoundaryError(400,'INVALID_INPUT');
+    if(typeof version!=='number'||!Number.isSafeInteger(version)||version<1||version>Number.MAX_SAFE_INTEGER-(contact?0:1))throw new BoundaryError(400,'INVALID_INPUT');
+    if(contact)return validateContactCommand({...record,expectedVersion:String(version)});
     return Object.freeze({...record,expectedVersion:String(version)}) as unknown as EnquiryOperationInputV2;
   }catch(error){if(error instanceof BoundaryError)throw error;throw new BoundaryError(400,'INVALID_INPUT');}
   finally{clearTimeout(timer);request.signal.removeEventListener('abort',aborted);cancel();try{reader.releaseLock();}catch{/* A pending cancelled read must not delay this result. */}}
@@ -125,16 +129,20 @@ export async function enquiryPreviewRequest(request:Request,params:{actor:string
     config=configuration(params.actor,process.env);assertPreviewRequest(request,config.instanceId);
     const origin=request.headers.get('origin');if(origin!==null&&origin!==`http://${request.headers.get('host')}`)throw new Error();
   }catch{return reply(403,'PREVIEW_UNAVAILABLE');}
-  if(request.method!==(action==='command'?'POST':'GET'))return reply(405,'METHOD_NOT_ALLOWED');
+  if(request.method!==(['command','contact-record','contact-recover'].includes(action)?'POST':'GET'))return reply(405,'METHOD_NOT_ALLOWED');
   let writeDispatched=false;
   try{
     const limit=requestShape(request,params,action);
     if(request.signal.aborted)throw new BoundaryError(499,'CANCELLED');
     const command=action==='command'?await commandBody(request):undefined;
+    const contact=['contact-record','contact-recover'].includes(action)?await commandBody(request,true):undefined;
     const client=new RealtorApiClient({baseUrl:config.origin,privacyNoticeVersion:'synthetic-preview-v1',allowLoopbackHttp:true}),options={bearerToken:config.bearerToken,signal:request.signal,timeoutMs:30000};
     let result:unknown;
     if(action==='list')result=await client.listStaffEnquiriesV2({...options,limit});
     else if(action==='assignees')result=await client.listEnquiryAssigneesV2({...options,limit});
+    else if(action==='contacts')result=await client.listContactsV2(params.id!,{...options,limit});
+    else if(action==='contact-recover')result=await client.getContactReceiptV2(params.id!,contact!,options);
+    else if(action==='contact-record'){writeDispatched=true;result=await client.recordContactV2(params.id!,contact!,options);}
     else if(action==='activity')result=await client.listEnquiryActivityV2(params.id!,{...options,limit});
     else if(action==='detail')result=await client.getStaffEnquiryV2(params.id!,options);
     else if(action==='operation')result=await client.getEnquiryOperationV2(params.id!,params.operationId!,options);

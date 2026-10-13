@@ -1,5 +1,12 @@
 # Rebuild continuation checkpoint
 
+## Contact server proxy checkpoint - 13 October 2026
+
+Implemented fixed-role server-only contact record/list/recovery routes and the signed synthetic preview allowlist. Recovery accepts the retained original command in a POST body, performs only an upstream GET, and never puts private notes in URLs. Collection reads default to and cap at25 entries for the existing512KiB browser response budget. Contact bodies are bounded to16KiB; duplicate keys, caller authority, wrong instance and malformed input fail before dispatch. Network write failures remain uncertain without automatic retries; recovery failures remain read-only.
+
+Verification: admin test compilation and114/114 admin checks passed, including five new contact boundary cases; existing signed synthetic preview regressions11/11 passed. Logs: contact-proxy-admin-tests.txt and contact-proxy-preview-regression.txt in rebuild-preservation/2026-10-12-source. No new signed contact-route integration case, browser contact form/feed, device UAT or production verification claimed. Next: add signed contact-route integration coverage, strict browser contact client and original-attempt recovery, then operator form/feed and browser verification. Checklist16/97,gates0/14. Dashboard publication for this checkpoint remains pending; preserve browser notes before updating it. Existing vendor/live resources and KES10,000 recurring price remain unchanged.
+
+
 ## Protected contact API/shared client - 13 October 2026
 
 Strict shared command/receipt/feed validators preserve raw notes and original facts; protected record/list/requester-recovery API and typed SDK implemented. Final72 domain,153 API,175 client,10 signed HTTP/restricted SQL checks and8 typechecks passed; package/API compilation passed. Initial API assertion error-code mismatch corrected to existing INVALID_JSON token contract. See enquiry-contacts.md/six logs. Lost committed reply recovery after later workflow and no duplicate audit/version verified. Next synthetic contact allowlist,fixed server BFF,strict browser client/form/feed and original attempt recovery. Use25-entry browser feed or review decoded cap for worst-case escaped notes (existing512KiB insufficient for every50-entry page). No contact UI/device/UAT/production claim.16/97 tasks,0/14 gates,price/vendor/live preserved. Inspect tracker before edits.
