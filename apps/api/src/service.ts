@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { validateEnquiryActivityPage,calculateWirePricingV2, kesFromMinor, normalizeKenyanPhone, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2 } from "@realtor/domain";
+import { validateContactCommand,validateContactReceipt,validateContactPage,validateEnquiryActivityPage,calculateWirePricingV2, kesFromMinor, normalizeKenyanPhone, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2 } from "@realtor/domain";
 import { DatabaseSafetyError, type TransactionDatabase, type TransactionQuery } from "./database.js";
 
 export interface VerifiedIdentity { readonly actorId: string }
@@ -523,6 +523,26 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
           const projected = result.rows.map(row => enquiryProjection(row, false));
           if (new Set(projected.map(row => row.id)).size !== projected.length) throw new Error("Duplicate enquiry record.");
           return response(200, { items: projected.slice(0, pageLimit), limit: pageLimit, truncated: projected.length > pageLimit }, correlationId);
+        }
+        const contactRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/contacts(?:\/operations\/([^/]+))?$/.exec(path);
+        if(contactRoute){
+          const id=uuid(contactRoute[1],"enquiryId"),operationId=contactRoute[2]===undefined?null:uuid(contactRoute[2],"operationId");
+          const list=method==="GET"&&operationId===null,pageLimit=enquiryQuery(url,list,50);
+          if(method!=="GET"&&(method!=="POST"||operationId!==null))throw new HttpError(405,"METHOD_NOT_ALLOWED","Method is not allowed for this route.",{Allow:operationId?"GET":"GET, POST"});
+          let command:ReturnType<typeof validateContactCommand>|undefined;
+          if(method==="POST"){
+            const body=record(await jsonBody(request,16*1024,false,true),["operationId","expectedVersion","channel","outcome","occurredAt","notes"]);
+            const expected=version(body.expectedVersion);try{command=validateContactCommand({...body,expectedVersion:String(expected)});}catch{throw new HttpError(400,"INVALID_INPUT","Review the contact entry fields.");}
+          }
+          const result=await options.database.transaction(context,async query=>{
+            await assertStaff(query);
+            if(command)return query.query("SELECT app_api.record_enquiry_contact($1::uuid,$2::uuid,$3::bigint,$4::text,$5::text,$6::timestamptz,$7::text) AS receipt",[id,command.operationId,command.expectedVersion,command.channel,command.outcome,command.occurredAt,command.notes]);
+            if(operationId)return query.query("SELECT app_api.read_enquiry_contact($1::uuid,$2::uuid) AS receipt",[id,operationId]);
+            return query.query("SELECT app_api.list_enquiry_contacts($1::uuid,$2::integer) AS page",[id,pageLimit]);
+          });
+          if(list)return response(200,validateContactPage(scalar(result,"page"),pageLimit),correlationId);
+          const receipt=validateContactReceipt(scalar(result,"receipt"),id,command?.operationId??operationId!,command);
+          if(receipt.actorId!==actorId)throw new Error("Unexpected contact actor.");return response(200,receipt,correlationId);
         }
         const activityRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/activity$/.exec(path);
         if(activityRoute){

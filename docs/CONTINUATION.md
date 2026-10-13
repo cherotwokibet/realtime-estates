@@ -1,5 +1,10 @@
 # Rebuild continuation checkpoint
 
+## Protected contact API/shared client - 13 October 2026
+
+Strict shared command/receipt/feed validators preserve raw notes and original facts; protected record/list/requester-recovery API and typed SDK implemented. Final72 domain,153 API,175 client,10 signed HTTP/restricted SQL checks and8 typechecks passed; package/API compilation passed. Initial API assertion error-code mismatch corrected to existing INVALID_JSON token contract. See enquiry-contacts.md/six logs. Lost committed reply recovery after later workflow and no duplicate audit/version verified. Next synthetic contact allowlist,fixed server BFF,strict browser client/form/feed and original attempt recovery. Use25-entry browser feed or review decoded cap for worst-case escaped notes (existing512KiB insufficient for every50-entry page). No contact UI/device/UAT/production claim.16/97 tasks,0/14 gates,price/vendor/live preserved. Inspect tracker before edits.
+
+
 ## Explicit contact log SQL - 13 October 2026
 
 Additive0012 immutable contact facts/original receipts/feed, current company/role/assignment guards, requester-private recovery and durable stale conflict. Raw notes retained; contact does not mutate enquiry lifecycle/version or send anything. Activity read ownership corrected to realtor_owner.21 SQL checks passed; initial foundation19pass/1inventoryfail fixed without relaxing RLS,final20pass; after receipt original-request projection,focused4contact checks passed on final source. See enquiry-contacts.md/four logs. Next shared validating contact contracts/API/SDK,then proxy/form/feed; none of these contact surfaces implemented yet. Workflow timeline remains separate.16/97 tasks,0/14 gates,price/vendor/live preserved. Inspect current tracker/source before editing.

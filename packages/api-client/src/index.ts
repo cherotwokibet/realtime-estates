@@ -1,10 +1,13 @@
 import {
-  validateEnquiryActivityPage,type EnquiryActivityPage,calculateWirePricingV2, kesFromMinor, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2,
+  validateContactCommand,validateContactReceipt,validateContactPage,type ContactCommand,type ContactReceipt,type ContactPage,validateEnquiryActivityPage,type EnquiryActivityPage,calculateWirePricingV2, kesFromMinor, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2,
   type PricingDisclosure, type PricingInputV2, type PublicLocationV2,
 } from '@realtor/domain';
 
 export {validateEnquiryActivityPage} from '@realtor/domain';
 export type {EnquiryActivityPage,EnquiryActivityEvent} from '@realtor/domain';
+
+export {validateContactCommand,validateContactReceipt,validateContactPage} from '@realtor/domain';
+export type {ContactCommand,ContactReceipt,ContactPage,ContactEntry,ContactFacts,ContactChannel,ContactOutcome} from '@realtor/domain';
 
 /** Narrow, explicitly validated public API contracts. Identity and tenant selection remain server concerns. */
 export interface PublicPhoto { readonly key: string; readonly alt: string }
@@ -894,6 +897,24 @@ export class RealtorApiClient {
     if(data.limit!==captured.limit||typeof data.truncated!=='boolean'||(data.truncated&&rows.length!==captured.limit))return invalid('INVALID_RESPONSE','Invalid bounded enquiry page.');
     const items=rows.map(validateStaffEnquirySummaryV2);if(new Set(items.map(item=>item.id)).size!==items.length)return invalid('INVALID_RESPONSE','Repeated enquiry identity.');
     return Object.freeze({items:Object.freeze(items),limit:captured.limit,truncated:data.truncated});
+  }
+  async recordContactV2(enquiryId:string,input:ContactCommand,options:StaffRequestOptions):Promise<ContactReceipt>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID');let command:ContactCommand;
+    try{command=validateContactCommand(input);}catch{return invalid('VALIDATION','Review the contact entry.');}
+    try{
+      const data=await this.request(`/v2/staff/enquiries/${id}/contacts`,'POST',captured,{...command,expectedVersion:Number(command.expectedVersion)});
+      try{return validateContactReceipt(data,id,command.operationId,command);}catch{return invalid('INVALID_RESPONSE','Invalid contact receipt.');}
+    }catch(error){return uncertainWriteError(error);}
+  }
+  async getContactReceiptV2(enquiryId:string,input:ContactCommand,options:StaffRequestOptions):Promise<ContactReceipt>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID');let command:ContactCommand;
+    try{command=validateContactCommand(input);}catch{return invalid('VALIDATION','Review the original contact entry.');}
+    const data=await this.request(`/v2/staff/enquiries/${id}/contacts/operations/${command.operationId}`,'GET',captured);
+    try{return validateContactReceipt(data,id,command.operationId,command);}catch{return invalid('INVALID_RESPONSE','Invalid original contact receipt.');}
+  }
+  async listContactsV2(enquiryId:string,options:StaffRequestOptions&{readonly limit?:number}):Promise<ContactPage>{
+    const captured=enquiryOptions(options,50),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),data=await this.request(`/v2/staff/enquiries/${id}/contacts?limit=${captured.limit}`,'GET',captured.options);
+    try{return validateContactPage(data,captured.limit);}catch{return invalid('INVALID_RESPONSE','Invalid contact feed.');}
   }
   async listEnquiryActivityV2(enquiryId:string,options:StaffRequestOptions&{readonly limit?:number}):Promise<EnquiryActivityPage>{
     const {options:captured,limit}=enquiryOptions(options,50),id=uuid(enquiryId,'VALIDATION','Enquiry ID');

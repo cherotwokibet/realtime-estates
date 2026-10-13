@@ -173,3 +173,11 @@ test('activity SDK uses explicit identity and validates minimal supported covera
  await assert.rejects(api.listEnquiryActivityV2(ENQUIRY,{...OPTIONS,tenantId:OTHER}));
  await assert.rejects(client(async()=>json({...page,coverage:'complete'})).listEnquiryActivityV2(ENQUIRY,OPTIONS),e=>e.kind==='INVALID_RESPONSE');
 });
+
+test('contact SDK preserves raw original facts and classifies malformed committed replies as uncertain',async()=>{
+ const input={operationId:OPERATION,expectedVersion:'1',channel:'call',outcome:'no_response',occurredAt:NOW,notes:'  Raw notes\nRemain unchanged  '},request={channel:input.channel,outcome:input.outcome,occurredAt:input.occurredAt,notes:input.notes},receipt={operationId:OPERATION,enquiryId:ENQUIRY,actorId:AGENT,expectedVersion:'1',observedVersion:'1',request,outcome:'applied',reason:null,entry:{entryId:OPERATION,actorId:AGENT,recordedAt:NOW,...request},completedAt:NOW},calls=[];
+ const api=client(async(url,init)=>{calls.push({url,init});return json(receipt);});assert.deepEqual(await api.recordContactV2(ENQUIRY,input,OPTIONS),receipt);assert.equal(JSON.parse(calls[0].init.body).notes,input.notes);assert.equal(JSON.parse(calls[0].init.body).expectedVersion,1);assert.deepEqual(await api.getContactReceiptV2(ENQUIRY,input,OPTIONS),receipt);assert.equal(calls[1].init.method,'GET');
+ await assert.rejects(api.getContactReceiptV2(ENQUIRY,{...input,notes:'Different'},OPTIONS),e=>e.kind==='INVALID_RESPONSE');
+ await assert.rejects(client(async()=>json({...receipt,request:{...request,notes:'Different'}})).recordContactV2(ENQUIRY,input,OPTIONS),e=>e.kind==='INVALID_RESPONSE'&&e.submissionUncertain);
+ await assert.rejects(api.recordContactV2(ENQUIRY,{...input,actorId:OTHER},OPTIONS),e=>e.kind==='VALIDATION');
+});

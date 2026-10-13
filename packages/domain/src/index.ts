@@ -11,3 +11,5 @@ export * from "./enquiries.js";
 export * from "./branding.js";
 
 export * from "./enquiry-activity.js";
+
+export * from "./enquiry-contacts.js";
