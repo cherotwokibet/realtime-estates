@@ -6,7 +6,9 @@ Added explicit process-only synthetic one-shot invalid contact receipt after nor
 
 Actual browser agent uncertain save→admin reassignment→denied recovery exposed stale private details/activity. Fixed EnquiryContacts to propagate contact/feed401/403/404 to parent deny guard, hide feed while saved version unavailable, and unmount activity on hidden details. Retest verified private email hidden, original raw notes retained, uncertain discard disabled. After admin restored assignment at version4, agent explicitly recovered original version2 receipt, then separately checked/adopted current4 and refreshed feed: exactly one contact, original facts unchanged. Evidence docs/evidence/2026-10-13-contact-recovery-browser.md and four screenshots. This is invalid-reply simulation, not literal socket-loss proof. Browser exact replay, token-expiry/revocation, stale-response race injection,390px/devices/UAT/production remain open.
 
-Next publish checkpoint evidence preserving canonical/browser notes, then explicit browser original replay and feed-denial/stale-read regressions before separate viewings.16/97 tasks,0/14 gates,KES10,000 total monthly price and vendor/live resources preserved.
+Checkpoint evidence published owner-private: tracker0b84cf78acd298ac24cf0ae83402353a466bab22, baseline contact-recovery-2026-10-13-45, deployment appgdep_6ace6e94aa1c81919753e675a154afe3 succeeded. All172 baseline notes retained,3 added; browser merge/export behavior unchanged and no import/reset. Sourceff4183e full-history bundle verified, fresh clone matched HEAD and fsck passed (same-device only). Local fault preview stopped after verification.
+
+Next explicit browser original replay and feed-denial/stale-read regressions before separate viewings. Relaunch node scripts/enquiry-preview.mjs --invalid-first-contact-reply for a fresh disposable fixture.16/97 tasks,0/14 gates,KES10,000 total monthly price and vendor/live resources preserved.
 
 ## Connected contact form and feed — 13 October 2026
 

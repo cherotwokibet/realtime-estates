@@ -1,4 +1,4 @@
-Latest: browser uncertain original contact recovery verified across assignment loss/restoration; fixed stale private detail/activity visibility on contact access denial.13 signed preview and119 admin tests passed; final build/publication status in CONTINUATION.md. Next explicit browser replay/feed-denial/stale-read regressions. Continuation remains in this chat.
+Latest: browser uncertain contact recovery verified across assignment loss/restoration; fixed stale private detail/activity visibility on contact denial.13 signed preview/119 admin tests,admin typecheck/build passed; evidence published privately at dashboard45. Next browser replay/feed-denial/stale-read regressions; see CONTINUATION.md.
 
 Latest: contact original-attempt controller verified (119 admin checks); next operator form/feed and signed/browser verification. Dashboard publication pending. See CONTINUATION.md.
 
