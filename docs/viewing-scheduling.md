@@ -1,6 +1,10 @@
 # Viewing scheduling foundation — 13 October 2026
 
-## Durable phone confirmation backend — 14 October
+## Phone agreement operator workflow — 14 October
+
+Protected BFF/browser attempt/explicitphoneform verified:145admin,15signedpreview,typecheck/build;actualdesktopbrowser confirmation/staleconflict/deniedrecovery/restoredexactreplay→oneconfirmedviewing andunchanged evidence. See viewing-confirmation.md and evidence/2026-10-14-viewing-confirmation-operator-browser.md. Next cancellation/decline/reschedule/lifecycle;device/UAT/release open.
+
+## Earlier durable phone confirmation backend — 14 October
 
 0014private confirmed3 storage/original receipts,protected confirmation API/shared SDK and strict confirmed detail/feed now verified.148database,99domain,160API,183SDK,63integration,136admin,14preview checks and8types passed;adminbuild passed. Actual signed HTTP loss/recovery/replay and old receipt preservation verified;no confirmation BFF/form/browser/device/UAT/release yet. See viewing-confirmation.md for exact limits/logs and next operator boundary.
 

@@ -1,0 +1,33 @@
+# Phone agreement operator browser evidence — 14 October 2026
+
+Boniface + Codex. Independently written synthetic development only;vendor/live unchanged. KES10,000totalmonthlyprice,16/97broadtasks,0/14gates preserved. No real customer agreement or appointment.
+
+## Boundary and form
+
+New fixed-role server routes POST confirmations and confirmations/recover keep browser identity/company/credential overrides out. Body16KiB and raw safe integer/duplicate-key rules reused. Recovery POST carries exact original command in its body and performs upstream receipt GET only. Receipt actor must match fixed server configuration. Browser transport uses fixed same-origin paths,omits credentials/refuses redirects,bounded validated replies;invalid successful writes stay uncertain and recovery stays read-only. Immutable confirmation attempt locks concurrent calls,retains exact slot/time/notes/version/operation and requires explicit recovery/replay. No automatic retry/adoption or durable browser storage.
+
+Operator deliberately selects a current proposal snapshot. Agreementtime and notes initially empty,phoneattestation unchecked;slot has no editable inputs. Completed phone agreement time must be between selected proposalrecordedAt and now;server remains authoritative. Local attestation is required to prepare a command,not a caller authority flag. Exact proposedslot/version copied into immutable original. Parent viewing dirty guard remains separate from contact guard;shared privacy denial hides saved records but retains local proposal snapshot/input/original. Confirmed feed shows phone evidence author/server recordedtime. Clear is disabled while uncertain. Customer tokens,outbound invitations/reminders/resource reservations are absent.
+
+## Automated checks
+
+145/145admin contexts passed,including9new BFF/transport/controller contexts:fixed server credentials,read-only recovery/private body facts,authority/duplicate/rounded-version/query/size/instance rejection,wrong-actor replies,uncertain writes vs reads,immutable original and concurrency lock,denied recovery retaining uncertainty/exact replay,and terminal conflict/malformed success. Earlier136overlap,not additive.15/15signed enquiry-preview contexts passed,including1new targeted invalid-first-confirmation fixture. It skips request/proposal/denial/conflict/read,corrupts first applied confirmation after normal commit,and preserves original read/replay/oneviewing. Explicit synthetic enquiry+catalogue opt-ins and production refusal remain.
+
+Admin typecheck and final production build passed. Logs viewing-confirmation-operator-admin-tests.txt,viewing-confirmation-targeted-preview-tests.txt,viewing-confirmation-operator-types-final.txt,viewing-confirmation-operator-build-final.txt in rebuild-preservation/2026-10-12-source. Backend SQL/domain/API/SDK unchanged from544b25c except explicit development fault selector;prior148/99/160/183/63 suites were not rerun here. No unrun checks implied.
+
+## Actual browser scenario
+
+Launched `node scripts/enquiry-preview.mjs --web --invalid-first-confirmation-reply` with ephemeralRS256/JWKS and actual bounded BFF/API/restricted SQL. Assigned-agent general enquiry00000000-0000-4000-8000-000000000701,workingversion2. Explicitly selected fictional studio00000000-0000-4000-8000-000000000400 and requested viewing9e6b9646-87ac-40b8-85d1-fd356441c47b,then proposed15October11:00–12:00EAT (08:00–09:00UTC). Request/proposal returned normal receipts despite targeted confirmation fault.
+
+Agent and admin tabs each explicitly selected proposal/viewingversion2. Form had empty agreementtime,uncheckedattestation and0editable startslotinputs. Entered fictional phone notes with exact leading/trailing spaces/newline,and agreementtime14October01:48:55.076EAT (13October22:48:55.076UTC);proposalrecorded01:48:16EAT. Checkbox/form layout visually inspected at desktop viewport. Native screenshots viewing-confirmation-operator-form.jpg and viewing-confirmation-form-controls.jpg.
+
+Agent confirmationoperation55eccb0a-66fd-4b38-9084-e1985bfa7d11 committed confirmed3 at01:50:37EAT but received corrupt reply. UI stayeduncertain anddiscarddisabled,kept69characterrawnotes/exacttime/originalslot/version2. Screenshot viewing-confirmation-operator-uncertain.jpg. Admin feed independently read confirmed3 while selectedproposal remained2. Admin deliberately submitted competing agreementoperation42a3b6d6-ad5e-4f01-9a91-618a8efc3b70:VERSION_CONFLICT,unchanged agentphoneagreement/time/author. Screenshot viewing-confirmation-operator-conflict.jpg. This is sequential stale-session conflict proof,not simultaneous PostgreSQL race proof.
+
+Admin finished its local conflict,then reassigned enquiry topeer12,enquiryversion3. Agent explicitly Read original viewing result returneddenied;private saved email/detail/feed/activity hidden;local selectedproposal/input/original retained,phone notes69characters/exacttimeunchanged,discarddisabled. Screenshot viewing-confirmation-operator-denied.jpg. This is current assignment denial,not tokenexpiry/revocation or browser race injection.
+
+Admin explicitly checked/adoptedcurrent3,restoredagent11,enquiryversion4. Agent explicitly Replay exact original viewing save returned Viewing confirmed · phone agreement recorded. Separately checked/adoptedenquiry4 andrefreshedviewingfeed:exactly1viewing/version3,same originalphone notes/time/recordedstaff11/server time. Expanded original stillkindconfirm,operation55ecc...,expectedVersion2,exact08:00–09:00UTCslot and22:48:55.076UTCagreement. Selectedproposal2never auto-replaced. General enquiry stayed General enquiry · no property attached. Screenshot viewing-confirmation-operator-replayed.jpg. Browser verified successful exact replay after denied read;successful read-only recovery is covered by automated BFF/SDK/signed tests,not separately claimed as a browser success here.
+
+Native screenshots are JPEG,full-page1264pixels wide (viewport1265×712). Earlier .png-named raw captures retained;new .jpgaliases copy bytes without image editing. No390px/native device/UAT/production/literal socketloss/real PostgreSQL race pass. Temporary preview tabs closed,owned preview processes stopped. Tracker browser JSON exported before publication,unsavednoteempty.
+
+## Next
+
+Reasoned cancellation/decline,with immutable previousstate/phone evidence/original receipts and current-authority/version guards. Reschedule must create newproposal and invalidate oldconfirmation/require newagreement;no silent edit. Completion/no-show,reminder suppression,support,customer-token flow,real-device/UAT/release still open. Preserve vendor/live and pricebaseline.

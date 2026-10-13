@@ -43,7 +43,7 @@ function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',na
   if(enquiryPreview!==undefined&&enquiryPreview!=='synthetic-v1')throw new StaffPreviewConfigurationError('Choose the explicit synthetic-v1 enquiry preview mode or omit it.');
   if(enquiryCatalogue!==undefined&&(enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Synthetic enquiry catalogue requires explicit enquiry mode.');
   if(contactReplyFault!==undefined&&(contactReplyFault!=='invalid-first-applied-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Contact reply fault requires explicit synthetic enquiry mode and the supported one-shot fault.');
-  if(viewingReplyFault!==undefined&&(viewingReplyFault!=='invalid-first-applied-v1'||enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Viewing reply fault requires explicit synthetic enquiry and catalogue modes and the supported one-shot fault.');
+  if(viewingReplyFault!==undefined&&(!['invalid-first-applied-v1','invalid-first-confirmation-v1'].includes(viewingReplyFault)||enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Viewing reply fault requires explicit synthetic enquiry and catalogue modes and the supported one-shot fault.');
   if(enquiryPreview!==undefined&&(nativeUploads!==undefined||seedAcceptedMedia||seedPendingReviews))throw new StaffPreviewConfigurationError('Enquiry preview does not combine with image or pending-review fixtures.');
   if(nativeUploads!==undefined){
     nativeUploads=nativeMediaPreviewConfiguration(nativeUploads);
@@ -253,7 +253,7 @@ export async function startStaffPreview(options={}){
           contactReplyFaultPending=false;
           return Response.json({syntheticReplyCorruption:true},{status:200,headers:{'Cache-Control':'no-store','X-Synthetic-Staff-Preview':'true'}});
         }
-        if(viewingReplyFaultPending&&viewings&&request.method==='POST'&&response.status===200&&(await response.clone().json()).outcome==='applied'){
+        if(viewingReplyFaultPending&&viewings&&request.method==='POST'&&(viewingReplyFault!=='invalid-first-confirmation-v1'||url.pathname.endsWith('/confirmations'))&&response.status===200&&(await response.clone().json()).outcome==='applied'){
           viewingReplyFaultPending=false;
           return Response.json({syntheticReplyCorruption:true},{status:200,headers:{'Cache-Control':'no-store','X-Synthetic-Staff-Preview':'true'}});
         }

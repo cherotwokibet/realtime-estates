@@ -1,6 +1,12 @@
 # Phone agreement confirmation foundation — 14 October 2026
 
-## Durable confirmation storage, protected API and SDK
+## Protected operator confirmation and original replay
+
+Fixed server-only BFF and read-only original recovery POST,source-free browser transport/immutable confirmation attempt and explicit phone agreement form now implemented. Selected proposal slot/version stays fixed;notes/time start empty and attestation unchecked. No inferred agreement/retry/adoption. Shared privacy/draft guard retains uncertain originals through denial. Targeted synthetic first-confirmation corrupted reply leaves request/proposal normal.
+
+145admin/15signedpreview checks,admin typecheck/build passed. Actual desktop browser verified request→proposal→phoneconfirmation,stale second-session conflict,uncertain committed reply,denied original read after reassignment and restored exact original replay→one confirmed3viewing with samephone evidence. Separate enquiry4adoption retained originalconfirmation2. See evidence/2026-10-14-viewing-confirmation-operator-browser.md for exactIDs,6screenshots/logs and limits. No390px/native device/UAT/production/literal socketloss/race pass. Next reasoned cancellation/decline preserving originalphone evidence,thenreschedule/newagreement and lifecycle/reminders.
+
+## Earlier durable confirmation storage, protected API and SDK
 
 Migration0014 extends the existing private viewing and operation ledger. Confirmation is only proposed/version2→confirmed/version3. Stored phone agreement retains exact channel/agreedAt/raw notes;proposedAt derives from the prior proposal updatedAt,recordedAt and staff derive from server execution/context. Forced RLS and runtime table denial remain. Triggers prevent proposal replacement,original interest edits,confirmed evidence edits/reversion/deletion. Old requested/proposed snapshots/receipts keep their shapes;confirmed snapshots add agreement,and private details add proposedAt/recordedAt/recordedById metadata.
 

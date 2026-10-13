@@ -29,3 +29,5 @@ Run `node --test apps/api/dev/staff-preview.test.mjs` from the repository root a
 ## Synthetic viewing reply fault
 
 `node scripts/enquiry-preview.mjs --web --invalid-first-viewing-reply` enables a process-only, one-shot invalid response after the first applied viewing request/proposal commits. It requires exact synthetic enquiry and catalogue modes; default behavior remains unchanged and production startup is refused. Denied/conflict/read responses never consume the fault. Original receipt reads and exact replay remain normal. No literal connection-loss or production fault-injection claim.
+
+`node scripts/enquiry-preview.mjs --web --invalid-first-confirmation-reply` targets only the first applied phone confirmation;request/proposal/reads/denials/conflicts stay normal. Choose one viewing fault flag per launcher. The in-process value is `viewingReplyFault: invalid-first-confirmation-v1`;same production refusal and exact synthetic mode requirements apply.

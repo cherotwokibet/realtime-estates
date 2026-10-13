@@ -1,3 +1,4 @@
+import {validateViewingConfirmationCommand,validateViewingConfirmationReceipt,type ViewingConfirmationCommand,type ViewingConfirmationReceipt} from '@realtor/api-client';
 import {validateViewingProperties,type ViewingPropertyPage} from './viewing-properties.ts';
 import {validateContactCommand,validateContactReceipt,validateContactPage,type ContactCommand,type ContactReceipt,type ContactPage} from '@realtor/api-client';
 import {validateViewingOriginal,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal,type ViewingReceipt,type ViewingDetail,type ViewingPage} from '@realtor/api-client';
@@ -13,6 +14,8 @@ export class EnquiryPreviewError extends Error {
 }
 export interface CaptureAttempt {readonly input:StaffEnquiryInput;readonly key:string;readonly status:"ready"|"sending"|"uncertain"|"received"|"rejected";readonly receipt:EnquiryReceipt|null;submit(signal?:AbortSignal):Promise<EnquiryReceipt>;retryOriginal(signal?:AbortSignal):Promise<EnquiryReceipt>}
 export interface EnquiryPreviewClient {
+  confirmViewing(id:string,viewingId:string,input:ViewingConfirmationCommand,signal?:AbortSignal):Promise<ViewingConfirmationReceipt>;
+  recoverViewingConfirmation(id:string,viewingId:string,input:ViewingConfirmationCommand,signal?:AbortSignal):Promise<ViewingConfirmationReceipt>;
   viewingProperties(signal?:AbortSignal):Promise<ViewingPropertyPage>;
   viewings(id:string,signal?:AbortSignal):Promise<ViewingPage>;
   viewing(id:string,viewingId:string,signal?:AbortSignal):Promise<ViewingDetail>;
@@ -151,8 +154,11 @@ export function createEnquiryPreviewClient(input:Configuration):EnquiryPreviewCl
   const command=(value:EnquiryOperationInputV2)=>{try{return validateEnquiryCommand(value);}catch{throw new EnquiryPreviewError('validation');}};
   const contactCommand=(input:ContactCommand)=>{try{return validateContactCommand(input);}catch{throw new EnquiryPreviewError('validation');}};
   const viewingOriginal=(input:ViewingOriginal)=>{try{return validateViewingOriginal(input);}catch{throw new EnquiryPreviewError('validation');}};
+  const confirmationCommand=(input:ViewingConfirmationCommand)=>{try{return validateViewingConfirmationCommand(input);}catch{throw new EnquiryPreviewError('validation');}};
   const viewingWire=(original:ViewingOriginal)=>({...original,command:original.kind==='request'?{...original.command,expectedEnquiryVersion:Number(original.command.expectedEnquiryVersion)}:{...original.command,expectedVersion:Number(original.command.expectedVersion)}});
   return Object.freeze({
+    confirmViewing:(id:string,viewingId:string,input:ViewingConfirmationCommand,signal?:AbortSignal)=>{const selected=selectedId(id),viewing=selectedId(viewingId),original=confirmationCommand(input);return request(`${basePath}/enquiries/${selected}/viewings/${viewing}/confirmations`,'POST',signal,value=>validateViewingConfirmationReceipt(value,selected,viewing,original),{...original,expectedVersion:Number(original.expectedVersion)});},
+    recoverViewingConfirmation:(id:string,viewingId:string,input:ViewingConfirmationCommand,signal?:AbortSignal)=>{const selected=selectedId(id),viewing=selectedId(viewingId),original=confirmationCommand(input);return request(`${basePath}/enquiries/${selected}/viewings/${viewing}/confirmations/recover`,'POST',signal,value=>validateViewingConfirmationReceipt(value,selected,viewing,original),{...original,expectedVersion:Number(original.expectedVersion)},undefined,true);},
     viewingProperties:(signal?:AbortSignal)=>request(`${basePath}/viewing-properties?limit=25`,'GET',signal,value=>validateViewingProperties(value)),
     viewings:(id:string,signal?:AbortSignal)=>{const selected=selectedId(id);return request(`${basePath}/enquiries/${selected}/viewings?limit=25`,'GET',signal,value=>validateViewingPage(value,selected,25));},
     viewing:(id:string,viewingId:string,signal?:AbortSignal)=>{const selected=selectedId(id),viewing=selectedId(viewingId);return request(`${basePath}/enquiries/${selected}/viewings/${viewing}`,'GET',signal,value=>validateViewingDetail(value,selected,viewing));},
