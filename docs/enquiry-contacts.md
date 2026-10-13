@@ -53,3 +53,9 @@ Actual signed HTTP preview and restricted SQL contact route test now verifies au
 
 Next priority: publish accumulated proxy/browser/controller/integration evidence to existing private dashboard while preserving browser notes; then operator form and independent25-entry contact feed with memory-only original attempt recovery explained. No UI integration claimed.16/97 tasks,0/14 gates,KES10,000 price/vendor/live resources preserved.
 
+# Connected operator form and feed — 13 October 2026
+
+EnquiryContacts now provides explicit completed-contact capture with Nairobi time, original raw notes, memory-only attempt retention, read-original/replay-original controls for uncertain saves, and independent bounded25-entry feed refresh. Enquiry/role navigation is guarded until explicit local completion/discard. Reload loss is explained. Contact feed reads do not adopt workflow versions; contact saves send nothing and do not change lifecycle. Conflicts keep original input and show original/observed versions; only an explicit subsequent operation can use an adopted current version.
+
+Manual signed browser checks verified successful capture, exact whitespace, one-row feed after explicit refresh, selection guard and stale conflict excluded from feed. See evidence/2026-10-13-contact-form-browser.md. Existing119 admin tests passed; final typecheck/build logs are recorded in CONTINUATION.md. Browser network-fault recovery, access-loss/agent scenarios, device/operator/production checks remain open. Older sections above record their checkpoint-time scope.
+

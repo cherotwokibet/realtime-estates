@@ -1,5 +1,17 @@
 # Rebuild continuation checkpoint
 
+## Connected contact form and feed — 13 October 2026
+
+Continuation ownership has moved to chat 01a13633-7366-7b11-bb6e-92fdb7b1a4b5 under Boniface's explicit handover; existing hourly automation now targets this chat. Shared repositories/history/tasks remain in place. Prior chat stopped rebuild edits.
+
+Connected EnquiryContacts to the staff workspace: completed channel/outcome/Nairobi time/raw notes, memory-only immutable original attempt, explicit read/replay for uncertain saves, terminal applied/conflict/refused display and deliberate local clear. Parent guards enquiry/role navigation and warns on unload; contact input stays mounted if saved details become unavailable. Independent 25-entry contact feed clears stale reads and never adopts a workflow version. No outbound contact or lifecycle change.
+
+119/119 existing admin checks passed. Final admin typecheck and production build passed after the input/navigation repairs; logs contact-form-types-final.txt and contact-form-build-final.txt. Manual signed browser scenarios verified one successful contact with exact raw notes, independent feed refresh, selection guard and stale conflict excluded from feed. Fixed datetime input-event handling exposed during browser verification. Evidence docs/evidence/2026-10-13-contact-form-browser.md and three screenshots in rebuild-preservation/2026-10-12-source. Actual viewport488px; no390px/native/operator/production claim. Browser fault-injected uncertain recovery remains untested.
+
+Missing proxy/transport/controller/integration evidence published to existing owner-private dashboard at source dd4105f / deployment appgdep_6ace64f11f8081919689d761f33339e5, succeeded. All166 baseline notes retained and3 added. Prior chat browser tabs inaccessible here; no browser progress overwritten/imported. Existing browser-preserving merge behavior retained.
+
+Next: publish this form/feed evidence, then browser uncertain-response/recovery and current-agent/access-loss scenarios before separate viewings. Broad CRM deliverable remains incomplete (overdue reminders/viewings etc.);16/97 tasks,0/14 launch gates. Preserve KES10,000 total monthly price/vendor/live systems. Local bundles are same-device recovery only.
+
 ## Signed synthetic contact integration - 13 October 2026
 
 Actual signed HTTP preview and restricted SQL contact route test now verifies authenticated record/list/original recovery,exact replay with one feed row and unchanged enquiry version,raw notes preservation,changed-command conflict,query authority denial,receipt GET-only,assigned-agent feed access,requester-private receipt denial after assignment,and durable stale conflict excluded from feed. Initial expected unassigned-agent403 was corrected to existing concealment404; final focused1/1 integration test passed. Initial/final logs retained as contact-signed-preview-tests.txt and contact-signed-preview-tests-final.txt in rebuild-preservation/2026-10-12-source. This is one integration scenario with multiple assertions,not a full suite/browser/device/UAT pass.
