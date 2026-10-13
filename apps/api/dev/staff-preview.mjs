@@ -32,7 +32,7 @@ const COMPANIES=Object.freeze({
 const LIFETIME_SECONDS=1800;
 const AUDIENCE='synthetic-realtor-staff-preview';
 class StaffPreviewConfigurationError extends Error {}
-function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,
+function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,
   seedAcceptedMedia=nativeUploads===undefined&&enquiryPreview===undefined,seedPendingReviews=false}={}){
   if(process.env.NODE_ENV==='production')throw new StaffPreviewConfigurationError('Staff preview refuses NODE_ENV=production.');
   if(typeof tenantSlug!=='string'||!Object.hasOwn(COMPANIES,tenantSlug))throw new StaffPreviewConfigurationError('Choose the configured realtime-estates or sample-homes synthetic company.');
@@ -43,12 +43,13 @@ function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',na
   if(enquiryPreview!==undefined&&enquiryPreview!=='synthetic-v1')throw new StaffPreviewConfigurationError('Choose the explicit synthetic-v1 enquiry preview mode or omit it.');
   if(enquiryCatalogue!==undefined&&(enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Synthetic enquiry catalogue requires explicit enquiry mode.');
   if(contactReplyFault!==undefined&&(contactReplyFault!=='invalid-first-applied-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Contact reply fault requires explicit synthetic enquiry mode and the supported one-shot fault.');
+  if(viewingReplyFault!==undefined&&(viewingReplyFault!=='invalid-first-applied-v1'||enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Viewing reply fault requires explicit synthetic enquiry and catalogue modes and the supported one-shot fault.');
   if(enquiryPreview!==undefined&&(nativeUploads!==undefined||seedAcceptedMedia||seedPendingReviews))throw new StaffPreviewConfigurationError('Enquiry preview does not combine with image or pending-review fixtures.');
   if(nativeUploads!==undefined){
     nativeUploads=nativeMediaPreviewConfiguration(nativeUploads);
     if(seedAcceptedMedia||seedPendingReviews)throw new StaffPreviewConfigurationError('Native media preview starts without fabricated accepted-media or pending-review fixtures.');
   }
-  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault};
+  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault};
 }
 function syntheticContent(title='Synthetic staff monthly studio'){
   return {
@@ -166,8 +167,8 @@ async function closeServer(server){
 
 /** Token is handed only to the calling development launcher, never an HTTP login route. */
 export async function startStaffPreview(options={}){
-  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault}=configuration(options);
-  let contactReplyFaultPending=!!contactReplyFault;
+  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault}=configuration(options);
+  let contactReplyFaultPending=!!contactReplyFault,viewingReplyFaultPending=!!viewingReplyFault;
   const company=COMPANIES[tenantSlug],other=COMPANIES[tenantSlug==='realtime-estates'?'sample-homes':'realtime-estates'];
   const actorId=actor==='agent'?company.agent:actor==='admin'?company.admin:actor==='customer'?company.customer:actor==='revoked-agent'?company.revoked:actor==='other-company-admin'?other.admin:other.agent;
   const db=new PGlite();let database,coordinator,nativeMedia;let apiServer;let jwksServer;
@@ -250,6 +251,10 @@ export async function startStaffPreview(options={}){
         // Denials/conflicts/reads never consume the fault, and original GET/replay stays intact.
         if(contactReplyFaultPending&&contacts&&request.method==='POST'&&response.status===200&&(await response.clone().json()).outcome==='applied'){
           contactReplyFaultPending=false;
+          return Response.json({syntheticReplyCorruption:true},{status:200,headers:{'Cache-Control':'no-store','X-Synthetic-Staff-Preview':'true'}});
+        }
+        if(viewingReplyFaultPending&&viewings&&request.method==='POST'&&response.status===200&&(await response.clone().json()).outcome==='applied'){
+          viewingReplyFaultPending=false;
           return Response.json({syntheticReplyCorruption:true},{status:200,headers:{'Cache-Control':'no-store','X-Synthetic-Staff-Preview':'true'}});
         }
         return response;

@@ -1,3 +1,11 @@
+## Protected viewing proxy and operator browser — 13 October 2026
+
+Fixed server-only viewing BFF,source-free browser transport and immutable original-attempt controller now serve property-linked request/first-proposal forms and independent25-item feed. Recovery POST holds original facts in its body and does upstream GET only. Write dispatches once;invalid replies stay uncertain;exact original replay is explicit. General-enquiry property picker still pending. Separate contact/viewing guards prevent clearing one draft from unlocking the other. Denied viewing reads propagate shared privacy guard,hide saved data/feed/activity and retain local draft.
+
+133/133admin checks,14/14signed preview checks,admin typecheck and final production build passed. Actual browser verified public-property intake→request→feed,exact notes,independent draft guard,two-session stale proposal conflict without time overwrite,and reassignment denial preserving draft. One-shot process-only synthetic invalid viewing reply after commit verified uncertain/discard blocked→read original result→one feed row. No browser exact replay,real socket loss,simultaneous PostgreSQL concurrency,390px/native device,UAT or production pass claimed. Evidence docs/evidence/2026-10-13-viewing-ui-browser.md and logs/screenshots in preservation folder. Both previews stopped,temporary tabs closed.
+
+Next general-enquiry eligible property picker,actual uncertain browser exact replay/denied recovery restoration,then agreement/confirmation/cancellation/rescheduling with separate durable guarded operations. No appointment confirmed or outbound invitation/reminder.16/97tasks,0/14gates,KES10,000 total monthly price/vendor/live preserved.
+
 Latest: guarded viewing SQL/API/SDK verified;139database,88domain,157API,180SDK,62integration,13preview checks and8typechecks passed. Published owner-private dashboard48 with browser notes preserved. Next protected viewing BFF/browser transport/controller/forms/feed;see viewing-scheduling.md/CONTINUATION.md. No viewing UI/device/production acceptance yet.
 
 Latest: contact original-attempt controller verified (119 admin checks); next operator form/feed and signed/browser verification. Dashboard publication pending. See CONTINUATION.md.
@@ -24,27 +32,27 @@ Latest 13 October checkpoint: protected staff capture API and signed-identity/re
 
 
 
-# Rebuild foundation — 9 October 2026
+# Rebuild foundation â€” 9 October 2026
 
 
 
-## Property-linked enquiry checkpoint — 12 October 2026
+## Property-linked enquiry checkpoint â€” 12 October 2026
 
 
 
-Opt-in connected synthetic catalogue→property→enquiry→staff detail verified with listing ID and original contacted revision1. Foreign/unpublished selections denied. Exact receipt replay after pause verified in SQL. 26web,19boundary,9API,170client,20database tests; eight typechecks and both builds passed. See property-enquiry.md/eight logs. First DB assertion column typo fixed before final20pass. Next protected attributable staff capture, then contact history/viewings. Narrow/device/UAT/production remain open. Checklist16/97,gates0/14,price/vendor/live preserved.
+Opt-in connected synthetic catalogueâ†’propertyâ†’enquiryâ†’staff detail verified with listing ID and original contacted revision1. Foreign/unpublished selections denied. Exact receipt replay after pause verified in SQL. 26web,19boundary,9API,170client,20database tests; eight typechecks and both builds passed. See property-enquiry.md/eight logs. First DB assertion column typo fixed before final20pass. Next protected attributable staff capture, then contact history/viewings. Narrow/device/UAT/production remain open. Checklist16/97,gates0/14,price/vendor/live preserved.
 
 
 
-## Public website general enquiry checkpoint — 12 October 2026
+## Public website general enquiry checkpoint â€” 12 October 2026
 
 
 
-Opt-in public /enquire now saves fictional general web enquiries into the shared admin inbox; shared form/CSS and bounded handler serve both applications. Actual catalogue→form→saved admin detail browser proof recorded. 24 web,26 affected boundary and170 API-client tests passed; eight typechecks and both production builds passed. See public-enquiry.md/six logs. Narrow override did not apply to the tested tab;390px not passed. Next eligible published synthetic property context, then staff capture/contact history. Checklist16/97,gates0/14,price/vendor/live preserved.
+Opt-in public /enquire now saves fictional general web enquiries into the shared admin inbox; shared form/CSS and bounded handler serve both applications. Actual catalogueâ†’formâ†’saved admin detail browser proof recorded. 24 web,26 affected boundary and170 API-client tests passed; eight typechecks and both production builds passed. See public-enquiry.md/six logs. Narrow override did not apply to the tested tab;390px not passed. Next eligible published synthetic property context, then staff capture/contact history. Checklist16/97,gates0/14,price/vendor/live preserved.
 
 
 
-## Shared guest transport checkpoint — 12 October 2026
+## Shared guest transport checkpoint â€” 12 October 2026
 
 
 
@@ -52,7 +60,7 @@ Shared same-origin enquiry transport now omits ambient cookies, refuses redirect
 
 
 
-## Connected synthetic intake form — 12 October 2026
+## Connected synthetic intake form â€” 12 October 2026
 
 
 
@@ -64,7 +72,7 @@ Next connect the validated form/transport to the public website with server-owne
 
 
 
-## Public intake attempt checkpoint — 12 October 2026
+## Public intake attempt checkpoint â€” 12 October 2026
 
 
 
@@ -76,7 +84,7 @@ Next connect the opt-in synthetic public form through server-controlled configur
 
 
 
-## Connected enquiry inbox checkpoint — 12 October 2026
+## Connected enquiry inbox checkpoint â€” 12 October 2026
 
 
 
@@ -94,11 +102,11 @@ Progress audit closed previously uncredited implementation items04-1,05-2,05-3 w
 
 
 
-## Staff enquiry operations checkpoint — 12 October 2026
+## Staff enquiry operations checkpoint â€” 12 October 2026
 
 
 
-755/755 affected API/development-preview/database/media/shared-client/admin tests, shared package/API builds, admin test compilation/production build and eight workspace typechecks passed on 192 frozen source hashes; zero failures/skips/cancellations/todos. Additive0010, typed private list/detail/admin-only picker and assignment/contact/reschedule/reopen commands retain immutable original receipts and current-role/assignment guards. Actual signed JWT/JWKS loopback HTTP→restricted SQL tests verified lost committed reply recovery, later historical readback, reassignment and cross-company/privacy denials. Reads do not change version/audit/operation counts; no automatic retries or fresh version adoption. See enquiry-operations.md and evidence/2026-10-12-enquiry-operations.md; focused counts overlap and earlier703 stays historical.
+755/755 affected API/development-preview/database/media/shared-client/admin tests, shared package/API builds, admin test compilation/production build and eight workspace typechecks passed on 192 frozen source hashes; zero failures/skips/cancellations/todos. Additive0010, typed private list/detail/admin-only picker and assignment/contact/reschedule/reopen commands retain immutable original receipts and current-role/assignment guards. Actual signed JWT/JWKS loopback HTTPâ†’restricted SQL tests verified lost committed reply recovery, later historical readback, reassignment and cross-company/privacy denials. Reads do not change version/audit/operation counts; no automatic retries or fresh version adoption. See enquiry-operations.md and evidence/2026-10-12-enquiry-operations.md; focused counts overlap and earlier703 stays historical.
 
 
 
@@ -110,7 +118,7 @@ Local synthetic backend/shared-client proof only. The admin enquiry inbox, publi
 
 
 
-## Private saved gallery images checkpoint — 12 October 2026
+## Private saved gallery images checkpoint â€” 12 October 2026
 
 
 
@@ -126,7 +134,7 @@ This remains local, synthetic and development-only. Production identity/provider
 
 
 
-## Private saved-photo backend checkpoint — 12 October 2026
+## Private saved-photo backend checkpoint â€” 12 October 2026
 
 
 
@@ -138,7 +146,7 @@ Next strict bounded shared binary client, server-only admin proxy and gallery re
 
 
 
-## Local admin photo workflow checkpoint — 12 October 2026
+## Local admin photo workflow checkpoint â€” 12 October 2026
 
 
 
@@ -150,11 +158,11 @@ Next private authorized saved image previews: exact current association under st
 
 
 
-## Authenticated development streaming upload checkpoint — 11 October 2026
+## Authenticated development streaming upload checkpoint â€” 11 October 2026
 
 
 
-551 affected API/dev-preview/database/media/shared-client tests, shared package/API builds and all eight workspace typechecks passed, zero failures/skips/cancellations/todos. Additive0008 checks current staff/original requester, exact tuple, registered assignment, draft and expiry before new bytes. Optional exact loopback GET/PUT hook supplies headers/lazy input; service checks access again after collection, consumes original fresh-only admission and projects narrow status. Actual signed JWT/JWKS HTTP → supervised Windows conversion → lost completed reply → API/upload-journal reopen → authenticated read-only GET verified one native invocation, actual output hash and unchanged draft/no photos. See development-streaming-uploads.md and evidence/2026-10-11-streaming-upload.md; stream-upload-tests.txt/types.txt/build.txt. Earlier counts and46-check focused probe are separate/overlapping, not added.
+551 affected API/dev-preview/database/media/shared-client tests, shared package/API builds and all eight workspace typechecks passed, zero failures/skips/cancellations/todos. Additive0008 checks current staff/original requester, exact tuple, registered assignment, draft and expiry before new bytes. Optional exact loopback GET/PUT hook supplies headers/lazy input; service checks access again after collection, consumes original fresh-only admission and projects narrow status. Actual signed JWT/JWKS HTTP â†’ supervised Windows conversion â†’ lost completed reply â†’ API/upload-journal reopen â†’ authenticated read-only GET verified one native invocation, actual output hash and unchanged draft/no photos. See development-streaming-uploads.md and evidence/2026-10-11-streaming-upload.md; stream-upload-tests.txt/types.txt/build.txt. Earlier counts and46-check focused probe are separate/overlapping, not added.
 
 
 
@@ -162,11 +170,11 @@ Next explicit synthetic development composition with stable owned roots/lifecycl
 
 
 
-## Private upload admission checkpoint — 11 October 2026
+## Private upload admission checkpoint â€” 11 October 2026
 
 
 
-178 media tests, shared package builds and all eight workspace typechecks passed, zero failures/skips/cancellations/todos. New bounded cancellable/deadline byte reader and durable original upload journal prepare private ingress. Exclusive permanent job reservation and fresh-only one-use tickets prevent reopened/identical history granting another run. Actual synthetic PNG stream → persisted upload binding → existing restricted SQL/Windows processor → discarded successful local result → reopened read-only reconciliation verified actual output hash with exactly one native invocation and unchanged draft/photos. See private-upload-admission.md and evidence/2026-10-11-upload-admission.md; upload-admission-tests.txt/types.txt/build.txt. Earlier272/456 counts separate, not additive/full-platform acceptance.
+178 media tests, shared package builds and all eight workspace typechecks passed, zero failures/skips/cancellations/todos. New bounded cancellable/deadline byte reader and durable original upload journal prepare private ingress. Exclusive permanent job reservation and fresh-only one-use tickets prevent reopened/identical history granting another run. Actual synthetic PNG stream â†’ persisted upload binding â†’ existing restricted SQL/Windows processor â†’ discarded successful local result â†’ reopened read-only reconciliation verified actual output hash with exactly one native invocation and unchanged draft/photos. See private-upload-admission.md and evidence/2026-10-11-upload-admission.md; upload-admission-tests.txt/types.txt/build.txt. Earlier272/456 counts separate, not additive/full-platform acceptance.
 
 
 
@@ -174,7 +182,7 @@ Next exact loopback streaming/preflight adapter with current staff/job authoriza
 
 
 
-## Admin draft gallery UI checkpoint — 11 October 2026
+## Admin draft gallery UI checkpoint â€” 11 October 2026
 
 
 
@@ -186,7 +194,7 @@ Next authenticated private file upload/quarantine and authorized image delivery 
 
 
 
-## Exact-version draft photo removal and ordering checkpoint — 11 October 2026
+## Exact-version draft photo removal and ordering checkpoint â€” 11 October 2026
 
 
 
@@ -198,7 +206,7 @@ Next connect these commands and sequential verified attachment to the draft/gall
 
 
 
-## Authenticated synthetic photo attachment checkpoint — 11 October 2026
+## Authenticated synthetic photo attachment checkpoint â€” 11 October 2026
 
 
 
@@ -210,7 +218,7 @@ Next exact-version photo removal/reordering with immutable historical receipts, 
 
 
 
-## One explicit synthetic photo workflow checkpoint — 11 October 2026
+## One explicit synthetic photo workflow checkpoint â€” 11 October 2026
 
 
 
@@ -222,7 +230,7 @@ Next authenticated exact-version attachment/finalization, removal/reordering and
 
 
 
-## Persistent worker admission checkpoint — 11 October 2026
+## Persistent worker admission checkpoint â€” 11 October 2026
 
 
 
@@ -234,7 +242,7 @@ Next bounded one-explicit-attempt orchestrator plus persisted original input-gen
 
 
 
-## Synthetic attempt history checkpoint — 11 October 2026
+## Synthetic attempt history checkpoint â€” 11 October 2026
 
 
 
@@ -246,7 +254,7 @@ Next bounded local orchestrator with one explicit attempt, persistent worker adm
 
 
 
-## Restart-readable synthetic storage checkpoint — 11 October 2026
+## Restart-readable synthetic storage checkpoint â€” 11 October 2026
 
 
 
@@ -258,11 +266,11 @@ Next: bounded durable worker-attempt journal/admission and explicit startup reco
 
 
 
-## Persisted synthetic processing checkpoint — 11 October 2026
+## Persisted synthetic processing checkpoint â€” 11 October 2026
 
 
 
-283 combined affected API/SQL/SDK/HTTP/media tests and all eight workspace typechecks passed, zero failures/skips/cancellations. Migration0004 adds immutable captured inputs, globally bound three-attempt/180s leases and sealed output facts. Separate restricted coordinator adapter and actual Windows child→bounded readback→storage→SQL-seal integration are verified locally. Changed grants/roles/definitions and a temporary catalog shadow fail closed. Registration API/SDK projections and API guard remain unchanged; no draft version or accepted photo changes. See processing-coordinator.md and evidence/2026-10-11-media-processing.md; tracked logs media-processing-tests.txt/media-processing-types.txt. Failed build probe retained; no grant widened.
+283 combined affected API/SQL/SDK/HTTP/media tests and all eight workspace typechecks passed, zero failures/skips/cancellations. Migration0004 adds immutable captured inputs, globally bound three-attempt/180s leases and sealed output facts. Separate restricted coordinator adapter and actual Windows childâ†’bounded readbackâ†’storageâ†’SQL-seal integration are verified locally. Changed grants/roles/definitions and a temporary catalog shadow fail closed. Registration API/SDK projections and API guard remain unchanged; no draft version or accepted photo changes. See processing-coordinator.md and evidence/2026-10-11-media-processing.md; tracked logs media-processing-tests.txt/media-processing-types.txt. Failed build probe retained; no grant widened.
 
 
 
@@ -270,7 +278,7 @@ Next build a reusable bounded local orchestrator with durable generation/object 
 
 
 
-## Authenticated media registration checkpoint — 11 October 2026
+## Authenticated media registration checkpoint â€” 11 October 2026
 
 
 
@@ -314,7 +322,7 @@ Responsive public website, Android/iOS application, admin portal, shared identit
 
 
 
-## Architecture decisions — provisional until Stage 01 review
+## Architecture decisions â€” provisional until Stage 01 review
 
 One TypeScript monorepo now implements apps/web (Next.js), apps/admin (Next.js), apps/mobile (Expo/React Native), apps/api (modular TypeScript service), packages/domain, packages/demo, packages/api-client and the Node-only experimental packages/media. V2 pricing/location inputs now converge across shared validators, revision storage, reviewed snapshots, API and public client; public web now deliberately connects to v2 through server-only configuration with exact disclosure; local authenticated existing-draft editing now uses raw v2 inputs and recoverable optimistic saves. The local synthetic admin review queue/detail/decisions are implemented; real sessions, full navigation/pagination, native operational integration and legacy staff contract convergence remain follow-up work. See moderation.md and staff-drafts.md. Shared business contracts and semantic brand configuration support platform-appropriate UI. Exact versions and compatibility reasons are recorded in development.md and package-lock.json. PostgreSQL with PostGIS remains the production target; current tested migrations use bounded coordinates without the extension. Object storage/media processing and providers are not provisioned.
 

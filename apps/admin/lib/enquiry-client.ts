@@ -1,4 +1,5 @@
 import {validateContactCommand,validateContactReceipt,validateContactPage,type ContactCommand,type ContactReceipt,type ContactPage} from '@realtor/api-client';
+import {validateViewingOriginal,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal,type ViewingReceipt,type ViewingDetail,type ViewingPage} from '@realtor/api-client';
 import {validateEnquiryActivityPage,type EnquiryActivityPage,validateStaffEnquiryInput,type StaffEnquiryInput,type EnquiryReceipt,validateStaffEnquirySummaryV2,validateStaffEnquiryDetailV2,validateEnquiryOperationReceiptV2,type StaffEnquiryPageV2,type StaffEnquiryDetailV2,type EnquiryAssigneePageV2,type EnquiryOperationInputV2,type EnquiryOperationReceiptV2} from '@realtor/api-client';
 import {validateEnquiryCommand} from './enquiry-model.ts';
 
@@ -11,6 +12,10 @@ export class EnquiryPreviewError extends Error {
 }
 export interface CaptureAttempt {readonly input:StaffEnquiryInput;readonly key:string;readonly status:"ready"|"sending"|"uncertain"|"received"|"rejected";readonly receipt:EnquiryReceipt|null;submit(signal?:AbortSignal):Promise<EnquiryReceipt>;retryOriginal(signal?:AbortSignal):Promise<EnquiryReceipt>}
 export interface EnquiryPreviewClient {
+  viewings(id:string,signal?:AbortSignal):Promise<ViewingPage>;
+  viewing(id:string,viewingId:string,signal?:AbortSignal):Promise<ViewingDetail>;
+  saveViewing(id:string,original:ViewingOriginal,signal?:AbortSignal):Promise<ViewingReceipt>;
+  recoverViewing(id:string,original:ViewingOriginal,signal?:AbortSignal):Promise<ViewingReceipt>;
   contacts(id:string,signal?:AbortSignal):Promise<ContactPage>;
   recordContact(id:string,input:ContactCommand,signal?:AbortSignal):Promise<ContactReceipt>;
   recoverContact(id:string,input:ContactCommand,signal?:AbortSignal):Promise<ContactReceipt>;
@@ -143,7 +148,13 @@ export function createEnquiryPreviewClient(input:Configuration):EnquiryPreviewCl
   }
   const command=(value:EnquiryOperationInputV2)=>{try{return validateEnquiryCommand(value);}catch{throw new EnquiryPreviewError('validation');}};
   const contactCommand=(input:ContactCommand)=>{try{return validateContactCommand(input);}catch{throw new EnquiryPreviewError('validation');}};
+  const viewingOriginal=(input:ViewingOriginal)=>{try{return validateViewingOriginal(input);}catch{throw new EnquiryPreviewError('validation');}};
+  const viewingWire=(original:ViewingOriginal)=>({...original,command:original.kind==='request'?{...original.command,expectedEnquiryVersion:Number(original.command.expectedEnquiryVersion)}:{...original.command,expectedVersion:Number(original.command.expectedVersion)}});
   return Object.freeze({
+    viewings:(id:string,signal?:AbortSignal)=>{const selected=selectedId(id);return request(`${basePath}/enquiries/${selected}/viewings?limit=25`,'GET',signal,value=>validateViewingPage(value,selected,25));},
+    viewing:(id:string,viewingId:string,signal?:AbortSignal)=>{const selected=selectedId(id),viewing=selectedId(viewingId);return request(`${basePath}/enquiries/${selected}/viewings/${viewing}`,'GET',signal,value=>validateViewingDetail(value,selected,viewing));},
+    saveViewing:(id:string,input:ViewingOriginal,signal?:AbortSignal)=>{const selected=selectedId(id),original=viewingOriginal(input),wire=viewingWire(original);return request(original.kind==='request'?`${basePath}/enquiries/${selected}/viewings`:`${basePath}/enquiries/${selected}/viewings/${original.viewingId}/proposals`,'POST',signal,value=>validateViewingReceipt(value,selected,original),wire.command);},
+    recoverViewing:(id:string,input:ViewingOriginal,signal?:AbortSignal)=>{const selected=selectedId(id),original=viewingOriginal(input);return request(`${basePath}/enquiries/${selected}/viewings/recover`,'POST',signal,value=>validateViewingReceipt(value,selected,original),viewingWire(original),undefined,true);},
     contacts:(id:string,signal?:AbortSignal)=>request(`${basePath}/enquiries/${selectedId(id)}/contacts?limit=25`,'GET',signal,value=>validateContactPage(value,25)),
     recordContact:async(id:string,input:ContactCommand,signal?:AbortSignal)=>{const selected=selectedId(id),original=contactCommand(input);return request(`${basePath}/enquiries/${selected}/contacts`,'POST',signal,value=>validateContactReceipt(value,selected,original.operationId,original),{...original,expectedVersion:Number(original.expectedVersion)});},
     recoverContact:async(id:string,input:ContactCommand,signal?:AbortSignal)=>{const selected=selectedId(id),original=contactCommand(input);return request(`${basePath}/enquiries/${selected}/contacts/recover`,'POST',signal,value=>validateContactReceipt(value,selected,original.operationId,original),{...original,expectedVersion:Number(original.expectedVersion)},undefined,true);},

@@ -23,7 +23,7 @@ async function stop(){
   })();
 }
 try{
-  preview=await startStaffPreview({tenantSlug:process.env.TENANT_SLUG??'realtime-estates',enquiryPreview:'synthetic-v1',...(process.argv.includes('--web')?{enquiryCatalogue:'synthetic-v1'}:{}),...(process.argv.includes('--invalid-first-contact-reply')?{contactReplyFault:'invalid-first-applied-v1'}:{})});
+  preview=await startStaffPreview({tenantSlug:process.env.TENANT_SLUG??'realtime-estates',enquiryPreview:'synthetic-v1',...(process.argv.includes('--web')?{enquiryCatalogue:'synthetic-v1'}:{}),...(process.argv.includes('--invalid-first-viewing-reply')?{viewingReplyFault:'invalid-first-applied-v1'}:{}),...(process.argv.includes('--invalid-first-contact-reply')?{contactReplyFault:'invalid-first-applied-v1'}:{})});
   const {admin,agent}=preview.enquiryStaff;
   child=spawn(process.execPath,[next,'dev','apps/admin','-p','3001','-H','127.0.0.1'],{cwd:root,stdio:'inherit',env:{...process.env,
     NODE_ENV:'development',TENANT_SLUG:preview.tenantSlug,
@@ -48,6 +48,7 @@ try{
   console.log('Synthetic admin enquiries: http://127.0.0.1:3001/enquiries/admin');
   console.log('Synthetic assigned-agent enquiries: http://127.0.0.1:3001/enquiries/agent');
   console.log('Shared disposable synthetic database; identity expires in 30 minutes. Changes disappear on stop.');
+  if(process.argv.includes('--invalid-first-viewing-reply'))console.log('Synthetic fault enabled: first applied viewing returns an invalid receipt after commit; original receipt read and exact replay remain available. Requires --web.');
   if(process.argv.includes('--invalid-first-contact-reply'))console.log('Synthetic fault enabled: first applied contact returns an invalid receipt after commit; original receipt read and exact replay remain available.');
 }catch{
   process.exitCode=1;console.error('The synthetic enquiry preview could not start.');await stop();

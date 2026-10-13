@@ -1,0 +1,3 @@
+# Viewing browser boundary started
+
+13 October 2026, stages06/08/12, Boniface + Codex. Continuing immediately after verified backend publication16525ec/dashboard48. Implement fixed-role server BFF first, reusing bounded request/host/instance/credential policy. Original recovery POST must perform only upstream GET; notes stay in body and lost/denied reads remain read-only. Request/proposal writes retain uncertain classification and never auto-retry. No operator viewing form exists yet; no browser/device acceptance claimed. Existing vendor/live,16/97 tasks,0/14 gates and KES10,000 price retained.

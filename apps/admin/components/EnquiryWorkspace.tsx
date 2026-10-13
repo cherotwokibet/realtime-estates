@@ -2,6 +2,7 @@
 
 import EnquiryActivity from './EnquiryActivity';
 import EnquiryContacts from './EnquiryContacts';
+import EnquiryViewings from './EnquiryViewings';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {StaffEnquiryDetailV2, StaffEnquiryPageV2, EnquiryAssigneePageV2, EnquiryOperationInputV2, EnquiryOperationReceiptV2} from '@realtor/api-client';
 import {createEnquiryPreviewClient, EnquiryPreviewError} from '../lib/enquiry-client';
@@ -30,6 +31,9 @@ export default function EnquiryWorkspace({actor,actorId,instanceId}:Props){
   const [busy,setBusy]=useState(false);
   const lock=useRef(false);
   const contactGuard=useRef(false);
+  const viewingGuard=useRef(false);
+  const [viewingWork,setViewingWork]=useState(false);
+  function guardViewing(value:boolean){viewingGuard.current=value;setViewingWork(value)}
   const [contactWork,setContactWork]=useState(false);
   function guardContact(value:boolean){contactGuard.current=value;setContactWork(value)}
   const [queueBusy,setQueueBusy]=useState(false);
@@ -79,11 +83,11 @@ export default function EnquiryWorkspace({actor,actorId,instanceId}:Props){
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[client]);
   useEffect(()=>{
-    const guard=(event:BeforeUnloadEvent)=>{if(dirty || attemptRef.current || contactGuard.current){event.preventDefault();event.returnValue=''}};
+    const guard=(event:BeforeUnloadEvent)=>{if(dirty || attemptRef.current || (contactGuard.current || viewingGuard.current)){event.preventDefault();event.returnValue=''}};
     window.addEventListener('beforeunload',guard);return ()=>window.removeEventListener('beforeunload',guard);
   },[dirty]);
   async function selectEnquiry(id:string,discard=false){
-    if(lock.current || contactGuard.current || (attemptRef.current && !attemptRef.current.receipt))return;
+    if(lock.current || (contactGuard.current || viewingGuard.current) || (attemptRef.current && !attemptRef.current.receipt))return;
     if(id===selected)return;
     if(!discard && (dirty || attemptRef.current)){setPendingSelection(id);return}
     readRef.current?.abort();const controller=new AbortController();readRef.current=controller;const turn=++sequence.current;const mayApply=readGuard.current.capture();
@@ -134,10 +138,10 @@ export default function EnquiryWorkspace({actor,actorId,instanceId}:Props){
   const shown=queue?.items.filter(item=>filter==='all' || (filter==='unassigned' ? !item.assignedAgentId : item.assignedAgentId===actorId)) ?? [];
   const reasonNeeded=form && ['close_lost','spam','reopen'].includes(form.action);
   const timeNeeded=form && ['contact','qualify','reschedule'].includes(form.action);
-  return <div className="enq-app" onClickCapture={e=>{if(contactGuard.current&&e.target instanceof Element&&e.target.closest('a[href]')){e.preventDefault();e.stopPropagation();}}}>
+  return <div className="enq-app" onClickCapture={e=>{if((contactGuard.current || viewingGuard.current)&&e.target instanceof Element&&e.target.closest('a[href]')){e.preventDefault();e.stopPropagation();}}}>
     <section className="enq-intro" aria-labelledby="inbox-title"><div><span className="eyebrow">DAILY OPERATIONS / {actor==='admin' ? 'ADMIN' : 'AGENT'}</span><h1 id="inbox-title">Every enquiry.<br/><em>A clear next step.</em></h1><p>Assign an owner, record contact and keep the next follow-up visible.</p><a href={`/enquiries/${actor}/new`}>Record a staff enquiry →</a></div><div className="enq-role"><span className="enq-role-dot"/>Synthetic {actor} workspace<small>Staff ID {actorId}</small><p>Local role simulation · expires with the preview.<br/>No messages or reminders are sent.</p></div></section>
     <div className="enq-banner"><strong>Development preview</strong><span>Fictional enquiries in a disposable database. Saving contact records work already done; it does not contact a prospect or confirm a viewing.</span></div>
-    <nav className="enq-nav" aria-label="Preview workspaces"><a href="/" onClick={e=>{if(dirty || attemptRef.current || contactGuard.current)e.preventDefault()}}>Workspace overview</a>{dirty || attempt || contactWork ? <span>Finish or explicitly discard this work before switching roles.</span> : <a href={`/enquiries/${actor==='admin'?'agent':'admin'}`}>Open synthetic {actor==='admin'?'agent':'admin'} workspace ↗</a>}</nav>
+    <nav className="enq-nav" aria-label="Preview workspaces"><a href="/" onClick={e=>{if(dirty || attemptRef.current || (contactGuard.current || viewingGuard.current))e.preventDefault()}}>Workspace overview</a>{dirty || attempt || contactWork || viewingWork ? <span>Finish or explicitly discard this work before switching roles.</span> : <a href={`/enquiries/${actor==='admin'?'agent':'admin'}`}>Open synthetic {actor==='admin'?'agent':'admin'} workspace ↗</a>}</nav>
     <div className="enq-layout">
       <section className="enq-queue" aria-labelledby="queue-title"><div className="enq-section-heading"><div><span className="eyebrow">VISIBLE TO THIS ROLE</span><h2 id="queue-title">Enquiry inbox</h2></div><button type="button" className="enq-secondary" onClick={()=>void refreshQueue()} disabled={queueBusy || busy}>Refresh</button></div>
         <p className="enq-subtle">{queue ? `${queue.items.length} loaded${queue.truncated ? ' · more available' : ' · end of visible slice'}` : queueBusy ? 'Loading visible enquiries…' : 'Queue unavailable'}. This is a bounded queue, not a company total.</p>
@@ -169,6 +173,7 @@ export default function EnquiryWorkspace({actor,actorId,instanceId}:Props){
         </section>}
         {current && <section className="enq-comparison" aria-labelledby="comparison-title"><span className="eyebrow">READ-ONLY CURRENT COMPARISON</span><h3 id="comparison-title" ref={comparisonHeading} tabIndex={-1}>Current saved version {current.version}</h3><Snapshot value={current}/><p>Your raw action, date, staff selection and reason will be retained. Review them against the new saved state before submitting.</p><button className="enq-primary" disabled={busy || unresolved} onClick={adopt}>Use this current version</button>{unresolved && <p>Recover the original result before adopting another version.</p>}</section>}
         {selected&&<EnquiryContacts key={`contact:${actor}:${instanceId}:${selected}`} actor={actor} instanceId={instanceId} enquiryId={selected} version={saved?.version??null} onGuard={guardContact} onAccessDenied={deny} readGuard={readGuard.current}/>}
+        {selected&&<EnquiryViewings key={`viewing:${actor}:${instanceId}:${selected}`} actor={actor} instanceId={instanceId} enquiryId={selected} version={saved?.version??null} listingId={saved?.listingId??null} onGuard={guardViewing} onAccessDenied={deny} readGuard={readGuard.current}/>}
         {selected&&saved&&<EnquiryActivity key={`${actor}:${instanceId}:${selected}`} actor={actor} instanceId={instanceId} enquiryId={selected} readGuard={readGuard.current} onAccessDenied={deny}/>}
       </section>
     </div><footer className="enq-footer">Independently rebuilt · Synthetic development data · Follow-up times shown in Nairobi</footer>
