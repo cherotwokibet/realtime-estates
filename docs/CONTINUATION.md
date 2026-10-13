@@ -1,5 +1,10 @@
 # Rebuild continuation checkpoint
 
+## Minimal enquiry activity SQL - 13 October 2026
+
+Additive0011 protected bounded activity read projects capture/applied v2 changes with actor IDs and historical next-action facts, excludes private command/contact/reason fields and non-applied attempts. Current role/company/assignment enforced; explicit capture-and-v2-operations coverage/currentVersion avoids inventing legacy history. Final17 enquiry SQL checks plus20 foundation checks passed. See enquiry-activity.md and two final logs. Next bounded protected API/typed client, then proxy/timeline; none exists yet for activity.16/97 tasks,0/14 gates,price/vendor/live preserved. Inspect tracker publication/source before edits.
+
+
 ## Connected staff capture form - 13 October 2026
 
 Both fixed-role staff forms now save through the protected server proxy; strict source-free browser client freezes original input/key, locks concurrent sends and explicitly replays uncertainty. Final106 admin checks,8 typechecks and admin build passed. Actual1280px admin+agent save verified; admin inbox staff-origin version1 readback and screenshots preserved. See staff-enquiry-capture.md and three form logs. No browser lost-reply injection/narrow/device/UAT/production claim. Owned preview stopped. Next attributable bounded contact-history timeline, then separate viewing scheduling. Memory-only recovery/expiry and agent-created unassigned visibility remain limitations. Checklist16/97,gates0/14. Inspect latest tracker/source state before editing.

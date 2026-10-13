@@ -233,3 +233,35 @@ test('original contacted revision survives later listing changes without public 
     assert.deepEqual(await history(db,ADMIN,enquiry,id(1500)),result);
   }finally{await db.close();}
 });
+
+function activity(db,user=ADMIN,enquiry=E,limit=50,tenant=T){return actor(db,user,()=>scalar(db,'SELECT app_api.list_enquiry_activity($1,$2)',[enquiry,limit]),tenant);}
+test('activity lists only applied minimal attributed changes in bounded version order without mutating records',async()=>{
+ const db=await fixture();try{
+  const assignment=await command(db);await command(db,{operation:id(2000),expected:'2'}); // noop excluded
+  await transition(db,{user:AGENT,operation:id(2001),expected:'2',status:'contacted',next:DATE});
+  await transition(db,{user:AGENT,operation:id(2002),expected:'3',status:'closed_lost',reason:'Private closure detail'});
+  const before=await totals(db),page=await activity(db);assert.equal(page.coverage,'capture-and-v2-operations');assert.equal(page.currentVersion,'4');assert.equal(page.limit,50);assert.equal(page.truncated,false);
+  assert.deepEqual(page.items.map(x=>[x.kind,x.version,x.actorId]),[['transition','4',AGENT],['transition','3',AGENT],['assign','2',ADMIN],['received','1',null]]);
+  assert.equal(page.items[1].nextActionAt,DATE);assert.equal(page.items[2].eventId,assignment.operationId);
+  for(const item of page.items)assert.deepEqual(Object.keys(item).sort(),['eventId','kind','actorId','occurredAt','version','status','assignedAgentId','nextActionAt'].sort());
+  assert.doesNotMatch(JSON.stringify(page),/Private closure|Synthetic private|phone|email|request_payload|closureReason/);
+  const bounded=await activity(db,AGENT,E,2);assert.equal(bounded.items.length,2);assert.equal(bounded.truncated,true);assert.deepEqual(bounded.items,page.items.slice(0,2));assert.deepEqual(await totals(db),before);
+  for(const limit of [null,0,101])await denied(()=>activity(db,ADMIN,E,limit),'23514');
+ }finally{await db.close();}
+});
+test('activity enforces current tenant, membership and assignment independently of original requester',async()=>{
+ const db=await fixture();try{
+  await command(db);assert.equal((await activity(db,AGENT)).items.length,2);
+  for(const user of [null,CUSTOMER,INACTIVE])await denied(()=>activity(db,user),'42501');
+  await denied(()=>activity(db,PEER),'P0002');await denied(()=>activity(db,OTHERADMIN,E,50,OTHER),'P0002');await denied(()=>activity(db,ADMIN,FOREIGN),'P0002');
+  await command(db,{operation:id(2100),expected:'2',assigned:PEER});await denied(()=>activity(db,AGENT),'P0002');assert.equal((await activity(db,PEER)).items.length,3);
+  await db.query('UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',[T,PEER]);await denied(()=>activity(db,PEER),'42501');
+ }finally{await db.close();}
+});
+
+test('activity declares bounded v2 coverage rather than inventing missing legacy changes',async()=>{
+ const db=await fixture();try{
+  await db.query("UPDATE app_private.enquiries SET contact_name='Synthetic legacy edit' WHERE tenant_id=$1 AND id=$2",[T,E]);
+  const page=await activity(db);assert.equal(page.coverage,'capture-and-v2-operations');assert.equal(page.currentVersion,'2');assert.deepEqual(page.items.map(x=>x.version),['1']);assert.equal(page.truncated,false);
+ }finally{await db.close();}
+});
