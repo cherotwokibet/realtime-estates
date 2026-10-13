@@ -1,3 +1,5 @@
+Latest: connected recorded-activity timeline verified; next explicit contact log (channel/outcome/time/notes), then separate viewings. See CONTINUATION.md. Older sections historical.
+
 Latest: protected activity API/shared client verified; next staff proxy/timeline. See CONTINUATION.md. Earlier sections are at-time history.
 
 Latest: minimal protected enquiry activity SQL verified; next API/client then timeline. See CONTINUATION.md. Older sections are historical.

@@ -3,7 +3,7 @@ import {handleSyntheticEnquiry,ApiClientError,RealtorApiClient,type EnquiryOpera
 import {assertPreviewRequest} from './staff-preview-policy.ts';
 
 type Actor='admin'|'agent';
-type Action='list'|'detail'|'assignees'|'command'|'operation';
+type Action='list'|'detail'|'assignees'|'command'|'operation'|'activity';
 type Environment=Readonly<Record<string,string|undefined>>;
 type Scope=Readonly<{actorId:string;role:Actor;instanceId:string}>;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -51,14 +51,14 @@ function requestShape(request:Request,params:{actor:string;id?:string;operationI
   const url=new URL(request.url),base=`/api/enquiry-preview/${params.actor}`;
   if(url.hash||request.url.includes('#')||[params.id,params.operationId].some(value=>value!==undefined&&!UUID.test(value)))throw new BoundaryError(400,'INVALID_INPUT');
   const path=action==='list'?`${base}/enquiries`:action==='assignees'?`${base}/assignees`:
-    action==='detail'?`${base}/enquiries/${params.id}`:action==='command'?`${base}/enquiries/${params.id}/operations`:`${base}/enquiries/${params.id}/operations/${params.operationId}`;
+    action==='activity'?`${base}/enquiries/${params.id}/activity`:action==='detail'?`${base}/enquiries/${params.id}`:action==='command'?`${base}/enquiries/${params.id}/operations`:`${base}/enquiries/${params.id}/operations/${params.operationId}`;
   if(url.pathname!==path||(['list','assignees'].includes(action)?params.id!==undefined||params.operationId!==undefined:!params.id)
     ||(action==='operation'?!params.operationId:params.operationId!==undefined))throw new BoundaryError(400,'INVALID_INPUT');
   if(params.actor==='agent'&&action==='assignees')throw new BoundaryError(403,'FORBIDDEN');
   let limit:number|undefined;
-  if(action==='list'||action==='assignees'){
+  if(action==='list'||action==='assignees'||action==='activity'){
     if(request.url.includes('?')&&!/^\?limit=[1-9]\d{0,2}$/.test(url.search))throw new BoundaryError(400,'INVALID_INPUT');
-    limit=url.search?Number(url.search.slice(7)):action==='list'?50:100;
+    limit=url.search?Number(url.search.slice(7)):action==='assignees'?100:50;
     if(limit<1||limit>100)throw new BoundaryError(400,'INVALID_INPUT');
   }else if(url.search||request.url.includes('?'))throw new BoundaryError(400,'INVALID_INPUT');
   let forbidden=false;
@@ -135,6 +135,7 @@ export async function enquiryPreviewRequest(request:Request,params:{actor:string
     let result:unknown;
     if(action==='list')result=await client.listStaffEnquiriesV2({...options,limit});
     else if(action==='assignees')result=await client.listEnquiryAssigneesV2({...options,limit});
+    else if(action==='activity')result=await client.listEnquiryActivityV2(params.id!,{...options,limit});
     else if(action==='detail')result=await client.getStaffEnquiryV2(params.id!,options);
     else if(action==='operation')result=await client.getEnquiryOperationV2(params.id!,params.operationId!,options);
     else{writeDispatched=true;result=await client.applyEnquiryOperationV2(params.id!,command!,options);}

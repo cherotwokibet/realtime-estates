@@ -213,7 +213,7 @@ export async function startStaffPreview(options={}){
       if(requestOrigin!==null&&requestOrigin!==origin)return failure(403,'FORBIDDEN','Staff preview origin is unavailable.');
       if(request.headers.has('cookie'))return failure(400,'INVALID_INPUT','Staff preview does not accept cookie credentials.');
       const reviewQueue=url.pathname==='/v2/staff/reviews';
-      const enquiryQueue=enquiryPreview&&(url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees'||(enquiryCatalogue&&url.pathname==='/v2/properties'));
+      const enquiryQueue=enquiryPreview&&(/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/activity$/i.test(url.pathname)||url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees'||(enquiryCatalogue&&url.pathname==='/v2/properties'));
       if(url.search&&(!(reviewQueue||enquiryQueue)||[...url.searchParams.keys()].some(key=>key!=='limit')||url.searchParams.getAll('limit').length>1))return failure(400,'INVALID_INPUT','Staff preview does not accept query-selected context.');
       return undefined;
     };
@@ -232,9 +232,10 @@ export async function startStaffPreview(options={}){
           const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
         }
         const capture=url.pathname==='/v2/staff/enquiry-captures';
+        const activity=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/activity$/i.test(url.pathname);
         const queue=url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees';
         const enquiryRoute=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}(?:\/(operations)(?:\/([0-9a-f-]{36}))?)?$/i.exec(url.pathname);
-        if(!capture&&!queue&&!enquiryRoute)return failure(404,'NOT_FOUND','Enquiry preview route is unavailable.');
+        if(!activity&&!capture&&!queue&&!enquiryRoute)return failure(404,'NOT_FOUND','Enquiry preview route is unavailable.');
         const allowedMethod=capture||(enquiryRoute?.[1]&&!enquiryRoute[2])?'POST':'GET';
         if(request.method!==allowedMethod)return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for the enquiry fixture.',{Allow:allowedMethod});
         if(allowedMethod==='POST'&&!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')??''))return failure(415,'JSON_REQUIRED','Use application/json.');

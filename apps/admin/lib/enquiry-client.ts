@@ -1,4 +1,4 @@
-import {validateStaffEnquiryInput,type StaffEnquiryInput,type EnquiryReceipt,validateStaffEnquirySummaryV2,validateStaffEnquiryDetailV2,validateEnquiryOperationReceiptV2,type StaffEnquiryPageV2,type StaffEnquiryDetailV2,type EnquiryAssigneePageV2,type EnquiryOperationInputV2,type EnquiryOperationReceiptV2} from '@realtor/api-client';
+import {validateEnquiryActivityPage,type EnquiryActivityPage,validateStaffEnquiryInput,type StaffEnquiryInput,type EnquiryReceipt,validateStaffEnquirySummaryV2,validateStaffEnquiryDetailV2,validateEnquiryOperationReceiptV2,type StaffEnquiryPageV2,type StaffEnquiryDetailV2,type EnquiryAssigneePageV2,type EnquiryOperationInputV2,type EnquiryOperationReceiptV2} from '@realtor/api-client';
 import {validateEnquiryCommand} from './enquiry-model.ts';
 
 export type EnquiryPreviewErrorKind='validation'|'network'|'timeout'|'cancelled'|'response'|'http';
@@ -11,6 +11,7 @@ export class EnquiryPreviewError extends Error {
 export interface CaptureAttempt {readonly input:StaffEnquiryInput;readonly key:string;readonly status:"ready"|"sending"|"uncertain"|"received"|"rejected";readonly receipt:EnquiryReceipt|null;submit(signal?:AbortSignal):Promise<EnquiryReceipt>;retryOriginal(signal?:AbortSignal):Promise<EnquiryReceipt>}
 export interface EnquiryPreviewClient {
   prepareCapture(input:StaffEnquiryInput,key:string):CaptureAttempt;
+  activity(id:string,signal?:AbortSignal):Promise<EnquiryActivityPage>;
   list(signal?:AbortSignal):Promise<StaffEnquiryPageV2>;
   detail(id:string,signal?:AbortSignal):Promise<StaffEnquiryDetailV2>;
   assignees(signal?:AbortSignal):Promise<EnquiryAssigneePageV2>;
@@ -150,6 +151,7 @@ export function createEnquiryPreviewClient(input:Configuration):EnquiryPreviewCl
       };
       return Object.freeze({input:captured,key:originalKey,get status(){return status;},get receipt(){return receipt;},submit:(signal?:AbortSignal)=>run(false,signal),retryOriginal:(signal?:AbortSignal)=>run(true,signal)});
     },
+    activity:(id:string,signal?:AbortSignal)=>request(`${basePath}/enquiries/${selectedId(id)}/activity?limit=50`,'GET',signal,value=>validateEnquiryActivityPage(value,50)),
     list:(signal?:AbortSignal)=>request(`${basePath}/enquiries?limit=50`,'GET',signal,enquiryPage),
     detail:async(id:string,signal?:AbortSignal)=>{const selected=selectedId(id);return request(`${basePath}/enquiries/${selected}`,'GET',signal,value=>validateStaffEnquiryDetailV2(value,selected));},
     assignees:(signal?:AbortSignal)=>request(`${basePath}/assignees?limit=100`,'GET',signal,directoryPage),

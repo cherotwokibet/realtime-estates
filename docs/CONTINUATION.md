@@ -1,5 +1,10 @@
 # Rebuild continuation checkpoint
 
+## Connected recorded-activity timeline - 13 October 2026
+
+Fixed protected staff BFF/browser read and independent timeline now show bounded actor/version/Nairobi workflow facts without adopting working version/input. Final108 admin checks,11 signed preview API checks,8 typechecks and admin build passed. Actual1280px admin assignment/activity refresh verified historyversion2 with workingversion1/selected agent retained; assigned-agent view verified. See enquiry-activity.md/four UI logs/screenshots. Fullpage capture failed; viewport captures succeeded. Seeded legacy-gap assertion did not pass (fixture had complete v2 history); no gap-render/browser lost-reply/device/UAT/production claim. Owned preview stopped. Next explicit contact log channel/outcome/time/original notes and idempotent attribution, then separate viewings. Workflow activity is not a full contact log.16/97 tasks,0/14 gates,price/vendor/live preserved. Inspect tracker before editing.
+
+
 ## Activity API/shared client - 13 October 2026
 
 Protected bounded activity GET and typed SDK use one shared strict domain validator; fixed staff/company context and SQL current-assignment guards retained. Final68 domain,152 API,174 client,9 signed HTTP/restricted SQL integration checks and8 typechecks passed; package/API builds passed. See enquiry-activity.md and six logs. Initial helper-name compile issue corrected. Next synthetic preview activity allowlist, protected staff BFF and independently loaded timeline; no activity UI/browser/device/UAT/production claim. Preserve working-version/input and private receipt boundaries.16/97 tasks,0/14 gates,price/vendor/live preserved. Inspect tracker state before edits.

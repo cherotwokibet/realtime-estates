@@ -3,6 +3,7 @@ import {
   type PricingDisclosure, type PricingInputV2, type PublicLocationV2,
 } from '@realtor/domain';
 
+export {validateEnquiryActivityPage} from '@realtor/domain';
 export type {EnquiryActivityPage,EnquiryActivityEvent} from '@realtor/domain';
 
 /** Narrow, explicitly validated public API contracts. Identity and tenant selection remain server concerns. */

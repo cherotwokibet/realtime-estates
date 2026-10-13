@@ -154,3 +154,11 @@ test('staff capture preview requires signed identity and binds original receipt 
  assert.equal((await call(preview,path,{...options,body:{...body,origin:'web'}})).status,400);assert.equal((await call(preview,path,{method:'GET'})).status,405);
  }finally{await preview.close();}
 });
+
+test('synthetic activity allowlist exposes authorized bounded reads and preserves current assignment guard',async()=>{
+ const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1'});try{
+  const rows=await read(preview,base),enquiry=rows.items.find(x=>x.assignedAgentId===null).id,path=base+'/'+enquiry+'/activity?limit=1';
+  const result=await read(preview,path);assert.equal(result.coverage,'capture-and-v2-operations');assert.equal(result.items.length,1);assert.equal((await call(preview,path,{role:'agent'})).status,404);assert.equal((await call(preview,path,{token:null})).status,401);
+  assert.equal((await call(preview,base+'/'+enquiry+'/activity?tenantId=other')).status,400);assert.equal((await call(preview,base+'/'+enquiry+'/activity',{method:'POST',body:{}})).status,405);
+ }finally{await preview.close();}
+});

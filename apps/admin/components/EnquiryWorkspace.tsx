@@ -1,5 +1,6 @@
 'use client';
 
+import EnquiryActivity from './EnquiryActivity';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {StaffEnquiryDetailV2, StaffEnquiryPageV2, EnquiryAssigneePageV2, EnquiryOperationInputV2, EnquiryOperationReceiptV2} from '@realtor/api-client';
 import {createEnquiryPreviewClient, EnquiryPreviewError} from '../lib/enquiry-client';
@@ -163,6 +164,7 @@ export default function EnquiryWorkspace({actor,actorId,instanceId}:Props){
           <details><summary>Original command kept in this tab</summary><pre>{JSON.stringify(attempt.command,null,2)}</pre></details>
         </section>}
         {current && <section className="enq-comparison" aria-labelledby="comparison-title"><span className="eyebrow">READ-ONLY CURRENT COMPARISON</span><h3 id="comparison-title" ref={comparisonHeading} tabIndex={-1}>Current saved version {current.version}</h3><Snapshot value={current}/><p>Your raw action, date, staff selection and reason will be retained. Review them against the new saved state before submitting.</p><button className="enq-primary" disabled={busy || unresolved} onClick={adopt}>Use this current version</button>{unresolved && <p>Recover the original result before adopting another version.</p>}</section>}
+        {selected&&<EnquiryActivity key={`${actor}:${instanceId}:${selected}`} actor={actor} instanceId={instanceId} enquiryId={selected}/>}
       </section>
     </div><footer className="enq-footer">Independently rebuilt · Synthetic development data · Follow-up times shown in Nairobi</footer>
   </div>;
