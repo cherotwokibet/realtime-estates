@@ -1,5 +1,9 @@
 # Viewing scheduling foundation — 13 October 2026
 
+## Phone agreement domain foundation — 14 October
+
+Strict immutable phone agreement command and pure exact-proposed-slot confirmation plan added;95domainchecks/domainbuild/8workspace typechecks passed. No durable confirmation/API/UI yet;existing live contracts remain requested/proposed. See viewing-confirmation.md for engineering bounds,next0014migration and verification limits.
+
 ## General enquiry property choices and restored exact replay — 14 October
 
 Fixed public-catalogue BFF now offers general-enquiry property choices by descriptive labels;no manual ID or default selection,25maximum with possible-truncation notice,public fields only. Refresh does not replace selection. SQL rechecks current company/staff/enquiry/listing eligibility at save. Linked enquiries cannot override their property;general enquiries remain general with listing attached only to viewing.

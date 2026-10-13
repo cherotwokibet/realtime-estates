@@ -10,6 +10,10 @@ export type ViewingReceipt=Readonly<{operationId:string;enquiryId:string;viewing
  Readonly<{outcome:'applied';reason:null;result:ViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';result:null}>|Readonly<{outcome:'refused';reason:ViewingRefusalReason;result:null}>);
 export interface ViewingDetail {readonly schedule:ViewingSchedule;readonly notes:string;readonly requestedById:string;readonly assignedAgentId:string|null;readonly createdAt:string;readonly updatedAt:string}
 export interface ViewingPage {readonly items:readonly ViewingDetail[];readonly limit:number;readonly truncated:boolean}
+/** First agreement slice: staff records a completed phone agreement for this exact proposed slot. */
+export interface ViewingConfirmationCommand {readonly operationId:string;readonly expectedVersion:string;readonly slot:ViewingSlot;readonly channel:'phone';readonly agreedAt:string;readonly notes:string}
+export interface ConfirmedViewingSchedule extends Omit<ViewingSchedule,'status'|'proposedSlot'> {readonly status:'confirmed';readonly proposedSlot:ViewingSlot;readonly agreement:Readonly<{channel:'phone';agreedAt:string;notes:string}>}
+export type ViewingConfirmationPlan=Readonly<{outcome:'applied';reason:null;next:ConfirmedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';next:null}>|Readonly<{outcome:'refused';reason:'INVALID_STATE'|'PROPOSED_SLOT_MISMATCH'|'SLOT_NOT_FUTURE'|'AGREEMENT_BEFORE_PROPOSAL'|'AGREEMENT_IN_FUTURE';next:null}>;
 const fail=():never=>{throw new Error('Invalid viewing scheduling contract.');};
 function record(input:unknown,fields:readonly string[]):Record<string,unknown>{
  if(!input||typeof input!=='object'||![Object.prototype,null].includes(Object.getPrototypeOf(input)))return fail();
@@ -38,6 +42,24 @@ export function validateViewingRequestCommand(input:unknown):ViewingRequestComma
 }
 export function validateViewingProposalCommand(input:unknown):ViewingProposalCommand{
  const v=record(input,['operationId','expectedVersion','slot']);return Object.freeze({operationId:uuid(v.operationId),expectedVersion:version(v.expectedVersion,true),slot:validateViewingSlot(v.slot)});
+}
+/** Timeless contract: original confirmation recovery must not expire with its viewing slot. */
+export function validateViewingConfirmationCommand(input:unknown):ViewingConfirmationCommand{
+ const value=record(input,['operationId','expectedVersion','slot','channel','agreedAt','notes']);
+ if(value.channel!=='phone')return fail();
+ return Object.freeze({operationId:uuid(value.operationId),expectedVersion:version(value.expectedVersion,true),slot:validateViewingSlot(value.slot),channel:'phone',agreedAt:instant(value.agreedAt),notes:privateNotes(value.notes)});
+}
+/** Pure first execution plan only. Does not authorize, store a receipt, confirm in SQL or send anything. */
+export function planViewingConfirmation(input:ViewingDetail,proposal:ViewingConfirmationCommand,now:string):ViewingConfirmationPlan{
+ const raw=record(input,['schedule','notes','requestedById','assignedAgentId','createdAt','updatedAt']),schedule=validateViewingSchedule(raw.schedule);
+ const current=validateViewingDetail(input,schedule.enquiryId),command=validateViewingConfirmationCommand(proposal),clock=instant(now);
+ if(command.expectedVersion!==current.schedule.version)return Object.freeze({outcome:'conflict',reason:'VERSION_CONFLICT',next:null});
+ if(current.schedule.status!=='proposed')return Object.freeze({outcome:'refused',reason:'INVALID_STATE',next:null});
+ if(JSON.stringify(command.slot)!==JSON.stringify(current.schedule.proposedSlot))return Object.freeze({outcome:'refused',reason:'PROPOSED_SLOT_MISMATCH',next:null});
+ if(command.slot.startAt<=clock)return Object.freeze({outcome:'refused',reason:'SLOT_NOT_FUTURE',next:null});
+ if(command.agreedAt<current.updatedAt)return Object.freeze({outcome:'refused',reason:'AGREEMENT_BEFORE_PROPOSAL',next:null});
+ if(command.agreedAt>clock)return Object.freeze({outcome:'refused',reason:'AGREEMENT_IN_FUTURE',next:null});
+ return Object.freeze({outcome:'applied',reason:null,next:Object.freeze({...current.schedule,version:String(BigInt(current.schedule.version)+1n),status:'confirmed',proposedSlot:command.slot,agreement:Object.freeze({channel:'phone',agreedAt:command.agreedAt,notes:command.notes})})});
 }
 export function validateViewingSchedule(input:unknown):ViewingSchedule{
  const v=record(input,['viewingId','enquiryId','listingId','version','status','preferredSlots','proposedSlot']);
