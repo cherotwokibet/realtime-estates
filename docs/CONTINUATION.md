@@ -1,5 +1,15 @@
 # Rebuild continuation checkpoint
 
+## General-enquiry property selection and exact browser replay — 14 October 2026
+
+Added fixed-company read-only eligible public property choices for general viewing requests. No manual IDs or implicit selection;bounded25choices with possible-truncation notice,public labels only,no staff bearer upstream. Selection retained across refresh and SQL rechecks current eligibility at save. Linked enquiry listing stays fixed;general enquiry remains general. 136/136admin tests,admin typecheck and production build passed. Initial test fixture omitted required4photo metadata;corrected fixture then final136pass. Backend unchanged;prior suites not rerun.
+
+Actual browser agent created uncertain request via one-shot invalid committed reply. Reassignment→denied original recovery hid private details/feed/activity/choices,retained raw notes and blocked discard. Restored access→explicit exact original replay returned applied;separate current enquiry adoption4 showed original command still2,sameoperation and exactly1viewing. Original selected property/notes unchanged;general enquiry still no property attached. Evidence docs/evidence/2026-10-14-viewing-picker-browser.md and3screenshots/logs in preservationfolder. No real socket loss,simultaneous PostgreSQL race,390px/native device,UAT or launch pass. Preview stopped/tabsclosed.
+
+Prior viewing operator checkpoint47e11fb published owner-private at trackerc9e32b296c7dcd54c5a54fc4b3b07d481613b48d,baselineviewing-ui-2026-10-13-49,deploymentappgdep_6ace9a8d39a88191a75effffce989800 succeeded;187canonicalnotes retained,0browserextras,4added. Full-history bundle verified,freshmatchingclone/fsckpassed;same-device only.
+
+Next strict agreement evidence/proposed→confirmed domain and durable operations with original recovery;no inferred agreement/slot overwrite. Then cancellation/decline/reschedule/completion/no-show and reminders.16/97tasks,0/14gates,KES10,000 total recurringprice/vendor/livepreserved.
+
 ## Protected viewing proxy and operator browser — 13 October 2026
 
 Fixed server-only viewing BFF,source-free browser transport and immutable original-attempt controller now serve property-linked request/first-proposal forms and independent25-item feed. Recovery POST holds original facts in its body and does upstream GET only. Write dispatches once;invalid replies stay uncertain;exact original replay is explicit. General-enquiry property picker still pending. Separate contact/viewing guards prevent clearing one draft from unlocking the other. Denied viewing reads propagate shared privacy guard,hide saved data/feed/activity and retain local draft.
@@ -8,7 +18,7 @@ Fixed server-only viewing BFF,source-free browser transport and immutable origin
 
 Next general-enquiry eligible property picker,actual uncertain browser exact replay/denied recovery restoration,then agreement/confirmation/cancellation/rescheduling with separate durable guarded operations. No appointment confirmed or outbound invitation/reminder.16/97tasks,0/14gates,KES10,000 total monthly price/vendor/live preserved.
 
-## Guarded viewing SQL/API/SDK â€” 13 October 2026
+## Guarded viewing SQL/API/SDK — 13 October 2026
 
 Implemented additive0013 private viewing/request/proposal ledger with current enquiry assignment/company guards,eligible same-company listing/open-enquiry checks,forced RLS,no runtime table privileges,optimistic versions and immutable original requester receipts. Request stores requested/version1;first proposal stores proposed/version2;neither changes enquiry version/status or confirms/sends anything. Durable conflicts/refusals create no viewing. Original exact replay/read survives later proposal,pause/closure before new time/state evaluation;changed requester/facts conflict. Feed caps25 with author/current assignment/notes. No cross-viewing resource overlap guarantee or real PostgreSQL concurrency proof. Existing migration list/foundation table inventory updated without weakening RLS assertions.
 
@@ -20,9 +30,9 @@ Evidence published owner-private:trackere21dabf0cea002b075dcd585aad76c6b1918d62d
 
 Next fixed server BFF/browser transport/original-attempt controller and staff request/proposal forms with independent feed. Recovery POST keeps original facts out of URLs and performs upstream GET only;retain input through denied/uncertain recovery and share workspace denial guard.16/97tasks,0/14gates,KES10,000totalmonthlyprice/vendor/live preserved.
 
-## Viewing request/proposal domain foundation â€” 13 October 2026
+## Viewing request/proposal domain foundation — 13 October 2026
 
-Started from clean37d2c72/dashboard46,no active preview; stages02/06/08/12. Added shared viewing-scheduling contracts and pure requestedâ†’proposed planner:strict authority-free request/proposal fields,immutable original facts,0..3 non-overlapping alternatives,canonical UTC/Nairobi slots,provisional15min..4h duration,private nonblank2000-code-point notes,optimistic versions and future-time first-execution checks. Contract validation remains timeless for original recovery after time passes; proposals never confirm or overwrite an existing proposal. No SQL/API/UI or appointment creation yet. See docs/viewing-scheduling.md for defaults and server-boundary requirements.
+Started from clean37d2c72/dashboard46,no active preview; stages02/06/08/12. Added shared viewing-scheduling contracts and pure requested→proposed planner:strict authority-free request/proposal fields,immutable original facts,0..3 non-overlapping alternatives,canonical UTC/Nairobi slots,provisional15min..4h duration,private nonblank2000-code-point notes,optimistic versions and future-time first-execution checks. Contract validation remains timeless for original recovery after time passes; proposals never confirm or overwrite an existing proposal. No SQL/API/UI or appointment creation yet. See docs/viewing-scheduling.md for defaults and server-boundary requirements.
 
 82/82 domain tests including10new cases passed,domain build and all8 workspace typechecks passed; shared packages rebuilt. Evidence viewing-domain-build.txt/viewing-domain-tests.txt/viewing-workspace-types.txt in rebuild-preservation/2026-10-12-source. No viewing SQL/API/browser/native/device/UAT/production pass claimed. Existing72 domain tests overlap;do not add counts.
 
@@ -30,7 +40,7 @@ Evidence publication succeeded owner-private:trackerd9e5c3093acb6cecaa3685a067af
 
 Next additive0013 request/proposal SQL:company/enquiry/listing constraints,forced private RLS,current active admin/assigned-agent authority,eligible listing/open enquiry/version checks,immutable original requester receipts/conflicts and exact recovery/replay before time re-evaluation. Start from existing0012 contact receipt guard/locking and test-helpers/migrations.mjs explicit migration list;update foundation every-table/RLS inventory with new tables. See viewing-scheduling.md for no hidden confirmation/reschedule semantics. Then protected API/client/proxy and synthetic UI.16/97 tasks,0/14 gates,KES10,000 total monthly price/vendor/live preserved.
 
-## Browser contact replay and shared read denial guard â€” 13 October 2026
+## Browser contact replay and shared read denial guard — 13 October 2026
 
 Actual browser exact-original replay after a committed invalid reply returned original version2 receipt and one feed row with exact raw notes. Admin reassignment then feed-read denial hid saved email/feed/activity while preserving unsaved draft. Added shared EnquiryReadGuard to contact feed/activity successful reads; activity401/403/404 now invokes parent denial too. Admin restored assignment4,agent explicitly compared/adopted4,admin reassigned5; denied activity refresh again hid all saved details and retained exact draft. Evidence docs/evidence/2026-10-13-contact-replay-browser.md/four screenshots. No messages,lifecycle changes or implicit version adoption.
 
@@ -38,19 +48,19 @@ Final121/121 admin checks (two added uncooperative deferred-read guard contexts)
 
 Evidence published owner-private at tracker2b32616f58743bc4c91aec9a8ee5df479866db1f, baseline contact-replay-2026-10-13-46, deployment appgdep_6ace7c4bd76c81918305675416beb221 succeeded. All175 canonical notes retained,3 added; browser merge/export behavior unchanged,no import/reset. Source7445ed0 full-history bundle verified,fresh clone matched HEAD and fsck passed;same-device recovery only. Local preview stopped after checks.
 
-Next separate viewing workflow:begin with docs/business-rules.md section6 (requestedâ†’proposedâ†’confirmedâ†’completed/no_show/cancelled,requested/proposed also declined/cancelled;agreement required for confirmation,rescheduling invalidates old confirmation). No viewing SQL was found in existing migrations. Define the first guarded synthetic scheduling slice with original idempotent receipt recovery,current access and optimistic versions before implementation. Browser replay/feed/activity denial checks now verified;don't repeat them without new changes.16/97 tasks,0/14 gates,KES10,000 total recurring price/vendor/live preserved.
+Next separate viewing workflow:begin with docs/business-rules.md section6 (requested→proposed→confirmed→completed/no_show/cancelled,requested/proposed also declined/cancelled;agreement required for confirmation,rescheduling invalidates old confirmation). No viewing SQL was found in existing migrations. Define the first guarded synthetic scheduling slice with original idempotent receipt recovery,current access and optimistic versions before implementation. Browser replay/feed/activity denial checks now verified;don't repeat them without new changes.16/97 tasks,0/14 gates,KES10,000 total recurring price/vendor/live preserved.
 
-## Contact reply corruption and access-loss recovery â€” 13 October 2026
+## Contact reply corruption and access-loss recovery — 13 October 2026
 
 Added explicit process-only synthetic one-shot invalid contact receipt after normal commit; launch node scripts/enquiry-preview.mjs --invalid-first-contact-reply. Normal mode unchanged; production refusal and signed route guards retained.13/13 signed preview tests passed (new fault/recovery/replay invariants),119/119 existing admin checks passed. Final admin typecheck and production build passed; logs contact-access-types.txt/contact-access-build.txt.
 
-Actual browser agent uncertain saveâ†’admin reassignmentâ†’denied recovery exposed stale private details/activity. Fixed EnquiryContacts to propagate contact/feed401/403/404 to parent deny guard, hide feed while saved version unavailable, and unmount activity on hidden details. Retest verified private email hidden, original raw notes retained, uncertain discard disabled. After admin restored assignment at version4, agent explicitly recovered original version2 receipt, then separately checked/adopted current4 and refreshed feed: exactly one contact, original facts unchanged. Evidence docs/evidence/2026-10-13-contact-recovery-browser.md and four screenshots. This is invalid-reply simulation, not literal socket-loss proof. Browser exact replay, token-expiry/revocation, stale-response race injection,390px/devices/UAT/production remain open.
+Actual browser agent uncertain save→admin reassignment→denied recovery exposed stale private details/activity. Fixed EnquiryContacts to propagate contact/feed401/403/404 to parent deny guard, hide feed while saved version unavailable, and unmount activity on hidden details. Retest verified private email hidden, original raw notes retained, uncertain discard disabled. After admin restored assignment at version4, agent explicitly recovered original version2 receipt, then separately checked/adopted current4 and refreshed feed: exactly one contact, original facts unchanged. Evidence docs/evidence/2026-10-13-contact-recovery-browser.md and four screenshots. This is invalid-reply simulation, not literal socket-loss proof. Browser exact replay, token-expiry/revocation, stale-response race injection,390px/devices/UAT/production remain open.
 
 Checkpoint evidence published owner-private: tracker0b84cf78acd298ac24cf0ae83402353a466bab22, baseline contact-recovery-2026-10-13-45, deployment appgdep_6ace6e94aa1c81919753e675a154afe3 succeeded. All172 baseline notes retained,3 added; browser merge/export behavior unchanged and no import/reset. Sourceff4183e full-history bundle verified, fresh clone matched HEAD and fsck passed (same-device only). Local fault preview stopped after verification.
 
 Next explicit browser original replay and feed-denial/stale-read regressions before separate viewings. Relaunch node scripts/enquiry-preview.mjs --invalid-first-contact-reply for a fresh disposable fixture.16/97 tasks,0/14 gates,KES10,000 total monthly price and vendor/live resources preserved.
 
-## Connected contact form and feed â€” 13 October 2026
+## Connected contact form and feed — 13 October 2026
 
 Continuation ownership has moved to chat 01a13633-7366-7b11-bb6e-92fdb7b1a4b5 under Boniface's explicit handover; existing hourly automation now targets this chat. Shared repositories/history/tasks remain in place. Prior chat stopped rebuild edits.
 
@@ -144,23 +154,23 @@ Distinct POST /v2/staff/enquiry-captures derives staff origin and verified actor
 
 
 
-## Property-linked enquiry checkpoint â€” 12 October 2026
+## Property-linked enquiry checkpoint — 12 October 2026
 
 
 
-Opt-in connected synthetic catalogueâ†’propertyâ†’enquiryâ†’staff detail verified with listing ID and original contacted revision1. Foreign/unpublished selections denied. Exact receipt replay after pause verified in SQL. 26web,19boundary,9API,170client,20database tests; eight typechecks and both builds passed. See property-enquiry.md/eight logs. First DB assertion column typo fixed before final20pass. Next protected attributable staff capture, then contact history/viewings. Narrow/device/UAT/production remain open. Checklist16/97,gates0/14,price/vendor/live preserved.
+Opt-in connected synthetic catalogue→property→enquiry→staff detail verified with listing ID and original contacted revision1. Foreign/unpublished selections denied. Exact receipt replay after pause verified in SQL. 26web,19boundary,9API,170client,20database tests; eight typechecks and both builds passed. See property-enquiry.md/eight logs. First DB assertion column typo fixed before final20pass. Next protected attributable staff capture, then contact history/viewings. Narrow/device/UAT/production remain open. Checklist16/97,gates0/14,price/vendor/live preserved.
 
 
 
-## Public website general enquiry checkpoint â€” 12 October 2026
+## Public website general enquiry checkpoint — 12 October 2026
 
 
 
-Opt-in public /enquire now saves fictional general web enquiries into the shared admin inbox; shared form/CSS and bounded handler serve both applications. Actual catalogueâ†’formâ†’saved admin detail browser proof recorded. 24 web,26 affected boundary and170 API-client tests passed; eight typechecks and both production builds passed. See public-enquiry.md/six logs. Narrow override did not apply to the tested tab;390px not passed. Next eligible published synthetic property context, then staff capture/contact history. Checklist16/97,gates0/14,price/vendor/live preserved.
+Opt-in public /enquire now saves fictional general web enquiries into the shared admin inbox; shared form/CSS and bounded handler serve both applications. Actual catalogue→form→saved admin detail browser proof recorded. 24 web,26 affected boundary and170 API-client tests passed; eight typechecks and both production builds passed. See public-enquiry.md/six logs. Narrow override did not apply to the tested tab;390px not passed. Next eligible published synthetic property context, then staff capture/contact history. Checklist16/97,gates0/14,price/vendor/live preserved.
 
 
 
-## Shared guest transport checkpoint â€” 12 October 2026
+## Shared guest transport checkpoint — 12 October 2026
 
 
 
@@ -168,7 +178,7 @@ Shared same-origin enquiry transport now omits ambient cookies, refuses redirect
 
 
 
-## Connected synthetic intake form â€” 12 October 2026
+## Connected synthetic intake form — 12 October 2026
 
 
 
@@ -180,7 +190,7 @@ Next connect the validated form/transport to the public website with server-owne
 
 
 
-## Public intake attempt checkpoint â€” 12 October 2026
+## Public intake attempt checkpoint — 12 October 2026
 
 
 
@@ -192,7 +202,7 @@ Next connect the opt-in synthetic public form through server-controlled configur
 
 
 
-## Connected enquiry inbox checkpoint â€” 12 October 2026
+## Connected enquiry inbox checkpoint — 12 October 2026
 
 
 
@@ -210,11 +220,11 @@ Progress audit closed previously uncredited implementation items04-1,05-2,05-3 w
 
 
 
-## Staff enquiry operations checkpoint â€” 12 October 2026
+## Staff enquiry operations checkpoint — 12 October 2026
 
 
 
-755/755 affected API/development-preview/database/media/shared-client/admin tests, shared package/API builds, admin test compilation/production build and eight workspace typechecks passed on 192 frozen source hashes; zero failures/skips/cancellations/todos. Additive0010, typed private list/detail/admin-only picker and assignment/contact/reschedule/reopen commands retain immutable original receipts and current-role/assignment guards. Actual signed JWT/JWKS loopback HTTPâ†’restricted SQL tests verified lost committed reply recovery, later historical readback, reassignment and cross-company/privacy denials. Reads do not change version/audit/operation counts; no automatic retries or fresh version adoption. See enquiry-operations.md and evidence/2026-10-12-enquiry-operations.md; focused counts overlap and earlier703 stays historical.
+755/755 affected API/development-preview/database/media/shared-client/admin tests, shared package/API builds, admin test compilation/production build and eight workspace typechecks passed on 192 frozen source hashes; zero failures/skips/cancellations/todos. Additive0010, typed private list/detail/admin-only picker and assignment/contact/reschedule/reopen commands retain immutable original receipts and current-role/assignment guards. Actual signed JWT/JWKS loopback HTTP→restricted SQL tests verified lost committed reply recovery, later historical readback, reassignment and cross-company/privacy denials. Reads do not change version/audit/operation counts; no automatic retries or fresh version adoption. See enquiry-operations.md and evidence/2026-10-12-enquiry-operations.md; focused counts overlap and earlier703 stays historical.
 
 
 
@@ -226,7 +236,7 @@ Local synthetic backend/shared-client proof only. The admin enquiry inbox, publi
 
 
 
-## Private saved gallery images checkpoint â€” 12 October 2026
+## Private saved gallery images checkpoint — 12 October 2026
 
 
 
@@ -242,7 +252,7 @@ This remains local, synthetic and development-only. Production identity/provider
 
 
 
-## Private saved-photo backend checkpoint â€” 12 October 2026
+## Private saved-photo backend checkpoint — 12 October 2026
 
 
 
@@ -254,7 +264,7 @@ Next strict bounded shared binary client, server-only admin proxy and gallery re
 
 
 
-## Local admin photo workflow checkpoint â€” 12 October 2026
+## Local admin photo workflow checkpoint — 12 October 2026
 
 
 
@@ -266,11 +276,11 @@ Next private authorized saved image previews: exact current association under st
 
 
 
-## Authenticated development streaming upload checkpoint â€” 11 October 2026
+## Authenticated development streaming upload checkpoint — 11 October 2026
 
 
 
-551 affected API/dev-preview/database/media/shared-client tests, shared package/API builds and all eight workspace typechecks passed, zero failures/skips/cancellations/todos. Additive0008 checks current staff/original requester, exact tuple, registered assignment, draft and expiry before new bytes. Optional exact loopback GET/PUT hook supplies headers/lazy input; service checks access again after collection, consumes original fresh-only admission and projects narrow status. Actual signed JWT/JWKS HTTP â†’ supervised Windows conversion â†’ lost completed reply â†’ API/upload-journal reopen â†’ authenticated read-only GET verified one native invocation, actual output hash and unchanged draft/no photos. See development-streaming-uploads.md and evidence/2026-10-11-streaming-upload.md; stream-upload-tests.txt/types.txt/build.txt. Earlier counts and46-check focused probe are separate/overlapping, not added.
+551 affected API/dev-preview/database/media/shared-client tests, shared package/API builds and all eight workspace typechecks passed, zero failures/skips/cancellations/todos. Additive0008 checks current staff/original requester, exact tuple, registered assignment, draft and expiry before new bytes. Optional exact loopback GET/PUT hook supplies headers/lazy input; service checks access again after collection, consumes original fresh-only admission and projects narrow status. Actual signed JWT/JWKS HTTP → supervised Windows conversion → lost completed reply → API/upload-journal reopen → authenticated read-only GET verified one native invocation, actual output hash and unchanged draft/no photos. See development-streaming-uploads.md and evidence/2026-10-11-streaming-upload.md; stream-upload-tests.txt/types.txt/build.txt. Earlier counts and46-check focused probe are separate/overlapping, not added.
 
 
 
@@ -278,11 +288,11 @@ Next explicit synthetic development composition with stable owned roots/lifecycl
 
 
 
-## Private upload admission checkpoint â€” 11 October 2026
+## Private upload admission checkpoint — 11 October 2026
 
 
 
-178 media tests, shared package builds and all eight workspace typechecks passed, zero failures/skips/cancellations/todos. New bounded cancellable/deadline byte reader and durable original upload journal prepare private ingress. Exclusive permanent job reservation and fresh-only one-use tickets prevent reopened/identical history granting another run. Actual synthetic PNG stream â†’ persisted upload binding â†’ existing restricted SQL/Windows processor â†’ discarded successful local result â†’ reopened read-only reconciliation verified actual output hash with exactly one native invocation and unchanged draft/photos. See private-upload-admission.md and evidence/2026-10-11-upload-admission.md; upload-admission-tests.txt/types.txt/build.txt. Earlier272/456 counts separate, not additive/full-platform acceptance.
+178 media tests, shared package builds and all eight workspace typechecks passed, zero failures/skips/cancellations/todos. New bounded cancellable/deadline byte reader and durable original upload journal prepare private ingress. Exclusive permanent job reservation and fresh-only one-use tickets prevent reopened/identical history granting another run. Actual synthetic PNG stream → persisted upload binding → existing restricted SQL/Windows processor → discarded successful local result → reopened read-only reconciliation verified actual output hash with exactly one native invocation and unchanged draft/photos. See private-upload-admission.md and evidence/2026-10-11-upload-admission.md; upload-admission-tests.txt/types.txt/build.txt. Earlier272/456 counts separate, not additive/full-platform acceptance.
 
 
 
@@ -290,7 +300,7 @@ Next exact loopback streaming/preflight adapter with current staff/job authoriza
 
 
 
-## Admin draft gallery UI checkpoint â€” 11 October 2026
+## Admin draft gallery UI checkpoint — 11 October 2026
 
 
 
@@ -302,7 +312,7 @@ Next authenticated private file upload/quarantine and authorized image delivery 
 
 
 
-## Exact-version draft photo removal and ordering checkpoint â€” 11 October 2026
+## Exact-version draft photo removal and ordering checkpoint — 11 October 2026
 
 
 
@@ -314,7 +324,7 @@ Next connect these commands and sequential verified attachment to the draft/gall
 
 
 
-## Authenticated synthetic photo attachment checkpoint â€” 11 October 2026
+## Authenticated synthetic photo attachment checkpoint — 11 October 2026
 
 
 
@@ -326,7 +336,7 @@ Next exact-version photo removal/reordering with immutable historical receipts, 
 
 
 
-## One explicit synthetic photo workflow checkpoint â€” 11 October 2026
+## One explicit synthetic photo workflow checkpoint — 11 October 2026
 
 
 
@@ -338,7 +348,7 @@ Next authenticated exact-version attachment/finalization, removal/reordering and
 
 
 
-## Persistent worker admission checkpoint â€” 11 October 2026
+## Persistent worker admission checkpoint — 11 October 2026
 
 
 
@@ -350,7 +360,7 @@ Next bounded one-explicit-attempt orchestrator plus persisted original input-gen
 
 
 
-## Synthetic attempt history checkpoint â€” 11 October 2026
+## Synthetic attempt history checkpoint — 11 October 2026
 
 
 
@@ -362,7 +372,7 @@ Next bounded local orchestrator with one explicit attempt, persistent worker adm
 
 
 
-## Restart-readable synthetic storage checkpoint â€” 11 October 2026
+## Restart-readable synthetic storage checkpoint — 11 October 2026
 
 
 
@@ -374,11 +384,11 @@ Next: bounded durable worker-attempt journal/admission and explicit startup reco
 
 
 
-## Persisted synthetic processing checkpoint â€” 11 October 2026
+## Persisted synthetic processing checkpoint — 11 October 2026
 
 
 
-283 combined affected API/SQL/SDK/HTTP/media tests and all eight workspace typechecks passed, zero failures/skips/cancellations. Migration0004 adds immutable captured inputs, globally bound three-attempt/180s leases and sealed output facts. Separate restricted coordinator adapter and actual Windows childâ†’bounded readbackâ†’storageâ†’SQL-seal integration are verified locally. Changed grants/roles/definitions and a temporary catalog shadow fail closed. Registration API/SDK projections and API guard remain unchanged; no draft version or accepted photo changes. See processing-coordinator.md and evidence/2026-10-11-media-processing.md; tracked logs media-processing-tests.txt/media-processing-types.txt. Failed build probe retained; no grant widened.
+283 combined affected API/SQL/SDK/HTTP/media tests and all eight workspace typechecks passed, zero failures/skips/cancellations. Migration0004 adds immutable captured inputs, globally bound three-attempt/180s leases and sealed output facts. Separate restricted coordinator adapter and actual Windows child→bounded readback→storage→SQL-seal integration are verified locally. Changed grants/roles/definitions and a temporary catalog shadow fail closed. Registration API/SDK projections and API guard remain unchanged; no draft version or accepted photo changes. See processing-coordinator.md and evidence/2026-10-11-media-processing.md; tracked logs media-processing-tests.txt/media-processing-types.txt. Failed build probe retained; no grant widened.
 
 
 
@@ -386,7 +396,7 @@ Next build a reusable bounded local orchestrator with durable generation/object 
 
 
 
-## Authenticated media registration checkpoint â€” 11 October 2026
+## Authenticated media registration checkpoint — 11 October 2026
 
 
 
@@ -398,7 +408,7 @@ Next implement persisted synthetic processing claims/leases, captured input iden
 
 
 
-## Local Windows image-worker checkpoint â€” 10 October 2026
+## Local Windows image-worker checkpoint — 10 October 2026
 
 
 
@@ -414,7 +424,7 @@ Next: authenticated media job/intent/provenance SQL/API slice under docs/trusted
 
 
 
-## Disposable local streamed storage checkpoint â€” 10 October 2026
+## Disposable local streamed storage checkpoint — 10 October 2026
 
 
 
@@ -430,7 +440,7 @@ Next build/test a one-job Windows process supervisor; read processor-containment
 
 
 
-## Local static-image codec checkpoint â€” 10 October 2026
+## Local static-image codec checkpoint — 10 October 2026
 
 
 
@@ -450,7 +460,7 @@ Moderation source 3a1b9ed and dashboard baseline10 were committed, bundle-restor
 
 
 
-## Verified moderation checkpoint â€” 10 October 2026
+## Verified moderation checkpoint — 10 October 2026
 
 
 
@@ -458,7 +468,7 @@ Local moderation API/client/admin UI is implemented and the final complete verif
 
 
 
-Desktop moderation proof remains bounded to the earlier1280Ã—720 local browser checks; no new390px, device, full accessibility or operator UAT acceptance follows. Browser control recovered after final tests, and both retained dashboard histories were freshly exported as Downloads/realtor-progress-2026-10-10 (18).json and (19).json; their preservation/comparison and latest source recovery/private publication are recorded separately under ../rebuild-preservation/2026-10-10-source and the delivery tracker. Inspect the latest exact records before editing. Original vendor resources/live systems remain untouched. All broad checklist items/gates remain13/97 and0/14 accepted.
+Desktop moderation proof remains bounded to the earlier1280×720 local browser checks; no new390px, device, full accessibility or operator UAT acceptance follows. Browser control recovered after final tests, and both retained dashboard histories were freshly exported as Downloads/realtor-progress-2026-10-10 (18).json and (19).json; their preservation/comparison and latest source recovery/private publication are recorded separately under ../rebuild-preservation/2026-10-10-source and the delivery tracker. Inspect the latest exact records before editing. Original vendor resources/live systems remain untouched. All broad checklist items/gates remain13/97 and0/14 accepted.
 
 
 
@@ -526,7 +536,7 @@ Unresolved dependency audit: 22 propagated entries (7 moderate, 15 high), three 
 
 
 
-1. Public web/admin readability and accessibility fixes, final production builds and bounded browser checks passed; see interface-checkpoint evidence. Source is frozen. Check actual rendered viewport size for future checks: the browser override did not apply; the revised interface has observed 1280 px and 584 px layouts. A new public sale-detail and service-failure check observed390Ã—844 with no horizontal overflow (public-v2-sale-390.png and public-v2-error-390.png); this is bounded evidence, not full-site390px acceptance. Short-height/200% text and full accessibility acceptance remain open.
+1. Public web/admin readability and accessibility fixes, final production builds and bounded browser checks passed; see interface-checkpoint evidence. Source is frozen. Check actual rendered viewport size for future checks: the browser override did not apply; the revised interface has observed 1280 px and 584 px layouts. A new public sale-detail and service-failure check observed390×844 with no horizontal overflow (public-v2-sale-390.png and public-v2-error-390.png); this is bounded evidence, not full-site390px acceptance. Short-height/200% text and full accessibility acceptance remain open.
 
 2. Shared public API client validates unchanged v1 and deliberate v2 contracts. It retains the controlled malformed/error/timeout handling, actual Node HTTP redirect refusal and durable idempotency evidence. `listPropertiesV2()` uses the shared domain to validate exact fee/location inputs and derive disclosure. V2 raw JSON rejects fractional/exponent money tokens before rounding; v2 display bounds use Unicode code points and reject unpaired surrogates. Client dependency now includes the existing local domain workspace; offline lock refresh is recorded. Public web uses it through the server-only loader; the rendered browser-to-Next-to-local-API path is verified with synthetic stock. Direct browser/native SDK transport and CORS remain unproved. Inspect collaboration state before future edits; checkpoint assignments are finished.
 
@@ -550,7 +560,7 @@ The original 25 UAT findings claim included a parsed table header. There are 24 
 
 
 
-## Public catalogue checkpoint â€” 10 October 2026
+## Public catalogue checkpoint — 10 October 2026
 
 
 
@@ -558,7 +568,7 @@ Production web build passed; default-demo browser retained four fixtures and the
 
 
 
-## Earlier staff draft checkpoint â€” 10 October 2026
+## Earlier staff draft checkpoint — 10 October 2026
 
 
 

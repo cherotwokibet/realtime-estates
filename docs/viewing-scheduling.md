@@ -1,6 +1,12 @@
-# Viewing scheduling foundation â€” 13 October 2026
+# Viewing scheduling foundation — 13 October 2026
 
-## Protected operator request/proposal workflow
+## General enquiry property choices and restored exact replay — 14 October
+
+Fixed public-catalogue BFF now offers general-enquiry property choices by descriptive labels;no manual ID or default selection,25maximum with possible-truncation notice,public fields only. Refresh does not replace selection. SQL rechecks current company/staff/enquiry/listing eligibility at save. Linked enquiries cannot override their property;general enquiries remain general with listing attached only to viewing.
+
+136admin checks,typecheck/build passed. Actual browser verified explicit selection retained through refresh,and agent uncertain save→reassignment→denied original recovery→restored access→explicit exact replay→one viewing. Original expectedEnquiryVersion2 stayed intact after separate currentversion4adoption. See evidence/2026-10-14-viewing-picker-browser.md for IDs/logs/screenshots/limits. Prior browser exact replay gap is now covered by this synthetic committed-invalid-reply scenario;real socket loss/devices/UAT/release remain open.
+
+## Earlier protected operator request/proposal workflow
 
 Fixed server-only BFF and source-free browser transport now serve request/first-proposal forms and an independent25-item feed. Recovery POST keeps original facts in body and performs upstream GET only. Immutable memory-only attempts retain original operations across uncertain writes/denied recovery;no automatic retry/version adoption. Property-linked requests support notes and one optional preferred slot. General enquiries still need eligible property selection. Proposals explicitly retain a selected viewing/version,even after feed refresh. Confirmation/agreement and rescheduling remain separate work.
 
@@ -10,14 +16,14 @@ Fixed server-only BFF and source-free browser transport now serve request/first-
 
 Additive0013 now stores private requested/proposed viewings and immutable operation receipts. Current assignment is derived from the enquiry on every read/write/replay; company and requester are trusted session context. Property enquiries cannot target another listing. General enquiries explicitly select a same-company published available listing with an approved snapshot and availability confirmation within the existing30-day catalogue window. Creation/proposal checks a locked current enquiry,listing and viewing as applicable. Initial request/proposal decisions include durable stale-version conflicts and business refusals; authorization or malformed input reserves nothing. Operations serialize company/operation IDs. Exact original requester receipt lookup precedes new time/state/availability checks,so closure/pause/later proposal cannot rewrite an earlier result. Request creates viewing version1; first proposal changes only that viewing to version2. Enquiry version/status never changes. No confirmation,reschedule,reminder or outbound contact is implemented.
 
-Tables force RLS and runtime has no direct table privilege. Original notes/preferences and operation receipts cannot be edited/deleted; the only initial schedule mutation is requestedâ†’proposed. Corrective/retention workflows remain release work. Private detail includes author,current assigned staff,original notes and times. Feed is bounded1..25,newest created first with stable ID tie break and truthful truncation; conflicts/refusals do not create feed rows. No cross-viewing resource/slot overlap guarantee or independent PostgreSQL concurrency proof is claimed.
+Tables force RLS and runtime has no direct table privilege. Original notes/preferences and operation receipts cannot be edited/deleted; the only initial schedule mutation is requested→proposed. Corrective/retention workflows remain release work. Private detail includes author,current assigned staff,original notes and times. Feed is bounded1..25,newest created first with stable ID tie break and truthful truncation; conflicts/refusals do not create feed rows. No cross-viewing resource/slot overlap guarantee or independent PostgreSQL concurrency proof is claimed.
 
 Protected routes:
 
-- GET/POST `/v2/staff/enquiries/{id}/viewings` â€” bounded current slice / explicit request.
-- GET `/v2/staff/enquiries/{id}/viewings/{viewingId}` â€” current authorized detail.
-- POST `/v2/staff/enquiries/{id}/viewings/{viewingId}/proposals` â€” explicit first slot proposal.
-- GET `/v2/staff/enquiries/{id}/viewing-operations/{operationId}` â€” original requester receipt only.
+- GET/POST `/v2/staff/enquiries/{id}/viewings` — bounded current slice / explicit request.
+- GET `/v2/staff/enquiries/{id}/viewings/{viewingId}` — current authorized detail.
+- POST `/v2/staff/enquiries/{id}/viewings/{viewingId}/proposals` — explicit first slot proposal.
+- GET `/v2/staff/enquiries/{id}/viewing-operations/{operationId}` — original requester receipt only.
 
 Only collection GET accepts limit; authority/query overrides and duplicate keys are refused. POST bodies cap16KiB and require positive safe integer **JSON literal** expectedEnquiryVersion or expectedVersion before numeric rounding. Receipt expectedVersion refers to the enquiry version for request,viewing version for proposal. Caller actor/company/assignment/confirmation is never accepted.
 
@@ -37,7 +43,7 @@ Provisional pilot defaults: Kenya/Nairobi intended zone, canonical UTC instants,
 
 Request command carries only operationId,expectedEnquiryVersion,listingId,preferredSlots and original notes. Proposal command carries only operationId,expectedVersion and slot. No actor,company,status,assignment,customer agreement or confirmed flag is accepted from callers. UUID/version/instant/array/object validation is strict and makes immutable snapshots. Raw notes remain exact, including whitespace, as for contacts; the broader business-rule trimming default does not alter immutable original request facts.
 
-First planner supports only requestedâ†’proposed. It refuses stale versions,past/current starts and changes to already proposed schedules. Rescheduling/confirmation/cancellation/completion will be separate explicit operations with retained history,agreement evidence and cancellation reasons; no hidden overwrite or automatic confirmation. Version updates affect only viewing state,not enquiry state. The planner is not an authorization boundary or durable idempotency store.
+First planner supports only requested→proposed. It refuses stale versions,past/current starts and changes to already proposed schedules. Rescheduling/confirmation/cancellation/completion will be separate explicit operations with retained history,agreement evidence and cancellation reasons; no hidden overwrite or automatic confirmation. Version updates affect only viewing state,not enquiry state. The planner is not an authorization boundary or durable idempotency store.
 
 Next SQL migration must enforce company/enquiry/listing relationships and current active admin/assigned-agent access before each read/write/replay; derive company,actor and assignment server-side; bind property enquiries to their existing listing and explicitly select an eligible published listing for general enquiries; refuse closed enquiries or unavailable listings unless a later reviewed exception is recorded. Lock enquiry/listing/viewing as needed,compare expected versions,serialize operation IDs and retain original request/proposal receipts including conflicts. Recover exact original requester receipt before rechecking time/state,so later expiry/workflow cannot rewrite history. Changed command/requester reusing an operation ID conflicts. Current access denial conceals private records. No overlap guarantee across separate viewings exists until SQL concurrency/calendar resource rules are implemented and tested.
 
@@ -45,6 +51,6 @@ Keep16/97 tasks,0/14 launch gates and KES10,000 total recurring price. Vendor/li
 
 ## Verification at this checkpoint
 
-82/82 domain tests passed,including10 new request/proposal tests (the prior72 are overlapping regression coverage,not additive counts). Cases cover immutable original notes/slots,unknown authority/confirmation fields,0..3 preference bounds,overlap/duplicate denial,adjacent non-overlapping slots,Nairobi/UTC canonical time and duration endpoints,time-independent original command validation,first-execution future-time refusal,requestedâ†’proposed only,optimistic conflicts,version overflow,Unicode/private-data bounds and getter/hidden-key/sparse-array rejection. Domain build and all8 workspace typechecks passed; shared packages rebuilt through the existing root typecheck script. Logs in rebuild-preservation/2026-10-12-source:viewing-domain-build.txt,viewing-domain-tests.txt,viewing-workspace-types.txt.
+82/82 domain tests passed,including10 new request/proposal tests (the prior72 are overlapping regression coverage,not additive counts). Cases cover immutable original notes/slots,unknown authority/confirmation fields,0..3 preference bounds,overlap/duplicate denial,adjacent non-overlapping slots,Nairobi/UTC canonical time and duration endpoints,time-independent original command validation,first-execution future-time refusal,requested→proposed only,optimistic conflicts,version overflow,Unicode/private-data bounds and getter/hidden-key/sparse-array rejection. Domain build and all8 workspace typechecks passed; shared packages rebuilt through the existing root typecheck script. Logs in rebuild-preservation/2026-10-12-source:viewing-domain-build.txt,viewing-domain-tests.txt,viewing-workspace-types.txt.
 
 No SQL/API/SDK/browser/device test was run for a viewing, because those integrations do not exist yet. No new dependency,provider,account or paid service was introduced. First next deliverable is additive0013 request/proposal SQL with private RLS,server authority,current listing/enquiry eligibility and durable original receipts; signed integration and API/client/UI follow after its boundary tests.
