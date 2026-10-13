@@ -1,4 +1,4 @@
-Latest: connected contact form/feed browser save and stale-conflict verified; final admin typecheck/build passed and all contact evidence published privately at dashboard baseline44. Next browser recovery/access checks; see CONTINUATION.md. Continuation now belongs to chat01a13633-7366-7b11-bb6e-92fdb7b1a4b5.
+Latest: browser uncertain original contact recovery verified across assignment loss/restoration; fixed stale private detail/activity visibility on contact access denial.13 signed preview and119 admin tests passed; final build/publication status in CONTINUATION.md. Next explicit browser replay/feed-denial/stale-read regressions. Continuation remains in this chat.
 
 Latest: contact original-attempt controller verified (119 admin checks); next operator form/feed and signed/browser verification. Dashboard publication pending. See CONTINUATION.md.
 

@@ -7,8 +7,8 @@ import {formatEnquiryTime,fromNairobiInput} from '../lib/enquiry-model';
 
 const channels:Record<ContactChannel,string>={call:'Call',whatsapp:'WhatsApp',email:'Email',in_person:'In person',other:'Other'};
 const outcomes:Record<ContactOutcome,string>={connected:'Connected',no_response:'No response',left_message:'Left a message',wrong_contact:'Wrong contact',other:'Other'};
-type Props={actor:'admin'|'agent';instanceId:string;enquiryId:string;version:string|null;onGuard:(guard:boolean)=>void};
-export default function EnquiryContacts({actor,instanceId,enquiryId,version,onGuard}:Props){
+type Props={actor:'admin'|'agent';instanceId:string;enquiryId:string;version:string|null;onGuard:(guard:boolean)=>void;onAccessDenied:(error:unknown)=>void};
+export default function EnquiryContacts({actor,instanceId,enquiryId,version,onGuard,onAccessDenied}:Props){
  const client=useMemo(()=>createEnquiryPreviewClient({basePath:`/api/enquiry-preview/${actor}`,instanceId}),[actor,instanceId]);
  const [channel,setChannel]=useState<ContactChannel>('call'),[outcome,setOutcome]=useState<ContactOutcome>('connected');
  const [occurred,setOccurred]=useState(''),[notes,setNotes]=useState(''),[attempt,setAttempt]=useState<ContactAttempt|null>(null);
@@ -21,7 +21,7 @@ export default function EnquiryContacts({actor,instanceId,enquiryId,version,onGu
   const turn=++generation.current;reader.current?.abort();const controller=new AbortController();reader.current=controller;
   setPage(null);setReadError(false);setReading(true);
   try{const value=await client.contacts(enquiryId,controller.signal);if(alive.current&&turn===generation.current)setPage(value);}
-  catch{if(alive.current&&turn===generation.current)setReadError(true);}
+  catch(error){if(alive.current&&turn===generation.current){setReadError(true);if(error instanceof EnquiryPreviewError&&[401,403,404].includes(error.status))onAccessDenied(error);}}
   finally{if(alive.current&&turn===generation.current)setReading(false);}
  }
  useEffect(()=>{alive.current=true;void refresh();return()=>{alive.current=false;generation.current++;reader.current?.abort();};},[client,enquiryId]);
@@ -40,7 +40,7 @@ export default function EnquiryContacts({actor,instanceId,enquiryId,version,onGu
    await (mode==='submit'?captured.submit():mode==='recover'?captured.recoverOriginal():captured.replayOriginal());
   }catch(e){if(alive.current){
    setError(e instanceof Error?e.message:'Contact request unavailable.');
-   if(e instanceof EnquiryPreviewError&&[401,403,404].includes(e.status)){generation.current++;reader.current?.abort();setPage(null);setReading(false);setReadError(true);}
+   if(e instanceof EnquiryPreviewError&&[401,403,404].includes(e.status)){generation.current++;reader.current?.abort();setPage(null);setReading(false);setReadError(true);onAccessDenied(e);}
   }}finally{lock.current=false;if(alive.current)setBusy(false);}
  }
  function discard(){
@@ -72,6 +72,6 @@ export default function EnquiryContacts({actor,instanceId,enquiryId,version,onGu
   <button type="button" className="enq-secondary" disabled={busy||uncertain} onClick={discard}>{receipt?'Finish and clear local contact input':'Discard local contact input'}</button>
   <div className="enq-section-heading"><h3>Recorded contacts</h3><button type="button" className="enq-secondary" disabled={reading} onClick={()=>void refresh()}>Refresh contact feed</button></div>
   {reading&&<p role="status">Loading contact records…</p>}{readError&&<p role="alert">Contact feed unavailable for current access. Refresh to try a new read.</p>}
-  {page&&<><p className="enq-subtle">{page.items.length} records shown · {page.truncated?'older records remain':'end of visible slice'} · latest 25 maximum. Times shown in Nairobi.</p>{!page.items.length&&<p>No contact records in this visible slice.</p>}<ol className="enq-activity">{page.items.map(item=><li key={item.entryId}><strong>{channels[item.channel]} · {outcomes[item.outcome]}</strong><span>Contact time: <time dateTime={item.occurredAt}>{formatEnquiryTime(item.occurredAt)}</time></span><span>Recorded: {formatEnquiryTime(item.recordedAt)} · staff ID {item.actorId}</span><p className="enq-contact-notes">{item.notes}</p></li>)}</ol></>}
+  {version&&page&&<><p className="enq-subtle">{page.items.length} records shown · {page.truncated?'older records remain':'end of visible slice'} · latest 25 maximum. Times shown in Nairobi.</p>{!page.items.length&&<p>No contact records in this visible slice.</p>}<ol className="enq-activity">{page.items.map(item=><li key={item.entryId}><strong>{channels[item.channel]} · {outcomes[item.outcome]}</strong><span>Contact time: <time dateTime={item.occurredAt}>{formatEnquiryTime(item.occurredAt)}</time></span><span>Recorded: {formatEnquiryTime(item.recordedAt)} · staff ID {item.actorId}</span><p className="enq-contact-notes">{item.notes}</p></li>)}</ol></>}
  </section>;
 }

@@ -32,7 +32,7 @@ const COMPANIES=Object.freeze({
 const LIFETIME_SECONDS=1800;
 const AUDIENCE='synthetic-realtor-staff-preview';
 class StaffPreviewConfigurationError extends Error {}
-function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,enquiryPreview,enquiryCatalogue,
+function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,
   seedAcceptedMedia=nativeUploads===undefined&&enquiryPreview===undefined,seedPendingReviews=false}={}){
   if(process.env.NODE_ENV==='production')throw new StaffPreviewConfigurationError('Staff preview refuses NODE_ENV=production.');
   if(typeof tenantSlug!=='string'||!Object.hasOwn(COMPANIES,tenantSlug))throw new StaffPreviewConfigurationError('Choose the configured realtime-estates or sample-homes synthetic company.');
@@ -42,12 +42,13 @@ function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',na
   if(typeof seedPendingReviews!=='boolean'||(seedPendingReviews&&!seedAcceptedMedia))throw new StaffPreviewConfigurationError('Pending review fixtures require the explicit accepted-metadata fixture.');
   if(enquiryPreview!==undefined&&enquiryPreview!=='synthetic-v1')throw new StaffPreviewConfigurationError('Choose the explicit synthetic-v1 enquiry preview mode or omit it.');
   if(enquiryCatalogue!==undefined&&(enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Synthetic enquiry catalogue requires explicit enquiry mode.');
+  if(contactReplyFault!==undefined&&(contactReplyFault!=='invalid-first-applied-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Contact reply fault requires explicit synthetic enquiry mode and the supported one-shot fault.');
   if(enquiryPreview!==undefined&&(nativeUploads!==undefined||seedAcceptedMedia||seedPendingReviews))throw new StaffPreviewConfigurationError('Enquiry preview does not combine with image or pending-review fixtures.');
   if(nativeUploads!==undefined){
     nativeUploads=nativeMediaPreviewConfiguration(nativeUploads);
     if(seedAcceptedMedia||seedPendingReviews)throw new StaffPreviewConfigurationError('Native media preview starts without fabricated accepted-media or pending-review fixtures.');
   }
-  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue};
+  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault};
 }
 function syntheticContent(title='Synthetic staff monthly studio'){
   return {
@@ -165,7 +166,8 @@ async function closeServer(server){
 
 /** Token is handed only to the calling development launcher, never an HTTP login route. */
 export async function startStaffPreview(options={}){
-  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue}=configuration(options);
+  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault}=configuration(options);
+  let contactReplyFaultPending=!!contactReplyFault;
   const company=COMPANIES[tenantSlug],other=COMPANIES[tenantSlug==='realtime-estates'?'sample-homes':'realtime-estates'];
   const actorId=actor==='agent'?company.agent:actor==='admin'?company.admin:actor==='customer'?company.customer:actor==='revoked-agent'?company.revoked:actor==='other-company-admin'?other.admin:other.agent;
   const db=new PGlite();let database,coordinator,nativeMedia;let apiServer;let jwksServer;
@@ -241,7 +243,14 @@ export async function startStaffPreview(options={}){
         if(contacts){const list=!url.pathname.includes('/operations/');if(request.method!=='GET'&&!(list&&request.method==='POST'))return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for contact logging.',{Allow:list?'GET, POST':'GET'});}
         else if(request.method!==allowedMethod)return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for the enquiry fixture.',{Allow:allowedMethod});
         if(request.method==='POST'&&!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')??''))return failure(415,'JSON_REQUIRED','Use application/json.');
-        const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
+        const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');
+        // Process-only, disposable fixture: commit normally, then lose valid receipt facts once.
+        // Denials/conflicts/reads never consume the fault, and original GET/replay stays intact.
+        if(contactReplyFaultPending&&contacts&&request.method==='POST'&&response.status===200&&(await response.clone().json()).outcome==='applied'){
+          contactReplyFaultPending=false;
+          return Response.json({syntheticReplyCorruption:true},{status:200,headers:{'Cache-Control':'no-store','X-Synthetic-Staff-Preview':'true'}});
+        }
+        return response;
       }
       const finalizeRoute=nativeMedia&&/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/media-attach-intents\/[0-9a-f-]{36}\/finalize$/i.test(url.pathname);
       if(finalizeRoute){const response=await nativeMedia.handleFinalize(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;}

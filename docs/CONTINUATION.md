@@ -1,5 +1,13 @@
 # Rebuild continuation checkpoint
 
+## Contact reply corruption and access-loss recovery — 13 October 2026
+
+Added explicit process-only synthetic one-shot invalid contact receipt after normal commit; launch node scripts/enquiry-preview.mjs --invalid-first-contact-reply. Normal mode unchanged; production refusal and signed route guards retained.13/13 signed preview tests passed (new fault/recovery/replay invariants),119/119 existing admin checks passed. Final admin typecheck and production build passed; logs contact-access-types.txt/contact-access-build.txt.
+
+Actual browser agent uncertain save→admin reassignment→denied recovery exposed stale private details/activity. Fixed EnquiryContacts to propagate contact/feed401/403/404 to parent deny guard, hide feed while saved version unavailable, and unmount activity on hidden details. Retest verified private email hidden, original raw notes retained, uncertain discard disabled. After admin restored assignment at version4, agent explicitly recovered original version2 receipt, then separately checked/adopted current4 and refreshed feed: exactly one contact, original facts unchanged. Evidence docs/evidence/2026-10-13-contact-recovery-browser.md and four screenshots. This is invalid-reply simulation, not literal socket-loss proof. Browser exact replay, token-expiry/revocation, stale-response race injection,390px/devices/UAT/production remain open.
+
+Next publish checkpoint evidence preserving canonical/browser notes, then explicit browser original replay and feed-denial/stale-read regressions before separate viewings.16/97 tasks,0/14 gates,KES10,000 total monthly price and vendor/live resources preserved.
+
 ## Connected contact form and feed — 13 October 2026
 
 Continuation ownership has moved to chat 01a13633-7366-7b11-bb6e-92fdb7b1a4b5 under Boniface's explicit handover; existing hourly automation now targets this chat. Shared repositories/history/tasks remain in place. Prior chat stopped rebuild edits.

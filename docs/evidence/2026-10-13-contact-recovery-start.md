@@ -1,0 +1,3 @@
+# Contact recovery verification started — 13 October 2026
+
+Stages06/08/12, Boniface + Codex. Clean source de4a83e and tracker baseline44; no active enquiry-preview process at start. Resume browser recovery verification using an explicit disposable synthetic-only reply-corruption mode, guarded at process configuration, with focused signed integration coverage before browser use. Never expose fault controls or credentials to browser requests. Then verify current assigned-agent contact access. Existing checklist16/97 and gates0/14 remain unchanged. KES10,000 total monthly price and vendor/live resources preserved.

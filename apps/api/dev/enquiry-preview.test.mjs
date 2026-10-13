@@ -10,6 +10,23 @@ const call=(preview,path,{role='admin',token=preview.enquiryStaff?.[role].bearer
 });
 async function read(preview,path,options){const response=await call(preview,path,options);assert.equal(response.status,200);return response.json();}
 const base='/v2/staff/enquiries';
+test('one-shot synthetic contact receipt corruption preserves committed original recovery and exact replay',async()=>{
+ await assert.rejects(()=>startStaffPreview({port:0,contactReplyFault:'invalid-first-applied-v1'}));
+ await assert.rejects(()=>startStaffPreview({port:0,enquiryPreview:'synthetic-v1',contactReplyFault:'unknown'}));
+ const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1',contactReplyFault:'invalid-first-applied-v1'});
+ try{
+  const path=base+'/'+preview.enquiryFixtures.general,operationId=randomUUID(),command={operationId,expectedVersion:1,channel:'call',outcome:'connected',occurredAt:'2026-01-01T00:00:00.000Z',notes:'  Synthetic original notes.\nKept exactly.  '};
+  assert.equal((await call(preview,path+'/contacts',{token:null,method:'POST',body:command})).status,401);
+  const stale=await read(preview,path+'/contacts',{method:'POST',body:{...command,operationId:randomUUID(),expectedVersion:2}});assert.equal(stale.outcome,'conflict');
+  assert.equal((await read(preview,path+'/contacts?limit=25')).items.length,0);
+  assert.deepEqual(await read(preview,path+'/contacts',{method:'POST',body:command}),{syntheticReplyCorruption:true});
+  const recovered=await read(preview,path+'/contacts/operations/'+operationId);assert.equal(recovered.outcome,'applied');assert.equal(recovered.request.notes,command.notes);
+  assert.deepEqual(await read(preview,path+'/contacts',{method:'POST',body:command}),recovered);
+  assert.equal((await read(preview,path+'/contacts?limit=25')).items.length,1);assert.equal((await read(preview,path)).version,'1');
+  const second=await read(preview,path+'/contacts',{method:'POST',body:{...command,operationId:randomUUID()}});assert.equal(second.outcome,'applied');
+  assert.equal((await read(preview,path+'/contacts?limit=25')).items.length,2);
+ }finally{await preview.close();}
+});
 test('published synthetic catalogue binds property capture to the fixed company and original receipt',async()=>{
  const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1'});
  try{
