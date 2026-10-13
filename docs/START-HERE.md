@@ -1,3 +1,5 @@
+Latest: signed synthetic contact integration verified; priority dashboard publication backlog,then contact form/feed. See CONTINUATION.md.
+
 Latest: contact original-attempt controller verified (119 admin checks); next operator form/feed and signed/browser verification. Dashboard publication pending. See CONTINUATION.md.
 
 Latest: strict contact browser transport verified (116 admin checks); next retained original attempt controller and operator form/feed. Dashboard publication of browser/proxy checkpoints pending. See CONTINUATION.md.

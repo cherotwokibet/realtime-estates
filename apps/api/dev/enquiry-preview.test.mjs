@@ -162,3 +162,29 @@ test('synthetic activity allowlist exposes authorized bounded reads and preserve
   assert.equal((await call(preview,base+'/'+enquiry+'/activity?tenantId=other')).status,400);assert.equal((await call(preview,base+'/'+enquiry+'/activity',{method:'POST',body:{}})).status,405);
  }finally{await preview.close();}
 });
+
+
+test('signed synthetic contact routes retain original receipts and enforce current assignment',async()=>{
+ const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1'});
+ try{
+  const rows=await read(preview,base),selected=rows.items.find(row=>row.assignedAgentId===null),path=base+'/'+selected.id,contacts=path+'/contacts';
+  const command={operationId:randomUUID(),expectedVersion:Number(selected.version),channel:'call',outcome:'connected',occurredAt:'2026-01-02T03:04:05.006Z',notes:'  Synthetic only.\nOriginal spacing.  '};
+  assert.equal((await call(preview,contacts,{method:'POST',body:command,token:null})).status,401);
+  assert.equal((await call(preview,contacts,{method:'POST',body:command,role:'agent'})).status,404);
+  const receipt=await read(preview,contacts,{method:'POST',body:command});assert.equal(receipt.outcome,'applied');assert.equal(receipt.request.notes,command.notes);assert.equal(receipt.actorId,preview.enquiryStaff.admin.actorId);
+  assert.deepEqual(await read(preview,contacts+'/operations/'+command.operationId),receipt);
+  assert.deepEqual(await read(preview,contacts,{method:'POST',body:command}),receipt);
+  assert.equal((await read(preview,path)).version,selected.version);
+  const feed=await read(preview,contacts+'?limit=25');assert.equal(feed.items.length,1);assert.equal(feed.items[0].notes,command.notes);assert.equal(feed.limit,25);
+  assert.equal((await call(preview,contacts,{method:'POST',body:{...command,notes:'changed'}})).status,409);
+  assert.equal((await call(preview,contacts+'?actor=other')).status,400);
+  assert.equal((await call(preview,contacts+'/operations/'+command.operationId+'?limit=1')).status,400);
+  assert.equal((await call(preview,contacts+'/operations/'+command.operationId,{method:'POST',body:command})).status,405);
+  const assigned=await read(preview,path+'/operations',{method:'POST',body:{operationId:randomUUID(),kind:'assign',expectedVersion:Number(selected.version),assignedAgentId:preview.enquiryStaff.agent.actorId,status:null,nextActionAt:null,reason:null}});assert.equal(assigned.outcome,'applied');
+  assert.equal((await read(preview,contacts+'?limit=1',{role:'agent'})).items.length,1);
+  assert.equal((await call(preview,contacts+'/operations/'+command.operationId,{role:'agent'})).status,404);
+  assert.deepEqual(await read(preview,contacts+'/operations/'+command.operationId),receipt);
+  const conflict=await read(preview,contacts,{method:'POST',body:{...command,operationId:randomUUID()}});assert.equal(conflict.outcome,'conflict');assert.equal(conflict.entry,null);assert.equal(conflict.request.notes,command.notes);
+  assert.equal((await read(preview,contacts+'?limit=25')).items.length,1);
+ }finally{await preview.close();}
+});

@@ -1,5 +1,12 @@
 # Rebuild continuation checkpoint
 
+## Signed synthetic contact integration - 13 October 2026
+
+Actual signed HTTP preview and restricted SQL contact route test now verifies authenticated record/list/original recovery,exact replay with one feed row and unchanged enquiry version,raw notes preservation,changed-command conflict,query authority denial,receipt GET-only,assigned-agent feed access,requester-private receipt denial after assignment,and durable stale conflict excluded from feed. Initial expected unassigned-agent403 was corrected to existing concealment404; final focused1/1 integration test passed. Initial/final logs retained as contact-signed-preview-tests.txt and contact-signed-preview-tests-final.txt in rebuild-preservation/2026-10-12-source. This is one integration scenario with multiple assertions,not a full suite/browser/device/UAT pass.
+
+Next priority: publish accumulated proxy/browser/controller/integration evidence to existing private dashboard while preserving browser notes; then operator form and independent25-entry contact feed with memory-only original attempt recovery explained. No UI integration claimed.16/97 tasks,0/14 gates,KES10,000 price/vendor/live resources preserved.
+
+
 ## Contact original-attempt controller - 13 October 2026
 
 Added memory-only prepareContactAttempt with immutable enquiry/command snapshot and ready/sending/uncertain/received/rejected states. Concurrent submit/recovery/replay is refused. Uncertain original save retains exact notes,version and operation ID through recovery denial; only explicit original read/replay is permitted. Valid applied/conflict receipts are terminal; altered successful receipts remain uncertain. No automatic retry,current-version adoption,storage or outbound message.
