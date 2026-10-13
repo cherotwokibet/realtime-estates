@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import {validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal} from '@realtor/domain';
 import { validateContactCommand,validateContactReceipt,validateContactPage,validateEnquiryActivityPage,calculateWirePricingV2, kesFromMinor, normalizeKenyanPhone, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2 } from "@realtor/domain";
 import { DatabaseSafetyError, type TransactionDatabase, type TransactionQuery } from "./database.js";
 
@@ -60,7 +61,7 @@ function assertDecisionJsonTokens(source: string): void {
       const keys = containers.at(-1), key = JSON.parse(token) as string;
       if (!keys || keys.has(key)) throw new Error("Duplicate JSON object key.");
       keys.add(key);
-      if (key === "expectedVersion" && !/^[1-9]\d*$/.test(tokens[index + 2] ?? "")) throw new Error("Expected version requires a positive integer JSON literal.");
+      if (["expectedVersion","expectedEnquiryVersion"].includes(key) && !/^[1-9]\d*$/.test(tokens[index + 2] ?? "")) throw new Error("Expected version requires a positive integer JSON literal.");
     }
   }
 }
@@ -523,6 +524,42 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
           const projected = result.rows.map(row => enquiryProjection(row, false));
           if (new Set(projected.map(row => row.id)).size !== projected.length) throw new Error("Duplicate enquiry record.");
           return response(200, { items: projected.slice(0, pageLimit), limit: pageLimit, truncated: projected.length > pageLimit }, correlationId);
+        }
+        const viewingRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewings(?:\/([^/]+)(\/proposals)?)?$/.exec(path);
+        const viewingOperationRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewing-operations\/([^/]+)$/.exec(path);
+        if(viewingRoute||viewingOperationRoute){
+          const id=uuid((viewingRoute??viewingOperationRoute)![1],"enquiryId"),viewingId=viewingRoute?.[2]===undefined?null:uuid(viewingRoute[2],"viewingId");
+          const operationId=viewingOperationRoute?uuid(viewingOperationRoute[2],"operationId"):null,proposal=!!viewingRoute?.[3];
+          const list=!!viewingRoute&&viewingId===null&&method==="GET",pageLimit=enquiryQuery(url,list,25);
+          if(pageLimit>25)throw new HttpError(400,"INVALID_INPUT","Viewing limit cannot exceed 25.");
+          const allowed=operationId||viewingId&&!proposal?["GET"]:proposal?["POST"]:["GET","POST"];
+          if(!allowed.includes(method))throw new HttpError(405,"METHOD_NOT_ALLOWED","Method is not allowed for this viewing route.",{Allow:allowed.join(', ')});
+          let original:ViewingOriginal|undefined;
+          if(method==="POST"){
+            const raw=await jsonBody(request,16*1024,false,true);
+            if(proposal){const body=record(raw,["operationId","expectedVersion","slot"]),expected=version(body.expectedVersion);
+              try{original={kind:'propose',viewingId:viewingId!,command:validateViewingProposalCommand({...body,expectedVersion:String(expected)})};}catch{throw new HttpError(400,"INVALID_INPUT","Review the viewing proposal fields.");}
+            }else{const body=record(raw,["operationId","expectedEnquiryVersion","listingId","preferredSlots","notes"]),expected=version(body.expectedEnquiryVersion);
+              try{original={kind:'request',command:validateViewingRequestCommand({...body,expectedEnquiryVersion:String(expected)})};}catch{throw new HttpError(400,"INVALID_INPUT","Review the viewing request fields.");}
+            }
+          }
+          const result=await options.database.transaction(context,async query=>{
+            await assertStaff(query);
+            if(original){const command=original.command;return query.query("SELECT app_api.execute_viewing_operation($1::uuid,$2::uuid,$3::uuid,$4::bigint,$5::text,$6::uuid,$7::jsonb,$8::text,$9::jsonb) AS receipt",
+              original.kind==='request'?[id,null,command.operationId,original.command.expectedEnquiryVersion,'request',original.command.listingId,JSON.stringify(original.command.preferredSlots),original.command.notes,null]:[id,original.viewingId,command.operationId,original.command.expectedVersion,'propose',null,null,null,JSON.stringify(original.command.slot)]);}
+            if(operationId)return query.query("SELECT app_api.read_viewing_operation($1::uuid,$2::uuid) AS receipt",[id,operationId]);
+            if(viewingId)return query.query("SELECT app_api.read_viewing($1::uuid,$2::uuid) AS detail",[id,viewingId]);
+            return query.query("SELECT app_api.list_enquiry_viewings($1::uuid,$2::integer) AS page",[id,pageLimit]);
+          });
+          if(list)return response(200,validateViewingPage(scalar(result,"page"),id,pageLimit),correlationId);
+          if(viewingId&&!proposal)return response(200,validateViewingDetail(scalar(result,"detail"),id,viewingId),correlationId);
+          const data=scalar(result,"receipt");
+          if(!original){if(!data||typeof data!=='object'||Array.isArray(data))throw new Error("Invalid stored viewing receipt.");const stored=data as Record<string,unknown>;
+            if(stored.kind!=='request'&&stored.kind!=='propose')throw new Error("Invalid stored viewing kind.");
+            original=validateViewingOriginal(stored.kind==='request'?{kind:'request',command:{...(stored.request as object),operationId:stored.operationId,expectedEnquiryVersion:stored.expectedVersion}}:{kind:'propose',viewingId:stored.viewingId,command:{...(stored.request as object),operationId:stored.operationId,expectedVersion:stored.expectedVersion}});
+            if(original.command.operationId!==operationId)throw new Error("Unexpected viewing operation.");
+          }
+          const receipt=validateViewingReceipt(data,id,original);if(receipt.actorId!==actorId)throw new Error("Unexpected viewing actor.");return response(200,receipt,correlationId);
         }
         const contactRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/contacts(?:\/operations\/([^/]+))?$/.exec(path);
         if(contactRoute){

@@ -1,5 +1,30 @@
 # Viewing scheduling foundation — 13 October 2026
 
+## Guarded SQL, protected API and shared SDK
+
+Additive0013 now stores private requested/proposed viewings and immutable operation receipts. Current assignment is derived from the enquiry on every read/write/replay; company and requester are trusted session context. Property enquiries cannot target another listing. General enquiries explicitly select a same-company published available listing with an approved snapshot and availability confirmation within the existing30-day catalogue window. Creation/proposal checks a locked current enquiry,listing and viewing as applicable. Initial request/proposal decisions include durable stale-version conflicts and business refusals; authorization or malformed input reserves nothing. Operations serialize company/operation IDs. Exact original requester receipt lookup precedes new time/state/availability checks,so closure/pause/later proposal cannot rewrite an earlier result. Request creates viewing version1; first proposal changes only that viewing to version2. Enquiry version/status never changes. No confirmation,reschedule,reminder or outbound contact is implemented.
+
+Tables force RLS and runtime has no direct table privilege. Original notes/preferences and operation receipts cannot be edited/deleted; the only initial schedule mutation is requested→proposed. Corrective/retention workflows remain release work. Private detail includes author,current assigned staff,original notes and times. Feed is bounded1..25,newest created first with stable ID tie break and truthful truncation; conflicts/refusals do not create feed rows. No cross-viewing resource/slot overlap guarantee or independent PostgreSQL concurrency proof is claimed.
+
+Protected routes:
+
+- GET/POST `/v2/staff/enquiries/{id}/viewings` — bounded current slice / explicit request.
+- GET `/v2/staff/enquiries/{id}/viewings/{viewingId}` — current authorized detail.
+- POST `/v2/staff/enquiries/{id}/viewings/{viewingId}/proposals` — explicit first slot proposal.
+- GET `/v2/staff/enquiries/{id}/viewing-operations/{operationId}` — original requester receipt only.
+
+Only collection GET accepts limit; authority/query overrides and duplicate keys are refused. POST bodies cap16KiB and require positive safe integer **JSON literal** expectedEnquiryVersion or expectedVersion before numeric rounding. Receipt expectedVersion refers to the enquiry version for request,viewing version for proposal. Caller actor/company/assignment/confirmation is never accepted.
+
+Shared domain validates original request/proposal receipts,private detail and bounded feeds with exact original-fact comparison and immutable snapshots. Invalid successful write replies stay uncertain. SDK requestViewingV2/proposeViewingV2 dispatch once; getViewingReceiptV2 requires the retained ViewingOriginal and sends only an operation ID in its GET URL. No notes in URLs,no hidden retry or implicit current-version adoption. Read recovery failures remain read-only. Synthetic signed preview allows these routes only with explicit enquiry+catalogue mode; credentials remain server-only.
+
+Verification:139/139 database regression checks passed including8 new viewing scenarios;88/88 domain checks including6 new receipt/feed scenarios;157/157 API checks;180/180 SDK checks;62/62 SDK/service integration checks;13/13 existing signed preview regressions. The new signed viewing integration is one scenario inside62 (also run focused1/1),not an additive extra count. Actual RS256 HTTP/restricted SQL test deliberately discards a committed request reply,recovers and exactly replays its original receipt,proposes a slot,recovers older request facts,checks enquiry version unchanged,and denies foreign/former-assignee/other-requester access. Initial focused7SQL and5SDK runs overlap final suites. Final8 workspace typechecks are recorded separately after receipt type narrowing.
+
+Evidence logs in rebuild-preservation/2026-10-12-source:viewing-database-regression.txt,viewing-receipt-domain-tests.txt,viewing-api-tests.txt,viewing-client-tests-final.txt,viewing-client-integration-regression.txt,viewing-signed-integration.txt,viewing-preview-regression.txt,viewing-backend-types-final.txt. Test databases and fabricated sealed-media metadata are disposable synthetic fixtures,not production/media processing or real PostgreSQL race proof. No browser viewing UI,device,operator UAT or release acceptance was run.
+
+Next: fixed server-only viewing BFF and browser transport/original-attempt controller,then staff request/proposal forms and independent25-entry feed with explicit original receipt recovery,current version comparison and shared denial guard. Confirmation/agreement,rescheduling,cancellation/reminders follow as separate reviewed operations. Browser BFF must validate both version-token field names and keep original private facts in a POST recovery body performing upstream GET only.
+
+## Earlier domain-only checkpoint
+
 Started stages02/06/08/12 from clean source37d2c72 and dashboard46; no active local preview. Boniface + Codex. Existing business-rules.md section6 is authoritative. This first implementation is shared request/proposal validation and a pure first-proposal planner; it creates no SQL row, appointment, notification or confirmation.
 
 Provisional pilot defaults: Kenya/Nairobi intended zone, canonical UTC instants,15-minute to4-hour slots,zero to3 requested alternatives,nonblank private notes up to2000 Unicode code points. Alternatives may be omitted to record interest before a time is known; they are unordered preferences and cannot overlap or duplicate each other. These bounds are engineering defaults for operator review,not accepted service terms. Initial requests/proposals require future start times at server execution. Pure contract validation stays time-independent so original commands remain readable/recoverable after their proposed time passes.

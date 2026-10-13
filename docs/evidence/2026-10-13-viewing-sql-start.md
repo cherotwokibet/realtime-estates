@@ -1,0 +1,3 @@
+# Viewing SQL work started — 13 October 2026
+
+Stages06/08/12, Boniface + Codex. Clean source7a30514 and dashboard47. Implement additive0013 request/proposal storage, current enquiry assignment access, own eligible published listing checks, bounded slot validation, optimistic conflicts and immutable original requester receipts. Tests must cover replay after later proposal/pause/closure, changed original facts, current access/revocation/tenant denials, notes privacy, RLS/table writes and independent enquiry/viewing versions. No existing vendor/live resources changed;16/97 tasks,0/14 gates,KES10,000 monthly price preserved. Start with SQL tests before API/client/UI.

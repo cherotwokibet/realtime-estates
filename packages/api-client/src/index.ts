@@ -1,4 +1,5 @@
 import {
+  validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal,type ViewingRequestCommand,type ViewingProposalCommand,type ViewingReceipt,type ViewingDetail,type ViewingPage,
   validateContactCommand,validateContactReceipt,validateContactPage,type ContactCommand,type ContactReceipt,type ContactPage,validateEnquiryActivityPage,type EnquiryActivityPage,calculateWirePricingV2, kesFromMinor, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2,
   type PricingDisclosure, type PricingInputV2, type PublicLocationV2,
 } from '@realtor/domain';
@@ -8,6 +9,8 @@ export type {EnquiryActivityPage,EnquiryActivityEvent} from '@realtor/domain';
 
 export {validateContactCommand,validateContactReceipt,validateContactPage} from '@realtor/domain';
 export type {ContactCommand,ContactReceipt,ContactPage,ContactEntry,ContactFacts,ContactChannel,ContactOutcome} from '@realtor/domain';
+export {validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage} from '@realtor/domain';
+export type {ViewingOriginal,ViewingSlot,ViewingRequestCommand,ViewingProposalCommand,ViewingSchedule,ViewingReceipt,ViewingDetail,ViewingPage} from '@realtor/domain';
 
 /** Narrow, explicitly validated public API contracts. Identity and tenant selection remain server concerns. */
 export interface PublicPhoto { readonly key: string; readonly alt: string }
@@ -207,7 +210,7 @@ const FINALIZE_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_
 const FINALIZE_PATH=/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/media-attach-intents\/[^/]+\/finalize$/;
 const PREVIEW_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['INVALID_INPUT',400],['FORBIDDEN',403],['UNAUTHENTICATED',401],['VERSION_CONFLICT',409],['REQUEST_ABORTED',400],['SERVICE_UNAVAILABLE',503]]);
 const ENQUIRY_SERVER_STATUS=new Map<string,number>([['INVALID_INPUT',400],['INVALID_JSON',400],['UNAUTHENTICATED',401],['FORBIDDEN',403],['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['CONFLICT',409],['INVALID_STATE',422],['JSON_REQUIRED',415],['BODY_TOO_LARGE',413],['RATE_LIMITED',429],['SERVICE_UNAVAILABLE',503]]);
-const STAFF_ENQUIRY_PATH=/^\/v2\/staff\/(?:enquiries(?:\/[^/?]+(?:\/operations(?:\/[^/?]+)?)?)?|enquiry-assignees)(?:\?limit=[1-9]\d*)?$/;
+const STAFF_ENQUIRY_PATH=/^\/v2\/staff\/(?:enquiries(?:\/[^/?]+(?:\/(?:operations(?:\/[^/?]+)?|viewings(?:\/[^/?]+(?:\/proposals)?)?|viewing-operations\/[^/?]+))?)?|enquiry-assignees)(?:\?limit=[1-9]\d*)?$/;
 const MAX_PREVIEW_BYTES=10485760;
 const nativeTypedArray=Object.getPrototypeOf(Uint8Array.prototype) as object;
 const nativeTypedArrayBuffer=Object.getOwnPropertyDescriptor(nativeTypedArray,'buffer')!.get!;
@@ -897,6 +900,36 @@ export class RealtorApiClient {
     if(data.limit!==captured.limit||typeof data.truncated!=='boolean'||(data.truncated&&rows.length!==captured.limit))return invalid('INVALID_RESPONSE','Invalid bounded enquiry page.');
     const items=rows.map(validateStaffEnquirySummaryV2);if(new Set(items.map(item=>item.id)).size!==items.length)return invalid('INVALID_RESPONSE','Repeated enquiry identity.');
     return Object.freeze({items:Object.freeze(items),limit:captured.limit,truncated:data.truncated});
+  }
+  async requestViewingV2(enquiryId:string,input:ViewingRequestCommand,options:StaffRequestOptions):Promise<ViewingReceipt>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID');let command:ViewingRequestCommand;
+    try{command=validateViewingRequestCommand(input);}catch{return invalid('VALIDATION','Review the viewing request.');}
+    try{const data=await this.request(`/v2/staff/enquiries/${id}/viewings`,'POST',captured,{...command,expectedEnquiryVersion:Number(command.expectedEnquiryVersion)});
+      try{return validateViewingReceipt(data,id,{kind:'request',command});}catch{return invalid('INVALID_RESPONSE','Invalid viewing request receipt.');}
+    }catch(error){return uncertainWriteError(error);}
+  }
+  async proposeViewingV2(enquiryId:string,viewingId:string,input:ViewingProposalCommand,options:StaffRequestOptions):Promise<ViewingReceipt>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),viewing=uuid(viewingId,'VALIDATION','Viewing ID');let command:ViewingProposalCommand;
+    try{command=validateViewingProposalCommand(input);}catch{return invalid('VALIDATION','Review the viewing proposal.');}
+    try{const data=await this.request(`/v2/staff/enquiries/${id}/viewings/${viewing}/proposals`,'POST',captured,{...command,expectedVersion:Number(command.expectedVersion)});
+      try{return validateViewingReceipt(data,id,{kind:'propose',viewingId:viewing,command});}catch{return invalid('INVALID_RESPONSE','Invalid viewing proposal receipt.');}
+    }catch(error){return uncertainWriteError(error);}
+  }
+  async getViewingReceiptV2(enquiryId:string,input:ViewingOriginal,options:StaffRequestOptions):Promise<ViewingReceipt>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID');let original:ViewingOriginal;
+    try{original=validateViewingOriginal(input);}catch{return invalid('VALIDATION','Review the original viewing command.');}
+    const data=await this.request(`/v2/staff/enquiries/${id}/viewing-operations/${original.command.operationId}`,'GET',captured);
+    try{return validateViewingReceipt(data,id,original);}catch{return invalid('INVALID_RESPONSE','Invalid original viewing receipt.');}
+  }
+  async getViewingV2(enquiryId:string,viewingId:string,options:StaffRequestOptions):Promise<ViewingDetail>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),viewing=uuid(viewingId,'VALIDATION','Viewing ID');
+    const data=await this.request(`/v2/staff/enquiries/${id}/viewings/${viewing}`,'GET',captured);
+    try{return validateViewingDetail(data,id,viewing);}catch{return invalid('INVALID_RESPONSE','Invalid private viewing detail.');}
+  }
+  async listViewingsV2(enquiryId:string,options:StaffRequestOptions&{readonly limit?:number}):Promise<ViewingPage>{
+    const captured=enquiryOptions(options,25),id=uuid(enquiryId,'VALIDATION','Enquiry ID');if(captured.limit>25)return invalid('VALIDATION','Viewing limit cannot exceed 25.');
+    const data=await this.request(`/v2/staff/enquiries/${id}/viewings?limit=${captured.limit}`,'GET',captured.options);
+    try{return validateViewingPage(data,id,captured.limit);}catch{return invalid('INVALID_RESPONSE','Invalid private viewing feed.');}
   }
   async recordContactV2(enquiryId:string,input:ContactCommand,options:StaffRequestOptions):Promise<ContactReceipt>{
     const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID');let command:ContactCommand;

@@ -1,4 +1,4 @@
-Latest: viewing request/proposal contracts/planner verified:82 domain tests,domain build,8 workspace typechecks passed;published privately at dashboard47. Next additive0013 guarded request/proposal SQL and original receipt recovery;see viewing-scheduling.md/CONTINUATION.md. No viewing SQL/API/UI exists yet.
+Latest: guarded viewing SQL/API/SDK and strict original receipts verified;139database,88domain,157API,180SDK,62integration,13preview checks passed. Final typecheck/publication status in CONTINUATION.md. Next protected viewing BFF/browser transport/controller/forms/feed;viewing-scheduling.md has contracts. No viewing UI/device/production acceptance yet.
 
 Latest: contact original-attempt controller verified (119 admin checks); next operator form/feed and signed/browser verification. Dashboard publication pending. See CONTINUATION.md.
 
