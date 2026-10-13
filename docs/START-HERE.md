@@ -1,4 +1,4 @@
-Latest: browser exact original contact replay and feed/activity denial verified; shared stale-read guard,121 admin checks,typecheck/build passed. Evidence published owner-private at dashboard46. Next guarded viewing workflow from business-rules.md section6;see CONTINUATION.md. Remaining browser race/expiry/device/UAT/production cases stay open.
+Latest: viewing request/proposal shared contracts and pure first-proposal planner verified:82 domain tests,domain build,8 workspace typechecks passed. Next additive0013 guarded request/proposal SQL and durable original receipt recovery;see viewing-scheduling.md/CONTINUATION.md. No viewing SQL/API/UI exists yet.
 
 Latest: contact original-attempt controller verified (119 admin checks); next operator form/feed and signed/browser verification. Dashboard publication pending. See CONTINUATION.md.
 

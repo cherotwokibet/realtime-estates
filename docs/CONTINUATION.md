@@ -1,5 +1,13 @@
 # Rebuild continuation checkpoint
 
+## Viewing request/proposal domain foundation — 13 October 2026
+
+Started from clean37d2c72/dashboard46,no active preview; stages02/06/08/12. Added shared viewing-scheduling contracts and pure requested→proposed planner:strict authority-free request/proposal fields,immutable original facts,0..3 non-overlapping alternatives,canonical UTC/Nairobi slots,provisional15min..4h duration,private nonblank2000-code-point notes,optimistic versions and future-time first-execution checks. Contract validation remains timeless for original recovery after time passes; proposals never confirm or overwrite an existing proposal. No SQL/API/UI or appointment creation yet. See docs/viewing-scheduling.md for defaults and server-boundary requirements.
+
+82/82 domain tests including10new cases passed,domain build and all8 workspace typechecks passed; shared packages rebuilt. Evidence viewing-domain-build.txt/viewing-domain-tests.txt/viewing-workspace-types.txt in rebuild-preservation/2026-10-12-source. No viewing SQL/API/browser/native/device/UAT/production pass claimed. Existing72 domain tests overlap;do not add counts.
+
+Next publish checkpoint evidence preserving canonical/browser notes,then additive0013 request/proposal SQL:company/enquiry/listing constraints,forced private RLS,current active admin/assigned-agent authority,eligible listing/open enquiry/version checks,immutable original requester receipts/conflicts and exact recovery/replay before time re-evaluation. See viewing-scheduling.md for no hidden confirmation/reschedule semantics. Then protected API/client/proxy and synthetic UI.16/97 tasks,0/14 gates,KES10,000 total monthly price/vendor/live preserved.
+
 ## Browser contact replay and shared read denial guard — 13 October 2026
 
 Actual browser exact-original replay after a committed invalid reply returned original version2 receipt and one feed row with exact raw notes. Admin reassignment then feed-read denial hid saved email/feed/activity while preserving unsaved draft. Added shared EnquiryReadGuard to contact feed/activity successful reads; activity401/403/404 now invokes parent denial too. Admin restored assignment4,agent explicitly compared/adopted4,admin reassigned5; denied activity refresh again hid all saved details and retained exact draft. Evidence docs/evidence/2026-10-13-contact-replay-browser.md/four screenshots. No messages,lifecycle changes or implicit version adoption.
