@@ -1,4 +1,4 @@
-Latest: guarded viewing SQL/API/SDK and strict original receipts verified;139database,88domain,157API,180SDK,62integration,13preview checks passed. Final typecheck/publication status in CONTINUATION.md. Next protected viewing BFF/browser transport/controller/forms/feed;viewing-scheduling.md has contracts. No viewing UI/device/production acceptance yet.
+Latest: guarded viewing SQL/API/SDK verified;139database,88domain,157API,180SDK,62integration,13preview checks and8typechecks passed. Published owner-private dashboard48 with browser notes preserved. Next protected viewing BFF/browser transport/controller/forms/feed;see viewing-scheduling.md/CONTINUATION.md. No viewing UI/device/production acceptance yet.
 
 Latest: contact original-attempt controller verified (119 admin checks); next operator form/feed and signed/browser verification. Dashboard publication pending. See CONTINUATION.md.
 

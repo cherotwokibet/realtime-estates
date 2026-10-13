@@ -8,7 +8,9 @@ Added strict domain original receipt/detail/feed validators,protected source-fre
 
 139database,88domain,157API,180SDK,62SDK/service integration,13signed preview checks passed. One new signed viewing integration inside62also focused1pass:lost committed reply recovered/replayed,older request receipt survives proposal,enquiry version unchanged,foreign/former assignee/other requester denied. Focused/overlapping counts are not additive. Final8workspace typechecks after receipt type narrowing passed;log viewing-backend-types-final.txt. See viewing-scheduling.md for logs/contracts. No viewing browser/UI/device/UAT/production pass claimed.
 
-Open dashboard browser exported before edits to browser-before-viewing-backend.json;note input empty,checklist/status/gates/evidence matched canonical47. Browser baseline46 contains one extra note to merge. Visible latest-checkpoint banner was stale from earlier contact API;update it with current backend status while preserving older evidence/history. Next checkpoint publication,then fixed server BFF/browser transport/original-attempt controller and staff forms/feed.16/97tasks,0/14gates,KES10,000totalmonthlyprice/vendor/live preserved.
+Evidence published owner-private:trackere21dabf0cea002b075dcd585aad76c6b1918d62d,baseline viewing-backend-2026-10-13-48,deployment appgdep_6ace940d623c8191a0cd6ee88f2b22ee succeeded. Both current browser exports preserved,empty unsaved note and matching checklist/status/gates/evidence;all182 canonical notes retained,1 browser note merged,4 added. Latest visible banner now describes viewing backend;earlier checkpoint evidence retained in disclosure. Source16525ec full-history bundle verified,fresh matching clone/fsck passed;same-device only.
+
+Next fixed server BFF/browser transport/original-attempt controller and staff request/proposal forms with independent feed. Recovery POST keeps original facts out of URLs and performs upstream GET only;retain input through denied/uncertain recovery and share workspace denial guard.16/97tasks,0/14gates,KES10,000totalmonthlyprice/vendor/live preserved.
 
 ## Viewing request/proposal domain foundation — 13 October 2026
 
