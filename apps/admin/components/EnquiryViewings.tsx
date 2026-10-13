@@ -5,12 +5,16 @@ import {createEnquiryPreviewClient,EnquiryPreviewError} from '../lib/enquiry-cli
 import {prepareViewingAttempt,type ViewingAttempt} from '../lib/viewing-attempt';
 import {formatEnquiryTime,fromNairobiInput} from '../lib/enquiry-model';
 import type {EnquiryReadGuard} from '../lib/enquiry-read-guard';
+import type {ViewingPropertyChoice,ViewingPropertyPage} from '../lib/viewing-properties';
 
 type Props={actor:'admin'|'agent';instanceId:string;enquiryId:string;version:string|null;listingId:string|null;onGuard:(value:boolean)=>void;onAccessDenied:(error:unknown)=>void;readGuard:EnquiryReadGuard};
 export default function EnquiryViewings({actor,instanceId,enquiryId,version,listingId,onGuard,onAccessDenied,readGuard}:Props){
  const client=useMemo(()=>createEnquiryPreviewClient({basePath:`/api/enquiry-preview/${actor}`,instanceId}),[actor,instanceId]);
  const [notes,setNotes]=useState(''),[start,setStart]=useState(''),[end,setEnd]=useState('');
  const [selected,setSelected]=useState<ViewingDetail|null>(null),[attempt,setAttempt]=useState<ViewingAttempt|null>(null);
+ const [properties,setProperties]=useState<ViewingPropertyPage|null>(null),[property,setProperty]=useState<ViewingPropertyChoice|null>(null);
+ const [propertyBusy,setPropertyBusy]=useState(false),[propertyError,setPropertyError]=useState(false);
+ const propertyGeneration=useRef(0),propertyReader=useRef<AbortController|null>(null);
  const original=useRef<ViewingAttempt|null>(null),lock=useRef(false),alive=useRef(true);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[page,setPage]=useState<ViewingPage|null>(null);
  const [reading,setReading]=useState(false),[readError,setReadError]=useState(false);
@@ -24,6 +28,14 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
   finally{if(alive.current&&turn===generation.current)setReading(false);}
  }
  useEffect(()=>{alive.current=true;void refresh();return()=>{alive.current=false;generation.current++;reader.current?.abort();};},[client,enquiryId]);
+ async function refreshProperties(){
+  const turn=++propertyGeneration.current;propertyReader.current?.abort();const controller=new AbortController();propertyReader.current=controller;const mayApply=readGuard.capture();
+  setProperties(null);setPropertyBusy(true);setPropertyError(false);
+  try{const value=await client.viewingProperties(controller.signal);if(alive.current&&turn===propertyGeneration.current&&mayApply())setProperties(value);}
+  catch(error){if(alive.current&&turn===propertyGeneration.current){setPropertyError(true);deny(error);}}
+  finally{if(alive.current&&turn===propertyGeneration.current)setPropertyBusy(false);}
+ }
+ useEffect(()=>{if(version&&!listingId)void refreshProperties();return()=>{propertyGeneration.current++;propertyReader.current?.abort();};},[client,version,listingId]);
  function slot():ViewingSlot{
   const value={startAt:fromNairobiInput(start),endAt:fromNairobiInput(end),timeZone:'Africa/Nairobi' as const};
   if(Date.parse(value.startAt)<=Date.now())throw new Error('Choose a future viewing time.');
@@ -36,10 +48,10 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
   try{
    let captured=original.current;
    if(mode==='submit'){
-    if(captured||!version||!selected&&!listingId)throw new EnquiryPreviewError('validation');
+    if(captured||!version||!selected&&!listingId&&!property)throw new EnquiryPreviewError('validation');
     captured=prepareViewingAttempt(client,enquiryId,selected
      ?{kind:'propose',viewingId:selected.schedule.viewingId,command:{operationId:crypto.randomUUID(),expectedVersion:selected.schedule.version,slot:slot()}}
-     :{kind:'request',command:{operationId:crypto.randomUUID(),expectedEnquiryVersion:version,listingId:listingId!,notes,preferredSlots:start||end?[slot()]:[]}});
+     :{kind:'request',command:{operationId:crypto.randomUUID(),expectedEnquiryVersion:version,listingId:listingId??property!.id,notes,preferredSlots:start||end?[slot()]:[]}});
     original.current=captured;setAttempt(captured);onGuard(true);
    }
    if(!captured)throw new EnquiryPreviewError('validation');
@@ -49,18 +61,27 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
  }
  function clear(){
   if(lock.current||original.current?.status==='uncertain'||original.current?.status==='sending')return;
-  original.current=null;setAttempt(null);setSelected(null);setNotes('');setStart('');setEnd('');setError('');onGuard(false);
+  original.current=null;setAttempt(null);setSelected(null);setProperty(null);setNotes('');setStart('');setEnd('');setError('');onGuard(false);
  }
- function choose(item:ViewingDetail){if(lock.current||original.current||notes||start||end||selected)return;setSelected(item);onGuard(true);}
+ function choose(item:ViewingDetail){if(lock.current||original.current||notes||start||end||selected||property)return;setSelected(item);onGuard(true);}
  const uncertain=attempt?.status==='uncertain',receipt=attempt?.receipt;
  return <section className="enq-contacts" aria-label="Viewing scheduling">
   <h3>{selected?'Propose a viewing time':'Request a viewing'}</h3>
   <p className="enq-subtle">Synthetic scheduling preview. A proposal awaits customer agreement. Saving sends no invitation and does not confirm an appointment or reserve staff time.</p>
   <p className="enq-warning">Input and original operations stay only in this tab. Closing or reloading loses recovery details. Finish or clear this work before switching enquiries or roles.</p>
-  {version&&!listingId&&!selected&&<p>New requests currently require a property-linked enquiry. General enquiries need a property selection workflow.</p>}
+  {version&&!listingId&&!selected&&<div>
+   <label>Property for this viewing<select disabled={busy||!!attempt||propertyBusy} value={property?.id??''} onChange={event=>{if(lock.current||original.current)return;const choice=properties?.items.find(item=>item.id===event.target.value)??null;setProperty(choice);onGuard(true);}}>
+    <option value="">Choose a property</option>{property&&!properties?.items.some(item=>item.id===property.id)&&<option value={property.id}>{property.title} · retained selection, check availability</option>}
+    {properties?.items.map(item=><option key={item.id} value={item.id}>{item.title} · {item.locality} · {item.purpose==='rent'?'Rent':'Buy'}</option>)}
+   </select></label>
+   <button type="button" className="enq-secondary" disabled={propertyBusy||busy} onClick={()=>void refreshProperties()}>Refresh property choices</button>
+   {propertyBusy&&<p role="status">Loading eligible property choices…</p>}{propertyError&&<p role="alert">Property choices unavailable. Try a fresh read.</p>}
+   {properties&&<p className="enq-subtle">{properties.items.length} public properties loaded{properties.mayBeTruncated?' · more may exist':''}. Availability is checked again when saving. Refreshing choices does not replace your selection.</p>}
+   {property&&<p>Selected property: {property.title}. This applies to this viewing request and does not change the general enquiry.</p>}
+  </div>}
   {selected&&<p>Selected request {selected.schedule.viewingId} · viewing version {selected.schedule.version}. Refreshing the feed does not replace this selection.</p>}
   <form className="enq-form" onSubmit={event=>{event.preventDefault();void run('submit');}}>
-   <fieldset disabled={busy||!!attempt||!version||!selected&&!listingId}><legend className="sr-only">Viewing details</legend>
+   <fieldset disabled={busy||!!attempt||!version||!selected&&!listingId&&!property}><legend className="sr-only">Viewing details</legend>
     {!selected&&<label>Viewing request notes<textarea required rows={3} value={notes} onChange={event=>{setNotes(event.target.value);onGuard(true);}}/><small>{[...notes].length} / 2,000 characters. Original spacing is retained.</small></label>}
     <p>{selected?'Proposed time':'Optional preferred time'} · Nairobi (EAT, UTC+03:00), 15 minutes to 4 hours.</p>
     <label>Viewing start · Nairobi<input type="datetime-local" step="0.001" required={!!selected||!!end} value={start} onInput={event=>{setStart(event.currentTarget.value);onGuard(true);}} onChange={event=>{setStart(event.target.value);onGuard(true);}}/></label>
@@ -83,7 +104,7 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
    <p className="enq-contact-notes">{item.notes}</p>
    {item.schedule.preferredSlots.map((slot,index)=><span key={index}>Preferred: {formatEnquiryTime(slot.startAt)} – {formatEnquiryTime(slot.endAt)}</span>)}
    {item.schedule.proposedSlot&&<span>Proposed: {formatEnquiryTime(item.schedule.proposedSlot.startAt)} – {formatEnquiryTime(item.schedule.proposedSlot.endAt)}</span>}
-   {item.schedule.status==='requested'&&<button type="button" className="enq-secondary" disabled={busy||!!attempt||!!selected||!!notes||!!start||!!end} onClick={()=>choose(item)}>Prepare proposal for this request</button>}
+   {item.schedule.status==='requested'&&<button type="button" className="enq-secondary" disabled={busy||!!attempt||!!selected||!!property||!!notes||!!start||!!end} onClick={()=>choose(item)}>Prepare proposal for this request</button>}
   </li>)}</ol>{!page.items.length&&<p>No viewings in this visible slice.</p>}</>}
  </section>;
 }

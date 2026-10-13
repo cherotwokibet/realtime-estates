@@ -1,3 +1,4 @@
+import {validateViewingProperties,type ViewingPropertyPage} from './viewing-properties.ts';
 import {validateContactCommand,validateContactReceipt,validateContactPage,type ContactCommand,type ContactReceipt,type ContactPage} from '@realtor/api-client';
 import {validateViewingOriginal,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal,type ViewingReceipt,type ViewingDetail,type ViewingPage} from '@realtor/api-client';
 import {validateEnquiryActivityPage,type EnquiryActivityPage,validateStaffEnquiryInput,type StaffEnquiryInput,type EnquiryReceipt,validateStaffEnquirySummaryV2,validateStaffEnquiryDetailV2,validateEnquiryOperationReceiptV2,type StaffEnquiryPageV2,type StaffEnquiryDetailV2,type EnquiryAssigneePageV2,type EnquiryOperationInputV2,type EnquiryOperationReceiptV2} from '@realtor/api-client';
@@ -12,6 +13,7 @@ export class EnquiryPreviewError extends Error {
 }
 export interface CaptureAttempt {readonly input:StaffEnquiryInput;readonly key:string;readonly status:"ready"|"sending"|"uncertain"|"received"|"rejected";readonly receipt:EnquiryReceipt|null;submit(signal?:AbortSignal):Promise<EnquiryReceipt>;retryOriginal(signal?:AbortSignal):Promise<EnquiryReceipt>}
 export interface EnquiryPreviewClient {
+  viewingProperties(signal?:AbortSignal):Promise<ViewingPropertyPage>;
   viewings(id:string,signal?:AbortSignal):Promise<ViewingPage>;
   viewing(id:string,viewingId:string,signal?:AbortSignal):Promise<ViewingDetail>;
   saveViewing(id:string,original:ViewingOriginal,signal?:AbortSignal):Promise<ViewingReceipt>;
@@ -151,6 +153,7 @@ export function createEnquiryPreviewClient(input:Configuration):EnquiryPreviewCl
   const viewingOriginal=(input:ViewingOriginal)=>{try{return validateViewingOriginal(input);}catch{throw new EnquiryPreviewError('validation');}};
   const viewingWire=(original:ViewingOriginal)=>({...original,command:original.kind==='request'?{...original.command,expectedEnquiryVersion:Number(original.command.expectedEnquiryVersion)}:{...original.command,expectedVersion:Number(original.command.expectedVersion)}});
   return Object.freeze({
+    viewingProperties:(signal?:AbortSignal)=>request(`${basePath}/viewing-properties?limit=25`,'GET',signal,value=>validateViewingProperties(value)),
     viewings:(id:string,signal?:AbortSignal)=>{const selected=selectedId(id);return request(`${basePath}/enquiries/${selected}/viewings?limit=25`,'GET',signal,value=>validateViewingPage(value,selected,25));},
     viewing:(id:string,viewingId:string,signal?:AbortSignal)=>{const selected=selectedId(id),viewing=selectedId(viewingId);return request(`${basePath}/enquiries/${selected}/viewings/${viewing}`,'GET',signal,value=>validateViewingDetail(value,selected,viewing));},
     saveViewing:(id:string,input:ViewingOriginal,signal?:AbortSignal)=>{const selected=selectedId(id),original=viewingOriginal(input),wire=viewingWire(original);return request(original.kind==='request'?`${basePath}/enquiries/${selected}/viewings`:`${basePath}/enquiries/${selected}/viewings/${original.viewingId}/proposals`,'POST',signal,value=>validateViewingReceipt(value,selected,original),wire.command);},

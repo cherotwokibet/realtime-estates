@@ -1,0 +1,3 @@
+# General-enquiry property picker work started — 13 October 2026
+
+Starting from clean47e11fb operator checkpoint and owner-private dashboardc9e32b2/baseline49,succeeded deployment appgdep_6ace9a8d39a88191a75effffce989800. No preview active. Stages02/06/08/12. Add bounded read-only server-fixed public eligible catalogue choices for general viewing requests; no manual IDs,caller tenant/credentials or implicit selection. Selection remains explicit/local and SQL rechecks availability/current access at save. Preserve linked enquiry binding and all original attempt/denial guards. Tests,browser proof and checkpoint publication before completion;no agreement/confirmation or launch gate claim.

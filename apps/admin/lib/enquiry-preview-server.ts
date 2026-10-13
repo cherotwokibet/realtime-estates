@@ -1,10 +1,11 @@
+import {validateViewingProperties} from './viewing-properties.ts';
 import 'server-only';
 import {validateViewingOriginal,type ViewingOriginal,type ViewingReceipt} from '@realtor/api-client';
 import {validateContactCommand,type ContactCommand,handleSyntheticEnquiry,ApiClientError,RealtorApiClient,type EnquiryOperationInputV2} from '@realtor/api-client';
 import {assertPreviewRequest} from './staff-preview-policy.ts';
 
 type Actor='admin'|'agent';
-type Action='list'|'detail'|'assignees'|'command'|'operation'|'activity'|'contacts'|'contact-record'|'contact-recover'|'viewing-list'|'viewing-detail'|'viewing-request'|'viewing-propose'|'viewing-recover';
+type Action='viewing-properties'|'list'|'detail'|'assignees'|'command'|'operation'|'activity'|'contacts'|'contact-record'|'contact-recover'|'viewing-list'|'viewing-detail'|'viewing-request'|'viewing-propose'|'viewing-recover';
 type Params={actor:string;id?:string;operationId?:string;viewingId?:string};
 type Environment=Readonly<Record<string,string|undefined>>;
 type Scope=Readonly<{actorId:string;role:Actor;instanceId:string}>;
@@ -53,18 +54,18 @@ function requestShape(request:Request,params:Params,action:Action):number|undefi
   const contact=action==='contact-record'||action==='contact-recover',viewingBody=['viewing-request','viewing-propose','viewing-recover'].includes(action),bodyAction=action==='command'||contact||viewingBody;
   const url=new URL(request.url),base=`/api/enquiry-preview/${params.actor}`;
   if(url.hash||request.url.includes('#')||[params.id,params.operationId,params.viewingId].some(value=>value!==undefined&&!UUID.test(value)))throw new BoundaryError(400,'INVALID_INPUT');
-  const path=action==='list'?`${base}/enquiries`:action==='assignees'?`${base}/assignees`:
+  const path=action==='viewing-properties'?`${base}/viewing-properties`:action==='list'?`${base}/enquiries`:action==='assignees'?`${base}/assignees`:
     action==='viewing-list'||action==='viewing-request'?`${base}/enquiries/${params.id}/viewings`:action==='viewing-detail'?`${base}/enquiries/${params.id}/viewings/${params.viewingId}`:action==='viewing-propose'?`${base}/enquiries/${params.id}/viewings/${params.viewingId}/proposals`:action==='viewing-recover'?`${base}/enquiries/${params.id}/viewings/recover`:
     action==='contacts'||action==='contact-record'?`${base}/enquiries/${params.id}/contacts`:action==='contact-recover'?`${base}/enquiries/${params.id}/contacts/recover`:action==='activity'?`${base}/enquiries/${params.id}/activity`:action==='detail'?`${base}/enquiries/${params.id}`:action==='command'?`${base}/enquiries/${params.id}/operations`:`${base}/enquiries/${params.id}/operations/${params.operationId}`;
-  if(url.pathname!==path||(['list','assignees'].includes(action)?params.id!==undefined||params.operationId!==undefined:!params.id)
+  if(url.pathname!==path||(['list','assignees','viewing-properties'].includes(action)?params.id!==undefined||params.operationId!==undefined:!params.id)
     ||(action==='operation'?!params.operationId:params.operationId!==undefined))throw new BoundaryError(400,'INVALID_INPUT');
   if(['viewing-detail','viewing-propose'].includes(action)?!params.viewingId:params.viewingId!==undefined)throw new BoundaryError(400,'INVALID_INPUT');
   if(params.actor==='agent'&&action==='assignees')throw new BoundaryError(403,'FORBIDDEN');
   let limit:number|undefined;
-  if(action==='list'||action==='assignees'||action==='activity'||action==='contacts'||action==='viewing-list'){
+  if(action==='list'||action==='assignees'||action==='activity'||action==='contacts'||action==='viewing-list'||action==='viewing-properties'){
     if(request.url.includes('?')&&!/^\?limit=[1-9]\d{0,2}$/.test(url.search))throw new BoundaryError(400,'INVALID_INPUT');
-    limit=url.search?Number(url.search.slice(7)):action==='contacts'||action==='viewing-list'?25:action==='assignees'?100:50;
-    if(limit<1||limit>(action==='contacts'||action==='viewing-list'?25:100))throw new BoundaryError(400,'INVALID_INPUT');
+    limit=url.search?Number(url.search.slice(7)):['contacts','viewing-list','viewing-properties'].includes(action)?25:action==='assignees'?100:50;
+    if(limit<1||limit>(['contacts','viewing-list','viewing-properties'].includes(action)?25:100))throw new BoundaryError(400,'INVALID_INPUT');
   }else if(url.search||request.url.includes('?'))throw new BoundaryError(400,'INVALID_INPUT');
   let forbidden=false;
   request.headers.forEach((_,name)=>{
@@ -157,7 +158,11 @@ export async function enquiryPreviewRequest(request:Request,params:Params,action
     const viewing=['viewing-request','viewing-propose','viewing-recover'].includes(action)?await viewingBody(request,action,params.viewingId):undefined;
     const client=new RealtorApiClient({baseUrl:config.origin,privacyNoticeVersion:'synthetic-preview-v1',allowLoopbackHttp:true}),options={bearerToken:config.bearerToken,signal:request.signal,timeoutMs:30000};
     let result:unknown;
-    if(action==='viewing-list')result=await client.listViewingsV2(params.id!,{...options,limit});
+    if(action==='viewing-properties'){
+      const page=await client.listPropertiesV2({limit,signal:request.signal,timeoutMs:30000});
+      result=validateViewingProperties({items:page.items.map(({id,title,locality,purpose})=>({id,title,locality,purpose})),limit:page.limit,mayBeTruncated:page.items.length===page.limit},page.limit);
+    }
+    else if(action==='viewing-list')result=await client.listViewingsV2(params.id!,{...options,limit});
     else if(action==='viewing-detail')result=await client.getViewingV2(params.id!,params.viewingId!,options);
     else if(action==='viewing-recover')result=await client.getViewingReceiptV2(params.id!,viewing!,options);
     else if(action==='viewing-request'&&viewing?.kind==='request'){writeDispatched=true;result=await client.requestViewingV2(params.id!,viewing.command,options);}
