@@ -1,5 +1,12 @@
 # Rebuild continuation checkpoint
 
+## Contact browser transport - 13 October 2026
+
+Added strict source-free browser methods contacts,recordContact,recoverContact. Fixed same-origin actor route and preview instance only; no browser bearer or caller actor/company. Original contact command validated before dispatch and exact receipt compared to original facts. Recovery POST carries private facts in its body and is explicitly classified read-only for network,timeout,cancellation,HTTP and invalid-response failures. Collection requests25 entries within the existing512KiB decoded cap. No hidden retry or workflow-version adoption.
+
+Final116/116 admin tests passed, including new contact browser transport tests; compilation passed. Earlier114/114 regression run also passed (overlapping,not additive). Evidence: contact-browser-client-tests.txt and contact-browser-client-regression.txt in rebuild-preservation/2026-10-12-source. Operator form,retained-attempt controller,contact feed UI,signed contact-preview integration and browser/device UAT remain outstanding. Next implement retained-attempt lock/recover/replay state machine before form/feed wiring. Publish both this and preceding proxy checkpoint to existing private dashboard after preserving browser notes; publication remains pending. Checklist16/97,gates0/14,KES10,000 recurring client price preserved; old/vendor resources untouched.
+
+
 ## Contact server proxy checkpoint - 13 October 2026
 
 Implemented fixed-role server-only contact record/list/recovery routes and the signed synthetic preview allowlist. Recovery accepts the retained original command in a POST body, performs only an upstream GET, and never puts private notes in URLs. Collection reads default to and cap at25 entries for the existing512KiB browser response budget. Contact bodies are bounded to16KiB; duplicate keys, caller authority, wrong instance and malformed input fail before dispatch. Network write failures remain uncertain without automatic retries; recovery failures remain read-only.

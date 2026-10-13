@@ -1,3 +1,4 @@
+import {validateContactCommand,validateContactReceipt,validateContactPage,type ContactCommand,type ContactReceipt,type ContactPage} from '@realtor/api-client';
 import {validateEnquiryActivityPage,type EnquiryActivityPage,validateStaffEnquiryInput,type StaffEnquiryInput,type EnquiryReceipt,validateStaffEnquirySummaryV2,validateStaffEnquiryDetailV2,validateEnquiryOperationReceiptV2,type StaffEnquiryPageV2,type StaffEnquiryDetailV2,type EnquiryAssigneePageV2,type EnquiryOperationInputV2,type EnquiryOperationReceiptV2} from '@realtor/api-client';
 import {validateEnquiryCommand} from './enquiry-model.ts';
 
@@ -10,6 +11,9 @@ export class EnquiryPreviewError extends Error {
 }
 export interface CaptureAttempt {readonly input:StaffEnquiryInput;readonly key:string;readonly status:"ready"|"sending"|"uncertain"|"received"|"rejected";readonly receipt:EnquiryReceipt|null;submit(signal?:AbortSignal):Promise<EnquiryReceipt>;retryOriginal(signal?:AbortSignal):Promise<EnquiryReceipt>}
 export interface EnquiryPreviewClient {
+  contacts(id:string,signal?:AbortSignal):Promise<ContactPage>;
+  recordContact(id:string,input:ContactCommand,signal?:AbortSignal):Promise<ContactReceipt>;
+  recoverContact(id:string,input:ContactCommand,signal?:AbortSignal):Promise<ContactReceipt>;
   prepareCapture(input:StaffEnquiryInput,key:string):CaptureAttempt;
   activity(id:string,signal?:AbortSignal):Promise<EnquiryActivityPage>;
   list(signal?:AbortSignal):Promise<StaffEnquiryPageV2>;
@@ -81,10 +85,10 @@ export function createEnquiryPreviewClient(input:Configuration):EnquiryPreviewCl
   const configuredTimeout=config.timeoutMs===undefined?20000:config.timeoutMs;
   if(typeof configuredTimeout!=='number'||!Number.isSafeInteger(configuredTimeout)||configuredTimeout<1||configuredTimeout>30000)throw new EnquiryPreviewError('validation');
   const timeoutMs:number=configuredTimeout;
-  async function request<T>(path:string,method:'GET'|'POST',signal:AbortSignal|undefined,parse:(value:unknown)=>T,body?:Record<string,unknown>,captureKey?:string):Promise<T>{
+  async function request<T>(path:string,method:'GET'|'POST',signal:AbortSignal|undefined,parse:(value:unknown)=>T,body?:Record<string,unknown>,captureKey?:string,readOnly=false):Promise<T>{
     if(signal!==undefined&&!(signal instanceof AbortSignal))throw new EnquiryPreviewError('validation');
     if(signal?.aborted)throw new EnquiryPreviewError('cancelled');
-    const writes=method==='POST',controller=new AbortController(),deadline=performance.now()+timeoutMs;
+    const writes=method==='POST'&&!readOnly,controller=new AbortController(),deadline=performance.now()+timeoutMs;
     let dispatched=false,interruption:EnquiryPreviewError|undefined,reader:ReadableStreamDefaultReader<Uint8Array>|undefined;
     let rejectStop:(error:EnquiryPreviewError)=>void=()=>undefined;
     const stopped=new Promise<never>((_,reject)=>{rejectStop=reject;});
@@ -138,7 +142,11 @@ export function createEnquiryPreviewClient(input:Configuration):EnquiryPreviewCl
     }finally{clearTimeout(timer);signal?.removeEventListener('abort',cancel);}
   }
   const command=(value:EnquiryOperationInputV2)=>{try{return validateEnquiryCommand(value);}catch{throw new EnquiryPreviewError('validation');}};
+  const contactCommand=(input:ContactCommand)=>{try{return validateContactCommand(input);}catch{throw new EnquiryPreviewError('validation');}};
   return Object.freeze({
+    contacts:(id:string,signal?:AbortSignal)=>request(`${basePath}/enquiries/${selectedId(id)}/contacts?limit=25`,'GET',signal,value=>validateContactPage(value,25)),
+    recordContact:async(id:string,input:ContactCommand,signal?:AbortSignal)=>{const selected=selectedId(id),original=contactCommand(input);return request(`${basePath}/enquiries/${selected}/contacts`,'POST',signal,value=>validateContactReceipt(value,selected,original.operationId,original),{...original,expectedVersion:Number(original.expectedVersion)});},
+    recoverContact:async(id:string,input:ContactCommand,signal?:AbortSignal)=>{const selected=selectedId(id),original=contactCommand(input);return request(`${basePath}/enquiries/${selected}/contacts/recover`,'POST',signal,value=>validateContactReceipt(value,selected,original.operationId,original),{...original,expectedVersion:Number(original.expectedVersion)},undefined,true);},
     prepareCapture:(input:StaffEnquiryInput,key:string):CaptureAttempt=>{
       let captured:StaffEnquiryInput,body:Record<string,unknown>,originalKey:string;
       try{originalKey=selectedId(key);captured=Object.freeze({...own(input,Reflect.ownKeys(input) as string[])}) as unknown as StaffEnquiryInput;body={...validateStaffEnquiryInput(captured,'synthetic-staff-notice-v1')};}catch{throw new EnquiryPreviewError('validation');}

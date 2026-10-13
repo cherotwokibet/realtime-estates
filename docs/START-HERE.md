@@ -1,3 +1,5 @@
+Latest: strict contact browser transport verified (116 admin checks); next retained original attempt controller and operator form/feed. Dashboard publication of browser/proxy checkpoints pending. See CONTINUATION.md.
+
 Latest: protected contact API/shared client verified; next synthetic proxy and operator form/feed with original recovery. See CONTINUATION.md. Older sections historical.
 
 Latest: explicit contact log SQL verified; next strict shared contact contracts/API/SDK then operator UI. See CONTINUATION.md. Earlier sections historical.
