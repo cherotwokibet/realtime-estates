@@ -1,4 +1,4 @@
-Latest: viewing request/proposal shared contracts and pure first-proposal planner verified:82 domain tests,domain build,8 workspace typechecks passed. Next additive0013 guarded request/proposal SQL and durable original receipt recovery;see viewing-scheduling.md/CONTINUATION.md. No viewing SQL/API/UI exists yet.
+Latest: viewing request/proposal contracts/planner verified:82 domain tests,domain build,8 workspace typechecks passed;published privately at dashboard47. Next additive0013 guarded request/proposal SQL and original receipt recovery;see viewing-scheduling.md/CONTINUATION.md. No viewing SQL/API/UI exists yet.
 
 Latest: contact original-attempt controller verified (119 admin checks); next operator form/feed and signed/browser verification. Dashboard publication pending. See CONTINUATION.md.
 

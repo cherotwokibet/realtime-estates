@@ -6,7 +6,9 @@ Started from clean37d2c72/dashboard46,no active preview; stages02/06/08/12. Adde
 
 82/82 domain tests including10new cases passed,domain build and all8 workspace typechecks passed; shared packages rebuilt. Evidence viewing-domain-build.txt/viewing-domain-tests.txt/viewing-workspace-types.txt in rebuild-preservation/2026-10-12-source. No viewing SQL/API/browser/native/device/UAT/production pass claimed. Existing72 domain tests overlap;do not add counts.
 
-Next publish checkpoint evidence preserving canonical/browser notes,then additive0013 request/proposal SQL:company/enquiry/listing constraints,forced private RLS,current active admin/assigned-agent authority,eligible listing/open enquiry/version checks,immutable original requester receipts/conflicts and exact recovery/replay before time re-evaluation. See viewing-scheduling.md for no hidden confirmation/reschedule semantics. Then protected API/client/proxy and synthetic UI.16/97 tasks,0/14 gates,KES10,000 total monthly price/vendor/live preserved.
+Evidence publication succeeded owner-private:trackerd9e5c3093acb6cecaa3685a067afc9d6152451bd,baseline viewing-domain-2026-10-13-47,deployment appgdep_6ace8ac0c2348191838def3b1c94483d. All178 canonical notes retained,4 added;browser merge/export behavior untouched,no import/reset. Sourcee3a2a13 full-history bundle verified,fresh clone matched HEAD,fsck passed;same-device recovery only.
+
+Next additive0013 request/proposal SQL:company/enquiry/listing constraints,forced private RLS,current active admin/assigned-agent authority,eligible listing/open enquiry/version checks,immutable original requester receipts/conflicts and exact recovery/replay before time re-evaluation. Start from existing0012 contact receipt guard/locking and test-helpers/migrations.mjs explicit migration list;update foundation every-table/RLS inventory with new tables. See viewing-scheduling.md for no hidden confirmation/reschedule semantics. Then protected API/client/proxy and synthetic UI.16/97 tasks,0/14 gates,KES10,000 total monthly price/vendor/live preserved.
 
 ## Browser contact replay and shared read denial guard — 13 October 2026
 
