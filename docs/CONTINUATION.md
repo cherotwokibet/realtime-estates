@@ -1,5 +1,10 @@
 # Rebuild continuation checkpoint
 
+## Connected staff capture form - 13 October 2026
+
+Both fixed-role staff forms now save through the protected server proxy; strict source-free browser client freezes original input/key, locks concurrent sends and explicitly replays uncertainty. Final106 admin checks,8 typechecks and admin build passed. Actual1280px admin+agent save verified; admin inbox staff-origin version1 readback and screenshots preserved. See staff-enquiry-capture.md and three form logs. No browser lost-reply injection/narrow/device/UAT/production claim. Owned preview stopped. Next attributable bounded contact-history timeline, then separate viewing scheduling. Memory-only recovery/expiry and agent-created unassigned visibility remain limitations. Checklist16/97,gates0/14. Inspect latest tracker/source state before editing.
+
+
 ## Protected staff preview proxy - 13 October 2026
 
 Server-only fixed-role capture routes now enforce bounded same-origin/instance requests, reject caller authority/source and forward signed staff identity. Final24 admin boundary,10 actual preview API,173 client,26 web checks;8 typechecks and admin build passed. See staff-enquiry-capture.md and proxy logs. Next source-free strict same-origin browser client/form, explicit original recovery and truthful fixed-actor receipt. No browser bearer placeholders. Agent-created unassigned receipt/inbox visibility needs explicit UX. UI/device/UAT/production remain open;16/97 tasks,0/14 gates. Inspect latest tracker before editing.

@@ -1,4 +1,4 @@
-import {validateStaffEnquirySummaryV2,validateStaffEnquiryDetailV2,validateEnquiryOperationReceiptV2,type StaffEnquiryPageV2,type StaffEnquiryDetailV2,type EnquiryAssigneePageV2,type EnquiryOperationInputV2,type EnquiryOperationReceiptV2} from '@realtor/api-client';
+import {validateStaffEnquiryInput,type StaffEnquiryInput,type EnquiryReceipt,validateStaffEnquirySummaryV2,validateStaffEnquiryDetailV2,validateEnquiryOperationReceiptV2,type StaffEnquiryPageV2,type StaffEnquiryDetailV2,type EnquiryAssigneePageV2,type EnquiryOperationInputV2,type EnquiryOperationReceiptV2} from '@realtor/api-client';
 import {validateEnquiryCommand} from './enquiry-model.ts';
 
 export type EnquiryPreviewErrorKind='validation'|'network'|'timeout'|'cancelled'|'response'|'http';
@@ -8,7 +8,9 @@ export class EnquiryPreviewError extends Error {
     super(kind==='validation'?'Check the enquiry fields before continuing.':kind==='timeout'?'The enquiry request timed out.':kind==='cancelled'?'The enquiry request was cancelled.':kind==='http'?'The enquiry service could not complete this request.':'The enquiry response could not be confirmed.');this.name='EnquiryPreviewError';
   }
 }
+export interface CaptureAttempt {readonly input:StaffEnquiryInput;readonly key:string;readonly status:"ready"|"sending"|"uncertain"|"received"|"rejected";readonly receipt:EnquiryReceipt|null;submit(signal?:AbortSignal):Promise<EnquiryReceipt>;retryOriginal(signal?:AbortSignal):Promise<EnquiryReceipt>}
 export interface EnquiryPreviewClient {
+  prepareCapture(input:StaffEnquiryInput,key:string):CaptureAttempt;
   list(signal?:AbortSignal):Promise<StaffEnquiryPageV2>;
   detail(id:string,signal?:AbortSignal):Promise<StaffEnquiryDetailV2>;
   assignees(signal?:AbortSignal):Promise<EnquiryAssigneePageV2>;
@@ -78,7 +80,7 @@ export function createEnquiryPreviewClient(input:Configuration):EnquiryPreviewCl
   const configuredTimeout=config.timeoutMs===undefined?20000:config.timeoutMs;
   if(typeof configuredTimeout!=='number'||!Number.isSafeInteger(configuredTimeout)||configuredTimeout<1||configuredTimeout>30000)throw new EnquiryPreviewError('validation');
   const timeoutMs:number=configuredTimeout;
-  async function request<T>(path:string,method:'GET'|'POST',signal:AbortSignal|undefined,parse:(value:unknown)=>T,body?:Record<string,unknown>):Promise<T>{
+  async function request<T>(path:string,method:'GET'|'POST',signal:AbortSignal|undefined,parse:(value:unknown)=>T,body?:Record<string,unknown>,captureKey?:string):Promise<T>{
     if(signal!==undefined&&!(signal instanceof AbortSignal))throw new EnquiryPreviewError('validation');
     if(signal?.aborted)throw new EnquiryPreviewError('cancelled');
     const writes=method==='POST',controller=new AbortController(),deadline=performance.now()+timeoutMs;
@@ -91,7 +93,7 @@ export function createEnquiryPreviewClient(input:Configuration):EnquiryPreviewCl
     try{
       const operation=(async()=>{
         check();dispatched=true;
-        const pending=transport(path,{method,signal:controller.signal,credentials:'omit',cache:'no-store',redirect:'error',headers:{Accept:'application/json','X-Preview-Instance':instanceId,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+        const pending=transport(path,{method,signal:controller.signal,credentials:'omit',cache:'no-store',redirect:'error',headers:{Accept:'application/json','X-Preview-Instance':instanceId,...(captureKey?{'Idempotency-Key':captureKey}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
         void pending.then(response=>{if(interruption)disposeBody(response);},()=>undefined);
         let response:Response;try{response=await Promise.race([pending,stopped]);}catch(error){if(interruption)throw interruption;throw new EnquiryPreviewError('network',0,writes);}
         try{
@@ -112,11 +114,12 @@ export function createEnquiryPreviewClient(input:Configuration):EnquiryPreviewCl
           }
           if(length===0||expected!==undefined&&length!==expected)return responseFailure();
           const payload=decode(new TextDecoder('utf-8',{fatal:true}).decode(bytes.subarray(0,length)));check();
-          if(response.status!==200){
+          if(response.status!==(captureKey?201:200)){
             if(response.status<400||response.status>599)return responseFailure();
-            const value=own(payload,['error','submissionUncertain']),error=own(value.error,['code','message']);
-            if(typeof value.submissionUncertain!=='boolean'||typeof error.code!=='string'||!Object.hasOwn(ERROR_STATUS,error.code)||!ERROR_STATUS[error.code]!.includes(response.status)||typeof error.message!=='string'||error.message.length<1||error.message.length>1024)return responseFailure();
-            throw new EnquiryPreviewError('http',response.status,writes&&(value.submissionUncertain||response.status>=500||response.status===499));
+            const value=own(payload,captureKey?['error','requestId']:['error','submissionUncertain']),error=own(value.error,['code','message']);
+            if(captureKey)selectedId(value.requestId);
+            if((!captureKey&&typeof value.submissionUncertain!=='boolean')||typeof error.code!=='string'||!Object.hasOwn(ERROR_STATUS,error.code)||!ERROR_STATUS[error.code]!.includes(response.status)||typeof error.message!=='string'||error.message.length<1||error.message.length>1024)return responseFailure();
+            throw new EnquiryPreviewError('http',response.status,writes&&(value.submissionUncertain===true||response.status>=500||response.status===499));
           }
           const result=parse(payload);check();return result;
         }catch(error){
@@ -135,6 +138,18 @@ export function createEnquiryPreviewClient(input:Configuration):EnquiryPreviewCl
   }
   const command=(value:EnquiryOperationInputV2)=>{try{return validateEnquiryCommand(value);}catch{throw new EnquiryPreviewError('validation');}};
   return Object.freeze({
+    prepareCapture:(input:StaffEnquiryInput,key:string):CaptureAttempt=>{
+      let captured:StaffEnquiryInput,body:Record<string,unknown>,originalKey:string;
+      try{originalKey=selectedId(key);captured=Object.freeze({...own(input,Reflect.ownKeys(input) as string[])}) as unknown as StaffEnquiryInput;body={...validateStaffEnquiryInput(captured,'synthetic-staff-notice-v1')};}catch{throw new EnquiryPreviewError('validation');}
+      let status:CaptureAttempt['status']='ready',receipt:EnquiryReceipt|null=null;
+      const run=async(replay:boolean,signal?:AbortSignal)=>{
+        if(signal!==undefined&&!(signal instanceof AbortSignal)||status!==(replay?'uncertain':'ready'))throw new EnquiryPreviewError('validation');
+        const uncertain=status==='uncertain';status='sending';
+        try{receipt=await request(`${basePath}/capture`,'POST',signal,value=>{const result=own(value,['id']);return Object.freeze({id:selectedId(result.id)});},body,originalKey);status='received';return receipt;}
+        catch(error){status=uncertain||!(error instanceof EnquiryPreviewError)||error.uncertain?'uncertain':'rejected';throw error;}
+      };
+      return Object.freeze({input:captured,key:originalKey,get status(){return status;},get receipt(){return receipt;},submit:(signal?:AbortSignal)=>run(false,signal),retryOriginal:(signal?:AbortSignal)=>run(true,signal)});
+    },
     list:(signal?:AbortSignal)=>request(`${basePath}/enquiries?limit=50`,'GET',signal,enquiryPage),
     detail:async(id:string,signal?:AbortSignal)=>{const selected=selectedId(id);return request(`${basePath}/enquiries/${selected}`,'GET',signal,value=>validateStaffEnquiryDetailV2(value,selected));},
     assignees:(signal?:AbortSignal)=>request(`${basePath}/assignees?limit=100`,'GET',signal,directoryPage),

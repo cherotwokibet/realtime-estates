@@ -1,3 +1,5 @@
+Latest: connected staff capture forms verified; next attributable contact-history timeline. See CONTINUATION.md; older sections are historical.
+
 Latest: protected staff preview proxy verified; next browser client/form. See CONTINUATION.md. Earlier sections are at-time history.
 
 Latest shared staff client verified; next protected preview BFF/form. See CONTINUATION.md.

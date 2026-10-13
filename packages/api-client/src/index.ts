@@ -730,6 +730,12 @@ function enquiryBody(input:EnquiryInput,currentNotice:string):Record<string,unkn
   return {listingId,name,phone,email,message,origin:value.origin,noticeVersion,noticeAcknowledged:true};
 }
 
+/** Shared source-free staff input validation; does not confer identity or perform network work. */
+export function validateStaffEnquiryInput(input:StaffEnquiryInput,currentNotice:string):Readonly<Record<string,unknown>>{
+  record(input,['listingId','name','phone','email','message','noticeVersion','noticeAcknowledged'],'VALIDATION');
+  const {origin:ignored,...body}=enquiryBody({...input,origin:'web'},currentNotice);return Object.freeze(body);
+}
+
 export class RealtorApiClient {
   private readonly apiOrigin:string;
   private readonly currentNotice:string;
