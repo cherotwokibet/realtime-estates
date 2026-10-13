@@ -1,3 +1,5 @@
+Latest: explicit contact log SQL verified; next strict shared contact contracts/API/SDK then operator UI. See CONTINUATION.md. Earlier sections historical.
+
 Latest: connected recorded-activity timeline verified; next explicit contact log (channel/outcome/time/notes), then separate viewings. See CONTINUATION.md. Older sections historical.
 
 Latest: protected activity API/shared client verified; next staff proxy/timeline. See CONTINUATION.md. Earlier sections are at-time history.

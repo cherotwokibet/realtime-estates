@@ -265,3 +265,40 @@ test('activity declares bounded v2 coverage rather than inventing missing legacy
   const page=await activity(db);assert.equal(page.coverage,'capture-and-v2-operations');assert.equal(page.currentVersion,'2');assert.deepEqual(page.items.map(x=>x.version),['1']);assert.equal(page.truncated,false);
  }finally{await db.close();}
 });
+
+function contact(db,{user=ADMIN,enquiry=E,operation=id(3000),expected='1',channel='call',outcome='no_response',occurred=DATE,notes='  Original fictional note\nRetain whitespace.  ',tenant=T}={}){return actor(db,user,()=>scalar(db,'SELECT app_api.record_enquiry_contact($1,$2,$3,$4,$5,$6,$7)',[enquiry,operation,expected,channel,outcome,occurred,notes]),tenant);}
+function contactReceipt(db,user=ADMIN,enquiry=E,operation=id(3000)){return actor(db,user,()=>scalar(db,'SELECT app_api.read_enquiry_contact($1,$2)',[enquiry,operation]));}
+function contacts(db,user=ADMIN,enquiry=E,limit=50){return actor(db,user,()=>scalar(db,'SELECT app_api.list_enquiry_contacts($1,$2)',[enquiry,limit]));}
+test('explicit contact preserves raw facts and actor without changing enquiry state; original receipt replays after later work',async()=>{
+ const db=await fixture();try{
+  const before=await totals(db),saved=await contact(db);assert.equal(saved.outcome,'applied');assert.equal(saved.actorId,ADMIN);assert.equal(saved.entry.channel,'call');assert.equal(saved.entry.outcome,'no_response');assert.equal(saved.entry.occurredAt,DATE);assert.equal(saved.entry.notes,'  Original fictional note\nRetain whitespace.  ');assert.deepEqual(saved.request,{channel:'call',outcome:'no_response',occurredAt:DATE,notes:saved.entry.notes});assert.equal(saved.expectedVersion,'1');assert.equal(saved.observedVersion,'1');
+  const after=await totals(db);assert.equal(after.version,before.version);assert.equal(after.audits,before.audits+1);assert.equal(after.operations,before.operations);assert.equal((await db.query('SELECT status,next_action_at FROM app_private.enquiries WHERE tenant_id=$1 AND id=$2',[T,E])).rows[0].status,'new');
+  await command(db);const later=await totals(db);assert.deepEqual(await contact(db),saved);assert.deepEqual(await contactReceipt(db),saved);assert.deepEqual(await totals(db),later);
+  await denied(()=>contact(db,{notes:'Different raw note'}),'40001');await denied(()=>contact(db,{enquiry:SECOND}),'40001');await denied(()=>contact(db,{user:AGENT}),'40001');
+  const page=await contacts(db,AGENT);assert.equal(page.items.length,1);assert.deepEqual(page.items[0],saved.entry);await denied(()=>contactReceipt(db,AGENT),'P0002');
+ }finally{await db.close();}
+});
+test('stale contact has durable conflict without an entry or audit and does not become applied on replay',async()=>{
+ const db=await fixture();try{
+  await command(db);const before=await totals(db),conflict=await contact(db);assert.equal(conflict.outcome,'conflict');assert.equal(conflict.reason,'VERSION_CONFLICT');assert.equal(conflict.observedVersion,'2');assert.equal(conflict.entry,null);assert.equal(conflict.request.notes,'  Original fictional note\nRetain whitespace.  ');assert.deepEqual(await totals(db),before);assert.equal((await contacts(db)).items.length,0);
+  await transition(db,{user:AGENT,operation:id(3100),expected:'2',status:'contacted',next:LATER});assert.deepEqual(await contact(db),conflict);assert.deepEqual(await contactReceipt(db),conflict);
+  const applied=await contact(db,{user:AGENT,operation:id(3101),expected:'3',channel:'whatsapp',outcome:'connected'});assert.equal(applied.outcome,'applied');assert.equal((await contacts(db,AGENT)).items.length,1);
+ }finally{await db.close();}
+});
+test('contact reads/writes enforce current assignment, tenant, membership and immutable runtime boundaries',async()=>{
+ const db=await fixture();try{
+  for(const user of [null,CUSTOMER,INACTIVE])await denied(()=>contact(db,{user}),'42501');await denied(()=>contact(db,{user:PEER}),'P0002');await denied(()=>contact(db,{enquiry:FOREIGN}),'P0002');
+  await command(db);await contact(db,{user:AGENT,expected:'2'});await command(db,{operation:id(3200),expected:'2',assigned:PEER});await denied(()=>contactReceipt(db,AGENT),'P0002');await denied(()=>contacts(db,AGENT),'P0002');assert.equal((await contacts(db,PEER)).items.length,1);
+  await denied(()=>actor(db,PEER,()=>db.query('SELECT * FROM app_private.enquiry_contacts')),'42501');await denied(()=>db.query('DELETE FROM app_private.enquiry_contacts'),'23514');
+  const owner=(await db.query("SELECT pg_get_userbyid(proowner) AS owner FROM pg_proc WHERE oid='app_api.list_enquiry_activity(uuid,integer)'::regprocedure")).rows[0].owner;assert.equal(owner,'realtor_owner');
+  await db.query('UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',[T,PEER]);await denied(()=>contacts(db,PEER),'42501');
+ }finally{await db.close();}
+});
+test('contact validation rejects invalid/future facts and bounded private feed does not include conflict attempts',async()=>{
+ const db=await fixture();try{
+  for(const bad of [{channel:'sms'},{outcome:'guaranteed_sale'},{occurred:'9999-01-01T00:00:00.000Z'},{notes:'\t \n'},{notes:'\u00a0'},{notes:'bad\u0001text'},{notes:'x'.repeat(2001)},{expected:'0'}])await denied(()=>contact(db,bad),'23514');
+  const one=await contact(db),two=await contact(db,{operation:id(3300),channel:'email',outcome:'left_message'});const before=await totals(db),page=await contacts(db,ADMIN,E,1);assert.equal(page.items.length,1);assert.equal(page.truncated,true);assert.equal(page.limit,1);assert.ok([one.entry.entryId,two.entry.entryId].includes(page.items[0].entryId));assert.deepEqual(await totals(db),before);
+  for(const limit of [null,0,101])await denied(()=>contacts(db,ADMIN,E,limit),'23514');
+  const audit=await db.query("SELECT summary FROM app_private.audit_events WHERE action='enquiry.contact_recorded'");assert.doesNotMatch(JSON.stringify(audit.rows),/Original fictional|notes|Retain/);
+ }finally{await db.close();}
+});

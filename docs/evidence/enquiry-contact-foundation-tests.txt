@@ -1,0 +1,56 @@
+✖ migration forces RLS and API role has neither owner membership nor direct writes (6164.2453ms)
+✔ missing context and customer cannot create; agents cannot choose another assignee (4367.4907ms)
+✔ runtime private reads, edits, and reassignments respect company and assignment (4203.193ms)
+✔ revoked membership and disabled tenant fail the next protected request (4076.33ms)
+✔ composite foreign keys reject cross-company listing and revision relationships (3966.6361ms)
+✔ money, periods, canonical types, rooms and unknown privileged fields fail closed (4126.8664ms)
+✔ omitted concurrency versions cannot bypass protected updates (3898.8431ms)
+✔ accepted photos cannot make an incomplete draft publishable (4204.1781ms)
+✔ legacy accepted metadata remains unverified and cannot submit a complete draft (3926.4527ms)
+✔ submission requires accepted photos and complete content; agent cannot approve (4095.7084ms)
+✔ approved snapshot excludes private address and precise area coordinates (4220.0257ms)
+✔ draft editing and rejection preserve published revision; stale review conflicts (4469.0147ms)
+✔ withdraw and resubmit preserve history; admin self-approval atomically replaces exact snapshot (5084.4342ms)
+✔ agent can pause/unavailable but only administrator resumes; stale stock excluded (4194.0091ms)
+✔ approval cannot resurrect a listing paused or archived while its revision was pending (8430.3745ms)
+✔ an older pending review cannot overwrite a newer approved snapshot (4373.7535ms)
+✔ enquiry receipt is durable/idempotent and never grants guest/customer private reads (4025.649ms)
+✔ paused property denies fresh capture while original enquiry replay retains contacted revision (4203.0416ms)
+✔ enquiry assignment, next actions, closure and version restrictions (3920.2965ms)
+✔ transaction-local actor context is cleared on connection reuse (4040.0257ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 19
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 90580.0248
+
+✖ failing tests:
+
+test at database\tests\foundation.test.mjs:55:1
+✖ migration forces RLS and API role has neither owner membership nor direct writes (6164.2453ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      'audit_events',
+      'enquiries',
+  +   'enquiry_contacts',
+      'enquiry_operations',
+      'listing_revisions',
+      'listings',
+      'media_attach_intents',
+      'media_attach_results',
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/database/tests/foundation.test.mjs:58:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'audit_events', 'enquiries', 'enquiry_contacts', 'enquiry_operations', 'listing_revisions', 'listings', 'media_attach_intents', 'media_attach_results', 'media_attachments', 'media_input_captures', 'media_jobs', 'media_operations', 'media_processing_leases', 'media_verified_outputs', 'memberships', 'public_snapshots', 'revision_media', 'tenants' ],
+    expected: [ 'audit_events', 'enquiries', 'enquiry_operations', 'listing_revisions', 'listings', 'media_attach_intents', 'media_attach_results', 'media_attachments', 'media_input_captures', 'media_jobs', 'media_operations', 'media_processing_leases', 'media_verified_outputs', 'memberships', 'public_snapshots', 'revision_media', 'tenants' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

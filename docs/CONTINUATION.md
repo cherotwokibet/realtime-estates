@@ -1,5 +1,10 @@
 # Rebuild continuation checkpoint
 
+## Explicit contact log SQL - 13 October 2026
+
+Additive0012 immutable contact facts/original receipts/feed, current company/role/assignment guards, requester-private recovery and durable stale conflict. Raw notes retained; contact does not mutate enquiry lifecycle/version or send anything. Activity read ownership corrected to realtor_owner.21 SQL checks passed; initial foundation19pass/1inventoryfail fixed without relaxing RLS,final20pass; after receipt original-request projection,focused4contact checks passed on final source. See enquiry-contacts.md/four logs. Next shared validating contact contracts/API/SDK,then proxy/form/feed; none of these contact surfaces implemented yet. Workflow timeline remains separate.16/97 tasks,0/14 gates,price/vendor/live preserved. Inspect current tracker/source before editing.
+
+
 ## Connected recorded-activity timeline - 13 October 2026
 
 Fixed protected staff BFF/browser read and independent timeline now show bounded actor/version/Nairobi workflow facts without adopting working version/input. Final108 admin checks,11 signed preview API checks,8 typechecks and admin build passed. Actual1280px admin assignment/activity refresh verified historyversion2 with workingversion1/selected agent retained; assigned-agent view verified. See enquiry-activity.md/four UI logs/screenshots. Fullpage capture failed; viewport captures succeeded. Seeded legacy-gap assertion did not pass (fixture had complete v2 history); no gap-render/browser lost-reply/device/UAT/production claim. Owned preview stopped. Next explicit contact log channel/outcome/time/original notes and idempotent attribution, then separate viewings. Workflow activity is not a full contact log.16/97 tasks,0/14 gates,price/vendor/live preserved. Inspect tracker before editing.
