@@ -100,10 +100,11 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
   <div className="enq-section-heading"><h3>Viewing requests and proposals</h3><button type="button" className="enq-secondary" disabled={reading} onClick={()=>void refresh()}>Refresh viewing feed</button></div>
   {reading&&<p role="status">Loading viewings…</p>}{readError&&<p role="alert">Viewing feed unavailable for current access. Refresh to try a new read.</p>}
   {version&&page&&<><p className="enq-subtle">{page.items.length} shown · {page.truncated?'older records remain':'end of visible slice'} · latest 25 maximum. Times shown in Nairobi.</p><ol className="enq-activity">{page.items.map(item=><li key={item.schedule.viewingId}>
-   <strong>{item.schedule.status==='requested'?'Requested':'Proposed · awaiting customer agreement'}</strong><span>Viewing {item.schedule.viewingId} · version {item.schedule.version}</span><span>Requested by staff {item.requestedById} · {formatEnquiryTime(item.createdAt)}</span>
+   <strong>{item.schedule.status==='requested'?'Requested':item.schedule.status==='confirmed'?'Confirmed · phone agreement recorded':'Proposed · awaiting customer agreement'}</strong><span>Viewing {item.schedule.viewingId} · version {item.schedule.version}</span><span>Requested by staff {item.requestedById} · {formatEnquiryTime(item.createdAt)}</span>
    <p className="enq-contact-notes">{item.notes}</p>
    {item.schedule.preferredSlots.map((slot,index)=><span key={index}>Preferred: {formatEnquiryTime(slot.startAt)} – {formatEnquiryTime(slot.endAt)}</span>)}
    {item.schedule.proposedSlot&&<span>Proposed: {formatEnquiryTime(item.schedule.proposedSlot.startAt)} – {formatEnquiryTime(item.schedule.proposedSlot.endAt)}</span>}
+   {item.schedule.agreement&&item.confirmation&&<><span>Phone agreement: {formatEnquiryTime(item.schedule.agreement.agreedAt)} · recorded by staff {item.confirmation.recordedById} at {formatEnquiryTime(item.confirmation.recordedAt)}</span><p className="enq-contact-notes">{item.schedule.agreement.notes}</p></>}
    {item.schedule.status==='requested'&&<button type="button" className="enq-secondary" disabled={busy||!!attempt||!!selected||!!property||!!notes||!!start||!!end} onClick={()=>choose(item)}>Prepare proposal for this request</button>}
   </li>)}</ol>{!page.items.length&&<p>No viewings in this visible slice.</p>}</>}
  </section>;

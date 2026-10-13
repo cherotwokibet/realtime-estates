@@ -12,6 +12,20 @@ const options={bearerToken:'synthetic-only'};
 const client=fetch=>new RealtorApiClient({baseUrl:'https://synthetic.invalid',privacyNoticeVersion:'synthetic-v1',fetch});
 const json=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
 const rejects=(fn,kind,uncertain=false)=>assert.rejects(fn,e=>e instanceof ApiClientError&&e.kind===kind&&e.submissionUncertain===uncertain);
+const phone={operationId:operation,expectedVersion:'2',slot,channel:'phone',agreedAt:'2026-10-13T19:00:00.000Z',notes:'  Exact phone agreement.\nSynthetic only.  '};
+const confirmed={...receipt,kind:'confirm',expectedVersion:'2',observedVersion:'2',request:{slot,channel:'phone',agreedAt:phone.agreedAt,notes:phone.notes},result:{...schedule,status:'confirmed',version:'3',proposedSlot:slot,agreement:{channel:'phone',agreedAt:phone.agreedAt,notes:phone.notes}}};
+test('phone confirmation sends one fixed source-free command and recovers original privately without notes in URL',async()=>{
+ const calls=[],api=client(async(url,init)=>{calls.push({url,init});return json(confirmed);});assert.deepEqual(await api.confirmViewingV2(enquiry,viewing,phone,options),confirmed);assert.deepEqual(await api.getViewingConfirmationReceiptV2(enquiry,viewing,phone,options),confirmed);
+ assert.equal(calls[0].url,`https://synthetic.invalid/v2/staff/enquiries/${enquiry}/viewings/${viewing}/confirmations`);assert.deepEqual(JSON.parse(calls[0].init.body),{...phone,expectedVersion:2});assert.equal(calls[1].init.method,'GET');assert.equal(calls[1].init.body,undefined);assert.ok(calls[1].url.endsWith('/viewing-operations/'+operation));assert.equal(calls[1].url.includes('agreement'),false);
+});
+test('invalid or lost confirmation writes stay uncertain and recoveries remain read-only with no retry',async()=>{
+ let calls=0;const lost=client(async()=>{calls++;throw new Error('Synthetic lost committed confirmation');});await rejects(()=>lost.confirmViewingV2(enquiry,viewing,phone,options),'NETWORK',true);assert.equal(calls,1);await rejects(()=>lost.getViewingConfirmationReceiptV2(enquiry,viewing,phone,options),'NETWORK',false);
+ const altered=client(async()=>json({...confirmed,request:{...confirmed.request,notes:'changed'}}));await rejects(()=>altered.confirmViewingV2(enquiry,viewing,phone,options),'INVALID_RESPONSE',true);await rejects(()=>altered.getViewingConfirmationReceiptV2(enquiry,viewing,phone,options),'INVALID_RESPONSE',false);
+});
+test('invalid phone evidence refuses before network while original conflict receipt remains terminal',async()=>{
+ let calls=0;const api=client(async()=>{calls++;return json({...confirmed,outcome:'conflict',reason:'VERSION_CONFLICT',result:null,observedVersion:'3'});});for(const patch of [{channel:'email'},{expectedVersion:2},{actorId:actor},{notes:' '},{agreedAt:null}])await rejects(()=>api.confirmViewingV2(enquiry,viewing,{...phone,...patch},options),'VALIDATION');assert.equal(calls,0);
+ const value=await api.confirmViewingV2(enquiry,viewing,phone,options);assert.equal(value.outcome,'conflict');assert.equal(value.result,null);assert.equal(calls,1);
+});
 test('request and original recovery send fixed routes and explicit original facts without private URL notes',async()=>{
  const calls=[],api=client(async(url,init)=>{calls.push({url,init});return json(receipt);});
  assert.deepEqual(await api.requestViewingV2(enquiry,command,options),receipt);assert.deepEqual(await api.getViewingReceiptV2(enquiry,{kind:'request',command},options),receipt);

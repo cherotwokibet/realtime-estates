@@ -14,6 +14,27 @@ function fixture({result=receipt,privateDetail=detail,page={items:[detail],limit
  return {calls,contexts,service:createApiService({database,tenantId:tenant,privacyNoticeVersion:'synthetic-v1',verifyAuthorization:async request=>{if(request.headers.get('authorization')!=='Bearer synthetic')throw new Error('PRIVATE AUTH');return {actorId:actor};}})};
 }
 const req=(path,{method='GET',value,raw,authorization='Bearer synthetic'}={})=>new Request('https://synthetic.invalid'+path,{method,headers:{...(authorization?{Authorization:authorization}:{}),...(value!==undefined||raw!==undefined?{'Content-Type':'application/json'}:{})},...(value!==undefined||raw!==undefined?{body:raw??JSON.stringify(value)}:{})});
+const phone={operationId:operation,expectedVersion:2,slot,channel:'phone',agreedAt:'2026-10-13T19:00:00.000Z',notes:'  Synthetic phone agreement.  '};
+const confirmed={...receipt,kind:'confirm',expectedVersion:'2',observedVersion:'2',request:{slot,channel:'phone',agreedAt:phone.agreedAt,notes:phone.notes},result:{...schedule,status:'confirmed',version:'3',proposedSlot:slot,agreement:{channel:'phone',agreedAt:phone.agreedAt,notes:phone.notes}}};
+test('phone confirmation route binds exact verified identity and source-free original SQL facts',async()=>{
+ const f=fixture({result:confirmed}),result=await f.service(req(base+`/viewings/${viewing}/confirmations`,{method:'POST',value:phone}));assert.equal(result.status,200);assert.deepEqual(await result.json(),confirmed);
+ assert.deepEqual(f.calls.find(x=>x.sql.includes('confirm_viewing_phone')).args,[enquiry,viewing,operation,'2',JSON.stringify(slot),'phone',phone.agreedAt,phone.notes]);assert.equal(f.contexts[0].actorId,actor);
+ assert.deepEqual(await (await f.service(req(base+'/viewing-operations/'+operation))).json(),confirmed);
+ assert.equal((await f.service(req(base+`/viewings/${viewing}/confirmations`))).status,405);
+});
+test('phone confirmation refuses caller authority,unsupported agreement and unsafe integer tokens before transaction',async()=>{
+ const path=base+`/viewings/${viewing}/confirmations`;
+ for(const value of [{...phone,actorId:actor},{...phone,tenantId:tenant},{...phone,customerToken:'secret'},{...phone,channel:'email'},{...phone,agreedAt:null},{...phone,expectedVersion:'2'},{...phone,notes:' '}]){const f=fixture();assert.equal((await f.service(req(path,{method:'POST',value}))).status,400);assert.equal(f.contexts.length,0);}
+ for(const raw of [JSON.stringify(phone).replace('"expectedVersion":2','"expectedVersion":2e0'),JSON.stringify(phone).replace('"expectedVersion":2','"expectedVersion":2.00000000000000001'),JSON.stringify(phone).replace('"notes":','"notes":"duplicate","notes":')]){const f=fixture();assert.equal((await f.service(req(path,{method:'POST',raw}))).status,400);assert.equal(f.contexts.length,0);}
+ for(const query of ['?limit=1','?actor=admin','?tenantId=foreign'])assert.equal((await fixture().service(req(path+query,{method:'POST',value:phone}))).status,400);
+});
+test('phone confirmation validates current detail metadata and rejects altered result or requester privately',async()=>{
+ const confirmedDetail={...detail,createdAt:'2026-10-13T17:00:00.000Z',schedule:confirmed.result,confirmation:{proposedAt:'2026-10-13T18:00:00.000Z',recordedAt:time,recordedById:actor}};
+ assert.equal((await fixture({privateDetail:confirmedDetail}).service(req(base+'/viewings/'+viewing))).status,200);
+ for(const result of [{...confirmed,actorId:id(99)},{...confirmed,request:{...confirmed.request,notes:'changed'}},{...confirmed,result:{...confirmed.result,agreement:{...confirmed.result.agreement,notes:'changed'}}}])assert.equal((await fixture({result}).service(req(base+`/viewings/${viewing}/confirmations`,{method:'POST',value:phone}))).status,503);
+ assert.equal((await fixture({result:{...confirmed,operationId:id(99)}}).service(req(base+'/viewing-operations/'+operation))).status,503);
+ assert.equal((await fixture({role:'customer'}).service(req(base+`/viewings/${viewing}/confirmations`,{method:'POST',value:phone}))).status,403);
+});
 test('viewing routes bind fixed verified authority,original facts and exact typed SQL arguments',async()=>{
  const f=fixture(),saved=await f.service(req(base+'/viewings',{method:'POST',value:body}));assert.equal(saved.status,200);assert.deepEqual(await saved.json(),receipt);assert.equal(f.contexts[0].tenantId,tenant);assert.equal(f.contexts[0].actorId,actor);
  const query=f.calls.find(c=>c.sql.includes('execute_viewing_operation'));assert.deepEqual(query.args,[enquiry,null,operation,'2','request',listing,JSON.stringify([slot]),body.notes,null]);

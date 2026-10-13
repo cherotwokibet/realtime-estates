@@ -1,6 +1,10 @@
 # Viewing scheduling foundation — 13 October 2026
 
-## Phone agreement domain foundation — 14 October
+## Durable phone confirmation backend — 14 October
+
+0014private confirmed3 storage/original receipts,protected confirmation API/shared SDK and strict confirmed detail/feed now verified.148database,99domain,160API,183SDK,63integration,136admin,14preview checks and8types passed;adminbuild passed. Actual signed HTTP loss/recovery/replay and old receipt preservation verified;no confirmation BFF/form/browser/device/UAT/release yet. See viewing-confirmation.md for exact limits/logs and next operator boundary.
+
+## Earlier phone agreement domain foundation — 14 October
 
 Strict immutable phone agreement command and pure exact-proposed-slot confirmation plan added;95domainchecks/domainbuild/8workspace typechecks passed. No durable confirmation/API/UI yet;existing live contracts remain requested/proposed. See viewing-confirmation.md for engineering bounds,next0014migration and verification limits.
 

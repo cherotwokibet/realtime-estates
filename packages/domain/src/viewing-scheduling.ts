@@ -2,18 +2,21 @@
 export interface ViewingSlot {readonly startAt:string;readonly endAt:string;readonly timeZone:'Africa/Nairobi'}
 export interface ViewingRequestCommand {readonly operationId:string;readonly expectedEnquiryVersion:string;readonly listingId:string;readonly preferredSlots:readonly ViewingSlot[];readonly notes:string}
 export interface ViewingProposalCommand {readonly operationId:string;readonly expectedVersion:string;readonly slot:ViewingSlot}
-export interface ViewingSchedule {readonly viewingId:string;readonly enquiryId:string;readonly listingId:string;readonly version:string;readonly status:'requested'|'proposed';readonly preferredSlots:readonly ViewingSlot[];readonly proposedSlot:ViewingSlot|null}
+export interface PhoneViewingAgreement {readonly channel:'phone';readonly agreedAt:string;readonly notes:string}
+export interface ViewingSchedule {readonly viewingId:string;readonly enquiryId:string;readonly listingId:string;readonly version:string;readonly status:'requested'|'proposed'|'confirmed';readonly preferredSlots:readonly ViewingSlot[];readonly proposedSlot:ViewingSlot|null;readonly agreement?:PhoneViewingAgreement}
 export type ViewingProposalPlan=Readonly<{outcome:'applied';reason:null;next:ViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';next:null}>|Readonly<{outcome:'refused';reason:'INVALID_STATE'|'SLOT_NOT_FUTURE';next:null}>;
 export type ViewingOriginal=Readonly<{kind:'request';command:ViewingRequestCommand}>|Readonly<{kind:'propose';viewingId:string;command:ViewingProposalCommand}>;
 export type ViewingRefusalReason='ENQUIRY_CLOSED'|'LISTING_MISMATCH'|'LISTING_UNAVAILABLE'|'INVALID_STATE'|'SLOT_NOT_FUTURE';
 export type ViewingReceipt=Readonly<{operationId:string;enquiryId:string;viewingId:string|null;actorId:string;kind:'request'|'propose';expectedVersion:string;observedVersion:string;request:Readonly<{listingId:string;preferredSlots:readonly ViewingSlot[];notes:string}>|Readonly<{slot:ViewingSlot}>;completedAt:string}>&(
  Readonly<{outcome:'applied';reason:null;result:ViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';result:null}>|Readonly<{outcome:'refused';reason:ViewingRefusalReason;result:null}>);
-export interface ViewingDetail {readonly schedule:ViewingSchedule;readonly notes:string;readonly requestedById:string;readonly assignedAgentId:string|null;readonly createdAt:string;readonly updatedAt:string}
+export interface ViewingDetail {readonly schedule:ViewingSchedule;readonly notes:string;readonly requestedById:string;readonly assignedAgentId:string|null;readonly createdAt:string;readonly updatedAt:string;readonly confirmation?:Readonly<{proposedAt:string;recordedAt:string;recordedById:string}>}
 export interface ViewingPage {readonly items:readonly ViewingDetail[];readonly limit:number;readonly truncated:boolean}
 /** First agreement slice: staff records a completed phone agreement for this exact proposed slot. */
 export interface ViewingConfirmationCommand {readonly operationId:string;readonly expectedVersion:string;readonly slot:ViewingSlot;readonly channel:'phone';readonly agreedAt:string;readonly notes:string}
 export interface ConfirmedViewingSchedule extends Omit<ViewingSchedule,'status'|'proposedSlot'> {readonly status:'confirmed';readonly proposedSlot:ViewingSlot;readonly agreement:Readonly<{channel:'phone';agreedAt:string;notes:string}>}
 export type ViewingConfirmationPlan=Readonly<{outcome:'applied';reason:null;next:ConfirmedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';next:null}>|Readonly<{outcome:'refused';reason:'INVALID_STATE'|'PROPOSED_SLOT_MISMATCH'|'SLOT_NOT_FUTURE'|'AGREEMENT_BEFORE_PROPOSAL'|'AGREEMENT_IN_FUTURE';next:null}>;
+export type ViewingConfirmationReceipt=Readonly<{operationId:string;enquiryId:string;viewingId:string;actorId:string;kind:'confirm';expectedVersion:string;observedVersion:string;request:Readonly<{slot:ViewingSlot;channel:'phone';agreedAt:string;notes:string}>;completedAt:string}>&(
+ Readonly<{outcome:'applied';reason:null;result:ConfirmedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';result:null}>|Readonly<{outcome:'refused';reason:'ENQUIRY_CLOSED'|'LISTING_UNAVAILABLE'|'INVALID_STATE'|'PROPOSED_SLOT_MISMATCH'|'SLOT_NOT_FUTURE'|'AGREEMENT_BEFORE_PROPOSAL'|'AGREEMENT_IN_FUTURE';result:null}>);
 const fail=():never=>{throw new Error('Invalid viewing scheduling contract.');};
 function record(input:unknown,fields:readonly string[]):Record<string,unknown>{
  if(!input||typeof input!=='object'||![Object.prototype,null].includes(Object.getPrototypeOf(input)))return fail();
@@ -51,7 +54,8 @@ export function validateViewingConfirmationCommand(input:unknown):ViewingConfirm
 }
 /** Pure first execution plan only. Does not authorize, store a receipt, confirm in SQL or send anything. */
 export function planViewingConfirmation(input:ViewingDetail,proposal:ViewingConfirmationCommand,now:string):ViewingConfirmationPlan{
- const raw=record(input,['schedule','notes','requestedById','assignedAgentId','createdAt','updatedAt']),schedule=validateViewingSchedule(raw.schedule);
+ if(!input||typeof input!=='object')return fail();const descriptor=Object.getOwnPropertyDescriptor(input,'schedule');if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return fail();
+ const schedule=validateViewingSchedule(descriptor.value);
  const current=validateViewingDetail(input,schedule.enquiryId),command=validateViewingConfirmationCommand(proposal),clock=instant(now);
  if(command.expectedVersion!==current.schedule.version)return Object.freeze({outcome:'conflict',reason:'VERSION_CONFLICT',next:null});
  if(current.schedule.status!=='proposed')return Object.freeze({outcome:'refused',reason:'INVALID_STATE',next:null});
@@ -62,9 +66,17 @@ export function planViewingConfirmation(input:ViewingDetail,proposal:ViewingConf
  return Object.freeze({outcome:'applied',reason:null,next:Object.freeze({...current.schedule,version:String(BigInt(current.schedule.version)+1n),status:'confirmed',proposedSlot:command.slot,agreement:Object.freeze({channel:'phone',agreedAt:command.agreedAt,notes:command.notes})})});
 }
 export function validateViewingSchedule(input:unknown):ViewingSchedule{
- const v=record(input,['viewingId','enquiryId','listingId','version','status','preferredSlots','proposedSlot']);
- if(v.status!=='requested'&&v.status!=='proposed'||v.status==='requested'&&v.proposedSlot!==null||v.status==='proposed'&&v.proposedSlot===null)return fail();
- return Object.freeze({viewingId:uuid(v.viewingId),enquiryId:uuid(v.enquiryId),listingId:uuid(v.listingId),version:version(v.version),status:v.status,preferredSlots:alternatives(v.preferredSlots),proposedSlot:v.proposedSlot===null?null:validateViewingSlot(v.proposedSlot)});
+ if(!input||typeof input!=='object')return fail();const descriptor=Object.getOwnPropertyDescriptor(input,'status');if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return fail();
+ const confirmed=descriptor.value==='confirmed',v=record(input,['viewingId','enquiryId','listingId','version','status','preferredSlots','proposedSlot',...(confirmed?['agreement']:[])]);
+ if(!['requested','proposed','confirmed'].includes(v.status as string)||v.status==='requested'&&v.proposedSlot!==null||v.status!=='requested'&&v.proposedSlot===null||confirmed&&v.version!=='3')return fail();
+ const base={viewingId:uuid(v.viewingId),enquiryId:uuid(v.enquiryId),listingId:uuid(v.listingId),version:version(v.version),status:v.status as ViewingSchedule['status'],preferredSlots:alternatives(v.preferredSlots),proposedSlot:v.proposedSlot===null?null:validateViewingSlot(v.proposedSlot)};
+ if(!confirmed)return Object.freeze(base);
+ const agreement=validatePhoneViewingAgreement(v.agreement);if(base.proposedSlot===null||agreement.agreedAt>=base.proposedSlot.startAt)return fail();
+ return Object.freeze({...base,agreement});
+}
+export function validatePhoneViewingAgreement(input:unknown):PhoneViewingAgreement{
+ const value=record(input,['channel','agreedAt','notes']);if(value.channel!=='phone')return fail();
+ return Object.freeze({channel:'phone',agreedAt:instant(value.agreedAt),notes:privateNotes(value.notes)});
 }
 /** First execution only, after server authorization and original-receipt lookup. */
 export function viewingRequestHasFutureAlternatives(input:ViewingRequestCommand,now:string):boolean{
@@ -116,11 +128,36 @@ export function validateViewingReceipt(input:unknown,enquiryId:string,originalIn
  return Object.freeze({...base,outcome:'applied',reason:null,result});
 }
 export function validateViewingDetail(input:unknown,enquiryId:string,viewingId?:string):ViewingDetail{
- const v=record(input,['schedule','notes','requestedById','assignedAgentId','createdAt','updatedAt']),schedule=validateViewingSchedule(v.schedule),createdAt=instant(v.createdAt),updatedAt=instant(v.updatedAt);
+ if(!input||typeof input!=='object')return fail();const descriptor=Object.getOwnPropertyDescriptor(input,'schedule');if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return fail();
+ const schedule=validateViewingSchedule(descriptor.value),confirmed=schedule.status==='confirmed';
+ const v=record(input,['schedule','notes','requestedById','assignedAgentId','createdAt','updatedAt',...(confirmed?['confirmation']:[])]),createdAt=instant(v.createdAt),updatedAt=instant(v.updatedAt);
  if(schedule.enquiryId!==uuid(enquiryId)||viewingId!==undefined&&schedule.viewingId!==uuid(viewingId)||createdAt>updatedAt
   ||schedule.status==='requested'&&(schedule.version!=='1'||createdAt!==updatedAt)||schedule.status==='proposed'&&schedule.version!=='2'
   ||schedule.preferredSlots.some(s=>s.startAt<=createdAt)||schedule.proposedSlot!==null&&schedule.proposedSlot.startAt<=updatedAt)return fail();
- return Object.freeze({schedule,notes:privateNotes(v.notes),requestedById:uuid(v.requestedById),assignedAgentId:v.assignedAgentId===null?null:uuid(v.assignedAgentId),createdAt,updatedAt});
+ const base={schedule,notes:privateNotes(v.notes),requestedById:uuid(v.requestedById),assignedAgentId:v.assignedAgentId===null?null:uuid(v.assignedAgentId),createdAt,updatedAt};
+ if(!confirmed)return Object.freeze(base);
+ const metadata=record(v.confirmation,['proposedAt','recordedAt','recordedById']),proposedAt=instant(metadata.proposedAt),recordedAt=instant(metadata.recordedAt),recordedById=uuid(metadata.recordedById);
+ if(!schedule.agreement||recordedAt!==updatedAt||proposedAt<createdAt||proposedAt>schedule.agreement.agreedAt||schedule.agreement.agreedAt>recordedAt)return fail();
+ return Object.freeze({...base,confirmation:Object.freeze({proposedAt,recordedAt,recordedById})});
+}
+/** Dedicated confirmation receipt preserves existing request/proposal original contracts. */
+export function validateViewingConfirmationReceipt(input:unknown,enquiryId:string,viewingId:string,commandInput:ViewingConfirmationCommand):ViewingConfirmationReceipt{
+ const command=validateViewingConfirmationCommand(commandInput),v=record(input,['operationId','enquiryId','viewingId','actorId','kind','expectedVersion','observedVersion','request','outcome','reason','result','completedAt']);
+ const operationId=uuid(v.operationId),enquiry=uuid(v.enquiryId),viewing=uuid(v.viewingId),actorId=uuid(v.actorId),expectedVersion=version(v.expectedVersion),observedVersion=version(v.observedVersion),completedAt=instant(v.completedAt);
+ if(operationId!==command.operationId||enquiry!==uuid(enquiryId)||viewing!==uuid(viewingId)||v.kind!=='confirm'||expectedVersion!==command.expectedVersion)return fail();
+ const facts=record(v.request,['slot','channel','agreedAt','notes']),request=validateViewingConfirmationCommand({...facts,operationId,expectedVersion});
+ if(JSON.stringify(request.slot)!==JSON.stringify(command.slot)||request.channel!==command.channel||request.agreedAt!==command.agreedAt||request.notes!==command.notes)return fail();
+ const base={operationId,enquiryId:enquiry,viewingId:viewing,actorId,kind:'confirm' as const,expectedVersion,observedVersion,request:Object.freeze({slot:request.slot,channel:request.channel,agreedAt:request.agreedAt,notes:request.notes}),completedAt};
+ if(v.outcome==='conflict'){if(v.reason!=='VERSION_CONFLICT'||v.result!==null||expectedVersion===observedVersion)return fail();return Object.freeze({...base,outcome:'conflict',reason:'VERSION_CONFLICT',result:null});}
+ if(v.outcome==='refused'){
+  if(v.result!==null||expectedVersion!==observedVersion||typeof v.reason!=='string'||!['ENQUIRY_CLOSED','LISTING_UNAVAILABLE','INVALID_STATE','PROPOSED_SLOT_MISMATCH','SLOT_NOT_FUTURE','AGREEMENT_BEFORE_PROPOSAL','AGREEMENT_IN_FUTURE'].includes(v.reason))return fail();
+  if(v.reason==='SLOT_NOT_FUTURE'&&request.slot.startAt>completedAt||v.reason==='AGREEMENT_IN_FUTURE'&&request.agreedAt<=completedAt)return fail();
+  return Object.freeze({...base,outcome:'refused',reason:v.reason as Extract<ViewingConfirmationReceipt,{outcome:'refused'}>['reason'],result:null});
+ }
+ if(v.outcome!=='applied'||v.reason!==null||expectedVersion!=='2'||observedVersion!=='2'||request.agreedAt>completedAt||request.slot.startAt<=completedAt)return fail();
+ const result=validateViewingSchedule(v.result);
+ if(result.status!=='confirmed'||result.version!=='3'||result.viewingId!==viewing||result.enquiryId!==enquiry||JSON.stringify(result.proposedSlot)!==JSON.stringify(command.slot)||JSON.stringify(result.agreement)!==JSON.stringify({channel:command.channel,agreedAt:command.agreedAt,notes:command.notes}))return fail();
+ return Object.freeze({...base,outcome:'applied',reason:null,result:result as ConfirmedViewingSchedule});
 }
 export function validateViewingPage(input:unknown,enquiryId:string,limit:number):ViewingPage{
  const v=record(input,['items','limit','truncated']);uuid(enquiryId);

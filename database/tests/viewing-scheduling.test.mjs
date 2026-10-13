@@ -3,11 +3,12 @@ import test from 'node:test';
 import {PGlite} from '@electric-sql/pglite';
 import {applyTestMigrations} from '../test-helpers/migrations.mjs';
 import {seedSyntheticSealedMedia} from '../test-helpers/synthetic-sealed-media.mjs';
-import {validateViewingSchedule} from '../../packages/domain/dist/index.js';
+import {validateViewingSchedule,validateViewingDetail,validateViewingConfirmationReceipt} from '../../packages/domain/dist/index.js';
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const T=id(1),OTHER=id(2),ADMIN=id(10),AGENT=id(11),PEER=id(12),CUSTOMER=id(13),ADMIN2=id(14),OTHERADMIN=id(20);
 const L=id(100),SECOND_L=id(101),FOREIGN_L=id(200),E=id(300),GENERAL=id(301),FOREIGN_E=id(400);
 const NOTES='  Synthetic viewing notes.\nPreserve the original.  ';
+const PHONE_NOTES='  Fictional completed phone agreement.\nPreserve exact evidence.  ';
 const slot=(startAt='2090-01-01T09:00:00.000Z',endAt='2090-01-01T10:00:00.000Z')=>({startAt,endAt,timeZone:'Africa/Nairobi'});
 const content={title:'Synthetic viewing studio',description:'Disposable scheduling SQL fixture only.',purpose:'rent',propertyType:'studio',currency:'KES',amountMinor:2000000,rentPeriod:'month',bedrooms:0,privateBathrooms:1,sharedBathrooms:null,country:'KE',locality:'Synthetic Nairobi',publicPrecision:'area',latitude:null,longitude:null,privateAddress:null};
 async function scalar(db,sql,args=[]){return Object.values((await db.query(sql,args)).rows[0])[0];}
@@ -40,6 +41,95 @@ const history=(db,operation=id(1000),user=AGENT,enquiry=E,tenant=T)=>actor(db,us
 const read=(db,viewing,user=AGENT,enquiry=E,tenant=T)=>actor(db,user,()=>scalar(db,'SELECT app_api.read_viewing($1,$2)',[enquiry,viewing]),tenant);
 const denied=(fn,code)=>assert.rejects(fn,error=>error.code===code);
 const totals=db=>db.query("SELECT (SELECT count(*)::int FROM app_private.viewings) viewings,(SELECT count(*)::int FROM app_private.viewing_operations) operations,(SELECT count(*)::int FROM app_private.audit_events WHERE object_type='viewing') audits,(SELECT version::text FROM app_private.enquiries WHERE id=$1) enquiry_version",[E]).then(r=>r.rows[0]);
+function confirmation(db,{viewing,user=AGENT,enquiry=E,operation=id(2000),expected='2',proposalSlot=slot(),channel='phone',agreedAt=new Date().toISOString(),notes=PHONE_NOTES,tenant=T}={}){
+ return actor(db,user,()=>scalar(db,'SELECT app_api.confirm_viewing_phone($1,$2,$3,$4,$5::jsonb,$6,$7,$8)',[enquiry,viewing,operation,expected,JSON.stringify(proposalSlot),channel,agreedAt,notes]),tenant);
+}
+async function proposed(db){const requested=await command(db);const proposal=await command(db,{kind:'propose',viewing:requested.viewingId,operation:id(1001)});return {requested,proposal};}
+
+test('phone agreement confirms only exact proposal and retains private attributable evidence and historical originals',async()=>{
+ const db=await fixture();try{
+  const {requested,proposal}=await proposed(db),agreedAt=proposal.completedAt,receipt=await confirmation(db,{viewing:requested.viewingId,agreedAt});
+  assert.equal(receipt.outcome,'applied');assert.equal(receipt.kind,'confirm');assert.equal(receipt.result.status,'confirmed');assert.equal(receipt.result.version,'3');assert.equal(receipt.result.agreement.notes,PHONE_NOTES);
+  validateViewingConfirmationReceipt(receipt,E,requested.viewingId,{operationId:id(2000),expectedVersion:'2',slot:slot(),channel:'phone',agreedAt,notes:PHONE_NOTES});
+  const detail=await read(db,requested.viewingId);validateViewingDetail(detail,E,requested.viewingId);assert.equal(detail.confirmation.recordedById,AGENT);assert.equal(detail.confirmation.proposedAt,proposal.completedAt);assert.equal(detail.confirmation.recordedAt,receipt.completedAt);assert.equal(detail.notes,NOTES);
+  assert.deepEqual(await history(db),requested);assert.deepEqual(await history(db,id(1001)),proposal);assert.deepEqual(await history(db,id(2000)),receipt);
+  assert.deepEqual(await command(db),requested);assert.deepEqual(await command(db,{kind:'propose',viewing:requested.viewingId,operation:id(1001)}),proposal);
+  assert.deepEqual(await totals(db),{viewings:1,operations:3,audits:3,enquiry_version:'1'});
+  const audits=await db.query("SELECT summary FROM app_private.audit_events WHERE object_type='viewing'");assert.ok(audits.rows.every(x=>!JSON.stringify(x.summary).includes('evidence')&&!JSON.stringify(x.summary).includes('Preserve')));
+ }finally{await db.close();}
+});
+test('phone confirmation original replay survives later closure and listing pause but changed facts/requester conflict',async()=>{
+ const db=await fixture();try{
+  const {requested,proposal}=await proposed(db),options={viewing:requested.viewingId,agreedAt:proposal.completedAt},receipt=await confirmation(db,options);
+  await db.query("UPDATE app_private.enquiries SET status='closed_lost',closure_reason='Synthetic closure' WHERE tenant_id=$1 AND id=$2",[T,E]);await db.query("UPDATE app_private.listings SET publication_status='paused' WHERE tenant_id=$1 AND id=$2",[T,L]);
+  assert.deepEqual(await confirmation(db,options),receipt);assert.deepEqual(await history(db,id(2000)),receipt);
+  await denied(()=>confirmation(db,{...options,notes:'Changed agreement.'}),'40001');await denied(()=>confirmation(db,{...options,user:ADMIN}),'40001');
+  await denied(()=>command(db,{kind:'propose',viewing:requested.viewingId,operation:id(2000)}),'40001');
+ }finally{await db.close();}
+});
+test('stale and invalid-state confirmation decisions are durable and never create an agreement',async()=>{
+ const db=await fixture();try{
+  const requested=await command(db),initial=await confirmation(db,{viewing:requested.viewingId,expected:'1'});assert.equal(initial.reason,'INVALID_STATE');assert.equal(initial.result,null);
+  const proposal=await command(db,{kind:'propose',viewing:requested.viewingId,operation:id(1001)});
+  assert.deepEqual(await confirmation(db,{viewing:requested.viewingId,expected:'1',agreedAt:initial.request.agreedAt}),initial);
+  const stale=await confirmation(db,{viewing:requested.viewingId,operation:id(2001),expected:'1'});assert.equal(stale.reason,'VERSION_CONFLICT');assert.equal(stale.observedVersion,'2');
+  const applied=await confirmation(db,{viewing:requested.viewingId,operation:id(2002),agreedAt:proposal.completedAt});assert.equal(applied.result.version,'3');
+  const again=await confirmation(db,{viewing:requested.viewingId,operation:id(2003),expected:'3'});assert.equal(again.reason,'INVALID_STATE');assert.equal((await read(db,requested.viewingId)).schedule.agreement.notes,PHONE_NOTES);
+ }finally{await db.close();}
+});
+test('changed slot,agreement before proposal and future agreement are durable refusals with no viewing mutation',async()=>{
+ const db=await fixture();try{
+  const {requested,proposal}=await proposed(db),before=await read(db,requested.viewingId),changed=slot('2090-01-01T10:00:00.000Z','2090-01-01T11:00:00.000Z');
+  const mismatch=await confirmation(db,{viewing:requested.viewingId,proposalSlot:changed});assert.equal(mismatch.reason,'PROPOSED_SLOT_MISMATCH');
+  const early=await confirmation(db,{viewing:requested.viewingId,operation:id(2001),agreedAt:new Date(Date.parse(proposal.completedAt)-1).toISOString()});assert.equal(early.reason,'AGREEMENT_BEFORE_PROPOSAL');
+  const future=await confirmation(db,{viewing:requested.viewingId,operation:id(2002),agreedAt:'2080-01-01T00:00:00.000Z'});assert.equal(future.reason,'AGREEMENT_IN_FUTURE');assert.equal(future.result,null);
+  assert.deepEqual(await read(db,requested.viewingId),before);assert.deepEqual(await history(db,id(2002)),future);
+ }finally{await db.close();}
+});
+test('phone confirmation enforces current staff assignment and requester-private recovery without consuming denied operations',async()=>{
+ const db=await fixture();try{
+  const {requested,proposal}=await proposed(db),options={viewing:requested.viewingId,agreedAt:proposal.completedAt};
+  for(const user of [PEER,CUSTOMER,OTHERADMIN])await assert.rejects(()=>confirmation(db,{...options,user}));
+  await denied(()=>confirmation(db,{...options,enquiry:GENERAL}),'P0002');await denied(()=>confirmation(db,{...options,tenant:OTHER,user:OTHERADMIN}),'P0002');
+  const receipt=await confirmation(db,options);await denied(()=>history(db,id(2000),ADMIN),'P0002');
+  await db.query('UPDATE app_private.enquiries SET assigned_agent_id=$1 WHERE tenant_id=$2 AND id=$3',[PEER,T,E]);await denied(()=>confirmation(db,options),'P0002');await denied(()=>history(db,id(2000)),'P0002');assert.equal((await read(db,requested.viewingId,PEER)).schedule.status,'confirmed');
+  await db.query('UPDATE app_private.enquiries SET assigned_agent_id=$1 WHERE tenant_id=$2 AND id=$3',[AGENT,T,E]);assert.deepEqual(await confirmation(db,options),receipt);
+  await db.query("UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2",[T,AGENT]);await assert.rejects(()=>confirmation(db,options));
+ }finally{await db.close();}
+});
+test('confirmation evidence and confirmed slot remain immutable and runtime cannot write tables',async()=>{
+ const db=await fixture();try{
+  const {requested,proposal}=await proposed(db);await confirmation(db,{viewing:requested.viewingId,agreedAt:proposal.completedAt});
+  for(const sql of ["UPDATE app_private.viewings SET phone_agreement=jsonb_set(phone_agreement,'{notes}','\"Changed\"') WHERE id=$1","UPDATE app_private.viewings SET status='proposed',version=2 WHERE id=$1","DELETE FROM app_private.viewings WHERE id=$1"])await denied(()=>db.query(sql,[requested.viewingId]),'23514');
+  await denied(()=>actor(db,AGENT,()=>db.query('UPDATE app_private.viewings SET version=version+1 WHERE id=$1',[requested.viewingId])),'42501');
+  await denied(()=>actor(db,AGENT,()=>db.query('SELECT * FROM app_private.viewing_operations')),'42501');
+ }finally{await db.close();}
+});
+test('malformed phone agreement arguments fail before ledger reservation and existing operation IDs cannot change kind',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),options={viewing:requested.viewingId},before=await totals(db);
+  for(const patch of [{channel:'email'},{channel:null},{notes:' '},{notes:'x'.repeat(2001)},{agreedAt:null},{expected:null},{expected:'9007199254740991'},{proposalSlot:{...slot(),confirmed:true}}])await denied(()=>confirmation(db,{...options,...patch}),'23514');
+  await denied(()=>confirmation(db,{...options,operation:id(1000)}),'40001');assert.deepEqual(await totals(db),before);
+ }finally{await db.close();}
+});
+test('new confirmations refuse unavailable listing and closed enquiry while retaining durable no-mutation decisions',async()=>{
+ const db=await fixture();try{
+  const {requested,proposal}=await proposed(db),options={viewing:requested.viewingId,agreedAt:proposal.completedAt};
+  await db.query("UPDATE app_private.listings SET publication_status='paused' WHERE tenant_id=$1 AND id=$2",[T,L]);
+  const unavailable=await confirmation(db,options);assert.equal(unavailable.reason,'LISTING_UNAVAILABLE');assert.equal(unavailable.result,null);
+  await db.query("UPDATE app_private.listings SET publication_status='published' WHERE tenant_id=$1 AND id=$2",[T,L]);assert.deepEqual(await confirmation(db,options),unavailable);
+  await db.query("UPDATE app_private.enquiries SET status='closed_lost',closure_reason='Synthetic closed' WHERE tenant_id=$1 AND id=$2",[T,E]);
+  const closed=await confirmation(db,{...options,operation:id(2001)});assert.equal(closed.reason,'ENQUIRY_CLOSED');assert.equal((await read(db,requested.viewingId)).schedule.status,'proposed');assert.equal((await totals(db)).audits,2);
+ }finally{await db.close();}
+});
+test('historical proposed slot cannot be newly confirmed after its start time',async()=>{
+ const db=await fixture();try{
+  const viewing=id(9000),oldSlot=slot('2001-01-01T09:00:00.000Z','2001-01-01T10:00:00.000Z');
+  await db.query("INSERT INTO app_private.viewings(tenant_id,id,enquiry_id,listing_id,requested_by_id,status,version,preferred_slots,notes,created_at,updated_at) VALUES($1,$2,$3,$4,$5,'requested',1,'[]',$6,'2000-01-01T00:00:00Z','2000-01-01T00:00:00Z')",[T,viewing,E,L,AGENT,NOTES]);
+  await db.query("UPDATE app_private.viewings SET status='proposed',version=2,proposed_slot=$1::jsonb,updated_at='2000-01-02T00:00:00Z' WHERE tenant_id=$2 AND id=$3",[JSON.stringify(oldSlot),T,viewing]);
+  const refused=await confirmation(db,{viewing,proposalSlot:oldSlot,agreedAt:'2000-01-03T00:00:00.000Z'});assert.equal(refused.reason,'SLOT_NOT_FUTURE');assert.equal(refused.result,null);assert.equal((await read(db,viewing)).schedule.status,'proposed');
+ }finally{await db.close();}
+});
 
 test('request and first proposal are private,attributable and independent of enquiry version',async()=>{
  const db=await fixture();try{
