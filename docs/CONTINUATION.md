@@ -10,7 +10,9 @@ Connected EnquiryContacts to the staff workspace: completed channel/outcome/Nair
 
 Missing proxy/transport/controller/integration evidence published to existing owner-private dashboard at source dd4105f / deployment appgdep_6ace64f11f8081919689d761f33339e5, succeeded. All166 baseline notes retained and3 added. Prior chat browser tabs inaccessible here; no browser progress overwritten/imported. Existing browser-preserving merge behavior retained.
 
-Next: publish this form/feed evidence, then browser uncertain-response/recovery and current-agent/access-loss scenarios before separate viewings. Broad CRM deliverable remains incomplete (overdue reminders/viewings etc.);16/97 tasks,0/14 launch gates. Preserve KES10,000 total monthly price/vendor/live systems. Local bundles are same-device recovery only.
+Form/feed evidence publication succeeded: tracker f0c190d0c0271ccc2ac18b6e7cf26bc5690d5d82, baseline contact-form-2026-10-13-44, deployment appgdep_6ace667f1de881919e43f01b39bb06e9, owner-private URL https://realtor-rebuild-delivery.blushcow16.chatgpt.site. Retained169 notes and added3. Source7e01cc1 bundle verified, fresh clone matched HEAD and fsck passed; same-device recovery only.
+
+Next: browser uncertain-response/recovery and current-agent/access-loss scenarios before separate viewings. Broad CRM deliverable remains incomplete (overdue reminders/viewings etc.);16/97 tasks,0/14 launch gates. Preserve KES10,000 total monthly price/vendor/live systems. Local preview stopped after verification; relaunch node scripts/enquiry-preview.mjs with a new disposable identity/database for further browser checks.
 
 ## Signed synthetic contact integration - 13 October 2026
 
