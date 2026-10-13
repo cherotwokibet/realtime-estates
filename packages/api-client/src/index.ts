@@ -1,5 +1,5 @@
 import {
-  validateViewingConfirmationCommand,validateViewingConfirmationReceipt,type ViewingConfirmationCommand,type ViewingConfirmationReceipt,validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal,type ViewingRequestCommand,type ViewingProposalCommand,type ViewingReceipt,type ViewingDetail,type ViewingPage,
+  validateViewingTerminationCommand,validateViewingTerminationReceipt,type ViewingTerminationKind,type ViewingTerminationCommand,type ViewingTerminationReceipt,validateViewingConfirmationCommand,validateViewingConfirmationReceipt,type ViewingConfirmationCommand,type ViewingConfirmationReceipt,validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal,type ViewingRequestCommand,type ViewingProposalCommand,type ViewingReceipt,type ViewingDetail,type ViewingPage,
   validateContactCommand,validateContactReceipt,validateContactPage,type ContactCommand,type ContactReceipt,type ContactPage,validateEnquiryActivityPage,type EnquiryActivityPage,calculateWirePricingV2, kesFromMinor, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2,
   type PricingDisclosure, type PricingInputV2, type PublicLocationV2,
 } from '@realtor/domain';
@@ -9,8 +9,8 @@ export type {EnquiryActivityPage,EnquiryActivityEvent} from '@realtor/domain';
 
 export {validateContactCommand,validateContactReceipt,validateContactPage} from '@realtor/domain';
 export type {ContactCommand,ContactReceipt,ContactPage,ContactEntry,ContactFacts,ContactChannel,ContactOutcome} from '@realtor/domain';
-export {validateViewingConfirmationCommand,validateViewingConfirmationReceipt,validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage} from '@realtor/domain';
-export type {ViewingConfirmationCommand,ViewingConfirmationReceipt,ViewingOriginal,ViewingSlot,ViewingRequestCommand,ViewingProposalCommand,ViewingSchedule,ViewingReceipt,ViewingDetail,ViewingPage} from '@realtor/domain';
+export {validateViewingTerminationCommand,validateViewingTerminationReceipt,validateViewingConfirmationCommand,validateViewingConfirmationReceipt,validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage} from '@realtor/domain';
+export type {ViewingTerminationKind,ViewingTerminationCommand,ViewingTerminationReceipt,ViewingConfirmationCommand,ViewingConfirmationReceipt,ViewingOriginal,ViewingSlot,ViewingRequestCommand,ViewingProposalCommand,ViewingSchedule,ViewingReceipt,ViewingDetail,ViewingPage} from '@realtor/domain';
 
 /** Narrow, explicitly validated public API contracts. Identity and tenant selection remain server concerns. */
 export interface PublicPhoto { readonly key: string; readonly alt: string }
@@ -210,7 +210,7 @@ const FINALIZE_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_
 const FINALIZE_PATH=/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/media-attach-intents\/[^/]+\/finalize$/;
 const PREVIEW_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['INVALID_INPUT',400],['FORBIDDEN',403],['UNAUTHENTICATED',401],['VERSION_CONFLICT',409],['REQUEST_ABORTED',400],['SERVICE_UNAVAILABLE',503]]);
 const ENQUIRY_SERVER_STATUS=new Map<string,number>([['INVALID_INPUT',400],['INVALID_JSON',400],['UNAUTHENTICATED',401],['FORBIDDEN',403],['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['CONFLICT',409],['INVALID_STATE',422],['JSON_REQUIRED',415],['BODY_TOO_LARGE',413],['RATE_LIMITED',429],['SERVICE_UNAVAILABLE',503]]);
-const STAFF_ENQUIRY_PATH=/^\/v2\/staff\/(?:enquiries(?:\/[^/?]+(?:\/(?:operations(?:\/[^/?]+)?|viewings(?:\/[^/?]+(?:\/(?:proposals|confirmations))?)?|viewing-operations\/[^/?]+))?)?|enquiry-assignees)(?:\?limit=[1-9]\d*)?$/;
+const STAFF_ENQUIRY_PATH=/^\/v2\/staff\/(?:enquiries(?:\/[^/?]+(?:\/(?:operations(?:\/[^/?]+)?|viewings(?:\/[^/?]+(?:\/(?:proposals|confirmations|cancellations|declines))?)?|viewing-operations\/[^/?]+))?)?|enquiry-assignees)(?:\?limit=[1-9]\d*)?$/;
 const MAX_PREVIEW_BYTES=10485760;
 const nativeTypedArray=Object.getPrototypeOf(Uint8Array.prototype) as object;
 const nativeTypedArrayBuffer=Object.getOwnPropertyDescriptor(nativeTypedArray,'buffer')!.get!;
@@ -914,6 +914,19 @@ export class RealtorApiClient {
     try{const data=await this.request(`/v2/staff/enquiries/${id}/viewings/${viewing}/proposals`,'POST',captured,{...command,expectedVersion:Number(command.expectedVersion)});
       try{return validateViewingReceipt(data,id,{kind:'propose',viewingId:viewing,command});}catch{return invalid('INVALID_RESPONSE','Invalid viewing proposal receipt.');}
     }catch(error){return uncertainWriteError(error);}
+  }
+  async terminateViewingV2(enquiryId:string,viewingId:string,kind:ViewingTerminationKind,input:ViewingTerminationCommand,options:StaffRequestOptions):Promise<ViewingTerminationReceipt>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),viewing=uuid(viewingId,'VALIDATION','Viewing ID');let command:ViewingTerminationCommand;
+    try{if(kind!=='cancel'&&kind!=='decline')throw new Error();command=validateViewingTerminationCommand(input);}catch{return invalid('VALIDATION','Review the viewing ending reason.');}
+    try{const data=await this.request(`/v2/staff/enquiries/${id}/viewings/${viewing}/${kind==='cancel'?'cancellations':'declines'}`,'POST',captured,{...command,expectedVersion:Number(command.expectedVersion)});
+      try{return validateViewingTerminationReceipt(data,id,viewing,kind,command);}catch{return invalid('INVALID_RESPONSE','Invalid viewing terminal receipt.');}
+    }catch(error){return uncertainWriteError(error);}
+  }
+  async getViewingTerminationReceiptV2(enquiryId:string,viewingId:string,kind:ViewingTerminationKind,input:ViewingTerminationCommand,options:StaffRequestOptions):Promise<ViewingTerminationReceipt>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),viewing=uuid(viewingId,'VALIDATION','Viewing ID');let command:ViewingTerminationCommand;
+    try{if(kind!=='cancel'&&kind!=='decline')throw new Error();command=validateViewingTerminationCommand(input);}catch{return invalid('VALIDATION','Review the original viewing ending reason.');}
+    const data=await this.request(`/v2/staff/enquiries/${id}/viewing-operations/${command.operationId}`,'GET',captured);
+    try{return validateViewingTerminationReceipt(data,id,viewing,kind,command);}catch{return invalid('INVALID_RESPONSE','Invalid original viewing terminal receipt.');}
   }
   async confirmViewingV2(enquiryId:string,viewingId:string,input:ViewingConfirmationCommand,options:StaffRequestOptions):Promise<ViewingConfirmationReceipt>{
     const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),viewing=uuid(viewingId,'VALIDATION','Viewing ID');let command:ViewingConfirmationCommand;

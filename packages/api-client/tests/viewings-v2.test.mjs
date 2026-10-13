@@ -14,6 +14,25 @@ const json=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'app
 const rejects=(fn,kind,uncertain=false)=>assert.rejects(fn,e=>e instanceof ApiClientError&&e.kind===kind&&e.submissionUncertain===uncertain);
 const phone={operationId:operation,expectedVersion:'2',slot,channel:'phone',agreedAt:'2026-10-13T19:00:00.000Z',notes:'  Exact phone agreement.\nSynthetic only.  '};
 const confirmed={...receipt,kind:'confirm',expectedVersion:'2',observedVersion:'2',request:{slot,channel:'phone',agreedAt:phone.agreedAt,notes:phone.notes},result:{...schedule,status:'confirmed',version:'3',proposedSlot:slot,agreement:{channel:'phone',agreedAt:phone.agreedAt,notes:phone.notes}}};
+const ending={operationId:operation,expectedVersion:'2',reason:'  Synthetic ending reason.\nExact original.  '};
+const cancelled={...receipt,kind:'cancel',expectedVersion:'2',observedVersion:'2',request:{reason:ending.reason},result:{...schedule,status:'cancelled',version:'3',proposedSlot:slot,termination:{kind:'cancel',fromStatus:'proposed',reason:ending.reason,endedAt:time,previousUpdatedAt:'2026-10-13T18:00:00.000Z'}}};
+test('terminal commands send one fixed kind route and recover original without reason in URL',async()=>{
+ for(const [kind,suffix,status] of [['cancel','cancellations','cancelled'],['decline','declines','declined']]){
+  const result={...cancelled,kind,result:{...cancelled.result,status,termination:{...cancelled.result.termination,kind}}},calls=[],api=client(async(url,init)=>{calls.push({url,init});return json(result);});
+  assert.deepEqual(await api.terminateViewingV2(enquiry,viewing,kind,ending,options),result);assert.deepEqual(await api.getViewingTerminationReceiptV2(enquiry,viewing,kind,ending,options),result);
+  assert.ok(calls[0].url.endsWith(`/viewings/${viewing}/${suffix}`));assert.deepEqual(JSON.parse(calls[0].init.body),{...ending,expectedVersion:2});assert.equal(calls[1].init.method,'GET');assert.equal(calls[1].init.body,undefined);assert.ok(calls[1].url.endsWith('/viewing-operations/'+operation));assert.equal(calls[1].url.includes('reason'),false);
+ }
+});
+test('lost or altered terminal replies stay uncertain and original recovery remains read-only without retry',async()=>{
+ let calls=0;const api=client(async()=>{calls++;throw new Error('Synthetic committed reply loss');});await rejects(()=>api.terminateViewingV2(enquiry,viewing,'cancel',ending,options),'NETWORK',true);assert.equal(calls,1);await rejects(()=>api.getViewingTerminationReceiptV2(enquiry,viewing,'cancel',ending,options),'NETWORK',false);assert.equal(calls,2);
+ const altered=client(async()=>json({...cancelled,request:{reason:'changed'}}));await rejects(()=>altered.terminateViewingV2(enquiry,viewing,'cancel',ending,options),'INVALID_RESPONSE',true);await rejects(()=>altered.getViewingTerminationReceiptV2(enquiry,viewing,'cancel',ending,options),'INVALID_RESPONSE',false);
+});
+test('invalid terminal inputs never dispatch and conflicts or refusals retain original command',async()=>{
+ let calls=0;const api=client(async()=>{calls++;return json({...cancelled,outcome:'conflict',reason:'VERSION_CONFLICT',observedVersion:'3',result:null});});
+ for(const patch of [{expectedVersion:2},{actorId:actor},{reason:' '},{reason:'x'.repeat(1001)}])await rejects(()=>api.terminateViewingV2(enquiry,viewing,'cancel',{...ending,...patch},options),'VALIDATION');await rejects(()=>api.terminateViewingV2(enquiry,viewing,'confirm',ending,options),'VALIDATION');assert.equal(calls,0);
+ assert.equal((await api.terminateViewingV2(enquiry,viewing,'cancel',ending,options)).outcome,'conflict');
+ const refused=client(async()=>json({...cancelled,outcome:'refused',reason:'INVALID_STATE',result:null}));assert.equal((await refused.terminateViewingV2(enquiry,viewing,'cancel',ending,options)).reason,'INVALID_STATE');
+});
 test('phone confirmation sends one fixed source-free command and recovers original privately without notes in URL',async()=>{
  const calls=[],api=client(async(url,init)=>{calls.push({url,init});return json(confirmed);});assert.deepEqual(await api.confirmViewingV2(enquiry,viewing,phone,options),confirmed);assert.deepEqual(await api.getViewingConfirmationReceiptV2(enquiry,viewing,phone,options),confirmed);
  assert.equal(calls[0].url,`https://synthetic.invalid/v2/staff/enquiries/${enquiry}/viewings/${viewing}/confirmations`);assert.deepEqual(JSON.parse(calls[0].init.body),{...phone,expectedVersion:2});assert.equal(calls[1].init.method,'GET');assert.equal(calls[1].init.body,undefined);assert.ok(calls[1].url.endsWith('/viewing-operations/'+operation));assert.equal(calls[1].url.includes('agreement'),false);

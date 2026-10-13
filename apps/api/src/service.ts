@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import {validateViewingConfirmationCommand,validateViewingConfirmationReceipt,type ViewingConfirmationCommand,validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal} from '@realtor/domain';
+import {validateViewingTerminationCommand,validateViewingTerminationReceipt,type ViewingTerminationCommand,validateViewingConfirmationCommand,validateViewingConfirmationReceipt,type ViewingConfirmationCommand,validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal} from '@realtor/domain';
 import { validateContactCommand,validateContactReceipt,validateContactPage,validateEnquiryActivityPage,calculateWirePricingV2, kesFromMinor, normalizeKenyanPhone, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2 } from "@realtor/domain";
 import { DatabaseSafetyError, type TransactionDatabase, type TransactionQuery } from "./database.js";
 
@@ -525,19 +525,21 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
           if (new Set(projected.map(row => row.id)).size !== projected.length) throw new Error("Duplicate enquiry record.");
           return response(200, { items: projected.slice(0, pageLimit), limit: pageLimit, truncated: projected.length > pageLimit }, correlationId);
         }
-        const viewingRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewings(?:\/([^/]+)(\/(?:proposals|confirmations))?)?$/.exec(path);
+        const viewingRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewings(?:\/([^/]+)(\/(?:proposals|confirmations|cancellations|declines))?)?$/.exec(path);
         const viewingOperationRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewing-operations\/([^/]+)$/.exec(path);
         if(viewingRoute||viewingOperationRoute){
           const id=uuid((viewingRoute??viewingOperationRoute)![1],"enquiryId"),viewingId=viewingRoute?.[2]===undefined?null:uuid(viewingRoute[2],"viewingId");
-          const operationId=viewingOperationRoute?uuid(viewingOperationRoute[2],"operationId"):null,proposal=viewingRoute?.[3]==='/proposals',confirmation=viewingRoute?.[3]==='/confirmations',mutation=proposal||confirmation;
+          const operationId=viewingOperationRoute?uuid(viewingOperationRoute[2],"operationId"):null,proposal=viewingRoute?.[3]==='/proposals',confirmation=viewingRoute?.[3]==='/confirmations',ending=viewingRoute?.[3]==='/cancellations'?'cancel':viewingRoute?.[3]==='/declines'?'decline':undefined,mutation=proposal||confirmation||!!ending;
           const list=!!viewingRoute&&viewingId===null&&method==="GET",pageLimit=enquiryQuery(url,list,25);
           if(pageLimit>25)throw new HttpError(400,"INVALID_INPUT","Viewing limit cannot exceed 25.");
           const allowed=operationId||viewingId&&!mutation?["GET"]:mutation?["POST"]:["GET","POST"];
           if(!allowed.includes(method))throw new HttpError(405,"METHOD_NOT_ALLOWED","Method is not allowed for this viewing route.",{Allow:allowed.join(', ')});
-          let original:ViewingOriginal|undefined,confirmationCommand:ViewingConfirmationCommand|undefined;
+          let original:ViewingOriginal|undefined,confirmationCommand:ViewingConfirmationCommand|undefined,terminationCommand:ViewingTerminationCommand|undefined;
           if(method==="POST"){
             const raw=await jsonBody(request,16*1024,false,true);
-            if(confirmation){const body=record(raw,["operationId","expectedVersion","slot","channel","agreedAt","notes"]),expected=version(body.expectedVersion);
+            if(ending){const body=record(raw,["operationId","expectedVersion","reason"]),expected=version(body.expectedVersion);
+              try{terminationCommand=validateViewingTerminationCommand({...body,expectedVersion:String(expected)});}catch{throw new HttpError(400,"INVALID_INPUT","Review the viewing ending reason.");}
+            }else if(confirmation){const body=record(raw,["operationId","expectedVersion","slot","channel","agreedAt","notes"]),expected=version(body.expectedVersion);
               try{confirmationCommand=validateViewingConfirmationCommand({...body,expectedVersion:String(expected)});}catch{throw new HttpError(400,"INVALID_INPUT","Review the viewing phone agreement fields.");}
             }else if(proposal){const body=record(raw,["operationId","expectedVersion","slot"]),expected=version(body.expectedVersion);
               try{original={kind:'propose',viewingId:viewingId!,command:validateViewingProposalCommand({...body,expectedVersion:String(expected)})};}catch{throw new HttpError(400,"INVALID_INPUT","Review the viewing proposal fields.");}
@@ -547,6 +549,7 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
           }
           const result=await options.database.transaction(context,async query=>{
             await assertStaff(query);
+            if(terminationCommand&&ending)return query.query("SELECT app_api.terminate_viewing($1::uuid,$2::uuid,$3::uuid,$4::bigint,$5::text,$6::text) AS receipt",[id,viewingId,terminationCommand.operationId,terminationCommand.expectedVersion,ending,terminationCommand.reason]);
             if(confirmationCommand)return query.query("SELECT app_api.confirm_viewing_phone($1::uuid,$2::uuid,$3::uuid,$4::bigint,$5::jsonb,$6::text,$7::timestamptz,$8::text) AS receipt",[id,viewingId,confirmationCommand.operationId,confirmationCommand.expectedVersion,JSON.stringify(confirmationCommand.slot),confirmationCommand.channel,confirmationCommand.agreedAt,confirmationCommand.notes]);
             if(original){const command=original.command;return query.query("SELECT app_api.execute_viewing_operation($1::uuid,$2::uuid,$3::uuid,$4::bigint,$5::text,$6::uuid,$7::jsonb,$8::text,$9::jsonb) AS receipt",
               original.kind==='request'?[id,null,command.operationId,original.command.expectedEnquiryVersion,'request',original.command.listingId,JSON.stringify(original.command.preferredSlots),original.command.notes,null]:[id,original.viewingId,command.operationId,original.command.expectedVersion,'propose',null,null,null,JSON.stringify(original.command.slot)]);}
@@ -557,8 +560,14 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
           if(list)return response(200,validateViewingPage(scalar(result,"page"),id,pageLimit),correlationId);
           if(viewingId&&!mutation)return response(200,validateViewingDetail(scalar(result,"detail"),id,viewingId),correlationId);
           const data=scalar(result,"receipt");
+          if(terminationCommand&&ending){const receipt=validateViewingTerminationReceipt(data,id,viewingId!,ending,terminationCommand);if(receipt.actorId!==actorId)throw new Error("Unexpected viewing terminal actor.");return response(200,receipt,correlationId);}
           if(confirmationCommand){const receipt=validateViewingConfirmationReceipt(data,id,viewingId!,confirmationCommand);if(receipt.actorId!==actorId)throw new Error("Unexpected viewing confirmation actor.");return response(200,receipt,correlationId);}
           if(!original){if(!data||typeof data!=='object'||Array.isArray(data))throw new Error("Invalid stored viewing receipt.");const stored=data as Record<string,unknown>;
+            if(stored.kind==='cancel'||stored.kind==='decline'){
+              const command=validateViewingTerminationCommand({...stored.request as object,operationId:stored.operationId,expectedVersion:stored.expectedVersion});
+              if(command.operationId!==operationId||typeof stored.viewingId!=='string')throw new Error("Unexpected viewing terminal operation.");
+              const receipt=validateViewingTerminationReceipt(data,id,stored.viewingId,stored.kind,command);if(receipt.actorId!==actorId)throw new Error("Unexpected viewing terminal actor.");return response(200,receipt,correlationId);
+            }
             if(stored.kind==='confirm'){
               const command=validateViewingConfirmationCommand({...stored.request as object,operationId:stored.operationId,expectedVersion:stored.expectedVersion});
               if(command.operationId!==operationId||typeof stored.viewingId!=='string')throw new Error("Unexpected viewing confirmation operation.");

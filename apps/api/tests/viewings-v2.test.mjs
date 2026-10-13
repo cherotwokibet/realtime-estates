@@ -16,6 +16,28 @@ function fixture({result=receipt,privateDetail=detail,page={items:[detail],limit
 const req=(path,{method='GET',value,raw,authorization='Bearer synthetic'}={})=>new Request('https://synthetic.invalid'+path,{method,headers:{...(authorization?{Authorization:authorization}:{}),...(value!==undefined||raw!==undefined?{'Content-Type':'application/json'}:{})},...(value!==undefined||raw!==undefined?{body:raw??JSON.stringify(value)}:{})});
 const phone={operationId:operation,expectedVersion:2,slot,channel:'phone',agreedAt:'2026-10-13T19:00:00.000Z',notes:'  Synthetic phone agreement.  '};
 const confirmed={...receipt,kind:'confirm',expectedVersion:'2',observedVersion:'2',request:{slot,channel:'phone',agreedAt:phone.agreedAt,notes:phone.notes},result:{...schedule,status:'confirmed',version:'3',proposedSlot:slot,agreement:{channel:'phone',agreedAt:phone.agreedAt,notes:phone.notes}}};
+const ending={operationId:operation,expectedVersion:2,reason:'  Synthetic ending reason.\nExact original.  '};
+const cancelled={...receipt,kind:'cancel',expectedVersion:'2',observedVersion:'2',request:{reason:ending.reason},result:{...schedule,status:'cancelled',version:'3',proposedSlot:slot,termination:{kind:'cancel',fromStatus:'proposed',reason:ending.reason,endedAt:time,previousUpdatedAt:'2026-10-13T18:00:00.000Z'}}};
+test('terminal routes bind fixed kind and verified authority and recover original private receipts',async()=>{
+ for(const [kind,suffix,status] of [['cancel','cancellations','cancelled'],['decline','declines','declined']]){
+  const result={...cancelled,kind,result:{...cancelled.result,status,termination:{...cancelled.result.termination,kind}}},f=fixture({result});
+  const saved=await f.service(req(base+`/viewings/${viewing}/${suffix}`,{method:'POST',value:ending}));assert.equal(saved.status,200);assert.deepEqual(await saved.json(),result);
+  assert.deepEqual(f.calls.find(x=>x.sql.includes('terminate_viewing')).args,[enquiry,viewing,operation,'2',kind,ending.reason]);assert.equal(f.contexts[0].actorId,actor);
+  assert.deepEqual(await (await f.service(req(base+'/viewing-operations/'+operation))).json(),result);assert.equal((await f.service(req(base+`/viewings/${viewing}/${suffix}`))).status,405);
+ }
+});
+test('terminal commands reject authority,unsafe numbers,duplicate reasons and overrides before storage',async()=>{
+ const path=base+`/viewings/${viewing}/cancellations`;
+ for(const value of [{...ending,actorId:actor},{...ending,kind:'decline'},{...ending,reason:' '},{...ending,reason:'x'.repeat(1001)},{...ending,expectedVersion:'2'}]){const f=fixture();assert.equal((await f.service(req(path,{method:'POST',value}))).status,400);assert.equal(f.contexts.length,0);}
+ for(const raw of [JSON.stringify(ending).replace('"expectedVersion":2','"expectedVersion":2e0'),JSON.stringify(ending).replace('"expectedVersion":2','"expectedVersion":2.00000000000000001'),JSON.stringify(ending).replace('"reason":','"reason":"duplicate","reason":')]){const f=fixture();assert.equal((await f.service(req(path,{method:'POST',raw}))).status,400);assert.equal(f.contexts.length,0);}
+ assert.equal((await fixture().service(req(path+'?tenantId=foreign',{method:'POST',value:ending}))).status,400);
+});
+test('terminal receipts reject changed private facts and actors while historical detail keeps separate attribution',async()=>{
+ for(const result of [{...cancelled,actorId:id(99)},{...cancelled,request:{reason:'changed'}},{...cancelled,result:{...cancelled.result,viewingId:id(99)}}])assert.equal((await fixture({result}).service(req(base+`/viewings/${viewing}/cancellations`,{method:'POST',value:ending}))).status,503);
+ const privateDetail={...detail,schedule:cancelled.result,createdAt:'2026-10-13T17:00:00.000Z',terminationRecord:{recordedById:actor}};assert.equal((await fixture({privateDetail}).service(req(base+'/viewings/'+viewing))).status,200);
+ assert.equal((await fixture({role:'customer'}).service(req(base+`/viewings/${viewing}/cancellations`,{method:'POST',value:ending}))).status,403);
+ assert.equal((await fixture({result:{...cancelled,operationId:id(99)}}).service(req(base+'/viewing-operations/'+operation))).status,503);
+});
 test('phone confirmation route binds exact verified identity and source-free original SQL facts',async()=>{
  const f=fixture({result:confirmed}),result=await f.service(req(base+`/viewings/${viewing}/confirmations`,{method:'POST',value:phone}));assert.equal(result.status,200);assert.deepEqual(await result.json(),confirmed);
  assert.deepEqual(f.calls.find(x=>x.sql.includes('confirm_viewing_phone')).args,[enquiry,viewing,operation,'2',JSON.stringify(slot),'phone',phone.agreedAt,phone.notes]);assert.equal(f.contexts[0].actorId,actor);

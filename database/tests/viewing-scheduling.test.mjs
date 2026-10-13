@@ -3,12 +3,13 @@ import test from 'node:test';
 import {PGlite} from '@electric-sql/pglite';
 import {applyTestMigrations} from '../test-helpers/migrations.mjs';
 import {seedSyntheticSealedMedia} from '../test-helpers/synthetic-sealed-media.mjs';
-import {validateViewingSchedule,validateViewingDetail,validateViewingConfirmationReceipt} from '../../packages/domain/dist/index.js';
+import {validateViewingSchedule,validateViewingDetail,validateViewingConfirmationReceipt,validateViewingTerminationReceipt} from '../../packages/domain/dist/index.js';
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const T=id(1),OTHER=id(2),ADMIN=id(10),AGENT=id(11),PEER=id(12),CUSTOMER=id(13),ADMIN2=id(14),OTHERADMIN=id(20);
 const L=id(100),SECOND_L=id(101),FOREIGN_L=id(200),E=id(300),GENERAL=id(301),FOREIGN_E=id(400);
 const NOTES='  Synthetic viewing notes.\nPreserve the original.  ';
 const PHONE_NOTES='  Fictional completed phone agreement.\nPreserve exact evidence.  ';
+const END_REASON='  Fictional cancellation reason.\nPreserve exact history.  ';
 const slot=(startAt='2090-01-01T09:00:00.000Z',endAt='2090-01-01T10:00:00.000Z')=>({startAt,endAt,timeZone:'Africa/Nairobi'});
 const content={title:'Synthetic viewing studio',description:'Disposable scheduling SQL fixture only.',purpose:'rent',propertyType:'studio',currency:'KES',amountMinor:2000000,rentPeriod:'month',bedrooms:0,privateBathrooms:1,sharedBathrooms:null,country:'KE',locality:'Synthetic Nairobi',publicPrecision:'area',latitude:null,longitude:null,privateAddress:null};
 async function scalar(db,sql,args=[]){return Object.values((await db.query(sql,args)).rows[0])[0];}
@@ -45,6 +46,88 @@ function confirmation(db,{viewing,user=AGENT,enquiry=E,operation=id(2000),expect
  return actor(db,user,()=>scalar(db,'SELECT app_api.confirm_viewing_phone($1,$2,$3,$4,$5::jsonb,$6,$7,$8)',[enquiry,viewing,operation,expected,JSON.stringify(proposalSlot),channel,agreedAt,notes]),tenant);
 }
 async function proposed(db){const requested=await command(db);const proposal=await command(db,{kind:'propose',viewing:requested.viewingId,operation:id(1001)});return {requested,proposal};}
+function terminate(db,{viewing,user=AGENT,enquiry=E,operation=id(3000),expected='2',kind='cancel',reason=END_REASON,tenant=T}={}){
+ return actor(db,user,()=>scalar(db,'SELECT app_api.terminate_viewing($1,$2,$3,$4,$5,$6)',[enquiry,viewing,operation,expected,kind,reason]),tenant);
+}
+test('reasoned cancellation preserves confirmed phone evidence and all original receipts without enquiry mutation',async()=>{
+ const db=await fixture();try{
+  const {requested,proposal}=await proposed(db),confirmed=await confirmation(db,{viewing:requested.viewingId,agreedAt:proposal.completedAt}),before=await read(db,requested.viewingId);
+  const receipt=await terminate(db,{viewing:requested.viewingId,expected:'3'});assert.equal(receipt.result.status,'cancelled');assert.equal(receipt.result.version,'4');assert.equal(receipt.result.termination.reason,END_REASON);assert.equal(receipt.result.termination.fromStatus,'confirmed');assert.equal(receipt.result.termination.previousUpdatedAt,confirmed.completedAt);
+  validateViewingTerminationReceipt(receipt,E,requested.viewingId,'cancel',{operationId:id(3000),expectedVersion:'3',reason:END_REASON});
+  const after=await read(db,requested.viewingId);validateViewingDetail(after,E);assert.deepEqual(after.schedule.agreement,before.schedule.agreement);assert.deepEqual(after.confirmation,before.confirmation);assert.equal(after.notes,before.notes);assert.equal(after.terminationRecord.recordedById,AGENT);
+  assert.deepEqual(await history(db),requested);assert.deepEqual(await history(db,id(1001)),proposal);assert.deepEqual(await history(db,id(2000)),confirmed);assert.deepEqual(await history(db,id(3000)),receipt);
+  assert.deepEqual(await command(db),requested);assert.deepEqual(await command(db,{kind:'propose',viewing:requested.viewingId,operation:id(1001)}),proposal);assert.deepEqual(await confirmation(db,{viewing:requested.viewingId,agreedAt:proposal.completedAt}),confirmed);
+  assert.deepEqual(await totals(db),{viewings:1,operations:4,audits:4,enquiry_version:'1'});
+  const audits=await db.query("SELECT summary FROM app_private.audit_events WHERE object_type='viewing'");assert.ok(audits.rows.every(x=>!JSON.stringify(x.summary).includes(END_REASON)&&!Object.hasOwn(x.summary,'reason')));
+ }finally{await db.close();}
+});
+test('cancellation remains possible for closed enquiry and paused unavailable listing and exact terminal replay stays original',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),options={viewing:requested.viewingId};
+  await db.query("UPDATE app_private.enquiries SET status='closed_lost',closure_reason='Synthetic closed' WHERE tenant_id=$1 AND id=$2",[T,E]);await db.query("UPDATE app_private.listings SET publication_status='paused',availability='withdrawn' WHERE tenant_id=$1 AND id=$2",[T,L]);
+  const receipt=await terminate(db,options);assert.equal(receipt.outcome,'applied');assert.deepEqual(await terminate(db,options),receipt);assert.deepEqual(await history(db,id(3000)),receipt);
+  await denied(()=>terminate(db,{...options,reason:'Changed history.'}),'40001');await denied(()=>terminate(db,{...options,kind:'decline'}),'40001');await denied(()=>terminate(db,{...options,user:ADMIN}),'40001');
+ }finally{await db.close();}
+});
+test('decline is allowed before confirmation and cannot erase a recorded phone agreement',async()=>{
+ const db=await fixture();try{
+  const requested=await command(db),declined=await terminate(db,{viewing:requested.viewingId,expected:'1',kind:'decline'});assert.equal(declined.result.status,'declined');assert.equal(declined.result.version,'2');assert.equal(declined.result.proposedSlot,null);
+  const second=await command(db,{operation:id(1010)}),proposal=await command(db,{kind:'propose',viewing:second.viewingId,operation:id(1011)}),confirmed=await confirmation(db,{viewing:second.viewingId,agreedAt:proposal.completedAt});
+  const refused=await terminate(db,{viewing:second.viewingId,operation:id(3001),kind:'decline',expected:'3'});assert.equal(refused.reason,'INVALID_STATE');assert.equal(refused.result,null);assert.deepEqual((await read(db,second.viewingId)).schedule,confirmed.result);
+ }finally{await db.close();}
+});
+test('stale terminal attempts and repeated new termination decisions are durable without another mutation',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),stale=await terminate(db,{viewing:requested.viewingId,expected:'1'});assert.equal(stale.reason,'VERSION_CONFLICT');assert.equal(stale.result,null);
+  const ended=await terminate(db,{viewing:requested.viewingId,operation:id(3001)});assert.equal(ended.result.version,'3');assert.deepEqual(await terminate(db,{viewing:requested.viewingId,expected:'1'}),stale);
+  const again=await terminate(db,{viewing:requested.viewingId,operation:id(3002),expected:'3'});assert.equal(again.reason,'INVALID_STATE');assert.equal((await read(db,requested.viewingId)).schedule.version,'3');assert.equal((await totals(db)).audits,3);
+ }finally{await db.close();}
+});
+test('terminal receipts and reads enforce current assignment,company,active role and original requester',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),options={viewing:requested.viewingId};
+  for(const user of [PEER,CUSTOMER,OTHERADMIN])await assert.rejects(()=>terminate(db,{...options,user}));await denied(()=>terminate(db,{...options,enquiry:GENERAL}),'P0002');await denied(()=>terminate(db,{...options,user:OTHERADMIN,tenant:OTHER}),'P0002');
+  const receipt=await terminate(db,options);await denied(()=>history(db,id(3000),ADMIN),'P0002');
+  await db.query('UPDATE app_private.enquiries SET assigned_agent_id=$1 WHERE tenant_id=$2 AND id=$3',[PEER,T,E]);await denied(()=>history(db,id(3000)),'P0002');await denied(()=>terminate(db,options),'P0002');assert.equal((await read(db,requested.viewingId,PEER)).schedule.status,'cancelled');
+  await db.query('UPDATE app_private.enquiries SET assigned_agent_id=$1 WHERE tenant_id=$2 AND id=$3',[AGENT,T,E]);assert.deepEqual(await terminate(db,options),receipt);
+  await db.query('UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',[T,AGENT]);await assert.rejects(()=>history(db,id(3000)));
+ }finally{await db.close();}
+});
+test('terminal reason,state,ending metadata and original evidence cannot be edited,reverted or deleted',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db);await terminate(db,{viewing:requested.viewingId});
+  for(const sql of ["UPDATE app_private.viewings SET termination_reason='Changed' WHERE id=$1","UPDATE app_private.viewings SET status='proposed',version=2 WHERE id=$1","UPDATE app_private.viewings SET previous_updated_at=previous_updated_at-interval '1 second' WHERE id=$1","DELETE FROM app_private.viewings WHERE id=$1"])await denied(()=>db.query(sql,[requested.viewingId]),'23514');
+  await denied(()=>actor(db,AGENT,()=>db.query("UPDATE app_private.viewings SET termination_reason='Changed' WHERE id=$1",[requested.viewingId])),'42501');
+ }finally{await db.close();}
+});
+test('invalid terminal commands reserve no ledger entry and existing operation kind cannot be replaced',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),options={viewing:requested.viewingId},before=await totals(db);
+  for(const patch of [{reason:null},{reason:' '},{reason:'😀'.repeat(1001)},{kind:'delete'},{kind:null},{expected:null},{expected:'9007199254740991'}])await denied(()=>terminate(db,{...options,...patch}),'23514');
+  await denied(()=>terminate(db,{...options,operation:id(1000)}),'40001');assert.deepEqual(await totals(db),before);
+  const max=await terminate(db,{...options,reason:'😀'.repeat(1000)});assert.equal([...max.request.reason].length,1000);
+ }finally{await db.close();}
+});
+test('historical proposed slot can be explicitly cancelled after its start without changing its saved time',async()=>{
+ const db=await fixture();try{
+  const viewing=id(9001),oldSlot=slot('2001-01-01T09:00:00.000Z','2001-01-01T10:00:00.000Z');
+  await db.query("INSERT INTO app_private.viewings(tenant_id,id,enquiry_id,listing_id,requested_by_id,status,version,preferred_slots,notes,created_at,updated_at) VALUES($1,$2,$3,$4,$5,'requested',1,'[]',$6,'2000-01-01T00:00:00Z','2000-01-01T00:00:00Z')",[T,viewing,E,L,AGENT,NOTES]);
+  await db.query("UPDATE app_private.viewings SET status='proposed',version=2,proposed_slot=$1::jsonb,updated_at='2000-01-02T00:00:00Z' WHERE tenant_id=$2 AND id=$3",[JSON.stringify(oldSlot),T,viewing]);
+  const receipt=await terminate(db,{viewing});assert.equal(receipt.outcome,'applied');assert.deepEqual(receipt.result.proposedSlot,oldSlot);const detail=await read(db,viewing);validateViewingDetail(detail,E);assert.equal(detail.schedule.status,'cancelled');
+ }finally{await db.close();}
+});
+test('requested cancellation and proposed decline retain distinct prior stages and exact original times',async()=>{
+ const db=await fixture();try{
+  const requested=await command(db),cancelled=await terminate(db,{viewing:requested.viewingId,expected:'1'});assert.equal(cancelled.result.status,'cancelled');assert.equal(cancelled.result.version,'2');assert.equal(cancelled.result.proposedSlot,null);assert.equal(cancelled.result.termination.previousUpdatedAt,requested.completedAt);validateViewingDetail(await read(db,requested.viewingId),E);
+  const second=await command(db,{operation:id(1010)}),proposal=await command(db,{kind:'propose',viewing:second.viewingId,operation:id(1011)}),declined=await terminate(db,{viewing:second.viewingId,operation:id(3001),kind:'decline'});assert.equal(declined.result.status,'declined');assert.equal(declined.result.version,'3');assert.deepEqual(declined.result.proposedSlot,proposal.result.proposedSlot);assert.equal(declined.result.termination.previousUpdatedAt,proposal.completedAt);validateViewingDetail(await read(db,second.viewingId),E);
+ }finally{await db.close();}
+});
+test('future saved-record clock refuses terminal mutation and retains its original refusal receipt',async()=>{
+ const db=await fixture();try{
+  const viewing=id(9002);await db.query("INSERT INTO app_private.viewings(tenant_id,id,enquiry_id,listing_id,requested_by_id,status,version,preferred_slots,notes,created_at,updated_at) VALUES($1,$2,$3,$4,$5,'requested',1,'[]',$6,'2090-01-01T00:00:00Z','2090-01-01T00:00:00Z')",[T,viewing,E,L,AGENT,NOTES]);
+  const receipt=await terminate(db,{viewing,expected:'1'});assert.equal(receipt.reason,'RECORD_TIME_IN_FUTURE');assert.equal(receipt.result,null);assert.equal((await read(db,viewing)).schedule.status,'requested');assert.deepEqual(await history(db,id(3000)),receipt);
+ }finally{await db.close();}
+});
 
 test('phone agreement confirms only exact proposal and retains private attributable evidence and historical originals',async()=>{
  const db=await fixture();try{

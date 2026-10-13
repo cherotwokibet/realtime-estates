@@ -1,25 +1,27 @@
-/** Pilot request/proposal contracts only. Authorization and durable replay belong to SQL/API. */
+/** Strict viewing lifecycle contracts. Authorization and durable original replay belong to SQL/API. */
 export interface ViewingSlot {readonly startAt:string;readonly endAt:string;readonly timeZone:'Africa/Nairobi'}
 export interface ViewingRequestCommand {readonly operationId:string;readonly expectedEnquiryVersion:string;readonly listingId:string;readonly preferredSlots:readonly ViewingSlot[];readonly notes:string}
 export interface ViewingProposalCommand {readonly operationId:string;readonly expectedVersion:string;readonly slot:ViewingSlot}
 export interface PhoneViewingAgreement {readonly channel:'phone';readonly agreedAt:string;readonly notes:string}
-export interface ViewingSchedule {readonly viewingId:string;readonly enquiryId:string;readonly listingId:string;readonly version:string;readonly status:'requested'|'proposed'|'confirmed';readonly preferredSlots:readonly ViewingSlot[];readonly proposedSlot:ViewingSlot|null;readonly agreement?:PhoneViewingAgreement}
+export type OpenViewingStatus='requested'|'proposed'|'confirmed';
+export interface ViewingSchedule {readonly viewingId:string;readonly enquiryId:string;readonly listingId:string;readonly version:string;readonly status:OpenViewingStatus|'cancelled'|'declined';readonly preferredSlots:readonly ViewingSlot[];readonly proposedSlot:ViewingSlot|null;readonly agreement?:PhoneViewingAgreement;readonly termination?:ViewingTerminationFacts}
 export type ViewingProposalPlan=Readonly<{outcome:'applied';reason:null;next:ViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';next:null}>|Readonly<{outcome:'refused';reason:'INVALID_STATE'|'SLOT_NOT_FUTURE';next:null}>;
 export type ViewingOriginal=Readonly<{kind:'request';command:ViewingRequestCommand}>|Readonly<{kind:'propose';viewingId:string;command:ViewingProposalCommand}>;
 export type ViewingRefusalReason='ENQUIRY_CLOSED'|'LISTING_MISMATCH'|'LISTING_UNAVAILABLE'|'INVALID_STATE'|'SLOT_NOT_FUTURE';
 export type ViewingReceipt=Readonly<{operationId:string;enquiryId:string;viewingId:string|null;actorId:string;kind:'request'|'propose';expectedVersion:string;observedVersion:string;request:Readonly<{listingId:string;preferredSlots:readonly ViewingSlot[];notes:string}>|Readonly<{slot:ViewingSlot}>;completedAt:string}>&(
  Readonly<{outcome:'applied';reason:null;result:ViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';result:null}>|Readonly<{outcome:'refused';reason:ViewingRefusalReason;result:null}>);
-export interface ViewingDetail {readonly schedule:ViewingSchedule;readonly notes:string;readonly requestedById:string;readonly assignedAgentId:string|null;readonly createdAt:string;readonly updatedAt:string;readonly confirmation?:Readonly<{proposedAt:string;recordedAt:string;recordedById:string}>}
+export interface ViewingDetail {readonly schedule:ViewingSchedule;readonly notes:string;readonly requestedById:string;readonly assignedAgentId:string|null;readonly createdAt:string;readonly updatedAt:string;readonly confirmation?:Readonly<{proposedAt:string;recordedAt:string;recordedById:string}>;readonly terminationRecord?:Readonly<{recordedById:string}>}
 export interface ViewingPage {readonly items:readonly ViewingDetail[];readonly limit:number;readonly truncated:boolean}
 /** First agreement slice: staff records a completed phone agreement for this exact proposed slot. */
 export interface ViewingConfirmationCommand {readonly operationId:string;readonly expectedVersion:string;readonly slot:ViewingSlot;readonly channel:'phone';readonly agreedAt:string;readonly notes:string}
-export interface ConfirmedViewingSchedule extends Omit<ViewingSchedule,'status'|'proposedSlot'> {readonly status:'confirmed';readonly proposedSlot:ViewingSlot;readonly agreement:Readonly<{channel:'phone';agreedAt:string;notes:string}>}
+export interface ConfirmedViewingSchedule extends Omit<ViewingSchedule,'status'|'proposedSlot'|'termination'> {readonly status:'confirmed';readonly proposedSlot:ViewingSlot;readonly agreement:Readonly<{channel:'phone';agreedAt:string;notes:string}>}
 export type ViewingConfirmationPlan=Readonly<{outcome:'applied';reason:null;next:ConfirmedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';next:null}>|Readonly<{outcome:'refused';reason:'INVALID_STATE'|'PROPOSED_SLOT_MISMATCH'|'SLOT_NOT_FUTURE'|'AGREEMENT_BEFORE_PROPOSAL'|'AGREEMENT_IN_FUTURE';next:null}>;
 export type ViewingConfirmationReceipt=Readonly<{operationId:string;enquiryId:string;viewingId:string;actorId:string;kind:'confirm';expectedVersion:string;observedVersion:string;request:Readonly<{slot:ViewingSlot;channel:'phone';agreedAt:string;notes:string}>;completedAt:string}>&(
  Readonly<{outcome:'applied';reason:null;result:ConfirmedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';result:null}>|Readonly<{outcome:'refused';reason:'ENQUIRY_CLOSED'|'LISTING_UNAVAILABLE'|'INVALID_STATE'|'PROPOSED_SLOT_MISMATCH'|'SLOT_NOT_FUTURE'|'AGREEMENT_BEFORE_PROPOSAL'|'AGREEMENT_IN_FUTURE';result:null}>);
 export type ViewingTerminationKind='cancel'|'decline';
 export interface ViewingTerminationCommand {readonly operationId:string;readonly expectedVersion:string;readonly reason:string}
-export interface TerminatedViewingSchedule extends Omit<ViewingSchedule,'status'> {readonly status:'cancelled'|'declined';readonly termination:Readonly<{kind:ViewingTerminationKind;fromStatus:ViewingSchedule['status'];reason:string;endedAt:string;previousUpdatedAt:string}>}
+export interface ViewingTerminationFacts {readonly kind:ViewingTerminationKind;readonly fromStatus:OpenViewingStatus;readonly reason:string;readonly endedAt:string;readonly previousUpdatedAt:string}
+export interface TerminatedViewingSchedule extends Omit<ViewingSchedule,'status'|'termination'> {readonly status:'cancelled'|'declined';readonly termination:ViewingTerminationFacts}
 export type ViewingTerminationPlan=Readonly<{outcome:'applied';reason:null;next:TerminatedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';next:null}>|Readonly<{outcome:'refused';reason:'INVALID_STATE'|'RECORD_TIME_IN_FUTURE';next:null}>;
 const fail=():never=>{throw new Error('Invalid viewing scheduling contract.');};
 function record(input:unknown,fields:readonly string[]):Record<string,unknown>{
@@ -58,8 +60,7 @@ export function validateViewingConfirmationCommand(input:unknown):ViewingConfirm
 }
 /** Time-independent original reason; kind is an explicit operation, never caller authority. */
 export function validateViewingTerminationCommand(input:unknown):ViewingTerminationCommand{
- const value=record(input,['operationId','expectedVersion','reason']),reason=privateNotes(value.reason);
- if([...reason].length>1000)return fail();
+ const value=record(input,['operationId','expectedVersion','reason']),reason=terminationReason(value.reason);
  return Object.freeze({operationId:uuid(value.operationId),expectedVersion:version(value.expectedVersion,true),reason});
 }
 /** First cancel/decline plan only. No deletion, stored receipt, authorization or reminder dispatch. */
@@ -68,6 +69,7 @@ export function planViewingTermination(input:ViewingDetail,kind:ViewingTerminati
  const descriptor=Object.getOwnPropertyDescriptor(input,'schedule');if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return fail();
  const schedule=validateViewingSchedule(descriptor.value),current=validateViewingDetail(input,schedule.enquiryId),command=validateViewingTerminationCommand(commandInput),clock=instant(now);
  if(command.expectedVersion!==schedule.version)return Object.freeze({outcome:'conflict',reason:'VERSION_CONFLICT',next:null});
+ if(schedule.status==='cancelled'||schedule.status==='declined')return Object.freeze({outcome:'refused',reason:'INVALID_STATE',next:null});
  if(kind==='decline'&&schedule.status==='confirmed')return Object.freeze({outcome:'refused',reason:'INVALID_STATE',next:null});
  if(clock<current.updatedAt)return Object.freeze({outcome:'refused',reason:'RECORD_TIME_IN_FUTURE',next:null});
  return Object.freeze({outcome:'applied',reason:null,next:Object.freeze({...schedule,status:kind==='cancel'?'cancelled':'declined',version:String(BigInt(schedule.version)+1n),termination:Object.freeze({kind,fromStatus:schedule.status,reason:command.reason,endedAt:clock,previousUpdatedAt:current.updatedAt})})});
@@ -85,13 +87,26 @@ export function planViewingConfirmation(input:ViewingDetail,proposal:ViewingConf
  if(command.agreedAt>clock)return Object.freeze({outcome:'refused',reason:'AGREEMENT_IN_FUTURE',next:null});
  return Object.freeze({outcome:'applied',reason:null,next:Object.freeze({...current.schedule,version:String(BigInt(current.schedule.version)+1n),status:'confirmed',proposedSlot:command.slot,agreement:Object.freeze({channel:'phone',agreedAt:command.agreedAt,notes:command.notes})})});
 }
+function terminationReason(input:unknown):string{const reason=privateNotes(input);if([...reason].length>1000)return fail();return reason;}
+function terminationFacts(input:unknown,status:unknown):ViewingTerminationFacts{
+ const v=record(input,['kind','fromStatus','reason','endedAt','previousUpdatedAt']);
+ if(!['cancel','decline'].includes(v.kind as string)||!['requested','proposed','confirmed'].includes(v.fromStatus as string)
+  ||status!==(v.kind==='cancel'?'cancelled':'declined')||v.kind==='decline'&&v.fromStatus==='confirmed')return fail();
+ const endedAt=instant(v.endedAt),previousUpdatedAt=instant(v.previousUpdatedAt);if(previousUpdatedAt>endedAt)return fail();
+ return Object.freeze({kind:v.kind as ViewingTerminationKind,fromStatus:v.fromStatus as OpenViewingStatus,reason:terminationReason(v.reason),endedAt,previousUpdatedAt});
+}
 export function validateViewingSchedule(input:unknown):ViewingSchedule{
  if(!input||typeof input!=='object')return fail();const descriptor=Object.getOwnPropertyDescriptor(input,'status');if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return fail();
- const confirmed=descriptor.value==='confirmed',v=record(input,['viewingId','enquiryId','listingId','version','status','preferredSlots','proposedSlot',...(confirmed?['agreement']:[])]);
- if(!['requested','proposed','confirmed'].includes(v.status as string)||v.status==='requested'&&v.proposedSlot!==null||v.status!=='requested'&&v.proposedSlot===null||confirmed&&v.version!=='3')return fail();
- const base={viewingId:uuid(v.viewingId),enquiryId:uuid(v.enquiryId),listingId:uuid(v.listingId),version:version(v.version),status:v.status as ViewingSchedule['status'],preferredSlots:alternatives(v.preferredSlots),proposedSlot:v.proposedSlot===null?null:validateViewingSlot(v.proposedSlot)};
- if(!confirmed)return Object.freeze(base);
- const agreement=validatePhoneViewingAgreement(v.agreement);if(base.proposedSlot===null||agreement.agreedAt>=base.proposedSlot.startAt)return fail();
+ const confirmed=descriptor.value==='confirmed',ended=descriptor.value==='cancelled'||descriptor.value==='declined';let termination:ViewingTerminationFacts|undefined;
+ if(ended){const facts=Object.getOwnPropertyDescriptor(input,'termination');if(!facts?.enumerable||!Object.hasOwn(facts,'value'))return fail();termination=terminationFacts(facts.value,descriptor.value);}
+ const hasAgreement=confirmed||termination?.fromStatus==='confirmed';
+ const v=record(input,['viewingId','enquiryId','listingId','version','status','preferredSlots','proposedSlot',...(hasAgreement?['agreement']:[]),...(ended?['termination']:[])]),slotRequired=v.status!=='requested'&&termination?.fromStatus!=='requested';
+ if(!['requested','proposed','confirmed','cancelled','declined'].includes(v.status as string)||slotRequired&&v.proposedSlot===null||!slotRequired&&v.proposedSlot!==null||confirmed&&v.version!=='3')return fail();
+ if(termination&&v.version!==({requested:'2',proposed:'3',confirmed:'4'}[termination.fromStatus]))return fail();
+ const base={viewingId:uuid(v.viewingId),enquiryId:uuid(v.enquiryId),listingId:uuid(v.listingId),version:version(v.version),status:v.status as ViewingSchedule['status'],preferredSlots:alternatives(v.preferredSlots),proposedSlot:v.proposedSlot===null?null:validateViewingSlot(v.proposedSlot),...(termination?{termination}:{})};
+ if(termination&&base.proposedSlot!==null&&base.proposedSlot.startAt<=termination.previousUpdatedAt)return fail();
+ if(!hasAgreement)return Object.freeze(base);
+ const agreement=validatePhoneViewingAgreement(v.agreement);if(base.proposedSlot===null||agreement.agreedAt>=base.proposedSlot.startAt||termination&&agreement.agreedAt>termination.previousUpdatedAt)return fail();
  return Object.freeze({...base,agreement});
 }
 export function validatePhoneViewingAgreement(input:unknown):PhoneViewingAgreement{
@@ -149,16 +164,22 @@ export function validateViewingReceipt(input:unknown,enquiryId:string,originalIn
 }
 export function validateViewingDetail(input:unknown,enquiryId:string,viewingId?:string):ViewingDetail{
  if(!input||typeof input!=='object')return fail();const descriptor=Object.getOwnPropertyDescriptor(input,'schedule');if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return fail();
- const schedule=validateViewingSchedule(descriptor.value),confirmed=schedule.status==='confirmed';
- const v=record(input,['schedule','notes','requestedById','assignedAgentId','createdAt','updatedAt',...(confirmed?['confirmation']:[])]),createdAt=instant(v.createdAt),updatedAt=instant(v.updatedAt);
+ const schedule=validateViewingSchedule(descriptor.value),hasAgreement=!!schedule.agreement,ended=!!schedule.termination;
+ const v=record(input,['schedule','notes','requestedById','assignedAgentId','createdAt','updatedAt',...(hasAgreement?['confirmation']:[]),...(ended?['terminationRecord']:[])]),createdAt=instant(v.createdAt),updatedAt=instant(v.updatedAt);
  if(schedule.enquiryId!==uuid(enquiryId)||viewingId!==undefined&&schedule.viewingId!==uuid(viewingId)||createdAt>updatedAt
   ||schedule.status==='requested'&&(schedule.version!=='1'||createdAt!==updatedAt)||schedule.status==='proposed'&&schedule.version!=='2'
-  ||schedule.preferredSlots.some(s=>s.startAt<=createdAt)||schedule.proposedSlot!==null&&schedule.proposedSlot.startAt<=updatedAt)return fail();
+  ||schedule.preferredSlots.some(slot=>slot.startAt<=createdAt))return fail();
+ const previous=schedule.termination?.previousUpdatedAt??updatedAt;
+ if(schedule.proposedSlot!==null&&schedule.proposedSlot.startAt<=previous)return fail();
+ if(schedule.termination&&(schedule.termination.endedAt!==updatedAt||previous<createdAt||schedule.termination.fromStatus==='requested'&&previous!==createdAt))return fail();
  const base={schedule,notes:privateNotes(v.notes),requestedById:uuid(v.requestedById),assignedAgentId:v.assignedAgentId===null?null:uuid(v.assignedAgentId),createdAt,updatedAt};
- if(!confirmed)return Object.freeze(base);
- const metadata=record(v.confirmation,['proposedAt','recordedAt','recordedById']),proposedAt=instant(metadata.proposedAt),recordedAt=instant(metadata.recordedAt),recordedById=uuid(metadata.recordedById);
- if(!schedule.agreement||recordedAt!==updatedAt||proposedAt<createdAt||proposedAt>schedule.agreement.agreedAt||schedule.agreement.agreedAt>recordedAt)return fail();
- return Object.freeze({...base,confirmation:Object.freeze({proposedAt,recordedAt,recordedById})});
+ let confirmation:ViewingDetail['confirmation'];
+ if(hasAgreement){const metadata=record(v.confirmation,['proposedAt','recordedAt','recordedById']),proposedAt=instant(metadata.proposedAt),recordedAt=instant(metadata.recordedAt),recordedById=uuid(metadata.recordedById);
+  if(!schedule.agreement||recordedAt!==previous||proposedAt<createdAt||proposedAt>schedule.agreement.agreedAt||schedule.agreement.agreedAt>recordedAt)return fail();
+  confirmation=Object.freeze({proposedAt,recordedAt,recordedById});
+ }
+ let terminationRecord:ViewingDetail['terminationRecord'];if(ended){const metadata=record(v.terminationRecord,['recordedById']);terminationRecord=Object.freeze({recordedById:uuid(metadata.recordedById)});}
+ return Object.freeze({...base,...(confirmation?{confirmation}:{}),...(terminationRecord?{terminationRecord}:{})});
 }
 /** Dedicated confirmation receipt preserves existing request/proposal original contracts. */
 export function validateViewingConfirmationReceipt(input:unknown,enquiryId:string,viewingId:string,commandInput:ViewingConfirmationCommand):ViewingConfirmationReceipt{
@@ -178,6 +199,21 @@ export function validateViewingConfirmationReceipt(input:unknown,enquiryId:strin
  const result=validateViewingSchedule(v.result);
  if(result.status!=='confirmed'||result.version!=='3'||result.viewingId!==viewing||result.enquiryId!==enquiry||JSON.stringify(result.proposedSlot)!==JSON.stringify(command.slot)||JSON.stringify(result.agreement)!==JSON.stringify({channel:command.channel,agreedAt:command.agreedAt,notes:command.notes}))return fail();
  return Object.freeze({...base,outcome:'applied',reason:null,result:result as ConfirmedViewingSchedule});
+}
+export type ViewingTerminationReceipt=Readonly<{operationId:string;enquiryId:string;viewingId:string;actorId:string;kind:ViewingTerminationKind;expectedVersion:string;observedVersion:string;request:Readonly<{reason:string}>;completedAt:string}>&(
+ Readonly<{outcome:'applied';reason:null;result:TerminatedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';result:null}>|Readonly<{outcome:'refused';reason:'INVALID_STATE'|'RECORD_TIME_IN_FUTURE';result:null}>);
+export function validateViewingTerminationReceipt(input:unknown,enquiryId:string,viewingId:string,kind:ViewingTerminationKind,commandInput:ViewingTerminationCommand):ViewingTerminationReceipt{
+ if(kind!=='cancel'&&kind!=='decline')return fail();
+ const command=validateViewingTerminationCommand(commandInput),v=record(input,['operationId','enquiryId','viewingId','actorId','kind','expectedVersion','observedVersion','request','outcome','reason','result','completedAt']);
+ const operationId=uuid(v.operationId),enquiry=uuid(v.enquiryId),viewing=uuid(v.viewingId),actorId=uuid(v.actorId),expectedVersion=version(v.expectedVersion),observedVersion=version(v.observedVersion),completedAt=instant(v.completedAt),facts=record(v.request,['reason']),reason=terminationReason(facts.reason);
+ if(operationId!==command.operationId||enquiry!==uuid(enquiryId)||viewing!==uuid(viewingId)||v.kind!==kind||expectedVersion!==command.expectedVersion||reason!==command.reason)return fail();
+ const base={operationId,enquiryId:enquiry,viewingId:viewing,actorId,kind,expectedVersion,observedVersion,request:Object.freeze({reason}),completedAt};
+ if(v.outcome==='conflict'){if(v.reason!=='VERSION_CONFLICT'||v.result!==null||expectedVersion===observedVersion)return fail();return Object.freeze({...base,outcome:'conflict',reason:'VERSION_CONFLICT',result:null});}
+ if(v.outcome==='refused'){if(v.result!==null||expectedVersion!==observedVersion||!['INVALID_STATE','RECORD_TIME_IN_FUTURE'].includes(v.reason as string))return fail();return Object.freeze({...base,outcome:'refused',reason:v.reason as 'INVALID_STATE'|'RECORD_TIME_IN_FUTURE',result:null});}
+ if(v.outcome!=='applied'||v.reason!==null||expectedVersion!==observedVersion)return fail();const result=validateViewingSchedule(v.result),terminal=result.termination;
+ if(!terminal||result.viewingId!==viewing||result.enquiryId!==enquiry||terminal.kind!==kind||terminal.reason!==reason||terminal.endedAt!==completedAt
+  ||expectedVersion!==({requested:'1',proposed:'2',confirmed:'3'}[terminal.fromStatus])||result.version!==String(BigInt(expectedVersion)+1n))return fail();
+ return Object.freeze({...base,outcome:'applied',reason:null,result:result as TerminatedViewingSchedule});
 }
 export function validateViewingPage(input:unknown,enquiryId:string,limit:number):ViewingPage{
  const v=record(input,['items','limit','truncated']);uuid(enquiryId);
