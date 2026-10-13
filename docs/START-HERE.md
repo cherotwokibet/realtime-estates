@@ -436,3 +436,17 @@ See [service-budget.md](service-budget.md) for confirmed staffing/price, sourced
 
 Use CONTINUATION.md for the latest implementation/test checkpoint and next actions. Continue reversible work with synthetic data while obtaining design exports, account/rights evidence and independent backup/private remote. Stage 01 and release gates remain open. No live changes or vendor retirement occurred.
 
+
+## Durable viewing cancellation/decline backend — 14 October 2026
+
+Sourcee420d9d: migration0015 stores immutable ending kind,exact raw reason,prior state/time and derived ending actor/server time. Current active company/staff/enquiry assignment required;explicit ending allowed when enquiry closed or listing paused/withdrawn. Cancel requested/proposed/confirmed;decline before confirmation. Stale first;terminal/confirmed-decline/clock-ahead decisions durably refuse. Shared company/operation ledger and locks retain original requester receipt. Forced RLS/no runtime table DML preserved. No enquiry mutation. Original request/proposal/phone agreement and confirming actor/time remain intact.
+
+Protected cancellations/declines POST and original receipt GET;strict terminal schedule/detail/feed/receipt validators;SDK one-send uncertain writes/read-only original recovery;compiled readonly admin terminal history. No ending BFF/form/browser verification yet. No reminderqueue exists;future dispatcher must check current state/version before send. Cancellation after slot start is provisional pending operator review.
+
+158/158 database,110/110 domain,163/163 API,186/186 SDK,64/64 SDK/service integration,145/145 admin and15/15 signed preview checks passed. All8 workspace typechecks and admin production build passed. Focused27 SQL/21 API+SDK/3 signed HTTP checks overlap these suites;not additive.
+
+Signed actual HTTP/RS256/restricted SQL scenario discarded committed cancellation reply,recovered/replayed one cancelled4,retained original request/proposal/phone receipts and confirmation attribution,denied after reassignment,restored exact replay,and executed separate requested decline2. Enquiry changed only deliberate reassignments. Initial SQL fixture invalid availability unavailable corrected to withdrawn;failed logs retained. No terminal browser/native device/UAT/real PostgreSQL simultaneous race/hosted provider/production pass. Evidence docs/viewing-termination.md and preservation logs.
+
+Domain8d1a6d5 published owner-private:tracker3230567f0e62a6a2d9708ae85c70d67edc3ec6f0,baselineviewing-termination-domain-2026-10-14-54,deploymentappgdep_6acebd826c8c8191970819ca884371be succeeded.208notes retained/0browserextras/4added;fullhistorybundle/freshclone/fsckpassed;same-deviceonly.
+
+Next fixed cancellation/decline BFF,recoveryPOST to upstreamGET,source-free browser transport,immutable selected kind/viewing/version/reason attempt and explicit reason forms. Preserve uncertain original through denied recovery and privacy guard. Actual browser stale conflict/lost-result/accessloss/restoredreplay/preservedphoneevidence;then reschedule/newagreement,completion/no-show,reminders,mobile/device/UAT/release.16/97tasks,0/14gates,KES10,000totalmonthlyprice/vendor/livepreserved.

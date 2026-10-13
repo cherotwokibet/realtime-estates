@@ -18,7 +18,7 @@ There is no reminder queue or dispatcher yet. No dispatched-job suppression pass
 
 Focused corrected viewing SQL:27/27; focused API/SDK:21/21; signed SDK/service HTTP:3/3. Focused counts overlap full suites and must not be added. The new signed scenario deliberately discards a committed cancellation HTTP reply, recovers/replays one cancelled viewing4, retains original phone/proposal/request receipts and confirmation metadata, denies original recovery after reassignment, restores exact replay, and executes a separate requested→declined2 through its fixed route. Enquiry versions change only in the deliberate reassignment operations.
 
-Full regression results are being collected; see preservation logs. Two initial SQL runs used a fixture availability enum unavailable, which is not supported. Fixture corrected to withdrawn; final focused27 all passed without weakening production validation. Prior failure logs retained. No terminal browser/native device/operator UAT/hosted provider/production acceptance.
+158/158 database,110/110 domain,163/163 API,186/186 SDK,64/64 SDK/service integration,145/145 admin and15/15 signed preview checks passed. All8 workspace typechecks and admin production build passed. Focused27 SQL/21 API+SDK/3 signed HTTP checks overlap these suites;not additive. Logs viewing-termination-*-tests.txt,workspace-types-final.txt and admin-build.txt in rebuild-preservation/2026-10-12-source. Two initial SQL runs used a fixture availability enum unavailable, which is not supported. Fixture corrected to withdrawn; final focused27 all passed without weakening production validation. Prior failure logs retained. No terminal browser/native device/operator UAT/hosted provider/production acceptance.
 
 ## Next
 
