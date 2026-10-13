@@ -39,3 +39,10 @@ Added strict source-free browser methods contacts,recordContact,recoverContact. 
 
 Final116/116 admin tests passed, including new contact browser transport tests; compilation passed. Earlier114/114 regression run also passed (overlapping,not additive). Evidence: contact-browser-client-tests.txt and contact-browser-client-regression.txt in rebuild-preservation/2026-10-12-source. Operator form,retained-attempt controller,contact feed UI,signed contact-preview integration and browser/device UAT remain outstanding. Next implement retained-attempt lock/recover/replay state machine before form/feed wiring. Publish both this and preceding proxy checkpoint to existing private dashboard after preserving browser notes; publication remains pending. Checklist16/97,gates0/14,KES10,000 recurring client price preserved; old/vendor resources untouched.
 
+
+## Contact original-attempt controller - 13 October 2026
+
+Added memory-only prepareContactAttempt with immutable enquiry/command snapshot and ready/sending/uncertain/received/rejected states. Concurrent submit/recovery/replay is refused. Uncertain original save retains exact notes,version and operation ID through recovery denial; only explicit original read/replay is permitted. Valid applied/conflict receipts are terminal; altered successful receipts remain uncertain. No automatic retry,current-version adoption,storage or outbound message.
+
+Verification:119/119 admin checks and test compilation passed,including three new controller tests for lock/snapshot,denied recovery followed by original replay,and conflict/altered receipt handling. Evidence contact-attempt-tests.txt in rebuild-preservation/2026-10-12-source. Next operator form and independently refreshed25-entry feed,then signed contact-preview integration and actual browser verification. Controller is not yet connected to UI; memory-only recovery is lost on reload and must be explained in UI. Dashboard publication of proxy/browser/controller checkpoints remains pending; preserve browser notes before publishing.16/97 tasks,0/14 gates,KES10,000 price and vendor/live resources preserved.
+

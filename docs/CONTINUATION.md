@@ -1,5 +1,12 @@
 # Rebuild continuation checkpoint
 
+## Contact original-attempt controller - 13 October 2026
+
+Added memory-only prepareContactAttempt with immutable enquiry/command snapshot and ready/sending/uncertain/received/rejected states. Concurrent submit/recovery/replay is refused. Uncertain original save retains exact notes,version and operation ID through recovery denial; only explicit original read/replay is permitted. Valid applied/conflict receipts are terminal; altered successful receipts remain uncertain. No automatic retry,current-version adoption,storage or outbound message.
+
+Verification:119/119 admin checks and test compilation passed,including three new controller tests for lock/snapshot,denied recovery followed by original replay,and conflict/altered receipt handling. Evidence contact-attempt-tests.txt in rebuild-preservation/2026-10-12-source. Next operator form and independently refreshed25-entry feed,then signed contact-preview integration and actual browser verification. Controller is not yet connected to UI; memory-only recovery is lost on reload and must be explained in UI. Dashboard publication of proxy/browser/controller checkpoints remains pending; preserve browser notes before publishing.16/97 tasks,0/14 gates,KES10,000 price and vendor/live resources preserved.
+
+
 ## Contact browser transport - 13 October 2026
 
 Added strict source-free browser methods contacts,recordContact,recoverContact. Fixed same-origin actor route and preview instance only; no browser bearer or caller actor/company. Original contact command validated before dispatch and exact receipt compared to original facts. Recovery POST carries private facts in its body and is explicitly classified read-only for network,timeout,cancellation,HTTP and invalid-response failures. Collection requests25 entries within the existing512KiB decoded cap. No hidden retry or workflow-version adoption.
