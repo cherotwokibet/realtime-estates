@@ -1,0 +1,3 @@
+# Viewing ending operator workflow started — 14 October 2026
+
+Starting from clean15b7ea1/e420d9d backend checkpoint;158database/110domain/163API/186SDK/64integration/145admin/15preview,8types/adminbuild passed. No active preview. Tracker55 private publication underway. Implement fixed cancellation/decline BFF routes, body-only original recovery to upstreamGET, source-free browser transport, immutable selected-kind/viewing/version/rawreason attempt and explicit forms. Preserve existing privacy/current-access guards and original uncertain work. Tests and actual browser evidence follow; no browser ending/device/UAT/production claim.16/97tasks,0/14gates,KES10,000/vendor/live preserved.

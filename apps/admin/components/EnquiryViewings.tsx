@@ -3,20 +3,21 @@ import {useEffect,useMemo,useRef,useState} from 'react';
 import type {ViewingDetail,ViewingPage,ViewingSlot} from '@realtor/api-client';
 import {createEnquiryPreviewClient,EnquiryPreviewError} from '../lib/enquiry-client';
 import {prepareViewingAttempt,type ViewingAttempt} from '../lib/viewing-attempt';
+import {prepareViewingTerminationAttempt,type ViewingTerminationAttempt} from '../lib/viewing-termination-attempt';
 import {prepareViewingConfirmationAttempt,type ViewingConfirmationAttempt} from '../lib/viewing-confirmation-attempt';
 import {formatEnquiryTime,fromNairobiInput} from '../lib/enquiry-model';
 import type {EnquiryReadGuard} from '../lib/enquiry-read-guard';
 import type {ViewingPropertyChoice,ViewingPropertyPage} from '../lib/viewing-properties';
 
 type Props={actor:'admin'|'agent';instanceId:string;enquiryId:string;version:string|null;listingId:string|null;onGuard:(value:boolean)=>void;onAccessDenied:(error:unknown)=>void;readGuard:EnquiryReadGuard};
-type LocalAttempt=ViewingAttempt|ViewingConfirmationAttempt;
+type LocalAttempt=ViewingAttempt|ViewingConfirmationAttempt|ViewingTerminationAttempt;
 const viewingStatusText:Record<ViewingDetail['schedule']['status'],string>={requested:'Requested',proposed:'Proposed · awaiting customer agreement',confirmed:'Confirmed · phone agreement recorded',cancelled:'Cancelled',declined:'Declined'};
-const refusalText:Record<string,string>={VERSION_CONFLICT:'This viewing or enquiry changed since your selected version.',ENQUIRY_CLOSED:'This enquiry has closed. Check current details before scheduling.',LISTING_MISMATCH:'The enquiry is linked to a different property.',LISTING_UNAVAILABLE:'This property is no longer eligible for a new viewing change.',INVALID_STATE:'This viewing is no longer at the stage required for this action.',SLOT_NOT_FUTURE:'The viewing time has already started or passed.',PROPOSED_SLOT_MISMATCH:'The agreement must refer to the exact current proposed time.',AGREEMENT_BEFORE_PROPOSAL:'Phone agreement must be recorded at or after this proposal.',AGREEMENT_IN_FUTURE:'Phone agreement cannot be in the future.'};
+const refusalText:Record<string,string>={VERSION_CONFLICT:'This viewing or enquiry changed since your selected version.',ENQUIRY_CLOSED:'This enquiry has closed. Check current details before scheduling.',LISTING_MISMATCH:'The enquiry is linked to a different property.',LISTING_UNAVAILABLE:'This property is no longer eligible for a new viewing change.',INVALID_STATE:'This viewing is no longer at the stage required for this action.',SLOT_NOT_FUTURE:'The viewing time has already started or passed.',PROPOSED_SLOT_MISMATCH:'The agreement must refer to the exact current proposed time.',AGREEMENT_BEFORE_PROPOSAL:'Phone agreement must be recorded at or after this proposal.',AGREEMENT_IN_FUTURE:'Phone agreement cannot be in the future.',RECORD_TIME_IN_FUTURE:'The saved viewing time is ahead of the service clock. Check the record before preparing new work.'};
 export default function EnquiryViewings({actor,instanceId,enquiryId,version,listingId,onGuard,onAccessDenied,readGuard}:Props){
  const client=useMemo(()=>createEnquiryPreviewClient({basePath:`/api/enquiry-preview/${actor}`,instanceId}),[actor,instanceId]);
  const [notes,setNotes]=useState(''),[start,setStart]=useState(''),[end,setEnd]=useState('');
  const [selected,setSelected]=useState<ViewingDetail|null>(null),[attempt,setAttempt]=useState<LocalAttempt|null>(null);
- const [selectedAction,setSelectedAction]=useState<'propose'|'confirm'>('propose'),[agreed,setAgreed]=useState(''),[phoneAccepted,setPhoneAccepted]=useState(false);
+ const [selectedAction,setSelectedAction]=useState<'propose'|'confirm'|'cancel'|'decline'>('propose'),[agreed,setAgreed]=useState(''),[phoneAccepted,setPhoneAccepted]=useState(false);
  const [properties,setProperties]=useState<ViewingPropertyPage|null>(null),[property,setProperty]=useState<ViewingPropertyChoice|null>(null);
  const [propertyBusy,setPropertyBusy]=useState(false),[propertyError,setPropertyError]=useState(false);
  const propertyGeneration=useRef(0),propertyReader=useRef<AbortController|null>(null);
@@ -54,7 +55,9 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
    let captured=original.current;
    if(mode==='submit'){
     if(captured||!version||!selected&&!listingId&&!property)throw new EnquiryPreviewError('validation');
-    if(selected&&selectedAction==='confirm'){
+    if(selected&&(selectedAction==='cancel'||selectedAction==='decline')){
+     captured=prepareViewingTerminationAttempt(client,enquiryId,selected.schedule.viewingId,selectedAction,{operationId:crypto.randomUUID(),expectedVersion:selected.schedule.version,reason:notes});
+    }else if(selected&&selectedAction==='confirm'){
      if(!phoneAccepted||selected.schedule.status!=='proposed'||!selected.schedule.proposedSlot)throw new Error('Select a proposal and record phone agreement to that exact time.');
      const agreedAt=fromNairobiInput(agreed);
      if(Date.parse(agreedAt)>Date.now()||agreedAt<selected.updatedAt)throw new Error('Agreement time must be between this proposal being recorded and now.');
@@ -73,10 +76,10 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
   if(lock.current||original.current?.status==='uncertain'||original.current?.status==='sending')return;
   original.current=null;setAttempt(null);setSelected(null);setSelectedAction('propose');setAgreed('');setPhoneAccepted(false);setProperty(null);setNotes('');setStart('');setEnd('');setError('');onGuard(false);
  }
- function choose(item:ViewingDetail,action:'propose'|'confirm'){if(lock.current||original.current||notes||start||end||selected||property||agreed)return;setSelected(item);setSelectedAction(action);onGuard(true);}
- const uncertain=attempt?.status==='uncertain',receipt=attempt?.receipt;
+ function choose(item:ViewingDetail,action:'propose'|'confirm'|'cancel'|'decline'){if(lock.current||original.current||notes||start||end||selected||property||agreed)return;setSelected(item);setSelectedAction(action);onGuard(true);}
+ const uncertain=attempt?.status==='uncertain',receipt=attempt?.receipt,ending=!!selected&&(selectedAction==='cancel'||selectedAction==='decline');
  return <section className="enq-contacts" aria-label="Viewing scheduling">
-  <h3>{selected?(selectedAction==='confirm'?'Record phone agreement and confirm':'Propose a viewing time'):'Request a viewing'}</h3>
+  <h3>{selected?(ending?(selectedAction==='cancel'?'Cancel this viewing':'Decline this viewing'):selectedAction==='confirm'?'Record phone agreement and confirm':'Propose a viewing time'):'Request a viewing'}</h3>
   <p className="enq-subtle">Synthetic scheduling preview. A proposal awaits customer agreement. Confirmation requires completed phone agreement to the exact proposed time. Saving sends no invitation or reminder and does not reserve staff time.</p>
   <p className="enq-warning">Input and original operations stay only in this tab. Closing or reloading loses recovery details. Finish or clear this work before switching enquiries or roles.</p>
   {version&&!listingId&&!selected&&<div>
@@ -89,11 +92,11 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
    {properties&&<p className="enq-subtle">{properties.items.length} public properties loaded{properties.mayBeTruncated?' · more may exist':''}. Availability is checked again when saving. Refreshing choices does not replace your selection.</p>}
    {property&&<p>Selected property: {property.title}. This applies to this viewing request and does not change the general enquiry.</p>}
   </div>}
-  {selected&&<p>Selected {selectedAction==='confirm'?'proposal':'request'} {selected.schedule.viewingId} · viewing version {selected.schedule.version}. Refreshing the feed does not replace this selection.</p>}
+  {selected&&<p>Selected {ending?'viewing':selectedAction==='confirm'?'proposal':'request'} {selected.schedule.viewingId} · viewing version {selected.schedule.version}. Refreshing the feed does not replace this selection.</p>}
   <form className="enq-form" onSubmit={event=>{event.preventDefault();void run('submit');}}>
    <fieldset disabled={busy||!!attempt||!version||!selected&&!listingId&&!property}><legend className="sr-only">Viewing details</legend>
-    {(!selected||selectedAction==='confirm')&&<label>{selected?'Phone agreement notes':'Viewing request notes'}<textarea required rows={3} value={notes} onChange={event=>{setNotes(event.target.value);onGuard(true);}}/><small>{[...notes].length} / 2,000 characters. Original spacing is retained.</small></label>}
-    {selected&&selectedAction==='confirm'?<>
+    {(!selected||selectedAction==='confirm'||ending)&&<label>{ending?'Reason for ending this viewing':selected?'Phone agreement notes':'Viewing request notes'}<textarea required rows={3} value={notes} onChange={event=>{setNotes(event.target.value);onGuard(true);}}/><small>{[...notes].length} / {ending?'1,000':'2,000'} characters. Original spacing is retained.</small></label>}
+    {ending?<><p>This records an explicit {selectedAction==='cancel'?'cancellation':'decline'} from {selected!.schedule.status}. The saved request, previous slot and phone agreement remain in history. Saving sends no customer message.</p>{selected!.schedule.proposedSlot&&<p>Previous time: {formatEnquiryTime(selected!.schedule.proposedSlot.startAt)} – {formatEnquiryTime(selected!.schedule.proposedSlot.endAt)}</p>}</>:selected&&selectedAction==='confirm'?<>
      <p>Exact proposed time: {formatEnquiryTime(selected.schedule.proposedSlot?.startAt??null)} – {formatEnquiryTime(selected.schedule.proposedSlot?.endAt??null)}</p>
      <p>Proposal recorded: {formatEnquiryTime(selected.updatedAt)}. This confirmation cannot change the slot.</p>
      <label>Phone agreement time · Nairobi<input type="datetime-local" step="0.001" required value={agreed} onInput={event=>{setAgreed(event.currentTarget.value);onGuard(true);}} onChange={event=>{setAgreed(event.target.value);onGuard(true);}}/></label>
@@ -103,11 +106,11 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
      <label>Viewing start · Nairobi<input type="datetime-local" step="0.001" required={!!selected||!!end} value={start} onInput={event=>{setStart(event.currentTarget.value);onGuard(true);}} onChange={event=>{setStart(event.target.value);onGuard(true);}}/></label>
      <label>Viewing end · Nairobi<input type="datetime-local" step="0.001" required={!!selected||!!start} value={end} onInput={event=>{setEnd(event.currentTarget.value);onGuard(true);}} onChange={event=>{setEnd(event.target.value);onGuard(true);}}/></label>
     </>}
-    <button type="submit" className="enq-primary">{selected?(selectedAction==='confirm'?'Confirm agreed viewing time':'Save viewing proposal'):'Save viewing request'}</button>
+    <button type="submit" className="enq-primary">{selected?(ending?(selectedAction==='cancel'?'Save reasoned cancellation':'Save reasoned decline'):selectedAction==='confirm'?'Confirm agreed viewing time':'Save viewing proposal'):'Save viewing request'}</button>
    </fieldset>
   </form>
   {error&&<p role="alert" className="enq-error">{error}</p>}{busy&&<p role="status">Viewing operation in progress…</p>}
-  {attempt&&<div className="enq-recovery"><h4>{receipt?(receipt.outcome==='applied'?(receipt.result.status==='requested'?'Viewing requested':receipt.result.status==='confirmed'?'Viewing confirmed · phone agreement recorded':'Time proposed · awaiting customer agreement'):receipt.outcome==='conflict'?'Version conflict · viewing unchanged':'Viewing change refused'):uncertain?'Viewing result uncertain':attempt.status==='rejected'?'Viewing request rejected':'Viewing operation in progress'}</h4>
+  {attempt&&<div className="enq-recovery"><h4>{receipt?(receipt.outcome==='applied'?(receipt.result.status==='cancelled'?'Viewing cancelled':receipt.result.status==='declined'?'Viewing declined':receipt.result.status==='requested'?'Viewing requested':receipt.result.status==='confirmed'?'Viewing confirmed · phone agreement recorded':'Time proposed · awaiting customer agreement'):receipt.outcome==='conflict'?'Version conflict · viewing unchanged':'Viewing change refused'):uncertain?'Viewing result uncertain':attempt.status==='rejected'?'Viewing request rejected':'Viewing operation in progress'}</h4>
    <p>Original operation {attempt.original.command.operationId}. This historical result leaves your working enquiry and selected viewing versions unchanged.</p>
    {receipt&&<p>{receipt.reason?refusalText[receipt.reason]:'Refresh the viewing feed to read the saved schedule.'} {receipt.outcome!=='applied'&&'Finish this original attempt, check current details, then deliberately prepare new work.'}</p>}
    {uncertain&&<><p>A failed recovery read does not prove the save failed. No automatic retry occurs.</p><button type="button" className="enq-secondary" disabled={busy} onClick={()=>void run('recover')}>Read original viewing result</button><button type="button" className="enq-secondary" disabled={busy} onClick={()=>void run('replay')}>Replay exact original viewing save</button></>}
@@ -123,6 +126,8 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
    {item.schedule.proposedSlot&&<span>{item.schedule.termination?'Previous agreed/proposed time':item.schedule.status==='confirmed'?'Confirmed':'Proposed'}: {formatEnquiryTime(item.schedule.proposedSlot.startAt)} – {formatEnquiryTime(item.schedule.proposedSlot.endAt)}</span>}
    {item.schedule.agreement&&item.confirmation&&<><span>Phone agreement: {formatEnquiryTime(item.schedule.agreement.agreedAt)} · recorded by staff {item.confirmation.recordedById} at {formatEnquiryTime(item.confirmation.recordedAt)}</span><p className="enq-contact-notes">{item.schedule.agreement.notes}</p></>}
    {item.schedule.termination&&item.terminationRecord&&<><span>{viewingStatusText[item.schedule.status]} from {item.schedule.termination.fromStatus} · {formatEnquiryTime(item.schedule.termination.endedAt)} · recorded by staff {item.terminationRecord.recordedById}</span><p className="enq-contact-notes">{item.schedule.termination.reason}</p></>}
+   {['requested','proposed','confirmed'].includes(item.schedule.status)&&<button type="button" className="enq-secondary" disabled={busy||!!attempt||!!selected||!!property||!!notes||!!start||!!end} onClick={()=>choose(item,'cancel')}>Prepare cancellation for this viewing</button>}
+   {['requested','proposed'].includes(item.schedule.status)&&<button type="button" className="enq-secondary" disabled={busy||!!attempt||!!selected||!!property||!!notes||!!start||!!end} onClick={()=>choose(item,'decline')}>Prepare decline for this viewing</button>}
    {item.schedule.status==='requested'&&<button type="button" className="enq-secondary" disabled={busy||!!attempt||!!selected||!!property||!!notes||!!start||!!end} onClick={()=>choose(item,'propose')}>Prepare proposal for this request</button>}
    {item.schedule.status==='proposed'&&<button type="button" className="enq-secondary" disabled={busy||!!attempt||!!selected||!!property||!!notes||!!start||!!end} onClick={()=>choose(item,'confirm')}>Record phone agreement for this proposal</button>}
   </li>)}</ol>{!page.items.length&&<p>No viewings in this visible slice.</p>}</>}

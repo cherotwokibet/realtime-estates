@@ -1,5 +1,9 @@
 # Durable viewing cancellation and decline — 14 October 2026
 
+## Operator workflow now verified
+
+Explicit cancellation/decline forms,server-only BFF,body-only upstreamGET recovery andimmutable originalattempt are implemented.155admin/16preview/admin typecheck/finalbuildpassed. Actualdesktopbrowser verified cancellation through malformedcommittedreply,accessloss/restoration/exactreplay,preservedphonefacts,separatedecline andstaleothertabconflict. See evidence/2026-10-14-viewing-termination-operator-browser.md. Earlier backend-only statements below describe that historical checkpoint;operator checks do not establish devices/UAT/production acceptance.
+
 ## Stored workflow
 
 Migration0015 adds immutable terminal history to the existing private viewing and operation ledger. Current active staff/company/enquiry assignment is required for execution and original recovery. Cancellation is allowed from requested/proposed/confirmed; decline only from requested/proposed. Explicit ending remains possible when the enquiry is closed or the listing is paused, withdrawn or otherwise unavailable. It does not change enquiry status/version or send customer messages.
