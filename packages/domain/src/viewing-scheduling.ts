@@ -4,15 +4,15 @@ export interface ViewingRequestCommand {readonly operationId:string;readonly exp
 export interface ViewingProposalCommand {readonly operationId:string;readonly expectedVersion:string;readonly slot:ViewingSlot}
 export interface PhoneViewingAgreement {readonly channel:'phone';readonly agreedAt:string;readonly notes:string}
 export type OpenViewingStatus='requested'|'proposed'|'confirmed';
-export interface ViewingSchedule {readonly viewingId:string;readonly enquiryId:string;readonly listingId:string;readonly version:string;readonly status:OpenViewingStatus|'cancelled'|'declined';readonly preferredSlots:readonly ViewingSlot[];readonly proposedSlot:ViewingSlot|null;readonly agreement?:PhoneViewingAgreement;readonly termination?:ViewingTerminationFacts;readonly cycle?:ViewingCycle}
+export interface ViewingSchedule {readonly viewingId:string;readonly enquiryId:string;readonly listingId:string;readonly version:string;readonly status:OpenViewingStatus|'cancelled'|'declined'|'completed'|'no_show';readonly preferredSlots:readonly ViewingSlot[];readonly proposedSlot:ViewingSlot|null;readonly agreement?:PhoneViewingAgreement;readonly termination?:ViewingTerminationFacts;readonly cycle?:ViewingCycle;readonly outcome?:ViewingOutcomeFacts}
 export type ViewingProposalPlan=Readonly<{outcome:'applied';reason:null;next:ViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';next:null}>|Readonly<{outcome:'refused';reason:'INVALID_STATE'|'SLOT_NOT_FUTURE';next:null}>;
 export type ViewingOriginal=Readonly<{kind:'request';command:ViewingRequestCommand}>|Readonly<{kind:'propose';viewingId:string;command:ViewingProposalCommand}>;
 export type ViewingRefusalReason='ENQUIRY_CLOSED'|'LISTING_MISMATCH'|'LISTING_UNAVAILABLE'|'INVALID_STATE'|'SLOT_NOT_FUTURE';
 export type ViewingReceipt=Readonly<{operationId:string;enquiryId:string;viewingId:string|null;actorId:string;kind:'request'|'propose';expectedVersion:string;observedVersion:string;request:Readonly<{listingId:string;preferredSlots:readonly ViewingSlot[];notes:string}>|Readonly<{slot:ViewingSlot}>;completedAt:string}>&(
  Readonly<{outcome:'applied';reason:null;result:ViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';result:null}>|Readonly<{outcome:'refused';reason:ViewingRefusalReason;result:null}>);
-export interface ViewingDetail {readonly schedule:ViewingSchedule;readonly notes:string;readonly requestedById:string;readonly assignedAgentId:string|null;readonly createdAt:string;readonly updatedAt:string;readonly confirmation?:Readonly<{proposedAt:string;recordedAt:string;recordedById:string}>;readonly terminationRecord?:Readonly<{recordedById:string}>}
+export interface ViewingDetail {readonly schedule:ViewingSchedule;readonly notes:string;readonly requestedById:string;readonly assignedAgentId:string|null;readonly createdAt:string;readonly updatedAt:string;readonly confirmation?:Readonly<{proposedAt:string;recordedAt:string;recordedById:string}>;readonly terminationRecord?:Readonly<{recordedById:string}>;readonly outcomeRecord?:Readonly<{recordedById:string}>}
 export interface ViewingPage {readonly items:readonly ViewingDetail[];readonly limit:number;readonly truncated:boolean}
-export interface ViewingHistoryEntry {readonly kind:'request'|'propose'|'confirm'|'cancel'|'decline'|'reschedule';readonly actorId:string;readonly recordedAt:string;readonly schedule:ViewingSchedule}
+export interface ViewingHistoryEntry {readonly kind:'request'|'propose'|'confirm'|'cancel'|'decline'|'reschedule'|'complete'|'no_show';readonly actorId:string;readonly recordedAt:string;readonly schedule:ViewingSchedule}
 export interface ViewingHistoryPage {readonly items:readonly ViewingHistoryEntry[];readonly limit:number;readonly truncated:boolean;readonly currentVersion:string}
 /** First agreement slice: staff records a completed phone agreement for this exact proposed slot. */
 export interface ViewingConfirmationCommand {readonly operationId:string;readonly expectedVersion:string;readonly slot:ViewingSlot;readonly channel:'phone';readonly agreedAt:string;readonly notes:string}
@@ -23,6 +23,12 @@ export type ViewingConfirmationReceipt=Readonly<{operationId:string;enquiryId:st
 export type ViewingTerminationKind='cancel'|'decline';
 export interface ViewingTerminationCommand {readonly operationId:string;readonly expectedVersion:string;readonly reason:string}
 export type ViewingOutcomeKind='complete'|'no_show';
+export interface ViewingOutcomeFacts {readonly kind:ViewingOutcomeKind;readonly fromStatus:'confirmed';readonly reason:string;readonly occurredAt:string;readonly recordedAt:string;readonly previousUpdatedAt:string}
+export type ViewingOutcomeReceipt=Readonly<{operationId:string;enquiryId:string;viewingId:string;actorId:string;kind:ViewingOutcomeKind;expectedVersion:string;observedVersion:string;request:Readonly<{occurredAt:string;reason:string}>;completedAt:string}>&(
+ Readonly<{outcome:'applied';reason:null;result:ViewingSchedule&Readonly<{status:'completed'|'no_show';outcome:ViewingOutcomeFacts}>}>|
+ Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';result:null}>|
+ Readonly<{outcome:'refused';reason:'INVALID_STATE'|'RECORD_TIME_IN_FUTURE'|'SLOT_NOT_ENDED'|'OUTCOME_BEFORE_SLOT_END'|'OUTCOME_IN_FUTURE';result:null}>);
+
 export interface ViewingOutcomeCommand {readonly operationId:string;readonly expectedVersion:string;readonly occurredAt:string;readonly reason:string}
 /** Planning-only outcome projection. Existing persisted read contracts intentionally reject it. */
 export interface ViewingOutcomeProjection extends Omit<ViewingDetail,'schedule'> {
@@ -115,7 +121,7 @@ export function planViewingTermination(input:ViewingDetail,kind:ViewingTerminati
  const descriptor=Object.getOwnPropertyDescriptor(input,'schedule');if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return fail();
  const schedule=validateViewingSchedule(descriptor.value),current=validateViewingDetail(input,schedule.enquiryId),command=validateViewingTerminationCommand(commandInput),clock=instant(now);
  if(command.expectedVersion!==schedule.version)return Object.freeze({outcome:'conflict',reason:'VERSION_CONFLICT',next:null});
- if(schedule.status==='cancelled'||schedule.status==='declined')return Object.freeze({outcome:'refused',reason:'INVALID_STATE',next:null});
+ if(schedule.status!=='requested'&&schedule.status!=='proposed'&&schedule.status!=='confirmed')return Object.freeze({outcome:'refused',reason:'INVALID_STATE',next:null});
  if(kind==='decline'&&schedule.status==='confirmed')return Object.freeze({outcome:'refused',reason:'INVALID_STATE',next:null});
  if(clock<current.updatedAt)return Object.freeze({outcome:'refused',reason:'RECORD_TIME_IN_FUTURE',next:null});
  return Object.freeze({outcome:'applied',reason:null,next:Object.freeze({...schedule,status:kind==='cancel'?'cancelled':'declined',version:String(BigInt(schedule.version)+1n),termination:Object.freeze({kind,fromStatus:schedule.status,reason:command.reason,endedAt:clock,previousUpdatedAt:current.updatedAt})})});
@@ -167,21 +173,32 @@ function terminationFacts(input:unknown,status:unknown):ViewingTerminationFacts{
  const endedAt=instant(v.endedAt),previousUpdatedAt=instant(v.previousUpdatedAt);if(previousUpdatedAt>endedAt)return fail();
  return Object.freeze({kind:v.kind as ViewingTerminationKind,fromStatus:v.fromStatus as OpenViewingStatus,reason:terminationReason(v.reason),endedAt,previousUpdatedAt});
 }
+function outcomeFacts(input:unknown,status:unknown):ViewingOutcomeFacts{
+ const v=record(input,['kind','fromStatus','reason','occurredAt','recordedAt','previousUpdatedAt']);
+ if(!['complete','no_show'].includes(v.kind as string)||v.fromStatus!=='confirmed'||status!==(v.kind==='complete'?'completed':'no_show'))return fail();
+ const occurredAt=instant(v.occurredAt),recordedAt=instant(v.recordedAt),previousUpdatedAt=instant(v.previousUpdatedAt);
+ if(occurredAt>recordedAt||previousUpdatedAt>recordedAt)return fail();
+ return Object.freeze({kind:v.kind as ViewingOutcomeKind,fromStatus:'confirmed',reason:terminationReason(v.reason),occurredAt,recordedAt,previousUpdatedAt});
+}
 export function validateViewingSchedule(input:unknown):ViewingSchedule{
  if(!input||typeof input!=='object')return fail();const descriptor=Object.getOwnPropertyDescriptor(input,'status');if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return fail();
  const cycleDescriptor=Object.getOwnPropertyDescriptor(input,'cycle');if(cycleDescriptor&&(!cycleDescriptor.enumerable||!Object.hasOwn(cycleDescriptor,'value')))return fail();const cycle=cycleDescriptor?viewingCycle(cycleDescriptor.value):undefined;
  const confirmed=descriptor.value==='confirmed',ended=descriptor.value==='cancelled'||descriptor.value==='declined';let termination:ViewingTerminationFacts|undefined;
  if(ended){const facts=Object.getOwnPropertyDescriptor(input,'termination');if(!facts?.enumerable||!Object.hasOwn(facts,'value'))return fail();termination=terminationFacts(facts.value,descriptor.value);}
- const hasAgreement=confirmed||termination?.fromStatus==='confirmed';
- const v=record(input,['viewingId','enquiryId','listingId','version','status','preferredSlots','proposedSlot',...(hasAgreement?['agreement']:[]),...(ended?['termination']:[]),...(cycle?['cycle']:[])]),slotRequired=v.status!=='requested'&&termination?.fromStatus!=='requested';
- if(!['requested','proposed','confirmed','cancelled','declined'].includes(v.status as string)||slotRequired&&v.proposedSlot===null||!slotRequired&&v.proposedSlot!==null||confirmed&&v.version!==String(BigInt(cycle?.proposalVersion??'2')+1n))return fail();
+ const attended=descriptor.value==='completed'||descriptor.value==='no_show';let outcome:ViewingOutcomeFacts|undefined;
+ if(attended){const facts=Object.getOwnPropertyDescriptor(input,'outcome');if(!facts?.enumerable||!Object.hasOwn(facts,'value'))return fail();outcome=outcomeFacts(facts.value,descriptor.value);}
+ const hasAgreement=confirmed||attended||termination?.fromStatus==='confirmed';
+ const v=record(input,['viewingId','enquiryId','listingId','version','status','preferredSlots','proposedSlot',...(hasAgreement?['agreement']:[]),...(ended?['termination']:[]),...(attended?['outcome']:[]),...(cycle?['cycle']:[])]),slotRequired=v.status!=='requested'&&termination?.fromStatus!=='requested';
+ if(!['requested','proposed','confirmed','cancelled','declined','completed','no_show'].includes(v.status as string)||slotRequired&&v.proposedSlot===null||!slotRequired&&v.proposedSlot!==null||confirmed&&v.version!==String(BigInt(cycle?.proposalVersion??'2')+1n))return fail();
  if(cycle&&(v.status==='requested'||termination?.fromStatus==='requested'||v.status==='proposed'&&v.version!==cycle.proposalVersion))return fail();
  if(termination&&v.version!==(cycle?String(BigInt(cycle.proposalVersion)+(termination.fromStatus==='confirmed'?2n:1n)):({requested:'2',proposed:'3',confirmed:'4'}[termination.fromStatus])))return fail();
- const base={viewingId:uuid(v.viewingId),enquiryId:uuid(v.enquiryId),listingId:uuid(v.listingId),version:version(v.version),status:v.status as ViewingSchedule['status'],preferredSlots:alternatives(v.preferredSlots),proposedSlot:v.proposedSlot===null?null:validateViewingSlot(v.proposedSlot),...(termination?{termination}:{}),...(cycle?{cycle}:{})};
+ if(outcome&&v.version!==String(BigInt(cycle?.proposalVersion??'2')+2n))return fail();
+ const base={viewingId:uuid(v.viewingId),enquiryId:uuid(v.enquiryId),listingId:uuid(v.listingId),version:version(v.version),status:v.status as ViewingSchedule['status'],preferredSlots:alternatives(v.preferredSlots),proposedSlot:v.proposedSlot===null?null:validateViewingSlot(v.proposedSlot),...(termination?{termination}:{}),...(outcome?{outcome}:{}),...(cycle?{cycle}:{})};
  if(cycle&&(!base.proposedSlot||base.proposedSlot.startAt<=cycle.proposedAt||termination&&termination.previousUpdatedAt<cycle.proposedAt))return fail();
  if(termination&&base.proposedSlot!==null&&base.proposedSlot.startAt<=termination.previousUpdatedAt)return fail();
+ if(outcome&&(!base.proposedSlot||base.proposedSlot.startAt<=outcome.previousUpdatedAt||base.proposedSlot.endAt>outcome.occurredAt||cycle&&outcome.previousUpdatedAt<cycle.proposedAt))return fail();
  if(!hasAgreement)return Object.freeze(base);
- const agreement=validatePhoneViewingAgreement(v.agreement);if(base.proposedSlot===null||cycle&&agreement.agreedAt<cycle.proposedAt||agreement.agreedAt>=base.proposedSlot.startAt||termination&&agreement.agreedAt>termination.previousUpdatedAt)return fail();
+ const agreement=validatePhoneViewingAgreement(v.agreement);if(base.proposedSlot===null||cycle&&agreement.agreedAt<cycle.proposedAt||agreement.agreedAt>=base.proposedSlot.startAt||termination&&agreement.agreedAt>termination.previousUpdatedAt||outcome&&agreement.agreedAt>outcome.previousUpdatedAt)return fail();
  return Object.freeze({...base,agreement});
 }
 export function validatePhoneViewingAgreement(input:unknown):PhoneViewingAgreement{
@@ -239,15 +256,16 @@ export function validateViewingReceipt(input:unknown,enquiryId:string,originalIn
 }
 export function validateViewingDetail(input:unknown,enquiryId:string,viewingId?:string):ViewingDetail{
  if(!input||typeof input!=='object')return fail();const descriptor=Object.getOwnPropertyDescriptor(input,'schedule');if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return fail();
- const schedule=validateViewingSchedule(descriptor.value),hasAgreement=!!schedule.agreement,ended=!!schedule.termination;
- const v=record(input,['schedule','notes','requestedById','assignedAgentId','createdAt','updatedAt',...(hasAgreement?['confirmation']:[]),...(ended?['terminationRecord']:[])]),createdAt=instant(v.createdAt),updatedAt=instant(v.updatedAt);
+ const schedule=validateViewingSchedule(descriptor.value),hasAgreement=!!schedule.agreement,ended=!!schedule.termination,attended=!!schedule.outcome;
+ const v=record(input,['schedule','notes','requestedById','assignedAgentId','createdAt','updatedAt',...(hasAgreement?['confirmation']:[]),...(ended?['terminationRecord']:[]),...(attended?['outcomeRecord']:[])]),createdAt=instant(v.createdAt),updatedAt=instant(v.updatedAt);
  if(schedule.enquiryId!==uuid(enquiryId)||viewingId!==undefined&&schedule.viewingId!==uuid(viewingId)||createdAt>updatedAt
   ||schedule.status==='requested'&&(schedule.version!=='1'||createdAt!==updatedAt)||schedule.status==='proposed'&&schedule.version!==(schedule.cycle?.proposalVersion??'2')
   ||schedule.preferredSlots.some(slot=>slot.startAt<=createdAt))return fail();
- const previous=schedule.termination?.previousUpdatedAt??updatedAt;
+ const previous=schedule.termination?.previousUpdatedAt??schedule.outcome?.previousUpdatedAt??updatedAt;
  if(schedule.cycle&&(schedule.cycle.previousUpdatedAt<createdAt||schedule.cycle.proposedAt>previous||schedule.status==='proposed'&&updatedAt!==schedule.cycle.proposedAt))return fail();
  if(schedule.proposedSlot!==null&&schedule.proposedSlot.startAt<=previous)return fail();
  if(schedule.termination&&(schedule.termination.endedAt!==updatedAt||previous<createdAt||schedule.termination.fromStatus==='requested'&&previous!==createdAt))return fail();
+ if(schedule.outcome&&(schedule.outcome.recordedAt!==updatedAt||previous<createdAt))return fail();
  const base={schedule,notes:privateNotes(v.notes),requestedById:uuid(v.requestedById),assignedAgentId:v.assignedAgentId===null?null:uuid(v.assignedAgentId),createdAt,updatedAt};
  let confirmation:ViewingDetail['confirmation'];
  if(hasAgreement){const metadata=record(v.confirmation,['proposedAt','recordedAt','recordedById']),proposedAt=instant(metadata.proposedAt),recordedAt=instant(metadata.recordedAt),recordedById=uuid(metadata.recordedById);
@@ -255,7 +273,8 @@ export function validateViewingDetail(input:unknown,enquiryId:string,viewingId?:
   confirmation=Object.freeze({proposedAt,recordedAt,recordedById});
  }
  let terminationRecord:ViewingDetail['terminationRecord'];if(ended){const metadata=record(v.terminationRecord,['recordedById']);terminationRecord=Object.freeze({recordedById:uuid(metadata.recordedById)});}
- return Object.freeze({...base,...(confirmation?{confirmation}:{}),...(terminationRecord?{terminationRecord}:{})});
+ let outcomeRecord:ViewingDetail['outcomeRecord'];if(attended){const metadata=record(v.outcomeRecord,['recordedById']);outcomeRecord=Object.freeze({recordedById:uuid(metadata.recordedById)});}
+ return Object.freeze({...base,...(confirmation?{confirmation}:{}),...(terminationRecord?{terminationRecord}:{}),...(outcomeRecord?{outcomeRecord}:{})});
 }
 /** Dedicated confirmation receipt preserves existing request/proposal original contracts. */
 export function validateViewingConfirmationReceipt(input:unknown,enquiryId:string,viewingId:string,commandInput:ViewingConfirmationCommand):ViewingConfirmationReceipt{
@@ -326,12 +345,12 @@ export function validateViewingHistoryPage(input:unknown,enquiryId:string,viewin
  for(let i=0;i<v.items.length;i++){
   const d=Object.getOwnPropertyDescriptor(v.items,String(i));if(!d?.enumerable||!Object.hasOwn(d,'value'))return fail();
   const item=record(d.value,['kind','actorId','recordedAt','schedule']),schedule=validateViewingSchedule(item.schedule),actorId=uuid(item.actorId),recordedAt=instant(item.recordedAt);
-  if(!['request','propose','confirm','cancel','decline','reschedule'].includes(item.kind as string)||schedule.viewingId!==viewing||schedule.enquiryId!==enquiry
-   ||schedule.version!==String(BigInt(currentVersion)-BigInt(i))||schedule.status!==({request:'requested',propose:'proposed',confirm:'confirmed',cancel:'cancelled',decline:'declined',reschedule:'proposed'}[item.kind as ViewingHistoryEntry['kind']]))return fail();
+  if(!['request','propose','confirm','cancel','decline','reschedule','complete','no_show'].includes(item.kind as string)||schedule.viewingId!==viewing||schedule.enquiryId!==enquiry
+   ||schedule.version!==String(BigInt(currentVersion)-BigInt(i))||schedule.status!==({request:'requested',propose:'proposed',confirm:'confirmed',cancel:'cancelled',decline:'declined',reschedule:'proposed',complete:'completed',no_show:'no_show'}[item.kind as ViewingHistoryEntry['kind']]))return fail();
   if(item.kind==='request'&&(schedule.version!=='1'||schedule.cycle)||item.kind==='propose'&&(schedule.version!=='2'||schedule.cycle)||item.kind==='confirm'&&schedule.version!==String(BigInt(schedule.cycle?.proposalVersion??'2')+1n)
    ||item.kind==='reschedule'&&(!schedule.cycle||schedule.version!==schedule.cycle.proposalVersion||schedule.cycle.proposedAt!==recordedAt))return fail();
   if(schedule.status==='proposed'||schedule.status==='confirmed'){if(!schedule.proposedSlot||schedule.proposedSlot.startAt<=recordedAt)return fail();}
-  if(schedule.cycle&&schedule.cycle.proposedAt>recordedAt)return fail();
+  if(schedule.cycle&&schedule.cycle.proposedAt>recordedAt||schedule.outcome&&schedule.outcome.recordedAt!==recordedAt)return fail();
   if(schedule.agreement&&!schedule.termination&&schedule.agreement.agreedAt>recordedAt||schedule.termination&&schedule.termination.endedAt!==recordedAt)return fail();
   const newer=items.at(-1);
   if(newer){
@@ -341,10 +360,26 @@ export function validateViewingHistoryPage(input:unknown,enquiryId:string,viewin
    else if(JSON.stringify(newer.schedule.cycle)!==JSON.stringify(schedule.cycle))return fail();
    if(newer.schedule.termination){if(newer.schedule.termination.fromStatus!==schedule.status||newer.schedule.termination.previousUpdatedAt!==recordedAt
      ||JSON.stringify(newer.schedule.proposedSlot)!==JSON.stringify(schedule.proposedSlot)||JSON.stringify(newer.schedule.agreement)!==JSON.stringify(schedule.agreement))return fail();}
+   else if(newer.schedule.outcome&&(schedule.status!=='confirmed'||newer.schedule.outcome.previousUpdatedAt!==recordedAt||JSON.stringify(newer.schedule.proposedSlot)!==JSON.stringify(schedule.proposedSlot)||JSON.stringify(newer.schedule.agreement)!==JSON.stringify(schedule.agreement)))return fail();
    else if(newer.kind==='confirm'&&(schedule.status!=='proposed'||JSON.stringify(newer.schedule.proposedSlot)!==JSON.stringify(schedule.proposedSlot)||!newer.schedule.agreement||newer.schedule.agreement.agreedAt<recordedAt))return fail();
    else if(newer.kind==='propose'&&schedule.status!=='requested')return fail();
   }
   items.push(Object.freeze({kind:item.kind as ViewingHistoryEntry['kind'],actorId,recordedAt,schedule}));
  }
  return Object.freeze({items:Object.freeze(items),limit,truncated:v.truncated,currentVersion});
+}
+
+/** Exact historical outcome receipt; current authorization and fresh execution policy live in SQL. */
+export function validateViewingOutcomeReceipt(input:unknown,enquiryId:string,viewingId:string,kind:ViewingOutcomeKind,commandInput:ViewingOutcomeCommand):ViewingOutcomeReceipt{
+ if(kind!=='complete'&&kind!=='no_show')return fail();const command=validateViewingOutcomeCommand(commandInput);
+ const v=record(input,['operationId','enquiryId','viewingId','actorId','kind','expectedVersion','observedVersion','request','outcome','reason','result','completedAt']);
+ const operationId=uuid(v.operationId),enquiry=uuid(v.enquiryId),viewing=uuid(v.viewingId),actorId=uuid(v.actorId),expectedVersion=version(v.expectedVersion),observedVersion=version(v.observedVersion),completedAt=instant(v.completedAt),request=record(v.request,['occurredAt','reason']);
+ const occurredAt=instant(request.occurredAt),reason=terminationReason(request.reason);
+ if(operationId!==command.operationId||enquiry!==uuid(enquiryId)||viewing!==uuid(viewingId)||v.kind!==kind||expectedVersion!==command.expectedVersion||occurredAt!==command.occurredAt||reason!==command.reason)return fail();
+ const base={operationId,enquiryId:enquiry,viewingId:viewing,actorId,kind,expectedVersion,observedVersion,completedAt,request:Object.freeze({occurredAt,reason})};
+ if(v.outcome==='conflict'){if(v.reason!=='VERSION_CONFLICT'||expectedVersion===observedVersion||v.result!==null)return fail();return Object.freeze({...base,outcome:'conflict',reason:'VERSION_CONFLICT',result:null});}
+ if(v.outcome==='refused'){if(expectedVersion!==observedVersion||v.result!==null||!['INVALID_STATE','RECORD_TIME_IN_FUTURE','SLOT_NOT_ENDED','OUTCOME_BEFORE_SLOT_END','OUTCOME_IN_FUTURE'].includes(v.reason as string)||v.reason==='OUTCOME_IN_FUTURE'&&occurredAt<=completedAt)return fail();return Object.freeze({...base,outcome:'refused',reason:v.reason as Extract<ViewingOutcomeReceipt,{outcome:'refused'}>['reason'],result:null});}
+ if(v.outcome!=='applied'||v.reason!==null||expectedVersion!==observedVersion)return fail();const result=validateViewingSchedule(v.result);
+ if(!result.outcome||result.viewingId!==viewing||result.enquiryId!==enquiry||result.version!==String(BigInt(expectedVersion)+1n)||result.outcome.kind!==kind||result.outcome.reason!==reason||result.outcome.occurredAt!==occurredAt||result.outcome.recordedAt!==completedAt)return fail();
+ return Object.freeze({...base,outcome:'applied',reason:null,result:result as Extract<ViewingOutcomeReceipt,{outcome:'applied'}>['result']});
 }

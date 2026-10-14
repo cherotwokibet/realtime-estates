@@ -1,3 +1,4 @@
+import {outcomeFixture} from '../../../packages/domain/test-helpers/viewing-outcome-fixtures.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createApiService} from '../dist/service.js';
@@ -100,4 +101,13 @@ test('malformed stored facts and wrong receipt actor/operation return sanitized 
  const wrong=fixture({result:{...receipt,operationId:id(9)}});assert.equal((await wrong.service(req(base+'/viewing-operations/'+operation))).status,503);
  const privateFailure=fixture({failure:{code:'P0002',message:'PRIVATE SQL'}}),response=await privateFailure.service(req(base+'/viewings'));assert.equal(response.status,404);assert.equal((await response.text()).includes('PRIVATE'),false);
  const customer=fixture({role:'customer'});assert.equal((await customer.service(req(base+'/viewings'))).status,403);assert.equal((await fixture().service(req(base+'/viewings',{authorization:null}))).status,401);
+});
+
+test('private outcome detail feed and history reads retain saved occurrence and earlier confirmation evidence',async()=>{
+ const o=outcomeFixture({enquiry,viewing,listing,actor,operation,later:true,kind:'no_show'});
+ for(const [suffix,override,expected] of [[`/viewings/${viewing}`,{privateDetail:o.detail},o.detail],['/viewings?limit=25',{page:{items:[o.detail],limit:25,truncated:false}},{items:[o.detail],limit:25,truncated:false}],[`/viewings/${viewing}/history?limit=25`,{page:o.history},o.history]]){const f=fixture(override),response=await f.service(req(base+suffix));assert.equal(response.status,200);assert.deepEqual(await response.json(),expected);assert.equal(f.contexts[0].actorId,actor);assert.ok(f.calls.every(c=>!c.sql.includes('record_viewing_outcome')));}
+});
+test('protected outcome reads reject altered saved or confirmation clocks and malformed outcome staff metadata',async()=>{
+ const o=outcomeFixture({enquiry,viewing,listing,actor,operation});for(const patch of [{updatedAt:o.detail.confirmation.recordedAt},{confirmation:{...o.detail.confirmation,recordedAt:o.detail.updatedAt}},{outcomeRecord:{recordedById:actor,reason:'Extra'}}]){const f=fixture({privateDetail:{...o.detail,...patch}});assert.equal((await f.service(req(base+`/viewings/${viewing}`))).status,503);assert.ok(f.calls.every(c=>!c.sql.includes('record_viewing_outcome')));}
+ const page=structuredClone(o.history);page.items[0].schedule.agreement.notes='Changed evidence';const f=fixture({page});assert.equal((await f.service(req(base+`/viewings/${viewing}/history?limit=25`))).status,503);
 });

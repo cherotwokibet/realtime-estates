@@ -1,3 +1,4 @@
+import {outcomeFixture} from '../../domain/test-helpers/viewing-outcome-fixtures.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {RealtorApiClient,ApiClientError} from '../dist/index.js';
@@ -89,4 +90,12 @@ test('bounded feed and detail reject wrong targets and preserve immutable privat
  const api=client(async url=>json(url.includes('?limit=')?{items:[detail],limit:25,truncated:false}:detail));assert.equal((await api.listViewingsV2(enquiry,options)).items[0].notes,command.notes);assert.ok(Object.isFrozen(await api.getViewingV2(enquiry,viewing,options)));
  await rejects(()=>client(async()=>json({...detail,schedule:{...schedule,enquiryId:id(9)}})).getViewingV2(enquiry,viewing,options),'INVALID_RESPONSE');
  await rejects(()=>client(async()=>json({items:[detail,detail],limit:25,truncated:false})).listViewingsV2(enquiry,options),'INVALID_RESPONSE');
+});
+
+test('outcome SDK private reads preserve exact saved detail and history using GET only',async()=>{
+ const o=outcomeFixture({enquiry,viewing,listing,actor,operation,later:true,kind:'no_show'}),calls=[];
+ const api=client(async(url,init)=>{calls.push({url,init});return json(url.includes('/history')?o.history:url.includes('?limit')?{items:[o.detail],limit:25,truncated:false}:o.detail);});assert.deepEqual(await api.getViewingV2(enquiry,viewing,options),o.detail);assert.deepEqual((await api.listViewingsV2(enquiry,options)).items,[o.detail]);assert.deepEqual(await api.getViewingHistoryV2(enquiry,viewing,options),o.history);for(const {init} of calls){assert.equal(init.method,'GET');assert.equal(init.body,undefined);assert.equal(init.credentials,'omit');}assert.equal(calls.length,3);
+});
+test('outcome SDK malformed saved evidence fails as a read without retry or write uncertainty',async()=>{
+ const o=outcomeFixture({enquiry,viewing,listing,actor,operation});let calls=0;const api=client(async()=>{calls++;return json({...o.detail,updatedAt:o.detail.confirmation.recordedAt});});await rejects(()=>api.getViewingV2(enquiry,viewing,options),'INVALID_RESPONSE',false);assert.equal(calls,1);const page=structuredClone(o.history);page.items[0].schedule.agreement.notes='Changed';await rejects(()=>client(async()=>json(page)).getViewingHistoryV2(enquiry,viewing,options),'INVALID_RESPONSE',false);
 });

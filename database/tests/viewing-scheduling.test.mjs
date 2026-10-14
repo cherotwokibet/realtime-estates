@@ -3,7 +3,7 @@ import test from 'node:test';
 import {PGlite} from '@electric-sql/pglite';
 import {applyTestMigrations} from '../test-helpers/migrations.mjs';
 import {seedSyntheticSealedMedia} from '../test-helpers/synthetic-sealed-media.mjs';
-import {validateViewingRescheduleReceipt,validateViewingHistoryPage,validateViewingSchedule,validateViewingDetail,validateViewingConfirmationReceipt,validateViewingTerminationReceipt} from '../../packages/domain/dist/index.js';
+import {validateViewingOutcomeReceipt,validateViewingRescheduleReceipt,validateViewingHistoryPage,validateViewingSchedule,validateViewingDetail,validateViewingConfirmationReceipt,validateViewingTerminationReceipt} from '../../packages/domain/dist/index.js';
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const T=id(1),OTHER=id(2),ADMIN=id(10),AGENT=id(11),PEER=id(12),CUSTOMER=id(13),ADMIN2=id(14),OTHERADMIN=id(20);
 const L=id(100),SECOND_L=id(101),FOREIGN_L=id(200),E=id(300),GENERAL=id(301),FOREIGN_E=id(400);
@@ -79,14 +79,14 @@ function attendance(db,{viewing,user=AGENT,enquiry=E,operation=id(10000),expecte
 test('stored completion preserves historical agreement and current detail clocks with exact immutable recovery',async()=>{
  const db=await fixture();try{
   const f=await historicalConfirmed(db),before=await read(db,f.viewing),saved=await attendance(db,f);assert.equal(saved.result.status,'completed');assert.equal(saved.result.version,'4');assert.deepEqual(saved.result.agreement,before.schedule.agreement);assert.equal(saved.result.outcome.previousUpdatedAt,before.updatedAt);assert.equal(saved.result.outcome.occurredAt,f.occurredAt);assert.equal(saved.result.outcome.recordedAt,saved.completedAt);
-  const current=await read(db,f.viewing);assert.deepEqual(current.confirmation,before.confirmation);assert.equal(current.updatedAt,saved.completedAt);assert.deepEqual(current.outcomeRecord,{recordedById:AGENT});assert.equal(current.notes,NOTES);assert.deepEqual(await history(db,id(10000)),saved);assert.deepEqual(await attendance(db,f),saved);assert.equal((await totals(db)).enquiry_version,'1');
-  const page=await savedHistory(db,f.viewing);assert.equal(page.items.length,4);assert.deepEqual(page.items.map(x=>x.kind),['complete','confirm','propose','request']);assert.deepEqual(page.items[1].schedule,f.receipts[2].result);assert.deepEqual(await history(db,f.receipts[2].operationId),f.receipts[2]);
+  validateViewingOutcomeReceipt(saved,E,f.viewing,'complete',{operationId:id(10000),expectedVersion:f.expected,occurredAt:f.occurredAt,reason:saved.request.reason});const current=await read(db,f.viewing);validateViewingDetail(current,E,f.viewing);assert.deepEqual(current.confirmation,before.confirmation);assert.equal(current.updatedAt,saved.completedAt);assert.deepEqual(current.outcomeRecord,{recordedById:AGENT});assert.equal(current.notes,NOTES);assert.deepEqual(await history(db,id(10000)),saved);assert.deepEqual(await attendance(db,f),saved);assert.equal((await totals(db)).enquiry_version,'1');
+  const page=await savedHistory(db,f.viewing);validateViewingHistoryPage(page,E,f.viewing,25);assert.equal(page.items.length,4);assert.deepEqual(page.items.map(x=>x.kind),['complete','confirm','propose','request']);assert.deepEqual(page.items[1].schedule,f.receipts[2].result);assert.deepEqual(await history(db,f.receipts[2].operationId),f.receipts[2]);
  }finally{await db.close();}
 });
 test('stored no-show retains superseded and current cycle agreements and rejects later mutations',async()=>{
  const db=await fixture();try{
-  const f=await historicalConfirmed(db,{later:true}),before=await read(db,f.viewing),saved=await attendance(db,{...f,kind:'no_show'});assert.equal(saved.result.version,'6');assert.equal(saved.result.status,'no_show');assert.deepEqual(saved.result.cycle,before.schedule.cycle);assert.deepEqual(saved.result.agreement,before.schedule.agreement);assert.deepEqual((await read(db,f.viewing)).confirmation,before.confirmation);
-  const page=await savedHistory(db,f.viewing);assert.equal(page.items.length,6);assert.deepEqual(page.items[3].schedule.agreement,f.receipts[2].result.agreement);assert.deepEqual(page.items[1].schedule.agreement,f.receipts[4].result.agreement);
+  const f=await historicalConfirmed(db,{later:true}),before=await read(db,f.viewing),saved=await attendance(db,{...f,kind:'no_show'});validateViewingOutcomeReceipt(saved,E,f.viewing,'no_show',{operationId:id(10000),expectedVersion:f.expected,occurredAt:f.occurredAt,reason:saved.request.reason});validateViewingDetail(await read(db,f.viewing),E,f.viewing);assert.equal(saved.result.version,'6');assert.equal(saved.result.status,'no_show');assert.deepEqual(saved.result.cycle,before.schedule.cycle);assert.deepEqual(saved.result.agreement,before.schedule.agreement);assert.deepEqual((await read(db,f.viewing)).confirmation,before.confirmation);
+  const page=await savedHistory(db,f.viewing);validateViewingHistoryPage(page,E,f.viewing,25);assert.equal(page.items.length,6);assert.deepEqual(page.items[3].schedule.agreement,f.receipts[2].result.agreement);assert.deepEqual(page.items[1].schedule.agreement,f.receipts[4].result.agreement);
   assert.equal((await attendance(db,{...f,kind:'complete',expected:'6',operation:id(10001)})).reason,'INVALID_STATE');assert.equal((await terminate(db,{viewing:f.viewing,expected:'6'})).reason,'INVALID_STATE');assert.equal((await reschedule(db,{viewing:f.viewing,expected:'6'})).reason,'INVALID_STATE');
  }finally{await db.close();}
 });

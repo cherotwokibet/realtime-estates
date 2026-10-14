@@ -1,3 +1,7 @@
+## Current checkpoint
+
+Steps1-6 below are now integrated; see viewing-outcomes-contracts.md for final verification boundaries. Next step7 is protected outcome writes and original GET dispatch, then SDK/signed HTTP and operator recovery. Earlier planning text is retained as history.
+
 # Exact persisted outcome contract integration — 14 October 2026
 
 Resume from storage source c9a02ce and migration 0018; this is pending work, not an implemented contract.
