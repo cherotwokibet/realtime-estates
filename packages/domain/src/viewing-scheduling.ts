@@ -22,6 +22,16 @@ export type ViewingConfirmationReceipt=Readonly<{operationId:string;enquiryId:st
  Readonly<{outcome:'applied';reason:null;result:ConfirmedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';result:null}>|Readonly<{outcome:'refused';reason:'ENQUIRY_CLOSED'|'LISTING_UNAVAILABLE'|'INVALID_STATE'|'PROPOSED_SLOT_MISMATCH'|'SLOT_NOT_FUTURE'|'AGREEMENT_BEFORE_PROPOSAL'|'AGREEMENT_IN_FUTURE';result:null}>);
 export type ViewingTerminationKind='cancel'|'decline';
 export interface ViewingTerminationCommand {readonly operationId:string;readonly expectedVersion:string;readonly reason:string}
+export type ViewingOutcomeKind='complete'|'no_show';
+export interface ViewingOutcomeCommand {readonly operationId:string;readonly expectedVersion:string;readonly occurredAt:string;readonly reason:string}
+/** Planning-only outcome projection. Existing persisted read contracts intentionally reject it. */
+export interface ViewingOutcomeProjection extends Omit<ViewingDetail,'schedule'> {
+ readonly schedule:Omit<ViewingSchedule,'status'|'termination'>&Readonly<{status:'completed'|'no_show'}>;
+ readonly outcome:Readonly<{kind:ViewingOutcomeKind;fromStatus:'confirmed';reason:string;occurredAt:string;recordedAt:string;previousUpdatedAt:string}>;
+}
+export type ViewingOutcomePlan=Readonly<{outcome:'applied';reason:null;next:ViewingOutcomeProjection;previous:ViewingDetail}>|
+ Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';next:null;previous:null}>|
+ Readonly<{outcome:'refused';reason:'INVALID_STATE'|'RECORD_TIME_IN_FUTURE'|'SLOT_NOT_ENDED'|'OUTCOME_BEFORE_SLOT_END'|'OUTCOME_IN_FUTURE';next:null;previous:null}>;
 export interface ViewingCycle {readonly number:string;readonly proposalVersion:string;readonly proposedAt:string;readonly reason:string;readonly previousStatus:'proposed'|'confirmed';readonly previousUpdatedAt:string}
 export interface ViewingRescheduleCommand {readonly operationId:string;readonly expectedVersion:string;readonly slot:ViewingSlot;readonly reason:string}
 /** Planning projection for the first replacement slot; not the current persisted read DTO. */
@@ -76,6 +86,28 @@ export function validateViewingConfirmationCommand(input:unknown):ViewingConfirm
 export function validateViewingTerminationCommand(input:unknown):ViewingTerminationCommand{
  const value=record(input,['operationId','expectedVersion','reason']),reason=terminationReason(value.reason);
  return Object.freeze({operationId:uuid(value.operationId),expectedVersion:version(value.expectedVersion,true),reason});
+}
+/** Timeless command: occurrence policy is evaluated on a fresh execution, never original recovery. */
+export function validateViewingOutcomeCommand(input:unknown):ViewingOutcomeCommand{
+ const value=record(input,['operationId','expectedVersion','occurredAt','reason']);
+ return Object.freeze({operationId:uuid(value.operationId),expectedVersion:version(value.expectedVersion,true),occurredAt:instant(value.occurredAt),reason:terminationReason(value.reason)});
+}
+/** Provisional conservative policy: both outcomes are recorded only after the entire slot ends.
+ * No attendance inference, authorization, SQL write, receipt, notification or reminder mutation. */
+export function planViewingOutcome(input:ViewingDetail,kind:ViewingOutcomeKind,commandInput:ViewingOutcomeCommand,now:string):ViewingOutcomePlan{
+ if(kind!=='complete'&&kind!=='no_show'||!input||typeof input!=='object')return fail();
+ const descriptor=Object.getOwnPropertyDescriptor(input,'schedule');if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return fail();
+ const schedule=validateViewingSchedule(descriptor.value),current=validateViewingDetail(input,schedule.enquiryId),command=validateViewingOutcomeCommand(commandInput),clock=instant(now);
+ const refused=(reason:Extract<ViewingOutcomePlan,{outcome:'refused'}>['reason']):ViewingOutcomePlan=>Object.freeze({outcome:'refused',reason,next:null,previous:null});
+ if(command.expectedVersion!==schedule.version)return Object.freeze({outcome:'conflict',reason:'VERSION_CONFLICT',next:null,previous:null});
+ if(schedule.status!=='confirmed'||!schedule.proposedSlot||!schedule.agreement||!current.confirmation)return refused('INVALID_STATE');
+ if(clock<current.updatedAt)return refused('RECORD_TIME_IN_FUTURE');
+ if(clock<schedule.proposedSlot.endAt)return refused('SLOT_NOT_ENDED');
+ if(command.occurredAt<schedule.proposedSlot.endAt)return refused('OUTCOME_BEFORE_SLOT_END');
+ if(command.occurredAt>clock)return refused('OUTCOME_IN_FUTURE');
+ const next:ViewingOutcomeProjection=Object.freeze({...current,schedule:Object.freeze({...schedule,status:kind==='complete'?'completed':'no_show',version:String(BigInt(schedule.version)+1n)}),
+  outcome:Object.freeze({kind,fromStatus:'confirmed',reason:command.reason,occurredAt:command.occurredAt,recordedAt:clock,previousUpdatedAt:current.updatedAt})});
+ return Object.freeze({outcome:'applied',reason:null,next,previous:current});
 }
 /** First cancel/decline plan only. No deletion, stored receipt, authorization or reminder dispatch. */
 export function planViewingTermination(input:ViewingDetail,kind:ViewingTerminationKind,commandInput:ViewingTerminationCommand,now:string):ViewingTerminationPlan{

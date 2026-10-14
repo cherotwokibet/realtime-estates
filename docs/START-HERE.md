@@ -1,3 +1,9 @@
+## Completion/no-show domain foundation — 14 October 2026
+
+Strict immutable outcome command and pure confirmed-current-cycle plan added. Provisional policy: both completion and no-show only after full slot end, with explicit bounded occurrence time and raw reason. Stale-first; earlier cycle/agreement/confirming staff retained. Planning projection is deliberately not accepted by existing persisted read DTOs. 137/137domain checks(8new) and all8workspace typechecks/builds passed. Initial test ran before new domain build and failed to import new exports; rebuilt then final137pass, failurelogretained. See docs/viewing-outcomes-domain.md. No outcomeSQL/API/browser/device/UAT/release pass.
+
+Next additive0018 immutable outcome storage and originalreceipts, currentstaff/company/assignment, narrow confirmed-cycle transition, closure/unavailable cleanup policy, coordinated strict read/history/receipt API/SDK. Then retained original BFF/browser/form/recovery evidence; current-cycle reminder suppression before dispatch. Preserve16/97tasks,0/14gates,KES10,000totalmonthlyprice/vendor/live.
+
 ## Reschedule operator verified — 14 October 2026
 
 Fixed BFF/recovery POST-to-upstream-GET, browser transport, immutable original controller and explicit new-slot/reason form implemented. 169 admin and17 signed preview checks passed, plus final admin production build/typecheck. Actual two-tab browser verified unusable committed reschedule reply, stale conflict, access denial/private-feed clearing, restoration and exact replay, independent enquiry4 adoption with original viewing3 retained, new unagreed cycle4 then separate phone agreement5 and all five saved states. See docs/viewing-reschedule-operator.md for exact identifiers/evidence/initial test compilation omission corrected. No native/UAT/production/race/literal socket-loss acceptance. Owned preview stopped and tabs closed.
