@@ -27,3 +27,9 @@ Next: fixed outcome BFF and body-only recovery POST-to-upstream-GET, source-free
 ## Final full integration result
 
 66/66 permanent integration tests passed with the new signed attendance file included in the explicit package test list. The earlier65 runs excluded that new file; standalone1 overlaps final66. All final API173/SDK196/preview18/typecheck8 results were observed separately.
+
+## Outcome API checkpoint publication — 14 October 2026
+
+API source2a85cadfd3a407cfbd8fcb1324ad6dd111e52fd7 bundled/verified/freshmatchingclone/fsckpassed same-deviceonly SHA256f332d72cf9dff26506be1f10de07e014aa949323fe1e4e781166f9b98ead623b. Existingowner-private dashboard65 source32e64f129c27a312d8cdf13c32d88383d84893f2 deployedappgdep_6acfdef06c00819180b731d17881378e succeeded.252canonicalnotesretained/0browserextras/4added=256. BrowserreloadverifiedAPIrecoverybanner/173API196SDK66integration18preview8types andexplicitpendingoperatorbrowser; screenshotviewing-outcomes-api-dashboard.jpg retained. No activepreview/live/vendor/providerchanges.
+
+Next exact checklist docs/viewing-outcomes-operator-next.md: fixed kind BFF/recoveryPOST→upstreamGET,source-freebrowsertransport,immutableoriginalattempt,explicitoccurrence/reasonform,normalguarded opt-inhistoricalfixture,targetedoutcomereplyfault andactualtwo-tabstale/access/replay/historybrowserproof. Do not import test modules into preview;extract pureseedhelper. Thenreminder currentcycle/version suppression beforedispatch;no actualoutcomebrowser/device/UAT/production acceptanceyet.16/97tasks,0/14gates,KES10,000totalmonthlyclientprice.
