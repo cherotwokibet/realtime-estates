@@ -1,0 +1,3 @@
+# Rescheduling domain work started — 14 October 2026
+
+Starting from clean cf5ac7a; no active platform preview. Operator ending checkpoint56 published privately. Stages02/06/08/12. Add strict original reschedule command and pure first-cycle plan that retains the previous private detail, proposes a different future slot and carries no active agreement into that new proposal. Existing read/storage contracts remain unchanged until coordinated cycle-history integration. Prove version/time/state/Unicode/authority boundaries and preserve exact next steps. No saved reschedule, token/job invalidation, browser/device/UAT/production claim.16/97tasks,0/14gates,KES10,000/vendor/live preserved.

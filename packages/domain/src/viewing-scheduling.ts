@@ -20,6 +20,17 @@ export type ViewingConfirmationReceipt=Readonly<{operationId:string;enquiryId:st
  Readonly<{outcome:'applied';reason:null;result:ConfirmedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';result:null}>|Readonly<{outcome:'refused';reason:'ENQUIRY_CLOSED'|'LISTING_UNAVAILABLE'|'INVALID_STATE'|'PROPOSED_SLOT_MISMATCH'|'SLOT_NOT_FUTURE'|'AGREEMENT_BEFORE_PROPOSAL'|'AGREEMENT_IN_FUTURE';result:null}>);
 export type ViewingTerminationKind='cancel'|'decline';
 export interface ViewingTerminationCommand {readonly operationId:string;readonly expectedVersion:string;readonly reason:string}
+export interface ViewingRescheduleCommand {readonly operationId:string;readonly expectedVersion:string;readonly slot:ViewingSlot;readonly reason:string}
+/** Planning projection for the first replacement slot; not the current persisted read DTO. */
+export interface FirstRescheduledViewingProposal {
+ readonly viewingId:string;readonly enquiryId:string;readonly listingId:string;readonly version:string;
+ readonly status:'proposed';readonly cycleNumber:'2';readonly proposedSlot:ViewingSlot;readonly proposedAt:string;
+ readonly preferredSlots:readonly ViewingSlot[];
+ readonly reschedule:Readonly<{reason:string;fromStatus:'proposed'|'confirmed';previousUpdatedAt:string}>;
+}
+export type FirstViewingReschedulePlan=Readonly<{outcome:'applied';reason:null;next:FirstRescheduledViewingProposal;previous:ViewingDetail}>|
+ Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';next:null;previous:null}>|
+ Readonly<{outcome:'refused';reason:'INVALID_STATE'|'RECORD_TIME_IN_FUTURE'|'SLOT_UNCHANGED'|'SLOT_NOT_FUTURE';next:null;previous:null}>;
 export interface ViewingTerminationFacts {readonly kind:ViewingTerminationKind;readonly fromStatus:OpenViewingStatus;readonly reason:string;readonly endedAt:string;readonly previousUpdatedAt:string}
 export interface TerminatedViewingSchedule extends Omit<ViewingSchedule,'status'|'termination'> {readonly status:'cancelled'|'declined';readonly termination:ViewingTerminationFacts}
 export type ViewingTerminationPlan=Readonly<{outcome:'applied';reason:null;next:TerminatedViewingSchedule}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';next:null}>|Readonly<{outcome:'refused';reason:'INVALID_STATE'|'RECORD_TIME_IN_FUTURE';next:null}>;
@@ -88,6 +99,26 @@ export function planViewingConfirmation(input:ViewingDetail,proposal:ViewingConf
  return Object.freeze({outcome:'applied',reason:null,next:Object.freeze({...current.schedule,version:String(BigInt(current.schedule.version)+1n),status:'confirmed',proposedSlot:command.slot,agreement:Object.freeze({channel:'phone',agreedAt:command.agreedAt,notes:command.notes})})});
 }
 function terminationReason(input:unknown):string{const reason=privateNotes(input);if([...reason].length>1000)return fail();return reason;}
+/** Timeless exact original facts; first execution time checks belong to the plan/storage operation. */
+export function validateViewingRescheduleCommand(input:unknown):ViewingRescheduleCommand{
+ const v=record(input,['operationId','expectedVersion','slot','reason']);
+ return Object.freeze({operationId:uuid(v.operationId),expectedVersion:version(v.expectedVersion,true),slot:validateViewingSlot(v.slot),reason:terminationReason(v.reason)});
+}
+/** Pure first-cycle replacement only. Retain old evidence separately; the new slot has no agreement. */
+export function planFirstViewingReschedule(input:ViewingDetail,proposal:ViewingRescheduleCommand,now:string):FirstViewingReschedulePlan{
+ if(!input||typeof input!=='object')return fail();const descriptor=Object.getOwnPropertyDescriptor(input,'schedule');if(!descriptor?.enumerable||!Object.hasOwn(descriptor,'value'))return fail();
+ const schedule=validateViewingSchedule(descriptor.value),current=validateViewingDetail(input,schedule.enquiryId),command=validateViewingRescheduleCommand(proposal),clock=instant(now);
+ if(command.expectedVersion!==schedule.version)return Object.freeze({outcome:'conflict',reason:'VERSION_CONFLICT',next:null,previous:null});
+ if(schedule.status!=='proposed'&&schedule.status!=='confirmed')return Object.freeze({outcome:'refused',reason:'INVALID_STATE',next:null,previous:null});
+ if(schedule.version!==(schedule.status==='proposed'?'2':'3'))return fail();
+ if(clock<current.updatedAt)return Object.freeze({outcome:'refused',reason:'RECORD_TIME_IN_FUTURE',next:null,previous:null});
+ if(JSON.stringify(command.slot)===JSON.stringify(schedule.proposedSlot))return Object.freeze({outcome:'refused',reason:'SLOT_UNCHANGED',next:null,previous:null});
+ if(command.slot.startAt<=clock)return Object.freeze({outcome:'refused',reason:'SLOT_NOT_FUTURE',next:null,previous:null});
+ const next:FirstRescheduledViewingProposal=Object.freeze({viewingId:schedule.viewingId,enquiryId:schedule.enquiryId,listingId:schedule.listingId,
+  version:String(BigInt(schedule.version)+1n),status:'proposed',cycleNumber:'2',proposedSlot:command.slot,proposedAt:clock,preferredSlots:schedule.preferredSlots,
+  reschedule:Object.freeze({reason:command.reason,fromStatus:schedule.status,previousUpdatedAt:current.updatedAt})});
+ return Object.freeze({outcome:'applied',reason:null,next,previous:current});
+}
 function terminationFacts(input:unknown,status:unknown):ViewingTerminationFacts{
  const v=record(input,['kind','fromStatus','reason','endedAt','previousUpdatedAt']);
  if(!['cancel','decline'].includes(v.kind as string)||!['requested','proposed','confirmed'].includes(v.fromStatus as string)
