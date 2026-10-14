@@ -36,3 +36,6 @@ test('outcome validation rejects getters, hidden fields and invalid kinds withou
 test('planning evidence is detached from later caller changes and does not replace current read contract',()=>{
  const current=structuredClone(first),raw=structuredClone(command),value=planViewingOutcome(current,'complete',raw,at('10:30'));current.schedule.agreement.notes='Changed';current.confirmation.recordedById=id(9);raw.reason='Changed';assert.equal(value.next.schedule.agreement.notes,agreement.notes);assert.equal(value.next.confirmation.recordedById,id(5));assert.equal(value.next.outcome.reason,command.reason);assert.throws(()=>validateViewingDetail(value.next,id(2)));assert.deepEqual(validateViewingDetail(first,id(2)),first);
 });
+test('planned saved time advances to outcome recording time while previous confirmation time remains historical',()=>{
+ const value=plan('complete');assert.equal(value.next.updatedAt,at('10:30'));assert.equal(value.next.outcome.recordedAt,value.next.updatedAt);assert.equal(value.previous.updatedAt,first.updatedAt);assert.equal(value.next.confirmation.recordedAt,first.confirmation.recordedAt);
+});

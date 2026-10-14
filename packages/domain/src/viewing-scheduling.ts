@@ -105,7 +105,7 @@ export function planViewingOutcome(input:ViewingDetail,kind:ViewingOutcomeKind,c
  if(clock<schedule.proposedSlot.endAt)return refused('SLOT_NOT_ENDED');
  if(command.occurredAt<schedule.proposedSlot.endAt)return refused('OUTCOME_BEFORE_SLOT_END');
  if(command.occurredAt>clock)return refused('OUTCOME_IN_FUTURE');
- const next:ViewingOutcomeProjection=Object.freeze({...current,schedule:Object.freeze({...schedule,status:kind==='complete'?'completed':'no_show',version:String(BigInt(schedule.version)+1n)}),
+ const next:ViewingOutcomeProjection=Object.freeze({...current,updatedAt:clock,schedule:Object.freeze({...schedule,status:kind==='complete'?'completed':'no_show',version:String(BigInt(schedule.version)+1n)}),
   outcome:Object.freeze({kind,fromStatus:'confirmed',reason:command.reason,occurredAt:command.occurredAt,recordedAt:clock,previousUpdatedAt:current.updatedAt})});
  return Object.freeze({outcome:'applied',reason:null,next,previous:current});
 }

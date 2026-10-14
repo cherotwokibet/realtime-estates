@@ -498,3 +498,9 @@ Source7189eabe36cde0af562008726c427ea00cc4c60b; bundleSHA256 a2cb6266084a6006724
 Operator source441279bb57b76d50d06db2460ee3d0c5dec35515 bundled/verified/freshmatchingclone/fsckpassed; SHA256215018fbcbcddab39e98b8f95eb84ef82f5d2a967372e8ee52b2fd41aa900be1 (same-device only). Existing owner-private dashboard60 source dc595dde4204eec3a824fbec19b4d5fe7872a16c deployed successfully as appgdep_6acf04ca4bd48191ae21522934f965ef. Retained232canonicalnotes/0browserextras/4added=236. Reloadverifiedoperatorbanner; screenshot viewing-reschedule-operator-dashboard.jpg retained. Git source clean at implementation checkpoint before publication notes; owned preview/tab teardown verified.
 
 Next exact dependency-ready plan is docs/viewing-outcomes-next.md: first strict completion/no-show command and pure confirmed-current-cycle outcome plan with explicit provisional time policy, stale-first and immutable old agreement. Then coordinated narrow SQL/API/SDK/history and operator recovery; no outcome implementation/pass claimed yet. Full rebuild and handover remain incomplete; no gate accepted, vendor/live untouched.
+
+## Outcome saved-time review — 14 October 2026
+
+Review corrected the planned next detail updatedAt to the outcome server recording clock; previous detail updatedAt and original confirmation recordedAt remain historical. Added a distinct regression. Final138/138domain checks(9outcome contexts),domainbuild andall8workspace typechecks/builds passed; logs viewing-outcomes-domain-tests-clock-final.txt,viewing-outcomes-domain-build-final.txt,viewing-outcomes-workspace-types-clock-final.txt supersede earlier137 evidence. No storage/API/browser claim. Next0018 per viewing-outcomes-domain.md.
+
+Intermediate checkpoint61 source35f3795e12a70690a81f5854baa5c547bd53eb07 published owner-private as appgdep_6acf0eb52fcc8191ad0ce4fb4d26cb4c succeeded,236notesretained/0extras/4added=240. Final timestamp correction requires updated checkpoint62 before handoff.
