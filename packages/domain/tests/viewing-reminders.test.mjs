@@ -41,3 +41,7 @@ test('malformed,ambiguous and executable candidate facts cannot establish eligib
  for(const patch of [{viewingVersion:'03'},{viewingVersion:3},{cycleNumber:'0'},{dueAt:window.expiresAt},{expiresAt:'2020-01-01T09:00:00.001Z'},{dueAt:'2020-01-01T08:29:00.000Z'},{agreedAt:'2020-01-01T08:31:00.000Z'},{dueAt:'2020-01-01T08:35:00Z'},{tenantId:'forged'}])assert.throws(()=>validateViewingReminderCandidate({...candidate,...patch}));
  let called=false;const accessor={...candidate};Object.defineProperty(accessor,'dueAt',{enumerable:true,get(){called=true;return now;}});assert.throws(()=>validateViewingReminderCandidate(accessor));assert.equal(called,false);
 });
+test('candidate UUID and version tokens reject trailing line breaks rather than normalizing them',()=>{
+ const {current}=fixture(),candidate=prepareViewingReminderCandidate(current,window);
+ for(const field of ['enquiryId','viewingId','listingId','viewingVersion','cycleNumber'])for(const suffix of ['\n','\r','\r\n'])assert.throws(()=>validateViewingReminderCandidate({...candidate,[field]:candidate[field]+suffix}));
+});

@@ -13,8 +13,8 @@ function record(input:unknown,keys:readonly string[]):Record<string,unknown>{
  const result:Record<string,unknown>={};for(const key of keys){const d=Object.getOwnPropertyDescriptor(input,key);if(!d?.enumerable||!Object.hasOwn(d,'value'))return invalid();result[key]=d.value;}return result;
 }
 function instant(input:unknown):string{if(typeof input!=='string'||!/^(?!0000)\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(input)||!Number.isFinite(Date.parse(input))||new Date(input).toISOString()!==input)return invalid();return input;}
-function uuid(input:unknown):string{if(typeof input!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(input))return invalid();return input;}
-function version(input:unknown):string{if(typeof input!=='string'||!/^[1-9]\d{0,15}$/.test(input)||BigInt(input)>BigInt(Number.MAX_SAFE_INTEGER))return invalid();return input;}
+function uuid(input:unknown):string{if(typeof input!=='string'||input.length!==36||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(input))return invalid();return input;}
+function version(input:unknown):string{if(typeof input!=='string'||!/^[1-9]\d{0,15}$/.test(input)||BigInt(input)>BigInt(Number.MAX_SAFE_INTEGER)||String(BigInt(input))!==input)return invalid();return input;}
 function detail(input:unknown):ViewingDetail{
  if(!input||typeof input!=='object')return invalid();const d=Object.getOwnPropertyDescriptor(input,'schedule');if(!d?.enumerable||!Object.hasOwn(d,'value'))return invalid();
  const schedule=validateViewingSchedule(d.value);return validateViewingDetail(input,schedule.enquiryId);
