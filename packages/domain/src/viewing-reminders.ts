@@ -6,6 +6,10 @@ export interface ViewingReminderCandidate {
  readonly cycleNumber:string;readonly slot:ViewingSlot;readonly confirmationRecordedAt:string;readonly agreedAt:string;
  readonly dueAt:string;readonly expiresAt:string;
 }
+export interface ViewingReminderAdmissionCommand {readonly operationId:string;readonly expectedVersion:string;readonly dueAt:string;readonly expiresAt:string}
+export type ViewingReminderAdmissionRefusal='ENQUIRY_CLOSED'|'LISTING_UNAVAILABLE'|'INVALID_STATE'|'RECORD_TIME_IN_FUTURE'|'SLOT_STARTED'|'WINDOW_EXPIRED'|'WINDOW_BEFORE_CONFIRMATION'|'WINDOW_OUTSIDE_SLOT'|'ALREADY_ADMITTED';
+export type ViewingReminderAdmissionReceipt=Readonly<{operationId:string;enquiryId:string;viewingId:string;actorId:string;kind:'admit_reminder';mode:'capture-only-v1';expectedVersion:string;observedVersion:string;request:Readonly<{dueAt:string;expiresAt:string}>;completedAt:string}>&(
+ Readonly<{outcome:'admitted';reason:null;candidate:ViewingReminderCandidate}>|Readonly<{outcome:'conflict';reason:'VERSION_CONFLICT';candidate:null}>|Readonly<{outcome:'refused';reason:ViewingReminderAdmissionRefusal;candidate:null}>);
 export type ViewingReminderDecision=Readonly<{state:'eligible';reason:null}>|Readonly<{state:'waiting';reason:'NOT_DUE'}>|Readonly<{state:'suppressed';reason:'TARGET_CHANGED'|'NOT_CONFIRMED'|'VERSION_CHANGED'|'CYCLE_CHANGED'|'SLOT_CHANGED'|'AGREEMENT_CHANGED'|'ENQUIRY_CLOSED'|'LISTING_UNAVAILABLE'|'CLOCK_BEFORE_RECORD'|'EXPIRED'|'SLOT_STARTED'}>;
 const invalid=():never=>{throw new Error('Invalid viewing reminder planning facts.');};
 function record(input:unknown,keys:readonly string[]):Record<string,unknown>{
@@ -18,6 +22,27 @@ function version(input:unknown):string{if(typeof input!=='string'||!/^[1-9]\d{0,
 function detail(input:unknown):ViewingDetail{
  if(!input||typeof input!=='object')return invalid();const d=Object.getOwnPropertyDescriptor(input,'schedule');if(!d?.enumerable||!Object.hasOwn(d,'value'))return invalid();
  const schedule=validateViewingSchedule(d.value);return validateViewingDetail(input,schedule.enquiryId);
+}
+/** Timeless original facts: exact receipt recovery must not expire with the reminder window. */
+export function validateViewingReminderAdmissionCommand(input:unknown):ViewingReminderAdmissionCommand{
+ const v=record(input,['operationId','expectedVersion','dueAt','expiresAt']),dueAt=instant(v.dueAt),expiresAt=instant(v.expiresAt);if(dueAt>=expiresAt)return invalid();
+ return Object.freeze({operationId:uuid(v.operationId),expectedVersion:version(v.expectedVersion),dueAt,expiresAt});
+}
+export function validateViewingReminderAdmissionReceipt(input:unknown,enquiryInput:string,viewingInput:string,commandInput:ViewingReminderAdmissionCommand):ViewingReminderAdmissionReceipt{
+ const command=validateViewingReminderAdmissionCommand(commandInput),enquiryId=uuid(enquiryInput),viewingId=uuid(viewingInput);
+ const v=record(input,['operationId','enquiryId','viewingId','actorId','kind','mode','expectedVersion','observedVersion','request','outcome','reason','candidate','completedAt']);
+ const request=record(v.request,['dueAt','expiresAt']),observedVersion=version(v.observedVersion),completedAt=instant(v.completedAt),actorId=uuid(v.actorId);
+ if(v.operationId!==command.operationId||v.enquiryId!==enquiryId||v.viewingId!==viewingId||v.kind!=='admit_reminder'||v.mode!=='capture-only-v1'||v.expectedVersion!==command.expectedVersion||request.dueAt!==command.dueAt||request.expiresAt!==command.expiresAt)return invalid();
+ const base=Object.freeze({operationId:command.operationId,enquiryId,viewingId,actorId,kind:'admit_reminder' as const,mode:'capture-only-v1' as const,expectedVersion:command.expectedVersion,observedVersion,request:Object.freeze({dueAt:command.dueAt,expiresAt:command.expiresAt}),completedAt});
+ if(v.outcome==='admitted'){
+  const candidate=validateViewingReminderCandidate(v.candidate);
+  if(v.reason!==null||observedVersion!==command.expectedVersion||candidate.enquiryId!==enquiryId||candidate.viewingId!==viewingId||candidate.viewingVersion!==command.expectedVersion||candidate.dueAt!==command.dueAt||candidate.expiresAt!==command.expiresAt||candidate.confirmationRecordedAt>completedAt||candidate.expiresAt<=completedAt||candidate.slot.startAt<=completedAt)return invalid();
+  return Object.freeze({...base,outcome:'admitted',reason:null,candidate});
+ }
+ if(v.candidate!==null)return invalid();
+ if(v.outcome==='conflict'){if(v.reason!=='VERSION_CONFLICT'||observedVersion===command.expectedVersion)return invalid();return Object.freeze({...base,outcome:'conflict',reason:'VERSION_CONFLICT',candidate:null});}
+ if(v.outcome==='refused'&&observedVersion===command.expectedVersion&&typeof v.reason==='string'&&['ENQUIRY_CLOSED','LISTING_UNAVAILABLE','INVALID_STATE','RECORD_TIME_IN_FUTURE','SLOT_STARTED','WINDOW_EXPIRED','WINDOW_BEFORE_CONFIRMATION','WINDOW_OUTSIDE_SLOT','ALREADY_ADMITTED'].includes(v.reason))return Object.freeze({...base,outcome:'refused',reason:v.reason as ViewingReminderAdmissionRefusal,candidate:null});
+ return invalid();
 }
 export function validateViewingReminderCandidate(input:unknown):ViewingReminderCandidate{
  const v=record(input,['enquiryId','viewingId','listingId','viewingVersion','cycleNumber','slot','confirmationRecordedAt','agreedAt','dueAt','expiresAt']);

@@ -55,7 +55,7 @@ const denied = (fn,code='42501') => assert.rejects(fn,(error)=>error.code===code
 test('migration forces RLS and API role has neither owner membership nor direct writes',async()=>{
   const db=await fixture();try {
     const tables=await db.query(`SELECT relname,relrowsecurity,relforcerowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='app_private' AND relkind='r'`);
-    assert.deepEqual(tables.rows.map(row=>row.relname).sort(),['audit_events','enquiries','enquiry_contacts','enquiry_operations','listing_revisions','listings','media_attach_intents','media_attach_results','media_attachments','media_input_captures','media_jobs','media_operations','media_processing_leases','media_verified_outputs','memberships','public_snapshots','revision_media','tenants','viewing_operations','viewings']);
+    assert.deepEqual(tables.rows.map(row=>row.relname).sort(),['audit_events','enquiries','enquiry_contacts','enquiry_operations','listing_revisions','listings','media_attach_intents','media_attach_results','media_attachments','media_input_captures','media_jobs','media_operations','media_processing_leases','media_verified_outputs','memberships','public_snapshots','revision_media','tenants','viewing_operations','viewing_reminder_admissions','viewings']);
     assert.ok(tables.rows.every(row=>row.relrowsecurity && row.relforcerowsecurity));
     const flags=await db.query(`SELECT rolsuper,rolbypassrls,rolinherit FROM pg_roles WHERE rolname='api_runtime'`);
     assert.deepEqual(flags.rows[0],{rolsuper:false,rolbypassrls:false,rolinherit:false});
