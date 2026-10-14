@@ -1,3 +1,9 @@
+## Reschedule operator verified — 14 October 2026
+
+Fixed BFF/recovery POST-to-upstream-GET, browser transport, immutable original controller and explicit new-slot/reason form implemented. 169 admin and17 signed preview checks passed, plus final admin production build/typecheck. Actual two-tab browser verified unusable committed reschedule reply, stale conflict, access denial/private-feed clearing, restoration and exact replay, independent enquiry4 adoption with original viewing3 retained, new unagreed cycle4 then separate phone agreement5 and all five saved states. See docs/viewing-reschedule-operator.md for exact identifiers/evidence/initial test compilation omission corrected. No native/UAT/production/race/literal socket-loss acceptance. Owned preview stopped and tabs closed.
+
+Next: completion/no-show domain and immutable outcome evidence, then current-cycle/version reminder suppression before any dispatch. Operator policy/UAT, device/hosted/ownership/off-device backup/cutover gates remain. Preserve16/97tasks,0/14gates,KES10,000totalmonthlyclientprice/vendor/live.
+
 ## Stored repeated viewing rescheduling — 14 October 2026
 
 0017 current cycles, protected API/SDK and strict current/history/confirmation/termination validation implemented. Earlier agreements and exact original receipts remain immutable; every new slot starts unagreed. 173 DB / 129 domain / 168 API / 191 SDK / 65 integration / 161 admin / 16 preview checks, all eight workspace typechecks and admin production build passed. Focused checks overlap. Signed HTTP tested discarded committed reply, access loss/restoration, repeated new agreements and cancellation with eight retained states. No reschedule browser/form/device/UAT/production/race pass. Initial migration CASE syntax failure fixed; failed logs retained. See docs/viewing-reschedule-storage.md.

@@ -255,3 +255,20 @@ test('signed synthetic contact routes retain original receipts and enforce curre
   assert.equal((await read(preview,contacts+'?limit=25')).items.length,1);
  }finally{await preview.close();}
 });
+
+test('targeted reschedule corruption skips earlier saves and retains the old agreement and exact original new slot',async()=>{
+ const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1',viewingReplyFault:'invalid-first-reschedule-v1'});
+ try{
+  const path=base+'/'+preview.enquiryFixtures.assigned,request={operationId:randomUUID(),expectedEnquiryVersion:2,listingId:preview.listingId,preferredSlots:[],notes:'Fictional viewing before phone agreement.'};
+  const requested=await read(preview,path+'/viewings',{role:'agent',method:'POST',body:request});assert.equal(requested.outcome,'applied');
+  const slot={startAt:'2090-01-01T09:00:00.000Z',endAt:'2090-01-01T10:00:00.000Z',timeZone:'Africa/Nairobi'},target=path+'/viewings/'+requested.viewingId;
+  const proposed=await read(preview,target+'/proposals',{role:'agent',method:'POST',body:{operationId:randomUUID(),expectedVersion:1,slot}});assert.equal(proposed.outcome,'applied');
+  const phone={operationId:randomUUID(),expectedVersion:2,slot,channel:'phone',agreedAt:proposed.completedAt,notes:'Synthetic phone agreement before ending.'};
+  const confirmed=await read(preview,target+'/confirmations',{role:'agent',method:'POST',body:phone});assert.equal(confirmed.result.status,'confirmed');
+  const command={operationId:randomUUID(),expectedVersion:3,slot:{...slot,startAt:'2090-01-02T09:00:00.000Z',endAt:'2090-01-02T10:00:00.000Z'},reason:'  Synthetic cancellation with exact original reason.  '};
+  const stale=await read(preview,target+'/reschedules',{role:'agent',method:'POST',body:{...command,operationId:randomUUID(),expectedVersion:2}});assert.equal(stale.outcome,'conflict');
+  assert.deepEqual(await read(preview,target+'/reschedules',{role:'agent',method:'POST',body:command}),{syntheticReplyCorruption:true});
+  const recovered=await read(preview,path+'/viewing-operations/'+command.operationId,{role:'agent'});assert.equal(recovered.result.status,'proposed');assert.equal(recovered.result.cycle.reason,command.reason);assert.equal(Object.hasOwn(recovered.result,'agreement'),false);assert.deepEqual(recovered.result.proposedSlot,command.slot);assert.deepEqual((await read(preview,path+'/viewing-operations/'+phone.operationId,{role:'agent'})).result.agreement,confirmed.result.agreement);assert.deepEqual(await read(preview,target+'/reschedules',{role:'agent',method:'POST',body:command}),recovered);
+  assert.equal((await read(preview,path+'/viewings?limit=25',{role:'agent'})).items.length,1);
+ }finally{await preview.close();}
+});

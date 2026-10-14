@@ -1,3 +1,4 @@
+import {validateViewingRescheduleCommand,type ViewingRescheduleCommand} from '@realtor/api-client';
 import {validateViewingProperties} from './viewing-properties.ts';
 import 'server-only';
 import {validateViewingTerminationCommand,type ViewingTerminationCommand,validateViewingConfirmationCommand,type ViewingConfirmationCommand,validateViewingOriginal,type ViewingOriginal,type ViewingReceipt} from '@realtor/api-client';
@@ -5,7 +6,7 @@ import {validateContactCommand,type ContactCommand,handleSyntheticEnquiry,ApiCli
 import {assertPreviewRequest} from './staff-preview-policy.ts';
 
 type Actor='admin'|'agent';
-type Action='viewing-history'|'viewing-cancel'|'viewing-cancel-recover'|'viewing-decline'|'viewing-decline-recover'|'viewing-confirm'|'viewing-confirm-recover'|'viewing-properties'|'list'|'detail'|'assignees'|'command'|'operation'|'activity'|'contacts'|'contact-record'|'contact-recover'|'viewing-list'|'viewing-detail'|'viewing-request'|'viewing-propose'|'viewing-recover';
+type Action='viewing-reschedule'|'viewing-reschedule-recover'|'viewing-history'|'viewing-cancel'|'viewing-cancel-recover'|'viewing-decline'|'viewing-decline-recover'|'viewing-confirm'|'viewing-confirm-recover'|'viewing-properties'|'list'|'detail'|'assignees'|'command'|'operation'|'activity'|'contacts'|'contact-record'|'contact-recover'|'viewing-list'|'viewing-detail'|'viewing-request'|'viewing-propose'|'viewing-recover';
 type Params={actor:string;id?:string;operationId?:string;viewingId?:string};
 type Environment=Readonly<Record<string,string|undefined>>;
 type Scope=Readonly<{actorId:string;role:Actor;instanceId:string}>;
@@ -51,16 +52,16 @@ function failure(error:unknown,writeDispatched:boolean):Response{
 }
 
 function requestShape(request:Request,params:Params,action:Action):number|undefined{
-  const contact=action==='contact-record'||action==='contact-recover',viewingBody=['viewing-request','viewing-propose','viewing-recover','viewing-confirm','viewing-confirm-recover','viewing-cancel','viewing-cancel-recover','viewing-decline','viewing-decline-recover'].includes(action),bodyAction=action==='command'||contact||viewingBody;
+  const contact=action==='contact-record'||action==='contact-recover',viewingBody=['viewing-request','viewing-propose','viewing-recover','viewing-confirm','viewing-confirm-recover','viewing-reschedule','viewing-reschedule-recover','viewing-cancel','viewing-cancel-recover','viewing-decline','viewing-decline-recover'].includes(action),bodyAction=action==='command'||contact||viewingBody;
   const url=new URL(request.url),base=`/api/enquiry-preview/${params.actor}`;
   if(url.hash||request.url.includes('#')||[params.id,params.operationId,params.viewingId].some(value=>value!==undefined&&!UUID.test(value)))throw new BoundaryError(400,'INVALID_INPUT');
   const terminal=['viewing-cancel','viewing-cancel-recover','viewing-decline','viewing-decline-recover'].includes(action);
-  const path=action==='viewing-history'?`${base}/enquiries/${params.id}/viewings/${params.viewingId}/history`:terminal?`${base}/enquiries/${params.id}/viewings/${params.viewingId}/${action.startsWith('viewing-cancel')?'cancellations':'declines'}${action.endsWith('-recover')?'/recover':''}`:action==='viewing-confirm'||action==='viewing-confirm-recover'?`${base}/enquiries/${params.id}/viewings/${params.viewingId}/confirmations${action==='viewing-confirm-recover'?'/recover':''}`:action==='viewing-properties'?`${base}/viewing-properties`:action==='list'?`${base}/enquiries`:action==='assignees'?`${base}/assignees`:
+  const path=action==='viewing-reschedule'||action==='viewing-reschedule-recover'?`${base}/enquiries/${params.id}/viewings/${params.viewingId}/reschedules${action.endsWith('-recover')?'/recover':''}`:action==='viewing-history'?`${base}/enquiries/${params.id}/viewings/${params.viewingId}/history`:terminal?`${base}/enquiries/${params.id}/viewings/${params.viewingId}/${action.startsWith('viewing-cancel')?'cancellations':'declines'}${action.endsWith('-recover')?'/recover':''}`:action==='viewing-confirm'||action==='viewing-confirm-recover'?`${base}/enquiries/${params.id}/viewings/${params.viewingId}/confirmations${action==='viewing-confirm-recover'?'/recover':''}`:action==='viewing-properties'?`${base}/viewing-properties`:action==='list'?`${base}/enquiries`:action==='assignees'?`${base}/assignees`:
     action==='viewing-list'||action==='viewing-request'?`${base}/enquiries/${params.id}/viewings`:action==='viewing-detail'?`${base}/enquiries/${params.id}/viewings/${params.viewingId}`:action==='viewing-propose'?`${base}/enquiries/${params.id}/viewings/${params.viewingId}/proposals`:action==='viewing-recover'?`${base}/enquiries/${params.id}/viewings/recover`:
     action==='contacts'||action==='contact-record'?`${base}/enquiries/${params.id}/contacts`:action==='contact-recover'?`${base}/enquiries/${params.id}/contacts/recover`:action==='activity'?`${base}/enquiries/${params.id}/activity`:action==='detail'?`${base}/enquiries/${params.id}`:action==='command'?`${base}/enquiries/${params.id}/operations`:`${base}/enquiries/${params.id}/operations/${params.operationId}`;
   if(url.pathname!==path||(['list','assignees','viewing-properties'].includes(action)?params.id!==undefined||params.operationId!==undefined:!params.id)
     ||(action==='operation'?!params.operationId:params.operationId!==undefined))throw new BoundaryError(400,'INVALID_INPUT');
-  if(['viewing-history','viewing-detail','viewing-propose','viewing-confirm','viewing-confirm-recover','viewing-cancel','viewing-cancel-recover','viewing-decline','viewing-decline-recover'].includes(action)?!params.viewingId:params.viewingId!==undefined)throw new BoundaryError(400,'INVALID_INPUT');
+  if(['viewing-history','viewing-detail','viewing-propose','viewing-confirm','viewing-confirm-recover','viewing-reschedule','viewing-reschedule-recover','viewing-cancel','viewing-cancel-recover','viewing-decline','viewing-decline-recover'].includes(action)?!params.viewingId:params.viewingId!==undefined)throw new BoundaryError(400,'INVALID_INPUT');
   if(params.actor==='agent'&&action==='assignees')throw new BoundaryError(403,'FORBIDDEN');
   let limit:number|undefined;
   if(action==='list'||action==='assignees'||action==='activity'||action==='contacts'||action==='viewing-list'||action==='viewing-properties'||action==='viewing-history'){
@@ -151,6 +152,15 @@ async function confirmationBody(request:Request):Promise<ViewingConfirmationComm
  }catch{throw new BoundaryError(400,'INVALID_INPUT');}
 }
 
+async function rescheduleBody(request:Request):Promise<ViewingRescheduleCommand>{
+ const value=await commandBody(request,'viewing');
+ try{
+  if(!value||typeof value!=='object'||Array.isArray(value))throw new Error();const raw=value as Record<string,unknown>,expected=raw.expectedVersion;
+  if(typeof expected!=='number'||!Number.isSafeInteger(expected)||expected<1)throw new Error();
+  return validateViewingRescheduleCommand({...raw,expectedVersion:String(expected)});
+ }catch{throw new BoundaryError(400,'INVALID_INPUT');}
+}
+
 async function terminationBody(request:Request):Promise<ViewingTerminationCommand>{
  const value=await commandBody(request,'viewing');
  try{
@@ -167,7 +177,7 @@ export async function enquiryPreviewRequest(request:Request,params:Params,action
     config=configuration(params.actor,process.env);assertPreviewRequest(request,config.instanceId);
     const origin=request.headers.get('origin');if(origin!==null&&origin!==`http://${request.headers.get('host')}`)throw new Error();
   }catch{return reply(403,'PREVIEW_UNAVAILABLE');}
-  if(request.method!==(['command','contact-record','contact-recover','viewing-request','viewing-propose','viewing-recover','viewing-confirm','viewing-confirm-recover','viewing-cancel','viewing-cancel-recover','viewing-decline','viewing-decline-recover'].includes(action)?'POST':'GET'))return reply(405,'METHOD_NOT_ALLOWED');
+  if(request.method!==(['command','contact-record','contact-recover','viewing-request','viewing-propose','viewing-recover','viewing-confirm','viewing-confirm-recover','viewing-reschedule','viewing-reschedule-recover','viewing-cancel','viewing-cancel-recover','viewing-decline','viewing-decline-recover'].includes(action)?'POST':'GET'))return reply(405,'METHOD_NOT_ALLOWED');
   let writeDispatched=false;
   try{
     const limit=requestShape(request,params,action);
@@ -175,11 +185,13 @@ export async function enquiryPreviewRequest(request:Request,params:Params,action
     const command=action==='command'?await commandBody(request):undefined;
     const contact=['contact-record','contact-recover'].includes(action)?await commandBody(request,true):undefined;
     const viewing=['viewing-request','viewing-propose','viewing-recover'].includes(action)?await viewingBody(request,action,params.viewingId):undefined;
+    const reschedule=['viewing-reschedule','viewing-reschedule-recover'].includes(action)?await rescheduleBody(request):undefined;
     const confirmation=['viewing-confirm','viewing-confirm-recover'].includes(action)?await confirmationBody(request):undefined;
     const terminal=['viewing-cancel','viewing-cancel-recover','viewing-decline','viewing-decline-recover'].includes(action)?await terminationBody(request):undefined;
     const client=new RealtorApiClient({baseUrl:config.origin,privacyNoticeVersion:'synthetic-preview-v1',allowLoopbackHttp:true}),options={bearerToken:config.bearerToken,signal:request.signal,timeoutMs:30000};
     let result:unknown;
-    if(terminal){const kind=action.startsWith('viewing-cancel')?'cancel':'decline';if(action.endsWith('-recover'))result=await client.getViewingTerminationReceiptV2(params.id!,params.viewingId!,kind,terminal,options);else{writeDispatched=true;result=await client.terminateViewingV2(params.id!,params.viewingId!,kind,terminal,options);}}
+    if(reschedule){if(action.endsWith('-recover'))result=await client.getViewingRescheduleReceiptV2(params.id!,params.viewingId!,reschedule,options);else{writeDispatched=true;result=await client.rescheduleViewingV2(params.id!,params.viewingId!,reschedule,options);}}
+    else if(terminal){const kind=action.startsWith('viewing-cancel')?'cancel':'decline';if(action.endsWith('-recover'))result=await client.getViewingTerminationReceiptV2(params.id!,params.viewingId!,kind,terminal,options);else{writeDispatched=true;result=await client.terminateViewingV2(params.id!,params.viewingId!,kind,terminal,options);}}
     else if(action==='viewing-confirm'){writeDispatched=true;result=await client.confirmViewingV2(params.id!,params.viewingId!,confirmation!,options);}
     else if(action==='viewing-confirm-recover')result=await client.getViewingConfirmationReceiptV2(params.id!,params.viewingId!,confirmation!,options);
     else if(action==='viewing-properties'){
@@ -201,7 +213,7 @@ export async function enquiryPreviewRequest(request:Request,params:Params,action
     else if(action==='detail')result=await client.getStaffEnquiryV2(params.id!,options);
     else if(action==='operation')result=await client.getEnquiryOperationV2(params.id!,params.operationId!,options);
     else{writeDispatched=true;result=await client.applyEnquiryOperationV2(params.id!,command!,options);}
-    if((viewing||confirmation||terminal)&&(result as ViewingReceipt).actorId!==config.actorId)throw new ApiClientError('INVALID_RESPONSE','Unexpected viewing receipt actor.',{submissionUncertain:writeDispatched});
+    if((viewing||confirmation||terminal||reschedule)&&(result as ViewingReceipt).actorId!==config.actorId)throw new ApiClientError('INVALID_RESPONSE','Unexpected viewing receipt actor.',{submissionUncertain:writeDispatched});
     return Response.json(result,{status:200,headers:HEADERS});
   }catch(error){return failure(error,writeDispatched);}
 }
