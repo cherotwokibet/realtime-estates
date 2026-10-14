@@ -20,3 +20,9 @@ DOM evidence `viewing-reschedule-browser-{uncertain,stale,denied,replay,cycle2-u
 ## Next dependency-ready work
 
 Completion/no-show semantics and retained outcome evidence, then reminders tied to current cycle/version with suppression before dispatch. Confirm provisional policy with operators through UAT. Mobile/native, hosted identity/database/concurrency, rights/account control, independent off-device backup and approved cutover remain separate work. Keep vendor resources and old live system available. Tasks remain 16/97, accepted gates 0/14 and gross total recurring client price KES 10,000 per realtor/month.
+
+## Reschedule operator publication and next checkpoint — 14 October 2026
+
+Operator source441279bb57b76d50d06db2460ee3d0c5dec35515 bundled/verified/freshmatchingclone/fsckpassed; SHA256215018fbcbcddab39e98b8f95eb84ef82f5d2a967372e8ee52b2fd41aa900be1 (same-device only). Existing owner-private dashboard60 source dc595dde4204eec3a824fbec19b4d5fe7872a16c deployed successfully as appgdep_6acf04ca4bd48191ae21522934f965ef. Retained232canonicalnotes/0browserextras/4added=236. Reloadverifiedoperatorbanner; screenshot viewing-reschedule-operator-dashboard.jpg retained. Git source clean at implementation checkpoint before publication notes; owned preview/tab teardown verified.
+
+Next exact dependency-ready plan is docs/viewing-outcomes-next.md: first strict completion/no-show command and pure confirmed-current-cycle outcome plan with explicit provisional time policy, stale-first and immutable old agreement. Then coordinated narrow SQL/API/SDK/history and operator recovery; no outcome implementation/pass claimed yet. Full rebuild and handover remain incomplete; no gate accepted, vendor/live untouched.
