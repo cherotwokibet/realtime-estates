@@ -21,3 +21,9 @@ Next: strict persisted current/detail/history/outcome receipt contracts, domain/
 ## Final regression checkpoint
 
 183/183 full database checks passed (10new outcome contexts) and65/65existing SDK-service integration checks passed. Focused ten overlap183. Logs viewing-outcomes-database-tests.txt andviewing-outcomes-existing-integration-tests.txt retained. Domain/TypeScript/admin suites were not rerun for this SQL-only checkpoint; prior138domain/8types evidence remains historical. No new outcome HTTP integration claimed.
+
+## Outcome SQL checkpoint publication — 14 October 2026
+
+Storage sourcec9a02ceeb4fa3f2face079cba2f436400169dff0 bundled/verified/freshmatchingclone/fsckpassed same-deviceonly SHA256b2ae796b93b85497fbac604dc4e919060c8ec8c02372ce98c373d74292909eea. Private dashboard63 source339153a1cadf6061e5fd988d34ad7425c90ccc49 deployedowner-private appgdep_6acf205f46888191b15ff68c643244c5 succeeded.244canonicalnotesretained/0browserextras/4added=248. Browserreloadverified183SQL/65existingintegrationbanner andexplicitnooutcomeHTTP/browserlimit; screenshot viewing-outcomes-storage-dashboard.jpg saved. Source clean at implementation checkpoint; no activepreview/provider/vendor/live changes.
+
+Exact next integration checklist: docs/viewing-outcomes-contracts-next.md. Extend strict persisted current/detail/history/outcome receipt with confirmed predecessor/time/cycle/agreementevidence; guard all old transitions against new terminalstatuses; safe readonlyadminlabels and meaningful private read response/SQL-domain parity tests. Then fixed API/SDK completion/no-show writes andoriginalGET, followed by BFF/browser retainedattempt/form andactual synthetic recovery proof. No new release gate.16/97tasks,0/14gates,KES10,000totalmonthlyprice.
