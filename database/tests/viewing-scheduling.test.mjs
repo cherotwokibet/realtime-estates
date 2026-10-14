@@ -50,6 +50,88 @@ function terminate(db,{viewing,user=AGENT,enquiry=E,operation=id(3000),expected=
  return actor(db,user,()=>scalar(db,'SELECT app_api.terminate_viewing($1,$2,$3,$4,$5,$6)',[enquiry,viewing,operation,expected,kind,reason]),tenant);
 }
 const savedHistory=(db,viewing,{user=AGENT,enquiry=E,tenant=T,limit=25}={})=>actor(db,user,()=>scalar(db,'SELECT app_api.read_viewing_history($1,$2,$3)',[enquiry,viewing,limit]),tenant);
+
+// Owner-seeded historical fixtures use the normal insert/update guards and constraints.
+// They model already saved 2020 states; they are not a claim of past HTTP execution.
+async function historicalConfirmed(db,{later=false,year='2020'}={}){
+ const viewing=id(9000),at=(day,time)=>`${year}-01-0${day}T${time}:00.000Z`,firstSlot=slot(at(1,'09:00'),at(1,'10:00')),secondSlot=slot(at(2,'09:00'),at(2,'10:00')),receipts=[];
+ const seed=async(kind,expected,payload,recordedAt)=>{
+  const result=await scalar(db,'SELECT app_private.viewing_snapshot(v) FROM app_private.viewings v WHERE id=$1',[viewing]),operation=id(9001+receipts.length),receipt={operationId:operation,enquiryId:E,viewingId:viewing,actorId:AGENT,kind,expectedVersion:String(expected),observedVersion:String(expected),request:payload,outcome:'applied',reason:null,result,completedAt:recordedAt};
+  await db.query('INSERT INTO app_private.viewing_operations(tenant_id,operation_id,enquiry_id,requester_id,kind,target_viewing_id,viewing_id,expected_version,request_payload,receipt,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10::jsonb,$11)',[T,operation,E,AGENT,kind,kind==='request'?null:viewing,viewing,expected,JSON.stringify(payload),JSON.stringify(receipt),recordedAt]);receipts.push(receipt);return receipt;
+ };
+ await db.query("INSERT INTO app_private.viewings(tenant_id,id,enquiry_id,listing_id,requested_by_id,status,version,preferred_slots,notes,created_at,updated_at) VALUES($1,$2,$3,$4,$5,'requested',1,'[]'::jsonb,$6,$7,$7)",[T,viewing,E,L,AGENT,NOTES,at(1,'07:00')]);
+ await seed('request',1,{listingId:L,preferredSlots:[],notes:NOTES},at(1,'07:00'));
+ await db.query("UPDATE app_private.viewings SET status='proposed',version=2,proposed_slot=$2::jsonb,updated_at=$3 WHERE id=$1",[viewing,JSON.stringify(firstSlot),at(1,'08:00')]);await seed('propose',1,{slot:firstSlot},at(1,'08:00'));
+ const firstAgreement={channel:'phone',agreedAt:at(1,'08:15'),notes:PHONE_NOTES};
+ await db.query("UPDATE app_private.viewings SET status='confirmed',version=3,phone_agreement=$2::jsonb,confirmed_by_id=$3,proposed_at=updated_at,confirmed_at=$4,updated_at=$4 WHERE id=$1",[viewing,JSON.stringify(firstAgreement),AGENT,at(1,'08:30')]);await seed('confirm',2,{slot:firstSlot,...firstAgreement},at(1,'08:30'));
+ if(later){
+  const cycle={number:'2',proposalVersion:'4',slot:secondSlot,proposedAt:at(2,'08:00'),reason:'Historical synthetic new slot.',previousStatus:'confirmed',previousUpdatedAt:at(1,'08:30'),agreement:null,confirmedAt:null};
+  await db.query("UPDATE app_private.viewings SET status='proposed',version=4,current_cycle=$2::jsonb,first_cycle_status=status,first_cycle_updated_at=updated_at,updated_at=$3 WHERE id=$1",[viewing,JSON.stringify(cycle),at(2,'08:00')]);await seed('reschedule',3,{slot:secondSlot,reason:cycle.reason},at(2,'08:00'));
+  const agreement={channel:'phone',agreedAt:at(2,'08:15'),notes:'Historical second-slot phone agreement.'};
+  await db.query("UPDATE app_private.viewings SET status='confirmed',version=5,current_cycle=$2::jsonb,cycle_confirmed_by_id=$3,updated_at=$4 WHERE id=$1",[viewing,JSON.stringify({...cycle,agreement,confirmedAt:at(2,'08:30')}),AGENT,at(2,'08:30')]);await seed('confirm',4,{slot:secondSlot,...agreement},at(2,'08:30'));
+ }
+ return {viewing,receipts,occurredAt:at(later?2:1,'10:00'),expected:later?'5':'3'};
+}
+function attendance(db,{viewing,user=AGENT,enquiry=E,operation=id(10000),expected='3',kind='complete',occurredAt='2020-01-01T10:00:00.000Z',reason='  Synthetic outcome reason.\nKeep exact.  ',tenant=T}={}){
+ return actor(db,user,()=>scalar(db,'SELECT app_api.record_viewing_outcome($1,$2,$3,$4,$5,$6,$7)',[enquiry,viewing,operation,expected,kind,occurredAt,reason]),tenant);
+}
+
+test('stored completion preserves historical agreement and current detail clocks with exact immutable recovery',async()=>{
+ const db=await fixture();try{
+  const f=await historicalConfirmed(db),before=await read(db,f.viewing),saved=await attendance(db,f);assert.equal(saved.result.status,'completed');assert.equal(saved.result.version,'4');assert.deepEqual(saved.result.agreement,before.schedule.agreement);assert.equal(saved.result.outcome.previousUpdatedAt,before.updatedAt);assert.equal(saved.result.outcome.occurredAt,f.occurredAt);assert.equal(saved.result.outcome.recordedAt,saved.completedAt);
+  const current=await read(db,f.viewing);assert.deepEqual(current.confirmation,before.confirmation);assert.equal(current.updatedAt,saved.completedAt);assert.deepEqual(current.outcomeRecord,{recordedById:AGENT});assert.equal(current.notes,NOTES);assert.deepEqual(await history(db,id(10000)),saved);assert.deepEqual(await attendance(db,f),saved);assert.equal((await totals(db)).enquiry_version,'1');
+  const page=await savedHistory(db,f.viewing);assert.equal(page.items.length,4);assert.deepEqual(page.items.map(x=>x.kind),['complete','confirm','propose','request']);assert.deepEqual(page.items[1].schedule,f.receipts[2].result);assert.deepEqual(await history(db,f.receipts[2].operationId),f.receipts[2]);
+ }finally{await db.close();}
+});
+test('stored no-show retains superseded and current cycle agreements and rejects later mutations',async()=>{
+ const db=await fixture();try{
+  const f=await historicalConfirmed(db,{later:true}),before=await read(db,f.viewing),saved=await attendance(db,{...f,kind:'no_show'});assert.equal(saved.result.version,'6');assert.equal(saved.result.status,'no_show');assert.deepEqual(saved.result.cycle,before.schedule.cycle);assert.deepEqual(saved.result.agreement,before.schedule.agreement);assert.deepEqual((await read(db,f.viewing)).confirmation,before.confirmation);
+  const page=await savedHistory(db,f.viewing);assert.equal(page.items.length,6);assert.deepEqual(page.items[3].schedule.agreement,f.receipts[2].result.agreement);assert.deepEqual(page.items[1].schedule.agreement,f.receipts[4].result.agreement);
+  assert.equal((await attendance(db,{...f,kind:'complete',expected:'6',operation:id(10001)})).reason,'INVALID_STATE');assert.equal((await terminate(db,{viewing:f.viewing,expected:'6'})).reason,'INVALID_STATE');assert.equal((await reschedule(db,{viewing:f.viewing,expected:'6'})).reason,'INVALID_STATE');
+ }finally{await db.close();}
+});
+test('attendance stale-first and unconfirmed or future-slot refusals are durable and do not infer attendance',async()=>{
+ const db=await fixture();try{
+  const {requested,proposal}=await proposed(db),viewing=requested.viewingId;assert.equal((await attendance(db,{viewing,expected:'1'})).reason,'VERSION_CONFLICT');assert.equal((await attendance(db,{viewing,expected:'2',operation:id(10001)})).reason,'INVALID_STATE');await confirmation(db,{viewing,agreedAt:proposal.completedAt});
+  const refused=await attendance(db,{viewing,operation:id(10002)});assert.equal(refused.reason,'SLOT_NOT_ENDED');assert.equal(refused.result,null);assert.deepEqual(await attendance(db,{viewing,operation:id(10002)}),refused);assert.equal((await read(db,viewing)).schedule.status,'confirmed');
+ }finally{await db.close();}
+});
+test('attendance occurrence bounds and record clock refusals remain saved decisions without state changes',async()=>{
+ const db=await fixture();try{
+  const f=await historicalConfirmed(db);const before=await attendance(db,{...f,occurredAt:'2020-01-01T09:59:59.999Z'}),future=await attendance(db,{...f,operation:id(10001),occurredAt:'2090-01-01T10:00:00.000Z'});assert.equal(before.reason,'OUTCOME_BEFORE_SLOT_END');assert.equal(future.reason,'OUTCOME_IN_FUTURE');assert.deepEqual(await attendance(db,{...f,occurredAt:'2020-01-01T09:59:59.999Z'}),before);assert.equal((await read(db,f.viewing)).schedule.version,'3');
+ }finally{await db.close();}
+ const futureDb=await fixture();try{const f=await historicalConfirmed(futureDb,{year:'2089'});assert.equal((await attendance(futureDb,f)).reason,'RECORD_TIME_IN_FUTURE');}finally{await futureDb.close();}
+});
+test('attendance current role company assignment and requester-private receipt guards survive access restoration',async()=>{
+ const db=await fixture();try{
+  const f=await historicalConfirmed(db),before=await totals(db);for(const user of [CUSTOMER,PEER])await assert.rejects(()=>attendance(db,{...f,user}));await denied(()=>attendance(db,{...f,user:OTHERADMIN,tenant:OTHER}),'P0002');assert.deepEqual(await totals(db),before);const saved=await attendance(db,f);await denied(()=>history(db,id(10000),ADMIN),'P0002');await denied(()=>attendance(db,{...f,user:ADMIN}),'40001');await db.query('UPDATE app_private.enquiries SET assigned_agent_id=$1 WHERE id=$2',[PEER,E]);await denied(()=>attendance(db,f),'P0002');await denied(()=>history(db,id(10000)),'P0002');await denied(()=>savedHistory(db,f.viewing),'P0002');await db.query('UPDATE app_private.enquiries SET assigned_agent_id=$1 WHERE id=$2',[AGENT,E]);assert.deepEqual(await attendance(db,f),saved);
+ }finally{await db.close();}
+});
+test('attendance exact operation identity binds kind target original version occurrence and raw reason',async()=>{
+ const db=await fixture();try{
+  const f=await historicalConfirmed(db),saved=await attendance(db,f);for(const patch of [{kind:'no_show'},{expected:'4'},{reason:'Changed'},{occurredAt:'2020-01-01T10:01:00.000Z'}])await denied(()=>attendance(db,{...f,...patch}),'40001');await denied(()=>terminate(db,{viewing:f.viewing,operation:id(10000),expected:'3'}),'40001');await denied(()=>attendance(db,{...f,operation:f.receipts[2].operationId}),'40001');assert.deepEqual(await history(db,id(10000)),saved);
+ }finally{await db.close();}
+});
+test('attendance cleanup remains possible after closure and withdrawn stock and audit excludes private reason',async()=>{
+ const db=await fixture();try{
+  const f=await historicalConfirmed(db);await db.query("UPDATE app_private.enquiries SET status='closed_lost',closure_reason='Synthetic closure' WHERE id=$1",[E]);await db.query("UPDATE app_private.listings SET publication_status='paused',availability='withdrawn' WHERE id=$1",[L]);const before=await totals(db),saved=await attendance(db,f);assert.equal(saved.outcome,'applied');assert.deepEqual(await attendance(db,f),saved);const events=(await db.query("SELECT to_jsonb(a) value FROM app_private.audit_events a WHERE object_type='viewing'")).rows;assert.equal(events.length,1);assert.equal(JSON.stringify(events).includes(saved.request.reason),false);assert.equal((await totals(db)).enquiry_version,before.enquiry_version);
+ }finally{await db.close();}
+});
+test('attendance evidence cannot be edited erased rewritten or directly read and changed by runtime',async()=>{
+ const db=await fixture();try{
+  const f=await historicalConfirmed(db);await attendance(db,f);for(const sql of ["UPDATE app_private.viewings SET outcome_reason='Changed' WHERE id=$1",'UPDATE app_private.viewings SET outcome_kind=NULL WHERE id=$1',"UPDATE app_private.viewings SET status='confirmed',version=3 WHERE id=$1",'UPDATE app_private.viewings SET phone_agreement=NULL WHERE id=$1','DELETE FROM app_private.viewings WHERE id=$1'])await assert.rejects(()=>db.query(sql,[f.viewing]));await denied(()=>actor(db,AGENT,()=>db.query('SELECT outcome_reason FROM app_private.viewings')),'42501');await denied(()=>actor(db,AGENT,()=>db.query('UPDATE app_private.viewings SET outcome_kind=NULL')),'42501');assert.equal((await read(db,f.viewing)).schedule.status,'completed');
+ }finally{await db.close();}
+});
+test('malformed attendance commands reserve no operation and maximum raw Unicode evidence survives',async()=>{
+ const db=await fixture();try{
+  const f=await historicalConfirmed(db),before=await totals(db);for(const patch of [{expected:null},{expected:'9007199254740991'},{kind:'completed'},{occurredAt:null},{occurredAt:'2020-01-01T10:00:00.000001Z'},{reason:' '},{reason:'😀'.repeat(1001)}])await assert.rejects(()=>attendance(db,{...f,...patch}));assert.deepEqual(await totals(db),before);const saved=await attendance(db,{...f,reason:'😀'.repeat(1000)});assert.equal([...saved.result.outcome.reason].length,1000);assert.deepEqual(await attendance(db,{...f,reason:'😀'.repeat(1000)}),saved);
+ }finally{await db.close();}
+});
+test('attendance audit and receipt insertion failures roll back evidence state and operation identity together',async()=>{
+ const db=await fixture();try{
+  const f=await historicalConfirmed(db),before=await totals(db);await db.exec("CREATE FUNCTION app_private.fail_attendance_test() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'Synthetic transaction failure';END$$;");for(const table of ['audit_events','viewing_operations']){await db.exec('CREATE TRIGGER fail_attendance_test BEFORE INSERT ON app_private.'+table+' FOR EACH ROW EXECUTE FUNCTION app_private.fail_attendance_test()');await assert.rejects(()=>attendance(db,f));await db.exec('DROP TRIGGER fail_attendance_test ON app_private.'+table);assert.deepEqual(await totals(db),before);assert.equal((await read(db,f.viewing)).schedule.version,'3');}assert.equal((await attendance(db,f)).outcome,'applied');
+ }finally{await db.close();}
+});
 test('current staff history reads immutable applied snapshots through cancellation without original command IDs or writes',async()=>{
  const db=await fixture();try{
   const {requested,proposal}=await proposed(db),confirmed=await confirmation(db,{viewing:requested.viewingId,agreedAt:proposal.completedAt}),ended=await terminate(db,{viewing:requested.viewingId,expected:'3'});
