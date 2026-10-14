@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {startStaffPreview} from '../apps/api/dev/staff-preview.mjs';
 
 if(process.env.NODE_ENV==='production')throw new Error('Enquiry preview refuses production.');
-if(['--invalid-first-viewing-reply','--invalid-first-confirmation-reply','--invalid-first-termination-reply','--invalid-first-reschedule-reply'].filter(flag=>process.argv.includes(flag)).length>1)throw new Error('Choose one synthetic viewing reply fault.');
+if(['--invalid-first-viewing-reply','--invalid-first-confirmation-reply','--invalid-first-termination-reply','--invalid-first-reschedule-reply','--invalid-first-outcome-reply'].filter(flag=>process.argv.includes(flag)).length>1)throw new Error('Choose one synthetic viewing reply fault.');
 const root=fileURLToPath(new URL('../',import.meta.url));
 const next=fileURLToPath(new URL('../node_modules/next/dist/bin/next',import.meta.url));
 let preview,child,webChild,closing;
@@ -24,7 +24,8 @@ async function stop(){
   })();
 }
 try{
-  preview=await startStaffPreview({tenantSlug:process.env.TENANT_SLUG??'realtime-estates',enquiryPreview:'synthetic-v1',...(process.argv.includes('--web')?{enquiryCatalogue:'synthetic-v1'}:{}),...(process.argv.includes('--invalid-first-reschedule-reply')?{viewingReplyFault:'invalid-first-reschedule-v1'}:{}),...(process.argv.includes('--invalid-first-termination-reply')?{viewingReplyFault:'invalid-first-termination-v1'}:{}),...(process.argv.includes('--invalid-first-confirmation-reply')?{viewingReplyFault:'invalid-first-confirmation-v1'}:{}),...(process.argv.includes('--invalid-first-viewing-reply')?{viewingReplyFault:'invalid-first-applied-v1'}:{}),...(process.argv.includes('--invalid-first-contact-reply')?{contactReplyFault:'invalid-first-applied-v1'}:{})});
+  preview=await startStaffPreview({tenantSlug:process.env.TENANT_SLUG??'realtime-estates',enquiryPreview:'synthetic-v1',...(process.argv.includes('--historical-viewings')?{historicalViewings:'synthetic-v1'}:{}),...(process.argv.includes('--invalid-first-outcome-reply')?{viewingReplyFault:'invalid-first-outcome-v1'}:{}),...(process.argv.includes('--web')?{enquiryCatalogue:'synthetic-v1'}:{}),...(process.argv.includes('--invalid-first-reschedule-reply')?{viewingReplyFault:'invalid-first-reschedule-v1'}:{}),...(process.argv.includes('--invalid-first-termination-reply')?{viewingReplyFault:'invalid-first-termination-v1'}:{}),...(process.argv.includes('--invalid-first-confirmation-reply')?{viewingReplyFault:'invalid-first-confirmation-v1'}:{}),...(process.argv.includes('--invalid-first-viewing-reply')?{viewingReplyFault:'invalid-first-applied-v1'}:{}),...(process.argv.includes('--invalid-first-contact-reply')?{contactReplyFault:'invalid-first-applied-v1'}:{})});
+  if(process.argv.includes('--historical-viewings'))console.log('Fictional historical confirmed viewings enabled for outcome testing. No past HTTP execution or real attendance is implied. Requires --web.');
   const {admin,agent}=preview.enquiryStaff;
   child=spawn(process.execPath,[next,'dev','apps/admin','-p','3001','-H','127.0.0.1'],{cwd:root,stdio:'inherit',env:{...process.env,
     NODE_ENV:'development',TENANT_SLUG:preview.tenantSlug,

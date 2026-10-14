@@ -1,3 +1,4 @@
+import {validateViewingOutcomeCommand,validateViewingOutcomeReceipt,type ViewingOutcomeCommand,type ViewingOutcomeKind,type ViewingOutcomeReceipt} from '@realtor/api-client';
 import {validateViewingRescheduleCommand,validateViewingRescheduleReceipt,type ViewingRescheduleCommand,type ViewingRescheduleReceipt} from '@realtor/api-client';
 import {validateViewingHistoryPage,type ViewingHistoryPage} from '@realtor/api-client';
 import {validateViewingTerminationCommand,validateViewingTerminationReceipt,type ViewingTerminationCommand,type ViewingTerminationKind,type ViewingTerminationReceipt} from '@realtor/api-client';
@@ -17,6 +18,8 @@ export class EnquiryPreviewError extends Error {
 }
 export interface CaptureAttempt {readonly input:StaffEnquiryInput;readonly key:string;readonly status:"ready"|"sending"|"uncertain"|"received"|"rejected";readonly receipt:EnquiryReceipt|null;submit(signal?:AbortSignal):Promise<EnquiryReceipt>;retryOriginal(signal?:AbortSignal):Promise<EnquiryReceipt>}
 export interface EnquiryPreviewClient {
+  recordViewingOutcome(id:string,viewingId:string,kind:ViewingOutcomeKind,input:ViewingOutcomeCommand,signal?:AbortSignal):Promise<ViewingOutcomeReceipt>;
+  recoverViewingOutcome(id:string,viewingId:string,kind:ViewingOutcomeKind,input:ViewingOutcomeCommand,signal?:AbortSignal):Promise<ViewingOutcomeReceipt>;
   rescheduleViewing(id:string,viewingId:string,input:ViewingRescheduleCommand,signal?:AbortSignal):Promise<ViewingRescheduleReceipt>;
   recoverViewingReschedule(id:string,viewingId:string,input:ViewingRescheduleCommand,signal?:AbortSignal):Promise<ViewingRescheduleReceipt>;
   viewingHistory(id:string,viewingId:string,signal?:AbortSignal):Promise<ViewingHistoryPage>;
@@ -166,12 +169,16 @@ export function createEnquiryPreviewClient(input:Configuration):EnquiryPreviewCl
   const viewingWire=(original:ViewingOriginal)=>({...original,command:original.kind==='request'?{...original.command,expectedEnquiryVersion:Number(original.command.expectedEnquiryVersion)}:{...original.command,expectedVersion:Number(original.command.expectedVersion)}});
   const terminalCommand=(kind:ViewingTerminationKind,input:ViewingTerminationCommand)=>{try{if(kind!=='cancel'&&kind!=='decline')throw new Error();return validateViewingTerminationCommand(input);}catch{throw new EnquiryPreviewError('validation');}};
   const terminalRequest=(recover:boolean,id:string,viewingId:string,kind:ViewingTerminationKind,input:ViewingTerminationCommand,signal?:AbortSignal)=>{const selected=selectedId(id),viewing=selectedId(viewingId),original=terminalCommand(kind,input);return request(`${basePath}/enquiries/${selected}/viewings/${viewing}/${kind==='cancel'?'cancellations':'declines'}${recover?'/recover':''}`,'POST',signal,value=>validateViewingTerminationReceipt(value,selected,viewing,kind,original),{...original,expectedVersion:Number(original.expectedVersion)},undefined,recover);};
+  const outcomeCommand=(kind:ViewingOutcomeKind,input:ViewingOutcomeCommand)=>{try{if(kind!=='complete'&&kind!=='no_show')throw new Error();return validateViewingOutcomeCommand(input);}catch{throw new EnquiryPreviewError('validation');}};
+  const outcomeRequest=(recover:boolean,id:string,viewingId:string,kind:ViewingOutcomeKind,input:ViewingOutcomeCommand,signal?:AbortSignal)=>{const selected=selectedId(id),viewing=selectedId(viewingId),original=outcomeCommand(kind,input);return request(`${basePath}/enquiries/${selected}/viewings/${viewing}/${kind==='complete'?'completions':'no-shows'}${recover?'/recover':''}`,'POST',signal,value=>validateViewingOutcomeReceipt(value,selected,viewing,kind,original),{...original,expectedVersion:Number(original.expectedVersion)},undefined,recover);};
   const rescheduleRequest=(recover:boolean,id:string,viewingId:string,input:ViewingRescheduleCommand,signal?:AbortSignal)=>{
     const selected=selectedId(id),viewing=selectedId(viewingId);let original:ViewingRescheduleCommand;
     try{original=validateViewingRescheduleCommand(input);}catch{throw new EnquiryPreviewError('validation');}
     return request(`${basePath}/enquiries/${selected}/viewings/${viewing}/reschedules${recover?'/recover':''}`,'POST',signal,value=>validateViewingRescheduleReceipt(value,selected,viewing,original),{...original,expectedVersion:Number(original.expectedVersion)},undefined,recover);
   };
   return Object.freeze({
+    recordViewingOutcome:(id:string,viewingId:string,kind:ViewingOutcomeKind,input:ViewingOutcomeCommand,signal?:AbortSignal)=>outcomeRequest(false,id,viewingId,kind,input,signal),
+    recoverViewingOutcome:(id:string,viewingId:string,kind:ViewingOutcomeKind,input:ViewingOutcomeCommand,signal?:AbortSignal)=>outcomeRequest(true,id,viewingId,kind,input,signal),
     rescheduleViewing:(id:string,viewingId:string,input:ViewingRescheduleCommand,signal?:AbortSignal)=>rescheduleRequest(false,id,viewingId,input,signal),
     recoverViewingReschedule:(id:string,viewingId:string,input:ViewingRescheduleCommand,signal?:AbortSignal)=>rescheduleRequest(true,id,viewingId,input,signal),
     viewingHistory:(id:string,viewingId:string,signal?:AbortSignal)=>{const selected=selectedId(id),viewing=selectedId(viewingId);return request(`${basePath}/enquiries/${selected}/viewings/${viewing}/history?limit=25`,'GET',signal,value=>validateViewingHistoryPage(value,selected,viewing,25));},

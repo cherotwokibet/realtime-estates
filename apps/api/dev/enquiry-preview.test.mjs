@@ -10,6 +10,24 @@ const call=(preview,path,{role='admin',token=preview.enquiryStaff?.[role].bearer
 });
 async function read(preview,path,options){const response=await call(preview,path,options);assert.equal(response.status,200);return response.json();}
 const base='/v2/staff/enquiries';
+
+test('historical viewing fixtures require explicit modes and retain guarded first and later cycles under targeted outcome loss',async()=>{
+ for(const options of [{historicalViewings:'synthetic-v1'},{enquiryPreview:'synthetic-v1',historicalViewings:'synthetic-v1'},{enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1',historicalViewings:'unknown'}])await assert.rejects(()=>startStaffPreview({port:0,...options}));
+ const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1',historicalViewings:'synthetic-v1',viewingReplyFault:'invalid-first-outcome-v1'});
+ try{
+  const path=base+'/'+preview.enquiryFixtures.assigned,feed=await read(preview,path+'/viewings?limit=25',{role:'agent'});assert.equal(feed.items.length,2);
+  const first=feed.items.find(item=>item.schedule.version==='3'),later=feed.items.find(item=>item.schedule.version==='5');assert.ok(first&&later);
+  const command={operationId:randomUUID(),expectedVersion:3,occurredAt:'2020-01-01T10:00:00.000Z',reason:'  Explicit synthetic outcome evidence.  '},target=path+'/viewings/'+first.schedule.viewingId;
+  assert.equal((await read(preview,target+'/completions',{role:'agent',method:'POST',body:{...command,operationId:randomUUID(),expectedVersion:2}})).outcome,'conflict');
+  assert.equal((await read(preview,path+'/contacts',{role:'agent',method:'POST',body:{operationId:randomUUID(),expectedVersion:2,channel:'call',outcome:'connected',occurredAt:command.occurredAt,notes:'Synthetic unrelated save before outcome loss.'}})).outcome,'applied');
+  assert.deepEqual(await read(preview,target+'/completions',{role:'agent',method:'POST',body:command}),{syntheticReplyCorruption:true});
+  const receipt=await read(preview,path+'/viewing-operations/'+command.operationId,{role:'agent'});assert.equal(receipt.result.status,'completed');assert.deepEqual(receipt.result.agreement,first.schedule.agreement);
+  assert.deepEqual(await read(preview,target+'/completions',{role:'agent',method:'POST',body:command}),receipt);
+  const missed=await read(preview,path+'/viewings/'+later.schedule.viewingId+'/no-shows',{role:'agent',method:'POST',body:{...command,operationId:randomUUID(),expectedVersion:5,occurredAt:'2020-01-02T10:00:00.000Z'}});assert.equal(missed.result.status,'no_show');
+  const history=await read(preview,path+'/viewings/'+later.schedule.viewingId+'/history?limit=25',{role:'agent'});assert.equal(history.items.length,6);assert.notDeepEqual(history.items[1].schedule.agreement,history.items[3].schedule.agreement);
+  assert.equal((await read(preview,path,{role:'agent'})).version,'2');
+ }finally{await preview.close();}
+});
 test('targeted ending corruption skips request/proposal/confirmation and preserves original terminal recovery',async()=>{
  const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1',viewingReplyFault:'invalid-first-termination-v1'});
  try{

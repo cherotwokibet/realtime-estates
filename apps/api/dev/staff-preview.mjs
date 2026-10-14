@@ -1,3 +1,4 @@
+import {seedHistoricalConfirmedViewing} from '../../../database/test-helpers/historical-confirmed-viewing.mjs';
 /**
  * Independently authored local staff fixture, never a provider/login implementation.
  * Ephemeral RS256 keys, loopback JWKS, disposable PGlite and synthetic metadata only.
@@ -32,7 +33,7 @@ const COMPANIES=Object.freeze({
 const LIFETIME_SECONDS=1800;
 const AUDIENCE='synthetic-realtor-staff-preview';
 class StaffPreviewConfigurationError extends Error {}
-function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,
+function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings,
   seedAcceptedMedia=nativeUploads===undefined&&enquiryPreview===undefined,seedPendingReviews=false}={}){
   if(process.env.NODE_ENV==='production')throw new StaffPreviewConfigurationError('Staff preview refuses NODE_ENV=production.');
   if(typeof tenantSlug!=='string'||!Object.hasOwn(COMPANIES,tenantSlug))throw new StaffPreviewConfigurationError('Choose the configured realtime-estates or sample-homes synthetic company.');
@@ -42,14 +43,15 @@ function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',na
   if(typeof seedPendingReviews!=='boolean'||(seedPendingReviews&&!seedAcceptedMedia))throw new StaffPreviewConfigurationError('Pending review fixtures require the explicit accepted-metadata fixture.');
   if(enquiryPreview!==undefined&&enquiryPreview!=='synthetic-v1')throw new StaffPreviewConfigurationError('Choose the explicit synthetic-v1 enquiry preview mode or omit it.');
   if(enquiryCatalogue!==undefined&&(enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Synthetic enquiry catalogue requires explicit enquiry mode.');
+  if(historicalViewings!==undefined&&(historicalViewings!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'||enquiryCatalogue!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Historical synthetic viewings require explicit synthetic enquiry and catalogue modes.');
   if(contactReplyFault!==undefined&&(contactReplyFault!=='invalid-first-applied-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Contact reply fault requires explicit synthetic enquiry mode and the supported one-shot fault.');
-  if(viewingReplyFault!==undefined&&(!['invalid-first-applied-v1','invalid-first-confirmation-v1','invalid-first-termination-v1','invalid-first-reschedule-v1'].includes(viewingReplyFault)||enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Viewing reply fault requires explicit synthetic enquiry and catalogue modes and the supported one-shot fault.');
+  if(viewingReplyFault!==undefined&&(!['invalid-first-applied-v1','invalid-first-confirmation-v1','invalid-first-termination-v1','invalid-first-reschedule-v1','invalid-first-outcome-v1'].includes(viewingReplyFault)||enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Viewing reply fault requires explicit synthetic enquiry and catalogue modes and the supported one-shot fault.');
   if(enquiryPreview!==undefined&&(nativeUploads!==undefined||seedAcceptedMedia||seedPendingReviews))throw new StaffPreviewConfigurationError('Enquiry preview does not combine with image or pending-review fixtures.');
   if(nativeUploads!==undefined){
     nativeUploads=nativeMediaPreviewConfiguration(nativeUploads);
     if(seedAcceptedMedia||seedPendingReviews)throw new StaffPreviewConfigurationError('Native media preview starts without fabricated accepted-media or pending-review fixtures.');
   }
-  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault};
+  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings};
 }
 function syntheticContent(title='Synthetic staff monthly studio'){
   return {
@@ -167,7 +169,7 @@ async function closeServer(server){
 
 /** Token is handed only to the calling development launcher, never an HTTP login route. */
 export async function startStaffPreview(options={}){
-  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault}=configuration(options);
+  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings}=configuration(options);
   let contactReplyFaultPending=!!contactReplyFault,viewingReplyFaultPending=!!viewingReplyFault;
   const company=COMPANIES[tenantSlug],other=COMPANIES[tenantSlug==='realtime-estates'?'sample-homes':'realtime-estates'];
   const actorId=actor==='agent'?company.agent:actor==='admin'?company.admin:actor==='customer'?company.customer:actor==='revoked-agent'?company.revoked:actor==='other-company-admin'?other.admin:other.agent;
@@ -176,6 +178,9 @@ export async function startStaffPreview(options={}){
     await seed(db,seedAcceptedMedia,seedPendingReviews);
     if(enquiryCatalogue)await seedEnquiryCatalogue(db);
     if(enquiryPreview)await seedEnquiries(db);
+    if(historicalViewings)for(const [index,fixtureCompany] of Object.entries(COMPANIES).entries()){
+      const [slug,c]=fixtureCompany;for(const later of [false,true])await seedHistoricalConfirmedViewing(db,{tenantId:c.id,enquiryId:ENQUIRY_PREVIEW_FIXTURES[slug].assigned,listingId:c.listing,actorId:c.agent,viewingId:id(900+index*10+Number(later)),later,offset:9000+index*100+Number(later)*10});
+    }
     await db.exec('CREATE ROLE synthetic_staff_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT api_runtime TO synthetic_staff_login;');
     if(nativeUploads)await db.exec('CREATE ROLE synthetic_staff_media_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT media_coordinator TO synthetic_staff_media_login;');
     const pools=runtimePools(db,!!nativeUploads);
@@ -223,7 +228,7 @@ export async function startStaffPreview(options={}){
     apiServer=createDevelopmentServer(async request=>{
       const denied=guard(request);if(denied)return denied;
       const url=new URL(request.url),reviewQueue=url.pathname==='/v2/staff/reviews';
-      if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,acceptedMediaMetadataOnly:seedAcceptedMedia,nativeUploads:!!nativeMedia,privateMediaPreviews:!!nativeMedia,retainedSyntheticMedia:!!nativeMedia,tokenExpiresAt:expiresAt});
+      if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,historicalSyntheticViewings:!!historicalViewings,acceptedMediaMetadataOnly:seedAcceptedMedia,nativeUploads:!!nativeMedia,privateMediaPreviews:!!nativeMedia,retainedSyntheticMedia:!!nativeMedia,tokenExpiresAt:expiresAt});
       if(enquiryPreview){
         if(enquiryCatalogue&&url.pathname==='/v2/properties'){
           if(request.method!=='GET'||request.headers.has('authorization'))return failure(403,'FORBIDDEN','Synthetic public catalogue is guest read-only.');
@@ -253,7 +258,7 @@ export async function startStaffPreview(options={}){
           contactReplyFaultPending=false;
           return Response.json({syntheticReplyCorruption:true},{status:200,headers:{'Cache-Control':'no-store','X-Synthetic-Staff-Preview':'true'}});
         }
-        if(viewingReplyFaultPending&&viewings&&request.method==='POST'&&(viewingReplyFault!=='invalid-first-confirmation-v1'||url.pathname.endsWith('/confirmations'))&&(viewingReplyFault!=='invalid-first-termination-v1'||/\/(cancellations|declines)$/.test(url.pathname))&&(viewingReplyFault!=='invalid-first-reschedule-v1'||url.pathname.endsWith('/reschedules'))&&response.status===200&&(await response.clone().json()).outcome==='applied'){
+        if(viewingReplyFaultPending&&(viewingReplyFault!=='invalid-first-outcome-v1'||/\/(completions|no-shows)$/.test(url.pathname))&&viewings&&request.method==='POST'&&(viewingReplyFault!=='invalid-first-confirmation-v1'||url.pathname.endsWith('/confirmations'))&&(viewingReplyFault!=='invalid-first-termination-v1'||/\/(cancellations|declines)$/.test(url.pathname))&&(viewingReplyFault!=='invalid-first-reschedule-v1'||url.pathname.endsWith('/reschedules'))&&response.status===200&&(await response.clone().json()).outcome==='applied'){
           viewingReplyFaultPending=false;
           return Response.json({syntheticReplyCorruption:true},{status:200,headers:{'Cache-Control':'no-store','X-Synthetic-Staff-Preview':'true'}});
         }
