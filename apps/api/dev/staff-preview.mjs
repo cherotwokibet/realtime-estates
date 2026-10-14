@@ -216,7 +216,7 @@ export async function startStaffPreview(options={}){
       if(requestOrigin!==null&&requestOrigin!==origin)return failure(403,'FORBIDDEN','Staff preview origin is unavailable.');
       if(request.headers.has('cookie'))return failure(400,'INVALID_INPUT','Staff preview does not accept cookie credentials.');
       const reviewQueue=url.pathname==='/v2/staff/reviews';
-      const enquiryQueue=enquiryPreview&&(/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/contacts$/i.test(url.pathname)||/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/activity$/i.test(url.pathname)||(enquiryCatalogue&&/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/viewings$/i.test(url.pathname))||url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees'||(enquiryCatalogue&&url.pathname==='/v2/properties'));
+      const enquiryQueue=enquiryPreview&&(/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/contacts$/i.test(url.pathname)||/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/activity$/i.test(url.pathname)||(enquiryCatalogue&&/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/viewings(?:\/[0-9a-f-]{36}\/history)?$/i.test(url.pathname))||url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees'||(enquiryCatalogue&&url.pathname==='/v2/properties'));
       if(url.search&&(!(reviewQueue||enquiryQueue)||[...url.searchParams.keys()].some(key=>key!=='limit')||url.searchParams.getAll('limit').length>1))return failure(400,'INVALID_INPUT','Staff preview does not accept query-selected context.');
       return undefined;
     };
@@ -237,7 +237,7 @@ export async function startStaffPreview(options={}){
         const capture=url.pathname==='/v2/staff/enquiry-captures';
         const contacts=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/contacts(?:\/operations\/[0-9a-f-]{36})?$/i.test(url.pathname);
         const activity=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/activity$/i.test(url.pathname);
-        const viewings=enquiryCatalogue&&/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/(?:viewings(?:\/[0-9a-f-]{36}(?:\/(?:proposals|confirmations|cancellations|declines))?)?|viewing-operations\/[0-9a-f-]{36})$/i.test(url.pathname);
+        const viewings=enquiryCatalogue&&/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/(?:viewings(?:\/[0-9a-f-]{36}(?:\/(?:proposals|confirmations|cancellations|declines|history))?)?|viewing-operations\/[0-9a-f-]{36})$/i.test(url.pathname);
         const queue=url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees';
         const enquiryRoute=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}(?:\/(operations)(?:\/([0-9a-f-]{36}))?)?$/i.exec(url.pathname);
         if(!viewings&&!contacts&&!activity&&!capture&&!queue&&!enquiryRoute)return failure(404,'NOT_FOUND','Enquiry preview route is unavailable.');

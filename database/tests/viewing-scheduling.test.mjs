@@ -3,7 +3,7 @@ import test from 'node:test';
 import {PGlite} from '@electric-sql/pglite';
 import {applyTestMigrations} from '../test-helpers/migrations.mjs';
 import {seedSyntheticSealedMedia} from '../test-helpers/synthetic-sealed-media.mjs';
-import {validateViewingSchedule,validateViewingDetail,validateViewingConfirmationReceipt,validateViewingTerminationReceipt} from '../../packages/domain/dist/index.js';
+import {validateViewingHistoryPage,validateViewingSchedule,validateViewingDetail,validateViewingConfirmationReceipt,validateViewingTerminationReceipt} from '../../packages/domain/dist/index.js';
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const T=id(1),OTHER=id(2),ADMIN=id(10),AGENT=id(11),PEER=id(12),CUSTOMER=id(13),ADMIN2=id(14),OTHERADMIN=id(20);
 const L=id(100),SECOND_L=id(101),FOREIGN_L=id(200),E=id(300),GENERAL=id(301),FOREIGN_E=id(400);
@@ -49,6 +49,34 @@ async function proposed(db){const requested=await command(db);const proposal=awa
 function terminate(db,{viewing,user=AGENT,enquiry=E,operation=id(3000),expected='2',kind='cancel',reason=END_REASON,tenant=T}={}){
  return actor(db,user,()=>scalar(db,'SELECT app_api.terminate_viewing($1,$2,$3,$4,$5,$6)',[enquiry,viewing,operation,expected,kind,reason]),tenant);
 }
+const savedHistory=(db,viewing,{user=AGENT,enquiry=E,tenant=T,limit=25}={})=>actor(db,user,()=>scalar(db,'SELECT app_api.read_viewing_history($1,$2,$3)',[enquiry,viewing,limit]),tenant);
+test('current staff history reads immutable applied snapshots through cancellation without original command IDs or writes',async()=>{
+ const db=await fixture();try{
+  const {requested,proposal}=await proposed(db),confirmed=await confirmation(db,{viewing:requested.viewingId,agreedAt:proposal.completedAt}),ended=await terminate(db,{viewing:requested.viewingId,expected:'3'});
+  await terminate(db,{viewing:requested.viewingId,operation:id(3001),expected:'3'});const before=await totals(db),page=await savedHistory(db,requested.viewingId,{user:ADMIN});validateViewingHistoryPage(page,E,requested.viewingId,25);
+  assert.equal(page.currentVersion,'4');assert.deepEqual(page.items.map(x=>x.schedule),[ended.result,confirmed.result,proposal.result,requested.result]);assert.deepEqual(page.items.map(x=>x.kind),['cancel','confirm','propose','request']);assert.equal(page.items[0].actorId,AGENT);assert.deepEqual(page.items.map(x=>x.recordedAt),[ended.completedAt,confirmed.completedAt,proposal.completedAt,requested.completedAt]);assert.ok(page.items.every(x=>!Object.hasOwn(x,'operationId')&&!Object.hasOwn(x,'request')));assert.deepEqual(await totals(db),before);await denied(()=>history(db,id(3000),ADMIN),'P0002');
+ }finally{await db.close();}
+});
+test('saved viewing history has canonical bounded newest versions and excludes refused or conflicted commands',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db);await terminate(db,{viewing:requested.viewingId});await terminate(db,{viewing:requested.viewingId,expected:'3',operation:id(3001)});
+  const page=await savedHistory(db,requested.viewingId,{limit:2});validateViewingHistoryPage(page,E,requested.viewingId,2);assert.equal(page.truncated,true);assert.deepEqual(page.items.map(x=>x.schedule.version),['3','2']);
+  for(const limit of [0,26,null])await denied(()=>savedHistory(db,requested.viewingId,{limit}),'23514');assert.equal((await savedHistory(db,requested.viewingId)).items.length,3);
+ }finally{await db.close();}
+});
+test('viewing history enforces current company role assignment and revocation independently of original requester',async()=>{
+ const db=await fixture();try{
+  const requested=await command(db);for(const user of [PEER,CUSTOMER])await denied(()=>savedHistory(db,requested.viewingId,{user}),user===CUSTOMER?'42501':'P0002');await denied(()=>savedHistory(db,requested.viewingId,{user:OTHERADMIN,tenant:OTHER}),'P0002');
+  await db.query('UPDATE app_private.enquiries SET assigned_agent_id=$1 WHERE id=$2',[PEER,E]);await denied(()=>savedHistory(db,requested.viewingId),'P0002');assert.equal((await savedHistory(db,requested.viewingId,{user:PEER})).items[0].actorId,AGENT);
+  await db.query('UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',[T,PEER]);await denied(()=>savedHistory(db,requested.viewingId,{user:PEER}),'42501');
+ }finally{await db.close();}
+});
+test('viewing history remains readable for closed or unavailable stock and never grants direct ledger privileges',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db);await db.query("UPDATE app_private.enquiries SET status='closed_lost',closure_reason='Synthetic closure' WHERE id=$1",[E]);await db.query("UPDATE app_private.listings SET publication_status='paused',availability='withdrawn' WHERE id=$1",[L]);const before=await totals(db);assert.equal((await savedHistory(db,requested.viewingId)).items.length,2);
+  await denied(()=>actor(db,AGENT,()=>db.query('SELECT * FROM app_private.viewing_operations')),'42501');await denied(()=>savedHistory(db,id(9999)),'P0002');await denied(()=>savedHistory(db,requested.viewingId,{enquiry:GENERAL}),'P0002');assert.deepEqual(await totals(db),before);
+ }finally{await db.close();}
+});
 test('reasoned cancellation preserves confirmed phone evidence and all original receipts without enquiry mutation',async()=>{
  const db=await fixture();try{
   const {requested,proposal}=await proposed(db),confirmed=await confirmation(db,{viewing:requested.viewingId,agreedAt:proposal.completedAt}),before=await read(db,requested.viewingId);

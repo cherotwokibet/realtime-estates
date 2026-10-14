@@ -10,7 +10,7 @@ const receipt={operationId:operation,enquiryId:enquiry,viewingId:viewing,actorId
 const detail={schedule,notes:body.notes,requestedById:actor,assignedAgentId:actor,createdAt:time,updatedAt:time};
 const base=`/v2/staff/enquiries/${enquiry}`;
 function fixture({result=receipt,privateDetail=detail,page={items:[detail],limit:25,truncated:false},role='agent',failure}={}){
- const calls=[],contexts=[];const database={async transaction(context,work){contexts.push(context);return work({async query(sql,args){calls.push({sql,args});if(sql.includes('staff_role'))return {rows:[{role}]};if(failure)throw failure;if(sql.includes('list_enquiry_viewings'))return {rows:[{page}]};if(sql.includes('app_api.read_viewing('))return {rows:[{detail:privateDetail}]};return {rows:[{receipt:result}]};}});}};
+ const calls=[],contexts=[];const database={async transaction(context,work){contexts.push(context);return work({async query(sql,args){calls.push({sql,args});if(sql.includes('staff_role'))return {rows:[{role}]};if(failure)throw failure;if(sql.includes('list_enquiry_viewings')||sql.includes('read_viewing_history'))return {rows:[{page}]};if(sql.includes('app_api.read_viewing('))return {rows:[{detail:privateDetail}]};return {rows:[{receipt:result}]};}});}};
  return {calls,contexts,service:createApiService({database,tenantId:tenant,privacyNoticeVersion:'synthetic-v1',verifyAuthorization:async request=>{if(request.headers.get('authorization')!=='Bearer synthetic')throw new Error('PRIVATE AUTH');return {actorId:actor};}})};
 }
 const req=(path,{method='GET',value,raw,authorization='Bearer synthetic'}={})=>new Request('https://synthetic.invalid'+path,{method,headers:{...(authorization?{Authorization:authorization}:{}),...(value!==undefined||raw!==undefined?{'Content-Type':'application/json'}:{})},...(value!==undefined||raw!==undefined?{body:raw??JSON.stringify(value)}:{})});
@@ -18,6 +18,15 @@ const phone={operationId:operation,expectedVersion:2,slot,channel:'phone',agreed
 const confirmed={...receipt,kind:'confirm',expectedVersion:'2',observedVersion:'2',request:{slot,channel:'phone',agreedAt:phone.agreedAt,notes:phone.notes},result:{...schedule,status:'confirmed',version:'3',proposedSlot:slot,agreement:{channel:'phone',agreedAt:phone.agreedAt,notes:phone.notes}}};
 const ending={operationId:operation,expectedVersion:2,reason:'  Synthetic ending reason.\nExact original.  '};
 const cancelled={...receipt,kind:'cancel',expectedVersion:'2',observedVersion:'2',request:{reason:ending.reason},result:{...schedule,status:'cancelled',version:'3',proposedSlot:slot,termination:{kind:'cancel',fromStatus:'proposed',reason:ending.reason,endedAt:time,previousUpdatedAt:'2026-10-13T18:00:00.000Z'}}};
+test('viewing history route fixes verified context and bounded SQL while exposing saved states only',async()=>{
+ const page={items:[{kind:'request',actorId:id(99),recordedAt:time,schedule}],limit:25,truncated:false,currentVersion:'1'},f=fixture({page}),response=await f.service(req(base+`/viewings/${viewing}/history`));assert.equal(response.status,200);assert.deepEqual(await response.json(),page);assert.deepEqual(f.calls.find(x=>x.sql.includes('read_viewing_history')).args,[enquiry,viewing,25]);assert.equal(f.contexts[0].actorId,actor);
+ for(const query of ['?limit=26','?limit=01','?limit=1&limit=1','?actorId=foreign']){const g=fixture({page});assert.equal((await g.service(req(base+`/viewings/${viewing}/history`+query))).status,400);assert.equal(g.contexts.length,0);}assert.equal((await f.service(req(base+`/viewings/${viewing}/history`,{method:'POST',value:{}}))).status,405);
+});
+test('viewing history rejects wrong target,private original fields,broken coverage and untrusted roles',async()=>{
+ const page={items:[{kind:'request',actorId:actor,recordedAt:time,schedule}],limit:25,truncated:false,currentVersion:'1'};
+ for(const bad of [{...page,currentVersion:'2'},{...page,items:[{...page.items[0],operationId:operation}]},{...page,items:[{...page.items[0],schedule:{...schedule,enquiryId:id(99)}}]}])assert.equal((await fixture({page:bad}).service(req(base+`/viewings/${viewing}/history`))).status,503);
+ assert.equal((await fixture({role:'customer'}).service(req(base+`/viewings/${viewing}/history`))).status,403);assert.equal((await fixture().service(req(base+`/viewings/${viewing}/history`,{authorization:null}))).status,401);
+});
 test('terminal routes bind fixed kind and verified authority and recover original private receipts',async()=>{
  for(const [kind,suffix,status] of [['cancel','cancellations','cancelled'],['decline','declines','declined']]){
   const result={...cancelled,kind,result:{...cancelled.result,status,termination:{...cancelled.result.termination,kind}}},f=fixture({result});

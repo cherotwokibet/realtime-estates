@@ -13,3 +13,7 @@ The current SQL guard and DTO stage validators deliberately bind first request1/
 7. First prove pure domain rules, then additive storage/current read contracts, protected API/SDK and signed HTTP original recovery. Then BFF/browser original controller/forms and actual two-tab stale/changed-slot/access-loss/replay/new-agreement proof. Test historical old receipts and terminal cleanup after rescheduling; test refusal rollback and wrong kind/target/requester/current assignment. PGlite is not hosted PostgreSQL simultaneous race evidence.
 
 Then completion/no-show, reminder scheduling/dispatch, current-state suppression, mobile/native/narrow accessibility checks and operator UAT. Ownership/account/media rights, independent off-device backup, production providers and approved cutover remain gates. Keep old live system available and preserve vendor resources. Gross service baseline KES10,000 per realtor/month. Tasks16/97 and accepted gates0/14 remain unchanged.
+
+## Implemented prerequisite
+
+0016 now exposes current-authorized immutable saved history from the existing applied operation ledger;API/SDK/BFF/readonlyadmin browserproof is in viewing-history.md. Actual reschedule/current-cycle storage is next0017. Keep historical ledger projections and original requester receipt shapes unchanged;coordinate first-cycle version validation with new cycle identity before any new reschedule write.

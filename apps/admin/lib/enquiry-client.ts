@@ -1,3 +1,4 @@
+import {validateViewingHistoryPage,type ViewingHistoryPage} from '@realtor/api-client';
 import {validateViewingTerminationCommand,validateViewingTerminationReceipt,type ViewingTerminationCommand,type ViewingTerminationKind,type ViewingTerminationReceipt} from '@realtor/api-client';
 import {validateViewingConfirmationCommand,validateViewingConfirmationReceipt,type ViewingConfirmationCommand,type ViewingConfirmationReceipt} from '@realtor/api-client';
 import {validateViewingProperties,type ViewingPropertyPage} from './viewing-properties.ts';
@@ -15,6 +16,7 @@ export class EnquiryPreviewError extends Error {
 }
 export interface CaptureAttempt {readonly input:StaffEnquiryInput;readonly key:string;readonly status:"ready"|"sending"|"uncertain"|"received"|"rejected";readonly receipt:EnquiryReceipt|null;submit(signal?:AbortSignal):Promise<EnquiryReceipt>;retryOriginal(signal?:AbortSignal):Promise<EnquiryReceipt>}
 export interface EnquiryPreviewClient {
+  viewingHistory(id:string,viewingId:string,signal?:AbortSignal):Promise<ViewingHistoryPage>;
   terminateViewing(id:string,viewingId:string,kind:ViewingTerminationKind,input:ViewingTerminationCommand,signal?:AbortSignal):Promise<ViewingTerminationReceipt>;
   recoverViewingTermination(id:string,viewingId:string,kind:ViewingTerminationKind,input:ViewingTerminationCommand,signal?:AbortSignal):Promise<ViewingTerminationReceipt>;
   confirmViewing(id:string,viewingId:string,input:ViewingConfirmationCommand,signal?:AbortSignal):Promise<ViewingConfirmationReceipt>;
@@ -162,6 +164,7 @@ export function createEnquiryPreviewClient(input:Configuration):EnquiryPreviewCl
   const terminalCommand=(kind:ViewingTerminationKind,input:ViewingTerminationCommand)=>{try{if(kind!=='cancel'&&kind!=='decline')throw new Error();return validateViewingTerminationCommand(input);}catch{throw new EnquiryPreviewError('validation');}};
   const terminalRequest=(recover:boolean,id:string,viewingId:string,kind:ViewingTerminationKind,input:ViewingTerminationCommand,signal?:AbortSignal)=>{const selected=selectedId(id),viewing=selectedId(viewingId),original=terminalCommand(kind,input);return request(`${basePath}/enquiries/${selected}/viewings/${viewing}/${kind==='cancel'?'cancellations':'declines'}${recover?'/recover':''}`,'POST',signal,value=>validateViewingTerminationReceipt(value,selected,viewing,kind,original),{...original,expectedVersion:Number(original.expectedVersion)},undefined,recover);};
   return Object.freeze({
+    viewingHistory:(id:string,viewingId:string,signal?:AbortSignal)=>{const selected=selectedId(id),viewing=selectedId(viewingId);return request(`${basePath}/enquiries/${selected}/viewings/${viewing}/history?limit=25`,'GET',signal,value=>validateViewingHistoryPage(value,selected,viewing,25));},
     terminateViewing:(id:string,viewingId:string,kind:ViewingTerminationKind,input:ViewingTerminationCommand,signal?:AbortSignal)=>terminalRequest(false,id,viewingId,kind,input,signal),
     recoverViewingTermination:(id:string,viewingId:string,kind:ViewingTerminationKind,input:ViewingTerminationCommand,signal?:AbortSignal)=>terminalRequest(true,id,viewingId,kind,input,signal),
     confirmViewing:(id:string,viewingId:string,input:ViewingConfirmationCommand,signal?:AbortSignal)=>{const selected=selectedId(id),viewing=selectedId(viewingId),original=confirmationCommand(input);return request(`${basePath}/enquiries/${selected}/viewings/${viewing}/confirmations`,'POST',signal,value=>validateViewingConfirmationReceipt(value,selected,viewing,original),{...original,expectedVersion:Number(original.expectedVersion)});},

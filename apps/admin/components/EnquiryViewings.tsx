@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useMemo,useRef,useState} from 'react';
-import type {ViewingDetail,ViewingPage,ViewingSlot} from '@realtor/api-client';
+import type {ViewingDetail,ViewingPage,ViewingSlot,ViewingHistoryPage} from '@realtor/api-client';
 import {createEnquiryPreviewClient,EnquiryPreviewError} from '../lib/enquiry-client';
 import {prepareViewingAttempt,type ViewingAttempt} from '../lib/viewing-attempt';
 import {prepareViewingTerminationAttempt,type ViewingTerminationAttempt} from '../lib/viewing-termination-attempt';
@@ -23,9 +23,11 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
  const propertyGeneration=useRef(0),propertyReader=useRef<AbortController|null>(null);
  const original=useRef<LocalAttempt|null>(null),lock=useRef(false),alive=useRef(true);
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[page,setPage]=useState<ViewingPage|null>(null);
+ const [savedHistory,setSavedHistory]=useState<ViewingHistoryPage|null>(null),[historyTarget,setHistoryTarget]=useState<string|null>(null),[historyBusy,setHistoryBusy]=useState(false),[historyError,setHistoryError]=useState(false);
+ const historyGeneration=useRef(0),historyReader=useRef<AbortController|null>(null);
  const [reading,setReading]=useState(false),[readError,setReadError]=useState(false);
  const generation=useRef(0),reader=useRef<AbortController|null>(null);
- function deny(error:unknown){if(error instanceof EnquiryPreviewError&&[401,403,404].includes(error.status)){generation.current++;reader.current?.abort();setPage(null);setReading(false);setReadError(true);onAccessDenied(error);}}
+ function deny(error:unknown){if(error instanceof EnquiryPreviewError&&[401,403,404].includes(error.status)){generation.current++;reader.current?.abort();setPage(null);setReading(false);setReadError(true);historyGeneration.current++;historyReader.current?.abort();setSavedHistory(null);setHistoryBusy(false);onAccessDenied(error);}}
  async function refresh(){
   const turn=++generation.current;reader.current?.abort();const controller=new AbortController();reader.current=controller;const mayApply=readGuard.capture();
   setPage(null);setReadError(false);setReading(true);
@@ -34,6 +36,15 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
   finally{if(alive.current&&turn===generation.current)setReading(false);}
  }
  useEffect(()=>{alive.current=true;void refresh();return()=>{alive.current=false;generation.current++;reader.current?.abort();};},[client,enquiryId]);
+ async function loadHistory(target:string){
+  const turn=++historyGeneration.current;historyReader.current?.abort();const controller=new AbortController();historyReader.current=controller;const mayApply=readGuard.capture();
+  setHistoryTarget(target);setSavedHistory(null);setHistoryError(false);setHistoryBusy(true);
+  try{const value=await client.viewingHistory(enquiryId,target,controller.signal);if(alive.current&&turn===historyGeneration.current&&mayApply())setSavedHistory(value);}
+  catch(error){if(alive.current&&turn===historyGeneration.current){setHistoryError(true);deny(error);}}
+  finally{if(alive.current&&turn===historyGeneration.current)setHistoryBusy(false);}
+ }
+ useEffect(()=>{historyGeneration.current++;historyReader.current?.abort();setSavedHistory(null);setHistoryTarget(null);setHistoryBusy(false);return()=>{historyGeneration.current++;historyReader.current?.abort();};},[client,enquiryId]);
+ useEffect(()=>{if(!version){historyGeneration.current++;historyReader.current?.abort();setSavedHistory(null);setHistoryBusy(false);}},[version]);
  async function refreshProperties(){
   const turn=++propertyGeneration.current;propertyReader.current?.abort();const controller=new AbortController();propertyReader.current=controller;const mayApply=readGuard.capture();
   setProperties(null);setPropertyBusy(true);setPropertyError(false);
@@ -96,7 +107,7 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
   <form className="enq-form" onSubmit={event=>{event.preventDefault();void run('submit');}}>
    <fieldset disabled={busy||!!attempt||!version||!selected&&!listingId&&!property}><legend className="sr-only">Viewing details</legend>
     {(!selected||selectedAction==='confirm'||ending)&&<label>{ending?'Reason for ending this viewing':selected?'Phone agreement notes':'Viewing request notes'}<textarea required rows={3} value={notes} onChange={event=>{setNotes(event.target.value);onGuard(true);}}/><small>{[...notes].length} / {ending?'1,000':'2,000'} characters. Original spacing is retained.</small></label>}
-    {ending?<><p>This records an explicit {selectedAction==='cancel'?'cancellation':'decline'} from {selected!.schedule.status}. The saved request, previous slot and phone agreement remain in history. Saving sends no customer message.</p>{selected!.schedule.proposedSlot&&<p>Previous time: {formatEnquiryTime(selected!.schedule.proposedSlot.startAt)} – {formatEnquiryTime(selected!.schedule.proposedSlot.endAt)}</p>}</>:selected&&selectedAction==='confirm'?<>
+    {ending?<><p>This records an explicit {selectedAction==='cancel'?'cancellation':'decline'} from {selected!.schedule.status}. Saved evidence remains in history, including any previous slot and phone agreement. Saving sends no customer message.</p>{selected!.schedule.proposedSlot&&<p>Previous time: {formatEnquiryTime(selected!.schedule.proposedSlot.startAt)} – {formatEnquiryTime(selected!.schedule.proposedSlot.endAt)}</p>}</>:selected&&selectedAction==='confirm'?<>
      <p>Exact proposed time: {formatEnquiryTime(selected.schedule.proposedSlot?.startAt??null)} – {formatEnquiryTime(selected.schedule.proposedSlot?.endAt??null)}</p>
      <p>Proposal recorded: {formatEnquiryTime(selected.updatedAt)}. This confirmation cannot change the slot.</p>
      <label>Phone agreement time · Nairobi<input type="datetime-local" step="0.001" required value={agreed} onInput={event=>{setAgreed(event.currentTarget.value);onGuard(true);}} onChange={event=>{setAgreed(event.target.value);onGuard(true);}}/></label>
@@ -126,10 +137,21 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
    {item.schedule.proposedSlot&&<span>{item.schedule.termination?'Previous agreed/proposed time':item.schedule.status==='confirmed'?'Confirmed':'Proposed'}: {formatEnquiryTime(item.schedule.proposedSlot.startAt)} – {formatEnquiryTime(item.schedule.proposedSlot.endAt)}</span>}
    {item.schedule.agreement&&item.confirmation&&<><span>Phone agreement: {formatEnquiryTime(item.schedule.agreement.agreedAt)} · recorded by staff {item.confirmation.recordedById} at {formatEnquiryTime(item.confirmation.recordedAt)}</span><p className="enq-contact-notes">{item.schedule.agreement.notes}</p></>}
    {item.schedule.termination&&item.terminationRecord&&<><span>{viewingStatusText[item.schedule.status]} from {item.schedule.termination.fromStatus} · {formatEnquiryTime(item.schedule.termination.endedAt)} · recorded by staff {item.terminationRecord.recordedById}</span><p className="enq-contact-notes">{item.schedule.termination.reason}</p></>}
+   <button type="button" className="enq-secondary" disabled={historyBusy} onClick={()=>void loadHistory(item.schedule.viewingId)}>Read saved history for this viewing</button>
    {['requested','proposed','confirmed'].includes(item.schedule.status)&&<button type="button" className="enq-secondary" disabled={busy||!!attempt||!!selected||!!property||!!notes||!!start||!!end} onClick={()=>choose(item,'cancel')}>Prepare cancellation for this viewing</button>}
    {['requested','proposed'].includes(item.schedule.status)&&<button type="button" className="enq-secondary" disabled={busy||!!attempt||!!selected||!!property||!!notes||!!start||!!end} onClick={()=>choose(item,'decline')}>Prepare decline for this viewing</button>}
    {item.schedule.status==='requested'&&<button type="button" className="enq-secondary" disabled={busy||!!attempt||!!selected||!!property||!!notes||!!start||!!end} onClick={()=>choose(item,'propose')}>Prepare proposal for this request</button>}
    {item.schedule.status==='proposed'&&<button type="button" className="enq-secondary" disabled={busy||!!attempt||!!selected||!!property||!!notes||!!start||!!end} onClick={()=>choose(item,'confirm')}>Record phone agreement for this proposal</button>}
   </li>)}</ol>{!page.items.length&&<p>No viewings in this visible slice.</p>}</>}
+  {historyTarget&&<section aria-label="Saved viewing history"><div className="enq-section-heading"><h3>Saved viewing history</h3><button type="button" className="enq-secondary" disabled={historyBusy} onClick={()=>void loadHistory(historyTarget)}>Refresh saved viewing history</button></div>
+   <p className="enq-subtle">Viewing {historyTarget}. Saved states only; this read does not replace selected input or its working version.</p>
+   {historyBusy&&<p role="status">Loading saved viewing history…</p>}{historyError&&<p role="alert">Saved viewing history unavailable for current access. Try a fresh authorized read.</p>}
+   {version&&savedHistory&&<><p>{savedHistory.items.length} saved states shown · viewing version at this read {savedHistory.currentVersion} · {savedHistory.truncated?'earlier states remain':'start of retained history'}.</p><ol className="enq-activity">{savedHistory.items.map(item=><li key={item.schedule.version}>
+    <strong>{viewingStatusText[item.schedule.status]} · saved version {item.schedule.version}</strong><span>Recorded by staff {item.actorId} · {formatEnquiryTime(item.recordedAt)}</span>
+    {item.schedule.proposedSlot&&<span>Saved slot: {formatEnquiryTime(item.schedule.proposedSlot.startAt)} – {formatEnquiryTime(item.schedule.proposedSlot.endAt)}</span>}
+    {item.schedule.agreement&&<><span>Phone agreement: {formatEnquiryTime(item.schedule.agreement.agreedAt)}</span><p className="enq-contact-notes">{item.schedule.agreement.notes}</p></>}
+    {item.schedule.termination&&<><span>Ended from {item.schedule.termination.fromStatus}</span><p className="enq-contact-notes">{item.schedule.termination.reason}</p></>}
+   </li>)}</ol></>}
+  </section>}
  </section>;
 }

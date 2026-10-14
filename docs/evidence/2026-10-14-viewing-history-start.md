@@ -1,0 +1,3 @@
+# Viewing history backend started — 14 October 2026
+
+Starting clean023cb49first-reschedule foundation;118domain/build/8typespassed. Tracker57 private publication underway;no preview. Before new slot-cycle storage, expose exact prior saved states from the existing immutable operation ledger. Add0016 current-staff/enquiry-assignment guarded read,strict bounded version-ordered history contract,protected API/SDK and meaningful SQL/signed HTTP tests. Do not expose original operation IDs/commands or broaden requester-private receipt recovery. No new reschedule write or cycle/confirmation behavior yet. Preserve first-cycle original records and live/vendor/KES10,000 baseline;16/97tasks,0/14gates.

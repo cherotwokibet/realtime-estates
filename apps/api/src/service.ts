@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import {validateViewingTerminationCommand,validateViewingTerminationReceipt,type ViewingTerminationCommand,validateViewingConfirmationCommand,validateViewingConfirmationReceipt,type ViewingConfirmationCommand,validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal} from '@realtor/domain';
+import {validateViewingHistoryPage,validateViewingTerminationCommand,validateViewingTerminationReceipt,type ViewingTerminationCommand,validateViewingConfirmationCommand,validateViewingConfirmationReceipt,type ViewingConfirmationCommand,validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal} from '@realtor/domain';
 import { validateContactCommand,validateContactReceipt,validateContactPage,validateEnquiryActivityPage,calculateWirePricingV2, kesFromMinor, normalizeKenyanPhone, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2 } from "@realtor/domain";
 import { DatabaseSafetyError, type TransactionDatabase, type TransactionQuery } from "./database.js";
 
@@ -524,6 +524,14 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
           const projected = result.rows.map(row => enquiryProjection(row, false));
           if (new Set(projected.map(row => row.id)).size !== projected.length) throw new Error("Duplicate enquiry record.");
           return response(200, { items: projected.slice(0, pageLimit), limit: pageLimit, truncated: projected.length > pageLimit }, correlationId);
+        }
+        const viewingHistoryRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewings\/([^/]+)\/history$/.exec(path);
+        if(viewingHistoryRoute){
+          const id=uuid(viewingHistoryRoute[1],"enquiryId"),viewingId=uuid(viewingHistoryRoute[2],"viewingId"),pageLimit=enquiryQuery(url,true,25);
+          if(pageLimit>25)throw new HttpError(400,"INVALID_INPUT","Viewing history limit cannot exceed 25.");
+          if(method!=="GET")throw new HttpError(405,"METHOD_NOT_ALLOWED","Method is not allowed for viewing history.",{Allow:"GET"});
+          const result=await options.database.transaction(context,async query=>{await assertStaff(query);return query.query("SELECT app_api.read_viewing_history($1::uuid,$2::uuid,$3::integer) AS page",[id,viewingId,pageLimit]);});
+          return response(200,validateViewingHistoryPage(scalar(result,"page"),id,viewingId,pageLimit),correlationId);
         }
         const viewingRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewings(?:\/([^/]+)(\/(?:proposals|confirmations|cancellations|declines))?)?$/.exec(path);
         const viewingOperationRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewing-operations\/([^/]+)$/.exec(path);

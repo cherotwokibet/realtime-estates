@@ -16,6 +16,12 @@ const phone={operationId:operation,expectedVersion:'2',slot,channel:'phone',agre
 const confirmed={...receipt,kind:'confirm',expectedVersion:'2',observedVersion:'2',request:{slot,channel:'phone',agreedAt:phone.agreedAt,notes:phone.notes},result:{...schedule,status:'confirmed',version:'3',proposedSlot:slot,agreement:{channel:'phone',agreedAt:phone.agreedAt,notes:phone.notes}}};
 const ending={operationId:operation,expectedVersion:'2',reason:'  Synthetic ending reason.\nExact original.  '};
 const cancelled={...receipt,kind:'cancel',expectedVersion:'2',observedVersion:'2',request:{reason:ending.reason},result:{...schedule,status:'cancelled',version:'3',proposedSlot:slot,termination:{kind:'cancel',fromStatus:'proposed',reason:ending.reason,endedAt:time,previousUpdatedAt:'2026-10-13T18:00:00.000Z'}}};
+test('history client sends a bounded private read with no original command or operation identifiers',async()=>{
+ const page={items:[{kind:'request',actorId:actor,recordedAt:time,schedule}],limit:1,truncated:false,currentVersion:'1'},calls=[],api=client(async(url,init)=>{calls.push({url,init});return json(page);});assert.deepEqual(await api.getViewingHistoryV2(enquiry,viewing,{...options,limit:1}),page);assert.ok(calls[0].url.endsWith(`/viewings/${viewing}/history?limit=1`));assert.equal(calls[0].init.method,'GET');assert.equal(calls[0].init.body,undefined);assert.equal(calls[0].init.credentials,'omit');assert.equal(calls[0].init.redirect,'error');assert.equal(calls.length,1);
+});
+test('history read rejects bad limits and altered projections without write uncertainty or retry',async()=>{
+ let calls=0;const api=client(async()=>{calls++;return json({items:[],limit:25,truncated:false,currentVersion:'1'});});await rejects(()=>api.getViewingHistoryV2(enquiry,viewing,{...options,limit:26}),'VALIDATION');assert.equal(calls,0);await rejects(()=>api.getViewingHistoryV2(enquiry,viewing,options),'INVALID_RESPONSE',false);assert.equal(calls,1);const lost=client(async()=>{throw new Error('Synthetic history read loss');});await rejects(()=>lost.getViewingHistoryV2(enquiry,viewing,options),'NETWORK',false);
+});
 test('terminal commands send one fixed kind route and recover original without reason in URL',async()=>{
  for(const [kind,suffix,status] of [['cancel','cancellations','cancelled'],['decline','declines','declined']]){
   const result={...cancelled,kind,result:{...cancelled.result,status,termination:{...cancelled.result.termination,kind}}},calls=[],api=client(async(url,init)=>{calls.push({url,init});return json(result);});
