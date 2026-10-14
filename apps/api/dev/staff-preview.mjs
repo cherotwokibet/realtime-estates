@@ -237,13 +237,13 @@ export async function startStaffPreview(options={}){
         const capture=url.pathname==='/v2/staff/enquiry-captures';
         const contacts=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/contacts(?:\/operations\/[0-9a-f-]{36})?$/i.test(url.pathname);
         const activity=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/activity$/i.test(url.pathname);
-        const viewings=enquiryCatalogue&&/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/(?:viewings(?:\/[0-9a-f-]{36}(?:\/(?:proposals|confirmations|cancellations|declines|history))?)?|viewing-operations\/[0-9a-f-]{36})$/i.test(url.pathname);
+        const viewings=enquiryCatalogue&&/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/(?:viewings(?:\/[0-9a-f-]{36}(?:\/(?:proposals|confirmations|cancellations|declines|reschedules|history))?)?|viewing-operations\/[0-9a-f-]{36})$/i.test(url.pathname);
         const queue=url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees';
         const enquiryRoute=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}(?:\/(operations)(?:\/([0-9a-f-]{36}))?)?$/i.exec(url.pathname);
         if(!viewings&&!contacts&&!activity&&!capture&&!queue&&!enquiryRoute)return failure(404,'NOT_FOUND','Enquiry preview route is unavailable.');
         const allowedMethod=capture||(enquiryRoute?.[1]&&!enquiryRoute[2])?'POST':'GET';
         if(contacts){const list=!url.pathname.includes('/operations/');if(request.method!=='GET'&&!(list&&request.method==='POST'))return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for contact logging.',{Allow:list?'GET, POST':'GET'});}
-        else if(viewings){const collection=/\/viewings$/.test(url.pathname),propose=/\/(?:proposals|confirmations|cancellations|declines)$/.test(url.pathname),methods=collection?['GET','POST']:propose?['POST']:['GET'];if(!methods.includes(request.method))return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for viewing scheduling.',{Allow:methods.join(', ')});}
+        else if(viewings){const collection=/\/viewings$/.test(url.pathname),propose=/\/(?:proposals|confirmations|cancellations|declines|reschedules)$/.test(url.pathname),methods=collection?['GET','POST']:propose?['POST']:['GET'];if(!methods.includes(request.method))return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for viewing scheduling.',{Allow:methods.join(', ')});}
         else if(request.method!==allowedMethod)return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for the enquiry fixture.',{Allow:allowedMethod});
         if(request.method==='POST'&&!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')??''))return failure(415,'JSON_REQUIRED','Use application/json.');
         const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');

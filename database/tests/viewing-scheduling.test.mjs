@@ -3,7 +3,7 @@ import test from 'node:test';
 import {PGlite} from '@electric-sql/pglite';
 import {applyTestMigrations} from '../test-helpers/migrations.mjs';
 import {seedSyntheticSealedMedia} from '../test-helpers/synthetic-sealed-media.mjs';
-import {validateViewingHistoryPage,validateViewingSchedule,validateViewingDetail,validateViewingConfirmationReceipt,validateViewingTerminationReceipt} from '../../packages/domain/dist/index.js';
+import {validateViewingRescheduleReceipt,validateViewingHistoryPage,validateViewingSchedule,validateViewingDetail,validateViewingConfirmationReceipt,validateViewingTerminationReceipt} from '../../packages/domain/dist/index.js';
 const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const T=id(1),OTHER=id(2),ADMIN=id(10),AGENT=id(11),PEER=id(12),CUSTOMER=id(13),ADMIN2=id(14),OTHERADMIN=id(20);
 const L=id(100),SECOND_L=id(101),FOREIGN_L=id(200),E=id(300),GENERAL=id(301),FOREIGN_E=id(400);
@@ -318,5 +318,98 @@ test('bounded viewing feed includes current assignment and only saved schedules,
   const all=await list(25);assert.equal(all.items.length,2);assert.equal(all.truncated,false);assert.ok(all.items.every(x=>x.assignedAgentId===AGENT&&x.requestedById===AGENT));
   await denied(()=>list(26),'23514');await denied(()=>list(0),'23514');await denied(()=>list(1,PEER),'P0002');
   await db.query('UPDATE app_private.enquiries SET assigned_agent_id=$1 WHERE id=$2',[PEER,E]);await denied(()=>list(),'P0002');assert.ok((await list(25,PEER)).items.every(x=>x.assignedAgentId===PEER));
+ }finally{await db.close();}
+});
+
+const replacementSlot=()=>slot('2090-01-02T09:00:00.000Z','2090-01-02T10:00:00.000Z');
+const thirdSlot=()=>slot('2090-01-03T09:00:00.000Z','2090-01-03T10:00:00.000Z');
+const RESCHEDULE_REASON='  Synthetic change of time.\nKeep the original agreement history.  ';
+function reschedule(db,{viewing,user=AGENT,enquiry=E,operation=id(4000),expected='3',newSlot=replacementSlot(),reason=RESCHEDULE_REASON,tenant=T}={}){
+ return actor(db,user,()=>scalar(db,'SELECT app_api.reschedule_viewing($1,$2,$3,$4,$5::jsonb,$6)',[enquiry,viewing,operation,expected,JSON.stringify(newSlot),reason]),tenant);
+}
+const rescheduleOriginal=(receipt)=>({operationId:receipt.operationId,expectedVersion:receipt.expectedVersion,slot:receipt.request.slot,reason:receipt.request.reason});
+test('stored repeated reschedules retain every old agreement and exact receipt while each new cycle starts unagreed',async()=>{
+ const db=await fixture();try{
+  const {requested,proposal}=await proposed(db),viewing=requested.viewingId,first=await confirmation(db,{viewing,agreedAt:proposal.completedAt});
+  const columns='proposed_slot,phone_agreement,confirmed_by_id,proposed_at,confirmed_at,preferred_slots,notes,created_at';const original=(await db.query('SELECT '+columns+' FROM app_private.viewings WHERE id=$1',[viewing])).rows[0];
+  const second=await reschedule(db,{viewing});validateViewingRescheduleReceipt(second,E,viewing,rescheduleOriginal(second));assert.equal(second.result.version,'4');assert.equal(second.result.cycle.number,'2');assert.equal(second.result.cycle.previousStatus,'confirmed');assert.equal(Object.hasOwn(second.result,'agreement'),false);assert.equal(Object.hasOwn(await read(db,viewing),'confirmation'),false);
+  const secondPhone=await confirmation(db,{viewing,operation:id(2001),expected:'4',proposalSlot:replacementSlot(),agreedAt:second.completedAt,notes:'New agreement for the second exact slot.'});validateViewingConfirmationReceipt(secondPhone,E,viewing,{operationId:id(2001),expectedVersion:'4',slot:replacementSlot(),channel:'phone',agreedAt:second.completedAt,notes:'New agreement for the second exact slot.'});assert.equal(secondPhone.result.version,'5');
+  const third=await reschedule(db,{viewing,operation:id(4001),expected:'5',newSlot:thirdSlot()});assert.equal(third.result.version,'6');assert.equal(third.result.cycle.number,'3');assert.equal(Object.hasOwn(third.result,'agreement'),false);
+  const thirdPhone=await confirmation(db,{viewing,operation:id(2002),expected:'6',proposalSlot:thirdSlot(),agreedAt:third.completedAt,notes:'Third slot requires its own agreement.'});assert.equal(thirdPhone.result.version,'7');
+  const ended=await terminate(db,{viewing,expected:'7'});validateViewingTerminationReceipt(ended,E,viewing,'cancel',{operationId:id(3000),expectedVersion:'7',reason:END_REASON});assert.equal(ended.result.version,'8');assert.deepEqual(ended.result.agreement,thirdPhone.result.agreement);validateViewingDetail(await read(db,viewing),E);
+  assert.deepEqual((await db.query('SELECT '+columns+' FROM app_private.viewings WHERE id=$1',[viewing])).rows[0],original);
+  const page=await savedHistory(db,viewing);validateViewingHistoryPage(page,E,viewing,25);assert.deepEqual(page.items.map(x=>x.kind),['cancel','confirm','reschedule','confirm','reschedule','confirm','propose','request']);assert.deepEqual(page.items[2].schedule,third.result);assert.deepEqual(page.items[4].schedule,second.result);assert.deepEqual(page.items[5].schedule,first.result);
+  assert.deepEqual(await history(db,id(2000)),first);assert.deepEqual(await history(db,id(2001)),secondPhone);assert.deepEqual(await history(db,id(4000)),second);assert.deepEqual(await history(db,id(4001)),third);assert.deepEqual(await reschedule(db,{viewing}),second);assert.deepEqual(await command(db),requested);assert.deepEqual(await command(db,{kind:'propose',viewing,operation:id(1001)}),proposal);
+  assert.deepEqual(await totals(db),{viewings:1,operations:8,audits:8,enquiry_version:'1'});
+ }finally{await db.close();}
+});
+test('proposed reschedules can repeat without fabricated agreement and the current cycle can be declined',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),viewing=requested.viewingId,second=await reschedule(db,{viewing,expected:'2'}),third=await reschedule(db,{viewing,expected:'3',operation:id(4001),newSlot:thirdSlot()});assert.equal(second.result.version,'3');assert.equal(third.result.version,'4');assert.equal(third.result.cycle.number,'3');
+  const ended=await terminate(db,{viewing,kind:'decline',expected:'4'});assert.equal(ended.result.status,'declined');assert.equal(ended.result.version,'5');assert.equal(Object.hasOwn(ended.result,'agreement'),false);validateViewingDetail(await read(db,viewing),E);validateViewingHistoryPage(await savedHistory(db,viewing),E,viewing,25);
+ }finally{await db.close();}
+});
+test('reschedule stale,unchanged,requested and already ended decisions remain durable without new states',async()=>{
+ const db=await fixture();try{
+  const request=await command(db),viewing=request.viewingId;assert.equal((await reschedule(db,{viewing,expected:'1'})).reason,'INVALID_STATE');await command(db,{kind:'propose',viewing,operation:id(1001)});
+  const same=await reschedule(db,{viewing,expected:'2',operation:id(4001),newSlot:slot()});assert.equal(same.reason,'SLOT_UNCHANGED');
+  const stale=await reschedule(db,{viewing,expected:'1',operation:id(4002)});assert.equal(stale.outcome,'conflict');assert.deepEqual(await reschedule(db,{viewing,expected:'1',operation:id(4002)}),stale);
+  await terminate(db,{viewing});assert.equal((await reschedule(db,{viewing,expected:'3',operation:id(4003)})).reason,'INVALID_STATE');assert.equal((await savedHistory(db,viewing)).items.length,3);
+ }finally{await db.close();}
+});
+test('reschedule requires current eligible stock and open enquiry but original replay survives closure and pause',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),viewing=requested.viewingId,saved=await reschedule(db,{viewing,expected:'2'});await db.query("UPDATE app_private.listings SET publication_status='paused' WHERE id=$1",[L]);assert.equal((await reschedule(db,{viewing,expected:'3',operation:id(4001),newSlot:thirdSlot()})).reason,'LISTING_UNAVAILABLE');
+  await db.query("UPDATE app_private.enquiries SET status='closed_lost',closure_reason='Synthetic closure' WHERE id=$1",[E]);assert.equal((await reschedule(db,{viewing,expected:'3',operation:id(4002),newSlot:thirdSlot()})).reason,'ENQUIRY_CLOSED');assert.deepEqual(await reschedule(db,{viewing,expected:'2'}),saved);assert.equal((await read(db,viewing)).schedule.version,'3');
+ }finally{await db.close();}
+});
+test('reschedule checks current company role assignment and original requester without consuming denied IDs',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),viewing=requested.viewingId,before=await totals(db);for(const user of [PEER,CUSTOMER])await assert.rejects(()=>reschedule(db,{viewing,expected:'2',user}));await denied(()=>reschedule(db,{viewing,expected:'2',user:OTHERADMIN,tenant:OTHER}),'P0002');assert.deepEqual(await totals(db),before);
+  const saved=await reschedule(db,{viewing,expected:'2'});await denied(()=>reschedule(db,{viewing,expected:'2',user:ADMIN}),'40001');await db.query('UPDATE app_private.enquiries SET assigned_agent_id=$1 WHERE id=$2',[PEER,E]);await denied(()=>history(db,id(4000)),'P0002');await denied(()=>reschedule(db,{viewing,expected:'2'}),'P0002');await db.query('UPDATE app_private.enquiries SET assigned_agent_id=$1 WHERE id=$2',[AGENT,E]);assert.deepEqual(await reschedule(db,{viewing,expected:'2'}),saved);
+ }finally{await db.close();}
+});
+test('reschedule operation IDs bind exact kind,target,version,slot and raw reason across later cycles',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),viewing=requested.viewingId,saved=await reschedule(db,{viewing,expected:'2'});for(const patch of [{reason:'changed'},{newSlot:thirdSlot()},{expected:'3'}])await denied(()=>reschedule(db,{viewing,expected:'2',...patch}),'40001');await denied(()=>terminate(db,{viewing,expected:'2',operation:id(4000)}),'40001');await denied(()=>reschedule(db,{viewing,expected:'2',operation:id(1001)}),'40001');assert.deepEqual(await history(db,id(4000)),saved);
+ }finally{await db.close();}
+});
+test('stored cycle and original first-cycle evidence cannot be edited,erased,rewritten or accessed by runtime tables',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),viewing=requested.viewingId;await reschedule(db,{viewing,expected:'2'});
+  for(const sql of ["UPDATE app_private.viewings SET current_cycle=jsonb_set(current_cycle,'{reason}','\"changed\"') WHERE id=$1",'UPDATE app_private.viewings SET current_cycle=NULL WHERE id=$1',"UPDATE app_private.viewings SET notes='changed' WHERE id=$1",'UPDATE app_private.viewings SET proposed_slot=$2::jsonb WHERE id=$1','DELETE FROM app_private.viewings WHERE id=$1'])await assert.rejects(()=>db.query(sql,sql.includes('$2')?[viewing,JSON.stringify(thirdSlot())]:[viewing]));
+  await denied(()=>actor(db,AGENT,()=>db.query('SELECT current_cycle FROM app_private.viewings')),'42501');await denied(()=>actor(db,AGENT,()=>db.query('UPDATE app_private.viewings SET current_cycle=NULL')),'42501');
+  assert.equal((await read(db,viewing)).schedule.cycle.number,'2');
+ }finally{await db.close();}
+});
+test('malformed reschedule commands reserve no operation and maximum bounded raw Unicode reason survives',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),viewing=requested.viewingId,before=await totals(db);for(const patch of [{expected:null},{expected:'9007199254740991'},{reason:' '},{reason:'😀'.repeat(1001)},{newSlot:{...replacementSlot(),timeZone:'UTC'}}])await assert.rejects(()=>reschedule(db,{viewing,expected:'2',...patch}));assert.deepEqual(await totals(db),before);
+  const receipt=await reschedule(db,{viewing,expected:'2',reason:'😀'.repeat(1000)});assert.equal([...receipt.result.cycle.reason].length,1000);assert.deepEqual(await reschedule(db,{viewing,expected:'2',reason:'😀'.repeat(1000)}),receipt);
+ }finally{await db.close();}
+});
+test('reschedule audit or receipt failures roll back current cycle and operation atomically',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),viewing=requested.viewingId,before=await totals(db);await db.exec("CREATE FUNCTION app_private.fail_reschedule_test() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'Synthetic transaction failure';END$$;");
+  for(const table of ['audit_events','viewing_operations']){
+   await db.exec('CREATE TRIGGER fail_reschedule_test BEFORE INSERT ON app_private.'+table+' FOR EACH ROW EXECUTE FUNCTION app_private.fail_reschedule_test()');await assert.rejects(()=>reschedule(db,{viewing,expected:'2'}));await db.exec('DROP TRIGGER fail_reschedule_test ON app_private.'+table);assert.deepEqual(await totals(db),before);assert.equal((await read(db,viewing)).schedule.version,'2');
+  }
+  assert.equal((await reschedule(db,{viewing,expected:'2'})).outcome,'applied');
+ }finally{await db.close();}
+});
+test('new cycle requires its own exact phone agreement and confirmed cleanup remains possible after closure',async()=>{
+ const db=await fixture();try{
+  const {requested,proposal}=await proposed(db),viewing=requested.viewingId;await confirmation(db,{viewing,agreedAt:proposal.completedAt});const second=await reschedule(db,{viewing});
+  assert.equal((await confirmation(db,{viewing,expected:'4',operation:id(2001),proposalSlot:slot(),agreedAt:second.completedAt})).reason,'PROPOSED_SLOT_MISMATCH');assert.equal((await confirmation(db,{viewing,expected:'4',operation:id(2002),proposalSlot:replacementSlot(),agreedAt:proposal.completedAt})).reason,'AGREEMENT_BEFORE_PROPOSAL');
+  const agreed=await confirmation(db,{viewing,expected:'4',operation:id(2003),proposalSlot:replacementSlot(),agreedAt:second.completedAt,notes:'New second-cycle agreement.'});assert.equal((await terminate(db,{viewing,kind:'decline',expected:'5',operation:id(3001)})).reason,'INVALID_STATE');
+  await db.query("UPDATE app_private.enquiries SET status='closed_lost',closure_reason='Synthetic closure' WHERE id=$1",[E]);await db.query("UPDATE app_private.listings SET publication_status='paused',availability='withdrawn' WHERE id=$1",[L]);const ended=await terminate(db,{viewing,expected:'5'});assert.equal(ended.result.version,'6');assert.deepEqual(ended.result.agreement,agreed.result.agreement);validateViewingDetail(await read(db,viewing),E);validateViewingHistoryPage(await savedHistory(db,viewing),E,viewing,25);
+ }finally{await db.close();}
+});
+
+test('reschedule refuses past new starts and a clock before the saved proposal without consuming later decisions',async()=>{
+ const db=await fixture();try{
+  const {requested}=await proposed(db),viewing=requested.viewingId;const past=await reschedule(db,{viewing,expected:'2',newSlot:slot('2020-01-01T09:00:00.000Z','2020-01-01T10:00:00.000Z')});assert.equal(past.reason,'SLOT_NOT_FUTURE');assert.equal(past.result,null);
+  await db.exec('ALTER TABLE app_private.viewings DISABLE TRIGGER guard_viewing');await db.query("UPDATE app_private.viewings SET updated_at='2089-01-01T00:00:00Z' WHERE id=$1",[viewing]);await db.exec('ALTER TABLE app_private.viewings ENABLE TRIGGER guard_viewing');
+  const ahead=await reschedule(db,{viewing,expected:'2',operation:id(4001)});assert.equal(ahead.reason,'RECORD_TIME_IN_FUTURE');assert.deepEqual(await reschedule(db,{viewing,expected:'2',operation:id(4001)}),ahead);assert.equal((await read(db,viewing)).schedule.version,'2');
  }finally{await db.close();}
 });

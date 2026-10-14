@@ -135,6 +135,7 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
    <p className="enq-contact-notes">{item.notes}</p>
    {item.schedule.preferredSlots.map((slot,index)=><span key={index}>Preferred: {formatEnquiryTime(slot.startAt)} – {formatEnquiryTime(slot.endAt)}</span>)}
    {item.schedule.proposedSlot&&<span>{item.schedule.termination?'Previous agreed/proposed time':item.schedule.status==='confirmed'?'Confirmed':'Proposed'}: {formatEnquiryTime(item.schedule.proposedSlot.startAt)} – {formatEnquiryTime(item.schedule.proposedSlot.endAt)}</span>}
+   {item.schedule.cycle&&<><span>Slot cycle {item.schedule.cycle.number} · proposed at {formatEnquiryTime(item.schedule.cycle.proposedAt)} · proposal version {item.schedule.cycle.proposalVersion}</span><p className="enq-contact-notes">{item.schedule.cycle.reason}</p></>}
    {item.schedule.agreement&&item.confirmation&&<><span>Phone agreement: {formatEnquiryTime(item.schedule.agreement.agreedAt)} · recorded by staff {item.confirmation.recordedById} at {formatEnquiryTime(item.confirmation.recordedAt)}</span><p className="enq-contact-notes">{item.schedule.agreement.notes}</p></>}
    {item.schedule.termination&&item.terminationRecord&&<><span>{viewingStatusText[item.schedule.status]} from {item.schedule.termination.fromStatus} · {formatEnquiryTime(item.schedule.termination.endedAt)} · recorded by staff {item.terminationRecord.recordedById}</span><p className="enq-contact-notes">{item.schedule.termination.reason}</p></>}
    <button type="button" className="enq-secondary" disabled={historyBusy} onClick={()=>void loadHistory(item.schedule.viewingId)}>Read saved history for this viewing</button>
@@ -149,6 +150,7 @@ export default function EnquiryViewings({actor,instanceId,enquiryId,version,list
    {version&&savedHistory&&<><p>{savedHistory.items.length} saved states shown · viewing version at this read {savedHistory.currentVersion} · {savedHistory.truncated?'earlier states remain':'start of retained history'}.</p><ol className="enq-activity">{savedHistory.items.map(item=><li key={item.schedule.version}>
     <strong>{viewingStatusText[item.schedule.status]} · saved version {item.schedule.version}</strong><span>Recorded by staff {item.actorId} · {formatEnquiryTime(item.recordedAt)}</span>
     {item.schedule.proposedSlot&&<span>Saved slot: {formatEnquiryTime(item.schedule.proposedSlot.startAt)} – {formatEnquiryTime(item.schedule.proposedSlot.endAt)}</span>}
+    {item.schedule.cycle&&<><span>Slot cycle {item.schedule.cycle.number} · previous state {item.schedule.cycle.previousStatus}</span><p className="enq-contact-notes">{item.schedule.cycle.reason}</p></>}
     {item.schedule.agreement&&<><span>Phone agreement: {formatEnquiryTime(item.schedule.agreement.agreedAt)}</span><p className="enq-contact-notes">{item.schedule.agreement.notes}</p></>}
     {item.schedule.termination&&<><span>Ended from {item.schedule.termination.fromStatus}</span><p className="enq-contact-notes">{item.schedule.termination.reason}</p></>}
    </li>)}</ol></>}

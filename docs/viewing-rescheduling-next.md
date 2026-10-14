@@ -17,3 +17,7 @@ Then completion/no-show, reminder scheduling/dispatch, current-state suppression
 ## Implemented prerequisite
 
 0016 now exposes current-authorized immutable saved history from the existing applied operation ledger;API/SDK/BFF/readonlyadmin browserproof is in viewing-history.md. Actual reschedule/current-cycle storage is next0017. Keep historical ledger projections and original requester receipt shapes unchanged;coordinate first-cycle version validation with new cycle identity before any new reschedule write.
+
+## Stored backend now implemented
+
+0017 and coordinated domain/API/SDK/current history contracts are implemented; see viewing-reschedule-storage.md for actual final evidence and exact pending operator work. Earlier planning sections are retained as history, not current completion claims.
