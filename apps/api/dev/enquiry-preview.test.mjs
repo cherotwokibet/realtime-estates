@@ -272,3 +272,12 @@ test('targeted reschedule corruption skips earlier saves and retains the old agr
   assert.equal((await read(preview,path+'/viewings?limit=25',{role:'agent'})).items.length,1);
  }finally{await preview.close();}
 });
+
+test('synthetic attendance routes retain durable future-slot refusal and original GET without changing confirmed evidence',async()=>{
+ const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1'});try{
+  const path=base+'/'+preview.enquiryFixtures.assigned,requested=await read(preview,path+'/viewings',{role:'agent',method:'POST',body:{operationId:randomUUID(),expectedEnquiryVersion:2,listingId:preview.listingId,preferredSlots:[],notes:'Synthetic future viewing for outcome refusal.'}}),target=path+'/viewings/'+requested.viewingId;
+  const slot={startAt:'2090-01-01T09:00:00.000Z',endAt:'2090-01-01T10:00:00.000Z',timeZone:'Africa/Nairobi'},proposed=await read(preview,target+'/proposals',{role:'agent',method:'POST',body:{operationId:randomUUID(),expectedVersion:1,slot}}),confirmed=await read(preview,target+'/confirmations',{role:'agent',method:'POST',body:{operationId:randomUUID(),expectedVersion:2,slot,channel:'phone',agreedAt:proposed.completedAt,notes:'Synthetic phone agreement.'}});
+  for(const [kind,suffix] of [['complete','completions'],['no_show','no-shows']]){const command={operationId:randomUUID(),expectedVersion:3,occurredAt:'2020-01-01T10:00:00.000Z',reason:'Synthetic premature outcome refusal.'},receipt=await read(preview,target+'/'+suffix,{role:'agent',method:'POST',body:command});assert.equal(receipt.kind,kind);assert.equal(receipt.reason,'SLOT_NOT_ENDED');assert.equal(receipt.result,null);assert.deepEqual(await read(preview,path+'/viewing-operations/'+command.operationId,{role:'agent'}),receipt);assert.deepEqual(await read(preview,target+'/'+suffix,{role:'agent',method:'POST',body:command}),receipt);}
+  assert.deepEqual((await read(preview,target,{role:'agent'})).schedule,confirmed.result);
+ }finally{await preview.close();}
+});

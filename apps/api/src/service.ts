@@ -1,3 +1,4 @@
+import {validateViewingOutcomeCommand,validateViewingOutcomeReceipt,type ViewingOutcomeCommand} from '@realtor/domain';
 import { randomUUID } from "node:crypto";
 import {validateViewingRescheduleCommand,validateViewingRescheduleReceipt,type ViewingRescheduleCommand,validateViewingHistoryPage,validateViewingTerminationCommand,validateViewingTerminationReceipt,type ViewingTerminationCommand,validateViewingConfirmationCommand,validateViewingConfirmationReceipt,type ViewingConfirmationCommand,validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal} from '@realtor/domain';
 import { validateContactCommand,validateContactReceipt,validateContactPage,validateEnquiryActivityPage,calculateWirePricingV2, kesFromMinor, normalizeKenyanPhone, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2 } from "@realtor/domain";
@@ -533,20 +534,23 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
           const result=await options.database.transaction(context,async query=>{await assertStaff(query);return query.query("SELECT app_api.read_viewing_history($1::uuid,$2::uuid,$3::integer) AS page",[id,viewingId,pageLimit]);});
           return response(200,validateViewingHistoryPage(scalar(result,"page"),id,viewingId,pageLimit),correlationId);
         }
-        const viewingRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewings(?:\/([^/]+)(\/(?:proposals|confirmations|cancellations|declines|reschedules))?)?$/.exec(path);
+        const viewingRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewings(?:\/([^/]+)(\/(?:proposals|confirmations|cancellations|declines|reschedules|completions|no-shows))?)?$/.exec(path);
         const viewingOperationRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewing-operations\/([^/]+)$/.exec(path);
         if(viewingRoute||viewingOperationRoute){
           const id=uuid((viewingRoute??viewingOperationRoute)![1],"enquiryId"),viewingId=viewingRoute?.[2]===undefined?null:uuid(viewingRoute[2],"viewingId");
-          const operationId=viewingOperationRoute?uuid(viewingOperationRoute[2],"operationId"):null,proposal=viewingRoute?.[3]==='/proposals',confirmation=viewingRoute?.[3]==='/confirmations',rescheduling=viewingRoute?.[3]==='/reschedules',ending=viewingRoute?.[3]==='/cancellations'?'cancel':viewingRoute?.[3]==='/declines'?'decline':undefined,mutation=proposal||confirmation||rescheduling||!!ending;
+          const operationId=viewingOperationRoute?uuid(viewingOperationRoute[2],"operationId"):null,proposal=viewingRoute?.[3]==='/proposals',confirmation=viewingRoute?.[3]==='/confirmations',rescheduling=viewingRoute?.[3]==='/reschedules',ending=viewingRoute?.[3]==='/cancellations'?'cancel':viewingRoute?.[3]==='/declines'?'decline':undefined,attendance=viewingRoute?.[3]==='/completions'?'complete':viewingRoute?.[3]==='/no-shows'?'no_show':undefined,mutation=proposal||confirmation||rescheduling||!!ending||!!attendance;
           const list=!!viewingRoute&&viewingId===null&&method==="GET",pageLimit=enquiryQuery(url,list,25);
           if(pageLimit>25)throw new HttpError(400,"INVALID_INPUT","Viewing limit cannot exceed 25.");
           const allowed=operationId||viewingId&&!mutation?["GET"]:mutation?["POST"]:["GET","POST"];
           if(!allowed.includes(method))throw new HttpError(405,"METHOD_NOT_ALLOWED","Method is not allowed for this viewing route.",{Allow:allowed.join(', ')});
+          let outcomeCommand:ViewingOutcomeCommand|undefined;
           let rescheduleCommand:ViewingRescheduleCommand|undefined;
           let original:ViewingOriginal|undefined,confirmationCommand:ViewingConfirmationCommand|undefined,terminationCommand:ViewingTerminationCommand|undefined;
           if(method==="POST"){
             const raw=await jsonBody(request,16*1024,false,true);
-            if(rescheduling){const body=record(raw,["operationId","expectedVersion","slot","reason"]),expected=version(body.expectedVersion);
+            if(attendance){const body=record(raw,["operationId","expectedVersion","occurredAt","reason"]),expected=version(body.expectedVersion);
+              try{outcomeCommand=validateViewingOutcomeCommand({...body,expectedVersion:String(expected)});}catch{throw new HttpError(400,"INVALID_INPUT","Review the viewing outcome fields.");}
+            }else if(rescheduling){const body=record(raw,["operationId","expectedVersion","slot","reason"]),expected=version(body.expectedVersion);
               try{rescheduleCommand=validateViewingRescheduleCommand({...body,expectedVersion:String(expected)});}catch{throw new HttpError(400,"INVALID_INPUT","Review the viewing reschedule fields.");}
             }else if(ending){const body=record(raw,["operationId","expectedVersion","reason"]),expected=version(body.expectedVersion);
               try{terminationCommand=validateViewingTerminationCommand({...body,expectedVersion:String(expected)});}catch{throw new HttpError(400,"INVALID_INPUT","Review the viewing ending reason.");}
@@ -560,6 +564,7 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
           }
           const result=await options.database.transaction(context,async query=>{
             await assertStaff(query);
+            if(outcomeCommand&&attendance)return query.query("SELECT app_api.record_viewing_outcome($1::uuid,$2::uuid,$3::uuid,$4::bigint,$5::text,$6::timestamptz,$7::text) AS receipt",[id,viewingId,outcomeCommand.operationId,outcomeCommand.expectedVersion,attendance,outcomeCommand.occurredAt,outcomeCommand.reason]);
             if(rescheduleCommand)return query.query("SELECT app_api.reschedule_viewing($1::uuid,$2::uuid,$3::uuid,$4::bigint,$5::jsonb,$6::text) AS receipt",[id,viewingId,rescheduleCommand.operationId,rescheduleCommand.expectedVersion,JSON.stringify(rescheduleCommand.slot),rescheduleCommand.reason]);
             if(terminationCommand&&ending)return query.query("SELECT app_api.terminate_viewing($1::uuid,$2::uuid,$3::uuid,$4::bigint,$5::text,$6::text) AS receipt",[id,viewingId,terminationCommand.operationId,terminationCommand.expectedVersion,ending,terminationCommand.reason]);
             if(confirmationCommand)return query.query("SELECT app_api.confirm_viewing_phone($1::uuid,$2::uuid,$3::uuid,$4::bigint,$5::jsonb,$6::text,$7::timestamptz,$8::text) AS receipt",[id,viewingId,confirmationCommand.operationId,confirmationCommand.expectedVersion,JSON.stringify(confirmationCommand.slot),confirmationCommand.channel,confirmationCommand.agreedAt,confirmationCommand.notes]);
@@ -572,10 +577,16 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
           if(list)return response(200,validateViewingPage(scalar(result,"page"),id,pageLimit),correlationId);
           if(viewingId&&!mutation)return response(200,validateViewingDetail(scalar(result,"detail"),id,viewingId),correlationId);
           const data=scalar(result,"receipt");
+          if(outcomeCommand&&attendance){const receipt=validateViewingOutcomeReceipt(data,id,viewingId!,attendance,outcomeCommand);if(receipt.actorId!==actorId)throw new Error("Unexpected viewing outcome actor.");return response(200,receipt,correlationId);}
           if(rescheduleCommand){const receipt=validateViewingRescheduleReceipt(data,id,viewingId!,rescheduleCommand);if(receipt.actorId!==actorId)throw new Error("Unexpected viewing reschedule actor.");return response(200,receipt,correlationId);}
           if(terminationCommand&&ending){const receipt=validateViewingTerminationReceipt(data,id,viewingId!,ending,terminationCommand);if(receipt.actorId!==actorId)throw new Error("Unexpected viewing terminal actor.");return response(200,receipt,correlationId);}
           if(confirmationCommand){const receipt=validateViewingConfirmationReceipt(data,id,viewingId!,confirmationCommand);if(receipt.actorId!==actorId)throw new Error("Unexpected viewing confirmation actor.");return response(200,receipt,correlationId);}
           if(!original){if(!data||typeof data!=='object'||Array.isArray(data))throw new Error("Invalid stored viewing receipt.");const stored=data as Record<string,unknown>;
+            if(stored.kind==='complete'||stored.kind==='no_show'){
+              const command=validateViewingOutcomeCommand({...stored.request as object,operationId:stored.operationId,expectedVersion:stored.expectedVersion});
+              if(command.operationId!==operationId||typeof stored.viewingId!=='string')throw new Error("Unexpected viewing outcome operation.");
+              const receipt=validateViewingOutcomeReceipt(data,id,stored.viewingId,stored.kind,command);if(receipt.actorId!==actorId)throw new Error("Unexpected viewing outcome actor.");return response(200,receipt,correlationId);
+            }
             if(stored.kind==='reschedule'){
               const command=validateViewingRescheduleCommand({...stored.request as object,operationId:stored.operationId,expectedVersion:stored.expectedVersion});
               if(command.operationId!==operationId||typeof stored.viewingId!=='string')throw new Error("Unexpected viewing reschedule operation.");
