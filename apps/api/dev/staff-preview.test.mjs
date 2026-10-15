@@ -22,6 +22,17 @@ test('staff preview refuses production and unsafe/undefined synthetic configurat
   finally{if(previous===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=previous;}
 });
 
+test('signed staff listing queue remains read-only,company scoped and assignment scoped with strict bounded projection',async()=>{
+ for(const actor of ['agent','admin','customer','revoked-agent','other-company-admin']){
+  const preview=await startStaffPreview({port:0,actor});try{
+   const path='/v2/staff/listings?limit=25',response=await call(preview,path);
+   if(['customer','revoked-agent','other-company-admin'].includes(actor)){assert.equal(response.status,403);continue;}
+   assert.equal(response.status,200);const page=await response.json();assert.equal(page.limit,25);assert.equal(page.items.length,actor==='agent'?1:2);assert.equal(page.items.some(x=>x.listingId===STAFF_PREVIEW_FIXTURES.sampleListingId),false);assert.equal(JSON.stringify(page).includes('privateAddress'),false);assert.equal(JSON.stringify(page).includes(preview.bearerToken),false);
+   assert.equal((await call(preview,path,{token:null})).status,401);assert.equal((await call(preview,'/v2/staff/listings',{method:'POST',body:{}})).status,405);assert.equal((await call(preview,'/v2/staff/listings?limit=51')).status,400);assert.equal((await call(preview,'/v2/staff/listings?tenantId=other')).status,400);
+  }finally{await preview.close();}
+ }
+});
+
 test('actual RS256/JWKS staff HTTP journey verifies identity, saves/reloads, conflicts safely and submits only to pending review',async()=>{
   const preview=await startStaffPreview({port:0});
   try{

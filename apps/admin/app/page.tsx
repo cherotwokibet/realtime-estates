@@ -59,6 +59,7 @@ export default function Admin() {
           {process.env.NODE_ENV==='development' && process.env.STAFF_ENQUIRY_PREVIEW_MODE==='synthetic-v1' && <a href="/enquiries/admin"><Icon name="enquiries" />Connected synthetic inbox ↗</a>}
           <a href="#reviews"><Icon name="reviews" />Review queue<span className="nav-count">{reviews.length}</span></a>
           <a href="#catalogue"><Icon name="catalogue" />Property catalogue</a>
+          {process.env.NODE_ENV==='development' && process.env.STAFF_PREVIEW_MODE==='synthetic' && <a href="/listings"><Icon name="catalogue" />Authorized listing work ↗</a>}
           <a href="#actions"><Icon name="actions" />Next actions</a>
         </nav>
         <div className="sidebar-note"><span className="demo-dot" aria-hidden="true" /><strong>Demo workspace</strong><p>Explore the layout with synthetic examples. No staff session or live activity is represented.</p></div>

@@ -225,13 +225,17 @@ export async function startStaffPreview(options={}){
       if(request.headers.has('cookie'))return failure(400,'INVALID_INPUT','Staff preview does not accept cookie credentials.');
       const reviewQueue=url.pathname==='/v2/staff/reviews';
       const enquiryQueue=enquiryPreview&&(/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/contacts$/i.test(url.pathname)||/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/activity$/i.test(url.pathname)||(enquiryCatalogue&&/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/viewings(?:\/[0-9a-f-]{36}\/history)?$/i.test(url.pathname))||url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees'||(enquiryCatalogue&&url.pathname==='/v2/properties'));
-      if(url.search&&(!(reviewQueue||enquiryQueue)||[...url.searchParams.keys()].some(key=>key!=='limit')||url.searchParams.getAll('limit').length>1))return failure(400,'INVALID_INPUT','Staff preview does not accept query-selected context.');
+      if(url.search&&(!(url.pathname==='/v2/staff/listings'||reviewQueue||enquiryQueue)||[...url.searchParams.keys()].some(key=>key!=='limit')||url.searchParams.getAll('limit').length>1))return failure(400,'INVALID_INPUT','Staff preview does not accept query-selected context.');
       return undefined;
     };
     apiServer=createDevelopmentServer(async request=>{
       const denied=guard(request);if(denied)return denied;
       const url=new URL(request.url),reviewQueue=url.pathname==='/v2/staff/reviews';
       if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,historicalSyntheticViewings:!!historicalViewings,syntheticReminderCapture:!!reminderCaptureMode,acceptedMediaMetadataOnly:seedAcceptedMedia,nativeUploads:!!nativeMedia,privateMediaPreviews:!!nativeMedia,retainedSyntheticMedia:!!nativeMedia,tokenExpiresAt:expiresAt});
+      if(url.pathname==='/v2/staff/listings'){
+        if(request.method!=='GET')return failure(405,'METHOD_NOT_ALLOWED','Listing queue is read-only.',{Allow:'GET'});
+        const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
+      }
       if(enquiryPreview){
         if(enquiryCatalogue&&url.pathname==='/v2/properties'){
           if(request.method!=='GET'||request.headers.has('authorization'))return failure(403,'FORBIDDEN','Synthetic public catalogue is guest read-only.');

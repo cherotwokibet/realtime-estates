@@ -15,6 +15,7 @@ const preview=await startStaffPreview({tenantSlug:process.env.TENANT_SLUG??'real
 const next=fileURLToPath(new URL('../node_modules/next/dist/bin/next',import.meta.url));
 const child=spawn(process.execPath,[next,'dev','apps/admin','-p','3001','-H','127.0.0.1'],{cwd:root,stdio:'inherit',env:{...process.env,NODE_ENV:'development',STAFF_PREVIEW_MODE:'synthetic',STAFF_PREVIEW_MEDIA:nativeUploads?'synthetic':'',STAFF_PREVIEW_API_ORIGIN:preview.origin,STAFF_PREVIEW_TOKEN:preview.bearerToken,STAFF_PREVIEW_INSTANCE:randomUUID(),TENANT_SLUG:preview.tenantSlug}});
 console.log(`Synthetic staff editor: http://127.0.0.1:3001/drafts/${preview.listingId}/${preview.revision}`);
+console.log('Synthetic authorized listing work: http://127.0.0.1:3001/listings');
 if(actor==='admin')console.log('Synthetic moderator queue: http://127.0.0.1:3001/reviews');
 console.log('Disposable data; changes disappear when this preview stops. Identity expires in 30 minutes.');
 if(nativeUploads)console.log('Native media is synthetic and development-only. Owned media roots are retained; this preview never reuses or rotates an occupied root. Database changes still disappear on stop.');
