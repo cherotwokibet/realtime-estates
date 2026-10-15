@@ -15,7 +15,7 @@ export default async function ListingsPage(){
     <p className="enq-warning">Local preview with fictional inventory. Current staff access is checked on each read. Changes disappear when the preview stops.</p>
     <a className="enq-secondary" href="/listings">Refresh authorized listing queue</a>
     {!page?<p role="alert">Listing queue unavailable for current access. Use the explicit local synthetic staff launcher, then try a fresh read.</p>:<>
-     <p>{page.items.length} shown · {page.truncated?'more listings remain':'end of visible slice'} · latest {page.limit} maximum. This is a bounded read, not a company total.</p>
+     <a className="enq-primary" href="/listings/new">Create a new listing</a><p>{page.items.length} shown · {page.truncated?'more listings remain':'end of visible slice'} · latest {page.limit} maximum. This is a bounded read, not a company total.</p>
      {!page.items.length&&<p>No listings visible to this staff account.</p>}
      <ol className="enq-activity">{page.items.map(item=><li key={item.listingId}>
       <h2>{item.latest?.title??'Untitled listing'}</h2><span>Listing {item.listingId} · listing version {item.version}</span><span>Assigned staff {item.assignedAgentId}</span>

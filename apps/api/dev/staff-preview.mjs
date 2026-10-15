@@ -33,7 +33,7 @@ const COMPANIES=Object.freeze({
 const LIFETIME_SECONDS=1800;
 const AUDIENCE='synthetic-realtor-staff-preview';
 class StaffPreviewConfigurationError extends Error {}
-function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings,reminderCaptureMode,reminderReplyFault,
+function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings,reminderCaptureMode,reminderReplyFault,creationReplyFault,
   seedAcceptedMedia=nativeUploads===undefined&&enquiryPreview===undefined,seedPendingReviews=false}={}){
   if(process.env.NODE_ENV==='production')throw new StaffPreviewConfigurationError('Staff preview refuses NODE_ENV=production.');
   if(typeof tenantSlug!=='string'||!Object.hasOwn(COMPANIES,tenantSlug))throw new StaffPreviewConfigurationError('Choose the configured realtime-estates or sample-homes synthetic company.');
@@ -45,6 +45,7 @@ function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',na
   if(enquiryCatalogue!==undefined&&(enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Synthetic enquiry catalogue requires explicit enquiry mode.');
   if(reminderCaptureMode!==undefined&&(reminderCaptureMode!=='capture-only-v1'||enquiryPreview!=='synthetic-v1'||enquiryCatalogue!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Synthetic reminder capture requires explicit enquiry and catalogue modes.');
   if(reminderReplyFault!==undefined&&(reminderReplyFault!=='invalid-first-captured-v1'||reminderCaptureMode!=='capture-only-v1'))throw new StaffPreviewConfigurationError('Reminder reply fault requires explicit synthetic capture mode.');
+  if(creationReplyFault!==undefined&&creationReplyFault!=='invalid-first-created-v1')throw new StaffPreviewConfigurationError('Choose the explicit one-shot synthetic creation reply fault or omit it.');
   if(historicalViewings!==undefined&&(historicalViewings!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'||enquiryCatalogue!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Historical synthetic viewings require explicit synthetic enquiry and catalogue modes.');
   if(contactReplyFault!==undefined&&(contactReplyFault!=='invalid-first-applied-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Contact reply fault requires explicit synthetic enquiry mode and the supported one-shot fault.');
   if(viewingReplyFault!==undefined&&(!['invalid-first-applied-v1','invalid-first-confirmation-v1','invalid-first-termination-v1','invalid-first-reschedule-v1','invalid-first-outcome-v1'].includes(viewingReplyFault)||enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Viewing reply fault requires explicit synthetic enquiry and catalogue modes and the supported one-shot fault.');
@@ -53,7 +54,7 @@ function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',na
     nativeUploads=nativeMediaPreviewConfiguration(nativeUploads);
     if(seedAcceptedMedia||seedPendingReviews)throw new StaffPreviewConfigurationError('Native media preview starts without fabricated accepted-media or pending-review fixtures.');
   }
-  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings,reminderCaptureMode,reminderReplyFault};
+  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings,reminderCaptureMode,reminderReplyFault,creationReplyFault};
 }
 function syntheticContent(title='Synthetic staff monthly studio'){
   return {
@@ -171,7 +172,8 @@ async function closeServer(server){
 
 /** Token is handed only to the calling development launcher, never an HTTP login route. */
 export async function startStaffPreview(options={}){
-  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings,reminderCaptureMode,reminderReplyFault}=configuration(options);
+  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings,reminderCaptureMode,reminderReplyFault,creationReplyFault}=configuration(options);
+  let creationReplyFaultPending=!!creationReplyFault;
   let reminderReplyFaultPending=!!reminderReplyFault;
   let contactReplyFaultPending=!!contactReplyFault,viewingReplyFaultPending=!!viewingReplyFault;
   const company=COMPANIES[tenantSlug],other=COMPANIES[tenantSlug==='realtime-estates'?'sample-homes':'realtime-estates'];
@@ -235,6 +237,12 @@ export async function startStaffPreview(options={}){
       if(url.pathname==='/v2/staff/listings'){
         if(request.method!=='GET')return failure(405,'METHOD_NOT_ALLOWED','Listing queue is read-only.',{Allow:'GET'});
         const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');return response;
+      }
+      if(/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/creation-operations\/[0-9a-f-]{36}$/i.test(url.pathname)){
+        if(!['GET','POST'].includes(request.method))return failure(405,'METHOD_NOT_ALLOWED','Creation supports POST and original GET only.',{Allow:'GET, POST'});
+        const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');
+        if(creationReplyFaultPending&&request.method==='POST'&&response.status===200&&(await response.clone().json()).outcome==='created'){creationReplyFaultPending=false;return Response.json({syntheticReplyCorruption:true},{status:200,headers:{'Cache-Control':'no-store','X-Synthetic-Staff-Preview':'true'}});}
+        return response;
       }
       if(enquiryPreview){
         if(enquiryCatalogue&&url.pathname==='/v2/properties'){
