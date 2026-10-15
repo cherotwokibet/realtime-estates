@@ -1,4 +1,4 @@
-import {validateViewingOutcomeCommand,validateViewingOutcomeReceipt,type ViewingOutcomeCommand} from '@realtor/domain';
+import {validateStaffListingPage,validateViewingOutcomeCommand,validateViewingOutcomeReceipt,type ViewingOutcomeCommand} from '@realtor/domain';
 import {validateViewingReminderAdmissionCommand,validateViewingReminderAdmissionReceipt,validateViewingReminderAdmissionSnapshot,validateViewingReminderCaptureCommand,validateViewingReminderCaptureReceipt,type ViewingReminderAdmissionCommand,type ViewingReminderCaptureCommand} from '@realtor/domain';
 import { randomUUID } from "node:crypto";
 import {validateViewingRescheduleCommand,validateViewingRescheduleReceipt,type ViewingRescheduleCommand,validateViewingHistoryPage,validateViewingTerminationCommand,validateViewingTerminationReceipt,type ViewingTerminationCommand,validateViewingConfirmationCommand,validateViewingConfirmationReceipt,type ViewingConfirmationCommand,validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal} from '@realtor/domain';
@@ -502,6 +502,25 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
       if (path.startsWith("/v1/staff/") || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        if(path==='/v2/staff/listings'){
+          if(method!=='GET')throw new HttpError(405,'METHOD_NOT_ALLOWED','Method is not allowed for this route.',{Allow:'GET'});
+          if(request.url.includes('#')||request.url.includes('?')&&!/^\?limit=[1-9]\d?$/.test(url.search))throw new HttpError(400,'INVALID_INPUT','Use a bounded listing queue.');
+          const pageLimit=enquiryQuery(url,true,25);if(pageLimit>50)throw new HttpError(400,'INVALID_INPUT','Listing limit must be between 1 and 50.');
+          let forbidden=request.body!==null;request.headers.forEach((_,name)=>{if(['cookie','content-type','content-length','content-encoding','expect','range','transfer-encoding','x-actor-id','x-tenant-id','x-role','x-actor','x-tenant'].includes(name)||name.startsWith('if-'))forbidden=true;});
+          if(forbidden)throw new HttpError(400,'INVALID_INPUT','Listing queue does not accept caller context.');
+          const result=await options.database.transaction(context,async query=>{
+            await assertStaff(query);
+            return query.query(`SELECT l.id AS "listingId",l.slug,l.assigned_agent_id AS "assignedAgentId",l.version::text AS version,
+              l.availability,l.publication_status AS "publicationStatus",l.published_revision_no AS "publishedRevision",
+              to_char(greatest(l.updated_at,r.updated_at) AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "changedAt",
+              CASE WHEN r.revision_no IS NULL THEN NULL ELSE jsonb_build_object('revision',r.revision_no,'state',r.state,'version',r.version::text,'title',r.title,
+                'updatedAt',to_char(r.updated_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"')) END AS latest
+              FROM app_private.listings l LEFT JOIN LATERAL (SELECT revision_no,state,version,title,updated_at FROM app_private.listing_revisions
+                WHERE tenant_id=l.tenant_id AND listing_id=l.id ORDER BY revision_no DESC LIMIT 1) r ON true
+              WHERE l.tenant_id=$1::uuid ORDER BY greatest(l.updated_at,r.updated_at) DESC,l.id DESC LIMIT $2::integer`,[tenantId,pageLimit+1]);
+          });
+          return response(200,validateStaffListingPage({items:result.rows.slice(0,pageLimit),limit:pageLimit,truncated:result.rows.length>pageLimit},pageLimit),correlationId);
+        }
         const reminderAdmissionRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewings\/([^/]+)\/reminder-admissions$/.exec(path);
         const reminderAdmissionOriginalRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewing-reminder-admissions\/([^/]+)$/.exec(path);
         const reminderCaptureRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewing-reminder-admissions\/([^/]+)\/captures$/.exec(path);

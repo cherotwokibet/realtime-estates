@@ -66,6 +66,22 @@ test('staff v2 client integrates with real service, SQL assignment checks and op
     const published=async()=>{const item=(await api.listPropertiesV2()).items.find(row=>row.id===LISTING);assert.ok(item);return item;};
     const initialPublic=await published();
 
+    await t.test('bounded listing queue uses current RLS assignment, separates latest draft from public revision and leaks no private content',async()=>{
+      const agent=await api.listStaffListingsV2(options);assert.equal(agent.items.length,2);assert.equal(agent.truncated,false);
+      const listing=agent.items.find(x=>x.listingId===LISTING),empty=agent.items.find(x=>x.listingId===EMPTY);assert.equal(listing.latest.revision,2);assert.equal(listing.latest.state,'draft');assert.equal(listing.publishedRevision,1);assert.equal(empty.latest,null);
+      assert.equal(JSON.stringify(agent).includes('PRIVATE SYNTHETIC ADDRESS'),false);assert.equal(JSON.stringify(agent).includes('latitude'),false);
+      const first=await api.listStaffListingsV2({...options,limit:1});assert.equal(first.items.length,1);assert.equal(first.truncated,true);
+      assert.equal((await api.listStaffListingsV2({...options,limit:2})).truncated,false);
+      assert.equal((await api.listStaffListingsV2({bearerToken:'synthetic-admin'})).items.length,3);
+      assert.deepEqual((await otherApi.listStaffListingsV2({bearerToken:'synthetic-other-admin'})).items.map(x=>x.listingId),[OTHERLISTING]);
+      await assert.rejects(()=>api.listStaffListingsV2({bearerToken:'synthetic-customer'}),isHttp(403,'FORBIDDEN'));
+      await database.transaction({tenantId:TENANT,actorId:ADMIN},query=>query.query('SELECT app_api.reassign_listing($1::uuid,$2::bigint,$3::uuid)',[LISTING,listing.version,PEER]));
+      assert.equal((await api.listStaffListingsV2(options)).items.some(x=>x.listingId===LISTING),false);
+      const peer=(await api.listStaffListingsV2({bearerToken:'synthetic-peer'})).items.find(x=>x.listingId===LISTING);assert.ok(peer);
+      await database.transaction({tenantId:TENANT,actorId:ADMIN},query=>query.query('SELECT app_api.reassign_listing($1::uuid,$2::bigint,$3::uuid)',[LISTING,peer.version,AGENT]));
+      assert.equal((await api.listStaffListingsV2(options)).items.some(x=>x.listingId===LISTING),true);assert.deepEqual(await published(),initialPublic);
+    });
+
     await t.test('invalid identity, customer, peer and foreign-company calls cannot read or mutate an assigned draft',async()=>{
       const guest=await service(new Request(`https://staff-a.example.invalid/v2/staff/listings/${LISTING}/drafts/2`));assert.equal(guest.status,401);
       for(const [bearerToken,status,code] of [['invalid-synthetic',401,'UNAUTHENTICATED'],['synthetic-customer',403,'FORBIDDEN'],['synthetic-peer',404,'NOT_FOUND'],['synthetic-other-admin',403,'FORBIDDEN']]){

@@ -15,3 +15,4 @@ export * from "./enquiry-activity.js";
 export * from "./enquiry-contacts.js";
 export * from "./viewing-scheduling.js";
 export * from "./viewing-reminders.js";
+export * from "./staff-listings.js";

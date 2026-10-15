@@ -1,4 +1,6 @@
-import {validateViewingOutcomeCommand,validateViewingOutcomeReceipt,type ViewingOutcomeCommand,type ViewingOutcomeKind,type ViewingOutcomeReceipt} from '@realtor/domain';
+import {validateStaffListingPage,type StaffListingPage,validateViewingOutcomeCommand,validateViewingOutcomeReceipt,type ViewingOutcomeCommand,type ViewingOutcomeKind,type ViewingOutcomeReceipt} from '@realtor/domain';
+export {validateStaffListingPage} from '@realtor/domain';
+export type {StaffListingPage,StaffListingSummary} from '@realtor/domain';
 import {validateViewingReminderAdmissionCommand,validateViewingReminderAdmissionReceipt,validateViewingReminderAdmissionSnapshot,validateViewingReminderCaptureCommand,validateViewingReminderCaptureReceipt,type ViewingReminderAdmissionCommand,type ViewingReminderAdmissionReceipt,type ViewingReminderCaptureCommand,type ViewingReminderCaptureReceipt} from '@realtor/domain';
 export {validateViewingReminderAdmissionCommand,validateViewingReminderAdmissionReceipt,validateViewingReminderAdmissionSnapshot,validateViewingReminderCaptureCommand,validateViewingReminderCaptureReceipt} from '@realtor/domain';
 export type {ViewingReminderCandidate,ViewingReminderAdmissionCommand,ViewingReminderAdmissionReceipt,ViewingReminderCaptureCommand,ViewingReminderCaptureReceipt,SyntheticViewingReminderCapture} from '@realtor/domain';
@@ -907,6 +909,12 @@ export class RealtorApiClient {
     const items=rows.map(validateStaffEnquirySummaryV2);if(new Set(items.map(item=>item.id)).size!==items.length)return invalid('INVALID_RESPONSE','Repeated enquiry identity.');
     return Object.freeze({items:Object.freeze(items),limit:captured.limit,truncated:data.truncated});
   }
+  /** Current authorized bounded queue only; open and re-read a revision before editing it. */
+  async listStaffListingsV2(options:StaffRequestOptions&{readonly limit?:number}):Promise<StaffListingPage>{
+    const captured=enquiryOptions(options,25);if(captured.limit>50)return invalid('VALIDATION','Listing limit must be between 1 and 50.');
+    const data=await this.request(`/v2/staff/listings?limit=${captured.limit}`,'GET',captured.options);
+    try{return validateStaffListingPage(data,captured.limit);}catch{return invalid('INVALID_RESPONSE','Invalid bounded listing queue.');}
+  }
   async requestViewingV2(enquiryId:string,input:ViewingRequestCommand,options:StaffRequestOptions):Promise<ViewingReceipt>{
     const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID');let command:ViewingRequestCommand;
     try{command=validateViewingRequestCommand(input);}catch{return invalid('VALIDATION','Review the viewing request.');}
@@ -1195,7 +1203,7 @@ export class RealtorApiClient {
   }
   private async request(path:string,method:'GET'|'POST'|'PUT',options:RequestOptions,body?:Record<string,unknown>,key?:string,binary?:Uint8Array<ArrayBuffer>):Promise<unknown>{
     const writes=method!=='GET';
-    const upload=UPLOAD_PATH.test(path),finalization=FINALIZE_PATH.test(path),enquiry=STAFF_ENQUIRY_PATH.test(path);
+    const upload=UPLOAD_PATH.test(path),finalization=FINALIZE_PATH.test(path),enquiry=STAFF_ENQUIRY_PATH.test(path),listingQueue=/^\/v2\/staff\/listings\?limit=[1-9]\d?$/.test(path);
     const expectedStatus=(path==='/v1/enquiries'||path==='/v2/staff/enquiry-captures')&&method==='POST'?201:200;
     if(options.signal?.aborted)throw new ApiClientError('CANCELLED','Request was cancelled.');
     const controller=new AbortController();let interruption:'CANCELLED'|'TIMEOUT'|undefined;let started=false;
@@ -1234,7 +1242,7 @@ export class RealtorApiClient {
             if(typeof code!=='string'||FINALIZE_SERVER_STATUS.get(code)!==result.status||typeof serverError.message!=='string'||serverError.message.length<1||serverError.message.length>1024||requestId!==headerId||(hasUncertain&&envelope.submissionUncertain!==true))return invalid('INVALID_RESPONSE','Malformed attachment finalization error.');
             throw new ApiClientError('HTTP','Attachment finalization could not be confirmed.',{status:result.status,serverCode:code,requestId,submissionUncertain:result.status>=500||envelope.submissionUncertain===true});
           }
-          if(enquiry){
+          if(enquiry||listingQueue){
             const envelope=attachRecord(payload,['error','requestId'],'INVALID_RESPONSE'),serverError=attachRecord(envelope.error,['code','message'],'INVALID_RESPONSE');
             const code=serverError.code,requestId=uuid(envelope.requestId,'INVALID_RESPONSE','Request ID'),headerId=uuid(result.headers.get('x-request-id'),'INVALID_RESPONSE','Request ID');
             if(typeof code!=='string'||ENQUIRY_SERVER_STATUS.get(code)!==result.status||typeof serverError.message!=='string'||serverError.message.length<1||serverError.message.length>1024||requestId!==headerId)return invalid('INVALID_RESPONSE','Malformed staff enquiry error.');

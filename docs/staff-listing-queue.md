@@ -1,0 +1,17 @@
+# Authorized bounded listing queue — 15 October 2026
+
+`GET /v2/staff/listings?limit=25` returns a current company/role-scoped slice (1–50, default25). Verified identity and current staff membership are required. Existing forced RLS independently limits listings and their latest revision to current assignment or company admin access. Caller tenant/actor headers, cookies, bodies, ambiguous query context and unsupported methods are rejected. No write, creation, publication or automatic version adoption occurs.
+
+One statement projects listing identity/slug/assignee/version, availability/publication state, separately retained published revision and minimal latest revision (number/state/version/title/update time). Private addresses, coordinates, descriptions, prices and media are absent. A listing with no revision has `latest:null`; a draft successor does not replace its approved public revision.
+
+The ordering is descending latest listing-or-revision change time, then descending listing ID. SQL requests limit+1 to distinguish an exact end from an additional row. `truncated` signals only that this bounded read has more rows; there is no total or cursor promise. Microsecond UTC order is validated without rounding it to milliseconds. Frozen shared DTO validation rejects hidden fields/getters, repeated identities, order/time contradictions and malformed canonical versions. SDK performs one GET and validates the exact bounded page, with no retries or write uncertainty.
+
+Final184API/206SDK/173domain/68integration checks and8workspace typechecks passed. Domain/API/client builds passed. New checks:4API,3SDK,4domain,1restricted SQL integration context. The integration is in-process transport with injected fictional identities and a restricted LOGIN/NOINHERIT/NOSUPERUSER/NOBYPASSRLS adapter; it is not a newly signed HTTP/browser/hosted race check. The existing signed HTTP integration scenarios passed as compatibility coverage.
+
+Restricted SQL proves agent versus company-admin and other-company slices, customer denial, empty revision, latest draft2 versus public revision1, accurate lookahead, assignment loss/restoration and unchanged public approved snapshot. Initial focused19 contexts passed18/failed1 because a malformed stored DTO correctly returned existing503 rather than the test's assumed500; corrected assertion, final full suites passed. Failed focused log retained. Focused existing staff integration contexts overlap the full68.
+
+Logs: `../rebuild-preservation/2026-10-12-source/staff-listing-queue-{api,sdk,domain,integration,types}.log`. No database migration was needed and the213database suite was not rerun. Prior196admin/20preview/operator browser belongs checkpoint72, not this queue slice.
+
+Next: fixed server-only queue BFF and admin entry page using this projection; deliberately open/re-read the selected current revision through the existing editor. Explicit synthetic allowlist/launcher mode and actual admin/agent queue checks must precede browser claims. Then durable listing creation/next-revision operations with exact original recovery, including approved-version preservation, rather than exposing raw create/save as automatically retried browser writes.
+
+Performance/load, pagination beyond this slice, production sessions, device/native/operator UAT, private off-device backup destination, hosted verification and cutover remain open. KES10,000 total recurring monthly client price; checklist16/97; gates0/14. Vendor resources and old live preserved.
