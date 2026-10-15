@@ -1,4 +1,7 @@
 import {normalizeStaffDraftContentV2,STAFF_DRAFT_CONTENT_FIELDS,type StaffDraftContentV2,type StaffDraftContentInputV2} from '@realtor/domain';
+import {validateListingCreationCommand,validateListingCreationReceipt,validateListingCreationSnapshot,type ListingCreationCommand,type ListingCreationReceipt} from '@realtor/domain';
+export {validateListingCreationCommand,validateListingCreationReceipt,validateListingCreationSnapshot} from '@realtor/domain';
+export type {ListingCreationCommand,ListingCreationReceipt} from '@realtor/domain';
 import {validateStaffListingPage,type StaffListingPage,validateViewingOutcomeCommand,validateViewingOutcomeReceipt,type ViewingOutcomeCommand,type ViewingOutcomeKind,type ViewingOutcomeReceipt} from '@realtor/domain';
 export {validateStaffListingPage} from '@realtor/domain';
 export type {StaffListingPage,StaffListingSummary} from '@realtor/domain';
@@ -891,6 +894,24 @@ export class RealtorApiClient {
     try{const data=await this.request(`/v2/staff/enquiries/${id}/viewings/${viewing}/${kind==='complete'?'completions':'no-shows'}`,'POST',captured,{...command,expectedVersion:Number(command.expectedVersion)});
       try{return validateViewingOutcomeReceipt(data,id,viewing,kind,command);}catch{return invalid('INVALID_RESPONSE','Invalid viewing outcome receipt.');}
     }catch(error){return uncertainWriteError(error);}
+  }
+  async createListingV2(input:ListingCreationCommand,options:StaffRequestOptions):Promise<ListingCreationReceipt>{
+    const captured=uploadOptions(options);let command:ListingCreationCommand;
+    try{command=validateListingCreationCommand(input);}catch{return invalid('VALIDATION','Review the retained listing creation facts.');}
+    try{const data=await this.request(`/v2/staff/listings/${command.listingId}/creation-operations/${command.operationId}`,'POST',captured,{slug:command.slug,content:command.content});
+      try{return validateListingCreationReceipt(data,command);}catch{return invalid('INVALID_RESPONSE','Invalid listing creation receipt.');}
+    }catch(error){return uncertainWriteError(error);}
+  }
+  async getListingCreationReceiptV2(input:ListingCreationCommand,options:StaffRequestOptions):Promise<ListingCreationReceipt>{
+    const captured=uploadOptions(options);let command:ListingCreationCommand;
+    try{command=validateListingCreationCommand(input);}catch{return invalid('VALIDATION','Review the original listing creation facts.');}
+    const data=await this.request(`/v2/staff/listings/${command.listingId}/creation-operations/${command.operationId}`,'GET',captured);
+    try{return validateListingCreationReceipt(data,command);}catch{return invalid('INVALID_RESPONSE','Invalid original listing creation receipt.');}
+  }
+  async getListingCreationSnapshotV2(listingId:string,operationId:string,options:StaffRequestOptions):Promise<ListingCreationReceipt>{
+    const captured=uploadOptions(options),listing=uuid(listingId,'VALIDATION','Listing ID'),operation=uuid(operationId,'VALIDATION','Operation ID');
+    const data=await this.request(`/v2/staff/listings/${listing}/creation-operations/${operation}`,'GET',captured);
+    try{return validateListingCreationSnapshot(data,listing,operation);}catch{return invalid('INVALID_RESPONSE','Invalid stored listing creation receipt.');}
   }
   async admitViewingReminderV2(enquiryId:string,viewingId:string,input:ViewingReminderAdmissionCommand,options:StaffRequestOptions):Promise<ViewingReminderAdmissionReceipt>{
     const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),viewing=uuid(viewingId,'VALIDATION','Viewing ID');let command:ViewingReminderAdmissionCommand;

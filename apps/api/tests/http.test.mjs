@@ -2,6 +2,12 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {request as httpRequest} from 'node:http';
 import {createDevelopmentServer} from '../dist/http.js';
+
+test('only exact creation POST receives bounded 128KiB transport allowance',async()=>{
+ let calls=0;const server=createDevelopmentServer(async r=>{calls++;return new Response(String((await r.arrayBuffer()).byteLength));});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const origin=`http://127.0.0.1:${server.address().port}`,path='/v2/staff/listings/00000000-0000-4000-8000-000000000003/creation-operations/00000000-0000-4000-8000-000000000004',body='界'.repeat(30000);
+ try{assert.equal((await fetch(origin+path,{method:'POST',body})).status,200);assert.equal(calls,1);for(const [method,p] of [['PUT',path],['POST',path+'?x=1'],['POST',path+'/'],['POST',path.replace('000000000004','invalid')]])assert.equal((await fetch(origin+p,{method,body})).status,413);assert.equal((await fetch(origin+path,{method:'POST',body:'x'.repeat(128*1024+1)})).status,413);assert.equal(calls,1);}finally{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
+});
 test('HTTP bridge derives client address from socket and preserves ambiguous authorization for rejection',async()=>{
   const clients=new WeakMap();
   const server=createDevelopmentServer(async request=>new Response(JSON.stringify({authorization:request.headers.get('authorization'),client:clients.get(request),body:await request.json()})),clients);

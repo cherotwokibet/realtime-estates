@@ -1,4 +1,4 @@
-import {validateStaffListingPage,validateViewingOutcomeCommand,validateViewingOutcomeReceipt,type ViewingOutcomeCommand} from '@realtor/domain';
+import {validateListingCreationCommand,validateListingCreationReceipt,validateListingCreationSnapshot,type ListingCreationCommand,validateStaffListingPage,validateViewingOutcomeCommand,validateViewingOutcomeReceipt,type ViewingOutcomeCommand} from '@realtor/domain';
 import {validateViewingReminderAdmissionCommand,validateViewingReminderAdmissionReceipt,validateViewingReminderAdmissionSnapshot,validateViewingReminderCaptureCommand,validateViewingReminderCaptureReceipt,type ViewingReminderAdmissionCommand,type ViewingReminderCaptureCommand} from '@realtor/domain';
 import { randomUUID } from "node:crypto";
 import {validateViewingRescheduleCommand,validateViewingRescheduleReceipt,type ViewingRescheduleCommand,validateViewingHistoryPage,validateViewingTerminationCommand,validateViewingTerminationReceipt,type ViewingTerminationCommand,validateViewingConfirmationCommand,validateViewingConfirmationReceipt,type ViewingConfirmationCommand,validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal} from '@realtor/domain';
@@ -502,6 +502,23 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
       if (path.startsWith("/v1/staff/") || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const creationRoute=/^\/v2\/staff\/listings\/([^/]+)\/creation-operations\/([^/]+)$/.exec(path);
+        if(creationRoute){
+          if(method!=='POST'&&method!=='GET')throw new HttpError(405,'METHOD_NOT_ALLOWED','Method is not allowed for this route.',{Allow:'GET, POST'});
+          if(request.url.includes('?')||request.url.includes('#'))throw new HttpError(400,'INVALID_INPUT','Creation does not accept query context.');
+          const listingId=uuid(creationRoute[1],'listingId'),operationId=uuid(creationRoute[2],'operationId'),write=method==='POST';
+          let forbidden=false;request.headers.forEach((_,name)=>{if(['cookie','content-encoding','expect','range','transfer-encoding','idempotency-key','x-actor-id','x-tenant-id','x-role','x-actor','x-tenant','x-company-id','x-assigned-agent-id'].includes(name)||name.startsWith('if-'))forbidden=true;});
+          if(forbidden||!write&&(request.body!==null||request.headers.has('content-type')||request.headers.has('content-length')))throw new HttpError(400,'INVALID_INPUT','Unsupported creation request context.');
+          const declared=request.headers.get('content-length');if(write&&declared!==null&&!/^(?:0|[1-9]\d*)$/.test(declared))throw new HttpError(400,'INVALID_INPUT','Content length must be canonical.');
+          let command:ListingCreationCommand|undefined;
+          if(write){const raw=await jsonBody(request,128*1024,true,true,true);try{const body=record(raw,['slug','content']);command=validateListingCreationCommand({...body,listingId,operationId});}catch{throw new HttpError(400,'INVALID_INPUT','Review the listing creation fields.');}}
+          const receipt=await options.database.transaction(context,async query=>{
+            await assertStaff(query);
+            if(command){const stored=await query.query('SELECT app_api.create_listing_draft_v2($1::uuid,$2::uuid,$3,$4::jsonb) AS receipt',[listingId,operationId,command.slug,JSON.stringify(command.content)]);return validateListingCreationReceipt(scalar(stored,'receipt'),command,actorId!);}
+            const stored=await query.query('SELECT app_api.read_listing_creation($1::uuid,$2::uuid) AS receipt',[listingId,operationId]);const original=validateListingCreationSnapshot(scalar(stored,'receipt'),listingId,operationId);if(original.actorId!==actorId)throw new Error('Unexpected creation requester.');return original;
+          });
+          return response(200,receipt,correlationId);
+        }
         if(path==='/v2/staff/listings'){
           if(method!=='GET')throw new HttpError(405,'METHOD_NOT_ALLOWED','Method is not allowed for this route.',{Allow:'GET'});
           if(request.url.includes('#')||request.url.includes('?')&&!/^\?limit=[1-9]\d?$/.test(url.search))throw new HttpError(400,'INVALID_INPUT','Use a bounded listing queue.');

@@ -5,6 +5,7 @@ const V2_DRAFT_PATH = /^\/v2\/staff\/listings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-
 type Handler = (request: Request) => Promise<Response>;
 type UploadHandler = (request: Request, source: AsyncIterable<Uint8Array>) => Promise<Response>;
 const UUID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}';
+const V2_CREATION_PATH=new RegExp(`^/v2/staff/listings/${UUID}/creation-operations/${UUID}$`);
 const V2_UPLOAD_PATH = new RegExp(`^/v2/staff/listings/${UUID}/revisions/([1-9]\\d*)/media-jobs/${UUID}/uploads/${UUID}$`);
 const V2_PREVIEW_PATH = new RegExp(`^/v2/staff/listings/${UUID}/revisions/([1-9]\\d*)/media/${UUID}/preview$`);
 function previewPath(incoming: IncomingMessage): boolean {
@@ -79,7 +80,8 @@ export function createDevelopmentServer(handler: Handler, clientAddresses: WeakM
       }
       // Match the service's v2 draft save only; all other routes keep the existing cap.
       const draft = method === 'PUT' && url.search === '' ? V2_DRAFT_PATH.exec(url.pathname) : null;
-      const maximum = draft && Number(draft[1]) <= 2147483647 ? MAX_V2_DRAFT_BYTES : MAX_BODY_BYTES;
+      const creation=method==='POST'&&url.search===''&&V2_CREATION_PATH.test(incoming.url??'');
+      const maximum = creation||draft && Number(draft[1]) <= 2147483647 ? MAX_V2_DRAFT_BYTES : MAX_BODY_BYTES;
       const body = await readBody(incoming, maximum);
       const request = new Request(url, {
         method, headers, ...(method === 'GET' || method === 'HEAD' ? {} : { body:Uint8Array.from(body).buffer }),
