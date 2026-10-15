@@ -24,14 +24,14 @@ async function stop(){
   })();
 }
 try{
-  preview=await startStaffPreview({tenantSlug:process.env.TENANT_SLUG??'realtime-estates',enquiryPreview:'synthetic-v1',...(process.argv.includes('--historical-viewings')?{historicalViewings:'synthetic-v1'}:{}),...(process.argv.includes('--invalid-first-outcome-reply')?{viewingReplyFault:'invalid-first-outcome-v1'}:{}),...(process.argv.includes('--web')?{enquiryCatalogue:'synthetic-v1'}:{}),...(process.argv.includes('--invalid-first-reschedule-reply')?{viewingReplyFault:'invalid-first-reschedule-v1'}:{}),...(process.argv.includes('--invalid-first-termination-reply')?{viewingReplyFault:'invalid-first-termination-v1'}:{}),...(process.argv.includes('--invalid-first-confirmation-reply')?{viewingReplyFault:'invalid-first-confirmation-v1'}:{}),...(process.argv.includes('--invalid-first-viewing-reply')?{viewingReplyFault:'invalid-first-applied-v1'}:{}),...(process.argv.includes('--invalid-first-contact-reply')?{contactReplyFault:'invalid-first-applied-v1'}:{})});
+  preview=await startStaffPreview({tenantSlug:process.env.TENANT_SLUG??'realtime-estates',enquiryPreview:'synthetic-v1',...(process.argv.includes('--reminder-capture')?{reminderCaptureMode:'capture-only-v1'}:{}),...(process.argv.includes('--invalid-first-captured-reply')?{reminderReplyFault:'invalid-first-captured-v1'}:{}),...(process.argv.includes('--historical-viewings')?{historicalViewings:'synthetic-v1'}:{}),...(process.argv.includes('--invalid-first-outcome-reply')?{viewingReplyFault:'invalid-first-outcome-v1'}:{}),...(process.argv.includes('--web')?{enquiryCatalogue:'synthetic-v1'}:{}),...(process.argv.includes('--invalid-first-reschedule-reply')?{viewingReplyFault:'invalid-first-reschedule-v1'}:{}),...(process.argv.includes('--invalid-first-termination-reply')?{viewingReplyFault:'invalid-first-termination-v1'}:{}),...(process.argv.includes('--invalid-first-confirmation-reply')?{viewingReplyFault:'invalid-first-confirmation-v1'}:{}),...(process.argv.includes('--invalid-first-viewing-reply')?{viewingReplyFault:'invalid-first-applied-v1'}:{}),...(process.argv.includes('--invalid-first-contact-reply')?{contactReplyFault:'invalid-first-applied-v1'}:{})});
   if(process.argv.includes('--historical-viewings'))console.log('Fictional historical confirmed viewings enabled for outcome testing. No past HTTP execution or real attendance is implied. Requires --web.');
   const {admin,agent}=preview.enquiryStaff;
   child=spawn(process.execPath,[next,'dev','apps/admin','-p','3001','-H','127.0.0.1'],{cwd:root,stdio:'inherit',env:{...process.env,
     NODE_ENV:'development',TENANT_SLUG:preview.tenantSlug,
     // Disable unrelated staff/media launch contexts inherited from a prior shell.
     STAFF_PREVIEW_MODE:'',STAFF_PREVIEW_TOKEN:'',STAFF_PREVIEW_INSTANCE:'',STAFF_PREVIEW_MEDIA:'',
-    STAFF_ENQUIRY_PREVIEW_MODE:'synthetic-v1',STAFF_PREVIEW_API_ORIGIN:preview.origin,
+    STAFF_ENQUIRY_PREVIEW_MODE:'synthetic-v1',STAFF_REMINDER_CAPTURE_MODE:process.argv.includes('--reminder-capture')?'capture-only-v1':'',STAFF_PREVIEW_API_ORIGIN:preview.origin,
     STAFF_ENQUIRY_ADMIN_TOKEN:admin.bearerToken,STAFF_ENQUIRY_ADMIN_ID:admin.actorId,STAFF_ENQUIRY_ADMIN_INSTANCE:randomUUID(),
     STAFF_ENQUIRY_AGENT_TOKEN:agent.bearerToken,STAFF_ENQUIRY_AGENT_ID:agent.actorId,STAFF_ENQUIRY_AGENT_INSTANCE:randomUUID(),
   }});

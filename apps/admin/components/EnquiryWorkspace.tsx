@@ -9,7 +9,7 @@ import {createEnquiryPreviewClient, EnquiryPreviewError} from '../lib/enquiry-cl
 import {createEnquiryReadGuard} from '../lib/enquiry-read-guard';
 import {allowedEnquiryActions, createEnquiryCommand, enquiryActionLabel, enquiryStatusLabel, enquiryForm, enquiryFormsEqual, formatEnquiryTime, enquiryDueLabel, type EnquiryForm} from '../lib/enquiry-model';
 
-type Props={actor:'admin'|'agent';actorId:string;instanceId:string};
+type Props={actor:'admin'|'agent';actorId:string;instanceId:string;reminderCaptureEnabled?:boolean};
 type Attempt={id:string;command:EnquiryOperationInputV2;receipt:EnquiryOperationReceiptV2|null};
 function shortId(id:string|null){return id ? `${id.slice(0,4)}…${id.slice(-6)}` : 'Unassigned'}
 function errorText(error:unknown){return error instanceof EnquiryPreviewError ? error.message : 'The request could not be completed. Check the local preview and try a read again.'}
@@ -17,7 +17,7 @@ function Snapshot({value}:{value:StaffEnquiryDetailV2}){
   return <dl className="enq-facts"><div><dt>Saved version</dt><dd>{value.version}</dd></div><div><dt>Status</dt><dd>{enquiryStatusLabel(value.status)}</dd></div><div><dt>Assigned staff ID</dt><dd>{value.assignedAgentId ?? 'Unassigned'}</dd></div><div><dt>Follow-up · Nairobi</dt><dd>{formatEnquiryTime(value.nextActionAt)}</dd></div></dl>;
 }
 
-export default function EnquiryWorkspace({actor,actorId,instanceId}:Props){
+export default function EnquiryWorkspace({actor,actorId,instanceId,reminderCaptureEnabled=false}:Props){
   const client=useMemo(()=>createEnquiryPreviewClient({basePath:`/api/enquiry-preview/${actor}`,instanceId}),[actor,instanceId]);
   const [queue,setQueue]=useState<StaffEnquiryPageV2|null>(null);
   const [directory,setDirectory]=useState<EnquiryAssigneePageV2|null>(null);
@@ -173,7 +173,7 @@ export default function EnquiryWorkspace({actor,actorId,instanceId}:Props){
         </section>}
         {current && <section className="enq-comparison" aria-labelledby="comparison-title"><span className="eyebrow">READ-ONLY CURRENT COMPARISON</span><h3 id="comparison-title" ref={comparisonHeading} tabIndex={-1}>Current saved version {current.version}</h3><Snapshot value={current}/><p>Your raw action, date, staff selection and reason will be retained. Review them against the new saved state before submitting.</p><button className="enq-primary" disabled={busy || unresolved} onClick={adopt}>Use this current version</button>{unresolved && <p>Recover the original result before adopting another version.</p>}</section>}
         {selected&&<EnquiryContacts key={`contact:${actor}:${instanceId}:${selected}`} actor={actor} instanceId={instanceId} enquiryId={selected} version={saved?.version??null} onGuard={guardContact} onAccessDenied={deny} readGuard={readGuard.current}/>}
-        {selected&&<EnquiryViewings key={`viewing:${actor}:${instanceId}:${selected}`} actor={actor} instanceId={instanceId} enquiryId={selected} version={saved?.version??null} listingId={saved?.listingId??null} onGuard={guardViewing} onAccessDenied={deny} readGuard={readGuard.current}/>}
+        {selected&&<EnquiryViewings reminderCaptureEnabled={reminderCaptureEnabled} key={`viewing:${actor}:${instanceId}:${selected}`} actor={actor} instanceId={instanceId} enquiryId={selected} version={saved?.version??null} listingId={saved?.listingId??null} onGuard={guardViewing} onAccessDenied={deny} readGuard={readGuard.current}/>}
         {selected&&saved&&<EnquiryActivity key={`${actor}:${instanceId}:${selected}`} actor={actor} instanceId={instanceId} enquiryId={selected} readGuard={readGuard.current} onAccessDenied={deny}/>}
       </section>
     </div><footer className="enq-footer">Independently rebuilt · Synthetic development data · Follow-up times shown in Nairobi</footer>

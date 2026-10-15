@@ -11,6 +11,32 @@ const call=(preview,path,{role='admin',token=preview.enquiryStaff?.[role].bearer
 async function read(preview,path,options){const response=await call(preview,path,options);assert.equal(response.status,200);return response.json();}
 const base='/v2/staff/enquiries';
 
+test('reminder capture preview requires explicit modes and corrupts only first captured result after commit',async()=>{
+ for(const options of [{reminderCaptureMode:'capture-only-v1'},{enquiryPreview:'synthetic-v1',reminderCaptureMode:'capture-only-v1'},{enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1',reminderCaptureMode:'unknown'},{enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1',reminderReplyFault:'invalid-first-captured-v1'}])await assert.rejects(()=>startStaffPreview({port:0,...options}));
+ const disabled=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1'});try{assert.equal((await call(disabled,base+'/'+disabled.enquiryFixtures.assigned+'/viewing-reminder-admissions/'+randomUUID())).status,404);}finally{await disabled.close();}
+ const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1',reminderCaptureMode:'capture-only-v1',reminderReplyFault:'invalid-first-captured-v1'});
+ try{
+  const path=base+'/'+preview.enquiryFixtures.assigned,requested=await read(preview,path+'/viewings',{role:'agent',method:'POST',body:{operationId:randomUUID(),expectedEnquiryVersion:2,listingId:preview.listingId,preferredSlots:[],notes:'Synthetic reminder workflow.'}});
+  const slot={startAt:'2090-01-01T09:00:00.000Z',endAt:'2090-01-01T10:00:00.000Z',timeZone:'Africa/Nairobi'},target=path+'/viewings/'+requested.viewingId;
+  const proposed=await read(preview,target+'/proposals',{role:'agent',method:'POST',body:{operationId:randomUUID(),expectedVersion:1,slot}});
+  const confirmed=await read(preview,target+'/confirmations',{role:'agent',method:'POST',body:{operationId:randomUUID(),expectedVersion:2,slot,channel:'phone',agreedAt:proposed.completedAt,notes:'Explicit fictional agreement.'}});assert.equal(confirmed.result.status,'confirmed');
+  const admissionCommand={operationId:randomUUID(),expectedVersion:3,dueAt:confirmed.completedAt,expiresAt:'2089-12-31T23:59:00.000Z'};
+  const stale=await read(preview,target+'/reminder-admissions',{role:'agent',method:'POST',body:{...admissionCommand,operationId:randomUUID(),expectedVersion:2}});assert.equal(stale.outcome,'conflict');
+  const admission=await read(preview,target+'/reminder-admissions',{role:'agent',method:'POST',body:admissionCommand});assert.equal(admission.outcome,'admitted');
+  const original=path+'/viewing-reminder-admissions/'+admission.operationId,command={operationId:randomUUID()};
+  assert.deepEqual(await read(preview,original,{role:'agent'}),admission);assert.equal((await call(preview,original+'/captures',{method:'POST',body:command,token:null})).status,401);
+  const beforeDue=await read(preview,target+'/reminder-admissions',{role:'agent',method:'POST',body:{...admissionCommand,operationId:randomUUID(),dueAt:'2089-12-31T23:00:00.000Z',expiresAt:'2089-12-31T23:30:00.000Z'}});
+  assert.equal((await read(preview,path+'/viewing-reminder-admissions/'+beforeDue.operationId+'/captures',{role:'agent',method:'POST',body:{operationId:randomUUID()}})).outcome,'waiting');
+  assert.deepEqual(await read(preview,original+'/captures',{role:'agent',method:'POST',body:command}),{syntheticReplyCorruption:true});
+  const recovered=await read(preview,original+'/capture-operations/'+command.operationId,{role:'agent'});assert.equal(recovered.outcome,'captured');assert.deepEqual(await read(preview,original+'/captures',{role:'agent',method:'POST',body:command}),recovered);
+  assert.equal((await read(preview,original+'/captures',{role:'agent',method:'POST',body:{operationId:randomUUID()}})).outcome,'duplicate');
+  const later=await read(preview,target+'/reminder-admissions',{role:'agent',method:'POST',body:{...admissionCommand,operationId:randomUUID(),dueAt:'2089-12-31T22:00:00.000Z'}});assert.equal(later.outcome,'admitted');const laterPath=path+'/viewing-reminder-admissions/'+later.operationId;
+  const waitingCommand={operationId:randomUUID()},waiting=await read(preview,laterPath+'/captures',{role:'agent',method:'POST',body:waitingCommand});assert.equal(waiting.outcome,'waiting');
+  await read(preview,target+'/cancellations',{role:'agent',method:'POST',body:{operationId:randomUUID(),expectedVersion:3,reason:'Fictional cancellation after test capture.'}});
+  assert.equal((await read(preview,laterPath+'/captures',{role:'agent',method:'POST',body:{operationId:randomUUID()}})).reason,'NOT_CONFIRMED');assert.deepEqual(await read(preview,laterPath+'/capture-operations/'+waitingCommand.operationId,{role:'agent'}),waiting);
+ }finally{await preview.close();}
+});
+
 test('historical viewing fixtures require explicit modes and retain guarded first and later cycles under targeted outcome loss',async()=>{
  for(const options of [{historicalViewings:'synthetic-v1'},{enquiryPreview:'synthetic-v1',historicalViewings:'synthetic-v1'},{enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1',historicalViewings:'unknown'}])await assert.rejects(()=>startStaffPreview({port:0,...options}));
  const preview=await startStaffPreview({port:0,enquiryPreview:'synthetic-v1',enquiryCatalogue:'synthetic-v1',historicalViewings:'synthetic-v1',viewingReplyFault:'invalid-first-outcome-v1'});

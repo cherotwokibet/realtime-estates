@@ -33,7 +33,7 @@ const COMPANIES=Object.freeze({
 const LIFETIME_SECONDS=1800;
 const AUDIENCE='synthetic-realtor-staff-preview';
 class StaffPreviewConfigurationError extends Error {}
-function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings,
+function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings,reminderCaptureMode,reminderReplyFault,
   seedAcceptedMedia=nativeUploads===undefined&&enquiryPreview===undefined,seedPendingReviews=false}={}){
   if(process.env.NODE_ENV==='production')throw new StaffPreviewConfigurationError('Staff preview refuses NODE_ENV=production.');
   if(typeof tenantSlug!=='string'||!Object.hasOwn(COMPANIES,tenantSlug))throw new StaffPreviewConfigurationError('Choose the configured realtime-estates or sample-homes synthetic company.');
@@ -43,6 +43,8 @@ function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',na
   if(typeof seedPendingReviews!=='boolean'||(seedPendingReviews&&!seedAcceptedMedia))throw new StaffPreviewConfigurationError('Pending review fixtures require the explicit accepted-metadata fixture.');
   if(enquiryPreview!==undefined&&enquiryPreview!=='synthetic-v1')throw new StaffPreviewConfigurationError('Choose the explicit synthetic-v1 enquiry preview mode or omit it.');
   if(enquiryCatalogue!==undefined&&(enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Synthetic enquiry catalogue requires explicit enquiry mode.');
+  if(reminderCaptureMode!==undefined&&(reminderCaptureMode!=='capture-only-v1'||enquiryPreview!=='synthetic-v1'||enquiryCatalogue!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Synthetic reminder capture requires explicit enquiry and catalogue modes.');
+  if(reminderReplyFault!==undefined&&(reminderReplyFault!=='invalid-first-captured-v1'||reminderCaptureMode!=='capture-only-v1'))throw new StaffPreviewConfigurationError('Reminder reply fault requires explicit synthetic capture mode.');
   if(historicalViewings!==undefined&&(historicalViewings!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'||enquiryCatalogue!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Historical synthetic viewings require explicit synthetic enquiry and catalogue modes.');
   if(contactReplyFault!==undefined&&(contactReplyFault!=='invalid-first-applied-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Contact reply fault requires explicit synthetic enquiry mode and the supported one-shot fault.');
   if(viewingReplyFault!==undefined&&(!['invalid-first-applied-v1','invalid-first-confirmation-v1','invalid-first-termination-v1','invalid-first-reschedule-v1','invalid-first-outcome-v1'].includes(viewingReplyFault)||enquiryCatalogue!=='synthetic-v1'||enquiryPreview!=='synthetic-v1'))throw new StaffPreviewConfigurationError('Viewing reply fault requires explicit synthetic enquiry and catalogue modes and the supported one-shot fault.');
@@ -51,7 +53,7 @@ function configuration({tenantSlug='realtime-estates',port=4101,actor='agent',na
     nativeUploads=nativeMediaPreviewConfiguration(nativeUploads);
     if(seedAcceptedMedia||seedPendingReviews)throw new StaffPreviewConfigurationError('Native media preview starts without fabricated accepted-media or pending-review fixtures.');
   }
-  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings};
+  return {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings,reminderCaptureMode,reminderReplyFault};
 }
 function syntheticContent(title='Synthetic staff monthly studio'){
   return {
@@ -169,7 +171,8 @@ async function closeServer(server){
 
 /** Token is handed only to the calling development launcher, never an HTTP login route. */
 export async function startStaffPreview(options={}){
-  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings}=configuration(options);
+  const {tenantSlug,port,actor,seedAcceptedMedia,seedPendingReviews,nativeUploads,enquiryPreview,enquiryCatalogue,contactReplyFault,viewingReplyFault,historicalViewings,reminderCaptureMode,reminderReplyFault}=configuration(options);
+  let reminderReplyFaultPending=!!reminderReplyFault;
   let contactReplyFaultPending=!!contactReplyFault,viewingReplyFaultPending=!!viewingReplyFault;
   const company=COMPANIES[tenantSlug],other=COMPANIES[tenantSlug==='realtime-estates'?'sample-homes':'realtime-estates'];
   const actorId=actor==='agent'?company.agent:actor==='admin'?company.admin:actor==='customer'?company.customer:actor==='revoked-agent'?company.revoked:actor==='other-company-admin'?other.admin:other.agent;
@@ -212,7 +215,7 @@ export async function startStaffPreview(options={}){
       enquiryStaff=Object.freeze({admin:Object.freeze({actorId:company.admin,bearerToken:adminToken}),
         agent:Object.freeze({actorId:company.agent,bearerToken:agentToken})});
     }
-    const service=createApiService({database,tenantId:company.id,privacyNoticeVersion:'synthetic-staff-notice-v1',verifyAuthorization:request=>verify(parseBearerHeader(request.headers.get('authorization')??undefined))});
+    const service=createApiService({database,...(reminderCaptureMode?{reminderCaptureMode}:{}),tenantId:company.id,privacyNoticeVersion:'synthetic-staff-notice-v1',verifyAuthorization:request=>verify(parseBearerHeader(request.headers.get('authorization')??undefined))});
     if(nativeUploads)nativeMedia=await createNativeMediaPreview({nativeUploads,tenant:{tenantId:company.id,slug:tenantSlug,hostnames:['127.0.0.1','localhost']},database,coordinator,verifyBearer:verify});
     let origin;let allowedHosts=new Set();
     const guard=request=>{
@@ -228,7 +231,7 @@ export async function startStaffPreview(options={}){
     apiServer=createDevelopmentServer(async request=>{
       const denied=guard(request);if(denied)return denied;
       const url=new URL(request.url),reviewQueue=url.pathname==='/v2/staff/reviews';
-      if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,historicalSyntheticViewings:!!historicalViewings,acceptedMediaMetadataOnly:seedAcceptedMedia,nativeUploads:!!nativeMedia,privateMediaPreviews:!!nativeMedia,retainedSyntheticMedia:!!nativeMedia,tokenExpiresAt:expiresAt});
+      if(url.pathname==='/health'&&request.method==='GET')return json(200,{status:'synthetic-staff-preview',synthetic:true,persistentStorage:false,authentication:'ephemeral-local-RS256',productionReady:false,tenantSlug,historicalSyntheticViewings:!!historicalViewings,syntheticReminderCapture:!!reminderCaptureMode,acceptedMediaMetadataOnly:seedAcceptedMedia,nativeUploads:!!nativeMedia,privateMediaPreviews:!!nativeMedia,retainedSyntheticMedia:!!nativeMedia,tokenExpiresAt:expiresAt});
       if(enquiryPreview){
         if(enquiryCatalogue&&url.pathname==='/v2/properties'){
           if(request.method!=='GET'||request.headers.has('authorization'))return failure(403,'FORBIDDEN','Synthetic public catalogue is guest read-only.');
@@ -243,15 +246,20 @@ export async function startStaffPreview(options={}){
         const contacts=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/contacts(?:\/operations\/[0-9a-f-]{36})?$/i.test(url.pathname);
         const activity=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/activity$/i.test(url.pathname);
         const viewings=enquiryCatalogue&&/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/(?:viewings(?:\/[0-9a-f-]{36}(?:\/(?:proposals|confirmations|cancellations|declines|reschedules|completions|no-shows|history))?)?|viewing-operations\/[0-9a-f-]{36})$/i.test(url.pathname);
+        const reminder=reminderCaptureMode&&/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/(?:viewings\/[0-9a-f-]{36}\/reminder-admissions|viewing-reminder-admissions\/[0-9a-f-]{36}(?:\/captures|\/capture-operations\/[0-9a-f-]{36})?)$/i.test(url.pathname);
         const queue=url.pathname==='/v2/staff/enquiries'||url.pathname==='/v2/staff/enquiry-assignees';
         const enquiryRoute=/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}(?:\/(operations)(?:\/([0-9a-f-]{36}))?)?$/i.exec(url.pathname);
-        if(!viewings&&!contacts&&!activity&&!capture&&!queue&&!enquiryRoute)return failure(404,'NOT_FOUND','Enquiry preview route is unavailable.');
+        if(!reminder&&!viewings&&!contacts&&!activity&&!capture&&!queue&&!enquiryRoute)return failure(404,'NOT_FOUND','Enquiry preview route is unavailable.');
         const allowedMethod=capture||(enquiryRoute?.[1]&&!enquiryRoute[2])?'POST':'GET';
-        if(contacts){const list=!url.pathname.includes('/operations/');if(request.method!=='GET'&&!(list&&request.method==='POST'))return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for contact logging.',{Allow:list?'GET, POST':'GET'});}
+        if(reminder){const method=/\/(?:captures|reminder-admissions)$/.test(url.pathname)?'POST':'GET';if(request.method!==method)return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for synthetic reminder capture.',{Allow:method});}
+        else if(contacts){const list=!url.pathname.includes('/operations/');if(request.method!=='GET'&&!(list&&request.method==='POST'))return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for contact logging.',{Allow:list?'GET, POST':'GET'});}
         else if(viewings){const collection=/\/viewings$/.test(url.pathname),propose=/\/(?:proposals|confirmations|cancellations|declines|reschedules|completions|no-shows)$/.test(url.pathname),methods=collection?['GET','POST']:propose?['POST']:['GET'];if(!methods.includes(request.method))return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for viewing scheduling.',{Allow:methods.join(', ')});}
         else if(request.method!==allowedMethod)return failure(405,'METHOD_NOT_ALLOWED','Method is unavailable for the enquiry fixture.',{Allow:allowedMethod});
         if(request.method==='POST'&&!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type')??''))return failure(415,'JSON_REQUIRED','Use application/json.');
         const response=await service(request);response.headers.set('X-Synthetic-Staff-Preview','true');
+        if(reminderReplyFaultPending&&reminder&&request.method==='POST'&&url.pathname.endsWith('/captures')&&response.status===200&&(await response.clone().json()).outcome==='captured'){
+          reminderReplyFaultPending=false;return Response.json({syntheticReplyCorruption:true},{status:200,headers:{'Cache-Control':'no-store','X-Synthetic-Staff-Preview':'true'}});
+        }
         // Process-only, disposable fixture: commit normally, then lose valid receipt facts once.
         // Denials/conflicts/reads never consume the fault, and original GET/replay stays intact.
         if(contactReplyFaultPending&&contacts&&request.method==='POST'&&response.status===200&&(await response.clone().json()).outcome==='applied'){
