@@ -1,4 +1,7 @@
 import {validateViewingOutcomeCommand,validateViewingOutcomeReceipt,type ViewingOutcomeCommand,type ViewingOutcomeKind,type ViewingOutcomeReceipt} from '@realtor/domain';
+import {validateViewingReminderAdmissionCommand,validateViewingReminderAdmissionReceipt,validateViewingReminderAdmissionSnapshot,validateViewingReminderCaptureCommand,validateViewingReminderCaptureReceipt,type ViewingReminderAdmissionCommand,type ViewingReminderAdmissionReceipt,type ViewingReminderCaptureCommand,type ViewingReminderCaptureReceipt} from '@realtor/domain';
+export {validateViewingReminderAdmissionCommand,validateViewingReminderAdmissionReceipt,validateViewingReminderAdmissionSnapshot,validateViewingReminderCaptureCommand,validateViewingReminderCaptureReceipt} from '@realtor/domain';
+export type {ViewingReminderCandidate,ViewingReminderAdmissionCommand,ViewingReminderAdmissionReceipt,ViewingReminderCaptureCommand,ViewingReminderCaptureReceipt,SyntheticViewingReminderCapture} from '@realtor/domain';
 export {validateViewingOutcomeCommand,validateViewingOutcomeReceipt} from '@realtor/domain';
 export type {ViewingOutcomeCommand,ViewingOutcomeKind,ViewingOutcomeFacts,ViewingOutcomeReceipt} from '@realtor/domain';
 import {
@@ -213,7 +216,7 @@ const FINALIZE_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_
 const FINALIZE_PATH=/^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/media-attach-intents\/[^/]+\/finalize$/;
 const PREVIEW_SERVER_STATUS=new Map<string,number>([['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['INVALID_INPUT',400],['FORBIDDEN',403],['UNAUTHENTICATED',401],['VERSION_CONFLICT',409],['REQUEST_ABORTED',400],['SERVICE_UNAVAILABLE',503]]);
 const ENQUIRY_SERVER_STATUS=new Map<string,number>([['INVALID_INPUT',400],['INVALID_JSON',400],['UNAUTHENTICATED',401],['FORBIDDEN',403],['NOT_FOUND',404],['METHOD_NOT_ALLOWED',405],['CONFLICT',409],['INVALID_STATE',422],['JSON_REQUIRED',415],['BODY_TOO_LARGE',413],['RATE_LIMITED',429],['SERVICE_UNAVAILABLE',503]]);
-const STAFF_ENQUIRY_PATH=/^\/v2\/staff\/(?:enquiries(?:\/[^/?]+(?:\/(?:operations(?:\/[^/?]+)?|viewings(?:\/[^/?]+(?:\/(?:proposals|confirmations|cancellations|declines|reschedules|completions|no-shows|history))?)?|viewing-operations\/[^/?]+))?)?|enquiry-assignees)(?:\?limit=[1-9]\d*)?$/;
+const STAFF_ENQUIRY_PATH=/^\/v2\/staff\/(?:enquiries(?:\/[^/?]+(?:\/(?:operations(?:\/[^/?]+)?|viewings(?:\/[^/?]+(?:\/(?:proposals|confirmations|cancellations|declines|reschedules|completions|no-shows|history|reminder-admissions))?)?|viewing-operations\/[^/?]+|viewing-reminder-admissions\/[^/?]+(?:\/(?:captures|capture-operations\/[^/?]+))?))?)?|enquiry-assignees)(?:\?limit=[1-9]\d*)?$/;
 const MAX_PREVIEW_BYTES=10485760;
 const nativeTypedArray=Object.getPrototypeOf(Uint8Array.prototype) as object;
 const nativeTypedArrayBuffer=Object.getOwnPropertyDescriptor(nativeTypedArray,'buffer')!.get!;
@@ -924,6 +927,37 @@ export class RealtorApiClient {
     try{const data=await this.request(`/v2/staff/enquiries/${id}/viewings/${viewing}/${kind==='complete'?'completions':'no-shows'}`,'POST',captured,{...command,expectedVersion:Number(command.expectedVersion)});
       try{return validateViewingOutcomeReceipt(data,id,viewing,kind,command);}catch{return invalid('INVALID_RESPONSE','Invalid viewing outcome receipt.');}
     }catch(error){return uncertainWriteError(error);}
+  }
+  async admitViewingReminderV2(enquiryId:string,viewingId:string,input:ViewingReminderAdmissionCommand,options:StaffRequestOptions):Promise<ViewingReminderAdmissionReceipt>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),viewing=uuid(viewingId,'VALIDATION','Viewing ID');let command:ViewingReminderAdmissionCommand;
+    try{command=validateViewingReminderAdmissionCommand(input);}catch{return invalid('VALIDATION','Review the explicit reminder window.');}
+    try{const data=await this.request(`/v2/staff/enquiries/${id}/viewings/${viewing}/reminder-admissions`,'POST',captured,{...command,expectedVersion:Number(command.expectedVersion)});
+      try{return validateViewingReminderAdmissionReceipt(data,id,viewing,command);}catch{return invalid('INVALID_RESPONSE','Invalid reminder admission receipt.');}
+    }catch(error){return uncertainWriteError(error);}
+  }
+  async getViewingReminderAdmissionReceiptV2(enquiryId:string,viewingId:string,input:ViewingReminderAdmissionCommand,options:StaffRequestOptions):Promise<ViewingReminderAdmissionReceipt>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),viewing=uuid(viewingId,'VALIDATION','Viewing ID');let command:ViewingReminderAdmissionCommand;
+    try{command=validateViewingReminderAdmissionCommand(input);}catch{return invalid('VALIDATION','Review the original reminder window.');}
+    const data=await this.request(`/v2/staff/enquiries/${id}/viewing-reminder-admissions/${command.operationId}`,'GET',captured);
+    try{return validateViewingReminderAdmissionReceipt(data,id,viewing,command);}catch{return invalid('INVALID_RESPONSE','Invalid original reminder admission.');}
+  }
+  async getViewingReminderAdmissionSnapshotV2(enquiryId:string,admissionOperationId:string,options:StaffRequestOptions):Promise<ViewingReminderAdmissionReceipt>{
+    const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),admission=uuid(admissionOperationId,'VALIDATION','Admission operation ID');
+    const data=await this.request(`/v2/staff/enquiries/${id}/viewing-reminder-admissions/${admission}`,'GET',captured);
+    try{return validateViewingReminderAdmissionSnapshot(data,id,admission);}catch{return invalid('INVALID_RESPONSE','Invalid stored reminder admission.');}
+  }
+  async captureViewingReminderV2(admissionInput:ViewingReminderAdmissionReceipt,input:ViewingReminderCaptureCommand,options:StaffRequestOptions):Promise<ViewingReminderCaptureReceipt>{
+    const captured=uploadOptions(options);let admission:ViewingReminderAdmissionReceipt,command:ViewingReminderCaptureCommand;
+    try{admission=validateViewingReminderAdmissionSnapshot(admissionInput);if(admission.outcome!=='admitted')throw new Error();command=validateViewingReminderCaptureCommand(input);}catch{return invalid('VALIDATION','Select an admitted capture-only reminder.');}
+    try{const data=await this.request(`/v2/staff/enquiries/${admission.enquiryId}/viewing-reminder-admissions/${admission.operationId}/captures`,'POST',captured,{...command});
+      try{return validateViewingReminderCaptureReceipt(data,admission,command);}catch{return invalid('INVALID_RESPONSE','Invalid synthetic reminder capture receipt.');}
+    }catch(error){return uncertainWriteError(error);}
+  }
+  async getViewingReminderCaptureReceiptV2(admissionInput:ViewingReminderAdmissionReceipt,input:ViewingReminderCaptureCommand,options:StaffRequestOptions):Promise<ViewingReminderCaptureReceipt>{
+    const captured=uploadOptions(options);let admission:ViewingReminderAdmissionReceipt,command:ViewingReminderCaptureCommand;
+    try{admission=validateViewingReminderAdmissionSnapshot(admissionInput);if(admission.outcome!=='admitted')throw new Error();command=validateViewingReminderCaptureCommand(input);}catch{return invalid('VALIDATION','Review the original capture-only reminder.');}
+    const data=await this.request(`/v2/staff/enquiries/${admission.enquiryId}/viewing-reminder-admissions/${admission.operationId}/capture-operations/${command.operationId}`,'GET',captured);
+    try{return validateViewingReminderCaptureReceipt(data,admission,command);}catch{return invalid('INVALID_RESPONSE','Invalid original synthetic capture receipt.');}
   }
   async getViewingOutcomeReceiptV2(enquiryId:string,viewingId:string,kind:ViewingOutcomeKind,input:ViewingOutcomeCommand,options:StaffRequestOptions):Promise<ViewingOutcomeReceipt>{
     const captured=uploadOptions(options),id=uuid(enquiryId,'VALIDATION','Enquiry ID'),viewing=uuid(viewingId,'VALIDATION','Viewing ID');let command:ViewingOutcomeCommand;

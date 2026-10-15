@@ -1,4 +1,5 @@
 import {validateViewingOutcomeCommand,validateViewingOutcomeReceipt,type ViewingOutcomeCommand} from '@realtor/domain';
+import {validateViewingReminderAdmissionCommand,validateViewingReminderAdmissionReceipt,validateViewingReminderAdmissionSnapshot,validateViewingReminderCaptureCommand,validateViewingReminderCaptureReceipt,type ViewingReminderAdmissionCommand,type ViewingReminderCaptureCommand} from '@realtor/domain';
 import { randomUUID } from "node:crypto";
 import {validateViewingRescheduleCommand,validateViewingRescheduleReceipt,type ViewingRescheduleCommand,validateViewingHistoryPage,validateViewingTerminationCommand,validateViewingTerminationReceipt,type ViewingTerminationCommand,validateViewingConfirmationCommand,validateViewingConfirmationReceipt,type ViewingConfirmationCommand,validateViewingOriginal,validateViewingRequestCommand,validateViewingProposalCommand,validateViewingReceipt,validateViewingDetail,validateViewingPage,type ViewingOriginal} from '@realtor/domain';
 import { validateContactCommand,validateContactReceipt,validateContactPage,validateEnquiryActivityPage,calculateWirePricingV2, kesFromMinor, normalizeKenyanPhone, parseListingJsonV2, validatePricingInputV2, validatePublicLocationV2 } from "@realtor/domain";
@@ -8,6 +9,8 @@ export interface VerifiedIdentity { readonly actorId: string }
 export interface LimiterResult { readonly allowed: boolean; readonly retryAfterSeconds: number }
 export interface EnquiryLimiter { consume(key: string): LimiterResult | Promise<LimiterResult> }
 export interface ApiServiceOptions {
+  /** Explicit internal synthetic mode. Omission disables all reminder admission/capture HTTP routes. */
+  readonly reminderCaptureMode?:'capture-only-v1';
   readonly database: TransactionDatabase;
   /** Trusted deployment/hostname mapping, never selected from request body/query/token claims. */
   readonly tenantId: string;
@@ -66,7 +69,7 @@ function assertDecisionJsonTokens(source: string): void {
     }
   }
 }
-async function jsonBody(request: Request, maximum: number, integerMoney = false, strictDecision = false): Promise<unknown> {
+async function jsonBody(request: Request, maximum: number, integerMoney = false, strictDecision = false, exactLength = false): Promise<unknown> {
   if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get("content-type") ?? "")) throw new HttpError(415, "JSON_REQUIRED", "Use application/json.");
   const declared = request.headers.get("content-length");
   if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > maximum)) throw new HttpError(413, "BODY_TOO_LARGE", "Request body is too large.");
@@ -83,6 +86,7 @@ async function jsonBody(request: Request, maximum: number, integerMoney = false,
       chunks.push(value);
     }
   } finally { reader.releaseLock(); }
+  if(exactLength&&declared!==null&&Number(declared)!==size)throw new HttpError(400,'INVALID_INPUT','Declared body length does not match the command.');
   const body = new Uint8Array(size);
   let offset = 0;
   for (const chunk of chunks) { body.set(chunk, offset); offset += chunk.byteLength; }
@@ -432,6 +436,8 @@ function enquiryOperationProjection(input: unknown, enquiryId: string, operation
 }
 
 export function createApiService(options: ApiServiceOptions): (request: Request) => Promise<Response> {
+  if(options.reminderCaptureMode!==undefined&&options.reminderCaptureMode!=='capture-only-v1')throw new Error('Unsupported reminder capture mode.');
+  const reminderCaptureEnabled=options.reminderCaptureMode==='capture-only-v1';
   const tenantId = uuid(options.tenantId, "Configured tenant");
   const privacyNoticeVersion = text(options.privacyNoticeVersion, "Configured privacy notice version", 100);
   const newId = options.uuid ?? randomUUID;
@@ -496,6 +502,46 @@ export function createApiService(options: ApiServiceOptions): (request: Request)
       if (path.startsWith("/v1/staff/") || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const reminderAdmissionRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewings\/([^/]+)\/reminder-admissions$/.exec(path);
+        const reminderAdmissionOriginalRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewing-reminder-admissions\/([^/]+)$/.exec(path);
+        const reminderCaptureRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewing-reminder-admissions\/([^/]+)\/captures$/.exec(path);
+        const reminderCaptureOriginalRoute=/^\/v2\/staff\/enquiries\/([^/]+)\/viewing-reminder-admissions\/([^/]+)\/capture-operations\/([^/]+)$/.exec(path);
+        const reminderRoute=reminderAdmissionRoute??reminderAdmissionOriginalRoute??reminderCaptureRoute??reminderCaptureOriginalRoute;
+        if(reminderRoute){
+          if(!reminderCaptureEnabled)throw new HttpError(404,'NOT_FOUND','Route is unavailable.');
+          enquiryQuery(url,false);
+          if(request.url.includes('?')||request.url.includes('#'))throw new HttpError(400,'INVALID_INPUT','Reminder commands do not accept query context.');
+          const id=uuid(reminderRoute[1],'enquiryId'),viewingId=reminderAdmissionRoute?uuid(reminderAdmissionRoute[2],'viewingId'):undefined;
+          const admissionId=reminderAdmissionRoute?undefined:uuid(reminderRoute[2],'admissionOperationId'),operationId=reminderCaptureOriginalRoute?uuid(reminderCaptureOriginalRoute[3],'operationId'):undefined;
+          const write=!!reminderAdmissionRoute||!!reminderCaptureRoute,allowed=write?'POST':'GET';
+          if(method!==allowed)throw new HttpError(405,'METHOD_NOT_ALLOWED','Method is not allowed for this reminder route.',{Allow:allowed});
+          let forbidden=false;request.headers.forEach((_,name)=>{if(['cookie','content-encoding','expect','range','transfer-encoding','x-actor-id','x-tenant-id','x-role','x-actor','x-tenant','x-revision-version'].includes(name)||name.startsWith('if-'))forbidden=true;});
+          if(forbidden||!write&&(request.body!==null||request.headers.has('content-type')||request.headers.has('content-length')))throw new HttpError(400,'INVALID_INPUT','Unsupported reminder request context.');
+          const declared=request.headers.get('content-length');if(write&&declared!==null&&!/^(?:0|[1-9]\d*)$/.test(declared))throw new HttpError(400,'INVALID_INPUT','Content length must be canonical.');
+          let admissionCommand:ViewingReminderAdmissionCommand|undefined,captureCommand:ViewingReminderCaptureCommand|undefined;
+          if(write){
+            const raw=await jsonBody(request,4096,false,true,true);
+            try{
+              if(reminderAdmissionRoute){const body=record(raw,['operationId','expectedVersion','dueAt','expiresAt']);admissionCommand=validateViewingReminderAdmissionCommand({...body,expectedVersion:String(version(body.expectedVersion))});}
+              else captureCommand=validateViewingReminderCaptureCommand(record(raw,['operationId']));
+            }catch{throw new HttpError(400,'INVALID_INPUT','Review the reminder command fields.');}
+          }
+          const result=await options.database.transaction(context,async query=>{
+            await assertStaff(query);
+            if(admissionCommand){
+              const stored=await query.query('SELECT app_api.admit_viewing_reminder($1::uuid,$2::uuid,$3::uuid,$4::bigint,$5::timestamptz,$6::timestamptz) AS receipt',[id,viewingId,admissionCommand.operationId,admissionCommand.expectedVersion,admissionCommand.dueAt,admissionCommand.expiresAt]);
+              const receipt=validateViewingReminderAdmissionReceipt(scalar(stored,'receipt'),id,viewingId!,admissionCommand);if(receipt.actorId!==actorId)throw new Error('Unexpected reminder admission actor.');return receipt;
+            }
+            const stored=await query.query('SELECT app_api.read_viewing_reminder_admission($1::uuid,$2::uuid) AS receipt',[id,admissionId]);
+            const admission=validateViewingReminderAdmissionSnapshot(scalar(stored,'receipt'),id,admissionId);if(admission.actorId!==actorId)throw new Error('Unexpected original reminder admission actor.');
+            if(reminderAdmissionOriginalRoute)return admission;
+            if(admission.outcome!=='admitted')throw new HttpError(write?422:404,write?'INVALID_STATE':'NOT_FOUND',write?'This admission has no reminder candidate.':'Original capture is unavailable.');
+            const command=captureCommand??validateViewingReminderCaptureCommand({operationId});
+            const captured=await query.query(write?'SELECT app_api.capture_viewing_reminder($1::uuid,$2::uuid,$3::uuid) AS receipt':'SELECT app_api.read_viewing_reminder_attempt($1::uuid,$2::uuid,$3::uuid) AS receipt',[id,admissionId,command.operationId]);
+            return validateViewingReminderCaptureReceipt(scalar(captured,'receipt'),admission,command);
+          });
+          return response(200,result,correlationId);
+        }
         if (path === "/v2/staff/enquiries" || path === "/v2/staff/enquiry-assignees") {
           const directory = path.endsWith("/enquiry-assignees"), pageLimit = enquiryQuery(url, true, directory ? 100 : 50);
           if (method !== "GET") throw new HttpError(405, "METHOD_NOT_ALLOWED", "Method is not allowed for this route.", { Allow: "GET" });

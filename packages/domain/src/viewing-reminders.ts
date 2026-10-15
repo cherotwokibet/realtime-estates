@@ -34,11 +34,15 @@ export function validateViewingReminderAdmissionCommand(input:unknown):ViewingRe
  return Object.freeze({operationId:uuid(v.operationId),expectedVersion:version(v.expectedVersion),dueAt,expiresAt});
 }
 export function validateViewingReminderCaptureCommand(input:unknown):ViewingReminderCaptureCommand{const v=record(input,['operationId']);return Object.freeze({operationId:uuid(v.operationId)});}
-function admittedOriginal(input:unknown){
+/** Self-contained stored receipt validation; route IDs remain required at network boundaries. */
+export function validateViewingReminderAdmissionSnapshot(input:unknown,enquiryInput?:string,operationInput?:string):ViewingReminderAdmissionReceipt{
  const v=record(input,['operationId','enquiryId','viewingId','actorId','kind','mode','expectedVersion','observedVersion','request','outcome','reason','candidate','completedAt']),request=record(v.request,['dueAt','expiresAt']);
  const command=validateViewingReminderAdmissionCommand({operationId:v.operationId,expectedVersion:v.expectedVersion,dueAt:request.dueAt,expiresAt:request.expiresAt});
- const original=validateViewingReminderAdmissionReceipt(input,uuid(v.enquiryId),uuid(v.viewingId),command);if(original.outcome!=='admitted')return invalid();return original;
+ const enquiryId=uuid(v.enquiryId);
+ if(enquiryInput!==undefined&&enquiryId!==uuid(enquiryInput)||operationInput!==undefined&&command.operationId!==uuid(operationInput))return invalid();
+ return validateViewingReminderAdmissionReceipt(input,enquiryId,uuid(v.viewingId),command);
 }
+function admittedOriginal(input:unknown){const original=validateViewingReminderAdmissionSnapshot(input);if(original.outcome!=='admitted')return invalid();return original;}
 /** Historical SQL-only capture evidence. This does not authorize a provider send or a fresh attempt. */
 export function validateViewingReminderCaptureReceipt(input:unknown,admissionInput:ViewingReminderAdmissionReceipt,commandInput:ViewingReminderCaptureCommand):ViewingReminderCaptureReceipt{
  const admission=admittedOriginal(admissionInput),command=validateViewingReminderCaptureCommand(commandInput),candidate=admission.candidate;
