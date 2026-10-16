@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../test-helpers/synthetic-sealed-media.mjs';
@@ -98,6 +100,13 @@ const read = (db, job) =>
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
+  // Explicit candidate-schema coverage while 0024 is not in default startup.
+  await db.exec(
+    await readFile(
+      new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   await db.query(
     `INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'processing-a','Synthetic A'),($2,'processing-b','Synthetic B')`,
     [T, OTHER],
@@ -119,11 +128,16 @@ async function newJob(db, n, { requester = AGENT } = {}) {
   const listing = id(n),
     operation = id(n + 1000);
   return actor(db, requester, async () => {
-    await db.query('SELECT app_api.create_listing($1,$2)', [listing, `synthetic-${n}`]);
-    await db.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-      listing,
-      JSON.stringify(content),
-    ]);
+    await seedGuardedListingDraft(db, {
+      listingId: listing,
+      slug: `synthetic-${n}`,
+      content: {
+        ...content,
+        pricing: { declaration: 'not_declared', charges: [] },
+        location: { county: null, town: null, area: null },
+      },
+      actorId: requester,
+    });
     const receipt = await scalar(db, 'SELECT app_api.register_media_upload($1,1,2,$2,$3)', [
       listing,
       operation,
@@ -159,11 +173,16 @@ async function historicalJob(db, n, expiresOffsetSeconds) {
     operation = id(n + 1000),
     job = id(n + 2000);
   await actor(db, AGENT, async () => {
-    await db.query('SELECT app_api.create_listing($1,$2)', [listing, `synthetic-${n}`]);
-    await db.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-      listing,
-      JSON.stringify(content),
-    ]);
+    await seedGuardedListingDraft(db, {
+      listingId: listing,
+      slug: `synthetic-${n}`,
+      content: {
+        ...content,
+        pricing: { declaration: 'not_declared', charges: [] },
+        location: { county: null, town: null, area: null },
+      },
+      actorId: AGENT,
+    });
   });
   await db.query(
     `WITH facts AS (SELECT clock_timestamp()-interval '24 hours'+($6::integer*interval '1 second') AS created),

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
 import { createHash } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
@@ -84,6 +86,13 @@ async function snapshot(db) {
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
+  // Explicit candidate-schema coverage while 0024 is not in default startup.
+  await db.exec(
+    await readFile(
+      new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   const bootstrap = '"' + (await scalar(db, 'SELECT session_user')).replaceAll('"', '""') + '"';
   await db.query(
     `INSERT INTO app_private.tenants(id,slug,display_name) VALUES
@@ -140,14 +149,16 @@ async function fixture() {
     await api(
       actor,
       async () => {
-        await db.query('SELECT app_api.create_listing($1,$2)', [
-          x.listing,
-          `synthetic-private-preview-${n}`,
-        ]);
-        await db.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-          x.listing,
-          JSON.stringify(content),
-        ]);
+        await seedGuardedListingDraft(db, {
+          listingId: x.listing,
+          slug: `synthetic-private-preview-${n}`,
+          content: {
+            ...content,
+            pricing: { declaration: 'not_declared', charges: [] },
+            location: { county: null, town: null, area: null },
+          },
+          actorId: actor,
+        });
       },
       tenant,
     );

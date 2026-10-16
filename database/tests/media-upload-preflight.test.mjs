@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 
@@ -36,6 +38,13 @@ const denied = (operation, code) => assert.rejects(operation, (error) => error.c
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
+  // Explicit candidate-schema coverage while 0024 is not in default startup.
+  await db.exec(
+    await readFile(
+      new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   const bootstrap = '"' + (await scalar(db, 'SELECT session_user')).replaceAll('"', '""') + '"';
   await db.query(
     `INSERT INTO app_private.tenants(id,slug,display_name) VALUES
@@ -83,14 +92,16 @@ async function fixture() {
     return api(
       actor,
       async () => {
-        await db.query('SELECT app_api.create_listing($1,$2)', [
-          listing,
-          `synthetic-preflight-${n}`,
-        ]);
-        await db.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-          listing,
-          JSON.stringify(content),
-        ]);
+        await seedGuardedListingDraft(db, {
+          listingId: listing,
+          slug: `synthetic-preflight-${n}`,
+          content: {
+            ...content,
+            pricing: { declaration: 'not_declared', charges: [] },
+            location: { county: null, town: null, area: null },
+          },
+          actorId: actor,
+        });
         const receipt = await scalar(db, 'SELECT app_api.register_media_upload($1,1,2,$2,$3)', [
           listing,
           registration,
@@ -147,11 +158,16 @@ async function expired(f, n) {
     quarantine = id(n + 3000),
     output = id(n + 4000);
   await api(AGENT, async () => {
-    await db.query('SELECT app_api.create_listing($1,$2)', [listing, `synthetic-preflight-${n}`]);
-    await db.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-      listing,
-      JSON.stringify(content),
-    ]);
+    await seedGuardedListingDraft(db, {
+      listingId: listing,
+      slug: `synthetic-preflight-${n}`,
+      content: {
+        ...content,
+        pricing: { declaration: 'not_declared', charges: [] },
+        location: { county: null, town: null, area: null },
+      },
+      actorId: AGENT,
+    });
   });
   // Explicit privileged immutable historical metadata fixture. This is not clock
   // advancement, a successful historical upload, or native/storage evidence.

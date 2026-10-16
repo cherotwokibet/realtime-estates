@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 
@@ -59,6 +61,13 @@ const denied = (callback, code = '42501') =>
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
+  // Explicit candidate-schema coverage while 0024 is not in default startup.
+  await db.exec(
+    await readFile(
+      new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   await db.query(
     `INSERT INTO app_private.tenants(id,slug,display_name) VALUES
     ($1,'upload-context-a','Synthetic A'),($2,'upload-context-b','Synthetic B')`,
@@ -84,11 +93,16 @@ async function job(db, n, { actor = AGENT, tenant = T } = {}) {
     db,
     actor,
     async () => {
-      await db.query('SELECT app_api.create_listing($1,$2)', [listing, `synthetic-${n}`]);
-      await db.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-        listing,
-        JSON.stringify(content),
-      ]);
+      await seedGuardedListingDraft(db, {
+        listingId: listing,
+        slug: `synthetic-${n}`,
+        content: {
+          ...content,
+          pricing: { declaration: 'not_declared', charges: [] },
+          location: { county: null, town: null, area: null },
+        },
+        actorId: actor,
+      });
       const receipt = await scalar(db, 'SELECT app_api.register_media_upload($1,1,2,$2,$3)', [
         listing,
         operation,
@@ -127,11 +141,16 @@ async function expiredJob(db, n) {
     quarantine = id(n + 3000),
     output = id(n + 4000);
   await api(db, AGENT, async () => {
-    await db.query('SELECT app_api.create_listing($1,$2)', [listing, `synthetic-${n}`]);
-    await db.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-      listing,
-      JSON.stringify(content),
-    ]);
+    await seedGuardedListingDraft(db, {
+      listingId: listing,
+      slug: `synthetic-${n}`,
+      content: {
+        ...content,
+        pricing: { declaration: 'not_declared', charges: [] },
+        location: { county: null, town: null, area: null },
+      },
+      actorId: AGENT,
+    });
   });
   // Privileged immutable historical fixture. No clock advance, actual upload or
   // successful historical worker execution is claimed by this seeded data.
