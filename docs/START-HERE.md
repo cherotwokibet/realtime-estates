@@ -1,3 +1,6 @@
+## Checkpoint80 publication — 16 October 2026
+
+Formatting/CI sourcecaf1f46fd2519e1384ab845294b463a3c10f22cf pushed/fresh matching clean GitHub clone/fsck passed;actual PR1CI38831346029 succeeded7m26s at2b10e04,normal merge047f4fa browser confirmed Merged. Main follow-up CI not yet claimed. Owner-private dashboard317d9089e346b3c56ddd6d8c3ee010f693a876bd deploymentappgdep_6ad176e4ef988191ba2845db6c9ca782 succeeded.315notes retained+2=317;lateexport unchanged/unsavedempty;canonical import/reload/export allstages/tasks/status/gates/evidence/notes match. Live20percent,19/97tasks,0/14gates;JPEG inspected. Expired Sites credential renewed before packaging,no duplicate deployment. No active local checks/preview remain. Next docs/listing-successor-next.md guarded successor domain→storage/compatibility→HTTP/SDK→operator;legacy zero-version allocation must be addressed before exclusive creation claim. Rights/accounts/hosted/device/UAT/cutover still open;KES10,000monthlytotal/vendor/oldlive preserved.
 
 ## Formatting and actual PR CI verified — 16 October 2026
 
