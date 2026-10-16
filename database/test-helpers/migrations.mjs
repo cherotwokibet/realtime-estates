@@ -24,6 +24,7 @@ const files = [
   '0020_viewing_reminder_admission.sql',
   '0021_viewing_reminder_capture.sql',
   '0022_listing_creation.sql',
+  '0023_listing_successor.sql',
 ];
 export async function applyTestMigrations(database) {
   for (const file of files) {
