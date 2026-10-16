@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFile } from 'node:fs/promises';
 import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
 import { createHash } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
@@ -86,13 +85,7 @@ async function snapshot(db) {
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
-  // Explicit candidate-schema coverage while 0024 is not in default startup.
-  await db.exec(
-    await readFile(
-      new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
-      'utf8',
-    ),
-  );
+  // Allocation restriction is part of the normal reviewed migration order.
   const bootstrap = '"' + (await scalar(db, 'SELECT session_user')).replaceAll('"', '""') + '"';
   await db.query(
     `INSERT INTO app_private.tenants(id,slug,display_name) VALUES

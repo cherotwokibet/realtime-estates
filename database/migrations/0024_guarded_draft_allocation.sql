@@ -1,5 +1,5 @@
--- Candidate only: not registered in the default migration/startup order.
--- Fixture compatibility conversion and full final-schema tests are required before promotion.
+-- Guarded allocation: ordinary saves require a positive existing version.
+-- Only authorized creation/successor operations can call the private allocation helpers.
 BEGIN;
 SET LOCAL ROLE realtor_owner;
 ALTER FUNCTION app_api.save_draft(uuid,integer,bigint,jsonb) RENAME TO save_draft_internal_v1;

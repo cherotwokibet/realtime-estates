@@ -1,5 +1,4 @@
 import test from 'node:test';
-import { readFile } from 'node:fs/promises';
 import {
   seedGuardedListingDraft,
   seedGuardedListingSuccessor,
@@ -56,12 +55,7 @@ test('shared client exercises actual API service, restricted runtime transaction
   const db = new PGlite();
   try {
     await applyTestMigrations(db);
-    await db.exec(
-      await readFile(
-        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
-        'utf8',
-      ),
-    );
+    // Allocation restriction is part of the normal reviewed migration order.
     await db.query(
       `INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'client-a','Synthetic Client A'),($2,'client-b','Synthetic Client B')`,
       [TENANT, OTHER],

@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
+import { seedGuardedListingDraft } from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import { MediaCoordinatorDatabase } from '@realtor/media/coordinator-database';
 import { createLocalSyntheticStore } from '@realtor/media/local-store';
 import { verifySyntheticProcessReadback } from '@realtor/media/process-readback';
@@ -142,11 +143,16 @@ export async function environment(t) {
       "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
       [TENANT, AGENT],
     );
-    await db.query('SELECT app_api.create_listing($1,$2)', [LISTING, 'synthetic-process-sql']);
-    await db.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-      LISTING,
-      JSON.stringify(content),
-    ]);
+    await seedGuardedListingDraft(db, {
+      listingId: LISTING,
+      slug: 'synthetic-process-sql',
+      actorId: AGENT,
+      content: {
+        ...content,
+        pricing: { declaration: 'not_declared', charges: [] },
+        location: { county: null, town: null, area: null },
+      },
+    });
     registration = await scalar(db, 'SELECT app_api.register_media_upload($1,1,2,$2,$3)', [
       LISTING,
       randomUUID(),

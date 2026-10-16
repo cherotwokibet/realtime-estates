@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFile } from 'node:fs/promises';
 import {
   seedGuardedListingDraft,
   seedGuardedListingSuccessor,
@@ -96,13 +95,7 @@ const readCoordinator = (db, operation) =>
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
-  // Explicit candidate coverage; remove when 0024 enters default migration order.
-  await db.exec(
-    await readFile(
-      new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
-      'utf8',
-    ),
-  );
+  // Allocation restriction is part of the normal reviewed migration order.
   await db.query(
     `INSERT INTO app_private.tenants(id,slug,display_name) VALUES
     ($1,'attachment-a','Synthetic A'),($2,'attachment-b','Synthetic B')`,

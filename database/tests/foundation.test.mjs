@@ -1,4 +1,8 @@
 import assert from 'node:assert/strict';
+import {
+  seedGuardedListingDraft,
+  seedGuardedListingSuccessor,
+} from '../test-helpers/guarded-listing-fixture.mjs';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../test-helpers/synthetic-sealed-media.mjs';
 import test from 'node:test';
@@ -37,6 +41,7 @@ const content = {
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
+  // Allocation restriction is part of the normal reviewed migration order.
   await db.query(
     `INSERT INTO app_private.tenants(id,slug,display_name) VALUES ($1,'realtime-test','Synthetic Realtime'),($2,'other-test','Synthetic Other')`,
     [T, OTHER],
@@ -77,15 +82,37 @@ async function scalar(db, sql, args = []) {
 }
 async function createDraft(db, listing = LISTING, actor = AGENT) {
   return asActor(db, T, actor, async () => {
-    await db.query('SELECT app_api.create_listing($1,$2)', [
-      listing,
-      `synthetic-${listing.slice(-3)}`,
-    ]);
-    return scalar(db, 'SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-      listing,
-      JSON.stringify(content),
-    ]);
+    const receipt = await seedGuardedListingDraft(db, {
+      listingId: listing,
+      slug: `synthetic-${listing.slice(-3)}`,
+      actorId: actor,
+      content: fullDraft(content),
+    });
+    return Number(receipt.result.revisionVersion);
   });
+}
+const fullDraft = (value) => ({
+  ...value,
+  pricing: { declaration: 'not_declared', charges: [] },
+  location: { county: null, town: null, area: null },
+});
+async function startDraft(db, revision, actor, value) {
+  const facts = (
+    await db.query(
+      'SELECT l.version::text AS listing_version,r.version::text AS revision_version,r.state FROM app_private.listings l JOIN app_private.listing_revisions r ON r.tenant_id=l.tenant_id AND r.listing_id=l.id WHERE l.id=$1 AND r.revision_no=$2',
+      [LISTING, revision - 1],
+    )
+  ).rows[0];
+  const receipt = await asActor(db, T, actor, () =>
+    seedGuardedListingSuccessor(db, {
+      listingId: LISTING,
+      actorId: actor,
+      expectedListingVersion: facts.listing_version,
+      predecessor: { revision: revision - 1, version: facts.revision_version, state: facts.state },
+      content: fullDraft(value),
+    }),
+  );
+  return Number(receipt.decision.result.revisionVersion);
 }
 async function seedMedia(db, listing = LISTING, revision = 1, count = 4) {
   for (let position = 0; position < count; position++) {
@@ -439,8 +466,12 @@ test('accepted photos cannot make an incomplete draft publishable', async () => 
   const db = await fixture();
   try {
     await asActor(db, T, AGENT, async () => {
-      await db.query(`SELECT app_api.create_listing($1,'incomplete')`, [LISTING]);
-      await db.query(`SELECT app_api.save_draft($1,1,0,'{}'::jsonb)`, [LISTING]);
+      await seedGuardedListingDraft(db, {
+        listingId: LISTING,
+        slug: 'incomplete',
+        actorId: AGENT,
+        content: fullDraft({}),
+      });
     });
     await seedMedia(db);
     await denied(
@@ -609,12 +640,7 @@ test('draft editing and rejection preserve published revision; stale review conf
   const db = await fixture();
   try {
     await publish(db);
-    const version = await asActor(db, T, AGENT, () =>
-      scalar(db, 'SELECT app_api.save_draft($1,2,0,$2::jsonb)', [
-        LISTING,
-        JSON.stringify({ ...content, title: 'New unapproved title' }),
-      ]),
-    );
+    const version = await startDraft(db, 2, AGENT, { ...content, title: 'New unapproved title' });
     await seedMedia(db, LISTING, 2);
     const pending = await asActor(db, T, AGENT, () =>
       scalar(db, 'SELECT app_api.submit_revision($1,2,$2)', [LISTING, version]),
@@ -669,12 +695,7 @@ test('withdraw and resubmit preserve history; admin self-approval atomically rep
   const db = await fixture();
   try {
     await publish(db);
-    let version = await asActor(db, T, ADMIN, () =>
-      scalar(db, 'SELECT app_api.save_draft($1,2,0,$2::jsonb)', [
-        LISTING,
-        JSON.stringify({ ...content, title: 'Approved replacement' }),
-      ]),
-    );
+    let version = await startDraft(db, 2, ADMIN, { ...content, title: 'Approved replacement' });
     await seedMedia(db, LISTING, 2);
     version = await asActor(db, T, ADMIN, () =>
       scalar(db, 'SELECT app_api.submit_revision($1,2,$2)', [LISTING, version]),
@@ -711,9 +732,7 @@ test('withdraw and resubmit preserve history; admin self-approval atomically rep
       ),
     );
     assert.equal(events.rows[1].summary.selfApproval, true);
-    await asActor(db, T, ADMIN, () =>
-      db.query('SELECT app_api.save_draft($1,3,0,$2::jsonb)', [LISTING, JSON.stringify(content)]),
-    );
+    await startDraft(db, 3, ADMIN, content);
     await denied(
       () =>
         db.query(
@@ -781,12 +800,10 @@ test('approval cannot resurrect a listing paused or archived while its revision 
     const db = await fixture();
     try {
       await publish(db);
-      const saved = await asActor(db, T, AGENT, () =>
-        scalar(db, 'SELECT app_api.save_draft($1,2,0,$2::jsonb)', [
-          LISTING,
-          JSON.stringify({ ...content, title: `Reviewed while ${status}` }),
-        ]),
-      );
+      const saved = await startDraft(db, 2, AGENT, {
+        ...content,
+        title: `Reviewed while ${status}`,
+      });
       await seedMedia(db, LISTING, 2);
       const pending = await asActor(db, T, AGENT, () =>
         scalar(db, 'SELECT app_api.submit_revision($1,2,$2)', [LISTING, saved]),
@@ -850,19 +867,23 @@ test('approval cannot resurrect a listing paused or archived while its revision 
     }
   }
 });
-test('an older pending review cannot overwrite a newer approved snapshot', async () => {
+test('an older rejected review cannot overwrite a newer approved guarded successor snapshot', async () => {
   const db = await fixture();
   try {
     await publish(db);
     const pendingVersions = [];
     for (const revision of [2, 3]) {
-      const saved = await asActor(db, T, AGENT, () =>
-        scalar(db, 'SELECT app_api.save_draft($1,$2,0,$3::jsonb)', [
-          LISTING,
-          revision,
-          JSON.stringify({ ...content, title: `Synthetic revision ${revision}` }),
-        ]),
-      );
+      if (revision === 3)
+        await asActor(db, T, ADMIN, () =>
+          db.query(
+            "SELECT app_api.decide_revision($1,2,$2,false,'Synthetic correction required before successor')",
+            [LISTING, pendingVersions[0]],
+          ),
+        );
+      const saved = await startDraft(db, revision, AGENT, {
+        ...content,
+        title: `Synthetic revision ${revision}`,
+      });
       await seedMedia(db, LISTING, revision);
       pendingVersions.push(
         await asActor(db, T, AGENT, () =>

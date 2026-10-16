@@ -1,5 +1,4 @@
 import test from 'node:test';
-import { readFile } from 'node:fs/promises';
 import {
   seedGuardedListingDraft,
   seedGuardedListingSuccessor,
@@ -41,12 +40,7 @@ test('signed successor HTTP recovers a discarded committed reply, preserves orig
   let database, apiServer, keyServer;
   try {
     await applyTestMigrations(db);
-    await db.exec(
-      await readFile(
-        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
-        'utf8',
-      ),
-    );
+    // Allocation restriction is part of the normal reviewed migration order.
     await db.query(
       "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'signed-successor','Synthetic successor')",
       [T],

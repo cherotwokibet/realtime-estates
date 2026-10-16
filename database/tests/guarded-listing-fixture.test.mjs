@@ -1,23 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
 
-test('preview seed uses authorized guarded creation with the proposed allocation restriction', async () => {
+test('normal migration order supports authorized guarded preview creation', async () => {
   const db = new PGlite();
   const tenant = '00000000-0000-4000-8000-000000000001';
   const agent = '00000000-0000-4000-8000-000000000011';
   const listing = '00000000-0000-4000-8000-000000000100';
   try {
     await applyTestMigrations(db);
-    await db.exec(
-      await readFile(
-        new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
-        'utf8',
-      ),
-    );
+    // Allocation restriction is part of the normal reviewed migration order.
     await db.query(
       "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'synthetic-guarded-seed','Synthetic guarded seed')",
       [tenant],

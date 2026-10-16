@@ -1,5 +1,4 @@
 import test from 'node:test';
-import { readFile } from 'node:fs/promises';
 import {
   seedGuardedListingDraft,
   seedGuardedListingSuccessor,
@@ -107,12 +106,7 @@ test('staff v2 client integrates with real service, SQL assignment checks and op
   const db = new PGlite();
   try {
     await applyTestMigrations(db);
-    await db.exec(
-      await readFile(
-        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
-        'utf8',
-      ),
-    );
+    // Allocation restriction is part of the normal reviewed migration order.
     await db.query(
       `INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'staff-client-a','Synthetic Staff A'),($2,'staff-client-b','Synthetic Staff B')`,
       [TENANT, OTHER],

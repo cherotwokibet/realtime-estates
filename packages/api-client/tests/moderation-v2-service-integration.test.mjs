@@ -1,5 +1,4 @@
 import test from 'node:test';
-import { readFile } from 'node:fs/promises';
 import {
   seedGuardedListingDraft,
   seedGuardedListingSuccessor,
@@ -110,12 +109,7 @@ test('moderation SDK uses actual API/SQL admin gates, snapshot decisions and unc
     '"' + (await db.query('SELECT session_user AS name')).rows[0].name.replaceAll('"', '""') + '"';
   try {
     await applyTestMigrations(db);
-    await db.exec(
-      await readFile(
-        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
-        'utf8',
-      ),
-    );
+    // Allocation restriction is part of the normal reviewed migration order.
     await db.query(
       `INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'review-client-a','Synthetic Review A'),($2,'review-client-b','Synthetic Review B')`,
       [TENANT, OTHER],

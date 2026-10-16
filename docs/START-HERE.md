@@ -760,3 +760,6 @@ LatestSDKlifecycle:236DB+70SDKintegrationpassed(23focusedoverlap). See docs/guar
 
 Checkpoint94 published: dashboard d8dbb392 deployment appgdep_6ad2181140c881918fd71970e57bba6b succeeded;359 notes canonical/browser match. Source acdb889 fresh restore verified.236DB+70SDK integration passed(23focused overlap),mixed default/candidate schema. Next foundation7 compatibility calls underdefaulthelper;doNOTclassify historical-only/freeze whole suite.0024 still outside startup;no activechecks/preview/helper.
 
+
+LatestSQLallocation:0024 now normal local/test migration order;236DB/200API/70integration/47preview/194media checks passed(0skips). See docs/draft-allocation-activation.md. Candidateupgradetests intentionallypre0024;historical0001fixtures explicit. Nextfreshmanualoperatorbrowser thenavailability/publication/moderatorimages. Oldlive/vendorunchanged;19/97tasks0/14gates.
+

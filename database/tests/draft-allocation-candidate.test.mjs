@@ -85,7 +85,7 @@ const start = (db, c) =>
   );
 async function fixture() {
   const db = new PGlite();
-  await applyTestMigrations(db);
+  await applyTestMigrations(db, { through: '0023_listing_successor.sql' });
   await db.query(
     "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'synthetic-boundary-candidate','Synthetic boundary candidate')",
     [T],
@@ -115,7 +115,7 @@ async function fixture() {
   );
   await db.exec(
     await readFile(
-      new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+      new URL('../migrations/0024_guarded_draft_allocation.sql', import.meta.url),
       'utf8',
     ),
   );

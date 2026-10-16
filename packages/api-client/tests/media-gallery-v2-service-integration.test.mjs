@@ -1,5 +1,4 @@
 import test from 'node:test';
-import { readFile } from 'node:fs/promises';
 import { seedGuardedListingDraft } from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
@@ -78,13 +77,7 @@ test('gallery SDK uses actual restricted API login, immutable SQL receipts and e
     const fixtureSession = (await db.query('SELECT session_user AS name')).rows[0].name,
       quotedOwner = '"' + fixtureSession.replaceAll('"', '""') + '"';
     await applyTestMigrations(db);
-    // Explicit candidate schema until 0024 enters normal migration order.
-    await db.exec(
-      await readFile(
-        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
-        'utf8',
-      ),
-    );
+    // Allocation restriction is part of the normal reviewed migration order.
     await db.query(
       "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'gallery-sdk-a','Synthetic Gallery SDK A'),($2,'gallery-sdk-b','Synthetic Gallery SDK B')",
       [TENANT, OTHER],

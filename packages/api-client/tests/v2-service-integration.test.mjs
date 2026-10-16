@@ -210,12 +210,7 @@ test('v2 client integrates with actual migrations, API service and restricted te
       ),
     );
     await applyTestMigrations(db, { after: '0006_media_attachment.sql' });
-    await db.exec(
-      await readFile(
-        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
-        'utf8',
-      ),
-    );
+    // Allocation restriction is part of the normal reviewed migration order.
     await seedPublished(db, TENANT, ADMIN, LISTING, content, true);
     await seedPublished(
       db,

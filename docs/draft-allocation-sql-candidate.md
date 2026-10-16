@@ -1,3 +1,5 @@
+Current status: promoted into the normal local migration order on16October2026. See docs/draft-allocation-activation.md for final-schema verification. The candidate checkpoint below is preserved as historical evidence.
+
 # Private draft allocation: candidate only — 16 October 2026
 
 `database/proposals/0024_guarded_draft_allocation.sql` is a separately tested candidate. It is deliberately absent from the default migration order and disposable preview startup. Current runtime SQL still supports legacy zero-version allocation. The positive-version HTTP/SDK boundary from checkpoint87 remains active. Do not deploy or promote this candidate until fixture callers are converted and the final-schema suites pass.

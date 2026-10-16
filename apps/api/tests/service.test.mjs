@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { seedGuardedListingDraft } from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../../../database/test-helpers/synthetic-sealed-media.mjs';
@@ -61,12 +60,7 @@ async function bootstrapAs(db, tenant, actor, operation) {
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
-  await db.exec(
-    await readFile(
-      new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
-      'utf8',
-    ),
-  );
+  // Allocation restriction is part of the normal reviewed migration order.
   await db.query(
     `INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'synthetic-a','Synthetic A'),($2,'synthetic-b','Synthetic B')`,
     [T, OTHER],

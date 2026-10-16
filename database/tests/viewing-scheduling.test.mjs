@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { readFile } from 'node:fs/promises';
 import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
@@ -119,12 +118,7 @@ async function fixture() {
   const db = new PGlite();
   try {
     await applyTestMigrations(db);
-    await db.exec(
-      await readFile(
-        new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
-        'utf8',
-      ),
-    );
+    // Allocation restriction is part of the normal reviewed migration order.
     await db.query(
       "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'viewing-test','Synthetic Viewing'),($2,'foreign-viewing','Synthetic Foreign')",
       [T, OTHER],
