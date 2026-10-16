@@ -739,3 +739,6 @@ Checkpoint90published:12b72b1 dashboarddeploymentappgdep_6ad1e07a2ea48191b48b873
 
 Latest guardedmedia lifecycle:39checks passed undercandidate0024 acrossjobs/gallery/attachment+existinghelper.3initial+3laterallocations converted;next viewingscheduling/listingsuccessor/serviceSDKinitialfixtures. See docs/guarded-media-lifecycle-fixtures.md;0024notstartup.
 
+
+Checkpoint91published:2cdd85e dashboarddeploymentappgdep_6ad1ec6702d081919baea926a3ab75d3 succeeded;350notes canonical/browsermatch.39checks/source1b3dae8 freshrestoreverified.30literalzero calls remainforclassification/conversion;next viewingpublish/listingsuccessor(includingexplicitcompatibilitytest).0024notstartup;noactivechecks/preview/helper.
+
