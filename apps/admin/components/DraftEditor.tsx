@@ -555,7 +555,7 @@ export default function DraftEditor({
         <strong>Authenticated synthetic staff · local preview</strong>
         <p>
           {photoPreviewEnabled
-            ? 'This disposable workspace uses fictional stock and verifies test images locally. Saved image previews, real sign-in and publication are still being built.'
+            ? 'This disposable workspace uses fictional stock and verifies test images locally. Saved photos use the current draft version. Production sign-in and launch approval remain open.'
             : 'This disposable workspace uses fictional stock. Default photo records are synthetic metadata fixtures. Explicit local uploads and private saved-image previews can be enabled for fictional test images. Real sign-in and publication are still being built.'}
         </p>
       </div>

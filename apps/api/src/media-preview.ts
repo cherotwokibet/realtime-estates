@@ -377,6 +377,27 @@ export function createDevelopmentMediaPreviewApi(
   let closing = false,
     closed: Promise<void> | undefined;
   const active = new Set<Promise<Response>>();
+  // The synthetic processing ledger deliberately admits one operation at a time.
+  // Bound our own reads to one active and one queued without weakening its guard.
+  let outputAdmissions = 0;
+  let outputTail: Promise<void> = Promise.resolve();
+  function output(facts: AuthorizedPreview, request: Request): Promise<Buffer> {
+    if (outputAdmissions >= 2) return Promise.reject(new PreviewError(503, 'SERVICE_UNAVAILABLE'));
+    outputAdmissions++;
+    const work = outputTail.then(async () => {
+      try {
+        cancelled(request);
+        return await readOutputBytes(facts, request);
+      } finally {
+        outputAdmissions--;
+      }
+    });
+    outputTail = work.then(
+      () => undefined,
+      () => undefined,
+    );
+    return work;
+  }
   async function read(
     resource: Resource,
     actorId: string,
@@ -404,7 +425,7 @@ export function createDevelopmentMediaPreviewApi(
     }
     return authorized(value, resource, actorId);
   }
-  async function output(facts: AuthorizedPreview, request: Request): Promise<Buffer> {
+  async function readOutputBytes(facts: AuthorizedPreview, request: Request): Promise<Buffer> {
     const binding: SyntheticProcessingBinding = Object.freeze({
       jobId: facts.context.jobId,
       claimId: facts.lease.claimId,

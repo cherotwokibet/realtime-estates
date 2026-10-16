@@ -276,6 +276,64 @@ async function safeFailure(response, status, code) {
     assert.equal(source.includes(hidden), false);
 }
 
+test('private image adapter serializes ledger reads, bounds its queue and releases admission after failures', async () => {
+  let release, entered;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const started = new Promise((resolve) => {
+    entered = resolve;
+  });
+  let calls = 0;
+  const f = fixture({
+    onRequest: async () => {
+      calls++;
+      if (calls === 1) {
+        entered();
+        await gate;
+      }
+      if (calls === 2) throw new Error('PRIVATE ledger failure');
+    },
+  });
+  // Independent SQL snapshots may overlap another request's storage work.
+  // Avoid the single-request fixture's global transactionActive assertion here.
+  const api = createDevelopmentMediaPreviewApi({
+    ...f.options,
+    database: {
+      transaction: async (_context, run) =>
+        run({
+          query: async () => {
+            f.calls.reads++;
+            return { rows: [{ receipt: facts() }] };
+          },
+        }),
+    },
+  });
+  try {
+    const first = api.handle(f.request());
+    await started;
+    const queued = api.handle(f.request());
+    for (let n = 0; f.calls.reads < 2 && n < 100; n++)
+      await new Promise((resolve) => setTimeout(resolve, 1));
+    assert.equal(f.calls.reads, 2);
+    const overflow = await api.handle(f.request());
+    await safeFailure(overflow, 503, 'SERVICE_UNAVAILABLE');
+    assert.equal(calls, 1, 'Queued and overflow requests cannot overlap the active ledger read.');
+    release();
+    assert.equal((await first).status, 200);
+    await safeFailure(await queued, 503, 'SERVICE_UNAVAILABLE');
+    assert.equal(
+      (await api.handle(f.request())).status,
+      200,
+      'A failed queued read releases its admission.',
+    );
+  } finally {
+    release();
+    await api.close();
+    await f.api.close();
+  }
+});
+
 test('private preview authorizes before trusted IO and again before returning exact independently hashed bytes', async () => {
   const f = fixture();
   try {

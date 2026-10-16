@@ -151,13 +151,12 @@ function configuration({
   if (
     successorTerminalFixture !== undefined &&
     (!['approved', 'rejected'].includes(successorTerminalFixture) ||
-      !seedAcceptedMedia ||
+      (!seedAcceptedMedia && nativeUploads === undefined) ||
       seedPendingReviews ||
-      nativeUploads !== undefined ||
       enquiryPreview !== undefined)
   )
     throw new StaffPreviewConfigurationError(
-      'Successor terminal fixture requires accepted metadata without other preview fixture modes.',
+      'Successor terminal fixture requires explicit old-revision metadata or native mode, without enquiry or pending-review modes.',
     );
   if (creationReplyFault !== undefined && creationReplyFault !== 'invalid-first-created-v1')
     throw new StaffPreviewConfigurationError(
@@ -608,6 +607,17 @@ export async function startStaffPreview(options = {}) {
     await seed(db, seedAcceptedMedia, seedPendingReviews);
     if (successorTerminalFixture) {
       for (const fixtureCompany of Object.values(COMPANIES)) {
+        // Explicit terminal history only: old revision metadata is synthetic, never native-byte proof.
+        // The newly allocated successor remains empty until actual native uploads are attached.
+        if (!seedAcceptedMedia)
+          for (let position = 0; position < 4; position++)
+            await seedSyntheticSealedMedia(db, {
+              tenantId: fixtureCompany.id,
+              listingId: fixtureCompany.listing,
+              mediaId: id(Number(fixtureCompany.listing.slice(-3)) * 10 + position),
+              position,
+              altText: 'Synthetic historical terminal metadata only; no image bytes',
+            });
         await bootstrapAs(db, fixtureCompany, fixtureCompany.agent, () =>
           db.query("SELECT app_api.confirm_availability($1,1,'available')", [
             fixtureCompany.listing,
@@ -617,10 +627,13 @@ export async function startStaffPreview(options = {}) {
           db.query('SELECT app_api.submit_revision($1,1,2) AS version', [fixtureCompany.listing]),
         );
         await bootstrapAs(db, fixtureCompany, fixtureCompany.admin, () =>
-          db.query('SELECT app_api.decide_revision($1,1,$2,$3)', [
+          db.query('SELECT app_api.decide_revision($1,1,$2,$3,$4)', [
             fixtureCompany.listing,
             pending.rows[0].version,
             successorTerminalFixture === 'approved',
+            successorTerminalFixture === 'approved'
+              ? null
+              : 'Synthetic historical rejection; new revision required.',
           ]),
         );
       }
@@ -788,6 +801,7 @@ export async function startStaffPreview(options = {}) {
             historicalSyntheticViewings: !!historicalViewings,
             syntheticReminderCapture: !!reminderCaptureMode,
             acceptedMediaMetadataOnly: seedAcceptedMedia,
+            successorHistoricalMetadataOnly: !!successorTerminalFixture,
             nativeUploads: !!nativeMedia,
             privateMediaPreviews: !!nativeMedia,
             retainedSyntheticMedia: !!nativeMedia,
@@ -1032,7 +1046,7 @@ export async function startStaffPreview(options = {}) {
         }
         const finalizeRoute =
           nativeMedia &&
-          /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/media-attach-intents\/[0-9a-f-]{36}\/finalize$/i.test(
+          /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/[1-9]\d{0,9}\/media-attach-intents\/[0-9a-f-]{36}\/finalize$/i.test(
             url.pathname,
           );
         if (finalizeRoute) {
@@ -1045,9 +1059,11 @@ export async function startStaffPreview(options = {}) {
             url.pathname,
           );
         const reviewRoute =
-          /^\/v2\/staff\/reviews\/[0-9a-f-]{36}\/revisions\/1(\/decision)?$/i.exec(url.pathname);
+          /^\/v2\/staff\/reviews\/[0-9a-f-]{36}\/revisions\/[1-9]\d{0,9}(\/decision)?$/i.exec(
+            url.pathname,
+          );
         const mediaRoute =
-          /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/(media-registrations|media-jobs)(?:\/([0-9a-f-]{36}))?$/i.exec(
+          /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/[1-9]\d{0,9}\/(media-registrations|media-jobs)(?:\/([0-9a-f-]{36}))?$/i.exec(
             url.pathname,
           );
         const galleryRoute =
@@ -1055,7 +1071,7 @@ export async function startStaffPreview(options = {}) {
             url.pathname,
           );
         const attachRoute = nativeMedia
-          ? /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/media-attach-intents(?:\/([0-9a-f-]{36}))?$/i.exec(
+          ? /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/[1-9]\d{0,9}\/media-attach-intents(?:\/([0-9a-f-]{36}))?$/i.exec(
               url.pathname,
             )
           : null;
@@ -1111,7 +1127,7 @@ export async function startStaffPreview(options = {}) {
             if (denied) return denied;
             const url = new URL(request.url);
             if (
-              !/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/media-jobs\/[0-9a-f-]{36}\/uploads\/[0-9a-f-]{36}$/i.test(
+              !/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/[1-9]\d{0,9}\/media-jobs\/[0-9a-f-]{36}\/uploads\/[0-9a-f-]{36}$/i.test(
                 url.pathname,
               )
             )
@@ -1158,6 +1174,7 @@ export async function startStaffPreview(options = {}) {
       tenantSlug,
       expiresAt,
       acceptedMediaMetadataOnly: seedAcceptedMedia,
+      successorHistoricalMetadataOnly: !!successorTerminalFixture,
       enquiryCatalogueMetadataOnly: !!enquiryCatalogue,
       pendingReviewFixtures: seedPendingReviews,
       nativeUploads: !!nativeMedia,

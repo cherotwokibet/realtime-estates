@@ -256,9 +256,9 @@ export default function ReviewWorkspace({ previewInstanceId }: { previewInstance
       <div className="draft-preview-notice">
         <strong>Signed synthetic identity · disposable local data</strong>
         <p>
-          Photo references are fixture metadata; image bytes have not been uploaded or verified.
-          These decisions affect synthetic stock only. Production sessions, trusted media processing
-          and launch approval remain open.
+          This review shows saved photo references. Default fixtures have metadata only; explicitly
+          uploaded synthetic photos are verified in the draft workspace. These decisions affect
+          fictional stock only. Production sessions and launch approval remain open.
         </p>
       </div>
       <div className="review-workspace-layout">
@@ -510,8 +510,7 @@ export default function ReviewWorkspace({ previewInstanceId }: { previewInstance
                   <div>
                     <h2>Photo references</h2>
                     <p>
-                      {review.acceptedPhotoCount} accepted metadata rows · no image bytes in this
-                      preview
+                      {review.acceptedPhotoCount} accepted records · this review displays references
                     </p>
                   </div>
                 </div>
@@ -527,8 +526,8 @@ export default function ReviewWorkspace({ previewInstanceId }: { previewInstance
                   ))}
                 </ol>
                 <p className="draft-help">
-                  This cannot verify photo quality, distinct images, advertising rights or safe
-                  decoding. Trusted upload processing must be implemented and verified before real
+                  Photo references alone cannot verify image quality, distinct images or advertising
+                  rights. Inspect verified images and complete operator acceptance before real
                   publication.
                 </p>
               </section>
@@ -657,9 +656,12 @@ export default function ReviewWorkspace({ previewInstanceId }: { previewInstance
                   <h2>{label(review.state)} revision</h2>
                   <p className="draft-help">
                     This revision is read-only. A rejected or approved revision needs a new
-                    sequential draft for content changes. This queue does not yet create successor
-                    drafts.
+                    sequential draft for content changes. Open listing work for a fresh predecessor
+                    read before starting the new draft.
                   </p>
+                  <a className="enq-secondary" href="/listings">
+                    Open listing work
+                  </a>
                 </section>
               )}
             </>
