@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import {
+  seedGuardedListingDraft,
+  seedGuardedListingSuccessor,
+} from '../test-helpers/guarded-listing-fixture.mjs';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../test-helpers/synthetic-sealed-media.mjs';
@@ -67,6 +72,13 @@ const denied = (callback, code = '42501') =>
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
+  // Explicit candidate coverage; remove when 0024 enters default migration order.
+  await db.exec(
+    await readFile(
+      new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   await db.query(
     `INSERT INTO app_private.tenants(id,slug,display_name) VALUES
     ($1,'registration-a','Synthetic A'),($2,'registration-b','Synthetic B')`,
@@ -89,14 +101,17 @@ async function fixture() {
 }
 async function draft(db, listing, { tenant = T, actor = AGENT } = {}) {
   return asActor(db, tenant, actor, async () => {
-    await db.query('SELECT app_api.create_listing($1,$2)', [
-      listing,
-      `synthetic-${listing.slice(-3)}`,
-    ]);
-    return scalar(db, 'SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-      listing,
-      JSON.stringify(content),
-    ]);
+    const receipt = await seedGuardedListingDraft(db, {
+      listingId: listing,
+      slug: `synthetic-${listing.slice(-3)}`,
+      content: {
+        ...content,
+        pricing: { declaration: 'not_declared', charges: [] },
+        location: { county: null, town: null, area: null },
+      },
+      actorId: actor,
+    });
+    return Number(receipt.result.revisionVersion);
   });
 }
 function register(
@@ -356,13 +371,44 @@ test('registered media jobs preserve private identity and authorized historical 
           await denied(() => register(db, listing, operation, options), '40001');
         }
         await denied(() => register(db, otherListing, operation), '40001');
-        await asActor(db, T, AGENT, () =>
-          db.query('SELECT app_api.save_draft($1,2,0,$2::jsonb)', [
-            listing,
-            JSON.stringify(content),
-          ]),
+        // Missing revisions fail resource lookup before operation identity comparison.
+        assert.equal(
+          await scalar(
+            db,
+            'SELECT count(*)::integer FROM app_private.listing_revisions WHERE listing_id=$1 AND revision_no=2',
+            [listing],
+          ),
+          0,
         );
+        await denied(() => register(db, listing, operation, { revision: 2 }), 'P0002');
+        assert.deepEqual(await counts(db), before);
+        await sqlOnlyPhotos(db, listing);
+        await asActor(db, T, AGENT, () =>
+          db.query("SELECT app_api.confirm_availability($1,1,'available')", [listing]),
+        );
+        await asActor(db, T, AGENT, () =>
+          db.query('SELECT app_api.submit_revision($1,1,2)', [listing]),
+        );
+        await asActor(db, T, ADMIN, () =>
+          db.query('SELECT app_api.decide_revision($1,1,3,true)', [listing]),
+        );
+        await asActor(db, T, AGENT, () =>
+          seedGuardedListingSuccessor(db, {
+            actorId: AGENT,
+            listingId: listing,
+            expectedListingVersion: '3',
+            predecessor: { revision: 1, version: '4', state: 'approved' },
+            content: {
+              ...content,
+              pricing: { declaration: 'not_declared', charges: [] },
+              location: { county: null, town: null, area: null },
+            },
+          }),
+        );
+        // A real authorized successor still cannot reuse the original operation.
+        const successorCounts = await counts(db);
         await denied(() => register(db, listing, operation, { revision: 2 }), '40001');
+        assert.deepEqual(await counts(db), successorCounts);
         await seedHistorical(db, {
           listing,
           operation: id(304),
@@ -371,9 +417,9 @@ test('registered media jobs preserve private identity and authorized historical 
         });
         await denied(() => register(db, listing, id(304)), '40001');
         const after = await counts(db);
-        assert.equal(after.jobs, before.jobs);
-        assert.equal(after.audits, before.audits);
-        assert.equal(after.operations, before.operations + 1); // Privileged future-kind conflict fixture only.
+        assert.equal(after.jobs, successorCounts.jobs);
+        assert.equal(after.audits, successorCounts.audits);
+        assert.equal(after.operations, successorCounts.operations + 1); // Privileged future-kind conflict fixture only.
       },
     );
 

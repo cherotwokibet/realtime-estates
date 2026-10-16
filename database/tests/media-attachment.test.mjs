@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import {
+  seedGuardedListingDraft,
+  seedGuardedListingSuccessor,
+} from '../test-helpers/guarded-listing-fixture.mjs';
 import { createHash } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
@@ -91,6 +96,13 @@ const readCoordinator = (db, operation) =>
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
+  // Explicit candidate coverage; remove when 0024 enters default migration order.
+  await db.exec(
+    await readFile(
+      new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   await db.query(
     `INSERT INTO app_private.tenants(id,slug,display_name) VALUES
     ($1,'attachment-a','Synthetic A'),($2,'attachment-b','Synthetic B')`,
@@ -112,14 +124,16 @@ async function fixture() {
 async function listing(db, n, { tenant = T, actor = AGENT } = {}) {
   const x = { tenant, actor, listing: id(n), version: 2 };
   await api(db, x, async () => {
-    await db.query('SELECT app_api.create_listing($1,$2)', [
-      x.listing,
-      `synthetic-attachment-${n}`,
-    ]);
-    await db.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-      x.listing,
-      JSON.stringify(content),
-    ]);
+    await seedGuardedListingDraft(db, {
+      listingId: x.listing,
+      slug: `synthetic-attachment-${n}`,
+      content: {
+        ...content,
+        pricing: { declaration: 'not_declared', charges: [] },
+        location: { county: null, town: null, area: null },
+      },
+      actorId: actor,
+    });
   });
   return x;
 }
@@ -820,10 +834,20 @@ test('single-photo attachment requires an authenticated exact intent and immutab
           '23514',
         );
         await api(db, x, () =>
-          db.query('SELECT app_api.save_draft($1,2,0,$2::jsonb)', [
-            x.listing,
-            JSON.stringify({ ...content, title: 'New synthetic draft' }),
-          ]),
+          seedGuardedListingSuccessor(db, {
+            listingId: x.listing,
+            actorId: x.actor,
+            expectedListingVersion: '3',
+            predecessor: { revision: 1, version: '8', state: 'approved' },
+            content: {
+              ...{
+                ...content,
+                pricing: { declaration: 'not_declared', charges: [] },
+                location: { county: null, town: null, area: null },
+              },
+              title: 'New synthetic draft',
+            },
+          }),
         );
         assert.deepEqual(
           await scalar(

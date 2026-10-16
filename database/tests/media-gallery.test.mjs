@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import {
+  seedGuardedListingDraft,
+  seedGuardedListingSuccessor,
+} from '../test-helpers/guarded-listing-fixture.mjs';
 import { createHash } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
@@ -75,6 +80,13 @@ const read = (db, x, operation) =>
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
+  // Explicit candidate coverage; remove when 0024 enters default migration order.
+  await db.exec(
+    await readFile(
+      new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   await db.query(
     `INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'gallery-a','Synthetic A'),($2,'gallery-b','Synthetic B')`,
     [T, OTHER],
@@ -95,18 +107,29 @@ async function fixture() {
 }
 async function listing(db, n, { tenant = T, actor = AGENT, version = 2 } = {}) {
   const x = { tenant, actor, listing: id(n), version };
-  await transaction(db, x, () =>
-    db.query('SELECT app_api.create_listing($1,$2)', [x.listing, `gallery-${n}`]),
-  );
-  if (version === 2)
+  if (version === 2) {
     await transaction(db, x, () =>
-      db.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [x.listing, JSON.stringify(content)]),
+      seedGuardedListingDraft(db, {
+        listingId: x.listing,
+        slug: `gallery-${n}`,
+        content: {
+          ...content,
+          pricing: { declaration: 'not_declared', charges: [] },
+          location: { county: null, town: null, area: null },
+        },
+        actorId: actor,
+      }),
     );
-  else
+  } else {
+    // Explicit privileged bigint-boundary fixture, not a normal creation workflow.
+    await transaction(db, x, () =>
+      db.query('SELECT app_api.create_listing($1,$2)', [x.listing, `gallery-${n}`]),
+    );
     await db.query(
       'INSERT INTO app_private.listing_revisions(tenant_id,listing_id,revision_no,version) VALUES($1,$2,1,$3::bigint)',
       [tenant, x.listing, version],
     );
+  }
   return x;
 }
 async function legacy(db, x, n, positions = [0, 1, 2, 3]) {
@@ -630,10 +653,17 @@ test('draft gallery commands preserve exact consent, contiguous positions and im
           published,
         );
         await transaction(db, x, () =>
-          db.query('SELECT app_api.save_draft($1,2,0,$2::jsonb)', [
-            x.listing,
-            JSON.stringify(content),
-          ]),
+          seedGuardedListingSuccessor(db, {
+            listingId: x.listing,
+            actorId: x.actor,
+            expectedListingVersion: '3',
+            predecessor: { revision: 1, version: '5', state: 'approved' },
+            content: {
+              ...content,
+              pricing: { declaration: 'not_declared', charges: [] },
+              location: { county: null, town: null, area: null },
+            },
+          }),
         );
         const newPhoto = await seedSyntheticSealedMedia(db, {
           tenantId: T,

@@ -736,3 +736,6 @@ Latestmediafixturegroup:7initialallocationsconverted,42checks passedwithproposal
 
 Checkpoint90published:12b72b1 dashboarddeploymentappgdep_6ad1e07a2ea48191b48b873d1e6baaea succeeded;347notes canonical/browsermatch.42media checks undercandidate passed/source30bb763 freshrestoreverified.36literalzero calls remain forconversion/classification;next jobs/gallery/attachment. No activechecks/preview/helper;0024notstartup.
 
+
+Latest guardedmedia lifecycle:39checks passed undercandidate0024 acrossjobs/gallery/attachment+existinghelper.3initial+3laterallocations converted;next viewingscheduling/listingsuccessor/serviceSDKinitialfixtures. See docs/guarded-media-lifecycle-fixtures.md;0024notstartup.
+
