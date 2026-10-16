@@ -766,3 +766,6 @@ LatestSQLallocation:0024 now normal local/test migration order;236DB/200API/70in
 
 Checkpoint95 published: normal local migration0024 active;236DB/200API/70integration/47preview/194media passed,0skips. Sourcee3f39a3 freshGitHubrestoreverified;dashboarda6d6a5a deploymentappgdep_6ad226b2fa448191b2de05ca245f7739 succeeded;362notes canonical/browsermatch. Next freshoperatorbrowser default0024,thenavailability/publication/moderatorimages. Noactivechecks/preview/helper;oldliveunchanged;19/97tasks0/14gates.
 
+
+Latestdefault0024operatorbrowser: uncertain successor GETrecovery→savedfacts/fourdecodednativeimages→pending→explicitapproval selectedrev2;separateguardedcreation freshread/emptygallery. Finaladminbuildpassed;ownedpreviewclosed/rootsretained. See docs/allocation-operator-browser.md. Prior747checksnotrerun;nextguardedavailability/publication/moderatorimages;19/97tasks0/14gates.
+
