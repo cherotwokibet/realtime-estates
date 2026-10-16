@@ -751,3 +751,6 @@ Checkpoint92published:281b3f4 dashboarddeploymentappgdep_6ad1f89fa4d48191a2dc180
 
 LatestAPIservice/moderation:33checks passed undercandidate0024;guardededitablecreation andterminalsuccessors;bareHTTPcreationseparatecoverage. See docs/guarded-api-fixtures.md. NextremainingSDKintegrationfixtures;0024notstartup.
 
+
+Checkpoint93 published: dashboard a9f09c6 deployment appgdep_6ad207c9dac881919955e28d105a58cb succeeded;356 notes match canonical/browser.33 service/moderation checks passed;source a155e84 fresh restore verified.18 literal calls include intentional/historical coverage; next remaining SDK fixtures. Moderation SDK preallocates2/3 and needs legitimate deferred successor setup.0024 remains outside startup; no active checks/preview/helper.
+
