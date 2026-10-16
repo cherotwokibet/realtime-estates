@@ -26,6 +26,7 @@ const files = [
   '0022_listing_creation.sql',
   '0023_listing_successor.sql',
   '0024_guarded_draft_allocation.sql',
+  '0025_listing_controls.sql',
 ];
 export async function applyTestMigrations(database, { after, through } = {}) {
   // Historical migration fixtures can continue through the reviewed current order.
