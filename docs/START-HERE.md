@@ -757,3 +757,6 @@ Checkpoint93 published: dashboard a9f09c6 deployment appgdep_6ad207c9dac88191995
 
 LatestSDKlifecycle:236DB+70SDKintegrationpassed(23focusedoverlap). See docs/guarded-sdk-lifecycle-fixtures.md. FoundationusesDEFAULT helper andneedsconversion;doNOTclassifyhistorical-only. Remaining10literalcalls include7foundationcompatibility.0024notstartup;nextfoundation thenpromotion/fullfinalschema.
 
+
+Checkpoint94 published: dashboard d8dbb392 deployment appgdep_6ad2181140c881918fd71970e57bba6b succeeded;359 notes canonical/browser match. Source acdb889 fresh restore verified.236DB+70SDK integration passed(23focused overlap),mixed default/candidate schema. Next foundation7 compatibility calls underdefaulthelper;doNOTclassify historical-only/freeze whole suite.0024 still outside startup;no activechecks/preview/helper.
+
