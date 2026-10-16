@@ -733,3 +733,6 @@ Checkpoint89 published: dashboard92158c7 deploymentappgdep_6ad1debbd09881919cb9d
 
 Latestmediafixturegroup:7initialallocationsconverted,42checks passedwithproposal0024 explicitlyapplied in4suites. See docs/guarded-media-fixtures.md. Next jobs/gallery/attachment fixtures pluslaterguardedsuccessors;0024stillnotnormalstartup.
 
+
+Checkpoint90published:12b72b1 dashboarddeploymentappgdep_6ad1e07a2ea48191b48b873d1e6baaea succeeded;347notes canonical/browsermatch.42media checks undercandidate passed/source30bb763 freshrestoreverified.36literalzero calls remain forconversion/classification;next jobs/gallery/attachment. No activechecks/preview/helper;0024notstartup.
+
