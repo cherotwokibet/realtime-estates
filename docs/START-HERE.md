@@ -745,3 +745,6 @@ Checkpoint91published:2cdd85e dashboarddeploymentappgdep_6ad1ec6702d081919baea92
 
 Latestviewing/successor/SDKmedia fixturegroup:59DB+30SDKintegration checkspassed underexplicitcandidate0024;6ordinaryinitialcallsconverted;22convertedtotal. See docs/guarded-viewing-sdk-fixtures.md. NextAPIservice/moderation thenremainingSDK;0024notstartup.
 
+
+Checkpoint92published:281b3f4 dashboarddeploymentappgdep_6ad1f89fa4d48191a2dc1805cf18ea70 succeeded;353notes canonical/browsermatch.59DB+30SDKchecks/sourcef5a502a freshrestoreverified.24literalzero calls includeintentionaldenial/historicalcontracts;nextAPIservice/moderation thenremainingSDK.0024notstartup;noactivechecks/preview/helper.
+
