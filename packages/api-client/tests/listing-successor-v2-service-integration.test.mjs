@@ -211,6 +211,21 @@ test('signed successor HTTP recovers a discarded committed reply, preserves orig
     });
     let posts = 0,
       gets = 0;
+    const before = await api.getStaffListingV2(L, agent);
+    assert.equal(before.version, '1');
+    assert.deepEqual(
+      {
+        revision: before.latest.revision,
+        version: before.latest.version,
+        state: before.latest.state,
+      },
+      command.predecessor,
+    );
+    await assert.rejects(
+      () => api.getStaffListingV2(L, peer),
+      (e) => e.status === 404,
+    );
+    assert.equal((await api.getStaffListingV2(L, admin)).listingId, L);
     const lost = make(async (url, init) => {
       const response = await fetch(url, init);
       if (init.method === 'POST' && url.includes('/revision-operations/')) {
@@ -242,6 +257,10 @@ test('signed successor HTTP recovers a discarded committed reply, preserves orig
       { expectedVersion: '2', content: { ...command.content, title: 'Deliberate later edit' } },
       agent,
     );
+    const current = await api.getStaffListingV2(L, agent);
+    assert.equal(current.version, '2');
+    assert.equal(current.latest.revision, 2);
+    assert.equal(current.latest.version, '3');
     assert.deepEqual(await api.startListingRevisionV2(command, agent), saved);
     assert.deepEqual(await api.getListingSuccessorReceiptV2(command, agent), saved);
     const stale = await api.startListingRevisionV2({ ...command, operationId: id(201) }, agent);
@@ -268,6 +287,10 @@ test('signed successor HTTP recovers a discarded committed reply, preserves orig
     );
     await assert.rejects(
       () => api.getListingSuccessorReceiptV2(command, agent),
+      (e) => e.status === 404,
+    );
+    await assert.rejects(
+      () => api.getStaffListingV2(L, agent),
       (e) => e.status === 404,
     );
     await asOwner(() =>

@@ -5,6 +5,50 @@ import {
   staffListingFixture,
   staffListingId as id,
 } from '../../../packages/domain/test-helpers/staff-listing-fixtures.mjs';
+
+test('single listing detail is a route-bound current authorized projection without queue truncation', async () => {
+  const f = fixture(),
+    response = await f.service(request('/' + id(10)));
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), staffListingFixture());
+  assert.deepEqual(f.calls.at(-1).args, [id(1), id(10)]);
+  assert.ok(f.calls.at(-1).sql.includes('AND l.id=$2::uuid'));
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.equal((await fixture([]).service(request('/' + id(10)))).status, 404);
+  assert.equal(
+    (await fixture([staffListingFixture(11)]).service(request('/' + id(10)))).status,
+    503,
+  );
+  assert.equal(
+    (await fixture([staffListingFixture(), staffListingFixture()]).service(request('/' + id(10))))
+      .status,
+    503,
+  );
+});
+test('single listing detail rejects caller context and nonstaff before private projection reads', async () => {
+  const f = fixture();
+  for (const suffix of ['/' + id(10) + '?limit=1', '/' + id(10) + '#x'])
+    assert.equal((await f.service(request(suffix))).status, 400);
+  for (const headers of [
+    { cookie: 'x=1' },
+    { 'if-match': '2' },
+    { 'x-actor-id': id(2) },
+    { 'x-company-id': id(1) },
+  ])
+    assert.equal(
+      (
+        await f.service(
+          request('/' + id(10), { headers: { authorization: 'Bearer synthetic', ...headers } }),
+        )
+      ).status,
+      400,
+    );
+  assert.equal(f.calls.length, 0);
+  assert.equal(
+    (await fixture([staffListingFixture()], 'customer').service(request('/' + id(10)))).status,
+    403,
+  );
+});
 function fixture(rows = [staffListingFixture()], role = 'agent') {
   const calls = [],
     contexts = [];

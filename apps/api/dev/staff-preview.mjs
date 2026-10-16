@@ -752,7 +752,10 @@ export async function startStaffPreview(options = {}) {
             retainedSyntheticMedia: !!nativeMedia,
             tokenExpiresAt: expiresAt,
           });
-        if (url.pathname === '/v2/staff/listings') {
+        if (
+          url.pathname === '/v2/staff/listings' ||
+          /^\/v2\/staff\/listings\/[0-9a-f-]{36}$/i.test(url.pathname)
+        ) {
           if (request.method !== 'GET')
             return failure(405, 'METHOD_NOT_ALLOWED', 'Listing queue is read-only.', {
               Allow: 'GET',

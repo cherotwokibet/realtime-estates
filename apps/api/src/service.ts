@@ -8,6 +8,7 @@ import {
   validateListingCreationSnapshot,
   type ListingCreationCommand,
   validateStaffListingPage,
+  validateStaffListingSummary,
   validateViewingOutcomeCommand,
   validateViewingOutcomeReceipt,
   type ViewingOutcomeCommand,
@@ -1319,6 +1320,67 @@ export function createApiService(
       if (path.startsWith('/v1/staff/') || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const listingDetailRoute = /^\/v2\/staff\/listings\/([^/]+)$/.exec(path);
+        if (listingDetailRoute) {
+          if (method !== 'GET')
+            throw new HttpError(
+              405,
+              'METHOD_NOT_ALLOWED',
+              'Method is not allowed for this route.',
+              { Allow: 'GET' },
+            );
+          const listingId = uuid(listingDetailRoute[1], 'listingId');
+          let forbidden =
+            request.body !== null || request.url.includes('?') || request.url.includes('#');
+          request.headers.forEach((_, name) => {
+            if (
+              [
+                'cookie',
+                'content-type',
+                'content-length',
+                'content-encoding',
+                'expect',
+                'range',
+                'transfer-encoding',
+                'idempotency-key',
+                'x-actor-id',
+                'x-tenant-id',
+                'x-role',
+                'x-actor',
+                'x-tenant',
+                'x-company-id',
+                'x-assigned-agent-id',
+              ].includes(name) ||
+              name.startsWith('if-')
+            )
+              forbidden = true;
+          });
+          if (forbidden)
+            throw new HttpError(
+              400,
+              'INVALID_INPUT',
+              'Listing detail does not accept caller context.',
+            );
+          const summary = await options.database.transaction(context, async (query) => {
+            await assertStaff(query);
+            const result = await query.query(
+              `SELECT l.id AS "listingId",l.slug,l.assigned_agent_id AS "assignedAgentId",l.version::text AS version,
+              l.availability,l.publication_status AS "publicationStatus",l.published_revision_no AS "publishedRevision",
+              to_char(greatest(l.updated_at,r.updated_at) AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS "changedAt",
+              CASE WHEN r.revision_no IS NULL THEN NULL ELSE jsonb_build_object('revision',r.revision_no,'state',r.state,'version',r.version::text,'title',r.title,
+                'updatedAt',to_char(r.updated_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"')) END AS latest
+              FROM app_private.listings l LEFT JOIN LATERAL (SELECT revision_no,state,version,title,updated_at FROM app_private.listing_revisions
+                WHERE tenant_id=l.tenant_id AND listing_id=l.id ORDER BY revision_no DESC LIMIT 1) r ON true
+              WHERE l.tenant_id=$1::uuid AND l.id=$2::uuid`,
+              [tenantId, listingId],
+            );
+            if (result.rows.length === 0)
+              throw new HttpError(404, 'NOT_FOUND', 'Resource unavailable.');
+            if (result.rows.length !== 1) throw new Error('Unexpected listing detail cardinality.');
+            return validateStaffListingSummary(result.rows[0], listingId);
+          });
+          return response(200, summary, correlationId);
+        }
         const successorRoute =
           /^\/v2\/staff\/listings\/([^/]+)\/revision-operations\/([^/]+)$/.exec(path);
         if (successorRoute) {

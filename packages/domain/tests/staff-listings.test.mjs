@@ -1,11 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateStaffListingPage } from '../dist/index.js';
+import { validateStaffListingPage, validateStaffListingSummary } from '../dist/index.js';
 import { staffListingFixture } from '../test-helpers/staff-listing-fixtures.mjs';
 const page = (items = [staffListingFixture()], limit = 25, truncated = false) => ({
   items,
   limit,
   truncated,
+});
+test('single listing summary binds target and detaches current predecessor without accepting private fields', () => {
+  const input = staffListingFixture(),
+    result = validateStaffListingSummary(input, input.listingId);
+  input.latest.title = 'Changed after read';
+  assert.equal(result.latest.title, 'Synthetic changed draft');
+  assert.ok(Object.isFrozen(result.latest));
+  assert.ok(Object.isFrozen(result));
+  assert.throws(() =>
+    validateStaffListingSummary(staffListingFixture(11), staffListingFixture().listingId),
+  );
+  assert.throws(() =>
+    validateStaffListingSummary(
+      { ...staffListingFixture(), privateAddress: 'PRIVATE' },
+      staffListingFixture().listingId,
+    ),
+  );
 });
 test('listing queue detaches minimal latest revision while preserving earlier published revision', () => {
   const input = page(),

@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readStaffListingQueue } from '../dist/tests/lib/listing-queue-server.js';
+import {
+  readStaffListingQueue,
+  readStaffListingDetail,
+} from '../dist/tests/lib/listing-queue-server.js';
 import {
   staffListingFixture,
   staffListingId as id,
@@ -13,6 +16,35 @@ const env = {
     STAFF_PREVIEW_INSTANCE: id(1),
   },
   page = { items: [staffListingFixture()], limit: 25, truncated: false };
+test('single listing server read fixes identity and target and rejects private or unconfigured responses', async () => {
+  const calls = [];
+  assert.deepEqual(
+    await readStaffListingDetail(id(10), env, async (url, init) => {
+      calls.push({ url, init });
+      return Response.json(staffListingFixture());
+    }),
+    staffListingFixture(),
+  );
+  assert.equal(calls[0].url, 'http://127.0.0.1:4101/v2/staff/listings/' + id(10));
+  assert.equal(calls[0].init.method, 'GET');
+  assert.equal(calls[0].init.body, undefined);
+  assert.equal(
+    new Headers(calls[0].init.headers).get('authorization'),
+    'Bearer ' + env.STAFF_PREVIEW_TOKEN,
+  );
+  await assert.rejects(() =>
+    readStaffListingDetail(id(10), { ...env, NODE_ENV: 'production' }, async () => {
+      throw Error('Unexpected dispatch');
+    }),
+  );
+  await assert.rejects(
+    () =>
+      readStaffListingDetail(id(10), env, async () =>
+        Response.json({ ...staffListingFixture(), privateAddress: 'PRIVATE' }),
+      ),
+    (e) => e.kind === 'INVALID_RESPONSE',
+  );
+});
 test('listing server reader sends fixed bounded GET with server credentials and returns only validated page', async () => {
   const calls = [];
   assert.deepEqual(

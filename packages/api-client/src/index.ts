@@ -32,14 +32,16 @@ export {
 export type { ListingCreationCommand, ListingCreationReceipt } from '@realtor/domain';
 import {
   validateStaffListingPage,
+  validateStaffListingSummary,
   type StaffListingPage,
+  type StaffListingSummary,
   validateViewingOutcomeCommand,
   validateViewingOutcomeReceipt,
   type ViewingOutcomeCommand,
   type ViewingOutcomeKind,
   type ViewingOutcomeReceipt,
 } from '@realtor/domain';
-export { validateStaffListingPage } from '@realtor/domain';
+export { validateStaffListingPage, validateStaffListingSummary } from '@realtor/domain';
 export type { StaffListingPage, StaffListingSummary } from '@realtor/domain';
 import {
   validateViewingReminderAdmissionCommand,
@@ -2835,6 +2837,19 @@ export class RealtorApiClient {
     });
   }
   /** Current authorized bounded queue only; open and re-read a revision before editing it. */
+  async getStaffListingV2(
+    listingId: string,
+    options: StaffRequestOptions,
+  ): Promise<StaffListingSummary> {
+    const captured = uploadOptions(options),
+      listing = uuid(listingId, 'VALIDATION', 'Listing ID');
+    const data = await this.request(`/v2/staff/listings/${listing}`, 'GET', captured);
+    try {
+      return validateStaffListingSummary(data, listing);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid current listing detail.');
+    }
+  }
   async listStaffListingsV2(
     options: StaffRequestOptions & { readonly limit?: number },
   ): Promise<StaffListingPage> {
@@ -4122,7 +4137,7 @@ export class RealtorApiClient {
             )
           )
             assertMediaJsonTokens(raw);
-          payload = /^\/v2\/staff\/listings\/[^/]+\/revision-operations\/[^/]+$/.test(path)
+          payload = /^\/v2\/staff\/listings\/[^/]+(?:\/revision-operations\/[^/]+)?$/.test(path)
             ? parseListingSuccessorJsonV2(raw)
             : path.startsWith('/v2/')
               ? parseListingJsonV2(raw)

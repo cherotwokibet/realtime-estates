@@ -13,6 +13,41 @@ const options = { bearerToken: 'synthetic' },
       privacyNoticeVersion: 'synthetic-v1',
       fetch,
     });
+
+test('single listing SDK reads exact target with one GET and rejects private or rounded identity replies', async () => {
+  const calls = [],
+    api = client(async (url, init) => {
+      calls.push({ url, init });
+      return Response.json(staffListingFixture());
+    });
+  assert.deepEqual(await api.getStaffListingV2(staffListingId(10), options), staffListingFixture());
+  assert.equal(calls.length, 1);
+  assert.ok(calls[0].url.endsWith('/v2/staff/listings/' + staffListingId(10)));
+  assert.equal(calls[0].init.method, 'GET');
+  assert.equal(calls[0].init.body, undefined);
+  for (const value of [
+    { ...staffListingFixture(), privateAddress: 'PRIVATE' },
+    staffListingFixture(11),
+  ])
+    await assert.rejects(
+      () => client(async () => Response.json(value)).getStaffListingV2(staffListingId(10), options),
+      (e) => e.kind === 'INVALID_RESPONSE' && !e.submissionUncertain,
+    );
+  const rounded = client(
+    async () =>
+      new Response(
+        JSON.stringify(staffListingFixture()).replace(
+          '"revision":2',
+          '"revision":2.00000000000000001',
+        ),
+        { headers: { 'content-type': 'application/json' } },
+      ),
+  );
+  await assert.rejects(
+    () => rounded.getStaffListingV2(staffListingId(10), options),
+    (e) => e.kind === 'INVALID_RESPONSE' && !e.submissionUncertain,
+  );
+});
 test('listing SDK performs one bounded authenticated GET and detaches strict minimal projection', async () => {
   const calls = [],
     api = client(async (url, init) => {

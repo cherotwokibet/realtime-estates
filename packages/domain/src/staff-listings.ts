@@ -21,6 +21,17 @@ export interface StaffListingPage {
   readonly limit: number;
   readonly truncated: boolean;
 }
+/** One current authorized projection, bound to an independently selected route target. */
+export function validateStaffListingSummary(
+  input: unknown,
+  expectedListingId: string,
+): StaffListingSummary {
+  const expected = uuid(expectedListingId);
+  const summary = validateStaffListingPage({ items: [input], limit: 1, truncated: false }, 1)
+    .items[0]!;
+  if (summary.listingId !== expected) return invalid();
+  return summary;
+}
 const invalid = (): never => {
   throw new DomainError('INVALID_STAFF_LISTING_PAGE', 'Invalid bounded staff listing page.');
 };

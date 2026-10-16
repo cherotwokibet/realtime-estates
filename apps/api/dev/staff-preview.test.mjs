@@ -75,10 +75,28 @@ test('signed staff listing queue remains read-only,company scoped and assignment
         response = await call(preview, path);
       if (['customer', 'revoked-agent', 'other-company-admin'].includes(actor)) {
         assert.equal(response.status, 403);
+        assert.equal((await call(preview, '/v2/staff/listings/' + preview.listingId)).status, 403);
         continue;
       }
       assert.equal(response.status, 200);
       const page = await response.json();
+      const exact = await call(preview, '/v2/staff/listings/' + page.items[0].listingId);
+      assert.equal(exact.status, 200);
+      assert.deepEqual(await exact.json(), page.items[0]);
+      assert.equal(
+        (await call(preview, '/v2/staff/listings/' + STAFF_PREVIEW_FIXTURES.sampleListingId))
+          .status,
+        404,
+      );
+      assert.equal(
+        (
+          await call(preview, '/v2/staff/listings/' + page.items[0].listingId, {
+            method: 'POST',
+            body: {},
+          })
+        ).status,
+        405,
+      );
       assert.equal(page.limit, 25);
       assert.equal(page.items.length, actor === 'agent' ? 1 : 2);
       assert.equal(
