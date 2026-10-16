@@ -1,4 +1,9 @@
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import {
+  seedGuardedListingDraft,
+  seedGuardedListingSuccessor,
+} from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import assert from 'node:assert/strict';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../../../database/test-helpers/synthetic-sealed-media.mjs';
@@ -102,6 +107,12 @@ test('staff v2 client integrates with real service, SQL assignment checks and op
   const db = new PGlite();
   try {
     await applyTestMigrations(db);
+    await db.exec(
+      await readFile(
+        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+        'utf8',
+      ),
+    );
     await db.query(
       `INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'staff-client-a','Synthetic Staff A'),($2,'staff-client-b','Synthetic Staff B')`,
       [TENANT, OTHER],
@@ -122,24 +133,21 @@ test('staff v2 client integrates with real service, SQL assignment checks and op
       [TENANT, PEER, PEERLISTING],
       [TENANT, AGENT, EMPTY],
       [OTHER, OTHERADMIN, OTHERLISTING],
-    ])
+    ]) {
       await bootstrapAs(db, tenant, actor, (query) =>
-        query.query('SELECT app_api.create_listing($1,$2)', [
-          listing,
-          `synthetic-staff-${listing.slice(-3)}`,
-        ]),
+        listing === EMPTY
+          ? query.query('SELECT app_api.create_listing($1,$2)', [
+              listing,
+              `synthetic-staff-${listing.slice(-3)}`,
+            ])
+          : seedGuardedListingDraft(query, {
+              listingId: listing,
+              slug: `synthetic-staff-${listing.slice(-3)}`,
+              content,
+              actorId: actor,
+            }),
       );
-    for (const [tenant, actor, listing] of [
-      [TENANT, AGENT, LISTING],
-      [TENANT, PEER, PEERLISTING],
-      [OTHER, OTHERADMIN, OTHERLISTING],
-    ])
-      await bootstrapAs(db, tenant, actor, (query) =>
-        query.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)', [
-          listing,
-          JSON.stringify(content),
-        ]),
-      );
+    }
     await syntheticMedia(db, TENANT, LISTING, 1);
     await bootstrapAs(db, TENANT, AGENT, async (query) => {
       await query.query(`SELECT app_api.confirm_availability($1,1,'available')`, [LISTING]);
@@ -149,10 +157,13 @@ test('staff v2 client integrates with real service, SQL assignment checks and op
       query.query('SELECT app_api.decide_revision($1,1,3,true)', [LISTING]),
     );
     await bootstrapAs(db, TENANT, AGENT, (query) =>
-      query.query('SELECT app_api.save_draft_v2($1,2,0,$2::jsonb)', [
-        LISTING,
-        JSON.stringify(content),
-      ]),
+      seedGuardedListingSuccessor(query, {
+        listingId: LISTING,
+        actorId: AGENT,
+        expectedListingVersion: '3',
+        predecessor: { revision: 1, version: '4', state: 'approved' },
+        content,
+      }),
     );
     await syntheticMedia(db, TENANT, LISTING, 2);
     await db.exec(

@@ -754,3 +754,6 @@ LatestAPIservice/moderation:33checks passed undercandidate0024;guardededitablecr
 
 Checkpoint93 published: dashboard a9f09c6 deployment appgdep_6ad207c9dac881919955e28d105a58cb succeeded;356 notes match canonical/browser.33 service/moderation checks passed;source a155e84 fresh restore verified.18 literal calls include intentional/historical coverage; next remaining SDK fixtures. Moderation SDK preallocates2/3 and needs legitimate deferred successor setup.0024 remains outside startup; no active checks/preview/helper.
 
+
+LatestSDKlifecycle:236DB+70SDKintegrationpassed(23focusedoverlap). See docs/guarded-sdk-lifecycle-fixtures.md. FoundationusesDEFAULT helper andneedsconversion;doNOTclassifyhistorical-only. Remaining10literalcalls include7foundationcompatibility.0024notstartup;nextfoundation thenpromotion/fullfinalschema.
+

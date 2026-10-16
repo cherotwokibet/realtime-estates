@@ -1,4 +1,9 @@
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import {
+  seedGuardedListingDraft,
+  seedGuardedListingSuccessor,
+} from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { PGlite } from '@electric-sql/pglite';
@@ -36,6 +41,12 @@ test('signed successor HTTP recovers a discarded committed reply, preserves orig
   let database, apiServer, keyServer;
   try {
     await applyTestMigrations(db);
+    await db.exec(
+      await readFile(
+        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+        'utf8',
+      ),
+    );
     await db.query(
       "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'signed-successor','Synthetic successor')",
       [T],
@@ -84,14 +95,16 @@ test('signed successor HTTP recovers a discarded committed reply, preserves orig
     };
     for (const listing of [L, id(101)]) {
       await setupActor(U, async () => {
-        await db.query('SELECT app_api.create_listing($1,$2)', [
-          listing,
-          'synthetic-' + listing.slice(-3),
-        ]);
-        await db.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-          listing,
-          JSON.stringify(full),
-        ]);
+        await seedGuardedListingDraft(db, {
+          listingId: listing,
+          slug: 'synthetic-' + listing.slice(-3),
+          content: {
+            ...full,
+            pricing: { declaration: 'not_declared', charges: [] },
+            location: { county: null, town: null, area: null },
+          },
+          actorId: U,
+        });
       });
       for (let position = 0; position < 4; position++)
         await seedSyntheticSealedMedia(db, {

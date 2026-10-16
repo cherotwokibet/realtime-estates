@@ -26,8 +26,13 @@ const files = [
   '0022_listing_creation.sql',
   '0023_listing_successor.sql',
 ];
-export async function applyTestMigrations(database) {
-  for (const file of files) {
+export async function applyTestMigrations(database, { after } = {}) {
+  // Historical migration fixtures can continue through the reviewed current order.
+  // Only a listed filename is accepted; never interpolate an arbitrary input path.
+  const offset = after === undefined ? 0 : files.indexOf(after) + 1;
+  if (after !== undefined && offset === 0)
+    throw new Error('Unknown historical migration boundary.');
+  for (const file of files.slice(offset)) {
     await database.exec(await readFile(new URL(`../migrations/${file}`, import.meta.url), 'utf8'));
   }
 }

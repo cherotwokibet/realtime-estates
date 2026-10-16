@@ -1,4 +1,9 @@
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import {
+  seedGuardedListingDraft,
+  seedGuardedListingSuccessor,
+} from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import assert from 'node:assert/strict';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../../../database/test-helpers/synthetic-sealed-media.mjs';
@@ -101,8 +106,16 @@ const isHttp = (status, code) => (error) =>
 
 test('moderation SDK uses actual API/SQL admin gates, snapshot decisions and uncertain committed approval', async (t) => {
   const db = new PGlite();
+  const bootstrap =
+    '"' + (await db.query('SELECT session_user AS name')).rows[0].name.replaceAll('"', '""') + '"';
   try {
     await applyTestMigrations(db);
+    await db.exec(
+      await readFile(
+        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+        'utf8',
+      ),
+    );
     await db.query(
       `INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'review-client-a','Synthetic Review A'),($2,'review-client-b','Synthetic Review B')`,
       [TENANT, OTHER],
@@ -123,14 +136,12 @@ test('moderation SDK uses actual API/SQL admin gates, snapshot decisions and unc
       [OTHER, OTHERADMIN, OTHERLISTING],
     ]) {
       await bootstrapAs(db, tenant, actor, async (query) => {
-        await query.query('SELECT app_api.create_listing($1,$2)', [
-          listing,
-          `synthetic-review-${listing.slice(-3)}`,
-        ]);
-        await query.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)', [
-          listing,
-          JSON.stringify(content),
-        ]);
+        await seedGuardedListingDraft(query, {
+          listingId: listing,
+          slug: `synthetic-review-${listing.slice(-3)}`,
+          content,
+          actorId: actor,
+        });
         await query.query(`SELECT app_api.confirm_availability($1,1,'available')`, [listing]);
       });
       await syntheticMedia(db, tenant, listing, 1);
@@ -141,22 +152,22 @@ test('moderation SDK uses actual API/SQL admin gates, snapshot decisions and unc
     await bootstrapAs(db, TENANT, ADMIN, (query) =>
       query.query('SELECT app_api.decide_revision($1,1,3,true)', [LISTING]),
     );
-    for (const revision of [2, 3]) {
-      await bootstrapAs(db, TENANT, AGENT, (query) =>
-        query.query('SELECT app_api.save_draft_v2($1,$2,0,$3::jsonb)', [
-          LISTING,
-          revision,
-          JSON.stringify(revision === 3 ? replacement : { ...content, amountMinor: 2500002 }),
-        ]),
-      );
-      await syntheticMedia(db, TENANT, LISTING, revision);
-    }
+    await bootstrapAs(db, TENANT, AGENT, (query) =>
+      seedGuardedListingSuccessor(query, {
+        listingId: LISTING,
+        actorId: AGENT,
+        expectedListingVersion: '3',
+        predecessor: { revision: 1, version: '4', state: 'approved' },
+        content: { ...content, amountMinor: 2500002 },
+      }),
+    );
+    await syntheticMedia(db, TENANT, LISTING, 2);
     await bootstrapAs(db, TENANT, AGENT, (query) =>
       query.query('SELECT app_api.submit_revision($1,2,2)', [LISTING]),
     );
     // A listing-level confirmation changes its own token independently of the pending revision.
     await bootstrapAs(db, TENANT, AGENT, (query) =>
-      query.query(`SELECT app_api.confirm_availability($1,3,'available')`, [LISTING]),
+      query.query(`SELECT app_api.confirm_availability($1,4,'available')`, [LISTING]),
     );
     await db.exec(
       'CREATE ROLE api_moderation_client_test_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT api_runtime TO api_moderation_client_test_login; SET SESSION AUTHORIZATION api_moderation_client_test_login;',
@@ -290,10 +301,7 @@ test('moderation SDK uses actual API/SQL admin gates, snapshot decisions and unc
         assert.equal(review.acceptedPhotoCount, 4);
         assert.equal(review.decidedAt, null);
         assert.equal(review.decisionReason, null);
-        const draft = await api.getReviewV2(LISTING, 3, options);
-        assert.equal(draft.state, 'draft');
-        assert.equal(draft.submittedAt, null);
-        assert.equal(draft.submittedBy, null);
+        await assert.rejects(() => api.getReviewV2(LISTING, 3, options), isHttp(404, 'NOT_FOUND'));
         assert.deepEqual(await published(), initial);
       },
     );
@@ -341,6 +349,27 @@ test('moderation SDK uses actual API/SQL admin gates, snapshot decisions and unc
           false,
         );
         assert.deepEqual(await published(), initial);
+        await database.transaction({ tenantId: TENANT, actorId: AGENT }, (query) =>
+          seedGuardedListingSuccessor(query, {
+            listingId: LISTING,
+            actorId: AGENT,
+            expectedListingVersion: '5',
+            predecessor: { revision: 2, version: '4', state: 'rejected' },
+            content: replacement,
+          }),
+        );
+        // Explicit privileged SQL-only media fixture after normal guarded succession.
+        // This is not runtime media authority or native upload evidence.
+        await db.exec(`SET SESSION AUTHORIZATION ${bootstrap}; RESET ROLE;`);
+        try {
+          await syntheticMedia(db, TENANT, LISTING, 3);
+        } finally {
+          await db.exec('SET SESSION AUTHORIZATION api_moderation_client_test_login;');
+        }
+        const draft = await api.getReviewV2(LISTING, 3, options);
+        assert.equal(draft.state, 'draft');
+        assert.equal(draft.submittedAt, null);
+        assert.equal(draft.submittedBy, null);
         assert.deepEqual(
           await api.submitStaffDraftV2(
             LISTING,

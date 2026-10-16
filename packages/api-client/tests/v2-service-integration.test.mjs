@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
+import {
+  seedGuardedListingDraft,
+  seedGuardedListingSuccessor,
+} from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import { seedSyntheticSealedMedia } from '../../../database/test-helpers/synthetic-sealed-media.mjs';
 import { PGlite } from '@electric-sql/pglite';
 import { createApiService, createLocalEnquiryLimiter } from '../../../apps/api/dist/service.js';
@@ -117,14 +122,24 @@ async function syntheticMedia(db, tenant, listing, revision, sealed = true) {
 }
 async function seedPublished(db, tenant, admin, listing, listingContent, v2) {
   await bootstrapAs(db, tenant, admin, async (query) => {
-    await query.query('SELECT app_api.create_listing($1,$2)', [
-      listing,
-      `synthetic-v2-${listing.slice(-3)}`,
-    ]);
-    await query.query(`SELECT app_api.${v2 ? 'save_draft_v2' : 'save_draft'}($1,1,0,$2::jsonb)`, [
-      listing,
-      JSON.stringify(listingContent),
-    ]);
+    if (v2)
+      await seedGuardedListingDraft(query, {
+        listingId: listing,
+        slug: `synthetic-v2-${listing.slice(-3)}`,
+        content: listingContent,
+        actorId: admin,
+      });
+    else {
+      // Historical 0001-only setup verifies additive migration of pre-disclosure data.
+      await query.query('SELECT app_api.create_listing($1,$2)', [
+        listing,
+        `synthetic-v2-${listing.slice(-3)}`,
+      ]);
+      await query.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
+        listing,
+        JSON.stringify(listingContent),
+      ]);
+    }
     await query.query(`SELECT app_api.confirm_availability($1,1,'available')`, [listing]);
   });
   await syntheticMedia(db, tenant, listing, 1, v2);
@@ -194,6 +209,13 @@ test('v2 client integrates with actual migrations, API service and restricted te
         'utf8',
       ),
     );
+    await applyTestMigrations(db, { after: '0006_media_attachment.sql' });
+    await db.exec(
+      await readFile(
+        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+        'utf8',
+      ),
+    );
     await seedPublished(db, TENANT, ADMIN, LISTING, content, true);
     await seedPublished(
       db,
@@ -212,10 +234,13 @@ test('v2 client integrates with actual migrations, API service and restricted te
     // Prepare privileged SQL-only revision-2 provenance, with no actual image bytes.
     // The runtime below edits/submits/rejects it exclusively through restricted RPCs.
     await bootstrapAs(db, TENANT, ADMIN, (query) =>
-      query.query('SELECT app_api.save_draft_v2($1,2,0,$2::jsonb)', [
-        LISTING,
-        JSON.stringify({ ...content, title: 'Synthetic initial replacement draft' }),
-      ]),
+      seedGuardedListingSuccessor(query, {
+        listingId: LISTING,
+        actorId: ADMIN,
+        expectedListingVersion: '3',
+        predecessor: { revision: 1, version: '4', state: 'approved' },
+        content: { ...content, title: 'Synthetic initial replacement draft' },
+      }),
     );
     await syntheticMedia(db, TENANT, LISTING, 2);
     await db.exec(
@@ -385,12 +410,15 @@ test('v2 client integrates with actual migrations, API service and restricted te
           location: { county: null, town: 'Synthetic Next Town', area: null },
         };
         const saved = await transaction((query) =>
-          query.query('SELECT app_api.save_draft_v2($1,3,0,$2::jsonb) AS version', [
-            LISTING,
-            JSON.stringify(next),
-          ]),
+          seedGuardedListingSuccessor(query, {
+            listingId: LISTING,
+            actorId: ADMIN,
+            expectedListingVersion: '4',
+            predecessor: { revision: 2, version: '5', state: 'rejected' },
+            content: next,
+          }),
         );
-        assert.equal(Number(saved.rows[0].version), 2);
+        assert.equal(saved.decision.result.revisionVersion, '2');
         const stored = await transaction((query) =>
           query.query(
             'SELECT state,pricing,location FROM app_private.listing_revisions WHERE listing_id=$1 AND revision_no=3',
@@ -404,10 +432,13 @@ test('v2 client integrates with actual migrations, API service and restricted te
         await assert.rejects(
           () =>
             transaction((query) =>
-              query.query('SELECT app_api.save_draft_v2($1,2,0,$2::jsonb)', [
-                OTHERLISTING,
-                JSON.stringify(next),
-              ]),
+              seedGuardedListingSuccessor(query, {
+                listingId: OTHERLISTING,
+                actorId: ADMIN,
+                expectedListingVersion: '3',
+                predecessor: { revision: 1, version: '4', state: 'approved' },
+                content: next,
+              }),
             ),
           (error) => error.code === 'P0002',
         );
