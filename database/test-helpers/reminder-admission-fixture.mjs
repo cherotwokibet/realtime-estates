@@ -2,6 +2,7 @@
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from './migrations.mjs';
 import { seedSyntheticSealedMedia } from './synthetic-sealed-media.mjs';
+import { seedGuardedListingDraft } from './guarded-listing-fixture.mjs';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
   T = id(1),
   A = id(10),
@@ -66,13 +67,17 @@ async function fixture() {
       latitude: null,
       longitude: null,
       privateAddress: null,
+      pricing: { declaration: 'not_declared', charges: [] },
+      location: { county: null, town: null, area: null },
     };
     const version = await actor(db, U, async () => {
-      await db.query('SELECT app_api.create_listing($1,$2)', [L, 'synthetic-reminder-admission']);
-      return scalar(db, 'SELECT app_api.save_draft($1,1,0,$2::jsonb) value', [
-        L,
-        JSON.stringify(content),
-      ]);
+      const receipt = await seedGuardedListingDraft(db, {
+        listingId: L,
+        slug: 'synthetic-reminder-admission',
+        content,
+        actorId: U,
+      });
+      return Number(receipt.result.revisionVersion);
     });
     for (let position = 0; position < 4; position++)
       await seedSyntheticSealedMedia(db, {

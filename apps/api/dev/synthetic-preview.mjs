@@ -8,6 +8,7 @@
 import { randomUUID } from 'node:crypto';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../../../database/test-helpers/synthetic-sealed-media.mjs';
+import { seedGuardedListingDraft } from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';
@@ -188,11 +189,12 @@ async function seed(db, scenario, tenantSlug) {
   for (const fixture of listingFixtures()) {
     const { company, id: listing, slug, content } = fixture;
     await bootstrapAs(db, company, async () => {
-      await db.query('SELECT app_api.create_listing($1,$2)', [listing, slug]);
-      await db.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)', [
-        listing,
-        JSON.stringify(content),
-      ]);
+      await seedGuardedListingDraft(db, {
+        listingId: listing,
+        slug,
+        content,
+        actorId: company.admin,
+      });
       await db.query(`SELECT app_api.confirm_availability($1,1,'available')`, [listing]);
     });
     // Privileged fabricated SQL provenance keeps the submission policy real.

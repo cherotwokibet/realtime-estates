@@ -8,6 +8,7 @@ import { seedHistoricalConfirmedViewing } from '../../../database/test-helpers/h
 import { randomUUID } from 'node:crypto';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../../../database/test-helpers/synthetic-sealed-media.mjs';
+import { seedGuardedListingDraft } from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import { createServer } from 'node:http';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { PGlite } from '@electric-sql/pglite';
@@ -354,18 +355,13 @@ async function seed(db, seedAcceptedMedia, seedPendingReviews) {
     );
   for (const fixture of fixtures) {
     const { company, listing, assigned, title } = fixture;
-    await bootstrapAs(db, company, company.admin, () =>
-      db.query('SELECT app_api.create_listing($1,$2,$3)', [
-        listing,
-        `synthetic-staff-${listing.slice(-3)}`,
-        assigned,
-      ]),
-    );
     await bootstrapAs(db, company, assigned, () =>
-      db.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)', [
-        listing,
-        JSON.stringify(syntheticContent(title)),
-      ]),
+      seedGuardedListingDraft(db, {
+        listingId: listing,
+        slug: `synthetic-staff-${listing.slice(-3)}`,
+        content: syntheticContent(title),
+        actorId: assigned,
+      }),
     );
     if (seedAcceptedMedia)
       for (let position = 0; position < 4; position++)
