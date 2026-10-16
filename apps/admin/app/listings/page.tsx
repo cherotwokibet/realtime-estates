@@ -85,6 +85,9 @@ export default async function ListingsPage() {
                         ? 'No approved public revision'
                         : `Selected approved public revision ${item.publishedRevision}`}
                     </span>
+                    <a className="enq-secondary" href={`/listings/${item.listingId}/controls`}>
+                      Availability &amp; publication
+                    </a>
                     {item.latest ? (
                       <>
                         <strong>

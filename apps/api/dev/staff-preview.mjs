@@ -876,6 +876,22 @@ export async function startStaffPreview(options = {}) {
           }
           return response;
         }
+        if (
+          /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/(?:availability|publication)-operations\/[0-9a-f-]{36}$/i.test(
+            url.pathname,
+          )
+        ) {
+          if (!['GET', 'POST'].includes(request.method))
+            return failure(
+              405,
+              'METHOD_NOT_ALLOWED',
+              'Listing controls support POST and original GET only.',
+              { Allow: 'GET, POST' },
+            );
+          const response = await service(request);
+          response.headers.set('X-Synthetic-Staff-Preview', 'true');
+          return response;
+        }
         if (enquiryPreview) {
           if (enquiryCatalogue && url.pathname === '/v2/properties') {
             if (request.method !== 'GET' || request.headers.has('authorization'))

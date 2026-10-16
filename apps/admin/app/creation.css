@@ -3,6 +3,55 @@
   margin: 0 auto;
   padding-bottom: 40px;
 }
+.listing-controls select {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid #cbd1d9;
+  border-radius: 8px;
+  font: inherit;
+  background: white;
+  color: #252b34;
+}
+.listing-controls select:disabled {
+  background: #f5f6f8;
+  color: #56606b;
+}
+.listing-controls dl {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 2fr;
+  gap: 12px 24px;
+  padding: 22px;
+  border: 1px solid #dce1e7;
+  border-radius: 12px;
+  background: white;
+}
+.listing-controls dt {
+  color: #626b76;
+}
+.listing-controls dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.listing-controls section[aria-label='Retained listing change'] {
+  padding: 24px;
+  border: 1px solid #dce1e7;
+  border-radius: 12px;
+  background: white;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 540px) {
+  .listing-controls dl {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .listing-controls dd {
+    margin-bottom: 12px;
+  }
+}
 .listing-creation .draft-breadcrumb {
   display: flex;
   gap: 20px;
