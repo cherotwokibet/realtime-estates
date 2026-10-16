@@ -34,6 +34,7 @@ const preview = await startStaffPreview({
     !process.env.STAFF_PREVIEW_SUCCESSOR_TERMINAL,
   creationReplyFault: process.env.STAFF_PREVIEW_CREATION_REPLY_FAULT,
   successorReplyFault: process.env.STAFF_PREVIEW_SUCCESSOR_REPLY_FAULT,
+  controlReplyFault: process.env.STAFF_PREVIEW_CONTROL_REPLY_FAULT,
   successorTerminalFixture: process.env.STAFF_PREVIEW_SUCCESSOR_TERMINAL,
   ...(nativeUploads === undefined ? {} : { nativeUploads }),
 });

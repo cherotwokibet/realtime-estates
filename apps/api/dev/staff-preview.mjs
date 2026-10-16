@@ -84,6 +84,7 @@ function configuration({
   reminderReplyFault,
   creationReplyFault,
   successorReplyFault,
+  controlReplyFault,
   successorTerminalFixture,
   seedAcceptedMedia = nativeUploads === undefined && enquiryPreview === undefined,
   seedPendingReviews = false,
@@ -148,6 +149,10 @@ function configuration({
   if (successorReplyFault !== undefined && successorReplyFault !== 'invalid-first-applied-v1')
     throw new StaffPreviewConfigurationError(
       'Choose the explicit synthetic successor reply fault or omit it.',
+    );
+  if (controlReplyFault !== undefined && controlReplyFault !== 'invalid-first-applied-v1')
+    throw new StaffPreviewConfigurationError(
+      'Choose the explicit synthetic listing control reply fault or omit it.',
     );
   if (
     successorTerminalFixture !== undefined &&
@@ -224,6 +229,7 @@ function configuration({
     reminderReplyFault,
     creationReplyFault,
     successorReplyFault,
+    controlReplyFault,
     successorTerminalFixture,
   };
 }
@@ -574,8 +580,10 @@ export async function startStaffPreview(options = {}) {
     reminderReplyFault,
     creationReplyFault,
     successorReplyFault,
+    controlReplyFault,
     successorTerminalFixture,
   } = configuration(options);
+  let controlReplyFaultPending = !!controlReplyFault;
   let successorReplyFaultPending = !!successorReplyFault;
   let creationReplyFaultPending = !!creationReplyFault;
   let reminderReplyFaultPending = !!reminderReplyFault;
@@ -890,6 +898,18 @@ export async function startStaffPreview(options = {}) {
             );
           const response = await service(request);
           response.headers.set('X-Synthetic-Staff-Preview', 'true');
+          if (
+            controlReplyFaultPending &&
+            request.method === 'POST' &&
+            response.status === 200 &&
+            (await response.clone().json()).decision?.outcome === 'applied'
+          ) {
+            controlReplyFaultPending = false;
+            return Response.json(
+              { syntheticReplyCorruption: true },
+              { headers: { 'Cache-Control': 'no-store', 'X-Synthetic-Staff-Preview': 'true' } },
+            );
+          }
           return response;
         }
         if (enquiryPreview) {
