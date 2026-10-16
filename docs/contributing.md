@@ -8,6 +8,7 @@ Use Node 24.19.0 and the committed npm lockfile. From a Windows terminal:
 git -c core.longpaths=true clone https://github.com/cherotwokibet/realtime-estates.git
 cd realtime-estates
 npm ci
+npm run format:check
 npm run typecheck
 npm test
 npm run build:web

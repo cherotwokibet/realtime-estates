@@ -16,15 +16,18 @@ const propertiesV2 = await api.listPropertiesV2({ limit: 20 });
 // until a definite result. Persist both securely if retries span app restarts.
 const idempotencyKey = crypto.randomUUID();
 try {
-  const receipt = await api.submitEnquiry({
-    listingId: properties.items[0]?.id ?? null,
-    name: 'Example prospect',
-    phone: '0700000000',
-    message: 'I would like to know more.',
-    origin: 'web',
-    noticeVersion: 'reviewed-notice-version',
-    noticeAcknowledged: true, // Set only after the actual disclosure is shown/acknowledged.
-  }, { idempotencyKey });
+  const receipt = await api.submitEnquiry(
+    {
+      listingId: properties.items[0]?.id ?? null,
+      name: 'Example prospect',
+      phone: '0700000000',
+      message: 'I would like to know more.',
+      origin: 'web',
+      noticeVersion: 'reviewed-notice-version',
+      noticeAcknowledged: true, // Set only after the actual disclosure is shown/acknowledged.
+    },
+    { idempotencyKey },
+  );
   // receipt.id means the server saved an enquiry, not that a message was delivered.
 } catch (error) {
   if (error instanceof ApiClientError && error.submissionUncertain) {
@@ -60,14 +63,24 @@ Tenant scoping is the server's responsibility. The client sends no tenant or act
 const staffOptions = { bearerToken: tokenForThisRequest };
 const draft = await api.getStaffDraftV2(listingId, revision, staffOptions);
 if (draft.state === 'draft') {
-  const saved = await api.saveStaffDraftV2(listingId, revision, {
-    expectedVersion: draft.version,
-    content: { ...draft.content, title: 'Updated title' },
-  }, staffOptions);
+  const saved = await api.saveStaffDraftV2(
+    listingId,
+    revision,
+    {
+      expectedVersion: draft.version,
+      content: { ...draft.content, title: 'Updated title' },
+    },
+    staffOptions,
+  );
   // Submit only after the user reviews the saved draft and required media.
-  const submitted = await api.submitStaffDraftV2(listingId, revision, {
-    expectedVersion: saved.version,
-  }, staffOptions);
+  const submitted = await api.submitStaffDraftV2(
+    listingId,
+    revision,
+    {
+      expectedVersion: saved.version,
+    },
+    staffOptions,
+  );
   // This receipt is a new revision version; pending review does not publish it.
 }
 ```
@@ -87,11 +100,16 @@ Read versions are canonical positive decimal strings within PostgreSQL bigint ra
 ```ts
 const review = await api.getReviewV2(listingId, revision, { bearerToken });
 if (review.state === 'pending') {
-  const receipt = await api.decideReviewV2(listingId, revision, {
-    expectedVersion: review.version, // Revision version, never listingVersion.
-    decision: 'reject',
-    reason: 'Correct the location before approval.',
-  }, { bearerToken });
+  const receipt = await api.decideReviewV2(
+    listingId,
+    revision,
+    {
+      expectedVersion: review.version, // Revision version, never listingVersion.
+      decision: 'reject',
+      reason: 'Correct the location before approval.',
+    },
+    { bearerToken },
+  );
   // Reload the exact review to reconcile its state and decision metadata.
 }
 ```

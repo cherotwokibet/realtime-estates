@@ -1,21 +1,158 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {GET,POST} from '../dist/tests/app/api/enquiry-preview/[actor]/enquiries/[id]/contacts/route.js';
-import {POST as recover} from '../dist/tests/app/api/enquiry-preview/[actor]/enquiries/[id]/contacts/recover/route.js';
-const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-const enquiry=id(5),operation=id(6),actor=id(1),instance=id(3),now='2026-10-12T12:00:00.000Z';
-const command={operationId:operation,expectedVersion:1,channel:'call',outcome:'connected',occurredAt:now,notes:'  Private synthetic note.\nKeep spacing.  '};
-const facts={channel:command.channel,outcome:command.outcome,occurredAt:now,notes:command.notes};
-const receipt={operationId:operation,enquiryId:enquiry,actorId:actor,expectedVersion:'1',observedVersion:'1',request:facts,outcome:'applied',reason:null,entry:{entryId:operation,actorId:actor,...facts,recordedAt:now},completedAt:now};
-const context={params:Promise.resolve({actor:'admin',id:enquiry})};
-function request(method='POST',suffix='',body=JSON.stringify(command),extra={}){return new Request(`http://127.0.0.1:3001/api/enquiry-preview/admin/enquiries/${enquiry}/contacts${suffix}`,{method,headers:{host:'127.0.0.1:3001',origin:'http://127.0.0.1:3001','sec-fetch-site':'same-origin','x-preview-instance':instance,...(method==='POST'?{'content-type':'application/json'}:{}),...extra},...(method==='POST'?{body}:{})});}
-test('contact proxy protects original private facts and keeps recovery read-only',async t=>{
- const oldEnv={...process.env},oldFetch=globalThis.fetch;Object.assign(process.env,{NODE_ENV:'development',STAFF_ENQUIRY_PREVIEW_MODE:'synthetic-v1',STAFF_PREVIEW_API_ORIGIN:'http://127.0.0.1:4101',STAFF_ENQUIRY_ADMIN_TOKEN:'admin.fixed.token',STAFF_ENQUIRY_ADMIN_ID:actor,STAFF_ENQUIRY_ADMIN_INSTANCE:instance,STAFF_ENQUIRY_AGENT_TOKEN:'agent.fixed.token',STAFF_ENQUIRY_AGENT_ID:id(2),STAFF_ENQUIRY_AGENT_INSTANCE:id(4)});
- t.after(()=>{globalThis.fetch=oldFetch;for(const key of Object.keys(process.env))if(!(key in oldEnv))delete process.env[key];Object.assign(process.env,oldEnv);});
- let calls=[];const mock=value=>{calls=[];globalThis.fetch=async(url,init)=>{calls.push({url:String(url),init});if(value instanceof Error)throw value;return Response.json(value,{headers:{'X-Request-Id':id(7)}});};};
- await t.test('capture forwards one validated command with only server credentials',async()=>{mock(receipt);const response=await POST(request(),context);assert.equal(response.status,200);assert.deepEqual(await response.json(),receipt);assert.equal(calls.length,1);assert.equal(calls[0].init.method,'POST');assert.equal(JSON.parse(calls[0].init.body).notes,command.notes);assert.equal(new Headers(calls[0].init.headers).get('authorization'),'Bearer admin.fixed.token');assert.equal(response.headers.get('cache-control'),'private, no-store, max-age=0');});
- await t.test('recovery accepts facts in body but upstream performs only GET without private URL data',async()=>{mock(receipt);assert.equal((await recover(request('POST','/recover'),context)).status,200);assert.equal(calls.length,1);assert.equal(calls[0].url,`http://127.0.0.1:4101/v2/staff/enquiries/${enquiry}/contacts/operations/${operation}`);assert.equal(calls[0].init.method,'GET');assert.equal(calls[0].init.body,undefined);});
- await t.test('feed is bounded to 25 and rejects larger requests before dispatch',async()=>{mock({items:[],limit:25,truncated:false});assert.equal((await GET(request('GET'),context)).status,200);assert.ok(calls[0].url.endsWith('/contacts?limit=25'));calls=[];assert.equal((await GET(request('GET','?limit=26'),context)).status,400);assert.equal(calls.length,0);});
- await t.test('duplicate keys, caller identity, wrong instance and oversize bodies never dispatch',async()=>{mock(receipt);for(const body of [JSON.stringify({...command,actorId:actor}),JSON.stringify(command).replace('"expectedVersion":1','"expectedVersion":1,"expectedVersion":1'),' '.repeat(16385)])assert.equal((await POST(request('POST','',body),context)).status,400);assert.equal((await POST(request('POST','',undefined,{'x-preview-instance':id(99)}),context)).status,403);assert.equal(calls.length,0);});
- await t.test('failed recovery is read-only while failed capture remains uncertain without retries',async()=>{mock(new Error('lost'));let response=await recover(request('POST','/recover'),context);assert.equal(response.status,502);assert.equal((await response.json()).submissionUncertain,false);assert.equal(calls.length,1);mock(new Error('lost'));response=await POST(request(),context);assert.equal(response.status,502);assert.equal((await response.json()).submissionUncertain,true);assert.equal(calls.length,1);});
+import {
+  GET,
+  POST,
+} from '../dist/tests/app/api/enquiry-preview/[actor]/enquiries/[id]/contacts/route.js';
+import { POST as recover } from '../dist/tests/app/api/enquiry-preview/[actor]/enquiries/[id]/contacts/recover/route.js';
+const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const enquiry = id(5),
+  operation = id(6),
+  actor = id(1),
+  instance = id(3),
+  now = '2026-10-12T12:00:00.000Z';
+const command = {
+  operationId: operation,
+  expectedVersion: 1,
+  channel: 'call',
+  outcome: 'connected',
+  occurredAt: now,
+  notes: '  Private synthetic note.\nKeep spacing.  ',
+};
+const facts = {
+  channel: command.channel,
+  outcome: command.outcome,
+  occurredAt: now,
+  notes: command.notes,
+};
+const receipt = {
+  operationId: operation,
+  enquiryId: enquiry,
+  actorId: actor,
+  expectedVersion: '1',
+  observedVersion: '1',
+  request: facts,
+  outcome: 'applied',
+  reason: null,
+  entry: { entryId: operation, actorId: actor, ...facts, recordedAt: now },
+  completedAt: now,
+};
+const context = { params: Promise.resolve({ actor: 'admin', id: enquiry }) };
+function request(method = 'POST', suffix = '', body = JSON.stringify(command), extra = {}) {
+  return new Request(
+    `http://127.0.0.1:3001/api/enquiry-preview/admin/enquiries/${enquiry}/contacts${suffix}`,
+    {
+      method,
+      headers: {
+        host: '127.0.0.1:3001',
+        origin: 'http://127.0.0.1:3001',
+        'sec-fetch-site': 'same-origin',
+        'x-preview-instance': instance,
+        ...(method === 'POST' ? { 'content-type': 'application/json' } : {}),
+        ...extra,
+      },
+      ...(method === 'POST' ? { body } : {}),
+    },
+  );
+}
+test('contact proxy protects original private facts and keeps recovery read-only', async (t) => {
+  const oldEnv = { ...process.env },
+    oldFetch = globalThis.fetch;
+  Object.assign(process.env, {
+    NODE_ENV: 'development',
+    STAFF_ENQUIRY_PREVIEW_MODE: 'synthetic-v1',
+    STAFF_PREVIEW_API_ORIGIN: 'http://127.0.0.1:4101',
+    STAFF_ENQUIRY_ADMIN_TOKEN: 'admin.fixed.token',
+    STAFF_ENQUIRY_ADMIN_ID: actor,
+    STAFF_ENQUIRY_ADMIN_INSTANCE: instance,
+    STAFF_ENQUIRY_AGENT_TOKEN: 'agent.fixed.token',
+    STAFF_ENQUIRY_AGENT_ID: id(2),
+    STAFF_ENQUIRY_AGENT_INSTANCE: id(4),
+  });
+  t.after(() => {
+    globalThis.fetch = oldFetch;
+    for (const key of Object.keys(process.env)) if (!(key in oldEnv)) delete process.env[key];
+    Object.assign(process.env, oldEnv);
+  });
+  let calls = [];
+  const mock = (value) => {
+    calls = [];
+    globalThis.fetch = async (url, init) => {
+      calls.push({ url: String(url), init });
+      if (value instanceof Error) throw value;
+      return Response.json(value, { headers: { 'X-Request-Id': id(7) } });
+    };
+  };
+  await t.test('capture forwards one validated command with only server credentials', async () => {
+    mock(receipt);
+    const response = await POST(request(), context);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), receipt);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].init.method, 'POST');
+    assert.equal(JSON.parse(calls[0].init.body).notes, command.notes);
+    assert.equal(
+      new Headers(calls[0].init.headers).get('authorization'),
+      'Bearer admin.fixed.token',
+    );
+    assert.equal(response.headers.get('cache-control'), 'private, no-store, max-age=0');
+  });
+  await t.test(
+    'recovery accepts facts in body but upstream performs only GET without private URL data',
+    async () => {
+      mock(receipt);
+      assert.equal((await recover(request('POST', '/recover'), context)).status, 200);
+      assert.equal(calls.length, 1);
+      assert.equal(
+        calls[0].url,
+        `http://127.0.0.1:4101/v2/staff/enquiries/${enquiry}/contacts/operations/${operation}`,
+      );
+      assert.equal(calls[0].init.method, 'GET');
+      assert.equal(calls[0].init.body, undefined);
+    },
+  );
+  await t.test('feed is bounded to 25 and rejects larger requests before dispatch', async () => {
+    mock({ items: [], limit: 25, truncated: false });
+    assert.equal((await GET(request('GET'), context)).status, 200);
+    assert.ok(calls[0].url.endsWith('/contacts?limit=25'));
+    calls = [];
+    assert.equal((await GET(request('GET', '?limit=26'), context)).status, 400);
+    assert.equal(calls.length, 0);
+  });
+  await t.test(
+    'duplicate keys, caller identity, wrong instance and oversize bodies never dispatch',
+    async () => {
+      mock(receipt);
+      for (const body of [
+        JSON.stringify({ ...command, actorId: actor }),
+        JSON.stringify(command).replace(
+          '"expectedVersion":1',
+          '"expectedVersion":1,"expectedVersion":1',
+        ),
+        ' '.repeat(16385),
+      ])
+        assert.equal((await POST(request('POST', '', body), context)).status, 400);
+      assert.equal(
+        (await POST(request('POST', '', undefined, { 'x-preview-instance': id(99) }), context))
+          .status,
+        403,
+      );
+      assert.equal(calls.length, 0);
+    },
+  );
+  await t.test(
+    'failed recovery is read-only while failed capture remains uncertain without retries',
+    async () => {
+      mock(new Error('lost'));
+      let response = await recover(request('POST', '/recover'), context);
+      assert.equal(response.status, 502);
+      assert.equal((await response.json()).submissionUncertain, false);
+      assert.equal(calls.length, 1);
+      mock(new Error('lost'));
+      response = await POST(request(), context);
+      assert.equal(response.status, 502);
+      assert.equal((await response.json()).submissionUncertain, true);
+      assert.equal(calls.length, 1);
+    },
+  );
 });

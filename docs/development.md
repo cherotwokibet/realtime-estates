@@ -1,11 +1,13 @@
 # Local development and verification
 
-Start with architecture.md, contributing.md and release-workflow.md for the maintained setup, package boundaries, source rules and gated release process. A fresh Linux GitHub CI run for source 0058473007a5debb9e5f0bc5db13c7807203732b passed npm ci, npm test, workspace typechecks, web/admin builds and Android export: https://github.com/cherotwokibet/realtime-estates/actions/runs/38802146440. This supersedes the historical remote-CI-unverified note below for that exact commit; newer source needs its own result. Android export is not native device verification. Current local admin includes creation/recovery, moderation, enquiry and viewing workflows; production sessions and full operator/device acceptance remain open. Read CONTINUATION.md for current evidence and limits.
+Start with architecture.md, contributing.md and release-workflow.md for the maintained setup, package boundaries, source rules and gated release process. A fresh Linux GitHub CI run for source 0058473007a5debb9e5f0bc5db13c7807203732b passed npm ci
+npm run format:check, npm test, workspace typechecks, web/admin builds and Android export: https://github.com/cherotwokibet/realtime-estates/actions/runs/38802146440. This supersedes the historical remote-CI-unverified note below for that exact commit; newer source needs its own result. Android export is not native device verification. Current local admin includes creation/recovery, moderation, enquiry and viewing workflows; production sessions and full operator/device acceptance remain open. Read CONTINUATION.md for current evidence and limits.
 
 Use Node24.19.0 and npm. Run from repository root:
 
 ```text
 npm ci
+npm run format:check
 npm test
 npm run typecheck
 npm run build:web

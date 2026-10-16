@@ -2,16 +2,16 @@
 
 Boniface maintains one private TypeScript monorepo for configurable realtor companies. The current gross recurring baseline is KES 10,000 per realtor/month; service-budget.md separates operating allowances from verified supplier costs. Production hosting and identity remain unprovisioned gates. The static delivery dashboard is a separate repository and is not the platform API host.
 
-| Workspace | Responsibility |
-| --- | --- |
-| apps/web | Public catalogue, discovery and enquiry experience; explicit demo/connected configuration |
-| apps/admin | Staff draft, moderation, enquiry and viewing operations; current authenticated local previews |
-| apps/mobile | Configurable Expo/React Native application; native connection/device/store verification pending |
-| apps/api | HTTP authorization, fixed trusted-company routing, bounded input and transaction orchestration |
-| packages/domain | Shared business types, exact money, normalized commands and receipt validators |
-| packages/api-client | Bounded transport, strict response contracts and deliberate original-operation recovery |
-| packages/demo | Fictional company brands and inventory; never an implicit persistent fallback |
-| packages/media | Node-only synthetic byte processing and supervised conversion; not browser/native code |
+| Workspace           | Responsibility                                                                                  |
+| ------------------- | ----------------------------------------------------------------------------------------------- |
+| apps/web            | Public catalogue, discovery and enquiry experience; explicit demo/connected configuration       |
+| apps/admin          | Staff draft, moderation, enquiry and viewing operations; current authenticated local previews   |
+| apps/mobile         | Configurable Expo/React Native application; native connection/device/store verification pending |
+| apps/api            | HTTP authorization, fixed trusted-company routing, bounded input and transaction orchestration  |
+| packages/domain     | Shared business types, exact money, normalized commands and receipt validators                  |
+| packages/api-client | Bounded transport, strict response contracts and deliberate original-operation recovery         |
+| packages/demo       | Fictional company brands and inventory; never an implicit persistent fallback                   |
+| packages/media      | Node-only synthetic byte processing and supervised conversion; not browser/native code          |
 
 Identity is verified by the API against its configured issuer, audience and JWKS. Company selection comes from trusted deployment/hostname configuration. JWT role claims, browser actor fields and request-selected companies do not grant membership. Transactions install verified company/subject context locally, then use restricted PostgreSQL roles and current database membership/assignment. Security-definer command functions apply current authorization; private tables force RLS. The runtime login must not own tables, inherit privileged roles, be superuser or bypass RLS.
 

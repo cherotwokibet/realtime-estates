@@ -3,9 +3,17 @@
 import { spawn } from 'node:child_process';
 import { existsSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-const grandchild = spawn(process.execPath, [fileURLToPath(new URL('./tree-grandchild.mjs', import.meta.url))], {
-  cwd: process.cwd(), stdio: 'ignore', windowsHide: true, shell: false, detached: true,
-});
+const grandchild = spawn(
+  process.execPath,
+  [fileURLToPath(new URL('./tree-grandchild.mjs', import.meta.url))],
+  {
+    cwd: process.cwd(),
+    stdio: 'ignore',
+    windowsHide: true,
+    shell: false,
+    detached: true,
+  },
+);
 grandchild.once('error', () => process.exit(4));
 let announced = false;
 setInterval(() => {

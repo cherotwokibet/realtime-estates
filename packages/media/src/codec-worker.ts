@@ -8,7 +8,13 @@ async function sourceBytes(): Promise<Buffer> {
   const file = await open('source.input', constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
   try {
     const before = await file.stat({ bigint: true });
-    if (!before.isFile() || before.nlink !== 1n || before.size < 1n || before.size > BigInt(SYNTHETIC_CODEC_POLICY.maxInputBytes)) throw new Error();
+    if (
+      !before.isFile() ||
+      before.nlink !== 1n ||
+      before.size < 1n ||
+      before.size > BigInt(SYNTHETIC_CODEC_POLICY.maxInputBytes)
+    )
+      throw new Error();
     const data = Buffer.alloc(Number(before.size) + 1);
     let bytes = 0;
     while (bytes < data.length) {
@@ -17,16 +23,29 @@ async function sourceBytes(): Promise<Buffer> {
       bytes += got.bytesRead;
     }
     const after = await file.stat({ bigint: true });
-    if (bytes !== Number(before.size) || after.size !== before.size || after.mtimeNs !== before.mtimeNs ||
-        after.ino !== before.ino || after.dev !== before.dev || after.nlink !== 1n) throw new Error();
+    if (
+      bytes !== Number(before.size) ||
+      after.size !== before.size ||
+      after.mtimeNs !== before.mtimeNs ||
+      after.ino !== before.ino ||
+      after.dev !== before.dev ||
+      after.nlink !== 1n
+    )
+      throw new Error();
     return data.subarray(0, bytes);
-  } finally { await file.close(); }
+  } finally {
+    await file.close();
+  }
 }
 
 async function exclusive(name: string, data: Buffer): Promise<void> {
   const file = await open(name, 'wx', 0o600);
-  try { await file.writeFile(data); await file.sync(); }
-  finally { await file.close(); }
+  try {
+    await file.writeFile(data);
+    await file.sync();
+  } finally {
+    await file.close();
+  }
 }
 
 try {
