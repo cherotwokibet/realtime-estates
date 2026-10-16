@@ -97,6 +97,11 @@ export default async function ListingsPage() {
                         >
                           Open revision {item.latest.revision} for a fresh read
                         </a>
+                        {(item.latest.state === 'approved' || item.latest.state === 'rejected') && (
+                          <a className="enq-primary" href={`/listings/${item.listingId}/successor`}>
+                            Start a new draft
+                          </a>
+                        )}
                       </>
                     ) : (
                       <p>No draft yet.</p>

@@ -82,6 +82,8 @@ function configuration({
   reminderCaptureMode,
   reminderReplyFault,
   creationReplyFault,
+  successorReplyFault,
+  successorTerminalFixture,
   seedAcceptedMedia = nativeUploads === undefined && enquiryPreview === undefined,
   seedPendingReviews = false,
 } = {}) {
@@ -141,6 +143,21 @@ function configuration({
   )
     throw new StaffPreviewConfigurationError(
       'Reminder reply fault requires explicit synthetic capture mode.',
+    );
+  if (successorReplyFault !== undefined && successorReplyFault !== 'invalid-first-applied-v1')
+    throw new StaffPreviewConfigurationError(
+      'Choose the explicit synthetic successor reply fault or omit it.',
+    );
+  if (
+    successorTerminalFixture !== undefined &&
+    (!['approved', 'rejected'].includes(successorTerminalFixture) ||
+      !seedAcceptedMedia ||
+      seedPendingReviews ||
+      nativeUploads !== undefined ||
+      enquiryPreview !== undefined)
+  )
+    throw new StaffPreviewConfigurationError(
+      'Successor terminal fixture requires accepted metadata without other preview fixture modes.',
     );
   if (creationReplyFault !== undefined && creationReplyFault !== 'invalid-first-created-v1')
     throw new StaffPreviewConfigurationError(
@@ -206,6 +223,8 @@ function configuration({
     reminderCaptureMode,
     reminderReplyFault,
     creationReplyFault,
+    successorReplyFault,
+    successorTerminalFixture,
   };
 }
 function syntheticContent(title = 'Synthetic staff monthly studio') {
@@ -559,7 +578,10 @@ export async function startStaffPreview(options = {}) {
     reminderCaptureMode,
     reminderReplyFault,
     creationReplyFault,
+    successorReplyFault,
+    successorTerminalFixture,
   } = configuration(options);
+  let successorReplyFaultPending = !!successorReplyFault;
   let creationReplyFaultPending = !!creationReplyFault;
   let reminderReplyFaultPending = !!reminderReplyFault;
   let contactReplyFaultPending = !!contactReplyFault,
@@ -584,6 +606,25 @@ export async function startStaffPreview(options = {}) {
   let jwksServer;
   try {
     await seed(db, seedAcceptedMedia, seedPendingReviews);
+    if (successorTerminalFixture) {
+      for (const fixtureCompany of Object.values(COMPANIES)) {
+        await bootstrapAs(db, fixtureCompany, fixtureCompany.agent, () =>
+          db.query("SELECT app_api.confirm_availability($1,1,'available')", [
+            fixtureCompany.listing,
+          ]),
+        );
+        const pending = await bootstrapAs(db, fixtureCompany, fixtureCompany.agent, () =>
+          db.query('SELECT app_api.submit_revision($1,1,2) AS version', [fixtureCompany.listing]),
+        );
+        await bootstrapAs(db, fixtureCompany, fixtureCompany.admin, () =>
+          db.query('SELECT app_api.decide_revision($1,1,$2,$3)', [
+            fixtureCompany.listing,
+            pending.rows[0].version,
+            successorTerminalFixture === 'approved',
+          ]),
+        );
+      }
+    }
     if (enquiryCatalogue) await seedEnquiryCatalogue(db);
     if (enquiryPreview) await seedEnquiries(db);
     if (historicalViewings)
@@ -795,6 +836,36 @@ export async function startStaffPreview(options = {}) {
           }
           return response;
         }
+        if (
+          /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revision-operations\/[0-9a-f-]{36}$/i.test(
+            url.pathname,
+          )
+        ) {
+          if (!['GET', 'POST'].includes(request.method))
+            return failure(
+              405,
+              'METHOD_NOT_ALLOWED',
+              'Successor supports POST and original GET only.',
+              { Allow: 'GET, POST' },
+            );
+          const response = await service(request);
+          response.headers.set('X-Synthetic-Staff-Preview', 'true');
+          if (
+            successorReplyFaultPending &&
+            request.method === 'POST' &&
+            response.status === 200 &&
+            (await response.clone().json()).decision?.outcome === 'applied'
+          ) {
+            successorReplyFaultPending = false;
+            return Response.json(
+              { syntheticReplyCorruption: true },
+              {
+                headers: { 'Cache-Control': 'no-store', 'X-Synthetic-Staff-Preview': 'true' },
+              },
+            );
+          }
+          return response;
+        }
         if (enquiryPreview) {
           if (enquiryCatalogue && url.pathname === '/v2/properties') {
             if (request.method !== 'GET' || request.headers.has('authorization'))
@@ -969,9 +1040,10 @@ export async function startStaffPreview(options = {}) {
           response.headers.set('X-Synthetic-Staff-Preview', 'true');
           return response;
         }
-        const route = /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/drafts\/1(\/submit)?$/i.exec(
-          url.pathname,
-        );
+        const route =
+          /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/drafts\/[1-9]\d{0,9}(\/submit)?$/i.exec(
+            url.pathname,
+          );
         const reviewRoute =
           /^\/v2\/staff\/reviews\/[0-9a-f-]{36}\/revisions\/1(\/decision)?$/i.exec(url.pathname);
         const mediaRoute =
@@ -979,7 +1051,7 @@ export async function startStaffPreview(options = {}) {
             url.pathname,
           );
         const galleryRoute =
-          /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/1\/(workspace|media-removals|media-reorders|media-operations)(?:\/([0-9a-f-]{36}))?$/i.exec(
+          /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/revisions\/[1-9]\d{0,9}\/(workspace|media-removals|media-reorders|media-operations)(?:\/([0-9a-f-]{36}))?$/i.exec(
             url.pathname,
           );
         const attachRoute = nativeMedia

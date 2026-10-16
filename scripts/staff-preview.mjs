@@ -28,8 +28,13 @@ const nativeUploads =
 const preview = await startStaffPreview({
   tenantSlug: process.env.TENANT_SLUG ?? 'realtime-estates',
   actor,
-  seedPendingReviews: nativeUploads === undefined && actor === 'admin',
+  seedPendingReviews:
+    nativeUploads === undefined &&
+    actor === 'admin' &&
+    !process.env.STAFF_PREVIEW_SUCCESSOR_TERMINAL,
   creationReplyFault: process.env.STAFF_PREVIEW_CREATION_REPLY_FAULT,
+  successorReplyFault: process.env.STAFF_PREVIEW_SUCCESSOR_REPLY_FAULT,
+  successorTerminalFixture: process.env.STAFF_PREVIEW_SUCCESSOR_TERMINAL,
   ...(nativeUploads === undefined ? {} : { nativeUploads }),
 });
 const next = fileURLToPath(new URL('../node_modules/next/dist/bin/next', import.meta.url));
