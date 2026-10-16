@@ -1,6 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DomainError, parseListingJsonV2, validatePricingInputV2 } from '../dist/index.js';
+import {
+  DomainError,
+  parseListingJsonV2,
+  parseListingSuccessorJsonV2,
+  validatePricingInputV2,
+} from '../dist/index.js';
+
+test('successor JSON rejects rounded or exponential revision identities including escaped keys', () => {
+  for (const raw of [
+    '{"predecessor":{"revision":1.00000000000000001}}',
+    '{"result":{"revision":1e0}}',
+    '{"predecessor":{"\\u0072evision":2.00000000000000001}}',
+  ])
+    assert.throws(() => parseListingSuccessorJsonV2(raw));
+  assert.deepEqual(
+    parseListingSuccessorJsonV2('{"revision":2,"description":"\\\"revision\\\":1e0"}'),
+    { revision: 2, description: '"revision":1e0' },
+  );
+  assert.deepEqual(parseListingJsonV2('{"revision":1e0}'), { revision: 1 });
+});
 
 const rejectsJson = (source) =>
   assert.throws(

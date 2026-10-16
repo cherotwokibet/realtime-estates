@@ -9,7 +9,7 @@ function invalid(message: string): never {
  * Callers retain their input-size limits and must validate the resulting wire shape and values.
  * No JSON.parse reviver-context support or browser/native transport behavior is assumed.
  */
-export function parseListingJsonV2(source: string): unknown {
+function parseListingJson(source: string, guardRevision: boolean): unknown {
   if (typeof source !== 'string') return invalid('Listing JSON must be supplied as text.');
   let parsed: unknown;
   try {
@@ -25,7 +25,7 @@ export function parseListingJsonV2(source: string): unknown {
   const integerLiteral = /^-?(?:0|[1-9]\d*)$/;
   let offset = 0;
   let previousString: string | undefined;
-  let amountValuePending = false;
+  let integerFieldPending: string | undefined;
   while (offset < source.length) {
     if (/[ \t\r\n]/.test(source[offset]!)) {
       offset += 1;
@@ -35,17 +35,28 @@ export function parseListingJsonV2(source: string): unknown {
     const match = tokenPattern.exec(source);
     if (!match) return invalid('Listing JSON contains an unsupported token.');
     const token = match[0];
-    if (amountValuePending) {
+    if (integerFieldPending) {
       if ((token[0] === '-' || /^[0-9]/.test(token)) && !integerLiteral.test(token)) {
         return invalid(
-          'amountMinor requires an integer JSON number literal without fractions or exponents.',
+          `${integerFieldPending} requires an integer JSON number literal without fractions or exponents.`,
         );
       }
-      amountValuePending = false;
+      integerFieldPending = undefined;
     }
-    if (token === ':' && previousString === 'amountMinor') amountValuePending = true;
+    if (
+      token === ':' &&
+      (previousString === 'amountMinor' || (guardRevision && previousString === 'revision'))
+    )
+      integerFieldPending = previousString;
     previousString = token[0] === '"' ? (JSON.parse(token) as string) : undefined;
     offset = tokenPattern.lastIndex;
   }
   return parsed;
+}
+export function parseListingJsonV2(source: string): unknown {
+  return parseListingJson(source, false);
+}
+/** Successor predecessor/result revision identities require exact integer tokens as well as money. */
+export function parseListingSuccessorJsonV2(source: string): unknown {
+  return parseListingJson(source, true);
 }

@@ -1,4 +1,8 @@
 import {
+  validateListingSuccessorCommand,
+  validateListingSuccessorReceipt,
+  validateListingSuccessorSnapshot,
+  type ListingSuccessorCommand,
   validateListingCreationCommand,
   validateListingCreationReceipt,
   validateListingCreationSnapshot,
@@ -46,6 +50,7 @@ import {
   kesFromMinor,
   normalizeKenyanPhone,
   parseListingJsonV2,
+  parseListingSuccessorJsonV2,
   validatePricingInputV2,
   validatePublicLocationV2,
 } from '@realtor/domain';
@@ -170,6 +175,7 @@ async function jsonBody(
   integerMoney = false,
   strictDecision = false,
   exactLength = false,
+  integerRevision = false,
 ): Promise<unknown> {
   if (
     !/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type') ?? '')
@@ -207,7 +213,11 @@ async function jsonBody(
   try {
     const source = new TextDecoder('utf-8', { fatal: true }).decode(body);
     if (strictDecision) assertDecisionJsonTokens(source);
-    return integerMoney ? parseListingJsonV2(source) : JSON.parse(source);
+    return integerMoney
+      ? integerRevision
+        ? parseListingSuccessorJsonV2(source)
+        : parseListingJsonV2(source)
+      : JSON.parse(source);
   } catch {
     throw new HttpError(
       400,
@@ -1309,6 +1319,98 @@ export function createApiService(
       if (path.startsWith('/v1/staff/') || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const successorRoute =
+          /^\/v2\/staff\/listings\/([^/]+)\/revision-operations\/([^/]+)$/.exec(path);
+        if (successorRoute) {
+          if (method !== 'POST' && method !== 'GET')
+            throw new HttpError(
+              405,
+              'METHOD_NOT_ALLOWED',
+              'Method is not allowed for this route.',
+              { Allow: 'GET, POST' },
+            );
+          if (request.url.includes('?') || request.url.includes('#'))
+            throw new HttpError(
+              400,
+              'INVALID_INPUT',
+              'Successor requests do not accept query context.',
+            );
+          const listingId = uuid(successorRoute[1], 'listingId'),
+            operationId = uuid(successorRoute[2], 'operationId'),
+            write = method === 'POST';
+          let forbidden = false;
+          request.headers.forEach((_, name) => {
+            if (
+              [
+                'cookie',
+                'content-encoding',
+                'expect',
+                'range',
+                'transfer-encoding',
+                'idempotency-key',
+                'x-actor-id',
+                'x-tenant-id',
+                'x-role',
+                'x-actor',
+                'x-tenant',
+                'x-company-id',
+                'x-assigned-agent-id',
+              ].includes(name) ||
+              name.startsWith('if-')
+            )
+              forbidden = true;
+          });
+          if (
+            forbidden ||
+            (!write &&
+              (request.body !== null ||
+                request.headers.has('content-type') ||
+                request.headers.has('content-length')))
+          )
+            throw new HttpError(400, 'INVALID_INPUT', 'Unsupported successor request context.');
+          const declared = request.headers.get('content-length');
+          if (write && declared !== null && !/^(?:0|[1-9]\d*)$/.test(declared))
+            throw new HttpError(400, 'INVALID_INPUT', 'Content length must be canonical.');
+          let command: ListingSuccessorCommand | undefined;
+          if (write) {
+            const raw = await jsonBody(request, 128 * 1024, true, true, true, true);
+            try {
+              const body = record(raw, ['expectedListingVersion', 'predecessor', 'content']);
+              command = validateListingSuccessorCommand({ ...body, listingId, operationId });
+            } catch {
+              throw new HttpError(400, 'INVALID_INPUT', 'Review the successor revision fields.');
+            }
+          }
+          const receipt = await options.database.transaction(context, async (query) => {
+            await assertStaff(query);
+            if (command) {
+              const stored = await query.query(
+                'SELECT app_api.start_listing_revision_v2($1::uuid,$2::uuid,$3::bigint,$4::integer,$5::bigint,$6,$7::jsonb) AS receipt',
+                [
+                  listingId,
+                  operationId,
+                  command.expectedListingVersion,
+                  command.predecessor.revision,
+                  command.predecessor.version,
+                  command.predecessor.state,
+                  JSON.stringify(command.content),
+                ],
+              );
+              return validateListingSuccessorReceipt(scalar(stored, 'receipt'), command, actorId!);
+            }
+            const stored = await query.query(
+              'SELECT app_api.read_listing_successor($1::uuid,$2::uuid) AS receipt',
+              [listingId, operationId],
+            );
+            return validateListingSuccessorSnapshot(
+              scalar(stored, 'receipt'),
+              listingId,
+              operationId,
+              actorId!,
+            );
+          });
+          return response(200, receipt, correlationId);
+        }
         const creationRoute = /^\/v2\/staff\/listings\/([^/]+)\/creation-operations\/([^/]+)$/.exec(
           path,
         );

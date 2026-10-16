@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { request as httpRequest } from 'node:http';
 import { createDevelopmentServer } from '../dist/http.js';
 
-test('only exact creation POST receives bounded 128KiB transport allowance', async () => {
+test('only exact creation and successor POST receive bounded 128KiB transport allowance', async () => {
   let calls = 0;
   const server = createDevelopmentServer(async (r) => {
     calls++;
@@ -15,20 +15,25 @@ test('only exact creation POST receives bounded 128KiB transport allowance', asy
       '/v2/staff/listings/00000000-0000-4000-8000-000000000003/creation-operations/00000000-0000-4000-8000-000000000004',
     body = '界'.repeat(30000);
   try {
-    assert.equal((await fetch(origin + path, { method: 'POST', body })).status, 200);
-    assert.equal(calls, 1);
-    for (const [method, p] of [
-      ['PUT', path],
-      ['POST', path + '?x=1'],
-      ['POST', path + '/'],
-      ['POST', path.replace('000000000004', 'invalid')],
-    ])
-      assert.equal((await fetch(origin + p, { method, body })).status, 413);
-    assert.equal(
-      (await fetch(origin + path, { method: 'POST', body: 'x'.repeat(128 * 1024 + 1) })).status,
-      413,
-    );
-    assert.equal(calls, 1);
+    for (const operationPath of [
+      path,
+      path.replace('/creation-operations/', '/revision-operations/'),
+    ]) {
+      assert.equal((await fetch(origin + operationPath, { method: 'POST', body })).status, 200);
+      for (const [method, p] of [
+        ['PUT', operationPath],
+        ['POST', operationPath + '?x=1'],
+        ['POST', operationPath + '/'],
+        ['POST', operationPath.replace('000000000004', 'invalid')],
+      ])
+        assert.equal((await fetch(origin + p, { method, body })).status, 413);
+      assert.equal(
+        (await fetch(origin + operationPath, { method: 'POST', body: 'x'.repeat(128 * 1024 + 1) }))
+          .status,
+        413,
+      );
+    }
+    assert.equal(calls, 2);
   } finally {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));

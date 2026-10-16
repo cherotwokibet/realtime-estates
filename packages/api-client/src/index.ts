@@ -1,4 +1,17 @@
 import {
+  validateListingSuccessorCommand,
+  validateListingSuccessorReceipt,
+  validateListingSuccessorSnapshot,
+  type ListingSuccessorCommand,
+  type ListingSuccessorReceipt,
+} from '@realtor/domain';
+export {
+  validateListingSuccessorCommand,
+  validateListingSuccessorReceipt,
+  validateListingSuccessorSnapshot,
+} from '@realtor/domain';
+export type { ListingSuccessorCommand, ListingSuccessorReceipt } from '@realtor/domain';
+import {
   normalizeStaffDraftContentV2,
   STAFF_DRAFT_CONTENT_FIELDS,
   type StaffDraftContentV2,
@@ -100,6 +113,7 @@ import {
   calculateWirePricingV2,
   kesFromMinor,
   parseListingJsonV2,
+  parseListingSuccessorJsonV2,
   validatePricingInputV2,
   validatePublicLocationV2,
   type PricingDisclosure,
@@ -2929,6 +2943,78 @@ export class RealtorApiClient {
       return uncertainWriteError(error);
     }
   }
+  async startListingRevisionV2(
+    input: ListingSuccessorCommand,
+    options: StaffRequestOptions,
+  ): Promise<ListingSuccessorReceipt> {
+    const captured = uploadOptions(options);
+    let command: ListingSuccessorCommand;
+    try {
+      command = validateListingSuccessorCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Review the retained successor revision facts.');
+    }
+    try {
+      const data = await this.request(
+        `/v2/staff/listings/${command.listingId}/revision-operations/${command.operationId}`,
+        'POST',
+        captured,
+        {
+          expectedListingVersion: command.expectedListingVersion,
+          predecessor: command.predecessor,
+          content: command.content,
+        },
+      );
+      try {
+        return validateListingSuccessorReceipt(data, command);
+      } catch {
+        return invalid('INVALID_RESPONSE', 'Invalid successor revision receipt.');
+      }
+    } catch (error) {
+      return uncertainWriteError(error);
+    }
+  }
+  async getListingSuccessorReceiptV2(
+    input: ListingSuccessorCommand,
+    options: StaffRequestOptions,
+  ): Promise<ListingSuccessorReceipt> {
+    const captured = uploadOptions(options);
+    let command: ListingSuccessorCommand;
+    try {
+      command = validateListingSuccessorCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Review the original successor revision facts.');
+    }
+    const data = await this.request(
+      `/v2/staff/listings/${command.listingId}/revision-operations/${command.operationId}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateListingSuccessorReceipt(data, command);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid original successor revision receipt.');
+    }
+  }
+  async getListingSuccessorSnapshotV2(
+    listingId: string,
+    operationId: string,
+    options: StaffRequestOptions,
+  ): Promise<ListingSuccessorReceipt> {
+    const captured = uploadOptions(options),
+      listing = uuid(listingId, 'VALIDATION', 'Listing ID'),
+      operation = uuid(operationId, 'VALIDATION', 'Operation ID');
+    const data = await this.request(
+      `/v2/staff/listings/${listing}/revision-operations/${operation}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateListingSuccessorSnapshot(data, listing, operation);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid stored successor revision receipt.');
+    }
+  }
   async createListingV2(
     input: ListingCreationCommand,
     options: StaffRequestOptions,
@@ -4036,7 +4122,11 @@ export class RealtorApiClient {
             )
           )
             assertMediaJsonTokens(raw);
-          payload = path.startsWith('/v2/') ? parseListingJsonV2(raw) : JSON.parse(raw);
+          payload = /^\/v2\/staff\/listings\/[^/]+\/revision-operations\/[^/]+$/.test(path)
+            ? parseListingSuccessorJsonV2(raw)
+            : path.startsWith('/v2/')
+              ? parseListingJsonV2(raw)
+              : JSON.parse(raw);
         } catch {
           throw new ApiClientError('INVALID_RESPONSE', 'Malformed API JSON.', {
             status: result.status,

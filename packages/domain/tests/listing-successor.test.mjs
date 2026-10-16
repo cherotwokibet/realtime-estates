@@ -4,6 +4,7 @@ import {
   validateListingSuccessorCommand,
   planListingSuccessor,
   validateListingSuccessorReceipt,
+  validateListingSuccessorSnapshot,
 } from '../dist/index.js';
 import { staffListingFixture, staffListingId } from '../test-helpers/staff-listing-fixtures.mjs';
 const current = () => {
@@ -207,4 +208,33 @@ test('historical conflict and bounded refusal receipts cannot claim an applied a
     result: { listingVersion: '4', revision: 2147483648, revisionVersion: '2' },
   };
   assert.throws(() => validateListingSuccessorReceipt(refusal, retained, staffListingId(2)));
+});
+
+test('route-bound successor snapshots reject wrong target, operation and verified actor', () => {
+  const original = validateListingSuccessorCommand(command()),
+    saved = receipt(original);
+  assert.deepEqual(
+    validateListingSuccessorSnapshot(saved, original.listingId, original.operationId),
+    saved,
+  );
+  assert.deepEqual(
+    validateListingSuccessorSnapshot(
+      saved,
+      original.listingId,
+      original.operationId,
+      staffListingId(2),
+    ),
+    saved,
+  );
+  for (const args of [
+    [staffListingId(88), original.operationId, staffListingId(2)],
+    [original.listingId, staffListingId(88), staffListingId(2)],
+    [original.listingId, original.operationId, staffListingId(88)],
+  ])
+    assert.throws(() => validateListingSuccessorSnapshot(saved, ...args));
+  const hidden = { ...saved };
+  Object.defineProperty(hidden.request, 'hidden', { value: true });
+  assert.throws(() =>
+    validateListingSuccessorSnapshot(hidden, original.listingId, original.operationId),
+  );
 });

@@ -161,7 +161,7 @@ export function planListingSuccessor(
 export function validateListingSuccessorReceipt(
   input: unknown,
   commandInput: unknown,
-  expectedActorId: string,
+  expectedActorId?: string,
 ): ListingSuccessorReceipt {
   const command = validateListingSuccessorCommand(commandInput);
   const value = record(input, [
@@ -182,7 +182,7 @@ export function validateListingSuccessorReceipt(
   if (
     JSON.stringify(retained) !== JSON.stringify(command) ||
     value.kind !== 'start_revision' ||
-    uuid(value.actorId) !== uuid(expectedActorId)
+    (expectedActorId !== undefined && uuid(value.actorId) !== uuid(expectedActorId))
   )
     return invalid();
   const completedAt = value.completedAt;
@@ -254,4 +254,25 @@ export function validateListingSuccessorReceipt(
     }),
     decision: result,
   });
+}
+
+/** Route-bound stored original. Server callers must additionally supply verified actor identity. */
+export function validateListingSuccessorSnapshot(
+  input: unknown,
+  listingId: string,
+  operationId: string,
+  expectedActorId?: string,
+): ListingSuccessorReceipt {
+  const value = record(input, [
+    'operationId',
+    'listingId',
+    'actorId',
+    'kind',
+    'request',
+    'completedAt',
+    'decision',
+  ]);
+  const request = record(value.request, ['expectedListingVersion', 'predecessor', 'content']);
+  const command = validateListingSuccessorCommand({ ...request, listingId, operationId });
+  return validateListingSuccessorReceipt(input, command, expectedActorId);
 }
