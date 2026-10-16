@@ -4,19 +4,36 @@ import { calculatePricingDisclosure, kesFromMajor } from '@realtor/domain';
 import { getPricingPresentation } from '../dist/tests/components/pricing-presentation.js';
 
 const charge = (id, amount, overrides = {}) => ({
-  id, name: `Named ${id}`, amountStatus: 'known', amount: kesFromMajor(amount),
-  timing: 'one_off', classification: 'fee', mandatory: true, ...overrides,
+  id,
+  name: `Named ${id}`,
+  amountStatus: 'known',
+  amount: kesFromMajor(amount),
+  timing: 'one_off',
+  classification: 'fee',
+  mandatory: true,
+  ...overrides,
 });
-const rent = (overrides = {}) => calculatePricingDisclosure({
-  base: kesFromMajor('20000'), purpose: 'rent', rentalPeriod: 'month', charges: [], ...overrides,
-});
+const rent = (overrides = {}) =>
+  calculatePricingDisclosure({
+    base: kesFromMajor('20000'),
+    purpose: 'rent',
+    rentalPeriod: 'month',
+    charges: [],
+    ...overrides,
+  });
 
 test('pricing presentation formats exact KES subtotals and retains the actual rental period', () => {
-  const view = getPricingPresentation(rent({ rentalPeriod: 'week', disclosure: 'complete', charges: [
-    charge('service', '1000.01', { timing: 'per_rental_period' }),
-    charge('deposit', '20000', { classification: 'refundable_deposit' }),
-    charge('setup', '500'),
-  ] }));
+  const view = getPricingPresentation(
+    rent({
+      rentalPeriod: 'week',
+      disclosure: 'complete',
+      charges: [
+        charge('service', '1000.01', { timing: 'per_rental_period' }),
+        charge('deposit', '20000', { classification: 'refundable_deposit' }),
+        charge('setup', '500'),
+      ],
+    }),
+  );
   assert.equal(view.baseAmount, 'KES 20,000');
   assert.equal(view.period, 'week');
   assert.equal(view.knownRecurringSubtotal, 'KES 21,000.01');
@@ -42,9 +59,22 @@ test('undeclared empty fees show none supplied and incomplete disclosure rather 
 });
 
 test('mandatory quote-required charges retain names and never receive invented zero amounts', () => {
-  const view = getPricingPresentation(rent({ disclosure: 'complete', charges: [
-    { id: 'quote', name: 'Lease preparation', amountStatus: 'quote_required', amount: null, mandatory: true, classification: 'fee', timing: 'one_off' },
-  ] }));
+  const view = getPricingPresentation(
+    rent({
+      disclosure: 'complete',
+      charges: [
+        {
+          id: 'quote',
+          name: 'Lease preparation',
+          amountStatus: 'quote_required',
+          amount: null,
+          mandatory: true,
+          classification: 'fee',
+          timing: 'one_off',
+        },
+      ],
+    }),
+  );
   assert.equal(view.status.title, 'Mandatory amounts to confirm');
   assert.equal(view.status.kind, 'incomplete');
   assert.deepEqual(view.mandatoryQuoteNames, ['Lease preparation']);
@@ -54,10 +84,23 @@ test('mandatory quote-required charges retain names and never receive invented z
 });
 
 test('optional amounts and optional quotes stay separate from mandatory completeness and initial subtotal', () => {
-  const view = getPricingPresentation(rent({ disclosure: 'complete', charges: [
-    charge('optional-known', '500', { mandatory: false }),
-    { id: 'optional-quote', name: 'Optional cleaning', amountStatus: 'quote_required', amount: null, mandatory: false, classification: 'fee', timing: 'one_off' },
-  ] }));
+  const view = getPricingPresentation(
+    rent({
+      disclosure: 'complete',
+      charges: [
+        charge('optional-known', '500', { mandatory: false }),
+        {
+          id: 'optional-quote',
+          name: 'Optional cleaning',
+          amountStatus: 'quote_required',
+          amount: null,
+          mandatory: false,
+          classification: 'fee',
+          timing: 'one_off',
+        },
+      ],
+    }),
+  );
   assert.equal(view.status.kind, 'complete');
   assert.equal(view.knownInitialSubtotal, 'KES 20,000');
   assert.equal(view.optionalKnownInitialExtras, 'KES 500');
@@ -78,10 +121,15 @@ test('incomplete and explicitly complete empty declarations retain different dis
 });
 
 test('sale presentation has no invented rental period or recurring price', () => {
-  const view = getPricingPresentation(calculatePricingDisclosure({
-    base: kesFromMajor('999999'), purpose: 'sale', rentalPeriod: null, disclosure: 'complete',
-    charges: [charge('sale-fee', '1500')],
-  }));
+  const view = getPricingPresentation(
+    calculatePricingDisclosure({
+      base: kesFromMajor('999999'),
+      purpose: 'sale',
+      rentalPeriod: null,
+      disclosure: 'complete',
+      charges: [charge('sale-fee', '1500')],
+    }),
+  );
   assert.equal(view.baseLabel, 'Sale price');
   assert.equal(view.period, null);
   assert.equal(view.knownRecurringSubtotal, null);
@@ -98,5 +146,7 @@ test('presentation data is frozen and shares no mutable charge rows with callers
   assert.ok(Object.isFrozen(view.mandatoryCharges));
   assert.ok(Object.isFrozen(view.mandatoryCharges[0]));
   assert.notEqual(view.mandatoryCharges[0], pricing.charges[0]);
-  assert.throws(() => { view.mandatoryCharges[0].amount = 'KES 0'; }, TypeError);
+  assert.throws(() => {
+    view.mandatoryCharges[0].amount = 'KES 0';
+  }, TypeError);
 });

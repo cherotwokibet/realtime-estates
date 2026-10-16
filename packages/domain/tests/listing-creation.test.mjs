@@ -1,12 +1,160 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateListingCreationCommand,validateListingCreationReceipt,validateListingCreationSnapshot} from '../dist/index.js';
-const operationId='00000000-0000-4000-8000-000000000001',listingId='00000000-0000-4000-8000-000000000002',actorId='00000000-0000-4000-8000-000000000003',other='00000000-0000-4000-8000-000000000004';
-const raw=()=>({operationId,listingId,slug:'synthetic-listing',content:{title:' Fictional draft ',privateAddress:' FICTIONAL ONLY ',pricing:{declaration:'not_declared',charges:[]},location:{county:null,town:null,area:null}}});
-const receipt=command=>({operationId,listingId,actorId,kind:'create_listing',request:{slug:command.slug,content:command.content},outcome:'created',reason:null,result:{listingVersion:'1',revision:1,revisionVersion:'2'},completedAt:'2026-10-15T12:00:00.123456Z'});
-test('creation retains detached normalized full replacement without inventing completeness',()=>{const input=raw(),command=validateListingCreationCommand(input);input.content.title='changed';input.content.location.county='changed';assert.equal(command.content.title,'Fictional draft');assert.equal(command.content.privateAddress,' FICTIONAL ONLY ');assert.equal(command.content.amountMinor,null);assert.equal(command.content.location.county,null);assert.ok(Object.isFrozen(command.content.location));assert.ok(Object.isFrozen(command));assert.equal(validateListingCreationCommand({...raw(),operationId:operationId.toUpperCase()}).operationId,operationId);});
-test('creation rejects authority fields, invalid identifiers and noncanonical or unbounded slugs',()=>{for(const patch of [{actorId},{tenantId:other},{assignedAgentId:actorId},{operationId:'bad'},{listingId:'bad'},{slug:' Bad '},{slug:'UPPER'},{slug:'double--hyphen'},{slug:'a'.repeat(161)},{slug:''}])assert.throws(()=>validateListingCreationCommand({...raw(),...patch}));assert.equal(validateListingCreationCommand({...raw(),slug:'a'.repeat(160)}).slug.length,160);});
-test('creation records reject executable and concealed fields without running getters',()=>{let reads=0;const getter=raw();Object.defineProperty(getter,'content',{enumerable:true,get(){reads++;return raw().content;}});const hidden=raw();Object.defineProperty(hidden,'actorId',{value:actorId});const symbolic=raw();symbolic[Symbol('authority')]=actorId;for(const input of [getter,hidden,symbolic,Object.assign(Object.create({tenantId:other}),raw())])assert.throws(()=>validateListingCreationCommand(input));assert.equal(reads,0);});
-test('original creation receipt binds exact retained request, target, operation and actor',()=>{const command=validateListingCreationCommand(raw()),original=receipt(command);assert.deepEqual(validateListingCreationReceipt(original,command,actorId),original);for(const patch of [{operationId:other},{listingId:other},{actorId:other},{kind:'save_draft'},{request:{...original.request,slug:'different'}},{request:{...original.request,content:{...command.content,title:'Different'}}},{request:{slug:command.slug,content:raw().content}},{result:{listingVersion:'2',revision:1,revisionVersion:'2'}},{result:{listingVersion:'1',revision:2,revisionVersion:'2'}},{result:{listingVersion:'1',revision:1,revisionVersion:'3'}}])assert.throws(()=>validateListingCreationReceipt({...original,...patch},command,actorId));assert.ok(Object.isFrozen(validateListingCreationReceipt(original,command).result));});
-test('generic unavailable refusal cannot reveal collision facts or claim a created revision',()=>{const command=validateListingCreationCommand(raw()),original={...receipt(command),outcome:'refused',reason:'TARGET_UNAVAILABLE',result:null};assert.equal(validateListingCreationReceipt(original,command,actorId).outcome,'refused');for(const patch of [{reason:'SLUG_EXISTS'},{result:receipt(command).result},{outcome:'created'},{existingListingId:other}])assert.throws(()=>validateListingCreationReceipt({...original,...patch},command));});
-test('historical snapshots enforce route binding and valid exact UTC completion without current-version claims',()=>{const command=validateListingCreationCommand(raw()),original=receipt(command);assert.deepEqual(validateListingCreationSnapshot(original,listingId,operationId),original);assert.throws(()=>validateListingCreationSnapshot(original,other,operationId));assert.throws(()=>validateListingCreationSnapshot(original,listingId,other));for(const completedAt of ['2026-02-30T12:00:00.123Z','2026-10-15T12:00:00Z','2026-10-15T12:00:00.123+00:00','0000-10-15T12:00:00.123Z'])assert.throws(()=>validateListingCreationSnapshot({...original,completedAt}));assert.equal(validateListingCreationSnapshot({...original,completedAt:'2020-01-01T00:00:00.000Z'}).result.revisionVersion,'2');let reads=0;const getter={...original};Object.defineProperty(getter,'request',{enumerable:true,get(){reads++;return original.request;}});assert.throws(()=>validateListingCreationSnapshot(getter));assert.equal(reads,0);});
+import {
+  validateListingCreationCommand,
+  validateListingCreationReceipt,
+  validateListingCreationSnapshot,
+} from '../dist/index.js';
+const operationId = '00000000-0000-4000-8000-000000000001',
+  listingId = '00000000-0000-4000-8000-000000000002',
+  actorId = '00000000-0000-4000-8000-000000000003',
+  other = '00000000-0000-4000-8000-000000000004';
+const raw = () => ({
+  operationId,
+  listingId,
+  slug: 'synthetic-listing',
+  content: {
+    title: ' Fictional draft ',
+    privateAddress: ' FICTIONAL ONLY ',
+    pricing: { declaration: 'not_declared', charges: [] },
+    location: { county: null, town: null, area: null },
+  },
+});
+const receipt = (command) => ({
+  operationId,
+  listingId,
+  actorId,
+  kind: 'create_listing',
+  request: { slug: command.slug, content: command.content },
+  outcome: 'created',
+  reason: null,
+  result: { listingVersion: '1', revision: 1, revisionVersion: '2' },
+  completedAt: '2026-10-15T12:00:00.123456Z',
+});
+test('creation retains detached normalized full replacement without inventing completeness', () => {
+  const input = raw(),
+    command = validateListingCreationCommand(input);
+  input.content.title = 'changed';
+  input.content.location.county = 'changed';
+  assert.equal(command.content.title, 'Fictional draft');
+  assert.equal(command.content.privateAddress, ' FICTIONAL ONLY ');
+  assert.equal(command.content.amountMinor, null);
+  assert.equal(command.content.location.county, null);
+  assert.ok(Object.isFrozen(command.content.location));
+  assert.ok(Object.isFrozen(command));
+  assert.equal(
+    validateListingCreationCommand({ ...raw(), operationId: operationId.toUpperCase() })
+      .operationId,
+    operationId,
+  );
+});
+test('creation rejects authority fields, invalid identifiers and noncanonical or unbounded slugs', () => {
+  for (const patch of [
+    { actorId },
+    { tenantId: other },
+    { assignedAgentId: actorId },
+    { operationId: 'bad' },
+    { listingId: 'bad' },
+    { slug: ' Bad ' },
+    { slug: 'UPPER' },
+    { slug: 'double--hyphen' },
+    { slug: 'a'.repeat(161) },
+    { slug: '' },
+  ])
+    assert.throws(() => validateListingCreationCommand({ ...raw(), ...patch }));
+  assert.equal(
+    validateListingCreationCommand({ ...raw(), slug: 'a'.repeat(160) }).slug.length,
+    160,
+  );
+});
+test('creation records reject executable and concealed fields without running getters', () => {
+  let reads = 0;
+  const getter = raw();
+  Object.defineProperty(getter, 'content', {
+    enumerable: true,
+    get() {
+      reads++;
+      return raw().content;
+    },
+  });
+  const hidden = raw();
+  Object.defineProperty(hidden, 'actorId', { value: actorId });
+  const symbolic = raw();
+  symbolic[Symbol('authority')] = actorId;
+  for (const input of [
+    getter,
+    hidden,
+    symbolic,
+    Object.assign(Object.create({ tenantId: other }), raw()),
+  ])
+    assert.throws(() => validateListingCreationCommand(input));
+  assert.equal(reads, 0);
+});
+test('original creation receipt binds exact retained request, target, operation and actor', () => {
+  const command = validateListingCreationCommand(raw()),
+    original = receipt(command);
+  assert.deepEqual(validateListingCreationReceipt(original, command, actorId), original);
+  for (const patch of [
+    { operationId: other },
+    { listingId: other },
+    { actorId: other },
+    { kind: 'save_draft' },
+    { request: { ...original.request, slug: 'different' } },
+    { request: { ...original.request, content: { ...command.content, title: 'Different' } } },
+    { request: { slug: command.slug, content: raw().content } },
+    { result: { listingVersion: '2', revision: 1, revisionVersion: '2' } },
+    { result: { listingVersion: '1', revision: 2, revisionVersion: '2' } },
+    { result: { listingVersion: '1', revision: 1, revisionVersion: '3' } },
+  ])
+    assert.throws(() =>
+      validateListingCreationReceipt({ ...original, ...patch }, command, actorId),
+    );
+  assert.ok(Object.isFrozen(validateListingCreationReceipt(original, command).result));
+});
+test('generic unavailable refusal cannot reveal collision facts or claim a created revision', () => {
+  const command = validateListingCreationCommand(raw()),
+    original = {
+      ...receipt(command),
+      outcome: 'refused',
+      reason: 'TARGET_UNAVAILABLE',
+      result: null,
+    };
+  assert.equal(validateListingCreationReceipt(original, command, actorId).outcome, 'refused');
+  for (const patch of [
+    { reason: 'SLUG_EXISTS' },
+    { result: receipt(command).result },
+    { outcome: 'created' },
+    { existingListingId: other },
+  ])
+    assert.throws(() => validateListingCreationReceipt({ ...original, ...patch }, command));
+});
+test('historical snapshots enforce route binding and valid exact UTC completion without current-version claims', () => {
+  const command = validateListingCreationCommand(raw()),
+    original = receipt(command);
+  assert.deepEqual(validateListingCreationSnapshot(original, listingId, operationId), original);
+  assert.throws(() => validateListingCreationSnapshot(original, other, operationId));
+  assert.throws(() => validateListingCreationSnapshot(original, listingId, other));
+  for (const completedAt of [
+    '2026-02-30T12:00:00.123Z',
+    '2026-10-15T12:00:00Z',
+    '2026-10-15T12:00:00.123+00:00',
+    '0000-10-15T12:00:00.123Z',
+  ])
+    assert.throws(() => validateListingCreationSnapshot({ ...original, completedAt }));
+  assert.equal(
+    validateListingCreationSnapshot({ ...original, completedAt: '2020-01-01T00:00:00.000Z' }).result
+      .revisionVersion,
+    '2',
+  );
+  let reads = 0;
+  const getter = { ...original };
+  Object.defineProperty(getter, 'request', {
+    enumerable: true,
+    get() {
+      reads++;
+      return original.request;
+    },
+  });
+  assert.throws(() => validateListingCreationSnapshot(getter));
+  assert.equal(reads, 0);
+});

@@ -1,11 +1,177 @@
-import assert from 'node:assert/strict';import test from 'node:test';
-import {prepareViewingReminderCandidate,validateViewingReminderAdmissionCommand,validateViewingReminderAdmissionReceipt} from '../dist/index.js';import {outcomeFixture} from '../test-helpers/viewing-outcome-fixtures.mjs';
-const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-function fixture(){const f=outcomeFixture(),current={...f.detail,schedule:f.previous,updatedAt:f.schedule.outcome.previousUpdatedAt};delete current.outcomeRecord;const command={operationId:id(80),expectedVersion:'3',dueAt:'2020-01-01T08:35:00.000Z',expiresAt:'2020-01-01T08:50:00.000Z'},candidate=prepareViewingReminderCandidate(current,commandWindow(command));return {f,command,receipt:{operationId:command.operationId,enquiryId:f.enquiry,viewingId:f.viewing,actorId:f.actor,kind:'admit_reminder',mode:'capture-only-v1',expectedVersion:'3',observedVersion:'3',request:commandWindow(command),outcome:'admitted',reason:null,candidate,completedAt:'2020-01-01T08:40:00.000Z'}};}
-const commandWindow=command=>({dueAt:command.dueAt,expiresAt:command.expiresAt});
-test('reminder admission command preserves timeless exact original window and detached facts',()=>{const {command}=fixture(),input={...command},saved=validateViewingReminderAdmissionCommand(input);input.dueAt='2090-01-01T00:00:00.000Z';assert.deepEqual(saved,command);assert.ok(Object.isFrozen(saved));for(const patch of [{expectedVersion:3},{expectedVersion:'3\n'},{operationId:command.operationId+'\n'},{dueAt:command.expiresAt},{expiresAt:command.dueAt},{dueAt:'2020-01-01T08:35:00Z'},{mode:'live'},{actorId:id(90)}])assert.throws(()=>validateViewingReminderAdmissionCommand({...command,...patch}));});
-test('admitted reminder receipt freezes exact historical candidate without rechecking current time',()=>{const {f,command,receipt}=fixture(),input=structuredClone(receipt),saved=validateViewingReminderAdmissionReceipt(input,f.enquiry,f.viewing,command);input.candidate.slot.startAt='2090-01-01T00:00:00.000Z';assert.deepEqual(saved,receipt);assert.ok(Object.isFrozen(saved.candidate.slot)&&Object.isFrozen(saved.request));});
-test('reminder admission receipt rejects altered operation authority mode target version or original window',()=>{const {f,command,receipt}=fixture();for(const patch of [{operationId:id(81)},{enquiryId:id(82)},{viewingId:id(83)},{actorId:'invented'},{kind:'complete'},{mode:'live'},{expectedVersion:'4'},{observedVersion:'4'},{request:{...receipt.request,dueAt:'2020-01-01T08:36:00.000Z'}},{tenantId:id(1)}])assert.throws(()=>validateViewingReminderAdmissionReceipt({...receipt,...patch},f.enquiry,f.viewing,command));});
-test('candidate facts and recorded admission time cannot disagree with the original receipt',()=>{const {f,command,receipt}=fixture();for(const patch of [{candidate:{...receipt.candidate,viewingId:id(81)}},{candidate:{...receipt.candidate,viewingVersion:'4'}},{candidate:{...receipt.candidate,dueAt:'2020-01-01T08:36:00.000Z'}},{reason:'ALREADY_ADMITTED'},{completedAt:'2020-01-01T08:29:59.999Z'},{completedAt:command.expiresAt},{candidate:null}])assert.throws(()=>validateViewingReminderAdmissionReceipt({...receipt,...patch},f.enquiry,f.viewing,command));});
-test('durable conflict and refusal receipts remain exact and contain no candidate',()=>{const {f,command,receipt}=fixture(),validate=value=>validateViewingReminderAdmissionReceipt(value,f.enquiry,f.viewing,command);assert.equal(validate({...receipt,outcome:'conflict',reason:'VERSION_CONFLICT',observedVersion:'4',candidate:null}).outcome,'conflict');for(const reason of ['ENQUIRY_CLOSED','LISTING_UNAVAILABLE','INVALID_STATE','RECORD_TIME_IN_FUTURE','SLOT_STARTED','WINDOW_EXPIRED','WINDOW_BEFORE_CONFIRMATION','WINDOW_OUTSIDE_SLOT','ALREADY_ADMITTED'])assert.equal(validate({...receipt,outcome:'refused',reason,candidate:null}).reason,reason);for(const patch of [{outcome:'conflict',reason:'VERSION_CONFLICT',candidate:null},{outcome:'refused',reason:'UNKNOWN',candidate:null},{outcome:'refused',reason:'INVALID_STATE',observedVersion:'4',candidate:null},{outcome:'refused',reason:'INVALID_STATE'}])assert.throws(()=>validate({...receipt,...patch}));});
-test('executable or hidden command and receipt properties are rejected without execution',()=>{const {f,command,receipt}=fixture();let called=false;const input={...command};Object.defineProperty(input,'dueAt',{enumerable:true,get(){called=true;return command.dueAt;}});assert.throws(()=>validateViewingReminderAdmissionCommand(input));const value={...receipt};Object.defineProperty(value,'request',{enumerable:true,get(){called=true;return receipt.request;}});assert.throws(()=>validateViewingReminderAdmissionReceipt(value,f.enquiry,f.viewing,command));assert.equal(called,false);});
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {
+  prepareViewingReminderCandidate,
+  validateViewingReminderAdmissionCommand,
+  validateViewingReminderAdmissionReceipt,
+} from '../dist/index.js';
+import { outcomeFixture } from '../test-helpers/viewing-outcome-fixtures.mjs';
+const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+function fixture() {
+  const f = outcomeFixture(),
+    current = {
+      ...f.detail,
+      schedule: f.previous,
+      updatedAt: f.schedule.outcome.previousUpdatedAt,
+    };
+  delete current.outcomeRecord;
+  const command = {
+      operationId: id(80),
+      expectedVersion: '3',
+      dueAt: '2020-01-01T08:35:00.000Z',
+      expiresAt: '2020-01-01T08:50:00.000Z',
+    },
+    candidate = prepareViewingReminderCandidate(current, commandWindow(command));
+  return {
+    f,
+    command,
+    receipt: {
+      operationId: command.operationId,
+      enquiryId: f.enquiry,
+      viewingId: f.viewing,
+      actorId: f.actor,
+      kind: 'admit_reminder',
+      mode: 'capture-only-v1',
+      expectedVersion: '3',
+      observedVersion: '3',
+      request: commandWindow(command),
+      outcome: 'admitted',
+      reason: null,
+      candidate,
+      completedAt: '2020-01-01T08:40:00.000Z',
+    },
+  };
+}
+const commandWindow = (command) => ({ dueAt: command.dueAt, expiresAt: command.expiresAt });
+test('reminder admission command preserves timeless exact original window and detached facts', () => {
+  const { command } = fixture(),
+    input = { ...command },
+    saved = validateViewingReminderAdmissionCommand(input);
+  input.dueAt = '2090-01-01T00:00:00.000Z';
+  assert.deepEqual(saved, command);
+  assert.ok(Object.isFrozen(saved));
+  for (const patch of [
+    { expectedVersion: 3 },
+    { expectedVersion: '3\n' },
+    { operationId: command.operationId + '\n' },
+    { dueAt: command.expiresAt },
+    { expiresAt: command.dueAt },
+    { dueAt: '2020-01-01T08:35:00Z' },
+    { mode: 'live' },
+    { actorId: id(90) },
+  ])
+    assert.throws(() => validateViewingReminderAdmissionCommand({ ...command, ...patch }));
+});
+test('admitted reminder receipt freezes exact historical candidate without rechecking current time', () => {
+  const { f, command, receipt } = fixture(),
+    input = structuredClone(receipt),
+    saved = validateViewingReminderAdmissionReceipt(input, f.enquiry, f.viewing, command);
+  input.candidate.slot.startAt = '2090-01-01T00:00:00.000Z';
+  assert.deepEqual(saved, receipt);
+  assert.ok(Object.isFrozen(saved.candidate.slot) && Object.isFrozen(saved.request));
+});
+test('reminder admission receipt rejects altered operation authority mode target version or original window', () => {
+  const { f, command, receipt } = fixture();
+  for (const patch of [
+    { operationId: id(81) },
+    { enquiryId: id(82) },
+    { viewingId: id(83) },
+    { actorId: 'invented' },
+    { kind: 'complete' },
+    { mode: 'live' },
+    { expectedVersion: '4' },
+    { observedVersion: '4' },
+    { request: { ...receipt.request, dueAt: '2020-01-01T08:36:00.000Z' } },
+    { tenantId: id(1) },
+  ])
+    assert.throws(() =>
+      validateViewingReminderAdmissionReceipt(
+        { ...receipt, ...patch },
+        f.enquiry,
+        f.viewing,
+        command,
+      ),
+    );
+});
+test('candidate facts and recorded admission time cannot disagree with the original receipt', () => {
+  const { f, command, receipt } = fixture();
+  for (const patch of [
+    { candidate: { ...receipt.candidate, viewingId: id(81) } },
+    { candidate: { ...receipt.candidate, viewingVersion: '4' } },
+    { candidate: { ...receipt.candidate, dueAt: '2020-01-01T08:36:00.000Z' } },
+    { reason: 'ALREADY_ADMITTED' },
+    { completedAt: '2020-01-01T08:29:59.999Z' },
+    { completedAt: command.expiresAt },
+    { candidate: null },
+  ])
+    assert.throws(() =>
+      validateViewingReminderAdmissionReceipt(
+        { ...receipt, ...patch },
+        f.enquiry,
+        f.viewing,
+        command,
+      ),
+    );
+});
+test('durable conflict and refusal receipts remain exact and contain no candidate', () => {
+  const { f, command, receipt } = fixture(),
+    validate = (value) =>
+      validateViewingReminderAdmissionReceipt(value, f.enquiry, f.viewing, command);
+  assert.equal(
+    validate({
+      ...receipt,
+      outcome: 'conflict',
+      reason: 'VERSION_CONFLICT',
+      observedVersion: '4',
+      candidate: null,
+    }).outcome,
+    'conflict',
+  );
+  for (const reason of [
+    'ENQUIRY_CLOSED',
+    'LISTING_UNAVAILABLE',
+    'INVALID_STATE',
+    'RECORD_TIME_IN_FUTURE',
+    'SLOT_STARTED',
+    'WINDOW_EXPIRED',
+    'WINDOW_BEFORE_CONFIRMATION',
+    'WINDOW_OUTSIDE_SLOT',
+    'ALREADY_ADMITTED',
+  ])
+    assert.equal(
+      validate({ ...receipt, outcome: 'refused', reason, candidate: null }).reason,
+      reason,
+    );
+  for (const patch of [
+    { outcome: 'conflict', reason: 'VERSION_CONFLICT', candidate: null },
+    { outcome: 'refused', reason: 'UNKNOWN', candidate: null },
+    { outcome: 'refused', reason: 'INVALID_STATE', observedVersion: '4', candidate: null },
+    { outcome: 'refused', reason: 'INVALID_STATE' },
+  ])
+    assert.throws(() => validate({ ...receipt, ...patch }));
+});
+test('executable or hidden command and receipt properties are rejected without execution', () => {
+  const { f, command, receipt } = fixture();
+  let called = false;
+  const input = { ...command };
+  Object.defineProperty(input, 'dueAt', {
+    enumerable: true,
+    get() {
+      called = true;
+      return command.dueAt;
+    },
+  });
+  assert.throws(() => validateViewingReminderAdmissionCommand(input));
+  const value = { ...receipt };
+  Object.defineProperty(value, 'request', {
+    enumerable: true,
+    get() {
+      called = true;
+      return receipt.request;
+    },
+  });
+  assert.throws(() =>
+    validateViewingReminderAdmissionReceipt(value, f.enquiry, f.viewing, command),
+  );
+  assert.equal(called, false);
+});

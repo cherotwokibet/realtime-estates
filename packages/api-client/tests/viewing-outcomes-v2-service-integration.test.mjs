@@ -1,34 +1,286 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {createServer} from 'node:http';
-import {generateKeyPair,exportJWK,SignJWT} from 'jose';import {PGlite} from '@electric-sql/pglite';
-import {applyTestMigrations} from '../../../database/test-helpers/migrations.mjs';
-import {seedHistoricalConfirmedViewing} from '../../../database/test-helpers/historical-confirmed-viewing.mjs';
-const seedPast=(db,viewingId,later,offset)=>seedHistoricalConfirmedViewing(db,{tenantId:T,enquiryId:E,listingId:L,actorId:AGENT,viewingId,later,offset});
-import {createApiService} from '../../../apps/api/dist/service.js';import {createDevelopmentServer} from '../../../apps/api/dist/http.js';
-import {createIdentityVerifier,parseBearerHeader} from '../../../apps/api/dist/auth.js';import {PostgresTransactionDatabase} from '../../../apps/api/dist/database.js';
-import {RealtorApiClient,ApiClientError} from '../dist/index.js';
-const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,T=id(1),ADMIN=id(10),AGENT=id(11),PEER=id(12),E=id(100),L=id(200);
-const denied=status=>e=>e instanceof ApiClientError&&e.kind==='HTTP'&&e.status===status&&!e.submissionUncertain;
-async function listen(server){await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});return `http://127.0.0.1:${server.address().port}`;}
-async function stop(server){if(server){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}}
-test('signed attendance recovers a discarded commit through access restoration and preserves first and later cycle evidence',async()=>{
- const db=new PGlite();let keyServer,apiServer,database;
- try{
-  const owner=(await db.query('SELECT session_user name')).rows[0].name,quoted='"'+owner.replaceAll('"','""')+'"';await applyTestMigrations(db);
-  await db.query("INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'attendance-http','Synthetic Attendance')",[T]);for(const [user,role] of [[ADMIN,'admin'],[AGENT,'agent'],[PEER,'agent']])await db.query('INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,$3)',[T,user,role]);
-  await db.exec('BEGIN');await db.query("SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",[T,ADMIN]);await db.query('SELECT app_api.create_listing($1,$2)',[L,'synthetic-attendance']);await db.exec('COMMIT');
-  await db.query("INSERT INTO app_private.enquiries(tenant_id,id,idempotency_key,listing_id,contacted_revision_no,assigned_agent_id,contact_name,email,message,origin,notice_version,status) VALUES($1,$2,$2,NULL,NULL,$3,'Synthetic past appointment','synthetic@example.invalid','Fictional historical attendance fixture','staff','synthetic-v1','assigned')",[T,E,AGENT]);
-  const first=await seedPast(db,id(300),false,1000),later=await seedPast(db,id(301),true,1100);
-  await db.exec('CREATE ROLE attendance_sdk_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS;GRANT api_runtime TO attendance_sdk_login;SET SESSION AUTHORIZATION attendance_sdk_login;');let tail=Promise.resolve();const pool={async connect(){let unlock;const prior=tail;tail=new Promise(resolve=>unlock=resolve);await prior;return {query:(sql,args)=>db.query(sql,args?[...args]:[]),release(){unlock();}};}};database=new PostgresTransactionDatabase(pool);await database.checkConnection();
-  const asOwner=async work=>{await tail;await db.exec(`SET SESSION AUTHORIZATION ${quoted};RESET ROLE;`);try{return await work();}finally{await db.exec('SET SESSION AUTHORIZATION attendance_sdk_login;RESET ROLE;');await database.checkConnection();}};
-  const keys=await generateKeyPair('RS256'),jwk={...await exportJWK(keys.publicKey),kid:'synthetic-attendance',alg:'RS256',use:'sig'};keyServer=createServer((_,res)=>{res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({keys:[jwk]}));});const issuer=await listen(keyServer),verify=createIdentityVerifier({issuer,audience:'synthetic-attendance',jwksUrl:issuer+'/jwks',allowLoopbackHttpForTests:true});
-  apiServer=createDevelopmentServer(createApiService({database,tenantId:T,privacyNoticeVersion:'synthetic-v1',verifyAuthorization:req=>verify(parseBearerHeader(req.headers.get('authorization')??undefined))}));const origin=await listen(apiServer),make=fetch=>new RealtorApiClient({baseUrl:origin,allowLoopbackHttp:true,privacyNoticeVersion:'synthetic-v1',...(fetch?{fetch}:{})}),api=make();const token=user=>new SignJWT({}).setProtectedHeader({alg:'RS256',kid:jwk.kid}).setIssuer(issuer).setAudience('synthetic-attendance').setSubject(user).setIssuedAt().setExpirationTime('10m').sign(keys.privateKey),agent={bearerToken:await token(AGENT)},admin={bearerToken:await token(ADMIN)};
-  const command={...first.fixture.command,operationId:id(2000)};let writes=0;const lost=make(async(url,init)=>{const response=await fetch(url,init);if(init.method==='POST'&&url.endsWith('/completions')){writes++;assert.equal(response.status,200);await response.arrayBuffer();throw new Error('Synthetic unusable committed attendance reply');}return response;});await assert.rejects(()=>lost.recordViewingOutcomeV2(E,id(300),'complete',command,agent),e=>e.kind==='NETWORK'&&e.submissionUncertain);assert.equal(writes,1);
-  const saved=await api.getViewingOutcomeReceiptV2(E,id(300),'complete',command,agent);assert.equal(saved.result.status,'completed');assert.equal(saved.result.version,'4');assert.deepEqual(saved.result.agreement,first.fixture.previous.agreement);assert.deepEqual(await api.recordViewingOutcomeV2(E,id(300),'complete',command,agent),saved);
-  const conflict=await api.recordViewingOutcomeV2(E,id(300),'complete',{...command,operationId:id(2001)},admin);assert.equal(conflict.outcome,'conflict');assert.deepEqual(await api.getViewingOutcomeReceiptV2(E,id(300),'complete',{...command,operationId:id(2001)},admin),conflict);await assert.rejects(()=>api.recordViewingOutcomeV2(E,id(300),'no_show',command,agent),denied(409));await assert.rejects(()=>api.getViewingOutcomeReceiptV2(E,id(300),'complete',command,admin),denied(404));
-  const assign=(operationId,expectedVersion,assignedAgentId)=>({operationId,kind:'assign',expectedVersion,assignedAgentId,status:null,nextActionAt:null,reason:null});await api.applyEnquiryOperationV2(E,assign(id(2100),'1',PEER),admin);await assert.rejects(()=>api.getViewingOutcomeReceiptV2(E,id(300),'complete',command,agent),denied(404));await assert.rejects(()=>api.getViewingHistoryV2(E,id(300),agent),denied(404));await api.applyEnquiryOperationV2(E,assign(id(2101),'2',AGENT),admin);assert.deepEqual(await api.recordViewingOutcomeV2(E,id(300),'complete',command,agent),saved);
-  const old=first.receipts[2];assert.deepEqual(await api.getViewingConfirmationReceiptV2(E,id(300),{operationId:old.operationId,expectedVersion:old.expectedVersion,...old.request},agent),old);assert.equal((await api.getViewingHistoryV2(E,id(300),agent)).items.length,4);
-  await api.applyEnquiryOperationV2(E,{operationId:id(2102),kind:'transition',expectedVersion:'3',assignedAgentId:null,status:'closed_lost',nextActionAt:null,reason:'Synthetic closure before attendance cleanup'},admin);await asOwner(()=>db.query("UPDATE app_private.listings SET publication_status='paused',availability='withdrawn' WHERE id=$1",[L]));const before=(await api.getStaffEnquiryV2(E,agent)).version;
-  const next={...later.fixture.command,operationId:id(2002)},missed=await api.recordViewingOutcomeV2(E,id(301),'no_show',next,agent);assert.equal(missed.result.status,'no_show');assert.equal(missed.result.version,'6');assert.equal((await api.getStaffEnquiryV2(E,agent)).version,before);assert.deepEqual(await api.getViewingOutcomeReceiptV2(E,id(301),'no_show',next,agent),missed);const page=await api.getViewingHistoryV2(E,id(301),agent);assert.equal(page.items.length,6);assert.deepEqual(page.items[3].schedule.agreement,later.receipts[2].result.agreement);assert.deepEqual(page.items[1].schedule.agreement,later.receipts[4].result.agreement);assert.equal((await api.listViewingsV2(E,agent)).items.length,2);
-  const totals=await asOwner(async()=> (await db.query("SELECT (SELECT count(*)::int FROM app_private.viewing_operations WHERE kind IN ('complete','no_show') AND receipt->>'outcome'='applied') applied,(SELECT count(*)::int FROM app_private.audit_events WHERE object_type='viewing') audits")).rows[0]);assert.deepEqual(totals,{applied:2,audits:2});
- }finally{await stop(apiServer);await stop(keyServer);if(database)await database.close();await db.close();}
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createServer } from 'node:http';
+import { generateKeyPair, exportJWK, SignJWT } from 'jose';
+import { PGlite } from '@electric-sql/pglite';
+import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
+import { seedHistoricalConfirmedViewing } from '../../../database/test-helpers/historical-confirmed-viewing.mjs';
+const seedPast = (db, viewingId, later, offset) =>
+  seedHistoricalConfirmedViewing(db, {
+    tenantId: T,
+    enquiryId: E,
+    listingId: L,
+    actorId: AGENT,
+    viewingId,
+    later,
+    offset,
+  });
+import { createApiService } from '../../../apps/api/dist/service.js';
+import { createDevelopmentServer } from '../../../apps/api/dist/http.js';
+import { createIdentityVerifier, parseBearerHeader } from '../../../apps/api/dist/auth.js';
+import { PostgresTransactionDatabase } from '../../../apps/api/dist/database.js';
+import { RealtorApiClient, ApiClientError } from '../dist/index.js';
+const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
+  T = id(1),
+  ADMIN = id(10),
+  AGENT = id(11),
+  PEER = id(12),
+  E = id(100),
+  L = id(200);
+const denied = (status) => (e) =>
+  e instanceof ApiClientError && e.kind === 'HTTP' && e.status === status && !e.submissionUncertain;
+async function listen(server) {
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  return `http://127.0.0.1:${server.address().port}`;
+}
+async function stop(server) {
+  if (server) {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+test('signed attendance recovers a discarded commit through access restoration and preserves first and later cycle evidence', async () => {
+  const db = new PGlite();
+  let keyServer, apiServer, database;
+  try {
+    const owner = (await db.query('SELECT session_user name')).rows[0].name,
+      quoted = '"' + owner.replaceAll('"', '""') + '"';
+    await applyTestMigrations(db);
+    await db.query(
+      "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'attendance-http','Synthetic Attendance')",
+      [T],
+    );
+    for (const [user, role] of [
+      [ADMIN, 'admin'],
+      [AGENT, 'agent'],
+      [PEER, 'agent'],
+    ])
+      await db.query(
+        'INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,$3)',
+        [T, user, role],
+      );
+    await db.exec('BEGIN');
+    await db.query(
+      "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
+      [T, ADMIN],
+    );
+    await db.query('SELECT app_api.create_listing($1,$2)', [L, 'synthetic-attendance']);
+    await db.exec('COMMIT');
+    await db.query(
+      "INSERT INTO app_private.enquiries(tenant_id,id,idempotency_key,listing_id,contacted_revision_no,assigned_agent_id,contact_name,email,message,origin,notice_version,status) VALUES($1,$2,$2,NULL,NULL,$3,'Synthetic past appointment','synthetic@example.invalid','Fictional historical attendance fixture','staff','synthetic-v1','assigned')",
+      [T, E, AGENT],
+    );
+    const first = await seedPast(db, id(300), false, 1000),
+      later = await seedPast(db, id(301), true, 1100);
+    await db.exec(
+      'CREATE ROLE attendance_sdk_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS;GRANT api_runtime TO attendance_sdk_login;SET SESSION AUTHORIZATION attendance_sdk_login;',
+    );
+    let tail = Promise.resolve();
+    const pool = {
+      async connect() {
+        let unlock;
+        const prior = tail;
+        tail = new Promise((resolve) => (unlock = resolve));
+        await prior;
+        return {
+          query: (sql, args) => db.query(sql, args ? [...args] : []),
+          release() {
+            unlock();
+          },
+        };
+      },
+    };
+    database = new PostgresTransactionDatabase(pool);
+    await database.checkConnection();
+    const asOwner = async (work) => {
+      await tail;
+      await db.exec(`SET SESSION AUTHORIZATION ${quoted};RESET ROLE;`);
+      try {
+        return await work();
+      } finally {
+        await db.exec('SET SESSION AUTHORIZATION attendance_sdk_login;RESET ROLE;');
+        await database.checkConnection();
+      }
+    };
+    const keys = await generateKeyPair('RS256'),
+      jwk = {
+        ...(await exportJWK(keys.publicKey)),
+        kid: 'synthetic-attendance',
+        alg: 'RS256',
+        use: 'sig',
+      };
+    keyServer = createServer((_, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ keys: [jwk] }));
+    });
+    const issuer = await listen(keyServer),
+      verify = createIdentityVerifier({
+        issuer,
+        audience: 'synthetic-attendance',
+        jwksUrl: issuer + '/jwks',
+        allowLoopbackHttpForTests: true,
+      });
+    apiServer = createDevelopmentServer(
+      createApiService({
+        database,
+        tenantId: T,
+        privacyNoticeVersion: 'synthetic-v1',
+        verifyAuthorization: (req) =>
+          verify(parseBearerHeader(req.headers.get('authorization') ?? undefined)),
+      }),
+    );
+    const origin = await listen(apiServer),
+      make = (fetch) =>
+        new RealtorApiClient({
+          baseUrl: origin,
+          allowLoopbackHttp: true,
+          privacyNoticeVersion: 'synthetic-v1',
+          ...(fetch ? { fetch } : {}),
+        }),
+      api = make();
+    const token = (user) =>
+        new SignJWT({})
+          .setProtectedHeader({ alg: 'RS256', kid: jwk.kid })
+          .setIssuer(issuer)
+          .setAudience('synthetic-attendance')
+          .setSubject(user)
+          .setIssuedAt()
+          .setExpirationTime('10m')
+          .sign(keys.privateKey),
+      agent = { bearerToken: await token(AGENT) },
+      admin = { bearerToken: await token(ADMIN) };
+    const command = { ...first.fixture.command, operationId: id(2000) };
+    let writes = 0;
+    const lost = make(async (url, init) => {
+      const response = await fetch(url, init);
+      if (init.method === 'POST' && url.endsWith('/completions')) {
+        writes++;
+        assert.equal(response.status, 200);
+        await response.arrayBuffer();
+        throw new Error('Synthetic unusable committed attendance reply');
+      }
+      return response;
+    });
+    await assert.rejects(
+      () => lost.recordViewingOutcomeV2(E, id(300), 'complete', command, agent),
+      (e) => e.kind === 'NETWORK' && e.submissionUncertain,
+    );
+    assert.equal(writes, 1);
+    const saved = await api.getViewingOutcomeReceiptV2(E, id(300), 'complete', command, agent);
+    assert.equal(saved.result.status, 'completed');
+    assert.equal(saved.result.version, '4');
+    assert.deepEqual(saved.result.agreement, first.fixture.previous.agreement);
+    assert.deepEqual(
+      await api.recordViewingOutcomeV2(E, id(300), 'complete', command, agent),
+      saved,
+    );
+    const conflict = await api.recordViewingOutcomeV2(
+      E,
+      id(300),
+      'complete',
+      { ...command, operationId: id(2001) },
+      admin,
+    );
+    assert.equal(conflict.outcome, 'conflict');
+    assert.deepEqual(
+      await api.getViewingOutcomeReceiptV2(
+        E,
+        id(300),
+        'complete',
+        { ...command, operationId: id(2001) },
+        admin,
+      ),
+      conflict,
+    );
+    await assert.rejects(
+      () => api.recordViewingOutcomeV2(E, id(300), 'no_show', command, agent),
+      denied(409),
+    );
+    await assert.rejects(
+      () => api.getViewingOutcomeReceiptV2(E, id(300), 'complete', command, admin),
+      denied(404),
+    );
+    const assign = (operationId, expectedVersion, assignedAgentId) => ({
+      operationId,
+      kind: 'assign',
+      expectedVersion,
+      assignedAgentId,
+      status: null,
+      nextActionAt: null,
+      reason: null,
+    });
+    await api.applyEnquiryOperationV2(E, assign(id(2100), '1', PEER), admin);
+    await assert.rejects(
+      () => api.getViewingOutcomeReceiptV2(E, id(300), 'complete', command, agent),
+      denied(404),
+    );
+    await assert.rejects(() => api.getViewingHistoryV2(E, id(300), agent), denied(404));
+    await api.applyEnquiryOperationV2(E, assign(id(2101), '2', AGENT), admin);
+    assert.deepEqual(
+      await api.recordViewingOutcomeV2(E, id(300), 'complete', command, agent),
+      saved,
+    );
+    const old = first.receipts[2];
+    assert.deepEqual(
+      await api.getViewingConfirmationReceiptV2(
+        E,
+        id(300),
+        { operationId: old.operationId, expectedVersion: old.expectedVersion, ...old.request },
+        agent,
+      ),
+      old,
+    );
+    assert.equal((await api.getViewingHistoryV2(E, id(300), agent)).items.length, 4);
+    await api.applyEnquiryOperationV2(
+      E,
+      {
+        operationId: id(2102),
+        kind: 'transition',
+        expectedVersion: '3',
+        assignedAgentId: null,
+        status: 'closed_lost',
+        nextActionAt: null,
+        reason: 'Synthetic closure before attendance cleanup',
+      },
+      admin,
+    );
+    await asOwner(() =>
+      db.query(
+        "UPDATE app_private.listings SET publication_status='paused',availability='withdrawn' WHERE id=$1",
+        [L],
+      ),
+    );
+    const before = (await api.getStaffEnquiryV2(E, agent)).version;
+    const next = { ...later.fixture.command, operationId: id(2002) },
+      missed = await api.recordViewingOutcomeV2(E, id(301), 'no_show', next, agent);
+    assert.equal(missed.result.status, 'no_show');
+    assert.equal(missed.result.version, '6');
+    assert.equal((await api.getStaffEnquiryV2(E, agent)).version, before);
+    assert.deepEqual(
+      await api.getViewingOutcomeReceiptV2(E, id(301), 'no_show', next, agent),
+      missed,
+    );
+    const page = await api.getViewingHistoryV2(E, id(301), agent);
+    assert.equal(page.items.length, 6);
+    assert.deepEqual(page.items[3].schedule.agreement, later.receipts[2].result.agreement);
+    assert.deepEqual(page.items[1].schedule.agreement, later.receipts[4].result.agreement);
+    assert.equal((await api.listViewingsV2(E, agent)).items.length, 2);
+    const totals = await asOwner(
+      async () =>
+        (
+          await db.query(
+            "SELECT (SELECT count(*)::int FROM app_private.viewing_operations WHERE kind IN ('complete','no_show') AND receipt->>'outcome'='applied') applied,(SELECT count(*)::int FROM app_private.audit_events WHERE object_type='viewing') audits",
+          )
+        ).rows[0],
+    );
+    assert.deepEqual(totals, { applied: 2, audits: 2 });
+  } finally {
+    await stop(apiServer);
+    await stop(keyServer);
+    if (database) await database.close();
+    await db.close();
+  }
 });

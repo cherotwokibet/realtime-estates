@@ -1,1 +1,1 @@
-export {default} from '../../shared/IntakeWorkspace';
+export { default } from '../../shared/IntakeWorkspace';

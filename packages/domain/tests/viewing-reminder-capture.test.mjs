@@ -1,9 +1,201 @@
-import assert from 'node:assert/strict';import test from 'node:test';import {prepareViewingReminderCandidate,validateViewingReminderCaptureCommand,validateViewingReminderCaptureReceipt} from '../dist/index.js';import {outcomeFixture} from '../test-helpers/viewing-outcome-fixtures.mjs';
-const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
-function fixture(){const f=outcomeFixture(),current={...f.detail,schedule:f.previous,updatedAt:f.schedule.outcome.previousUpdatedAt};delete current.outcomeRecord;const request={dueAt:'2020-01-01T08:35:00.000Z',expiresAt:'2020-01-01T08:50:00.000Z'},admission={operationId:id(80),enquiryId:f.enquiry,viewingId:f.viewing,actorId:f.actor,kind:'admit_reminder',mode:'capture-only-v1',expectedVersion:'3',observedVersion:'3',request,outcome:'admitted',reason:null,candidate:prepareViewingReminderCandidate(current,request),completedAt:'2020-01-01T08:32:00.000Z'},command={operationId:id(90)},receipt={operationId:command.operationId,admissionOperationId:admission.operationId,enquiryId:f.enquiry,viewingId:f.viewing,actorId:f.actor,kind:'capture_reminder',mode:'capture-only-v1',expectedVersion:'3',observedVersion:'3',outcome:'captured',reason:null,capture:{operationId:command.operationId,admissionOperationId:admission.operationId,viewingVersion:'3',capturedAt:'2020-01-01T08:40:00.000Z'},completedAt:'2020-01-01T08:40:00.000Z'};return {admission,command,receipt};}
-test('capture command is immutable operation-only data without caller clock mode target or authority',()=>{const {command}=fixture(),raw={...command},saved=validateViewingReminderCaptureCommand(raw);raw.operationId=id(91);assert.deepEqual(saved,command);assert.ok(Object.isFrozen(saved));for(const patch of [{operationId:command.operationId+'\n'},{mode:'live'},{now:'2020-01-01T08:40:00.000Z'},{actorId:id(1)},{admissionOperationId:id(80)}])assert.throws(()=>validateViewingReminderCaptureCommand({...command,...patch}));});
-test('captured and duplicate receipts retain exact historical synthetic capture and detached immutable facts',()=>{const {admission,command,receipt}=fixture(),raw=structuredClone(receipt),saved=validateViewingReminderCaptureReceipt(raw,admission,command);raw.capture.capturedAt='2090-01-01T00:00:00.000Z';assert.deepEqual(saved,receipt);assert.ok(Object.isFrozen(saved.capture));const next={operationId:id(91)},duplicate={...receipt,operationId:next.operationId,outcome:'duplicate',reason:'ALREADY_CAPTURED',completedAt:'2020-01-01T08:41:00.000Z'};assert.deepEqual(validateViewingReminderCaptureReceipt(duplicate,admission,next),duplicate);});
-test('capture receipts bind original admission requester target mode version and operation',()=>{const {admission,command,receipt}=fixture();for(const patch of [{operationId:id(92)},{admissionOperationId:id(81)},{enquiryId:id(99)},{viewingId:id(1)},{actorId:id(1)},{mode:'live'},{kind:'send_reminder'},{expectedVersion:'4'},{observedVersion:'4'},{tenantId:id(1)}])assert.throws(()=>validateViewingReminderCaptureReceipt({...receipt,...patch},admission,command));assert.throws(()=>validateViewingReminderCaptureReceipt(receipt,{...admission,outcome:'refused',reason:'INVALID_STATE',candidate:null},command));});
-test('capture metadata cannot be transferred normalized or placed outside the original window',()=>{const {admission,command,receipt}=fixture();for(const patch of [{capture:{...receipt.capture,operationId:id(91)}},{capture:{...receipt.capture,admissionOperationId:id(81)}},{capture:{...receipt.capture,viewingVersion:'4'}},{capture:{...receipt.capture,capturedAt:'2020-01-01T08:34:59.999Z'},completedAt:'2020-01-01T08:34:59.999Z'},{capture:{...receipt.capture,capturedAt:admission.request.expiresAt},completedAt:admission.request.expiresAt},{capture:null},{completedAt:'2020-01-01T08:39:59.999Z'},{outcome:'duplicate',reason:'ALREADY_CAPTURED'}])assert.throws(()=>validateViewingReminderCaptureReceipt({...receipt,...patch},admission,command));});
-test('waiting and suppressed originals remain terminal facts with truthful version and time boundaries',()=>{const {admission,command,receipt}=fixture(),validate=value=>validateViewingReminderCaptureReceipt(value,admission,command),waiting={...receipt,outcome:'waiting',reason:'NOT_DUE',capture:null,completedAt:'2020-01-01T08:34:59.999Z'};assert.deepEqual(validate(waiting),waiting);assert.throws(()=>validate({...waiting,completedAt:admission.request.dueAt}));for(const [reason,observedVersion,completedAt] of [['VERSION_CHANGED','4',receipt.completedAt],['NOT_CONFIRMED','4',receipt.completedAt],['ENQUIRY_CLOSED','3',receipt.completedAt],['LISTING_UNAVAILABLE','3',receipt.completedAt],['EXPIRED','3',admission.request.expiresAt],['SLOT_STARTED','3',admission.candidate.slot.startAt],['CLOCK_BEFORE_RECORD','3','2020-01-01T08:31:59.999Z']])assert.equal(validate({...receipt,outcome:'suppressed',reason,observedVersion,capture:null,completedAt}).reason,reason);for(const patch of [{reason:'UNKNOWN'},{reason:'VERSION_CHANGED'},{reason:'ENQUIRY_CLOSED',observedVersion:'4'},{reason:'EXPIRED',completedAt:receipt.completedAt},{reason:'CLOCK_BEFORE_RECORD'},{reason:'SLOT_STARTED',completedAt:receipt.completedAt}])assert.throws(()=>validate({...receipt,outcome:'suppressed',capture:null,...patch}));});
-test('capture contract rejects executable receipt and original admission fields without running getters',()=>{const {admission,command,receipt}=fixture();let called=false;for(const [value,key] of [[receipt,'capture'],[admission,'request']]){const raw={...value};Object.defineProperty(raw,key,{enumerable:true,get(){called=true;return value[key];}});assert.throws(()=>key==='capture'?validateViewingReminderCaptureReceipt(raw,admission,command):validateViewingReminderCaptureReceipt(receipt,raw,command));}assert.equal(called,false);});
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {
+  prepareViewingReminderCandidate,
+  validateViewingReminderCaptureCommand,
+  validateViewingReminderCaptureReceipt,
+} from '../dist/index.js';
+import { outcomeFixture } from '../test-helpers/viewing-outcome-fixtures.mjs';
+const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+function fixture() {
+  const f = outcomeFixture(),
+    current = {
+      ...f.detail,
+      schedule: f.previous,
+      updatedAt: f.schedule.outcome.previousUpdatedAt,
+    };
+  delete current.outcomeRecord;
+  const request = { dueAt: '2020-01-01T08:35:00.000Z', expiresAt: '2020-01-01T08:50:00.000Z' },
+    admission = {
+      operationId: id(80),
+      enquiryId: f.enquiry,
+      viewingId: f.viewing,
+      actorId: f.actor,
+      kind: 'admit_reminder',
+      mode: 'capture-only-v1',
+      expectedVersion: '3',
+      observedVersion: '3',
+      request,
+      outcome: 'admitted',
+      reason: null,
+      candidate: prepareViewingReminderCandidate(current, request),
+      completedAt: '2020-01-01T08:32:00.000Z',
+    },
+    command = { operationId: id(90) },
+    receipt = {
+      operationId: command.operationId,
+      admissionOperationId: admission.operationId,
+      enquiryId: f.enquiry,
+      viewingId: f.viewing,
+      actorId: f.actor,
+      kind: 'capture_reminder',
+      mode: 'capture-only-v1',
+      expectedVersion: '3',
+      observedVersion: '3',
+      outcome: 'captured',
+      reason: null,
+      capture: {
+        operationId: command.operationId,
+        admissionOperationId: admission.operationId,
+        viewingVersion: '3',
+        capturedAt: '2020-01-01T08:40:00.000Z',
+      },
+      completedAt: '2020-01-01T08:40:00.000Z',
+    };
+  return { admission, command, receipt };
+}
+test('capture command is immutable operation-only data without caller clock mode target or authority', () => {
+  const { command } = fixture(),
+    raw = { ...command },
+    saved = validateViewingReminderCaptureCommand(raw);
+  raw.operationId = id(91);
+  assert.deepEqual(saved, command);
+  assert.ok(Object.isFrozen(saved));
+  for (const patch of [
+    { operationId: command.operationId + '\n' },
+    { mode: 'live' },
+    { now: '2020-01-01T08:40:00.000Z' },
+    { actorId: id(1) },
+    { admissionOperationId: id(80) },
+  ])
+    assert.throws(() => validateViewingReminderCaptureCommand({ ...command, ...patch }));
+});
+test('captured and duplicate receipts retain exact historical synthetic capture and detached immutable facts', () => {
+  const { admission, command, receipt } = fixture(),
+    raw = structuredClone(receipt),
+    saved = validateViewingReminderCaptureReceipt(raw, admission, command);
+  raw.capture.capturedAt = '2090-01-01T00:00:00.000Z';
+  assert.deepEqual(saved, receipt);
+  assert.ok(Object.isFrozen(saved.capture));
+  const next = { operationId: id(91) },
+    duplicate = {
+      ...receipt,
+      operationId: next.operationId,
+      outcome: 'duplicate',
+      reason: 'ALREADY_CAPTURED',
+      completedAt: '2020-01-01T08:41:00.000Z',
+    };
+  assert.deepEqual(validateViewingReminderCaptureReceipt(duplicate, admission, next), duplicate);
+});
+test('capture receipts bind original admission requester target mode version and operation', () => {
+  const { admission, command, receipt } = fixture();
+  for (const patch of [
+    { operationId: id(92) },
+    { admissionOperationId: id(81) },
+    { enquiryId: id(99) },
+    { viewingId: id(1) },
+    { actorId: id(1) },
+    { mode: 'live' },
+    { kind: 'send_reminder' },
+    { expectedVersion: '4' },
+    { observedVersion: '4' },
+    { tenantId: id(1) },
+  ])
+    assert.throws(() =>
+      validateViewingReminderCaptureReceipt({ ...receipt, ...patch }, admission, command),
+    );
+  assert.throws(() =>
+    validateViewingReminderCaptureReceipt(
+      receipt,
+      { ...admission, outcome: 'refused', reason: 'INVALID_STATE', candidate: null },
+      command,
+    ),
+  );
+});
+test('capture metadata cannot be transferred normalized or placed outside the original window', () => {
+  const { admission, command, receipt } = fixture();
+  for (const patch of [
+    { capture: { ...receipt.capture, operationId: id(91) } },
+    { capture: { ...receipt.capture, admissionOperationId: id(81) } },
+    { capture: { ...receipt.capture, viewingVersion: '4' } },
+    {
+      capture: { ...receipt.capture, capturedAt: '2020-01-01T08:34:59.999Z' },
+      completedAt: '2020-01-01T08:34:59.999Z',
+    },
+    {
+      capture: { ...receipt.capture, capturedAt: admission.request.expiresAt },
+      completedAt: admission.request.expiresAt,
+    },
+    { capture: null },
+    { completedAt: '2020-01-01T08:39:59.999Z' },
+    { outcome: 'duplicate', reason: 'ALREADY_CAPTURED' },
+  ])
+    assert.throws(() =>
+      validateViewingReminderCaptureReceipt({ ...receipt, ...patch }, admission, command),
+    );
+});
+test('waiting and suppressed originals remain terminal facts with truthful version and time boundaries', () => {
+  const { admission, command, receipt } = fixture(),
+    validate = (value) => validateViewingReminderCaptureReceipt(value, admission, command),
+    waiting = {
+      ...receipt,
+      outcome: 'waiting',
+      reason: 'NOT_DUE',
+      capture: null,
+      completedAt: '2020-01-01T08:34:59.999Z',
+    };
+  assert.deepEqual(validate(waiting), waiting);
+  assert.throws(() => validate({ ...waiting, completedAt: admission.request.dueAt }));
+  for (const [reason, observedVersion, completedAt] of [
+    ['VERSION_CHANGED', '4', receipt.completedAt],
+    ['NOT_CONFIRMED', '4', receipt.completedAt],
+    ['ENQUIRY_CLOSED', '3', receipt.completedAt],
+    ['LISTING_UNAVAILABLE', '3', receipt.completedAt],
+    ['EXPIRED', '3', admission.request.expiresAt],
+    ['SLOT_STARTED', '3', admission.candidate.slot.startAt],
+    ['CLOCK_BEFORE_RECORD', '3', '2020-01-01T08:31:59.999Z'],
+  ])
+    assert.equal(
+      validate({
+        ...receipt,
+        outcome: 'suppressed',
+        reason,
+        observedVersion,
+        capture: null,
+        completedAt,
+      }).reason,
+      reason,
+    );
+  for (const patch of [
+    { reason: 'UNKNOWN' },
+    { reason: 'VERSION_CHANGED' },
+    { reason: 'ENQUIRY_CLOSED', observedVersion: '4' },
+    { reason: 'EXPIRED', completedAt: receipt.completedAt },
+    { reason: 'CLOCK_BEFORE_RECORD' },
+    { reason: 'SLOT_STARTED', completedAt: receipt.completedAt },
+  ])
+    assert.throws(() => validate({ ...receipt, outcome: 'suppressed', capture: null, ...patch }));
+});
+test('capture contract rejects executable receipt and original admission fields without running getters', () => {
+  const { admission, command, receipt } = fixture();
+  let called = false;
+  for (const [value, key] of [
+    [receipt, 'capture'],
+    [admission, 'request'],
+  ]) {
+    const raw = { ...value };
+    Object.defineProperty(raw, key, {
+      enumerable: true,
+      get() {
+        called = true;
+        return value[key];
+      },
+    });
+    assert.throws(() =>
+      key === 'capture'
+        ? validateViewingReminderCaptureReceipt(raw, admission, command)
+        : validateViewingReminderCaptureReceipt(receipt, raw, command),
+    );
+  }
+  assert.equal(called, false);
+});

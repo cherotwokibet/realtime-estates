@@ -1,21 +1,12 @@
 # Protected staff enquiry capture - 13 October 2026
 
-
-
 POST /v2/staff/enquiry-captures is an authenticated command. The server fixes company from deployment, actor from verified identity and origin to staff. Caller origin/actor/company/requester fields and query overrides are rejected. Active admin/agent authorization is checked in the same restricted transaction as record_enquiry. Current privacy notice acknowledgement and canonical contact validation match public intake. Public intake still accepts only web/mobile.
-
-
 
 The existing SQL command binds the original idempotency key to canonical body and authenticated requester; exact replay returns the original ID without another audit/write, while a changed body or different actor conflicts. Public and each verified staff actor have separate rate-limit namespaces. No database schema or dependency was added.
 
-
-
 Verification: final API build and 151/151 API tests passed, plus 8/8 signed-JWT actual loopback HTTP/restricted SQL integration checks (includes parent test). See evidence/staff-capture-api-tests-final.txt and staff-capture-integration-final.txt. New assertions verify persisted origin/requester, stable replay counts, changed-body/different-actor conflicts, missing authentication and customer/foreign/inactive denial. Initial API attempt conflicted with existing collection POST=405 expectations; a distinct capture command route preserves that contract. Initial integration reached the shared guest rate limit; actor/public namespaces fixed that issue. Earlier failed logs are preserved. Counts overlap historical suites; do not add them to cumulative totals.
 
-
-
 This is backend foundation only: no shared staff SDK method, original-attempt state machine, preview allowlist/BFF, staff form, browser/device/UAT or production acceptance is claimed. Next implement the typed staff capture method and immutable explicit replay helper, then protected server-only preview proxy and form. Ensure prospect notice handling is operator-attested rather than falsely presented as prospect consent. Current staff authorization must remain required on every replay. Broad lead checklist remains open,16/97 tasks and0/14 gates. KES10,000 monthly client price, vendor resources and old live systems preserved.
-
 
 ## Shared client - 13 October 2026
 

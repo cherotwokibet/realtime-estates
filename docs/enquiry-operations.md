@@ -19,16 +19,24 @@ Wire versions are canonical positive decimal strings no larger than `90071992547
 POST `/v2/staff/enquiries/{id}/operations` requires exactly these seven fields:
 
 ```json
-{"operationId":"00000000-0000-4000-8000-000000000001","kind":"assign","expectedVersion":1,"assignedAgentId":"00000000-0000-4000-8000-000000000002","status":null,"nextActionAt":null,"reason":null}
+{
+  "operationId": "00000000-0000-4000-8000-000000000001",
+  "kind": "assign",
+  "expectedVersion": 1,
+  "assignedAgentId": "00000000-0000-4000-8000-000000000002",
+  "status": null,
+  "nextActionAt": null,
+  "reason": null
+}
 ```
 
 The original operation UUID and complete intent must survive an uncertain reply. The SDK accepts expected version as a canonical string and sends an exact JSON integer between 1 and `9007199254740990`, leaving room for the single version increment. Every unused field must be explicitly null.
 
-| Kind | Required values | Effect |
-| --- | --- | --- |
-| assign | nonnull assignee; other values null | Admin chooses an active tenant agent/admin. New becomes assigned; other workflow fields remain. Same assignment without promotion is noop. |
-| transition | target status; assigned null | assigned→contacted, contacted→qualified, qualified→closed_won; open→closed_lost/spam; closed→assigned if assigned or new if unassigned. |
-| reschedule | nonnull next date; other values null | Current contacted/qualified state retains its state and changes only next date. Same date is noop. |
+| Kind       | Required values                      | Effect                                                                                                                                     |
+| ---------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| assign     | nonnull assignee; other values null  | Admin chooses an active tenant agent/admin. New becomes assigned; other workflow fields remain. Same assignment without promotion is noop. |
+| transition | target status; assigned null         | assigned→contacted, contacted→qualified, qualified→closed_won; open→closed_lost/spam; closed→assigned if assigned or new if unassigned.    |
+| reschedule | nonnull next date; other values null | Current contacted/qualified state retains its state and changes only next date. Same date is noop.                                         |
 
 Transition date is required exactly for contacted/qualified, null otherwise. Reason is required exactly for closed_lost/spam or reopening to new/assigned; it must already be trimmed, control-free and 1–1000 Unicode codepoints. Other targets require null reason. Reopening stores its reason in the existing `closure_reason` column, consistent with the legacy schema; the UI should label it according to the current workflow rather than inventing a new note field. New assignment does not reset a previous follow-up or reason.
 

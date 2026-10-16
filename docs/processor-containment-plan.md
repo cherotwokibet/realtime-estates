@@ -12,17 +12,17 @@ The source reviewed was `docs/trusted-media-runtime.md`, `docs/trusted-media-com
 
 ## Local facts established by read-only inspection
 
-| Item | Observed value |
-| --- | --- |
-| Windows version | `10.0.26200.0` |
-| Operating system / inspecting process | Both 64-bit |
-| Current PowerShell | `7.6.5`, `FullLanguage` |
-| Current .NET runtime | `10.0.11` |
-| Resolved Node executable | `C:\Program Files\nodejs\node.exe`, file version `24.19.0` |
-| Bundled Node executable | `C:\Users\BONIFACE\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe`, file version `24.19.0` |
-| Bundled PowerShell executable | `C:\Users\BONIFACE\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\pwsh.exe` |
-| Windows PowerShell executable | `C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe`, file version `10.0.26100.8875` |
-| taskkill executable | `C:\WINDOWS\system32\taskkill.exe`, file version `10.0.26100.1` |
+| Item                                  | Observed value                                                                                                         |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Windows version                       | `10.0.26200.0`                                                                                                         |
+| Operating system / inspecting process | Both 64-bit                                                                                                            |
+| Current PowerShell                    | `7.6.5`, `FullLanguage`                                                                                                |
+| Current .NET runtime                  | `10.0.11`                                                                                                              |
+| Resolved Node executable              | `C:\Program Files\nodejs\node.exe`, file version `24.19.0`                                                             |
+| Bundled Node executable               | `C:\Users\BONIFACE\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe`, file version `24.19.0` |
+| Bundled PowerShell executable         | `C:\Users\BONIFACE\.cache\codex-runtimes\codex-primary-runtime\dependencies\native\powershell\pwsh.exe`                |
+| Windows PowerShell executable         | `C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe`, file version `10.0.26100.8875`                            |
+| taskkill executable                   | `C:\WINDOWS\system32\taskkill.exe`, file version `10.0.26100.1`                                                        |
 
 These are tool availability and version facts, not proof that native interop, Job Objects, nested-job compatibility or termination work here. No decoder was launched, no process was killed, no native helper was compiled, and no dependency/provider was installed in this review. No credentials or environment-variable values were collected for the report.
 
@@ -87,21 +87,21 @@ runSyntheticJob(trustedAttempt: AttemptHandle, signal: AbortSignal):
 
 All rows below are proposed tests. None was run for this review.
 
-| Test | Required evidence |
-| --- | --- |
-| Ordinary independently generated JPEG/PNG/WebP | Actual codec output, readback hash/size/format/dimensions, direct exit and owned job count zero |
-| Hanging decoder and explicit cancellation | Deadline/cancel observed outside decoder; termination requested; count zero before cleanup or another attempt |
-| Native-busy decoder | Stopping does not depend on decoder promises, event-loop responsiveness or an AbortSignal alone |
-| Parent exits while descendant closes its pipes and continues | With a trusted tree-test policy, the supervisor still observes nonzero membership, terminates descendants and verifies zero |
-| Production policy process limit one / breakaway attempts | Subprocess creation cannot escape the configured job; failure remains bounded |
-| Supervisor crash and coordinator disconnect | No false empty-job receipt; unknown work retained; no reused paths; crash fail-safe exercised without claiming observation where none exists |
-| Failures before decoder start, atomic job association and nested host jobs | No uncontained fallback; no pre-assignment process survives; native handles released on every known path |
-| Oversized/malformed protocol and excessive diagnostics | Bounded buffers and generic errors; no pipe deadlock or secret logging |
-| Exit/cancel/timeout races and repeated stop calls | One terminal result; no PID-based targeting; barrier precedes release/promotion |
-| Input mutation, output tampering, collisions and reparse points | Unsafe files rejected; no cross-attempt replacement; readback evidence corresponds to owned bytes |
-| Stale lease after otherwise valid processing | No promotion or database attachment; new attempt gets new paths and ownership |
-| Environment and command injection sentinels | No inherited credential-like values, preloads or profiles; fixed executable and data-only arguments |
-| Configured resource limits | Measured behavior at each limit, with accurate claims about what Windows actually accounts for |
+| Test                                                                       | Required evidence                                                                                                                            |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ordinary independently generated JPEG/PNG/WebP                             | Actual codec output, readback hash/size/format/dimensions, direct exit and owned job count zero                                              |
+| Hanging decoder and explicit cancellation                                  | Deadline/cancel observed outside decoder; termination requested; count zero before cleanup or another attempt                                |
+| Native-busy decoder                                                        | Stopping does not depend on decoder promises, event-loop responsiveness or an AbortSignal alone                                              |
+| Parent exits while descendant closes its pipes and continues               | With a trusted tree-test policy, the supervisor still observes nonzero membership, terminates descendants and verifies zero                  |
+| Production policy process limit one / breakaway attempts                   | Subprocess creation cannot escape the configured job; failure remains bounded                                                                |
+| Supervisor crash and coordinator disconnect                                | No false empty-job receipt; unknown work retained; no reused paths; crash fail-safe exercised without claiming observation where none exists |
+| Failures before decoder start, atomic job association and nested host jobs | No uncontained fallback; no pre-assignment process survives; native handles released on every known path                                     |
+| Oversized/malformed protocol and excessive diagnostics                     | Bounded buffers and generic errors; no pipe deadlock or secret logging                                                                       |
+| Exit/cancel/timeout races and repeated stop calls                          | One terminal result; no PID-based targeting; barrier precedes release/promotion                                                              |
+| Input mutation, output tampering, collisions and reparse points            | Unsafe files rejected; no cross-attempt replacement; readback evidence corresponds to owned bytes                                            |
+| Stale lease after otherwise valid processing                               | No promotion or database attachment; new attempt gets new paths and ownership                                                                |
+| Environment and command injection sentinels                                | No inherited credential-like values, preloads or profiles; fixed executable and data-only arguments                                          |
+| Configured resource limits                                                 | Measured behavior at each limit, with accurate claims about what Windows actually accounts for                                               |
 
 ## Explicit remaining limitations
 

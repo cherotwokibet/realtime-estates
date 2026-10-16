@@ -1,87 +1,674 @@
 'use client';
-import {useEffect,useState} from 'react';
-import type {ReviewDetailV2,ReviewSummaryV2,ReviewPageV2} from '@realtor/api-client';
-import {calculateWirePricingV2,formatKes,kesFromMinor} from '@realtor/domain';
-import {knownPublication,reviewReadback,reviewRejectionReason,type ReviewIntent} from '../lib/review-model';
+import { useEffect, useState } from 'react';
+import type { ReviewDetailV2, ReviewSummaryV2, ReviewPageV2 } from '@realtor/api-client';
+import { calculateWirePricingV2, formatKes, kesFromMinor } from '@realtor/domain';
+import {
+  knownPublication,
+  reviewReadback,
+  reviewRejectionReason,
+  type ReviewIntent,
+} from '../lib/review-model';
 
-type Failure={status:number;uncertain:boolean};
-async function requestReview(path:string,instanceId:string,body?:unknown):Promise<unknown>{
-  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);
-  try{
-    let response:Response;
-    try{response=await fetch(path,{method:body?'POST':'GET',signal:controller.signal,cache:'no-store',credentials:'same-origin',redirect:'error',headers:{'X-Preview-Instance':instanceId,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});}
-    catch{throw {status:0,uncertain:!!body} satisfies Failure;}
-    let data:unknown;try{data=await response.json();}catch{throw {status:response.status,uncertain:!!body} satisfies Failure;}
-    if(!response.ok)throw {status:response.status,uncertain:(data as {submissionUncertain?:boolean})?.submissionUncertain===true} satisfies Failure;
+type Failure = { status: number; uncertain: boolean };
+async function requestReview(path: string, instanceId: string, body?: unknown): Promise<unknown> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  try {
+    let response: Response;
+    try {
+      response = await fetch(path, {
+        method: body ? 'POST' : 'GET',
+        signal: controller.signal,
+        cache: 'no-store',
+        credentials: 'same-origin',
+        redirect: 'error',
+        headers: {
+          'X-Preview-Instance': instanceId,
+          ...(body ? { 'Content-Type': 'application/json' } : {}),
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    } catch {
+      throw { status: 0, uncertain: !!body } satisfies Failure;
+    }
+    let data: unknown;
+    try {
+      data = await response.json();
+    } catch {
+      throw { status: response.status, uncertain: !!body } satisfies Failure;
+    }
+    if (!response.ok)
+      throw {
+        status: response.status,
+        uncertain: (data as { submissionUncertain?: boolean })?.submissionUncertain === true,
+      } satisfies Failure;
     return data;
-  }finally{clearTimeout(timer);}
+  } finally {
+    clearTimeout(timer);
+  }
 }
-function failureText(failure:Failure):string{
-  if(failure.status===401||failure.status===403)return 'Admin access is unavailable or expired. Restart the synthetic moderator preview to restore access.';
-  if(failure.status===404)return 'This revision is unavailable for the current company.';
-  if(failure.status===409)return 'The saved review changed. Check the latest review, then inspect it again before deciding.';
-  if(failure.uncertain)return 'The decision may have reached the server. Check the latest review before another attempt.';
-  if(failure.status===400||failure.status===422)return 'The decision was not accepted. Check the rejection reason, pending state and current availability.';
+function failureText(failure: Failure): string {
+  if (failure.status === 401 || failure.status === 403)
+    return 'Admin access is unavailable or expired. Restart the synthetic moderator preview to restore access.';
+  if (failure.status === 404) return 'This revision is unavailable for the current company.';
+  if (failure.status === 409)
+    return 'The saved review changed. Check the latest review, then inspect it again before deciding.';
+  if (failure.uncertain)
+    return 'The decision may have reached the server. Check the latest review before another attempt.';
+  if (failure.status === 400 || failure.status === 422)
+    return 'The decision was not accepted. Check the rejection reason, pending state and current availability.';
   return 'The service is unavailable. Check the latest review when the connection returns.';
 }
-const label=(value:string|null)=>value===null?'Not supplied':value.replaceAll('_',' ').replace(/^./,x=>x.toUpperCase());
-const amount=(value:number|null)=>value===null?'Not supplied':formatKes(kesFromMinor(value));
-const when=(value:string|null)=>value?new Date(value).toLocaleString('en-KE',{timeZone:'Africa/Nairobi',dateStyle:'medium',timeStyle:'short'})+' EAT':'Not recorded';
+const label = (value: string | null) =>
+  value === null
+    ? 'Not supplied'
+    : value.replaceAll('_', ' ').replace(/^./, (x) => x.toUpperCase());
+const amount = (value: number | null) =>
+  value === null ? 'Not supplied' : formatKes(kesFromMinor(value));
+const when = (value: string | null) =>
+  value
+    ? new Date(value).toLocaleString('en-KE', {
+        timeZone: 'Africa/Nairobi',
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }) + ' EAT'
+    : 'Not recorded';
 
-export default function ReviewWorkspace({previewInstanceId}:{previewInstanceId:string}){
-  const [queue,setQueue]=useState<readonly ReviewSummaryV2[]|null>(null),[queueMessage,setQueueMessage]=useState('Loading pending revisions…');
-  const [review,setReview]=useState<ReviewDetailV2|null>(null),[reason,setReason]=useState(''),[ack,setAck]=useState(false);
-  const [busy,setBusy]=useState(false),[queueBusy,setQueueBusy]=useState(false),[blocked,setBlocked]=useState(false),[error,setError]=useState(false);
-  const [message,setMessage]=useState('Select a pending revision to inspect its exact submitted content.');
-  const call=(path:string,body?:unknown)=>requestReview(path,previewInstanceId,body);
-  const path=(item:{listingId:string;revision:number})=>`/api/staff/reviews/${encodeURIComponent(item.listingId)}/${item.revision}`;
-  async function loadQueue(){setQueueBusy(true);try{const page=await call('/api/staff/reviews') as ReviewPageV2;setQueue(page.items);setQueueMessage(page.items.length===100?'Showing the first 100 pending revisions. More may exist.':`${page.items.length} pending revision${page.items.length===1?'':'s'} in this company.`);}catch(failure){setQueueMessage(failureText(failure as Failure)+(queue?' Previously loaded queue retained; it may be out of date.':''));}finally{setQueueBusy(false);}}
-  useEffect(()=>{let active=true;setQueueBusy(true);requestReview('/api/staff/reviews',previewInstanceId).then(value=>{if(active){const page=value as ReviewPageV2;setQueue(page.items);setQueueMessage(page.items.length===100?'Showing the first 100 pending revisions. More may exist.':`${page.items.length} pending revision${page.items.length===1?'':'s'} in this company.`);}}).catch(failure=>{if(active)setQueueMessage(failureText(failure as Failure));}).finally(()=>{if(active)setQueueBusy(false);});return()=>{active=false;};},[previewInstanceId]);
-  const hasNotes=review?.state==='pending'&&(reason.length>0||ack||blocked);
-  useEffect(()=>{if(!hasNotes)return;const warn=(event:BeforeUnloadEvent)=>{event.preventDefault();event.returnValue='';};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[hasNotes]);
-  async function openReview(item:ReviewSummaryV2){if(busy||hasNotes)return;setBusy(true);setError(false);setMessage('Loading the submitted revision…');try{const value=await call(path(item)) as ReviewDetailV2;setReview(value);setReason('');setAck(false);setBlocked(false);setMessage('Saved revision loaded. Check each section before a decision.');}catch(failure){setError(true);setMessage(failureText(failure as Failure));}finally{setBusy(false);}}
-  async function checkLatest(){if(!review)return;setBusy(true);try{const value=await call(path(review)) as ReviewDetailV2;const changed=value.version!==review.version;setReview(value);setAck(false);setBlocked(false);setError(false);setMessage(value.state==='pending'?(changed?'A different saved revision version is shown. Your rejection notes remain; inspect again and confirm before deciding.':'The saved review is still pending. Inspect it and confirm before an explicit new attempt.'):`Saved review is ${value.state}. The actual decision and publication state are shown below.`);void loadQueue();}catch(failure){setBlocked(true);setError(true);setMessage(failureText(failure as Failure));}finally{setBusy(false);}}
-  async function decide(decision:'approve'|'reject'){
-    if(!review||review.state!=='pending'||!ack||busy||blocked)return;
-    let intent:ReviewIntent;
-    try{intent={decision,reason:decision==='reject'?reviewRejectionReason(reason):null};}catch(failure){setError(true);setMessage((failure as Error).message);return;}
-    const before=review;setBusy(true);setError(false);setMessage('Recording the decision and checking the saved review…');
-    try{
-      await call(path(before)+'/decision',{expectedVersion:before.version,...intent});setBlocked(true);
-      const value=await call(path(before)) as ReviewDetailV2;const outcome=reviewReadback(before,intent,value);setReview(value);setAck(false);
-      setBlocked(outcome==='pending');setError(outcome!=='matching');
-      setMessage(outcome==='matching'?'The saved review confirms this decision. Publication and availability are shown separately below.':outcome==='different'?'The saved decision differs from this attempt. Inspect the actual recorded state and reason below.':'The decision is not confirmed by readback. Check the latest review before continuing.');
-      void loadQueue();
-    }catch(failure){setBlocked(true);setAck(false);setError(true);setMessage(failureText(failure as Failure));}finally{setBusy(false);}
+export default function ReviewWorkspace({ previewInstanceId }: { previewInstanceId: string }) {
+  const [queue, setQueue] = useState<readonly ReviewSummaryV2[] | null>(null),
+    [queueMessage, setQueueMessage] = useState('Loading pending revisions…');
+  const [review, setReview] = useState<ReviewDetailV2 | null>(null),
+    [reason, setReason] = useState(''),
+    [ack, setAck] = useState(false);
+  const [busy, setBusy] = useState(false),
+    [queueBusy, setQueueBusy] = useState(false),
+    [blocked, setBlocked] = useState(false),
+    [error, setError] = useState(false);
+  const [message, setMessage] = useState(
+    'Select a pending revision to inspect its exact submitted content.',
+  );
+  const call = (path: string, body?: unknown) => requestReview(path, previewInstanceId, body);
+  const path = (item: { listingId: string; revision: number }) =>
+    `/api/staff/reviews/${encodeURIComponent(item.listingId)}/${item.revision}`;
+  async function loadQueue() {
+    setQueueBusy(true);
+    try {
+      const page = (await call('/api/staff/reviews')) as ReviewPageV2;
+      setQueue(page.items);
+      setQueueMessage(
+        page.items.length === 100
+          ? 'Showing the first 100 pending revisions. More may exist.'
+          : `${page.items.length} pending revision${page.items.length === 1 ? '' : 's'} in this company.`,
+      );
+    } catch (failure) {
+      setQueueMessage(
+        failureText(failure as Failure) +
+          (queue ? ' Previously loaded queue retained; it may be out of date.' : ''),
+      );
+    } finally {
+      setQueueBusy(false);
+    }
   }
-  const content=review?.content;let costs:ReturnType<typeof calculateWirePricingV2>|null=null;
-  if(content?.amountMinor!==null&&content?.amountMinor!==undefined&&content.purpose){try{costs=calculateWirePricingV2(kesFromMinor(content.amountMinor),content.purpose,content.rentPeriod,content.pricing);}catch{/* Incomplete draft readback has no invented total. */}}
-  return <>
-    <header className="draft-heading"><div><p className="eyebrow">PUBLICATION REVIEW</p><h1>Review before it goes live</h1><p>Inspect one submitted revision. Make a clear, recorded decision.</p></div><span className="status-pill status-neutral">Admin review</span></header>
-    <div className="draft-preview-notice"><strong>Signed synthetic identity · disposable local data</strong><p>Photo references are fixture metadata; image bytes have not been uploaded or verified. These decisions affect synthetic stock only. Production sessions, trusted media processing and launch approval remain open.</p></div>
-    <div className="review-workspace-layout">
-      <aside className="draft-panel review-queue" aria-label="Pending review queue"><div className="review-queue-heading"><h2>Pending revisions</h2><button className="draft-secondary" type="button" disabled={queueBusy||busy} onClick={()=>void loadQueue()}>Refresh queue</button></div><p className="draft-help" role="status">{queueMessage}</p>
-        {queue?.length===0&&<div className="review-empty"><h3>Nothing waiting</h3><p>Submitted revisions appear here. A saved draft still needs submission.</p></div>}
-        {queue?.map(item=><button className={`review-select${review?.listingId===item.listingId&&review.revision===item.revision?' review-selected':''}`} key={`${item.listingId}/${item.revision}`} disabled={busy||!!hasNotes} type="button" onClick={()=>void openReview(item)}><span className="table-reference">REVISION {item.revision} · VERSION {item.version}</span><strong>{item.title}</strong><span>{amount(item.amountMinor)}{item.rentPeriod?` / ${item.rentPeriod}`:''}</span><small>{when(item.submittedAt)}</small></button>)}
-        {hasNotes&&<p className="draft-help">Finish this review or explicitly clear the local review notes before choosing another revision.</p>}
-      </aside>
-      <div className="review-detail-area">
-        <div className={`draft-message${error?' draft-message-error':''}`} role="status" aria-live="polite"><p>{message}</p>{review&&<button type="button" className="draft-secondary" disabled={busy} onClick={()=>void checkLatest()}>Check latest review</button>}</div>
-        {!review&&<section className="draft-panel review-empty"><p className="eyebrow">READY FOR A SECOND LOOK</p><h2>Choose a revision from the queue</h2><p>Its saved details, named costs, privacy settings and review history will appear here.</p></section>}
-        {review&&content&&<>
-          <section className="draft-panel review-summary"><div><p className="eyebrow">{review.slug}</p><h2>{content.title??'Untitled revision'}</h2><p>Revision {review.revision} · Revision version {review.version} · Listing version {review.listingVersion}</p></div><span className="status-pill status-neutral">{label(review.state)}</span></section>
-          <section className="draft-panel"><div className="draft-section-heading"><span>01</span><div><h2>Submitted property details</h2><p>These values are read from the saved revision.</p></div></div><p className="review-description">{content.description??'Description not supplied.'}</p><dl className="review-facts">
-            <div><dt>Purpose / type</dt><dd>{label(content.purpose)} · {label(content.propertyType)}</dd></div><div><dt>Bedrooms</dt><dd>{content.bedrooms===null?'Not supplied':content.bedrooms===0?'Studio / zero bedrooms':content.bedrooms}</dd></div><div><dt>Private bathrooms</dt><dd>{content.privateBathrooms??'Not supplied'}</dd></div><div><dt>Shared bathrooms</dt><dd>{content.sharedBathrooms??'Not supplied'}</dd></div><div><dt>Public location</dt><dd>{[content.location.area,content.location.town,content.location.county].filter(Boolean).join(', ')||'Not supplied'}</dd></div><div><dt>Legacy locality / country</dt><dd>{content.locality??'Not supplied'} · {content.country}</dd></div><div><dt>Public precision</dt><dd>{label(content.publicPrecision)}</dd></div><div><dt>Saved coordinates</dt><dd>{content.latitude===null?'Not supplied':content.latitude}, {content.longitude===null?'Not supplied':content.longitude}</dd></div>
-          </dl><div className="review-private"><h3>Private staff address</h3><p>{content.privateAddress??'Not supplied'}</p><small>Excluded from the public projection. Area precision also hides coordinates.</small></div></section>
-          <section className="draft-panel"><div className="draft-section-heading"><span>02</span><div><h2>Exact price &amp; declared costs</h2><p>No inferred charges or all-inclusive totals.</p></div></div><dl className="review-facts"><div><dt>Base price</dt><dd>{amount(content.amountMinor)}{content.rentPeriod?` / ${content.rentPeriod}`:''}</dd></div><div><dt>Cost declaration</dt><dd>{label(content.pricing.declaration)}</dd></div></dl>
-            {content.pricing.charges.length===0?<p className="draft-help">No named charges supplied. The declaration determines whether costs are known to be complete.</p>:<ul className="review-charge-list">{content.pricing.charges.map(charge=><li key={charge.id}><div><strong>{charge.name}</strong><span>{charge.mandatory?'Mandatory':'Optional'} · {label(charge.classification)} · {charge.timing==='one_off'?'One-off':`Per ${content.rentPeriod??'rental period'}`}</span></div><strong>{charge.amountStatus==='quote_required'?'Quote required':amount(charge.amountMinor)}</strong></li>)}</ul>}
-            {costs&&<div className="review-subtotals"><dl className="review-facts">{costs.knownMandatory.recurringSubtotal&&<div><dt>Known mandatory recurring subtotal</dt><dd>{formatKes(costs.knownMandatory.recurringSubtotal)} / {costs.rentalPeriod}</dd></div>}<div><dt>Mandatory refundable deposit</dt><dd>{formatKes(costs.knownMandatory.refundableDeposit)}</dd></div><div><dt>Known mandatory initial subtotal</dt><dd>{formatKes(costs.knownMandatory.initialSubtotal)}</dd></div><div><dt>Known optional initial extras</dt><dd>{formatKes(costs.optionalCosts.knownInitialExtras)}</dd></div></dl><p>{costs.hasUnresolvedMandatoryAmounts?'Mandatory cost disclosure is incomplete or amounts need confirmation.':'No unresolved amounts in the named mandatory charges.'} Declaration: {content.pricing.declaration.replaceAll('_',' ')}. Optional quotes and undeclared costs are excluded.</p></div>}
-          </section>
-          <section className="draft-panel"><div className="draft-section-heading"><span>03</span><div><h2>Photo references</h2><p>{review.acceptedPhotoCount} accepted metadata rows · no image bytes in this preview</p></div></div><ol className="review-photo-list">{review.photos.map((photo,index)=><li key={`${photo.key}/${index}`}><span aria-hidden="true">{String(index+1).padStart(2,'0')}</span><div><strong>{photo.alt}</strong><small>{photo.key}</small></div></li>)}</ol><p className="draft-help">This cannot verify photo quality, distinct images, advertising rights or safe decoding. Trusted upload processing must be implemented and verified before real publication.</p></section>
-          <section className="draft-panel"><div className="draft-section-heading"><span>04</span><div><h2>Publication &amp; review record</h2><p>Approval and public visibility are separate facts.</p></div></div><dl className="review-facts"><div><dt>Publication state</dt><dd>{label(review.publicationStatus)}</dd></div><div><dt>Selected approved revision</dt><dd>{review.publishedRevision??'None'}</dd></div><div><dt>Availability</dt><dd>{label(review.availability)}</dd></div><div><dt>Last availability confirmation</dt><dd>{when(review.lastAvailabilityConfirmedAt)}</dd></div><div><dt>Submitted</dt><dd>{when(review.submittedAt)}</dd></div><div><dt>Submitted by / actor ID</dt><dd>{review.submittedBy??'Not recorded'}</dd></div><div><dt>Decided</dt><dd>{when(review.decidedAt)}</dd></div><div><dt>Decided by / actor ID</dt><dd>{review.decidedBy??'Not recorded'}</dd></div></dl><p className="draft-help">{knownPublication(review)}</p>{review.decisionReason&&<div className="review-private"><h3>Recorded rejection reason · staff only</h3><p>{review.decisionReason}</p></div>}</section>
-          {review.state==='pending'?<section className="draft-panel review-decision"><p className="eyebrow">YOUR DECISION</p><h2>Approve or explain the changes</h2><p className="draft-help">Approval may publish this synthetic revision immediately if current availability and publication rules allow. A paused or archived listing stays paused or archived. Rejection keeps any existing approved snapshot intact.</p><label className="draft-field">Rejection reason<textarea rows={3} value={reason} disabled={busy} onChange={event=>setReason(event.target.value)} placeholder="Explain what needs to change…"/><small>Used only for rejection. One paragraph without line breaks; at most 1,000 Unicode characters. Kept in this tab until you leave; excluded from public responses.</small></label><label className="draft-checkbox review-ack"><input type="checkbox" checked={ack} disabled={busy||blocked} onChange={event=>setAck(event.target.checked)}/>I reviewed revision {review.revision}, version {review.version}, including its exact costs and synthetic photo limitation.</label><div className="draft-actions"><button type="button" className="draft-primary" disabled={!ack||busy||blocked} onClick={()=>void decide('approve')}>Approve synthetic revision</button><button type="button" className="draft-secondary" disabled={!ack||!reason.trim()||busy||blocked} onClick={()=>void decide('reject')}>Reject with reason</button><button type="button" className="draft-text-button" disabled={busy||blocked} onClick={()=>{setReason('');setAck(false);}}>Clear local review notes</button></div>{blocked&&<p className="draft-help">Decisions are blocked until “Check latest review” succeeds. No automatic write retry occurs.</p>}</section>:<section className="draft-panel"><h2>{label(review.state)} revision</h2><p className="draft-help">This revision is read-only. A rejected or approved revision needs a new sequential draft for content changes. This queue does not yet create successor drafts.</p></section>}
-        </>}
+  useEffect(() => {
+    let active = true;
+    setQueueBusy(true);
+    requestReview('/api/staff/reviews', previewInstanceId)
+      .then((value) => {
+        if (active) {
+          const page = value as ReviewPageV2;
+          setQueue(page.items);
+          setQueueMessage(
+            page.items.length === 100
+              ? 'Showing the first 100 pending revisions. More may exist.'
+              : `${page.items.length} pending revision${page.items.length === 1 ? '' : 's'} in this company.`,
+          );
+        }
+      })
+      .catch((failure) => {
+        if (active) setQueueMessage(failureText(failure as Failure));
+      })
+      .finally(() => {
+        if (active) setQueueBusy(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [previewInstanceId]);
+  const hasNotes = review?.state === 'pending' && (reason.length > 0 || ack || blocked);
+  useEffect(() => {
+    if (!hasNotes) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [hasNotes]);
+  async function openReview(item: ReviewSummaryV2) {
+    if (busy || hasNotes) return;
+    setBusy(true);
+    setError(false);
+    setMessage('Loading the submitted revision…');
+    try {
+      const value = (await call(path(item))) as ReviewDetailV2;
+      setReview(value);
+      setReason('');
+      setAck(false);
+      setBlocked(false);
+      setMessage('Saved revision loaded. Check each section before a decision.');
+    } catch (failure) {
+      setError(true);
+      setMessage(failureText(failure as Failure));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function checkLatest() {
+    if (!review) return;
+    setBusy(true);
+    try {
+      const value = (await call(path(review))) as ReviewDetailV2;
+      const changed = value.version !== review.version;
+      setReview(value);
+      setAck(false);
+      setBlocked(false);
+      setError(false);
+      setMessage(
+        value.state === 'pending'
+          ? changed
+            ? 'A different saved revision version is shown. Your rejection notes remain; inspect again and confirm before deciding.'
+            : 'The saved review is still pending. Inspect it and confirm before an explicit new attempt.'
+          : `Saved review is ${value.state}. The actual decision and publication state are shown below.`,
+      );
+      void loadQueue();
+    } catch (failure) {
+      setBlocked(true);
+      setError(true);
+      setMessage(failureText(failure as Failure));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function decide(decision: 'approve' | 'reject') {
+    if (!review || review.state !== 'pending' || !ack || busy || blocked) return;
+    let intent: ReviewIntent;
+    try {
+      intent = { decision, reason: decision === 'reject' ? reviewRejectionReason(reason) : null };
+    } catch (failure) {
+      setError(true);
+      setMessage((failure as Error).message);
+      return;
+    }
+    const before = review;
+    setBusy(true);
+    setError(false);
+    setMessage('Recording the decision and checking the saved review…');
+    try {
+      await call(path(before) + '/decision', { expectedVersion: before.version, ...intent });
+      setBlocked(true);
+      const value = (await call(path(before))) as ReviewDetailV2;
+      const outcome = reviewReadback(before, intent, value);
+      setReview(value);
+      setAck(false);
+      setBlocked(outcome === 'pending');
+      setError(outcome !== 'matching');
+      setMessage(
+        outcome === 'matching'
+          ? 'The saved review confirms this decision. Publication and availability are shown separately below.'
+          : outcome === 'different'
+            ? 'The saved decision differs from this attempt. Inspect the actual recorded state and reason below.'
+            : 'The decision is not confirmed by readback. Check the latest review before continuing.',
+      );
+      void loadQueue();
+    } catch (failure) {
+      setBlocked(true);
+      setAck(false);
+      setError(true);
+      setMessage(failureText(failure as Failure));
+    } finally {
+      setBusy(false);
+    }
+  }
+  const content = review?.content;
+  let costs: ReturnType<typeof calculateWirePricingV2> | null = null;
+  if (content?.amountMinor !== null && content?.amountMinor !== undefined && content.purpose) {
+    try {
+      costs = calculateWirePricingV2(
+        kesFromMinor(content.amountMinor),
+        content.purpose,
+        content.rentPeriod,
+        content.pricing,
+      );
+    } catch {
+      /* Incomplete draft readback has no invented total. */
+    }
+  }
+  return (
+    <>
+      <header className="draft-heading">
+        <div>
+          <p className="eyebrow">PUBLICATION REVIEW</p>
+          <h1>Review before it goes live</h1>
+          <p>Inspect one submitted revision. Make a clear, recorded decision.</p>
+        </div>
+        <span className="status-pill status-neutral">Admin review</span>
+      </header>
+      <div className="draft-preview-notice">
+        <strong>Signed synthetic identity · disposable local data</strong>
+        <p>
+          Photo references are fixture metadata; image bytes have not been uploaded or verified.
+          These decisions affect synthetic stock only. Production sessions, trusted media processing
+          and launch approval remain open.
+        </p>
       </div>
-    </div><footer className="draft-footer">Synthetic moderation · No live changes · Review notes stay in open-tab memory only</footer>
-  </>;
+      <div className="review-workspace-layout">
+        <aside className="draft-panel review-queue" aria-label="Pending review queue">
+          <div className="review-queue-heading">
+            <h2>Pending revisions</h2>
+            <button
+              className="draft-secondary"
+              type="button"
+              disabled={queueBusy || busy}
+              onClick={() => void loadQueue()}
+            >
+              Refresh queue
+            </button>
+          </div>
+          <p className="draft-help" role="status">
+            {queueMessage}
+          </p>
+          {queue?.length === 0 && (
+            <div className="review-empty">
+              <h3>Nothing waiting</h3>
+              <p>Submitted revisions appear here. A saved draft still needs submission.</p>
+            </div>
+          )}
+          {queue?.map((item) => (
+            <button
+              className={`review-select${review?.listingId === item.listingId && review.revision === item.revision ? ' review-selected' : ''}`}
+              key={`${item.listingId}/${item.revision}`}
+              disabled={busy || !!hasNotes}
+              type="button"
+              onClick={() => void openReview(item)}
+            >
+              <span className="table-reference">
+                REVISION {item.revision} · VERSION {item.version}
+              </span>
+              <strong>{item.title}</strong>
+              <span>
+                {amount(item.amountMinor)}
+                {item.rentPeriod ? ` / ${item.rentPeriod}` : ''}
+              </span>
+              <small>{when(item.submittedAt)}</small>
+            </button>
+          ))}
+          {hasNotes && (
+            <p className="draft-help">
+              Finish this review or explicitly clear the local review notes before choosing another
+              revision.
+            </p>
+          )}
+        </aside>
+        <div className="review-detail-area">
+          <div
+            className={`draft-message${error ? ' draft-message-error' : ''}`}
+            role="status"
+            aria-live="polite"
+          >
+            <p>{message}</p>
+            {review && (
+              <button
+                type="button"
+                className="draft-secondary"
+                disabled={busy}
+                onClick={() => void checkLatest()}
+              >
+                Check latest review
+              </button>
+            )}
+          </div>
+          {!review && (
+            <section className="draft-panel review-empty">
+              <p className="eyebrow">READY FOR A SECOND LOOK</p>
+              <h2>Choose a revision from the queue</h2>
+              <p>
+                Its saved details, named costs, privacy settings and review history will appear
+                here.
+              </p>
+            </section>
+          )}
+          {review && content && (
+            <>
+              <section className="draft-panel review-summary">
+                <div>
+                  <p className="eyebrow">{review.slug}</p>
+                  <h2>{content.title ?? 'Untitled revision'}</h2>
+                  <p>
+                    Revision {review.revision} · Revision version {review.version} · Listing version{' '}
+                    {review.listingVersion}
+                  </p>
+                </div>
+                <span className="status-pill status-neutral">{label(review.state)}</span>
+              </section>
+              <section className="draft-panel">
+                <div className="draft-section-heading">
+                  <span>01</span>
+                  <div>
+                    <h2>Submitted property details</h2>
+                    <p>These values are read from the saved revision.</p>
+                  </div>
+                </div>
+                <p className="review-description">
+                  {content.description ?? 'Description not supplied.'}
+                </p>
+                <dl className="review-facts">
+                  <div>
+                    <dt>Purpose / type</dt>
+                    <dd>
+                      {label(content.purpose)} · {label(content.propertyType)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Bedrooms</dt>
+                    <dd>
+                      {content.bedrooms === null
+                        ? 'Not supplied'
+                        : content.bedrooms === 0
+                          ? 'Studio / zero bedrooms'
+                          : content.bedrooms}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Private bathrooms</dt>
+                    <dd>{content.privateBathrooms ?? 'Not supplied'}</dd>
+                  </div>
+                  <div>
+                    <dt>Shared bathrooms</dt>
+                    <dd>{content.sharedBathrooms ?? 'Not supplied'}</dd>
+                  </div>
+                  <div>
+                    <dt>Public location</dt>
+                    <dd>
+                      {[content.location.area, content.location.town, content.location.county]
+                        .filter(Boolean)
+                        .join(', ') || 'Not supplied'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Legacy locality / country</dt>
+                    <dd>
+                      {content.locality ?? 'Not supplied'} · {content.country}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Public precision</dt>
+                    <dd>{label(content.publicPrecision)}</dd>
+                  </div>
+                  <div>
+                    <dt>Saved coordinates</dt>
+                    <dd>
+                      {content.latitude === null ? 'Not supplied' : content.latitude},{' '}
+                      {content.longitude === null ? 'Not supplied' : content.longitude}
+                    </dd>
+                  </div>
+                </dl>
+                <div className="review-private">
+                  <h3>Private staff address</h3>
+                  <p>{content.privateAddress ?? 'Not supplied'}</p>
+                  <small>
+                    Excluded from the public projection. Area precision also hides coordinates.
+                  </small>
+                </div>
+              </section>
+              <section className="draft-panel">
+                <div className="draft-section-heading">
+                  <span>02</span>
+                  <div>
+                    <h2>Exact price &amp; declared costs</h2>
+                    <p>No inferred charges or all-inclusive totals.</p>
+                  </div>
+                </div>
+                <dl className="review-facts">
+                  <div>
+                    <dt>Base price</dt>
+                    <dd>
+                      {amount(content.amountMinor)}
+                      {content.rentPeriod ? ` / ${content.rentPeriod}` : ''}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Cost declaration</dt>
+                    <dd>{label(content.pricing.declaration)}</dd>
+                  </div>
+                </dl>
+                {content.pricing.charges.length === 0 ? (
+                  <p className="draft-help">
+                    No named charges supplied. The declaration determines whether costs are known to
+                    be complete.
+                  </p>
+                ) : (
+                  <ul className="review-charge-list">
+                    {content.pricing.charges.map((charge) => (
+                      <li key={charge.id}>
+                        <div>
+                          <strong>{charge.name}</strong>
+                          <span>
+                            {charge.mandatory ? 'Mandatory' : 'Optional'} ·{' '}
+                            {label(charge.classification)} ·{' '}
+                            {charge.timing === 'one_off'
+                              ? 'One-off'
+                              : `Per ${content.rentPeriod ?? 'rental period'}`}
+                          </span>
+                        </div>
+                        <strong>
+                          {charge.amountStatus === 'quote_required'
+                            ? 'Quote required'
+                            : amount(charge.amountMinor)}
+                        </strong>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {costs && (
+                  <div className="review-subtotals">
+                    <dl className="review-facts">
+                      {costs.knownMandatory.recurringSubtotal && (
+                        <div>
+                          <dt>Known mandatory recurring subtotal</dt>
+                          <dd>
+                            {formatKes(costs.knownMandatory.recurringSubtotal)} /{' '}
+                            {costs.rentalPeriod}
+                          </dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt>Mandatory refundable deposit</dt>
+                        <dd>{formatKes(costs.knownMandatory.refundableDeposit)}</dd>
+                      </div>
+                      <div>
+                        <dt>Known mandatory initial subtotal</dt>
+                        <dd>{formatKes(costs.knownMandatory.initialSubtotal)}</dd>
+                      </div>
+                      <div>
+                        <dt>Known optional initial extras</dt>
+                        <dd>{formatKes(costs.optionalCosts.knownInitialExtras)}</dd>
+                      </div>
+                    </dl>
+                    <p>
+                      {costs.hasUnresolvedMandatoryAmounts
+                        ? 'Mandatory cost disclosure is incomplete or amounts need confirmation.'
+                        : 'No unresolved amounts in the named mandatory charges.'}{' '}
+                      Declaration: {content.pricing.declaration.replaceAll('_', ' ')}. Optional
+                      quotes and undeclared costs are excluded.
+                    </p>
+                  </div>
+                )}
+              </section>
+              <section className="draft-panel">
+                <div className="draft-section-heading">
+                  <span>03</span>
+                  <div>
+                    <h2>Photo references</h2>
+                    <p>
+                      {review.acceptedPhotoCount} accepted metadata rows · no image bytes in this
+                      preview
+                    </p>
+                  </div>
+                </div>
+                <ol className="review-photo-list">
+                  {review.photos.map((photo, index) => (
+                    <li key={`${photo.key}/${index}`}>
+                      <span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                      <div>
+                        <strong>{photo.alt}</strong>
+                        <small>{photo.key}</small>
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+                <p className="draft-help">
+                  This cannot verify photo quality, distinct images, advertising rights or safe
+                  decoding. Trusted upload processing must be implemented and verified before real
+                  publication.
+                </p>
+              </section>
+              <section className="draft-panel">
+                <div className="draft-section-heading">
+                  <span>04</span>
+                  <div>
+                    <h2>Publication &amp; review record</h2>
+                    <p>Approval and public visibility are separate facts.</p>
+                  </div>
+                </div>
+                <dl className="review-facts">
+                  <div>
+                    <dt>Publication state</dt>
+                    <dd>{label(review.publicationStatus)}</dd>
+                  </div>
+                  <div>
+                    <dt>Selected approved revision</dt>
+                    <dd>{review.publishedRevision ?? 'None'}</dd>
+                  </div>
+                  <div>
+                    <dt>Availability</dt>
+                    <dd>{label(review.availability)}</dd>
+                  </div>
+                  <div>
+                    <dt>Last availability confirmation</dt>
+                    <dd>{when(review.lastAvailabilityConfirmedAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>Submitted</dt>
+                    <dd>{when(review.submittedAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>Submitted by / actor ID</dt>
+                    <dd>{review.submittedBy ?? 'Not recorded'}</dd>
+                  </div>
+                  <div>
+                    <dt>Decided</dt>
+                    <dd>{when(review.decidedAt)}</dd>
+                  </div>
+                  <div>
+                    <dt>Decided by / actor ID</dt>
+                    <dd>{review.decidedBy ?? 'Not recorded'}</dd>
+                  </div>
+                </dl>
+                <p className="draft-help">{knownPublication(review)}</p>
+                {review.decisionReason && (
+                  <div className="review-private">
+                    <h3>Recorded rejection reason · staff only</h3>
+                    <p>{review.decisionReason}</p>
+                  </div>
+                )}
+              </section>
+              {review.state === 'pending' ? (
+                <section className="draft-panel review-decision">
+                  <p className="eyebrow">YOUR DECISION</p>
+                  <h2>Approve or explain the changes</h2>
+                  <p className="draft-help">
+                    Approval may publish this synthetic revision immediately if current availability
+                    and publication rules allow. A paused or archived listing stays paused or
+                    archived. Rejection keeps any existing approved snapshot intact.
+                  </p>
+                  <label className="draft-field">
+                    Rejection reason
+                    <textarea
+                      rows={3}
+                      value={reason}
+                      disabled={busy}
+                      onChange={(event) => setReason(event.target.value)}
+                      placeholder="Explain what needs to change…"
+                    />
+                    <small>
+                      Used only for rejection. One paragraph without line breaks; at most 1,000
+                      Unicode characters. Kept in this tab until you leave; excluded from public
+                      responses.
+                    </small>
+                  </label>
+                  <label className="draft-checkbox review-ack">
+                    <input
+                      type="checkbox"
+                      checked={ack}
+                      disabled={busy || blocked}
+                      onChange={(event) => setAck(event.target.checked)}
+                    />
+                    I reviewed revision {review.revision}, version {review.version}, including its
+                    exact costs and synthetic photo limitation.
+                  </label>
+                  <div className="draft-actions">
+                    <button
+                      type="button"
+                      className="draft-primary"
+                      disabled={!ack || busy || blocked}
+                      onClick={() => void decide('approve')}
+                    >
+                      Approve synthetic revision
+                    </button>
+                    <button
+                      type="button"
+                      className="draft-secondary"
+                      disabled={!ack || !reason.trim() || busy || blocked}
+                      onClick={() => void decide('reject')}
+                    >
+                      Reject with reason
+                    </button>
+                    <button
+                      type="button"
+                      className="draft-text-button"
+                      disabled={busy || blocked}
+                      onClick={() => {
+                        setReason('');
+                        setAck(false);
+                      }}
+                    >
+                      Clear local review notes
+                    </button>
+                  </div>
+                  {blocked && (
+                    <p className="draft-help">
+                      Decisions are blocked until “Check latest review” succeeds. No automatic write
+                      retry occurs.
+                    </p>
+                  )}
+                </section>
+              ) : (
+                <section className="draft-panel">
+                  <h2>{label(review.state)} revision</h2>
+                  <p className="draft-help">
+                    This revision is read-only. A rejected or approved revision needs a new
+                    sequential draft for content changes. This queue does not yet create successor
+                    drafts.
+                  </p>
+                </section>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+      <footer className="draft-footer">
+        Synthetic moderation · No live changes · Review notes stay in open-tab memory only
+      </footer>
+    </>
+  );
 }

@@ -9,7 +9,7 @@ import { convertSyntheticImage } from '@realtor/media';
 import { createLocalSyntheticStore } from '@realtor/media/local-store';
 import { syntheticPng } from './fixtures.mjs';
 
-const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 async function* chunks(bytes) {
   for (let offset = 0; offset < bytes.length; offset += 7) yield bytes.subarray(offset, offset + 7);
 }

@@ -1,7 +1,85 @@
-import test from 'node:test';import assert from 'node:assert/strict';
-import {validateStaffListingPage} from '../dist/index.js';import {staffListingFixture} from '../test-helpers/staff-listing-fixtures.mjs';
-const page=(items=[staffListingFixture()],limit=25,truncated=false)=>({items,limit,truncated});
-test('listing queue detaches minimal latest revision while preserving earlier published revision',()=>{const input=page(),value=validateStaffListingPage(input);input.items[0].latest.title='changed';assert.equal(value.items[0].latest.title,'Synthetic changed draft');assert.equal(value.items[0].publishedRevision,1);assert.equal(value.items[0].latest.revision,2);assert.ok(Object.isFrozen(value.items[0].latest));const bare={...staffListingFixture(),latest:null,publishedRevision:null,publicationStatus:'unpublished'};assert.equal(validateStaffListingPage(page([bare])).items[0].latest,null);});
-test('listing queue rejects private fields,hidden fields and getters without executing them',()=>{let reads=0;const getter=staffListingFixture();Object.defineProperty(getter,'slug',{enumerable:true,get(){reads++;return 'unsafe';}});const hidden=staffListingFixture();Object.defineProperty(hidden,'privateAddress',{value:'private'});for(const row of [{...staffListingFixture(),privateAddress:'private'},{...staffListingFixture(),latest:{...staffListingFixture().latest,description:'private'}},hidden,getter])assert.throws(()=>validateStaffListingPage(page([row])));assert.equal(reads,0);});
-test('listing queue enforces current-page bounds,unique descending identity and microsecond order',()=>{const high=staffListingFixture(12),low=staffListingFixture(11);assert.equal(validateStaffListingPage(page([high,low],2,true),2).truncated,true);for(const input of [page([low,high]),page([high,high]),page([high],2,true),page([high],51),page([high],1.5)])assert.throws(()=>validateStaffListingPage(input,input.limit));const newer={...low,changedAt:'2026-01-01T09:00:00.123457Z'};assert.throws(()=>validateStaffListingPage(page([high,newer])));const older={...low,changedAt:'2026-01-01T09:00:00.123Z',latest:null,publishedRevision:null,publicationStatus:'unpublished'};assert.equal(validateStaffListingPage(page([high,older])).items.length,2);});
-test('listing queue rejects malformed canonical versions,dates and contradictory published/latest facts',()=>{for(const patch of [{version:'3\n'},{version:'9007199254740992'},{listingId:staffListingFixture().listingId+'\n'},{changedAt:'2026-02-30T09:00:00.000Z'},{publishedRevision:3},{latest:null},{latest:{...staffListingFixture().latest,state:'pending',title:null}},{latest:{...staffListingFixture().latest,updatedAt:'2027-01-01T09:00:00.000Z'}}])assert.throws(()=>validateStaffListingPage(page([{...staffListingFixture(),...patch}])));});
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { validateStaffListingPage } from '../dist/index.js';
+import { staffListingFixture } from '../test-helpers/staff-listing-fixtures.mjs';
+const page = (items = [staffListingFixture()], limit = 25, truncated = false) => ({
+  items,
+  limit,
+  truncated,
+});
+test('listing queue detaches minimal latest revision while preserving earlier published revision', () => {
+  const input = page(),
+    value = validateStaffListingPage(input);
+  input.items[0].latest.title = 'changed';
+  assert.equal(value.items[0].latest.title, 'Synthetic changed draft');
+  assert.equal(value.items[0].publishedRevision, 1);
+  assert.equal(value.items[0].latest.revision, 2);
+  assert.ok(Object.isFrozen(value.items[0].latest));
+  const bare = {
+    ...staffListingFixture(),
+    latest: null,
+    publishedRevision: null,
+    publicationStatus: 'unpublished',
+  };
+  assert.equal(validateStaffListingPage(page([bare])).items[0].latest, null);
+});
+test('listing queue rejects private fields,hidden fields and getters without executing them', () => {
+  let reads = 0;
+  const getter = staffListingFixture();
+  Object.defineProperty(getter, 'slug', {
+    enumerable: true,
+    get() {
+      reads++;
+      return 'unsafe';
+    },
+  });
+  const hidden = staffListingFixture();
+  Object.defineProperty(hidden, 'privateAddress', { value: 'private' });
+  for (const row of [
+    { ...staffListingFixture(), privateAddress: 'private' },
+    {
+      ...staffListingFixture(),
+      latest: { ...staffListingFixture().latest, description: 'private' },
+    },
+    hidden,
+    getter,
+  ])
+    assert.throws(() => validateStaffListingPage(page([row])));
+  assert.equal(reads, 0);
+});
+test('listing queue enforces current-page bounds,unique descending identity and microsecond order', () => {
+  const high = staffListingFixture(12),
+    low = staffListingFixture(11);
+  assert.equal(validateStaffListingPage(page([high, low], 2, true), 2).truncated, true);
+  for (const input of [
+    page([low, high]),
+    page([high, high]),
+    page([high], 2, true),
+    page([high], 51),
+    page([high], 1.5),
+  ])
+    assert.throws(() => validateStaffListingPage(input, input.limit));
+  const newer = { ...low, changedAt: '2026-01-01T09:00:00.123457Z' };
+  assert.throws(() => validateStaffListingPage(page([high, newer])));
+  const older = {
+    ...low,
+    changedAt: '2026-01-01T09:00:00.123Z',
+    latest: null,
+    publishedRevision: null,
+    publicationStatus: 'unpublished',
+  };
+  assert.equal(validateStaffListingPage(page([high, older])).items.length, 2);
+});
+test('listing queue rejects malformed canonical versions,dates and contradictory published/latest facts', () => {
+  for (const patch of [
+    { version: '3\n' },
+    { version: '9007199254740992' },
+    { listingId: staffListingFixture().listingId + '\n' },
+    { changedAt: '2026-02-30T09:00:00.000Z' },
+    { publishedRevision: 3 },
+    { latest: null },
+    { latest: { ...staffListingFixture().latest, state: 'pending', title: null } },
+    { latest: { ...staffListingFixture().latest, updatedAt: '2027-01-01T09:00:00.000Z' } },
+  ])
+    assert.throws(() => validateStaffListingPage(page([{ ...staffListingFixture(), ...patch }])));
+});

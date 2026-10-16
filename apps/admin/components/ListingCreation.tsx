@@ -1,24 +1,207 @@
 'use client';
-import {useEffect,useRef,useState,type MouseEvent} from 'react';
-import {validateListingCreationCommand} from '@realtor/api-client';
-import {createListingCreationClient,ListingCreationError} from '../lib/listing-creation-client';
-import {prepareListingCreationAttempt,type ListingCreationAttempt} from '../lib/listing-creation-attempt';
-export default function ListingCreation({instanceId}:{instanceId:string}){
- const [slug,setSlug]=useState(''),[title,setTitle]=useState(''),[attempt,setAttempt]=useState<ListingCreationAttempt|null>(null),[epoch,setEpoch]=useState(0),[message,setMessage]=useState('Enter the new listing slug and optional title. Missing facts remain unknown.'),[error,setError]=useState(false);const active=useRef<ListingCreationAttempt|null>(null),flight=useRef(false);
- const locked=!!attempt&&!attempt.canDiscard;void epoch;
- useEffect(()=>{const guard=(event:BeforeUnloadEvent)=>{if(active.current&&!active.current.canDiscard){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',guard);return()=>window.removeEventListener('beforeunload',guard);},[]);
- function navigate(event:MouseEvent<HTMLAnchorElement>){if(active.current&&!active.current.canDiscard){event.preventDefault();setError(true);setMessage('Recover this original creation before leaving. Its result is still uncertain.');}}
- function prepare(){if(flight.current||active.current)return;try{const command=validateListingCreationCommand({listingId:crypto.randomUUID(),operationId:crypto.randomUUID(),slug,content:{title,pricing:{declaration:'not_declared',charges:[]},location:{county:null,town:null,area:null}}});const value=prepareListingCreationAttempt(createListingCreationClient({instanceId}),command);active.current=value;setAttempt(value);setError(false);setMessage('Original prepared. Review its identity and submit once.');}catch{setError(true);setMessage('Use a lowercase slug with letters, numbers and single hyphens; review the title.');}}
- async function run(mode:'submit'|'recover'|'replay'){const value=active.current;if(!value||flight.current)return;flight.current=true;setEpoch(n=>n+1);setError(false);setMessage(mode==='recover'?'Reading the exact original…':'Sending the retained original…');try{const receipt=await(mode==='submit'?value.submit():mode==='recover'?value.recoverOriginal():value.replayOriginal());setMessage(receipt.outcome==='created'?'Creation confirmed. Open revision 1 for a fresh read before editing.':'This target is unavailable. No new listing was allocated by this operation.');}catch(e){setError(true);setMessage(value.status==='uncertain'?'Result uncertain. Keep this original; recover with GET or deliberately replay the same operation.':e instanceof ListingCreationError&&[401,403,404].includes(e.status)?'Current access is unavailable. The retained original has not been replaced.':'Creation was not confirmed. Review the retained attempt before starting again.');}finally{flight.current=false;setEpoch(n=>n+1);}}
- function discard(){const value=active.current;if(!value||!value.canDiscard||flight.current)return;active.current=null;setAttempt(null);setMessage('Ready for a separate new listing.');setError(false);}
- return <section className="enq-contacts listing-creation" aria-label="New listing creation"><nav className="draft-breadcrumb" aria-label="Creation navigation"><a href="/" onClick={navigate}>Overview</a><a href="/listings" onClick={navigate}>Listing queue</a></nav><span className="creation-eyebrow">NEW PROPERTY · PRIVATE DRAFT</span><h1>Create a listing</h1><p className="enq-warning">Local synthetic preview. The original is retained only in this tab. Recover an uncertain result before navigating or closing it.</p>
-  <fieldset disabled={!!attempt}><legend>Initial listing facts</legend><label>Listing slug<input value={slug} onChange={e=>setSlug(e.target.value)} maxLength={160} autoComplete="off"/></label><label>Initial title (optional)<input value={title} onChange={e=>setTitle(e.target.value)} maxLength={320} autoComplete="off"/></label><p>Prices, rooms, private address and location remain unknown until entered in the draft editor.</p><button className="enq-primary" onClick={prepare} type="button">Prepare original creation</button></fieldset>
-  {attempt&&<section aria-label="Retained creation original"><h2>Retained original</h2><p>Listing {attempt.original.listingId}</p><p>Operation {attempt.original.operationId}</p><p>Slug: {attempt.original.slug} · Title: {attempt.original.content.title??'Unknown'}</p><p>Attempt: {attempt.status}</p>
-   {attempt.status==='ready'&&<button className="enq-primary" type="button" onClick={()=>void run('submit')}>Submit original creation</button>}
-   {attempt.status==='uncertain'&&<><button className="enq-primary" type="button" onClick={()=>void run('recover')}>Recover exact original with GET</button><button className="enq-secondary" type="button" onClick={()=>void run('replay')}>Replay same original creation</button></>}
-   <button className="enq-secondary" type="button" disabled={locked||flight.current} onClick={discard}>{attempt.status==='ready'?'Discard prepared original':'Start separate creation'}</button>
-   {attempt.receipt?.outcome==='created'&&<><p>Original initial result: listing version 1 · revision 1 · revision version 2. Later changes are not adopted here.</p><a className="enq-primary" href={`/drafts/${attempt.original.listingId}/1`} onClick={navigate}>Open revision 1 for a fresh read</a></>}
-  </section>}
-  <p role={error?'alert':'status'} aria-live="polite">{message}</p>
- </section>;
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
+import { validateListingCreationCommand } from '@realtor/api-client';
+import { createListingCreationClient, ListingCreationError } from '../lib/listing-creation-client';
+import {
+  prepareListingCreationAttempt,
+  type ListingCreationAttempt,
+} from '../lib/listing-creation-attempt';
+export default function ListingCreation({ instanceId }: { instanceId: string }) {
+  const [slug, setSlug] = useState(''),
+    [title, setTitle] = useState(''),
+    [attempt, setAttempt] = useState<ListingCreationAttempt | null>(null),
+    [epoch, setEpoch] = useState(0),
+    [message, setMessage] = useState(
+      'Enter the new listing slug and optional title. Missing facts remain unknown.',
+    ),
+    [error, setError] = useState(false);
+  const active = useRef<ListingCreationAttempt | null>(null),
+    flight = useRef(false);
+  const locked = !!attempt && !attempt.canDiscard;
+  void epoch;
+  useEffect(() => {
+    const guard = (event: BeforeUnloadEvent) => {
+      if (active.current && !active.current.canDiscard) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', guard);
+    return () => window.removeEventListener('beforeunload', guard);
+  }, []);
+  function navigate(event: MouseEvent<HTMLAnchorElement>) {
+    if (active.current && !active.current.canDiscard) {
+      event.preventDefault();
+      setError(true);
+      setMessage('Recover this original creation before leaving. Its result is still uncertain.');
+    }
+  }
+  function prepare() {
+    if (flight.current || active.current) return;
+    try {
+      const command = validateListingCreationCommand({
+        listingId: crypto.randomUUID(),
+        operationId: crypto.randomUUID(),
+        slug,
+        content: {
+          title,
+          pricing: { declaration: 'not_declared', charges: [] },
+          location: { county: null, town: null, area: null },
+        },
+      });
+      const value = prepareListingCreationAttempt(
+        createListingCreationClient({ instanceId }),
+        command,
+      );
+      active.current = value;
+      setAttempt(value);
+      setError(false);
+      setMessage('Original prepared. Review its identity and submit once.');
+    } catch {
+      setError(true);
+      setMessage(
+        'Use a lowercase slug with letters, numbers and single hyphens; review the title.',
+      );
+    }
+  }
+  async function run(mode: 'submit' | 'recover' | 'replay') {
+    const value = active.current;
+    if (!value || flight.current) return;
+    flight.current = true;
+    setEpoch((n) => n + 1);
+    setError(false);
+    setMessage(
+      mode === 'recover' ? 'Reading the exact original…' : 'Sending the retained original…',
+    );
+    try {
+      const receipt = await (mode === 'submit'
+        ? value.submit()
+        : mode === 'recover'
+          ? value.recoverOriginal()
+          : value.replayOriginal());
+      setMessage(
+        receipt.outcome === 'created'
+          ? 'Creation confirmed. Open revision 1 for a fresh read before editing.'
+          : 'This target is unavailable. No new listing was allocated by this operation.',
+      );
+    } catch (e) {
+      setError(true);
+      setMessage(
+        value.status === 'uncertain'
+          ? 'Result uncertain. Keep this original; recover with GET or deliberately replay the same operation.'
+          : e instanceof ListingCreationError && [401, 403, 404].includes(e.status)
+            ? 'Current access is unavailable. The retained original has not been replaced.'
+            : 'Creation was not confirmed. Review the retained attempt before starting again.',
+      );
+    } finally {
+      flight.current = false;
+      setEpoch((n) => n + 1);
+    }
+  }
+  function discard() {
+    const value = active.current;
+    if (!value || !value.canDiscard || flight.current) return;
+    active.current = null;
+    setAttempt(null);
+    setMessage('Ready for a separate new listing.');
+    setError(false);
+  }
+  return (
+    <section className="enq-contacts listing-creation" aria-label="New listing creation">
+      <nav className="draft-breadcrumb" aria-label="Creation navigation">
+        <a href="/" onClick={navigate}>
+          Overview
+        </a>
+        <a href="/listings" onClick={navigate}>
+          Listing queue
+        </a>
+      </nav>
+      <span className="creation-eyebrow">NEW PROPERTY · PRIVATE DRAFT</span>
+      <h1>Create a listing</h1>
+      <p className="enq-warning">
+        Local synthetic preview. The original is retained only in this tab. Recover an uncertain
+        result before navigating or closing it.
+      </p>
+      <fieldset disabled={!!attempt}>
+        <legend>Initial listing facts</legend>
+        <label>
+          Listing slug
+          <input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            maxLength={160}
+            autoComplete="off"
+          />
+        </label>
+        <label>
+          Initial title (optional)
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={320}
+            autoComplete="off"
+          />
+        </label>
+        <p>
+          Prices, rooms, private address and location remain unknown until entered in the draft
+          editor.
+        </p>
+        <button className="enq-primary" onClick={prepare} type="button">
+          Prepare original creation
+        </button>
+      </fieldset>
+      {attempt && (
+        <section aria-label="Retained creation original">
+          <h2>Retained original</h2>
+          <p>Listing {attempt.original.listingId}</p>
+          <p>Operation {attempt.original.operationId}</p>
+          <p>
+            Slug: {attempt.original.slug} · Title: {attempt.original.content.title ?? 'Unknown'}
+          </p>
+          <p>Attempt: {attempt.status}</p>
+          {attempt.status === 'ready' && (
+            <button className="enq-primary" type="button" onClick={() => void run('submit')}>
+              Submit original creation
+            </button>
+          )}
+          {attempt.status === 'uncertain' && (
+            <>
+              <button className="enq-primary" type="button" onClick={() => void run('recover')}>
+                Recover exact original with GET
+              </button>
+              <button className="enq-secondary" type="button" onClick={() => void run('replay')}>
+                Replay same original creation
+              </button>
+            </>
+          )}
+          <button
+            className="enq-secondary"
+            type="button"
+            disabled={locked || flight.current}
+            onClick={discard}
+          >
+            {attempt.status === 'ready' ? 'Discard prepared original' : 'Start separate creation'}
+          </button>
+          {attempt.receipt?.outcome === 'created' && (
+            <>
+              <p>
+                Original initial result: listing version 1 · revision 1 · revision version 2. Later
+                changes are not adopted here.
+              </p>
+              <a
+                className="enq-primary"
+                href={`/drafts/${attempt.original.listingId}/1`}
+                onClick={navigate}
+              >
+                Open revision 1 for a fresh read
+              </a>
+            </>
+          )}
+        </section>
+      )}
+      <p role={error ? 'alert' : 'status'} aria-live="polite">
+        {message}
+      </p>
+    </section>
+  );
 }

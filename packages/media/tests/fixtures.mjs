@@ -10,7 +10,7 @@ export function pngChunk(type, data = Buffer.alloc(0)) {
   // Deliberately independent bit-at-a-time CRC rather than the codec's lookup table.
   for (const value of body) {
     crc ^= value;
-    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
   }
   const length = Buffer.alloc(4);
   length.writeUInt32BE(data.length);
@@ -32,19 +32,31 @@ function pixels(width, height, pixel = () => [40, 110, 180, 255]) {
   const raw = Buffer.alloc((1 + width * 4) * height);
   for (let y = 0; y < height; y++) {
     raw[y * (1 + width * 4)] = 0; // PNG None filter.
-    for (let x = 0; x < width; x++) Buffer.from(pixel(x, y)).copy(raw, y * (1 + width * 4) + 1 + x * 4);
+    for (let x = 0; x < width; x++)
+      Buffer.from(pixel(x, y)).copy(raw, y * (1 + width * 4) + 1 + x * 4);
   }
   return deflateSync(raw);
 }
 
 export function syntheticPng(width = 16, height = 12, pixel, extra = []) {
-  return Buffer.concat([pngSignature, ihdr(width, height), ...extra, pngChunk('IDAT', pixels(width, height, pixel)), pngChunk('IEND')]);
+  return Buffer.concat([
+    pngSignature,
+    ihdr(width, height),
+    ...extra,
+    pngChunk('IDAT', pixels(width, height, pixel)),
+    pngChunk('IEND'),
+  ]);
 }
 
 // Complete PNG container with forged dimensions but tiny data. Used ONLY to prove
 // header bounds reject before allocation; it is not advertised as a valid large image.
 export function dimensionHeaderPng(width, height) {
-  return Buffer.concat([pngSignature, ihdr(width, height), pngChunk('IDAT', pixels(1, 1)), pngChunk('IEND')]);
+  return Buffer.concat([
+    pngSignature,
+    ihdr(width, height),
+    pngChunk('IDAT', pixels(1, 1)),
+    pngChunk('IEND'),
+  ]);
 }
 
 export function syntheticApng() {
@@ -62,16 +74,29 @@ export function syntheticApng() {
   const secondFrame = Buffer.alloc(4);
   secondFrame.writeUInt32BE(2);
   return Buffer.concat([
-    pngSignature, ihdr(2, 2), pngChunk('acTL', control), frame(0),
-    pngChunk('IDAT', pixels(2, 2, () => [255, 0, 0, 255])), frame(1),
-    pngChunk('fdAT', Buffer.concat([secondFrame, pixels(2, 2, () => [0, 0, 255, 255])])), pngChunk('IEND'),
+    pngSignature,
+    ihdr(2, 2),
+    pngChunk('acTL', control),
+    frame(0),
+    pngChunk(
+      'IDAT',
+      pixels(2, 2, () => [255, 0, 0, 255]),
+    ),
+    frame(1),
+    pngChunk('fdAT', Buffer.concat([secondFrame, pixels(2, 2, () => [0, 0, 255, 255])])),
+    pngChunk('IEND'),
   ]);
 }
 
 export function riffChunk(type, data) {
   const size = Buffer.alloc(4);
   size.writeUInt32LE(data.length);
-  return Buffer.concat([Buffer.from(type, 'ascii'), size, data, ...(data.length % 2 ? [Buffer.alloc(1)] : [])]);
+  return Buffer.concat([
+    Buffer.from(type, 'ascii'),
+    size,
+    data,
+    ...(data.length % 2 ? [Buffer.alloc(1)] : []),
+  ]);
 }
 
 export function webpContainer(chunks) {
@@ -82,5 +107,10 @@ export function webpContainer(chunks) {
 }
 
 export function corruptPngCompressedData() {
-  return Buffer.concat([pngSignature, ihdr(8, 8), pngChunk('IDAT', Buffer.from('not a zlib image')), pngChunk('IEND')]);
+  return Buffer.concat([
+    pngSignature,
+    ihdr(8, 8),
+    pngChunk('IDAT', Buffer.from('not a zlib image')),
+    pngChunk('IEND'),
+  ]);
 }

@@ -32,20 +32,17 @@ Implemented fixed-role server-only contact record/list/recovery routes and the s
 
 Verification: admin test compilation and114/114 admin checks passed, including five new contact boundary cases; existing signed synthetic preview regressions11/11 passed. Logs: contact-proxy-admin-tests.txt and contact-proxy-preview-regression.txt in rebuild-preservation/2026-10-12-source. No new signed contact-route integration case, browser contact form/feed, device UAT or production verification claimed. Next: add signed contact-route integration coverage, strict browser contact client and original-attempt recovery, then operator form/feed and browser verification. Checklist16/97,gates0/14. Dashboard publication for this checkpoint remains pending; preserve browser notes before updating it. Existing vendor/live resources and KES10,000 recurring price remain unchanged.
 
-
 ## Contact browser transport - 13 October 2026
 
 Added strict source-free browser methods contacts,recordContact,recoverContact. Fixed same-origin actor route and preview instance only; no browser bearer or caller actor/company. Original contact command validated before dispatch and exact receipt compared to original facts. Recovery POST carries private facts in its body and is explicitly classified read-only for network,timeout,cancellation,HTTP and invalid-response failures. Collection requests25 entries within the existing512KiB decoded cap. No hidden retry or workflow-version adoption.
 
 Final116/116 admin tests passed, including new contact browser transport tests; compilation passed. Earlier114/114 regression run also passed (overlapping,not additive). Evidence: contact-browser-client-tests.txt and contact-browser-client-regression.txt in rebuild-preservation/2026-10-12-source. Operator form,retained-attempt controller,contact feed UI,signed contact-preview integration and browser/device UAT remain outstanding. Next implement retained-attempt lock/recover/replay state machine before form/feed wiring. Publish both this and preceding proxy checkpoint to existing private dashboard after preserving browser notes; publication remains pending. Checklist16/97,gates0/14,KES10,000 recurring client price preserved; old/vendor resources untouched.
 
-
 ## Contact original-attempt controller - 13 October 2026
 
 Added memory-only prepareContactAttempt with immutable enquiry/command snapshot and ready/sending/uncertain/received/rejected states. Concurrent submit/recovery/replay is refused. Uncertain original save retains exact notes,version and operation ID through recovery denial; only explicit original read/replay is permitted. Valid applied/conflict receipts are terminal; altered successful receipts remain uncertain. No automatic retry,current-version adoption,storage or outbound message.
 
 Verification:119/119 admin checks and test compilation passed,including three new controller tests for lock/snapshot,denied recovery followed by original replay,and conflict/altered receipt handling. Evidence contact-attempt-tests.txt in rebuild-preservation/2026-10-12-source. Next operator form and independently refreshed25-entry feed,then signed contact-preview integration and actual browser verification. Controller is not yet connected to UI; memory-only recovery is lost on reload and must be explained in UI. Dashboard publication of proxy/browser/controller checkpoints remains pending; preserve browser notes before publishing.16/97 tasks,0/14 gates,KES10,000 price and vendor/live resources preserved.
-
 
 ## Signed synthetic contact integration - 13 October 2026
 
@@ -58,4 +55,3 @@ Next priority: publish accumulated proxy/browser/controller/integration evidence
 EnquiryContacts now provides explicit completed-contact capture with Nairobi time, original raw notes, memory-only attempt retention, read-original/replay-original controls for uncertain saves, and independent bounded25-entry feed refresh. Enquiry/role navigation is guarded until explicit local completion/discard. Reload loss is explained. Contact feed reads do not adopt workflow versions; contact saves send nothing and do not change lifecycle. Conflicts keep original input and show original/observed versions; only an explicit subsequent operation can use an adopted current version.
 
 Manual signed browser checks verified successful capture, exact whitespace, one-row feed after explicit refresh, selection guard and stale conflict excluded from feed. See evidence/2026-10-13-contact-form-browser.md. Existing119 admin tests passed; final typecheck/build logs are recorded in CONTINUATION.md. Browser network-fault recovery, access-loss/agent scenarios, device/operator/production checks remain open. Older sections above record their checkpoint-time scope.
-

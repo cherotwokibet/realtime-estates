@@ -1,14 +1,135 @@
 /** Fictional already-saved historical projections; no past HTTP execution is implied. */
-export function outcomeFixture({enquiry,viewing,listing,actor,operation,later=false,kind='complete'}={}){
- const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;enquiry??=id(1);viewing??=id(2);listing??=id(3);actor??=id(4);operation??=id(5);
- const at=(day,time)=>`2020-01-0${day}T${time}:00.000Z`,slot=day=>({startAt:at(day,'09:00'),endAt:at(day,'10:00'),timeZone:'Africa/Nairobi'}),reason='  Synthetic saved outcome.\nKeep raw evidence.  ';
- const requested={viewingId:viewing,enquiryId:enquiry,listingId:listing,version:'1',status:'requested',preferredSlots:[],proposedSlot:null};
- const proposed={...requested,version:'2',status:'proposed',proposedSlot:slot(1)},confirmed={...proposed,version:'3',status:'confirmed',agreement:{channel:'phone',agreedAt:at(1,'08:15'),notes:'Original first-slot agreement.'}};
- let previous=confirmed,proposedAt=at(1,'08:00'),previousUpdatedAt=at(1,'08:30'),day=1;
- const states=[{kind:'request',actorId:actor,recordedAt:at(1,'07:00'),schedule:requested},{kind:'propose',actorId:actor,recordedAt:at(1,'08:00'),schedule:proposed},{kind:'confirm',actorId:actor,recordedAt:at(1,'08:30'),schedule:confirmed}];
- if(later){day=2;proposedAt=at(2,'08:00');previousUpdatedAt=at(2,'08:30');const cycle={number:'2',proposalVersion:'4',proposedAt,reason:'Synthetic earlier reschedule.',previousStatus:'confirmed',previousUpdatedAt:at(1,'08:30')},moved={...proposed,version:'4',proposedSlot:slot(2),cycle};previous={...moved,version:'5',status:'confirmed',agreement:{channel:'phone',agreedAt:at(2,'08:15'),notes:'Independent second-slot agreement.'}};states.push({kind:'reschedule',actorId:actor,recordedAt:proposedAt,schedule:moved},{kind:'confirm',actorId:actor,recordedAt:previousUpdatedAt,schedule:previous});}
- const occurredAt=at(day,'10:00'),recordedAt=at(day,'11:00'),outcome={kind,fromStatus:'confirmed',reason,occurredAt,recordedAt,previousUpdatedAt},schedule={...previous,version:String(Number(previous.version)+1),status:kind==='complete'?'completed':'no_show',outcome};
- const detail={schedule,notes:'Original synthetic viewing interest.',requestedById:actor,assignedAgentId:actor,createdAt:at(1,'07:00'),updatedAt:recordedAt,confirmation:{proposedAt,recordedAt:previousUpdatedAt,recordedById:actor},outcomeRecord:{recordedById:actor}};
- const command={operationId:operation,expectedVersion:previous.version,occurredAt,reason},receipt={operationId:operation,enquiryId:enquiry,viewingId:viewing,actorId:actor,kind,expectedVersion:previous.version,observedVersion:previous.version,request:{occurredAt,reason},outcome:'applied',reason:null,result:schedule,completedAt:recordedAt};
- states.push({kind,actorId:actor,recordedAt,schedule});return {enquiry,viewing,listing,actor,operation,kind,command,receipt,detail,schedule,previous,history:{items:states.reverse().map(item=>structuredClone(item)),limit:25,truncated:false,currentVersion:schedule.version}};
+export function outcomeFixture({
+  enquiry,
+  viewing,
+  listing,
+  actor,
+  operation,
+  later = false,
+  kind = 'complete',
+} = {}) {
+  const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+  enquiry ??= id(1);
+  viewing ??= id(2);
+  listing ??= id(3);
+  actor ??= id(4);
+  operation ??= id(5);
+  const at = (day, time) => `2020-01-0${day}T${time}:00.000Z`,
+    slot = (day) => ({
+      startAt: at(day, '09:00'),
+      endAt: at(day, '10:00'),
+      timeZone: 'Africa/Nairobi',
+    }),
+    reason = '  Synthetic saved outcome.\nKeep raw evidence.  ';
+  const requested = {
+    viewingId: viewing,
+    enquiryId: enquiry,
+    listingId: listing,
+    version: '1',
+    status: 'requested',
+    preferredSlots: [],
+    proposedSlot: null,
+  };
+  const proposed = { ...requested, version: '2', status: 'proposed', proposedSlot: slot(1) },
+    confirmed = {
+      ...proposed,
+      version: '3',
+      status: 'confirmed',
+      agreement: {
+        channel: 'phone',
+        agreedAt: at(1, '08:15'),
+        notes: 'Original first-slot agreement.',
+      },
+    };
+  let previous = confirmed,
+    proposedAt = at(1, '08:00'),
+    previousUpdatedAt = at(1, '08:30'),
+    day = 1;
+  const states = [
+    { kind: 'request', actorId: actor, recordedAt: at(1, '07:00'), schedule: requested },
+    { kind: 'propose', actorId: actor, recordedAt: at(1, '08:00'), schedule: proposed },
+    { kind: 'confirm', actorId: actor, recordedAt: at(1, '08:30'), schedule: confirmed },
+  ];
+  if (later) {
+    day = 2;
+    proposedAt = at(2, '08:00');
+    previousUpdatedAt = at(2, '08:30');
+    const cycle = {
+        number: '2',
+        proposalVersion: '4',
+        proposedAt,
+        reason: 'Synthetic earlier reschedule.',
+        previousStatus: 'confirmed',
+        previousUpdatedAt: at(1, '08:30'),
+      },
+      moved = { ...proposed, version: '4', proposedSlot: slot(2), cycle };
+    previous = {
+      ...moved,
+      version: '5',
+      status: 'confirmed',
+      agreement: {
+        channel: 'phone',
+        agreedAt: at(2, '08:15'),
+        notes: 'Independent second-slot agreement.',
+      },
+    };
+    states.push(
+      { kind: 'reschedule', actorId: actor, recordedAt: proposedAt, schedule: moved },
+      { kind: 'confirm', actorId: actor, recordedAt: previousUpdatedAt, schedule: previous },
+    );
+  }
+  const occurredAt = at(day, '10:00'),
+    recordedAt = at(day, '11:00'),
+    outcome = { kind, fromStatus: 'confirmed', reason, occurredAt, recordedAt, previousUpdatedAt },
+    schedule = {
+      ...previous,
+      version: String(Number(previous.version) + 1),
+      status: kind === 'complete' ? 'completed' : 'no_show',
+      outcome,
+    };
+  const detail = {
+    schedule,
+    notes: 'Original synthetic viewing interest.',
+    requestedById: actor,
+    assignedAgentId: actor,
+    createdAt: at(1, '07:00'),
+    updatedAt: recordedAt,
+    confirmation: { proposedAt, recordedAt: previousUpdatedAt, recordedById: actor },
+    outcomeRecord: { recordedById: actor },
+  };
+  const command = { operationId: operation, expectedVersion: previous.version, occurredAt, reason },
+    receipt = {
+      operationId: operation,
+      enquiryId: enquiry,
+      viewingId: viewing,
+      actorId: actor,
+      kind,
+      expectedVersion: previous.version,
+      observedVersion: previous.version,
+      request: { occurredAt, reason },
+      outcome: 'applied',
+      reason: null,
+      result: schedule,
+      completedAt: recordedAt,
+    };
+  states.push({ kind, actorId: actor, recordedAt, schedule });
+  return {
+    enquiry,
+    viewing,
+    listing,
+    actor,
+    operation,
+    kind,
+    command,
+    receipt,
+    detail,
+    schedule,
+    previous,
+    history: {
+      items: states.reverse().map((item) => structuredClone(item)),
+      limit: 25,
+      truncated: false,
+      currentVersion: schedule.version,
+    },
+  };
 }

@@ -10,20 +10,20 @@ Every protected resource has an immutable `tenantId`; every mutation records the
 
 `createdById` is immutable historical attribution. `assignedAgentId` is current operational responsibility and may be changed only by an administrator. A listing belongs to the company; assignment grants limited working access and does not mean legal ownership of the property. Property owner/authority-to-advertise evidence is private and independent of staff account ownership.
 
-| Action | Guest | Customer account | Agent | Company administrator |
-|---|---|---|---|---|
-| Read available approved public stock | Yes | Yes | Yes | Yes |
-| Save favourites | On device | Own favourites | Own favourites | Own favourites |
-| Send enquiry / viewing request / report | Rate limited | Rate limited | Yes | Yes |
-| Create listing draft | No | No | Yes, assigned to self | Yes, choose active agent or self |
-| Read/edit private listing and upload media | No | No | Assigned listings only | Any in own company |
-| Submit listing revision for review | No | No | Assigned listings only | Yes |
-| Approve/reject submitted revision | No | No | No | Yes |
-| Pause assigned listing / mark unavailable | No | No | Yes | Yes |
-| Restore publication / reassign / archive | No | No | No | Yes |
-| Read and update leads/viewings | No | Own request receipt only, no staff notes | Assigned records only | Any in own company |
-| Manage staff, brand, policies, report queue, exports | No | No | No | Yes |
-| Read audit history | No | No | Own listing transition summary | Own company audit |
+| Action                                               | Guest        | Customer account                         | Agent                          | Company administrator            |
+| ---------------------------------------------------- | ------------ | ---------------------------------------- | ------------------------------ | -------------------------------- |
+| Read available approved public stock                 | Yes          | Yes                                      | Yes                            | Yes                              |
+| Save favourites                                      | On device    | Own favourites                           | Own favourites                 | Own favourites                   |
+| Send enquiry / viewing request / report              | Rate limited | Rate limited                             | Yes                            | Yes                              |
+| Create listing draft                                 | No           | No                                       | Yes, assigned to self          | Yes, choose active agent or self |
+| Read/edit private listing and upload media           | No           | No                                       | Assigned listings only         | Any in own company               |
+| Submit listing revision for review                   | No           | No                                       | Assigned listings only         | Yes                              |
+| Approve/reject submitted revision                    | No           | No                                       | No                             | Yes                              |
+| Pause assigned listing / mark unavailable            | No           | No                                       | Yes                            | Yes                              |
+| Restore publication / reassign / archive             | No           | No                                       | No                             | Yes                              |
+| Read and update leads/viewings                       | No           | Own request receipt only, no staff notes | Assigned records only          | Any in own company               |
+| Manage staff, brand, policies, report queue, exports | No           | No                                       | No                             | Yes                              |
+| Read audit history                                   | No           | No                                       | Own listing transition summary | Own company audit                |
 
 A sole company administrator may create and approve their own listing; preserve both events and show that the same person performed them. Do not imply independent verification. Platform maintenance has no ordinary application role granting all-company data access. Any future support access must be explicit, time bounded and audited.
 
@@ -35,18 +35,18 @@ This policy follows the deny-by-default and per-request authorization approach i
 
 IDs are opaque server-generated identifiers. Store instants in UTC and display operational dates/times in `Africa/Nairobi`; future viewing slots retain their intended zone. Use optimistic concurrency (`version`/ETag) for private updates; stale updates return a conflict rather than overwrite newer work. Text is trimmed, length bounded and rendered as text or sanitized with a deliberately restricted policy.
 
-| Entity | Required pilot fields and invariants |
-|---|---|
-| Company | ID, unique slug, display/legal names where supplied, enabled status, validated domains, logo asset, accessible brand tokens, published business contact, policy versions, feature flags and usage allowances |
-| Membership | Company, user, role `customer/agent/admin`, active status, created/revoked timestamps; no role self-promotion |
-| Listing | Company, stable ID/slug, createdById, assignedAgentId, availability `available/reserved/rented/sold/withdrawn`, active published revision ID or null, lastAvailabilityConfirmedAt, archive timestamp, version |
-| Listing revision | Listing/company, sequential revision, workflow state, title, description, purpose, type, location, pricing, rooms, amenities, media references, submission/decision actor/time, private decision reason |
-| Location | Country `KE`, county, town/locality, neighbourhood; optional validated latitude/longitude and private precise address; public precision `area/exact` explicitly chosen, default area |
-| Media | Company/listing/revision, opaque object key, content-derived MIME, bytes, width/height, checksum, processing state, order, cover flag and alternative-text description |
-| Enquiry | Company, optional listing + immutable contacted revision reference, contact name, normalized phone or email, message, origin, assignedAgentId, status, nextActionAt, notice version and timestamps |
-| Viewing | Company, enquiry, listing, requested alternatives, proposed/confirmed start/end/zone, assignedAgentId, status, cancellation/no-show/completion reason and timestamps |
-| Report/support item | Company, optional listing, category, nonblank description, optional reply contact, state, assigned admin, resolution and timestamps |
-| Audit event | Company, actor/service, action, object ID/type/version, timestamp, correlation ID, safe change summary; never password/token/full contact payload |
+| Entity              | Required pilot fields and invariants                                                                                                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Company             | ID, unique slug, display/legal names where supplied, enabled status, validated domains, logo asset, accessible brand tokens, published business contact, policy versions, feature flags and usage allowances  |
+| Membership          | Company, user, role `customer/agent/admin`, active status, created/revoked timestamps; no role self-promotion                                                                                                 |
+| Listing             | Company, stable ID/slug, createdById, assignedAgentId, availability `available/reserved/rented/sold/withdrawn`, active published revision ID or null, lastAvailabilityConfirmedAt, archive timestamp, version |
+| Listing revision    | Listing/company, sequential revision, workflow state, title, description, purpose, type, location, pricing, rooms, amenities, media references, submission/decision actor/time, private decision reason       |
+| Location            | Country `KE`, county, town/locality, neighbourhood; optional validated latitude/longitude and private precise address; public precision `area/exact` explicitly chosen, default area                          |
+| Media               | Company/listing/revision, opaque object key, content-derived MIME, bytes, width/height, checksum, processing state, order, cover flag and alternative-text description                                        |
+| Enquiry             | Company, optional listing + immutable contacted revision reference, contact name, normalized phone or email, message, origin, assignedAgentId, status, nextActionAt, notice version and timestamps            |
+| Viewing             | Company, enquiry, listing, requested alternatives, proposed/confirmed start/end/zone, assignedAgentId, status, cancellation/no-show/completion reason and timestamps                                          |
+| Report/support item | Company, optional listing, category, nonblank description, optional reply contact, state, assigned admin, resolution and timestamps                                                                           |
+| Audit event         | Company, actor/service, action, object ID/type/version, timestamp, correlation ID, safe change summary; never password/token/full contact payload                                                             |
 
 Canonical `purpose` is `rent` or `sale`, stored separately from `propertyType`. Initial type vocabulary is `apartment`, `bedsitter`, `studio`, `bungalow`, `maisonette`, `townhouse`, `villa`, `commercial`, `land`; this is a proposed catalogue, not a claim about the vendor's nine labels. Review actual Realtime stock and map aliases before migration. Unknown source labels are quarantined for mapping rather than silently reclassified. The shared contract supplies labels to public/mobile/admin, including any later type additions.
 
@@ -116,16 +116,16 @@ Build continues with the defaults above. Before live pilot acceptance, Boniface 
 
 The business model above is the target contract. The first `@realtor/domain` package implements a bounded subset; the draft `@realtor/demo` package supplies synthetic read-only UI data. Field mappings avoid treating a UI alias as a competing domain definition:
 
-| Logical rule | Initial source representation | Boundary |
-|---|---|---|
-| KES integer amount | `KesMoney.currency` + `minorUnits`; `kesFromMajor`, `kesFromMinor`, `formatKes` | A money value can be zero for computed subtotals; listing validation separately requires positive base price |
-| Base advertised amount | Domain property `price: KesMoney`; demo `priceMinor` is its numeric minor-unit alias | Convert explicitly at the demo/application boundary; never interpret `priceMinor` as KES shillings |
-| `rentPeriod` | `rentalPeriod: day/week/month/year` or null | Demo currently contains monthly/null examples only; formatting must use the actual period |
-| Additional known mandatory charge | Legacy `ListingFee { id, name, amount: KesMoney, timing, refundable }` | Initial property drafts still use this mandatory/known subset; keep its compatibility until the versioned storage/API transition |
-| Complete pricing disclosure | `calculatePricingDisclosure`, `DisclosedCharge`, explicit `disclosure`; v2 raw `pricing` input via `calculateWirePricingV2` | Shared/SQL/API/client support distinguishes mandatory/optional, known/quote-required, fee/deposit and timing. Quote-required amount is null; empty legacy charges remain undeclared. Connected UI and production acceptance remain open |
-| Refundable deposit | `refundable: true`, `timing: one_off` | Keep separate `refundableDeposit`; initial helper rejects recurring refundable deposit |
-| Price summary | `calculatePriceBreakdown` with `recurringFees`, `nonRefundableOneOff`, `refundableDeposit`, `dueAtStart`, `recurringTotal` | `dueAtStart` is the known initial subtotal, not proof that every tax/third-party/unknown charge was supplied |
-| Inclusive/strict filter | `NumericRange` min/max with explicit `inclusive` booleans | Price callers pass integer minor units, room callers pass numeric counts; strict Over uses `inclusive: false` |
-| Kenyan phone format | `normalizeKenyanPhone` | Initial helper checks the supported Kenyan mobile-format forms only; no ownership/allocation verification or general international parser is implied |
+| Logical rule                      | Initial source representation                                                                                               | Boundary                                                                                                                                                                                                                                |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| KES integer amount                | `KesMoney.currency` + `minorUnits`; `kesFromMajor`, `kesFromMinor`, `formatKes`                                             | A money value can be zero for computed subtotals; listing validation separately requires positive base price                                                                                                                            |
+| Base advertised amount            | Domain property `price: KesMoney`; demo `priceMinor` is its numeric minor-unit alias                                        | Convert explicitly at the demo/application boundary; never interpret `priceMinor` as KES shillings                                                                                                                                      |
+| `rentPeriod`                      | `rentalPeriod: day/week/month/year` or null                                                                                 | Demo currently contains monthly/null examples only; formatting must use the actual period                                                                                                                                               |
+| Additional known mandatory charge | Legacy `ListingFee { id, name, amount: KesMoney, timing, refundable }`                                                      | Initial property drafts still use this mandatory/known subset; keep its compatibility until the versioned storage/API transition                                                                                                        |
+| Complete pricing disclosure       | `calculatePricingDisclosure`, `DisclosedCharge`, explicit `disclosure`; v2 raw `pricing` input via `calculateWirePricingV2` | Shared/SQL/API/client support distinguishes mandatory/optional, known/quote-required, fee/deposit and timing. Quote-required amount is null; empty legacy charges remain undeclared. Connected UI and production acceptance remain open |
+| Refundable deposit                | `refundable: true`, `timing: one_off`                                                                                       | Keep separate `refundableDeposit`; initial helper rejects recurring refundable deposit                                                                                                                                                  |
+| Price summary                     | `calculatePriceBreakdown` with `recurringFees`, `nonRefundableOneOff`, `refundableDeposit`, `dueAtStart`, `recurringTotal`  | `dueAtStart` is the known initial subtotal, not proof that every tax/third-party/unknown charge was supplied                                                                                                                            |
+| Inclusive/strict filter           | `NumericRange` min/max with explicit `inclusive` booleans                                                                   | Price callers pass integer minor units, room callers pass numeric counts; strict Over uses `inclusive: false`                                                                                                                           |
+| Kenyan phone format               | `normalizeKenyanPhone`                                                                                                      | Initial helper checks the supported Kenyan mobile-format forms only; no ownership/allocation verification or general international parser is implied                                                                                    |
 
 The disclosure helper exposes known mandatory recurring/initial subtotals, a separate refundable deposit, optional costs and unresolved mandatory charge IDs. Only an explicit complete declaration with no mandatory quote outstanding marks mandatory amounts complete. Even that declaration does not independently verify taxes or establish an all-inclusive price. An empty legacy fee array means “no additional amounts supplied”, not “no additional fees exist”. The versioned contract is now persisted in revision-owned SQL JSON and exact reviewed public snapshots; the v2 API/client validate and derive it. Screens still use the synthetic legacy preview and must label supplied costs as known subtotals when connected. Local tests establish bounded service/storage behavior, not hosted identity, notifications, migration of real stock, independent backups, actual device behavior or production readiness. See [contracts-roadmap.md](contracts-roadmap.md) and [v2 evidence](evidence/2026-10-10-disclosure-contract.md).

@@ -1,24 +1,222 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {reminderFixture} from '../../../packages/domain/test-helpers/reminder-fixtures.mjs';
-import {POST as admit} from '../dist/tests/app/api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/reminder-admissions/route.js';
-import {POST as admitRecover} from '../dist/tests/app/api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/reminder-admissions/recover/route.js';
-import {POST as capture} from '../dist/tests/app/api/enquiry-preview/[actor]/enquiries/[id]/viewing-reminder-admissions/[admissionOperationId]/captures/route.js';
-import {POST as captureRecover} from '../dist/tests/app/api/enquiry-preview/[actor]/enquiries/[id]/viewing-reminder-admissions/[admissionOperationId]/captures/recover/route.js';
-const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`,actor=id(1),instance=id(3),f=reminderFixture({actor}),wire={...f.admissionCommand,expectedVersion:3};
-const base=`http://127.0.0.1:3001/api/enquiry-preview/admin/enquiries/${f.enquiry}`,ap=`/viewings/${f.viewing}/reminder-admissions`,cp=`/viewing-reminder-admissions/${f.admission.operationId}/captures`;
-const context=cap=>({params:Promise.resolve({actor:'admin',id:f.enquiry,...(cap?{admissionOperationId:f.admission.operationId}:{viewingId:f.viewing})})});
-const request=(cap=false,recover=false,body=JSON.stringify(cap?f.captureCommand:wire),headers={},suffix='')=>new Request(base+(cap?cp:ap)+(recover?'/recover':'')+suffix,{method:'POST',headers:{host:'127.0.0.1:3001',origin:'http://127.0.0.1:3001','sec-fetch-site':'same-origin','x-preview-instance':instance,'content-type':'application/json',...headers},body});
-test('reminder BFF current-authority boundary and exact recovery',async t=>{
- const env={...process.env},fetch=globalThis.fetch;t.after(()=>{globalThis.fetch=fetch;for(const k of Object.keys(process.env))if(!(k in env))delete process.env[k];Object.assign(process.env,env);});
- Object.assign(process.env,{NODE_ENV:'development',STAFF_ENQUIRY_PREVIEW_MODE:'synthetic-v1',STAFF_PREVIEW_API_ORIGIN:'http://127.0.0.1:4101',STAFF_ENQUIRY_ADMIN_TOKEN:'admin.fixed.token',STAFF_ENQUIRY_ADMIN_ID:actor,STAFF_ENQUIRY_ADMIN_INSTANCE:instance,STAFF_ENQUIRY_AGENT_TOKEN:'agent.fixed.token',STAFF_ENQUIRY_AGENT_ID:id(2),STAFF_ENQUIRY_AGENT_INSTANCE:id(4)});
- let calls=[];const mock=(...values)=>{calls=[];globalThis.fetch=async(url,init)=>{calls.push({url:String(url),init});const v=values.shift();if(v instanceof Error)throw v;return v instanceof Response?v:Response.json(v,{headers:{'X-Request-Id':id(99)}});};};
- await t.test('disabled unless explicit server capture-only mode',async()=>{delete process.env.STAFF_REMINDER_CAPTURE_MODE;mock(f.admission);assert.equal((await admit(request(),context(false))).status,403);assert.equal(calls.length,0);process.env.STAFF_REMINDER_CAPTURE_MODE='capture-only-v1';});
- await t.test('one admission POST, original recovery GET with body-only retained window',async()=>{mock(f.admission);assert.deepEqual(await(await admit(request(),context(false))).json(),f.admission);assert.equal(calls.length,1);assert.equal(calls[0].init.method,'POST');assert.deepEqual(JSON.parse(calls[0].init.body),wire);assert.equal(new Headers(calls[0].init.headers).get('authorization'),'Bearer admin.fixed.token');mock(f.admission);assert.deepEqual(await(await admitRecover(request(false,true),context(false))).json(),f.admission);assert.equal(calls[0].init.method,'GET');assert.equal(calls[0].init.body,undefined);assert.ok(calls[0].url.endsWith(`/viewing-reminder-admissions/${f.admission.operationId}`));assert.ok(!calls[0].url.includes('2020'));});
- await t.test('capture first reads server original, then exactly one operation-only POST',async()=>{mock(f.admission,f.captured);assert.deepEqual(await(await capture(request(true),context(true))).json(),f.captured);assert.deepEqual(calls.map(x=>x.init.method),['GET','POST']);assert.deepEqual(JSON.parse(calls[1].init.body),f.captureCommand);assert.ok(calls[1].url.endsWith(`/viewing-reminder-admissions/${f.admission.operationId}/captures`));});
- await t.test('capture recovery performs two GETs and no write',async()=>{mock(f.admission,f.captured);assert.deepEqual(await(await captureRecover(request(true,true),context(true))).json(),f.captured);assert.deepEqual(calls.map(x=>x.init.method),['GET','GET']);assert.ok(calls[1].url.endsWith(`/capture-operations/${f.captureCommand.operationId}`));assert.ok(calls.every(x=>x.init.body===undefined));});
- await t.test('loss before write and denied original stay read-only; no capture dispatch',async()=>{for(const original of [new Error('synthetic loss'),Response.json({error:{code:'NOT_FOUND',message:'not found'},requestId:id(99)},{status:404})]){mock(original);const response=await capture(request(true),context(true));assert.equal((await response.json()).submissionUncertain,false);assert.equal(calls.length,1);assert.equal(calls[0].init.method,'GET');}});
- await t.test('refused or wrong-requester original cannot authorize capture',async()=>{for(const original of [{...f.admission,outcome:'refused',reason:'ALREADY_ADMITTED',candidate:null},{...f.admission,actorId:id(77)}]){mock(original);const response=await capture(request(true),context(true));assert.ok([422,502].includes(response.status));assert.equal((await response.json()).submissionUncertain,false);assert.equal(calls.length,1);}});
- await t.test('ambiguous body,authority,caller clock,query,instance and length rejected before upstream',async()=>{mock();for(const body of [JSON.stringify({...wire,actorId:actor}),JSON.stringify(wire).replace('"expectedVersion":3','"expectedVersion":3e0'),JSON.stringify(wire).replace('"operationId":','"operationId":"duplicate","operationId":')])assert.equal((await admit(request(false,false,body),context(false))).status,400);for(const body of [JSON.stringify({...f.captureCommand,now:'2090-01-01T00:00:00.000Z'}),JSON.stringify({...f.captureCommand,admission:f.admission}),JSON.stringify({...f.captureCommand,mode:'capture-only-v1'})])assert.equal((await capture(request(true,false,body),context(true))).status,400);assert.equal((await capture(request(true,false,undefined,{},'?'),context(true))).status,400);assert.equal((await capture(request(true,false,undefined,{'content-length':'1'}),context(true))).status,400);assert.equal((await capture(request(true,false,undefined,{'x-preview-instance':id(99)}),context(true))).status,403);assert.equal(calls.length,0);});
- await t.test('malformed or lost capture reply uncertain only after dispatched write',async()=>{for(const value of [new Error('synthetic loss'),{...f.captured,actorId:id(99)}]){mock(f.admission,value);assert.equal((await(await capture(request(true),context(true))).json()).submissionUncertain,true);assert.deepEqual(calls.map(x=>x.init.method),['GET','POST']);mock(f.admission,value);assert.equal((await(await captureRecover(request(true,true),context(true))).json()).submissionUncertain,false);assert.deepEqual(calls.map(x=>x.init.method),['GET','GET']);}});
+import { reminderFixture } from '../../../packages/domain/test-helpers/reminder-fixtures.mjs';
+import { POST as admit } from '../dist/tests/app/api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/reminder-admissions/route.js';
+import { POST as admitRecover } from '../dist/tests/app/api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/reminder-admissions/recover/route.js';
+import { POST as capture } from '../dist/tests/app/api/enquiry-preview/[actor]/enquiries/[id]/viewing-reminder-admissions/[admissionOperationId]/captures/route.js';
+import { POST as captureRecover } from '../dist/tests/app/api/enquiry-preview/[actor]/enquiries/[id]/viewing-reminder-admissions/[admissionOperationId]/captures/recover/route.js';
+const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
+  actor = id(1),
+  instance = id(3),
+  f = reminderFixture({ actor }),
+  wire = { ...f.admissionCommand, expectedVersion: 3 };
+const base = `http://127.0.0.1:3001/api/enquiry-preview/admin/enquiries/${f.enquiry}`,
+  ap = `/viewings/${f.viewing}/reminder-admissions`,
+  cp = `/viewing-reminder-admissions/${f.admission.operationId}/captures`;
+const context = (cap) => ({
+  params: Promise.resolve({
+    actor: 'admin',
+    id: f.enquiry,
+    ...(cap ? { admissionOperationId: f.admission.operationId } : { viewingId: f.viewing }),
+  }),
+});
+const request = (
+  cap = false,
+  recover = false,
+  body = JSON.stringify(cap ? f.captureCommand : wire),
+  headers = {},
+  suffix = '',
+) =>
+  new Request(base + (cap ? cp : ap) + (recover ? '/recover' : '') + suffix, {
+    method: 'POST',
+    headers: {
+      host: '127.0.0.1:3001',
+      origin: 'http://127.0.0.1:3001',
+      'sec-fetch-site': 'same-origin',
+      'x-preview-instance': instance,
+      'content-type': 'application/json',
+      ...headers,
+    },
+    body,
+  });
+test('reminder BFF current-authority boundary and exact recovery', async (t) => {
+  const env = { ...process.env },
+    fetch = globalThis.fetch;
+  t.after(() => {
+    globalThis.fetch = fetch;
+    for (const k of Object.keys(process.env)) if (!(k in env)) delete process.env[k];
+    Object.assign(process.env, env);
+  });
+  Object.assign(process.env, {
+    NODE_ENV: 'development',
+    STAFF_ENQUIRY_PREVIEW_MODE: 'synthetic-v1',
+    STAFF_PREVIEW_API_ORIGIN: 'http://127.0.0.1:4101',
+    STAFF_ENQUIRY_ADMIN_TOKEN: 'admin.fixed.token',
+    STAFF_ENQUIRY_ADMIN_ID: actor,
+    STAFF_ENQUIRY_ADMIN_INSTANCE: instance,
+    STAFF_ENQUIRY_AGENT_TOKEN: 'agent.fixed.token',
+    STAFF_ENQUIRY_AGENT_ID: id(2),
+    STAFF_ENQUIRY_AGENT_INSTANCE: id(4),
+  });
+  let calls = [];
+  const mock = (...values) => {
+    calls = [];
+    globalThis.fetch = async (url, init) => {
+      calls.push({ url: String(url), init });
+      const v = values.shift();
+      if (v instanceof Error) throw v;
+      return v instanceof Response ? v : Response.json(v, { headers: { 'X-Request-Id': id(99) } });
+    };
+  };
+  await t.test('disabled unless explicit server capture-only mode', async () => {
+    delete process.env.STAFF_REMINDER_CAPTURE_MODE;
+    mock(f.admission);
+    assert.equal((await admit(request(), context(false))).status, 403);
+    assert.equal(calls.length, 0);
+    process.env.STAFF_REMINDER_CAPTURE_MODE = 'capture-only-v1';
+  });
+  await t.test(
+    'one admission POST, original recovery GET with body-only retained window',
+    async () => {
+      mock(f.admission);
+      assert.deepEqual(await (await admit(request(), context(false))).json(), f.admission);
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].init.method, 'POST');
+      assert.deepEqual(JSON.parse(calls[0].init.body), wire);
+      assert.equal(
+        new Headers(calls[0].init.headers).get('authorization'),
+        'Bearer admin.fixed.token',
+      );
+      mock(f.admission);
+      assert.deepEqual(
+        await (await admitRecover(request(false, true), context(false))).json(),
+        f.admission,
+      );
+      assert.equal(calls[0].init.method, 'GET');
+      assert.equal(calls[0].init.body, undefined);
+      assert.ok(calls[0].url.endsWith(`/viewing-reminder-admissions/${f.admission.operationId}`));
+      assert.ok(!calls[0].url.includes('2020'));
+    },
+  );
+  await t.test(
+    'capture first reads server original, then exactly one operation-only POST',
+    async () => {
+      mock(f.admission, f.captured);
+      assert.deepEqual(await (await capture(request(true), context(true))).json(), f.captured);
+      assert.deepEqual(
+        calls.map((x) => x.init.method),
+        ['GET', 'POST'],
+      );
+      assert.deepEqual(JSON.parse(calls[1].init.body), f.captureCommand);
+      assert.ok(
+        calls[1].url.endsWith(`/viewing-reminder-admissions/${f.admission.operationId}/captures`),
+      );
+    },
+  );
+  await t.test('capture recovery performs two GETs and no write', async () => {
+    mock(f.admission, f.captured);
+    assert.deepEqual(
+      await (await captureRecover(request(true, true), context(true))).json(),
+      f.captured,
+    );
+    assert.deepEqual(
+      calls.map((x) => x.init.method),
+      ['GET', 'GET'],
+    );
+    assert.ok(calls[1].url.endsWith(`/capture-operations/${f.captureCommand.operationId}`));
+    assert.ok(calls.every((x) => x.init.body === undefined));
+  });
+  await t.test(
+    'loss before write and denied original stay read-only; no capture dispatch',
+    async () => {
+      for (const original of [
+        new Error('synthetic loss'),
+        Response.json(
+          { error: { code: 'NOT_FOUND', message: 'not found' }, requestId: id(99) },
+          { status: 404 },
+        ),
+      ]) {
+        mock(original);
+        const response = await capture(request(true), context(true));
+        assert.equal((await response.json()).submissionUncertain, false);
+        assert.equal(calls.length, 1);
+        assert.equal(calls[0].init.method, 'GET');
+      }
+    },
+  );
+  await t.test('refused or wrong-requester original cannot authorize capture', async () => {
+    for (const original of [
+      { ...f.admission, outcome: 'refused', reason: 'ALREADY_ADMITTED', candidate: null },
+      { ...f.admission, actorId: id(77) },
+    ]) {
+      mock(original);
+      const response = await capture(request(true), context(true));
+      assert.ok([422, 502].includes(response.status));
+      assert.equal((await response.json()).submissionUncertain, false);
+      assert.equal(calls.length, 1);
+    }
+  });
+  await t.test(
+    'ambiguous body,authority,caller clock,query,instance and length rejected before upstream',
+    async () => {
+      mock();
+      for (const body of [
+        JSON.stringify({ ...wire, actorId: actor }),
+        JSON.stringify(wire).replace('"expectedVersion":3', '"expectedVersion":3e0'),
+        JSON.stringify(wire).replace('"operationId":', '"operationId":"duplicate","operationId":'),
+      ])
+        assert.equal((await admit(request(false, false, body), context(false))).status, 400);
+      for (const body of [
+        JSON.stringify({ ...f.captureCommand, now: '2090-01-01T00:00:00.000Z' }),
+        JSON.stringify({ ...f.captureCommand, admission: f.admission }),
+        JSON.stringify({ ...f.captureCommand, mode: 'capture-only-v1' }),
+      ])
+        assert.equal((await capture(request(true, false, body), context(true))).status, 400);
+      assert.equal(
+        (await capture(request(true, false, undefined, {}, '?'), context(true))).status,
+        400,
+      );
+      assert.equal(
+        (await capture(request(true, false, undefined, { 'content-length': '1' }), context(true)))
+          .status,
+        400,
+      );
+      assert.equal(
+        (
+          await capture(
+            request(true, false, undefined, { 'x-preview-instance': id(99) }),
+            context(true),
+          )
+        ).status,
+        403,
+      );
+      assert.equal(calls.length, 0);
+    },
+  );
+  await t.test(
+    'malformed or lost capture reply uncertain only after dispatched write',
+    async () => {
+      for (const value of [new Error('synthetic loss'), { ...f.captured, actorId: id(99) }]) {
+        mock(f.admission, value);
+        assert.equal(
+          (await (await capture(request(true), context(true))).json()).submissionUncertain,
+          true,
+        );
+        assert.deepEqual(
+          calls.map((x) => x.init.method),
+          ['GET', 'POST'],
+        );
+        mock(f.admission, value);
+        assert.equal(
+          (await (await captureRecover(request(true, true), context(true))).json())
+            .submissionUncertain,
+          false,
+        );
+        assert.deepEqual(
+          calls.map((x) => x.init.method),
+          ['GET', 'GET'],
+        );
+      }
+    },
+  );
 });

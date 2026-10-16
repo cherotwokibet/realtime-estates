@@ -1,6 +1,42 @@
 import ListingCreation from '../../../components/ListingCreation';
-import {previewConfiguration} from '../../../lib/staff-preview-policy';
-import {getDemoBrand,resolveDemoTenantSlug} from '@realtor/demo';
-import type {CSSProperties} from 'react';
-export const dynamic='force-dynamic';
-export default function NewListingPage(){let instanceId:string|null=null;try{instanceId=previewConfiguration(process.env).instanceId;}catch{/* Credentials remain server-only. */}const brand=getDemoBrand(resolveDemoTenantSlug(process.env.TENANT_SLUG));return <div className="draft-workspace" style={{'--brand':brand.primary} as CSSProperties}><a className="skip" href="#creation-main">Skip to creation</a><header className="draft-masthead"><span className="workspace-brand"><span className="brand-monogram" aria-hidden="true">{brand.initials}</span><span><strong>{brand.name}</strong><small>STAFF WORKSPACE</small></span></span><span className="preview-pill">Local synthetic preview</span></header><main id="creation-main" className="draft-main">{instanceId?<ListingCreation instanceId={instanceId}/>:<p role="alert">Use the local synthetic staff launcher. Production staff creation is not configured.</p>}</main></div>;}
+import { previewConfiguration } from '../../../lib/staff-preview-policy';
+import { getDemoBrand, resolveDemoTenantSlug } from '@realtor/demo';
+import type { CSSProperties } from 'react';
+export const dynamic = 'force-dynamic';
+export default function NewListingPage() {
+  let instanceId: string | null = null;
+  try {
+    instanceId = previewConfiguration(process.env).instanceId;
+  } catch {
+    /* Credentials remain server-only. */
+  }
+  const brand = getDemoBrand(resolveDemoTenantSlug(process.env.TENANT_SLUG));
+  return (
+    <div className="draft-workspace" style={{ '--brand': brand.primary } as CSSProperties}>
+      <a className="skip" href="#creation-main">
+        Skip to creation
+      </a>
+      <header className="draft-masthead">
+        <span className="workspace-brand">
+          <span className="brand-monogram" aria-hidden="true">
+            {brand.initials}
+          </span>
+          <span>
+            <strong>{brand.name}</strong>
+            <small>STAFF WORKSPACE</small>
+          </span>
+        </span>
+        <span className="preview-pill">Local synthetic preview</span>
+      </header>
+      <main id="creation-main" className="draft-main">
+        {instanceId ? (
+          <ListingCreation instanceId={instanceId} />
+        ) : (
+          <p role="alert">
+            Use the local synthetic staff launcher. Production staff creation is not configured.
+          </p>
+        )}
+      </main>
+    </div>
+  );
+}

@@ -1,4 +1,53 @@
-import assert from 'node:assert/strict';import test from 'node:test';import {validateViewingReminderAdmissionSnapshot} from '../dist/index.js';import {reminderFixture} from '../test-helpers/reminder-fixtures.mjs';
-const other='00000000-0000-4000-8000-000000000099';
-test('stored admission snapshots bind enquiry operation mode and internally consistent original facts',()=>{const f=reminderFixture(),validate=value=>validateViewingReminderAdmissionSnapshot(value,f.enquiry,f.admissionCommand.operationId);assert.deepEqual(validate(f.admission),f.admission);for(const patch of [{mode:'live'},{enquiryId:other},{operationId:other},{observedVersion:3},{candidate:{...f.admission.candidate,dueAt:'2020-01-01T08:36:00.000Z'}},{tenantId:other}])assert.throws(()=>validate({...f.admission,...patch}));assert.equal(validate({...f.admission,outcome:'refused',reason:'ALREADY_ADMITTED',candidate:null}).outcome,'refused');assert.equal(validate({...f.admission,outcome:'conflict',reason:'VERSION_CONFLICT',observedVersion:'4',candidate:null}).outcome,'conflict');});
-test('stored admission snapshot getter and hidden-property rejection runs no executable caller fields',()=>{const f=reminderFixture();let called=false;const raw={...f.admission};Object.defineProperty(raw,'request',{enumerable:true,get(){called=true;return f.admission.request;}});assert.throws(()=>validateViewingReminderAdmissionSnapshot(raw));assert.equal(called,false);const hidden={...f.admission};Object.defineProperty(hidden,'authority',{value:other});assert.throws(()=>validateViewingReminderAdmissionSnapshot(hidden));assert.throws(()=>validateViewingReminderAdmissionSnapshot(f.admission,f.enquiry,other));});
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { validateViewingReminderAdmissionSnapshot } from '../dist/index.js';
+import { reminderFixture } from '../test-helpers/reminder-fixtures.mjs';
+const other = '00000000-0000-4000-8000-000000000099';
+test('stored admission snapshots bind enquiry operation mode and internally consistent original facts', () => {
+  const f = reminderFixture(),
+    validate = (value) =>
+      validateViewingReminderAdmissionSnapshot(value, f.enquiry, f.admissionCommand.operationId);
+  assert.deepEqual(validate(f.admission), f.admission);
+  for (const patch of [
+    { mode: 'live' },
+    { enquiryId: other },
+    { operationId: other },
+    { observedVersion: 3 },
+    { candidate: { ...f.admission.candidate, dueAt: '2020-01-01T08:36:00.000Z' } },
+    { tenantId: other },
+  ])
+    assert.throws(() => validate({ ...f.admission, ...patch }));
+  assert.equal(
+    validate({ ...f.admission, outcome: 'refused', reason: 'ALREADY_ADMITTED', candidate: null })
+      .outcome,
+    'refused',
+  );
+  assert.equal(
+    validate({
+      ...f.admission,
+      outcome: 'conflict',
+      reason: 'VERSION_CONFLICT',
+      observedVersion: '4',
+      candidate: null,
+    }).outcome,
+    'conflict',
+  );
+});
+test('stored admission snapshot getter and hidden-property rejection runs no executable caller fields', () => {
+  const f = reminderFixture();
+  let called = false;
+  const raw = { ...f.admission };
+  Object.defineProperty(raw, 'request', {
+    enumerable: true,
+    get() {
+      called = true;
+      return f.admission.request;
+    },
+  });
+  assert.throws(() => validateViewingReminderAdmissionSnapshot(raw));
+  assert.equal(called, false);
+  const hidden = { ...f.admission };
+  Object.defineProperty(hidden, 'authority', { value: other });
+  assert.throws(() => validateViewingReminderAdmissionSnapshot(hidden));
+  assert.throws(() => validateViewingReminderAdmissionSnapshot(f.admission, f.enquiry, other));
+});

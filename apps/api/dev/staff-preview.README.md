@@ -5,8 +5,8 @@
 After building the domain and API, import it from a local development launcher:
 
 ```js
-import {startStaffPreview} from './apps/api/dev/staff-preview.mjs';
-const preview = await startStaffPreview({tenantSlug:'realtime-estates',port:4101});
+import { startStaffPreview } from './apps/api/dev/staff-preview.mjs';
+const preview = await startStaffPreview({ tenantSlug: 'realtime-estates', port: 4101 });
 // Hand preview.bearerToken directly to the Next development server's private
 // STAFF_PREVIEW_TOKEN environment. Never print it or send it to the browser.
 // Stop both loopback servers/database with: await preview.close();
