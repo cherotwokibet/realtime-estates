@@ -32,6 +32,10 @@ const ID = new RegExp(`^${UUID}$`),
   );
 const MAX_BYTES = 10485760,
   MAX_VERSION = 9007199254740991n;
+const REVIEW_ROUTE = new RegExp(
+  `^/v2/staff/reviews/(${UUID})/([1-9]\\d*)/media/(${UUID})/preview$`,
+);
+type PreviewPolicy = 'draft' | 'review';
 const CONTEXT = ['jobId', 'quarantineId', 'outputId', 'expiresAt', 'pipeline'] as const;
 const CAPTURE = ['jobId', 'generationId', 'inputBytes', 'inputSha256', 'capturedAt'] as const;
 const LEASE = [
@@ -75,17 +79,19 @@ interface Resource {
   readonly mediaId: string;
   readonly version: string;
 }
-interface AuthorizedPreview extends Resource {
-  readonly kind: 'private_media_preview';
-  readonly state: 'draft';
+interface PreviewProvenance extends Resource {
   readonly operationId: string;
   readonly assignedAgentId: string | null;
-  readonly actorRole: 'admin' | 'agent';
   readonly context: MediaUploadContext;
   readonly capture: MediaCaptureReceipt;
   readonly lease: MediaProcessingLease;
   readonly verified: MediaVerifiedReceipt;
 }
+type AuthorizedPreview = PreviewProvenance &
+  (
+    | Readonly<{ kind: 'private_media_preview'; state: 'draft'; actorRole: 'admin' | 'agent' }>
+    | Readonly<{ kind: 'review_media_preview'; state: 'pending'; actorRole: 'admin' }>
+  );
 export interface DevelopmentMediaPreviewOptions {
   readonly tenant: TenantConfiguration;
   readonly database: TransactionDatabase;
@@ -211,7 +217,12 @@ function manifest(value: unknown): MediaVerifiedReceipt['manifest'] {
     invalid();
   return processingManifest({ ...row, encoder, operations }, 'INTEGRITY');
 }
-function authorized(value: unknown, resource: Resource, actorId: string): AuthorizedPreview {
+function authorized(
+  value: unknown,
+  resource: Resource,
+  actorId: string,
+  policy: PreviewPolicy,
+): AuthorizedPreview {
   const row = record(value, [
     'kind',
     'tenantId',
@@ -229,14 +240,16 @@ function authorized(value: unknown, resource: Resource, actorId: string): Author
     'verified',
   ]);
   if (
-    row.kind !== 'private_media_preview' ||
-    row.state !== 'draft' ||
+    row.kind !== (policy === 'review' ? 'review_media_preview' : 'private_media_preview') ||
+    row.state !== (policy === 'review' ? 'pending' : 'draft') ||
     uuid(row.tenantId) !== resource.tenantId ||
     uuid(row.listingId) !== resource.listingId ||
     positive(row.revision, 2147483647) !== resource.revision ||
     version(row.version) !== resource.version ||
     uuid(row.mediaId) !== resource.mediaId ||
-    !['admin', 'agent'].includes(row.actorRole as string)
+    !(policy === 'review'
+      ? row.actorRole === 'admin'
+      : ['admin', 'agent'].includes(row.actorRole as string))
   )
     invalid();
   const operationId = uuid(row.operationId),
@@ -294,18 +307,28 @@ function authorized(value: unknown, resource: Resource, actorId: string): Author
     resource.mediaId === scope.jobId
   )
     invalid();
-  return Object.freeze({
+  const provenance = {
     ...resource,
-    kind: 'private_media_preview',
-    state: 'draft',
     operationId,
     assignedAgentId,
-    actorRole: row.actorRole as 'admin' | 'agent',
     context: scope,
     capture,
     lease: processing,
     verified,
-  });
+  };
+  return policy === 'review'
+    ? Object.freeze({
+        ...provenance,
+        kind: 'review_media_preview',
+        state: 'pending',
+        actorRole: 'admin',
+      })
+    : Object.freeze({
+        ...provenance,
+        kind: 'private_media_preview',
+        state: 'draft',
+        actorRole: row.actorRole as 'admin' | 'agent',
+      });
 }
 function snapshotBytes(value: unknown): Buffer {
   if (!Buffer.isBuffer(value) || isProxy(value) || !ArrayBuffer.isView(value)) invalid();
@@ -338,6 +361,18 @@ function cancelled(request: Request): void {
 /** Local synthetic read boundary only. It never processes, attaches, publishes or changes a draft. */
 export function createDevelopmentMediaPreviewApi(
   options: DevelopmentMediaPreviewOptions,
+): DevelopmentMediaPreviewApi {
+  return createMediaPreviewApi(options, 'draft');
+}
+/** Trusted server-only choice; browser input cannot switch draft/reviewer authority. */
+export function createDevelopmentReviewMediaPreviewApi(
+  options: DevelopmentMediaPreviewOptions,
+): DevelopmentMediaPreviewApi {
+  return createMediaPreviewApi(options, 'review');
+}
+function createMediaPreviewApi(
+  options: DevelopmentMediaPreviewOptions,
+  policy: PreviewPolicy,
 ): DevelopmentMediaPreviewApi {
   if (process.env.NODE_ENV === 'production')
     throw new Error('The synthetic image preview is development-only.');
@@ -409,7 +444,9 @@ export function createDevelopmentMediaPreviewApi(
         { tenantId, actorId, correlationId: requestId },
         async (query) => {
           const result = await query.query(
-            'SELECT app_api.read_private_media_preview($1::uuid,$2::integer,$3::uuid,$4::bigint) AS receipt',
+            policy === 'review'
+              ? 'SELECT app_api.read_review_media_preview($1::uuid,$2::integer,$3::uuid,$4::bigint) AS receipt'
+              : 'SELECT app_api.read_private_media_preview($1::uuid,$2::integer,$3::uuid,$4::bigint) AS receipt',
             [resource.listingId, resource.revision, resource.mediaId, resource.version],
           );
           if (result.rows.length !== 1) invalid();
@@ -423,7 +460,7 @@ export function createDevelopmentMediaPreviewApi(
       if (code === '40001') throw new PreviewError(409, 'VERSION_CONFLICT');
       invalid();
     }
-    return authorized(value, resource, actorId);
+    return authorized(value, resource, actorId, policy);
   }
   async function readOutputBytes(facts: AuthorizedPreview, request: Request): Promise<Buffer> {
     const binding: SyntheticProcessingBinding = Object.freeze({
@@ -535,7 +572,7 @@ export function createDevelopmentMediaPreviewApi(
     const requestId = randomUUID();
     try {
       const url = new URL(request.url),
-        match = ROUTE.exec(url.pathname);
+        match = (policy === 'review' ? REVIEW_ROUTE : ROUTE).exec(url.pathname);
       if (!match || url.search || url.hash) throw new PreviewError(404, 'NOT_FOUND');
       if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname))
         throw new PreviewError(404, 'NOT_FOUND');
