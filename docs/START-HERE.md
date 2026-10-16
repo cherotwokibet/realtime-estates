@@ -742,3 +742,6 @@ Latest guardedmedia lifecycle:39checks passed undercandidate0024 acrossjobs/gall
 
 Checkpoint91published:2cdd85e dashboarddeploymentappgdep_6ad1ec6702d081919baea926a3ab75d3 succeeded;350notes canonical/browsermatch.39checks/source1b3dae8 freshrestoreverified.30literalzero calls remainforclassification/conversion;next viewingpublish/listingsuccessor(includingexplicitcompatibilitytest).0024notstartup;noactivechecks/preview/helper.
 
+
+Latestviewing/successor/SDKmedia fixturegroup:59DB+30SDKintegration checkspassed underexplicitcandidate0024;6ordinaryinitialcallsconverted;22convertedtotal. See docs/guarded-viewing-sdk-fixtures.md. NextAPIservice/moderation thenremainingSDK;0024notstartup.
+

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../test-helpers/synthetic-sealed-media.mjs';
@@ -76,14 +78,17 @@ async function publish(db, listing, user, tenant) {
     db,
     user,
     async () => {
-      await db.query('SELECT app_api.create_listing($1,$2)', [
-        listing,
-        'synthetic-' + listing.slice(-3),
-      ]);
-      return scalar(db, 'SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-        listing,
-        JSON.stringify(content),
-      ]);
+      const receipt = await seedGuardedListingDraft(db, {
+        listingId: listing,
+        slug: 'synthetic-' + listing.slice(-3),
+        actorId: user,
+        content: {
+          ...content,
+          pricing: { declaration: 'not_declared', charges: [] },
+          location: { county: null, town: null, area: null },
+        },
+      });
+      return Number(receipt.result.revisionVersion);
     },
     tenant,
   );
@@ -114,6 +119,12 @@ async function fixture() {
   const db = new PGlite();
   try {
     await applyTestMigrations(db);
+    await db.exec(
+      await readFile(
+        new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+        'utf8',
+      ),
+    );
     await db.query(
       "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'viewing-test','Synthetic Viewing'),($2,'foreign-viewing','Synthetic Foreign')",
       [T, OTHER],

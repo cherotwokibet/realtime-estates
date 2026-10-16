@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import { seedGuardedListingDraft } from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../../../database/test-helpers/synthetic-sealed-media.mjs';
@@ -69,6 +71,13 @@ test('workspace SDK reads one RLS-authorized current draft/gallery snapshot thro
     const fixtureSession = (await db.query('SELECT session_user AS name')).rows[0].name,
       quotedOwner = '"' + fixtureSession.replaceAll('"', '""') + '"';
     await applyTestMigrations(db);
+    // Explicit candidate schema until 0024 enters normal migration order.
+    await db.exec(
+      await readFile(
+        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+        'utf8',
+      ),
+    );
     await db.query(
       "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'workspace-sdk-a','Synthetic Workspace A'),($2,'workspace-sdk-b','Synthetic Workspace B')",
       [TENANT, OTHER],
@@ -91,14 +100,12 @@ test('workspace SDK reads one RLS-authorized current draft/gallery snapshot thro
     ])
       for (const listing of listings)
         await asActor(db, tenant, actor, async (query) => {
-          await query.query('SELECT app_api.create_listing($1,$2)', [
-            listing,
-            `synthetic-workspace-${listing.slice(-3)}`,
-          ]);
-          await query.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)', [
-            listing,
-            JSON.stringify(content),
-          ]);
+          await seedGuardedListingDraft(query, {
+            listingId: listing,
+            slug: `synthetic-workspace-${listing.slice(-3)}`,
+            content,
+            actorId: actor,
+          });
         });
     // Fabricated SQL-only provenance satisfies the FK; no native upload, decoder,
     // processing or attachment workflow is asserted by this read-contract fixture.

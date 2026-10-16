@@ -1,4 +1,6 @@
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
@@ -61,6 +63,12 @@ const read = (db, user = U, operation = O) =>
 async function fixture(approve = false) {
   const db = new PGlite();
   await applyTestMigrations(db);
+  await db.exec(
+    await readFile(
+      new URL('../proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   await db.query(
     "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'synthetic-successor','Synthetic successor')",
     [T],
@@ -95,8 +103,16 @@ async function fixture(approve = false) {
     privateAddress: 'PRIVATE FICTIONAL',
   };
   await actor(db, U, async () => {
-    await db.query("SELECT app_api.create_listing($1,'synthetic-successor')", [L]);
-    await db.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [L, JSON.stringify(full)]);
+    await seedGuardedListingDraft(db, {
+      listingId: L,
+      slug: 'synthetic-successor',
+      actorId: U,
+      content: {
+        ...full,
+        pricing: { declaration: 'not_declared', charges: [] },
+        location: { county: null, town: null, area: null },
+      },
+    });
   });
   for (let position = 0; position < 4; position++)
     await seedSyntheticSealedMedia(db, {
@@ -311,16 +327,30 @@ test('approved public snapshot and operational pause or archive survive successo
     }
   }
 });
-test('legacy zero-version compatibility allocation remains explicit and makes guarded predecessor stale', async () => {
+test('candidate zero-version allocation is denied without changing the predecessor or blocking guarded succession', async () => {
   const db = await fixture();
   try {
-    await actor(db, U, () =>
-      db.query('SELECT app_api.save_draft_v2($1,2,0,$2::jsonb)', [L, JSON.stringify(content())]),
+    const before = (
+      await db.query('SELECT * FROM app_private.listing_revisions WHERE listing_id=$1', [L])
+    ).rows;
+    await assert.rejects(
+      () =>
+        actor(db, U, () =>
+          db.query('SELECT app_api.save_draft_v2($1,2,0,$2::jsonb)', [
+            L,
+            JSON.stringify(content()),
+          ]),
+        ),
+      (e) => e.code === '40001',
+    );
+    assert.deepEqual(
+      (await db.query('SELECT * FROM app_private.listing_revisions WHERE listing_id=$1', [L])).rows,
+      before,
     );
     const result = await start(db);
-    assert.equal(result.decision.outcome, 'conflict');
+    assert.equal(result.decision.outcome, 'applied');
     assert.equal(await scalar(db, 'SELECT count(*)::int FROM app_private.listing_revisions'), 2);
-    assert.equal(await scalar(db, 'SELECT version FROM app_private.listings WHERE id=$1', [L]), 1);
+    assert.equal(await scalar(db, 'SELECT version FROM app_private.listings WHERE id=$1', [L]), 2);
   } finally {
     await db.close();
   }

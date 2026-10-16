@@ -1,4 +1,6 @@
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import { seedGuardedListingDraft } from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
@@ -83,6 +85,13 @@ test('media SDK executes actual restricted API/SQL registration and historical r
     assert.equal(typeof fixtureSession, 'string');
     const fixtureSessionIdentifier = '"' + fixtureSession.replaceAll('"', '""') + '"';
     await applyTestMigrations(db);
+    // Explicit candidate schema until 0024 enters normal migration order.
+    await db.exec(
+      await readFile(
+        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+        'utf8',
+      ),
+    );
     await db.query(
       `INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'media-sdk-a','Synthetic Media SDK A'),($2,'media-sdk-b','Synthetic Media SDK B')`,
       [TENANT, OTHER],
@@ -108,14 +117,12 @@ test('media SDK executes actual restricted API/SQL registration and historical r
       [OTHER, OTHERADMIN, OTHERLISTING],
     ])
       await bootstrapAs(db, tenant, actor, async (query) => {
-        await query.query('SELECT app_api.create_listing($1,$2)', [
-          listing,
-          `synthetic-media-sdk-${listing.slice(-3)}`,
-        ]);
-        await query.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)', [
-          listing,
-          JSON.stringify(content),
-        ]);
+        await seedGuardedListingDraft(query, {
+          listingId: listing,
+          slug: `synthetic-media-sdk-${listing.slice(-3)}`,
+          content,
+          actorId: actor,
+        });
       });
     // Privileged fabricated SQL provenance isolates registration recovery after
     // submission; no uploaded bytes/decoder/native process is represented.

@@ -1,4 +1,6 @@
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
+import { seedGuardedListingDraft } from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
@@ -76,6 +78,13 @@ test('gallery SDK uses actual restricted API login, immutable SQL receipts and e
     const fixtureSession = (await db.query('SELECT session_user AS name')).rows[0].name,
       quotedOwner = '"' + fixtureSession.replaceAll('"', '""') + '"';
     await applyTestMigrations(db);
+    // Explicit candidate schema until 0024 enters normal migration order.
+    await db.exec(
+      await readFile(
+        new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+        'utf8',
+      ),
+    );
     await db.query(
       "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'gallery-sdk-a','Synthetic Gallery SDK A'),($2,'gallery-sdk-b','Synthetic Gallery SDK B')",
       [TENANT, OTHER],
@@ -97,14 +106,12 @@ test('gallery SDK uses actual restricted API login, immutable SQL receipts and e
     ])
       for (const listing of listings)
         await asActor(db, tenant, actor, async (query) => {
-          await query.query('SELECT app_api.create_listing($1,$2)', [
-            listing,
-            `synthetic-gallery-sdk-${listing.slice(-3)}`,
-          ]);
-          await query.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)', [
-            listing,
-            JSON.stringify(content),
-          ]);
+          await seedGuardedListingDraft(query, {
+            listingId: listing,
+            slug: `synthetic-gallery-sdk-${listing.slice(-3)}`,
+            content,
+            actorId: actor,
+          });
         });
     await db.exec(
       'CREATE ROLE api_gallery_sdk_test_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT api_runtime TO api_gallery_sdk_test_login; SET SESSION AUTHORIZATION api_gallery_sdk_test_login;',
