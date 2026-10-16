@@ -769,3 +769,6 @@ Checkpoint95 published: normal local migration0024 active;236DB/200API/70integra
 
 Latestdefault0024operatorbrowser: uncertain successor GETrecovery→savedfacts/fourdecodednativeimages→pending→explicitapproval selectedrev2;separateguardedcreation freshread/emptygallery. Finaladminbuildpassed;ownedpreviewclosed/rootsretained. See docs/allocation-operator-browser.md. Prior747checksnotrerun;nextguardedavailability/publication/moderatorimages;19/97tasks0/14gates.
 
+
+Checkpoint96published: actualdefault0024browser creation/successorGETrecovery/native4images/approvalselected2;finaladminbuildpassed. Source4f5abc6 freshrestoreverified;dashboard7fdb171 deploymentappgdep_6ad2359811548191b8bc3e9994f2b9df succeeded;365notes canonical/browsermatch. Noactivechecks/preview/helper. Nextguardedavailability/publicationcommandcontracts thenSQL/API/SDK/operator;moderatorimagepolicy/UI after.19/97tasks0/14gates;oldlive/vendorintact.
+
