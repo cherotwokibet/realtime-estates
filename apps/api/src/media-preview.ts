@@ -28,14 +28,31 @@ const UUID =
   '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}';
 const ID = new RegExp(`^${UUID}$`),
   ROUTE = new RegExp(
-    `^/v2/staff/listings/(${UUID})/revisions/([1-9]\\d*)/media/(${UUID})/preview$`,
+    `^/v2/staff/listings/(${UUID})/revisions/([1-9][0-9]*)/media/(${UUID})/preview$`,
   );
 const MAX_BYTES = 10485760,
   MAX_VERSION = 9007199254740991n;
 const REVIEW_ROUTE = new RegExp(
-  `^/v2/staff/reviews/(${UUID})/([1-9]\\d*)/media/(${UUID})/preview$`,
+  `^/v2/staff/reviews/(${UUID})/([1-9][0-9]*)/media/(${UUID})/preview$`,
 );
 type PreviewPolicy = 'draft' | 'review';
+type OutputAdmission = <T>(work: () => Promise<T>) => Promise<T>;
+function outputAdmission(): OutputAdmission {
+  let admitted = 0;
+  let tail: Promise<void> = Promise.resolve();
+  return <T>(run: () => Promise<T>): Promise<T> => {
+    if (admitted >= 2) return Promise.reject(new PreviewError(503, 'SERVICE_UNAVAILABLE'));
+    admitted++;
+    const work = tail.then(run).finally(() => {
+      admitted--;
+    });
+    tail = work.then(
+      () => undefined,
+      () => undefined,
+    );
+    return work;
+  };
+}
 const CONTEXT = ['jobId', 'quarantineId', 'outputId', 'expiresAt', 'pipeline'] as const;
 const CAPTURE = ['jobId', 'generationId', 'inputBytes', 'inputSha256', 'capturedAt'] as const;
 const LEASE = [
@@ -370,9 +387,28 @@ export function createDevelopmentReviewMediaPreviewApi(
 ): DevelopmentMediaPreviewApi {
   return createMediaPreviewApi(options, 'review');
 }
+/** Fixed native composition with one shared storage admission and joint drain. */
+export function createDevelopmentMediaPreviewPair(
+  options: DevelopmentMediaPreviewOptions,
+): DevelopmentMediaPreviewApi {
+  const admission = outputAdmission();
+  const draft = createMediaPreviewApi(options, 'draft', admission);
+  const review = createMediaPreviewApi(options, 'review', admission);
+  return Object.freeze({
+    handle(request: Request) {
+      return (
+        new URL(request.url).pathname.startsWith('/v2/staff/reviews/') ? review : draft
+      ).handle(request);
+    },
+    async close() {
+      await Promise.all([draft.close(), review.close()]);
+    },
+  });
+}
 function createMediaPreviewApi(
   options: DevelopmentMediaPreviewOptions,
   policy: PreviewPolicy,
+  admission: OutputAdmission = outputAdmission(),
 ): DevelopmentMediaPreviewApi {
   if (process.env.NODE_ENV === 'production')
     throw new Error('The synthetic image preview is development-only.');
@@ -414,24 +450,11 @@ function createMediaPreviewApi(
   const active = new Set<Promise<Response>>();
   // The synthetic processing ledger deliberately admits one operation at a time.
   // Bound our own reads to one active and one queued without weakening its guard.
-  let outputAdmissions = 0;
-  let outputTail: Promise<void> = Promise.resolve();
   function output(facts: AuthorizedPreview, request: Request): Promise<Buffer> {
-    if (outputAdmissions >= 2) return Promise.reject(new PreviewError(503, 'SERVICE_UNAVAILABLE'));
-    outputAdmissions++;
-    const work = outputTail.then(async () => {
-      try {
-        cancelled(request);
-        return await readOutputBytes(facts, request);
-      } finally {
-        outputAdmissions--;
-      }
+    return admission(async () => {
+      cancelled(request);
+      return await readOutputBytes(facts, request);
     });
-    outputTail = work.then(
-      () => undefined,
-      () => undefined,
-    );
-    return work;
   }
   async function read(
     resource: Resource,

@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import {
   createDevelopmentMediaPreviewApi as createDraftApi,
   createDevelopmentReviewMediaPreviewApi,
+  createDevelopmentMediaPreviewPair,
 } from '../dist/media-preview.js';
 
 // Boundary doubles only: these bytes prove header/hash/identity handling, not
@@ -403,6 +404,94 @@ test('review consumer rejects mismatched output bytes and bad authentication wit
   try {
     await safeFailure(await f.api.handle(f.request()), 401, 'UNAUTHENTICATED');
     assert.equal(f.calls.reads, 0);
+    assert.equal(f.calls.outputs, 0);
+  } finally {
+    await f.api.close();
+  }
+});
+
+test('native pair shares one active and one queued output across draft and review, then drains both', async () => {
+  let release, entered;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  const started = new Promise((resolve) => {
+    entered = resolve;
+  });
+  let outputCalls = 0;
+  const f = fixture({
+    onOutput: async () => {
+      if (++outputCalls === 1) {
+        entered();
+        await gate;
+      }
+    },
+  });
+  const options = {
+    ...f.options,
+    database: {
+      async transaction(context, run) {
+        assert.equal(context.actorId, ACTOR);
+        return run({
+          async query(sql) {
+            const review = sql.includes('read_review_media_preview');
+            assert.ok(review || sql.includes('read_private_media_preview'));
+            return {
+              rows: [
+                {
+                  receipt: {
+                    ...facts(),
+                    kind: review ? 'review_media_preview' : 'private_media_preview',
+                    state: review ? 'pending' : 'draft',
+                  },
+                },
+              ],
+            };
+          },
+        });
+      },
+    },
+  };
+  const pair = createDevelopmentMediaPreviewPair(options);
+  const draftRoute = `http://127.0.0.1/v2/staff/listings/${LISTING}/revisions/1/media/${MEDIA}/preview`;
+  try {
+    const first = pair.handle(f.request(draftRoute));
+    await started;
+    const second = pair.handle(f.request());
+    // Await the third request: both preceding authorizations have already queued their reads.
+    await safeFailure(await pair.handle(f.request()), 503, 'SERVICE_UNAVAILABLE');
+    assert.equal(outputCalls, 1);
+    let drained = false;
+    const closing = pair.close().then(() => {
+      drained = true;
+    });
+    await Promise.resolve();
+    assert.equal(drained, false);
+    await safeFailure(await pair.handle(f.request()), 503, 'SERVICE_UNAVAILABLE');
+    await safeFailure(await pair.handle(f.request(draftRoute)), 503, 'SERVICE_UNAVAILABLE');
+    release();
+    assert.equal((await first).status, 200);
+    assert.equal((await second).status, 200);
+    await closing;
+    assert.equal(outputCalls, 2);
+    assert.equal(f.calls.closed, 0);
+  } finally {
+    release();
+    await pair.close();
+    await f.api.close();
+  }
+});
+
+test('review route admits canonical multi-digit revisions before exact SQL authorization', async () => {
+  const f = fixture({ reads: [sqlError('P0002')] });
+  try {
+    await safeFailure(
+      await f.api.handle(f.request(route.replace('/1/media/', '/12/media/'))),
+      404,
+      'NOT_FOUND',
+    );
+    assert.equal(f.calls.verify, 1);
+    assert.equal(f.calls.sql[0].args[1], 12);
     assert.equal(f.calls.outputs, 0);
   } finally {
     await f.api.close();

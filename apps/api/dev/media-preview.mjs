@@ -13,7 +13,7 @@ import { createSyntheticProcessingRequests } from '@realtor/media/processing-req
 import { createWindowsSyntheticSupervisor } from '@realtor/media/windows-supervisor';
 import { createDevelopmentUploadApi } from '../dist/upload.js';
 import { createDevelopmentMediaFinalizeApi } from '../dist/media-finalize.js';
-import { createDevelopmentMediaPreviewApi } from '../dist/media-preview.js';
+import { createDevelopmentMediaPreviewPair } from '../dist/media-preview.js';
 
 const MODE = 'synthetic-native-v1';
 class NativeMediaPreviewConfigurationError extends Error {
@@ -240,7 +240,7 @@ export async function createNativeMediaPreview({
     });
     finalize = createDevelopmentMediaFinalizeApi({ tenant, database, verifyBearer, coordinator });
     imageRequests = await createSyntheticProcessingRequests({ store: processing });
-    images = createDevelopmentMediaPreviewApi({
+    images = createDevelopmentMediaPreviewPair({
       tenant,
       database,
       verifyBearer,

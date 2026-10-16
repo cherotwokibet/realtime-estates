@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, createHash } from 'node:crypto';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir, homedir } from 'node:os';
 import path from 'node:path';
@@ -142,6 +142,20 @@ test(
         );
       }
       const oldRead = await api.getReviewV2(preview.listingId, 1, options);
+      const reviewImagePath = (mediaId) =>
+        `/v2/staff/reviews/${preview.listingId}/2/media/${mediaId}/preview`;
+      const readReviewImage = (mediaId, version, authorization = `Bearer ${preview.bearerToken}`) =>
+        fetch(preview.origin + reviewImagePath(mediaId), {
+          headers: {
+            'X-Revision-Version': version,
+            ...(authorization ? { Authorization: authorization } : {}),
+          },
+        });
+      assert.equal(
+        (await readReviewImage(workspace.photos[0].id, workspace.draft.version)).status,
+        404,
+      );
+      const draftDigests = new Map();
       for (let start = 0; start < workspace.photos.length; start += 2) {
         const images = await Promise.all(
           workspace.photos
@@ -160,6 +174,11 @@ test(
         assert.ok(
           images.every((image) => Buffer.from(image.data).toString('ascii', 8, 12) === 'WEBP'),
         );
+        for (const [offset, image] of images.entries())
+          draftDigests.set(
+            workspace.photos[start + offset].id,
+            createHash('sha256').update(Buffer.from(image.data)).digest('hex'),
+          );
       }
       const { listingVersion: oldListingVersion, ...oldRevision } = old;
       const { listingVersion: currentListingVersion, ...currentOldRevision } = oldRead;
@@ -180,6 +199,27 @@ test(
       assert.equal(review.state, 'pending');
       assert.equal(review.photos.length, 4);
       assert.equal(review.version, submitted.version);
+      assert.equal(
+        (await readReviewImage(workspace.photos[0].id, review.version, null)).status,
+        401,
+      );
+      assert.equal(
+        (await readReviewImage(workspace.photos[0].id, workspace.draft.version)).status,
+        409,
+      );
+      for (const photo of workspace.photos) {
+        const response = await readReviewImage(photo.id, review.version);
+        assert.equal(response.status, 200, await response.clone().text());
+        assert.equal(response.headers.get('content-type'), 'image/webp');
+        assert.match(response.headers.get('cache-control'), /no-store/);
+        assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+        assert.equal(
+          createHash('sha256')
+            .update(Buffer.from(await response.arrayBuffer()))
+            .digest('hex'),
+          draftDigests.get(photo.id),
+        );
+      }
       assert.equal((await api.getStaffListingV2(preview.listingId, options)).publishedRevision, 1);
       const approved = await api.decideReviewV2(
         preview.listingId,
@@ -188,6 +228,8 @@ test(
         options,
       );
       assert.equal(approved.state, 'approved');
+      assert.equal((await readReviewImage(workspace.photos[0].id, review.version)).status, 404);
+      assert.equal((await readReviewImage(workspace.photos[0].id, approved.version)).status, 404);
       assert.equal((await api.getStaffListingV2(preview.listingId, options)).publishedRevision, 2);
       assert.deepEqual(await api.getListingSuccessorReceiptV2(command, options), original);
       const foreign =

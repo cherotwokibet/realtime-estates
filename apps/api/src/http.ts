@@ -13,10 +13,14 @@ const V2_UPLOAD_PATH = new RegExp(
   `^/v2/staff/listings/${UUID}/revisions/([1-9]\\d*)/media-jobs/${UUID}/uploads/${UUID}$`,
 );
 const V2_PREVIEW_PATH = new RegExp(
-  `^/v2/staff/listings/${UUID}/revisions/([1-9]\\d*)/media/${UUID}/preview$`,
+  `^/v2/staff/listings/${UUID}/revisions/([1-9][0-9]*)/media/${UUID}/preview$`,
+);
+const V2_REVIEW_PREVIEW_PATH = new RegExp(
+  `^/v2/staff/reviews/${UUID}/([1-9][0-9]*)/media/${UUID}/preview$`,
 );
 function previewPath(incoming: IncomingMessage): boolean {
-  const match = V2_PREVIEW_PATH.exec(incoming.url ?? '');
+  const match =
+    V2_PREVIEW_PATH.exec(incoming.url ?? '') ?? V2_REVIEW_PREVIEW_PATH.exec(incoming.url ?? '');
   return !!match && Number(match[1]) <= 2147483647;
 }
 function uploadPath(incoming: IncomingMessage): boolean {

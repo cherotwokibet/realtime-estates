@@ -60,6 +60,55 @@ async function exchange(port, target = PATH, { method = 'GET', headers = [] } = 
 }
 const status = (raw) => Number(/^HTTP\/1\.1 (\d{3})/.exec(raw)?.[1]);
 
+test('draft and review raw preview hooks accept canonical multi-digit revisions', async () => {
+  await withServer(
+    async (request) => {
+      assert.match(new URL(request.url).pathname, /\/12\/media\//);
+      return new Response('preview', { status: 200 });
+    },
+    async (port, ordinary) => {
+      assert.equal(status(await exchange(port, PATH.replace('/1/media/', '/12/media/'))), 200);
+      assert.equal(
+        status(await exchange(port, `/v2/staff/reviews/${LISTING}/12/media/${MEDIA}/preview`)),
+        200,
+      );
+      assert.equal(ordinary(), 0);
+    },
+  );
+});
+
+test('review image hook uses exact raw reviewer path and never consumes framed bodies', async () => {
+  const review = `/v2/staff/reviews/${LISTING}/1/media/${MEDIA}/preview`;
+  let calls = 0;
+  await withServer(
+    async (request) => {
+      calls++;
+      assert.equal(new URL(request.url).pathname, review);
+      assert.equal(request.body, null);
+      return new Response('bounded review', {
+        status: request.headers.has('content-length') ? 400 : 200,
+      });
+    },
+    async (port, ordinary) => {
+      assert.equal(status(await exchange(port, review)), 200);
+      assert.equal(
+        status(await exchange(port, review, { headers: ['Content-Length: 99999999'] })),
+        400,
+      );
+      for (const target of [
+        review + '?x=1',
+        review.replace('/1/media/', '/01/media/'),
+        review.replace('/1/media/', '/2147483648/media/'),
+        review.replace('/media/', '/x/../media/'),
+      ]) {
+        assert.equal(status(await exchange(port, target)), 404);
+      }
+      assert.equal(calls, 2);
+      assert.equal(ordinary(), 4);
+    },
+  );
+});
+
 test('private preview hook receives exact raw path/socket/header context before any body is consumed', async () => {
   let calls = 0;
   await withServer(
