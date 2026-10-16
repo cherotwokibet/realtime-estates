@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { seedGuardedListingDraft } from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../../../database/test-helpers/synthetic-sealed-media.mjs';
 import { PGlite } from '@electric-sql/pglite';
@@ -59,6 +61,12 @@ async function bootstrapAs(db, tenant, actor, operation) {
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
+  await db.exec(
+    await readFile(
+      new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   await db.query(
     `INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'synthetic-a','Synthetic A'),($2,'synthetic-b','Synthetic B')`,
     [T, OTHER],
@@ -80,14 +88,16 @@ async function fixture() {
     [OTHER, OTHER_PUBLIC, OTHER_ADMIN, OTHER_ADMIN],
   ]) {
     await bootstrapAs(db, tenant, agent, async (query) => {
-      await query.query('SELECT app_api.create_listing($1,$2)', [
-        listing,
-        `synthetic-${listing.slice(-3)}`,
-      ]);
-      await query.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-        listing,
-        JSON.stringify(content),
-      ]);
+      await seedGuardedListingDraft(query, {
+        listingId: listing,
+        slug: `synthetic-${listing.slice(-3)}`,
+        content: {
+          ...content,
+          pricing: { declaration: 'not_declared', charges: [] },
+          location: { county: null, town: null, area: null },
+        },
+        actorId: agent,
+      });
       await query.query("SELECT app_api.confirm_availability($1,1,'available')", [listing]);
     });
     // Privileged SQL-only relational provenance; no image bytes or processor run.
@@ -269,7 +279,7 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
               request('/v1/staff/listings', {
                 method: 'POST',
                 actor: 'agent',
-                body: { id: CREATED, slug: 'synthetic-created' },
+                body: { id: id(122), slug: 'synthetic-created' },
               }),
             )
           ).status,
@@ -305,7 +315,7 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
         assert.ok(
           own.some(
             (item) =>
-              item.id === CREATED && item.createdById === AGENT && item.assignedAgentId === AGENT,
+              item.id === id(122) && item.createdById === AGENT && item.assignedAgentId === AGENT,
           ),
         );
         assert.equal(
@@ -316,7 +326,7 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
           await (await service(request('/v1/staff/listings', { actor: 'peer' }))).json()
         ).items;
         assert.equal(
-          peer.some((item) => item.id === CREATED),
+          peer.some((item) => item.id === id(122)),
           false,
         );
       },
@@ -325,12 +335,17 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
       'persisted drafts require numeric versions, cannot cross assignment/company, and do not become public',
       async () => {
         const route = `/v1/staff/listings/${CREATED}/drafts/1`;
-        // Legacy SQL setup remains explicit until the separate database compatibility migration.
         await bootstrapAs(db, T, AGENT, (query) =>
-          query.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
-            CREATED,
-            JSON.stringify(content),
-          ]),
+          seedGuardedListingDraft(query, {
+            listingId: CREATED,
+            slug: 'synthetic-editable-created',
+            content: {
+              ...content,
+              pricing: { declaration: 'not_declared', charges: [] },
+              location: { county: null, town: null, area: null },
+            },
+            actorId: AGENT,
+          }),
         );
         const result = await service(
           request(route, { method: 'PUT', actor: 'agent', body: { expectedVersion: 0, content } }),
@@ -480,24 +495,15 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
     await t.test(
       'v2 initialized private draft reads preserve fees and location while ordinary saves refuse allocation',
       async () => {
-        assert.equal(
-          (
-            await service(
-              request('/v1/staff/listings', {
-                method: 'POST',
-                actor: 'agent',
-                body: { id: v2Id, slug: 'synthetic-v2' },
-              }),
-            )
-          ).status,
-          201,
-        );
         await bootstrapAs(db, T, AGENT, (query) =>
-          query.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)', [
-            v2Id,
-            JSON.stringify(v2Content),
-          ]),
+          seedGuardedListingDraft(query, {
+            listingId: v2Id,
+            slug: 'synthetic-v2',
+            content: v2Content,
+            actorId: AGENT,
+          }),
         );
+
         const saved = await service(
           request(v2Route, {
             method: 'PUT',
@@ -703,17 +709,13 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
       async () => {
         const largeId = id(121),
           route = `/v2/staff/listings/${largeId}/drafts/1`;
-        assert.equal(
-          (
-            await service(
-              request('/v1/staff/listings', {
-                method: 'POST',
-                actor: 'agent',
-                body: { id: largeId, slug: 'synthetic-unicode' },
-              }),
-            )
-          ).status,
-          201,
+        await bootstrapAs(db, T, AGENT, (query) =>
+          seedGuardedListingDraft(query, {
+            listingId: largeId,
+            slug: 'synthetic-unicode',
+            content: v2Content,
+            actorId: AGENT,
+          }),
         );
         const largeContent = {
           ...v2Content,
@@ -731,12 +733,7 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
             })),
           },
         };
-        await bootstrapAs(db, T, AGENT, (query) =>
-          query.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)', [
-            largeId,
-            JSON.stringify(v2Content),
-          ]),
-        );
+
         const body = { expectedVersion: 2, content: largeContent };
         assert.ok(Buffer.byteLength(JSON.stringify(body)) > 64 * 1024);
         assert.ok(Buffer.byteLength(JSON.stringify(body)) < 128 * 1024);

@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PGlite } from '@electric-sql/pglite';
+import { readFile } from 'node:fs/promises';
+import {
+  seedGuardedListingDraft,
+  seedGuardedListingSuccessor,
+} from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../../../database/test-helpers/synthetic-sealed-media.mjs';
 import { createApiService } from '../dist/service.js';
@@ -127,6 +132,12 @@ async function media(db, tenant, listing, revision) {
 async function fixture() {
   const db = new PGlite();
   await applyTestMigrations(db);
+  await db.exec(
+    await readFile(
+      new URL('../../../database/proposals/0024_guarded_draft_allocation.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   await db.query(
     "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'synthetic-review-a','Synthetic A'),($2,'synthetic-review-b','Synthetic B')",
     [T, OTHER],
@@ -147,19 +158,35 @@ async function fixture() {
     { tenant = T, admin = ADMIN, actor = AGENT, previous = true, confirm = true, status } = {},
   ) {
     await bootstrap(db, tenant, actor, () =>
-      db.query('SELECT app_api.create_listing($1,$2)', [
-        listing,
-        `synthetic-review-${listing.slice(-3)}`,
-      ]),
+      seedGuardedListingDraft(db, {
+        listingId: listing,
+        slug: `synthetic-review-${listing.slice(-3)}`,
+        content: base,
+        actorId: actor,
+      }),
     );
     async function revision(number, value) {
-      await bootstrap(db, tenant, actor, () =>
-        db.query('SELECT app_api.save_draft_v2($1,$2,0,$3::jsonb)', [
-          listing,
-          number,
-          JSON.stringify(value),
-        ]),
-      );
+      if (number > 1) {
+        const facts = (
+          await db.query(
+            'SELECT l.version::text AS listing_version,r.version::text AS revision_version,r.state FROM app_private.listings l JOIN app_private.listing_revisions r ON r.tenant_id=l.tenant_id AND r.listing_id=l.id WHERE l.id=$1 AND r.revision_no=$2',
+            [listing, number - 1],
+          )
+        ).rows[0];
+        await bootstrap(db, tenant, actor, () =>
+          seedGuardedListingSuccessor(db, {
+            listingId: listing,
+            actorId: actor,
+            expectedListingVersion: facts.listing_version,
+            predecessor: {
+              revision: number - 1,
+              version: facts.revision_version,
+              state: facts.state,
+            },
+            content: value,
+          }),
+        );
+      }
       await media(db, tenant, listing, number);
       await bootstrap(db, tenant, actor, () =>
         db.query('SELECT app_api.submit_revision($1,$2,2)', [listing, number]),
@@ -184,6 +211,13 @@ async function fixture() {
         await db.query('SELECT app_api.set_publication($1,$2,$3)', [listing, current, status]);
       });
     if (listing === SUPERSEDED) {
+      // Terminal review before a legitimate successor; older review commands stay stale.
+      await bootstrap(db, tenant, admin, () =>
+        db.query(
+          "SELECT app_api.decide_revision($1,2,3,false,'Synthetic later changes required')",
+          [listing],
+        ),
+      );
       await revision(3, { ...updated, title: 'Synthetic latest approved revision' });
       await bootstrap(db, tenant, admin, () =>
         db.query('SELECT app_api.decide_revision($1,3,3,true)', [listing]),
@@ -197,19 +231,18 @@ async function fixture() {
   await seed(BLOCKED, { previous: false, confirm: false });
   await seed(FOREIGN, { tenant: OTHER, admin: OTHER_ADMIN, actor: OTHER_ADMIN });
   await bootstrap(db, T, AGENT, () =>
-    db.query("SELECT app_api.create_listing($1,'synthetic-incomplete-review-draft')", [DRAFT]),
-  );
-  await bootstrap(db, T, AGENT, () =>
-    db.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)', [
-      DRAFT,
-      JSON.stringify({
+    seedGuardedListingDraft(db, {
+      listingId: DRAFT,
+      slug: 'synthetic-incomplete-review-draft',
+      actorId: AGENT,
+      content: {
         purpose: 'rent',
         amountMinor: 2000000,
         rentPeriod: null,
         pricing: { declaration: 'not_declared', charges: [] },
         location: { county: null, town: null, area: null },
-      }),
-    ]),
+      },
+    }),
   );
   await db.exec(
     'CREATE ROLE moderation_test_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT api_runtime TO moderation_test_login; SET SESSION AUTHORIZATION moderation_test_login;',
@@ -343,7 +376,7 @@ test('moderation routes enforce current admin membership and exact reviewed snap
       async () => {
         const queue = await json(service, '/v2/staff/reviews?limit=100');
         assert.equal(queue.limit, 100);
-        assert.equal(queue.items.length, 7);
+        assert.equal(queue.items.length, 6);
         assert.ok(
           queue.items.every(
             (row) => row.state === 'pending' && row.version === '3' && row.acceptedPhotoCount === 4,
@@ -352,7 +385,7 @@ test('moderation routes enforce current admin membership and exact reviewed snap
         assert.equal((await json(service, '/v2/staff/reviews?limit=1')).items.length, 1);
         const detail = await json(service, reviewPath());
         assert.deepEqual(detail.content, updated);
-        assert.equal(detail.listingVersion, '3');
+        assert.equal(detail.listingVersion, '4');
         assert.equal(detail.version, '3');
         assert.equal(detail.publishedRevision, 1);
         assert.equal(detail.publicationStatus, 'published');
@@ -484,7 +517,7 @@ test('moderation routes enforce current admin membership and exact reviewed snap
         const after = await json(service, reviewPath());
         assert.equal(after.state, 'approved');
         assert.equal(after.version, '4');
-        assert.equal(after.listingVersion, '4');
+        assert.equal(after.listingVersion, '5');
         assert.equal(after.decidedBy, ADMIN);
         assert.match(after.decidedAt, /Z$/);
         const published = (await json(service, '/v2/properties')).items.find(
@@ -517,7 +550,7 @@ test('moderation routes enforce current admin membership and exact reviewed snap
         const detail = await json(service, reviewPath(REJECT));
         assert.equal(detail.decisionReason, privateReason);
         assert.equal(detail.state, 'rejected');
-        assert.equal(detail.listingVersion, '3');
+        assert.equal(detail.listingVersion, '4');
         const publicPayload = await json(service, '/v2/properties'),
           old = publicPayload.items.find((row) => row.id === REJECT);
         assert.equal(old.revision, 1);
