@@ -775,3 +775,5 @@ Checkpoint96published: actualdefault0024browser creation/successorGETrecovery/na
 
 Latestavailability/publicationcontracts:205domainchecks(10new)+8types/packagebuilds passed;final10focusedoverlap. See docs/listing-controls-contracts.md. SQLledger/API/SDK/operatorpending;legacyRPCsunchanged. Nextprivateimmutableledger/recovery/paritytests.19/97tasks0/14gates;oldlive/vendorintact.
 
+Latest publication97 (16 October): availability/publication domain contracts6f37ca2 backed up/restored cleanly;205 domain checks,8 workspace typechecks and4 package builds passed. Owner-private dashboard74867a1 deployed successfully;368 notes preserved and all stages matched after import/reload/export.19/97tasks,0/14gates. Next private SQL request/result ledger and restricted-role parity/recovery/rollback tests; domain-only checkpoint, legacy SQL unchanged. See listing-controls-contracts.md and CONTINUATION.md.
+
