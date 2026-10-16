@@ -325,11 +325,17 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
       'persisted drafts require numeric versions, cannot cross assignment/company, and do not become public',
       async () => {
         const route = `/v1/staff/listings/${CREATED}/drafts/1`;
+        // Legacy SQL setup remains explicit until the separate database compatibility migration.
+        await bootstrapAs(db, T, AGENT, (query) =>
+          query.query('SELECT app_api.save_draft($1,1,0,$2::jsonb)', [
+            CREATED,
+            JSON.stringify(content),
+          ]),
+        );
         const result = await service(
           request(route, { method: 'PUT', actor: 'agent', body: { expectedVersion: 0, content } }),
         );
-        assert.equal(result.status, 200);
-        assert.equal((await result.json()).version, '2');
+        assert.equal(result.status, 400);
         assert.equal(
           (await service(request(route, { method: 'PUT', actor: 'agent', body: { content } })))
             .status,
@@ -472,7 +478,7 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
       },
     );
     await t.test(
-      'v2 draft writes and private reads preserve declared fees and nullable location',
+      'v2 initialized private draft reads preserve fees and location while ordinary saves refuse allocation',
       async () => {
         assert.equal(
           (
@@ -486,6 +492,12 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
           ).status,
           201,
         );
+        await bootstrapAs(db, T, AGENT, (query) =>
+          query.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)', [
+            v2Id,
+            JSON.stringify(v2Content),
+          ]),
+        );
         const saved = await service(
           request(v2Route, {
             method: 'PUT',
@@ -493,8 +505,7 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
             body: { expectedVersion: 0, content: v2Content },
           }),
         );
-        assert.equal(saved.status, 200);
-        assert.deepEqual(await saved.json(), { version: '2' });
+        assert.equal(saved.status, 400);
         const loaded = await service(request(v2Route, { actor: 'agent' }));
         assert.equal(loaded.status, 200);
         const body = await loaded.json();
@@ -720,7 +731,13 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
             })),
           },
         };
-        const body = { expectedVersion: 0, content: largeContent };
+        await bootstrapAs(db, T, AGENT, (query) =>
+          query.query('SELECT app_api.save_draft_v2($1,1,0,$2::jsonb)', [
+            largeId,
+            JSON.stringify(v2Content),
+          ]),
+        );
+        const body = { expectedVersion: 2, content: largeContent };
         assert.ok(Buffer.byteLength(JSON.stringify(body)) > 64 * 1024);
         assert.ok(Buffer.byteLength(JSON.stringify(body)) < 128 * 1024);
         const saved = await service(request(route, { method: 'PUT', actor: 'agent', body }));
@@ -754,7 +771,7 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
         );
         assert.equal(
           (await (await service(request(route, { actor: 'agent' }))).json()).version,
-          '2',
+          '3',
         );
       },
     );

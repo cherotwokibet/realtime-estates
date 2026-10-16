@@ -5,7 +5,7 @@ import { seedSyntheticSealedMedia } from '../../../database/test-helpers/synthet
 import { PGlite } from '@electric-sql/pglite';
 import { createApiService } from '../../../apps/api/dist/service.js';
 import { PostgresTransactionDatabase } from '../../../apps/api/dist/database.js';
-import { ApiClientError, RealtorApiClient } from '../dist/index.js';
+import { ApiClientError, RealtorApiClient, validateListingCreationCommand } from '../dist/index.js';
 
 const id = (number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const TENANT = id(1),
@@ -346,23 +346,34 @@ test('staff v2 client integrates with real service, SQL assignment checks and op
           pricing: { declaration: 'not_declared', charges: [] },
           location: { county: null, town: null, area: null },
         };
-        const saved = await api.saveStaffDraftV2(
-          EMPTY,
-          1,
-          { expectedVersion: '0', content: partial },
+        const unfinished = id(111);
+        const created = await api.createListingV2(
+          validateListingCreationCommand({
+            listingId: unfinished,
+            operationId: id(9911),
+            slug: 'synthetic-guarded-unfinished',
+            content: partial,
+          }),
           options,
         );
-        assert.deepEqual(saved, { version: '2' });
-        const draft = await api.getStaffDraftV2(EMPTY, 1, options);
-        assert.equal(draft.version, '2');
+        assert.equal(created.outcome, 'created');
+        const saved = await api.saveStaffDraftV2(
+          unfinished,
+          1,
+          { expectedVersion: '2', content: partial },
+          options,
+        );
+        assert.deepEqual(saved, { version: '3' });
+        const draft = await api.getStaffDraftV2(unfinished, 1, options);
+        assert.equal(draft.version, '3');
         assert.equal(draft.content.amountMinor, null);
         assert.equal(draft.content.purpose, null);
         assert.equal(draft.content.privateAddress, null);
         await assert.rejects(
-          () => api.submitStaffDraftV2(EMPTY, 1, { expectedVersion: draft.version }, options),
+          () => api.submitStaffDraftV2(unfinished, 1, { expectedVersion: draft.version }, options),
           isHttp(422, 'INVALID_STATE'),
         );
-        assert.equal((await api.getStaffDraftV2(EMPTY, 1, options)).state, 'draft');
+        assert.equal((await api.getStaffDraftV2(unfinished, 1, options)).state, 'draft');
       },
     );
 

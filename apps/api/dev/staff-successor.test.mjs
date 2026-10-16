@@ -21,6 +21,14 @@ test('successor preview commits once, GET recovers, later draft read is current 
     const options = { bearerToken: p.bearerToken };
     const before = await api.getStaffListingV2(p.listingId, options);
     assert.equal(before.latest.state, 'approved');
+    const terminal = await api.getStaffDraftV2(p.listingId, before.latest.revision, options);
+    const blocked = await fetch(p.origin + `/v2/staff/listings/${p.listingId}/drafts/2`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${p.bearerToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expectedVersion: 0, content: terminal.content }),
+    });
+    assert.equal(blocked.status, 400, 'A direct zero-version edit cannot allocate a successor.');
+    assert.deepEqual(await api.getStaffListingV2(p.listingId, options), before);
     const command = validateListingSuccessorCommand({
       listingId: p.listingId,
       operationId: id(9900),

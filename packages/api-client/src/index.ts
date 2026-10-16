@@ -2444,7 +2444,7 @@ export class RealtorApiClient {
     staffOptions(options);
     const path = staffPath(listingId, revision);
     const value = record(input, ['expectedVersion', 'content'], 'VALIDATION');
-    const expectedVersion = expectedStaffVersion(value.expectedVersion, true),
+    const expectedVersion = expectedStaffVersion(value.expectedVersion, false),
       content = validateStaffDraftContentV2(value.content);
     try {
       const data = record(

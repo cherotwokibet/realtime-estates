@@ -2876,7 +2876,8 @@ export function createApiService(
             const content = v2Draft
               ? draftContentV2(body.content)
               : record(body.content, DRAFT_FIELDS);
-            const expected = version(body.expectedVersion, true);
+            // Allocation belongs to retained creation/successor operations, not ordinary edits.
+            const expected = version(body.expectedVersion, false);
             const result = await options.database.transaction(context, (query) =>
               query.query(
                 `SELECT app_api.${v2Draft ? 'save_draft_v2' : 'save_draft'}($1::uuid,$2::integer,$3::bigint,$4::jsonb) AS version`,

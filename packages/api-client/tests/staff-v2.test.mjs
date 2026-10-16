@@ -267,6 +267,7 @@ test('staff version strings retain PostgreSQL bigint precision but reject unsafe
     return json({ version: '3' });
   });
   for (const expectedVersion of [
+    '0',
     '02',
     '2.0',
     '2e0',
@@ -297,8 +298,8 @@ test('staff version strings retain PostgreSQL bigint precision but reject unsafe
   await client(async (_, init) => {
     body = JSON.parse(init.body);
     return json({ version: '2' });
-  }).saveStaffDraftV2(ID, 1, { expectedVersion: '0', content }, options);
-  assert.equal(body.expectedVersion, 0);
+  }).saveStaffDraftV2(ID, 1, { expectedVersion: '1', content }, options);
+  assert.equal(body.expectedVersion, 1);
 });
 
 test('staff authorization and stale-version HTTP failures remain distinct, safe and definite without retries', async () => {
