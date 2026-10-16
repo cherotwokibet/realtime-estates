@@ -763,3 +763,6 @@ Checkpoint94 published: dashboard d8dbb392 deployment appgdep_6ad2181140c881918f
 
 LatestSQLallocation:0024 now normal local/test migration order;236DB/200API/70integration/47preview/194media checks passed(0skips). See docs/draft-allocation-activation.md. Candidateupgradetests intentionallypre0024;historical0001fixtures explicit. Nextfreshmanualoperatorbrowser thenavailability/publication/moderatorimages. Oldlive/vendorunchanged;19/97tasks0/14gates.
 
+
+Checkpoint95 published: normal local migration0024 active;236DB/200API/70integration/47preview/194media passed,0skips. Sourcee3f39a3 freshGitHubrestoreverified;dashboarda6d6a5a deploymentappgdep_6ad226b2fa448191b2de05ca245f7739 succeeded;362notes canonical/browsermatch. Next freshoperatorbrowser default0024,thenavailability/publication/moderatorimages. Noactivechecks/preview/helper;oldliveunchanged;19/97tasks0/14gates.
+
