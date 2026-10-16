@@ -1,4 +1,9 @@
 import {
+  validateListingControlCommand,
+  validateListingControlReceipt,
+  validateListingControlSnapshot,
+  type ListingControlCommand,
+  type ListingControlReceipt,
   validateListingSuccessorCommand,
   validateListingSuccessorReceipt,
   validateListingSuccessorSnapshot,
@@ -6,11 +11,15 @@ import {
   type ListingSuccessorReceipt,
 } from '@realtor/domain';
 export {
+  validateListingControlCommand,
+  validateListingControlReceipt,
+  validateListingControlSnapshot,
   validateListingSuccessorCommand,
   validateListingSuccessorReceipt,
   validateListingSuccessorSnapshot,
 } from '@realtor/domain';
 export type { ListingSuccessorCommand, ListingSuccessorReceipt } from '@realtor/domain';
+export type { ListingControlCommand, ListingControlReceipt } from '@realtor/domain';
 import {
   normalizeStaffDraftContentV2,
   STAFF_DRAFT_CONTENT_FIELDS,
@@ -2956,6 +2965,85 @@ export class RealtorApiClient {
       }
     } catch (error) {
       return uncertainWriteError(error);
+    }
+  }
+  async controlListingV2(
+    input: ListingControlCommand,
+    options: StaffRequestOptions,
+  ): Promise<ListingControlReceipt> {
+    const captured = uploadOptions(options);
+    let command: ListingControlCommand;
+    try {
+      command = validateListingControlCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Review the retained listing control facts.');
+    }
+    const segment = command.kind === 'confirm_availability' ? 'availability' : 'publication';
+    try {
+      const data = await this.request(
+        `/v2/staff/listings/${command.listingId}/${segment}-operations/${command.operationId}`,
+        'POST',
+        captured,
+        {
+          expectedListingVersion: command.expectedListingVersion,
+          ...(command.kind === 'confirm_availability'
+            ? { availability: command.availability }
+            : { publicationStatus: command.publicationStatus }),
+        },
+      );
+      try {
+        return validateListingControlReceipt(data, command);
+      } catch {
+        return invalid('INVALID_RESPONSE', 'Invalid listing control receipt.');
+      }
+    } catch (error) {
+      return uncertainWriteError(error);
+    }
+  }
+  async getListingControlReceiptV2(
+    input: ListingControlCommand,
+    options: StaffRequestOptions,
+  ): Promise<ListingControlReceipt> {
+    const captured = uploadOptions(options);
+    let command: ListingControlCommand;
+    try {
+      command = validateListingControlCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Review the original listing control facts.');
+    }
+    const segment = command.kind === 'confirm_availability' ? 'availability' : 'publication';
+    const data = await this.request(
+      `/v2/staff/listings/${command.listingId}/${segment}-operations/${command.operationId}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateListingControlReceipt(data, command);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid original listing control receipt.');
+    }
+  }
+  async getListingControlSnapshotV2(
+    listingId: string,
+    operationId: string,
+    kind: ListingControlCommand['kind'],
+    options: StaffRequestOptions,
+  ): Promise<ListingControlReceipt> {
+    const captured = uploadOptions(options),
+      listing = uuid(listingId, 'VALIDATION', 'Listing ID'),
+      operation = uuid(operationId, 'VALIDATION', 'Operation ID');
+    if (kind !== 'confirm_availability' && kind !== 'set_publication')
+      return invalid('VALIDATION', 'Review the listing control kind.');
+    const segment = kind === 'confirm_availability' ? 'availability' : 'publication';
+    const data = await this.request(
+      `/v2/staff/listings/${listing}/${segment}-operations/${operation}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateListingControlSnapshot(data, listing, operation, kind);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid stored listing control receipt.');
     }
   }
   async startListingRevisionV2(

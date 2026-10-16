@@ -1,4 +1,8 @@
 import {
+  validateListingControlCommand,
+  validateListingControlReceipt,
+  validateListingControlSnapshot,
+  type ListingControlCommand,
   validateListingSuccessorCommand,
   validateListingSuccessorReceipt,
   validateListingSuccessorSnapshot,
@@ -1380,6 +1384,103 @@ export function createApiService(
             return validateStaffListingSummary(result.rows[0], listingId);
           });
           return response(200, summary, correlationId);
+        }
+        const controlRoute =
+          /^\/v2\/staff\/listings\/([^/]+)\/(availability|publication)-operations\/([^/]+)$/.exec(
+            path,
+          );
+        if (controlRoute) {
+          if (method !== 'POST' && method !== 'GET')
+            throw new HttpError(
+              405,
+              'METHOD_NOT_ALLOWED',
+              'Method is not allowed for this route.',
+              { Allow: 'GET, POST' },
+            );
+          if (request.url.includes('?') || request.url.includes('#'))
+            throw new HttpError(
+              400,
+              'INVALID_INPUT',
+              'Listing controls do not accept query context.',
+            );
+          const listingId = uuid(controlRoute[1], 'listingId'),
+            operationId = uuid(controlRoute[3], 'operationId'),
+            kind = controlRoute[2] === 'availability' ? 'confirm_availability' : 'set_publication',
+            field = kind === 'confirm_availability' ? 'availability' : 'publicationStatus',
+            write = method === 'POST';
+          let forbidden = false;
+          request.headers.forEach((_, name) => {
+            if (
+              [
+                'cookie',
+                'content-encoding',
+                'expect',
+                'range',
+                'transfer-encoding',
+                'idempotency-key',
+                'x-actor-id',
+                'x-tenant-id',
+                'x-role',
+                'x-actor',
+                'x-tenant',
+                'x-company-id',
+                'x-assigned-agent-id',
+              ].includes(name) ||
+              name.startsWith('if-')
+            )
+              forbidden = true;
+          });
+          if (
+            forbidden ||
+            (!write &&
+              (request.body !== null ||
+                request.headers.has('content-type') ||
+                request.headers.has('content-length')))
+          )
+            throw new HttpError(400, 'INVALID_INPUT', 'Unsupported listing control context.');
+          const declared = request.headers.get('content-length');
+          if (write && declared !== null && !/^(?:0|[1-9]\d*)$/.test(declared))
+            throw new HttpError(400, 'INVALID_INPUT', 'Content length must be canonical.');
+          let command: ListingControlCommand | undefined;
+          if (write) {
+            const raw = await jsonBody(request, 4096, true, true, true, true);
+            try {
+              const body = record(raw, ['expectedListingVersion', field]);
+              command = validateListingControlCommand({ ...body, listingId, operationId, kind });
+            } catch {
+              throw new HttpError(400, 'INVALID_INPUT', 'Review the listing control fields.');
+            }
+          }
+          const receipt = await options.database.transaction(context, async (query) => {
+            await assertStaff(query);
+            if (command) {
+              const stored = await query.query(
+                'SELECT app_api.control_listing($1::uuid,$2::uuid,$3,$4::bigint,$5) AS receipt',
+                [
+                  listingId,
+                  operationId,
+                  command.kind,
+                  command.expectedListingVersion,
+                  command.kind === 'confirm_availability'
+                    ? command.availability
+                    : command.publicationStatus,
+                ],
+              );
+              return validateListingControlReceipt(scalar(stored, 'receipt'), command, actorId!);
+            }
+            const stored = await query.query(
+              'SELECT app_api.read_listing_control($1::uuid,$2::uuid,$3) AS receipt',
+              [listingId, operationId, kind],
+            );
+            return validateListingControlSnapshot(
+              scalar(stored, 'receipt'),
+              listingId,
+              operationId,
+              kind,
+              actorId!,
+            );
+          });
+          return response(200, receipt, correlationId);
         }
         const successorRoute =
           /^\/v2\/staff\/listings\/([^/]+)\/revision-operations\/([^/]+)$/.exec(path);
