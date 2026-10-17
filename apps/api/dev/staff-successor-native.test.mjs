@@ -199,6 +199,16 @@ test(
       assert.equal(review.state, 'pending');
       assert.equal(review.photos.length, 4);
       assert.equal(review.version, submitted.version);
+      const reviewGallery = await api.getReviewMediaGalleryV2(
+        preview.listingId,
+        2,
+        review.version,
+        options,
+      );
+      assert.deepEqual(
+        reviewGallery.photos.map((p) => p.id),
+        workspace.photos.map((p) => p.id),
+      );
       assert.equal(
         (await readReviewImage(workspace.photos[0].id, review.version, null)).status,
         401,
@@ -207,16 +217,16 @@ test(
         (await readReviewImage(workspace.photos[0].id, workspace.draft.version)).status,
         409,
       );
-      for (const photo of workspace.photos) {
-        const response = await readReviewImage(photo.id, review.version);
-        assert.equal(response.status, 200, await response.clone().text());
-        assert.equal(response.headers.get('content-type'), 'image/webp');
-        assert.match(response.headers.get('cache-control'), /no-store/);
-        assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+      for (const photo of reviewGallery.photos) {
+        const image = await api.getReviewMediaPreviewV2(
+          preview.listingId,
+          2,
+          photo.id,
+          reviewGallery.version,
+          options,
+        );
         assert.equal(
-          createHash('sha256')
-            .update(Buffer.from(await response.arrayBuffer()))
-            .digest('hex'),
+          createHash('sha256').update(Buffer.from(image.data)).digest('hex'),
           draftDigests.get(photo.id),
         );
       }

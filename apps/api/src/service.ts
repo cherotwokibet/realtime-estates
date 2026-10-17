@@ -1,4 +1,5 @@
 import {
+  validateReviewMediaGallery,
   validateListingControlCommand,
   validateListingControlReceipt,
   validateListingControlSnapshot,
@@ -1324,6 +1325,66 @@ export function createApiService(
       if (path.startsWith('/v1/staff/') || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const reviewGalleryRoute =
+          /^\/v2\/staff\/reviews\/([^/]+)\/revisions\/([1-9]\d*)\/media-gallery$/.exec(path);
+        if (reviewGalleryRoute) {
+          if (method !== 'GET')
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Gallery reads require GET.', {
+              Allow: 'GET',
+            });
+          const listingId = uuid(reviewGalleryRoute[1], 'listingId'),
+            revision = Number(reviewGalleryRoute[2]),
+            expected = request.headers.get('x-revision-version');
+          if (
+            !Number.isSafeInteger(revision) ||
+            revision > 2147483647 ||
+            expected === null ||
+            !/^[1-9]\d{0,15}$/.test(expected) ||
+            BigInt(expected) > 9007199254740991n
+          )
+            throw new HttpError(400, 'INVALID_INPUT', 'Invalid gallery revision version.');
+          let forbidden =
+            request.body !== null || request.url.includes('?') || request.url.includes('#');
+          request.headers.forEach((_, name) => {
+            if (
+              [
+                'cookie',
+                'content-type',
+                'content-length',
+                'content-encoding',
+                'transfer-encoding',
+                'expect',
+                'range',
+                'idempotency-key',
+                'x-actor-id',
+                'x-tenant-id',
+                'x-role',
+                'x-actor',
+                'x-tenant',
+                'x-company-id',
+                'x-assigned-agent-id',
+              ].includes(name) ||
+              name.startsWith('if-')
+            )
+              forbidden = true;
+          });
+          if (forbidden) throw new HttpError(400, 'INVALID_INPUT', 'Unsupported gallery context.');
+          const gallery = await options.database.transaction(context, async (query) => {
+            await assertAdmin(query);
+            const result = await query.query(
+              'SELECT app_api.read_review_media_gallery($1::uuid,$2::integer,$3::bigint) AS receipt',
+              [listingId, revision, expected],
+            );
+            if (result.rows.length !== 1) throw new Error('Invalid gallery projection.');
+            return validateReviewMediaGallery(
+              scalar(result, 'receipt'),
+              listingId,
+              revision,
+              expected,
+            );
+          });
+          return response(200, gallery, correlationId);
+        }
         const listingDetailRoute = /^\/v2\/staff\/listings\/([^/]+)$/.exec(path);
         if (listingDetailRoute) {
           if (method !== 'GET')

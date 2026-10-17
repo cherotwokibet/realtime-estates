@@ -1,4 +1,6 @@
 import {
+  validateReviewMediaGallery,
+  type ReviewMediaGallery,
   validateListingControlCommand,
   validateListingControlReceipt,
   validateListingControlSnapshot,
@@ -2444,6 +2446,61 @@ export class RealtorApiClient {
       data,
     });
   }
+  async getReviewMediaGalleryV2(
+    listingId: string,
+    revision: number,
+    expectedVersion: string,
+    options: StaffRequestOptions,
+  ): Promise<ReviewMediaGallery> {
+    const captured = uploadOptions(options),
+      listing = uuid(listingId, 'VALIDATION', 'Listing ID'),
+      number = integer(revision, 1, 2147483647, 'VALIDATION', 'Revision'),
+      version = staffVersion(expectedVersion, 'VALIDATION');
+    if (BigInt(version) > BigInt(Number.MAX_SAFE_INTEGER))
+      return invalid('VALIDATION', 'Unsupported review version.');
+    const data = await this.request(
+      `/v2/staff/reviews/${listing}/revisions/${number}/media-gallery`,
+      'GET',
+      captured,
+      undefined,
+      undefined,
+      undefined,
+      version,
+    );
+    try {
+      return validateReviewMediaGallery(data, listing, number, version);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid reviewer gallery.');
+    }
+  }
+  async getReviewMediaPreviewV2(
+    listingId: string,
+    revision: number,
+    mediaId: string,
+    expectedVersion: string,
+    options: StaffRequestOptions,
+  ): Promise<StaffMediaPreviewV2> {
+    const captured = uploadOptions(options),
+      listing = uuid(listingId, 'VALIDATION', 'Listing ID'),
+      number = integer(revision, 1, 2147483647, 'VALIDATION', 'Revision'),
+      media = uuid(mediaId, 'VALIDATION', 'Media ID'),
+      version = staffVersion(expectedVersion, 'VALIDATION');
+    if (BigInt(version) > BigInt(Number.MAX_SAFE_INTEGER))
+      return invalid('VALIDATION', 'Unsupported review version.');
+    const data = await this.previewRequest(
+      `/v2/staff/reviews/${listing}/${number}/media/${media}/preview`,
+      version,
+      captured,
+    );
+    return Object.freeze({
+      listingId: listing,
+      revision: number,
+      mediaId: media,
+      version,
+      mimeType: 'image/webp',
+      data,
+    });
+  }
   async saveStaffDraftV2(
     listingId: string,
     revision: number,
@@ -4143,6 +4200,7 @@ export class RealtorApiClient {
     body?: Record<string, unknown>,
     key?: string,
     binary?: Uint8Array<ArrayBuffer>,
+    revisionVersion?: string,
   ): Promise<unknown> {
     const writes = method !== 'GET';
     const upload = UPLOAD_PATH.test(path),
@@ -4178,6 +4236,7 @@ export class RealtorApiClient {
     try {
       const operation = (async () => {
         const headers: Record<string, string> = { Accept: 'application/json' };
+        if (revisionVersion !== undefined) headers['X-Revision-Version'] = revisionVersion;
         if (options.bearerToken) headers.Authorization = `Bearer ${options.bearerToken}`;
         if (body) {
           headers['Content-Type'] = 'application/json';

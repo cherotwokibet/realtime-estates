@@ -20,3 +20,4 @@ export * from './staff-draft-content.js';
 export * from './listing-creation.js';
 export * from './listing-successor.js';
 export * from './listing-controls.js';
+export * from './review-gallery.js';

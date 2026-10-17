@@ -1086,6 +1086,15 @@ export async function startStaffPreview(options = {}) {
           response.headers.set('X-Synthetic-Staff-Preview', 'true');
           return response;
         }
+        if (
+          /^\/v2\/staff\/reviews\/[0-9a-f-]{36}\/revisions\/[1-9]\d{0,9}\/media-gallery$/i.test(
+            url.pathname,
+          )
+        ) {
+          const response = await service(request);
+          response.headers.set('X-Synthetic-Staff-Preview', 'true');
+          return response;
+        }
         const route =
           /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/drafts\/[1-9]\d{0,9}(\/submit)?$/i.exec(
             url.pathname,
