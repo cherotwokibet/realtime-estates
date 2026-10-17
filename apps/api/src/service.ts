@@ -1,4 +1,5 @@
 import {
+  previewListingImport,
   validateReviewMediaGallery,
   validateListingControlCommand,
   validateListingControlReceipt,
@@ -1325,6 +1326,84 @@ export function createApiService(
       if (path.startsWith('/v1/staff/') || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        if (path === '/v2/staff/listing-import-preview') {
+          if (method !== 'POST')
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Import previews require POST.', {
+              Allow: 'POST',
+            });
+          let forbidden = request.url.includes('?') || request.url.includes('#');
+          request.headers.forEach((_, name) => {
+            if (
+              [
+                'cookie',
+                'content-encoding',
+                'transfer-encoding',
+                'expect',
+                'range',
+                'idempotency-key',
+                'x-actor-id',
+                'x-tenant-id',
+                'x-role',
+                'x-actor',
+                'x-tenant',
+                'x-company-id',
+                'x-assigned-agent-id',
+              ].includes(name) ||
+              name.startsWith('if-')
+            )
+              forbidden = true;
+          });
+          if (forbidden) throw new HttpError(400, 'INVALID_INPUT', 'Unsupported import context.');
+          // JSON escaping can expand a32KiB CSV; the domain separately bounds decoded CSV.
+          const body = record(await jsonBody(request, 256 * 1024, false, true, true), ['csv']);
+          if (typeof body.csv !== 'string')
+            throw new HttpError(400, 'INVALID_INPUT', 'A CSV string is required.');
+          const csv = body.csv;
+          const preview = await options.database.transaction(context, async (query) => {
+            await assertAdmin(query);
+            let parsed;
+            try {
+              parsed = previewListingImport(csv);
+            } catch {
+              throw new HttpError(400, 'INVALID_INPUT', 'Use a valid bounded listing CSV file.');
+            }
+            const candidates = [
+              ...new Set(parsed.rows.flatMap((row) => (row.slug === null ? [] : [row.slug]))),
+            ];
+            let existing: string[] = [];
+            if (candidates.length) {
+              const result = await query.query(
+                'SELECT app_api.read_listing_import_stock($1::text[]) AS receipt',
+                [candidates],
+              );
+              if (result.rows.length !== 1) throw new Error('Invalid import stock projection.');
+              const values = scalar(result, 'receipt');
+              if (
+                !Array.isArray(values) ||
+                Object.getPrototypeOf(values) !== Array.prototype ||
+                values.length > candidates.length ||
+                Reflect.ownKeys(values).length !== values.length + 1
+              )
+                throw new Error('Invalid import stock projection.');
+              const seen = new Set<string>();
+              for (let i = 0; i < values.length; i++) {
+                const descriptor = Object.getOwnPropertyDescriptor(values, String(i));
+                if (
+                  !descriptor?.enumerable ||
+                  !Object.hasOwn(descriptor, 'value') ||
+                  typeof descriptor.value !== 'string' ||
+                  !candidates.includes(descriptor.value) ||
+                  seen.has(descriptor.value)
+                )
+                  throw new Error('Invalid import stock projection.');
+                seen.add(descriptor.value);
+                existing.push(descriptor.value);
+              }
+            }
+            return previewListingImport(csv, existing, true);
+          });
+          return response(200, preview, correlationId);
+        }
         const reviewGalleryRoute =
           /^\/v2\/staff\/reviews\/([^/]+)\/revisions\/([1-9]\d*)\/media-gallery$/.exec(path);
         if (reviewGalleryRoute) {
