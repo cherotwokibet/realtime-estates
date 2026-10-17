@@ -1,0 +1,15 @@
+# Listing import preview contract
+
+17 October 2026, checkpoint111. This is a pure shared-domain foundation for task08-1; the task remains open. No HTTP route, current-company stock query, SDK/BFF integration or visible import UI is implemented yet. No listing, upload, reservation, operation or publication is created.
+
+`previewListingImport` accepts at most32KiB UTF-8 CSV and100 data records. The exact13 exported columns may be reordered. It supports BOM, quoted commas, escaped quotes, quoted multiline text and CRLF/LF separators. Malformed quotes, unknown/duplicate/missing headers, invalid Unicode and excessive records are rejected. Missing/extra cells produce row errors while valid neighboring records remain usable. Record numbers count logical records including the header, rather than physical lines.
+
+Rows use the same draft normalizer as maintained create/edit workflows. KES decimal strings become exact integer minor units; exponents, rounding and floating-point interpretation are refused. Canonical integer counts, slug syntax, repeated file slugs and supplied existing-stock collisions produce explicit errors. Unknown fees, location taxonomy and private address/coordinates stay unknown. A valid draft preview is not publication readiness.
+
+The optional existing-slug comparison must come from a separately authorized current-company server query. The pure function does not authorize that query or establish tenant membership. `existingStockChecked` defaults false; callers cannot supply nonempty comparison data without explicitly marking it checked. Stock arrays are bounded, dense own-data arrays; accessor and custom-iterator input is rejected without invoking it. A future server must compare only candidate slugs, rather than pass an entire unbounded catalogue. Preview does not reserve slugs; actual creation must revalidate current authority, uniqueness and draft constraints transactionally.
+
+Verification:214 domain tests passed with zero failures/skips, including seven import cases. Final workspace typecheck and package builds passed. Initial focused run contained a mistaken malformed-CSV fixture that actually represented valid CSV without a final newline; corrected fixture and failed log are retained. No API/browser/device/import-write claim is made.
+
+Separate CI repair: GitHub run39002800859 stopped at Markdown formatting and skipped subsequent checks. Formatting-only commitd322d1ac6827d8b1261275ac4b34f0da3d23e055 fixed two documentation files. Corrective hosted run39007140075 was observed successful,11m1s. This predates the new import contract and is not hosted verification of checkpoint111.
+
+Next: add an admin-only bounded preview API, current-tenant candidate-slug lookup, strict SDK response validation, server-only BFF and visible template/row-error preview; verify authorization and actual synthetic browser behavior. Keep task08-1 and all14 stage gates open. KES10,000 remains the total recurring monthly client price. Vendor resources and old live system remain intact. Owner:Boniface + Codex.
