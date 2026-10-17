@@ -101,6 +101,7 @@ async function collect(
   signal: AbortSignal,
   deadline: number,
   aborted: Promise<never>,
+  policy: 'draft' | 'review',
 ): Promise<Uint8Array<ArrayBuffer>> {
   const reader = response.body?.getReader();
   const check = () => {
@@ -110,7 +111,7 @@ async function collect(
     check();
     if (response.status === 409) throw new ImageFailure(true);
     if ([401, 403, 404].includes(response.status)) throw new ImageFailure(false, true);
-    const expectedPath = `/api/staff/drafts/${resource.listingId}/${resource.revision}/media/${resource.mediaId}/preview`;
+    const expectedPath = imagePath(resource, policy);
     if (response.redirected || response.headers.has('content-range')) throw new ImageFailure();
     if (response.url) {
       const actual = new URL(response.url);
@@ -189,6 +190,22 @@ export function createPrivateImageBatch(
   values: readonly PrivateImageTuple[],
   options: Options,
 ): PrivateImageBatch {
+  return createImageBatch(values, options, 'draft');
+}
+export function createReviewImageBatch(
+  values: readonly PrivateImageTuple[],
+  options: Options,
+): PrivateImageBatch {
+  return createImageBatch(values, options, 'review');
+}
+function imagePath(resource: PrivateImageTuple, policy: 'draft' | 'review'): string {
+  return `/api/staff/${policy === 'review' ? 'reviews' : 'drafts'}/${resource.listingId}/${resource.revision}/media/${resource.mediaId}/preview`;
+}
+function createImageBatch(
+  values: readonly PrivateImageTuple[],
+  options: Options,
+  policy: 'draft' | 'review',
+): PrivateImageBatch {
   if (values.length > MAX_PHOTOS) throw new Error('Too many private photos.');
   const resources = values.map(tuple),
     first = resources[0];
@@ -259,20 +276,17 @@ export function createPrivateImageBatch(
     controller.signal.addEventListener('abort', rejectAbort, { once: true });
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const pending = fetchImage(
-        `/api/staff/drafts/${resource.listingId}/${resource.revision}/media/${resource.mediaId}/preview`,
-        {
-          method: 'GET',
-          cache: 'no-store',
-          credentials: 'omit',
-          redirect: 'error',
-          signal: controller.signal,
-          headers: {
-            'X-Preview-Instance': resource.instanceId,
-            'X-Revision-Version': resource.version,
-          },
+      const pending = fetchImage(imagePath(resource, policy), {
+        method: 'GET',
+        cache: 'no-store',
+        credentials: 'omit',
+        redirect: 'error',
+        signal: controller.signal,
+        headers: {
+          'X-Preview-Instance': resource.instanceId,
+          'X-Revision-Version': resource.version,
         },
-      );
+      });
       // An obsolete mock/transport completion must not retain an unread response.
       void pending.then(
         (response) => {
@@ -281,7 +295,7 @@ export function createPrivateImageBatch(
         () => undefined,
       );
       const response = await Promise.race([pending, aborted]),
-        bytes = await collect(response, resource, controller.signal, deadline, aborted);
+        bytes = await collect(response, resource, controller.signal, deadline, aborted, policy);
       if (closed || stale || controller.signal.aborted) return;
       const url = createUrl(new Blob([bytes], { type: 'image/webp' }));
       if (closed || stale || controller.signal.aborted) {

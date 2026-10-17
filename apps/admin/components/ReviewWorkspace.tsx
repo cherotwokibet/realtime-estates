@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import ReviewImages from './ReviewImages';
 import type { ReviewDetailV2, ReviewSummaryV2, ReviewPageV2 } from '@realtor/api-client';
 import { calculateWirePricingV2, formatKes, kesFromMinor } from '@realtor/domain';
 import {
@@ -256,9 +257,10 @@ export default function ReviewWorkspace({ previewInstanceId }: { previewInstance
       <div className="draft-preview-notice">
         <strong>Signed synthetic identity · disposable local data</strong>
         <p>
-          This review shows saved photo references. Default fixtures have metadata only; explicitly
-          uploaded synthetic photos are verified in the draft workspace. These decisions affect
-          fictional stock only. Production sessions and launch approval remain open.
+          Pending reviews show verified uploaded photos when available. Default fixtures have
+          metadata only. Saved references do not establish image quality or advertising rights.
+          These decisions affect fictional stock only. Production sessions and launch approval
+          remain open.
         </p>
       </div>
       <div className="review-workspace-layout">
@@ -508,10 +510,8 @@ export default function ReviewWorkspace({ previewInstanceId }: { previewInstance
                 <div className="draft-section-heading">
                   <span>03</span>
                   <div>
-                    <h2>Photo references</h2>
-                    <p>
-                      {review.acceptedPhotoCount} accepted records · this review displays references
-                    </p>
+                    <h2>Photos</h2>
+                    <p>{review.acceptedPhotoCount} accepted records · exact submitted revision</p>
                   </div>
                 </div>
                 <ol className="review-photo-list">
@@ -525,6 +525,15 @@ export default function ReviewWorkspace({ previewInstanceId }: { previewInstance
                     </li>
                   ))}
                 </ol>
+                {review.state === 'pending' && !busy && !blocked && !error && (
+                  <ReviewImages
+                    key={`${previewInstanceId}/${review.listingId}/${review.revision}/${review.version}`}
+                    instanceId={previewInstanceId}
+                    listingId={review.listingId}
+                    revision={review.revision}
+                    version={review.version}
+                  />
+                )}
                 <p className="draft-help">
                   Photo references alone cannot verify image quality, distinct images or advertising
                   rights. Inspect verified images and complete operator acceptance before real
