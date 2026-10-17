@@ -1,0 +1,15 @@
+# Current-company import stock comparison
+
+17 October 2026, checkpoint112. Migration0028 adds the read-only `app_api.read_listing_import_stock(text[])` projection to the reviewed local migration order. Task08-1 remains open: there is no import API, SDK/BFF or browser screen yet.
+
+The function requires current active admin membership in an enabled context company. It returns only the intersection of supplied candidate slugs and that company's listings, sorted deterministically. It includes existing stock regardless of publication or availability; a slug remains occupied even when stock is not public. The caller cannot select another company through the function arguments. Empty or malformed candidate arrays, duplicate slugs, noncanonical slugs, null elements, excessive slug lengths, multidimensional/nonstandard-bound arrays and more than100 candidates are rejected. API runtime alone receives an explicit execute grant; PUBLIC and media coordinator have none.
+
+No draft, operation, listing, reservation or audit event is created. This lookup is a point-in-time preview, not a uniqueness reservation. Actual creation must still enforce current authority and the database unique constraint in its transaction. The future server should parse the CSV first, collect unique syntactically valid candidate slugs, avoid calling this function for an empty candidate set, and execute it with trusted tenant/actor context. A separately checked empty candidate set can produce an empty collision set without an SQL call. Never accept caller-supplied existing-stock facts or tenant/role headers as authority.
+
+Focused restricted-role PGlite verification covers tenant intersections, unrequested data exclusion, deterministic ordering, no listing/audit mutation, agent/customer/missing membership refusal, revocation, demotion, disabled company, restoration, input limits and function grants. It is sequential local evidence, not hosted PostgreSQL multi-connection concurrency or device/operator acceptance. Two initial fixtures failed: missing explicit pricing/location draft disclosures, and an incorrect worker role name. Corrected tests use normal guarded draft creation and the actual media_coordinator role; failed logs remain.
+
+The prior checkpoint111 GitHub workflow39010454497 was observed successful in11m9s. That success predates this SQL change and must not be represented as checkpoint112 hosted verification.
+
+Next: connect the bounded admin-only preview endpoint to this projection in an authenticated transaction, revalidate returned collision data, then add shared SDK validation, fixed server BFF and actual synthetic browser preview. Preserve no-write preview semantics and recheck creation separately. Keep20/97 tasks and0/14 gates unchanged until complete deliverables are verified. KES10,000 total monthly client price and existing vendor/live resources remain preserved. Owner:Boniface + Codex.
+
+Final verification:258 full database checks passed, zero failures/skips; the six focused checks overlap that run. Full repository formatting passed. No new API, browser, device or hosted verification is claimed.
