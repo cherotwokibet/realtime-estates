@@ -4,12 +4,12 @@ Shared domain contracts now define two exact intents: `confirm_availability` wit
 
 The pure planner consumes independently authorized current listing facts, verified staff role and a trusted operation clock. It grants no tenant/assignment access. Rules retained from the existing SQL:
 
-| Intent | Policy |
-| --- | --- |
+| Intent               | Policy                                                                                                                                                                                                                                                                                         |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Confirm availability | Assigned agent or admin. Refresh confirmation and increment listing version. Non-available stock auto-pauses a published listing. Available confirmation does not automatically republish paused/unpublished/archived stock. Archived state/time and selected approved snapshot remain intact. |
-| Pause | Assigned agent or admin; agent cannot reopen archived stock. Admin may move archived stock to paused. |
-| Publish | Admin only; selected revision must match the approved snapshot, stock must be available and confirmation must be strictly newer than30 days. Reopening archived stock is explicit and clears its archived timestamp. Publication never refreshes availability confirmation. |
-| Archive | Admin only; set archive time, retain selected approved snapshot and availability facts. |
+| Pause                | Assigned agent or admin; agent cannot reopen archived stock. Admin may move archived stock to paused.                                                                                                                                                                                          |
+| Publish              | Admin only; selected revision must match the approved snapshot, stock must be available and confirmation must be strictly newer than30 days. Reopening archived stock is explicit and clears its archived timestamp. Publication never refreshes availability confirmation.                    |
+| Archive              | Admin only; set archive time, retain selected approved snapshot and availability facts.                                                                                                                                                                                                        |
 
 New guarded clock rule: future-dated availability confirmation refuses a fresh confirmation or publish command. Pause/archive remain possible to hide stock safely. Comparisons preserve microseconds, including one microsecond beyond the exact30-day boundary. This rule is in the new planner only; existing SQL has not yet been updated to implement these guarded contracts.
 
