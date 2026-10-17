@@ -823,6 +823,11 @@ export async function startStaffPreview(options = {}) {
           response.headers.set('X-Synthetic-Staff-Preview', 'true');
           return response;
         }
+        if (url.pathname === '/v2/staff/listing-import-preview') {
+          const response = await service(request);
+          response.headers.set('X-Synthetic-Staff-Preview', 'true');
+          return response;
+        }
         if (
           /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/creation-operations\/[0-9a-f-]{36}$/i.test(
             url.pathname,

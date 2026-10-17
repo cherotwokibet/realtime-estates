@@ -498,3 +498,43 @@ test('without explicit synthetic accepted-media metadata, actual SQL submission 
     await preview.close();
   }
 });
+
+test('signed local import preview reaches admin-only read-only service without creating stock', async (t) => {
+  const p = await startStaffPreview({ port: 0, actor: 'admin' });
+  t.after(() => p.close());
+  const { LISTING_IMPORT_COLUMNS } = await import('../../../packages/domain/dist/index.js');
+  const csv =
+    LISTING_IMPORT_COLUMNS.join(',') +
+    '\n' +
+    [
+      'synthetic-staff-400',
+      'Synthetic collision',
+      '',
+      'rent',
+      'apartment',
+      '20000.05',
+      'month',
+      '1',
+      '1',
+      '',
+      'KE',
+      'Synthetic Nairobi',
+      'area',
+    ].join(',');
+  const before = await (await call(p, '/v2/staff/listings?limit=25')).json();
+  const response = await call(p, '/v2/staff/listing-import-preview', {
+    method: 'POST',
+    body: { csv },
+  });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).rows[0].issues[0].code, 'EXISTING_SLUG');
+  assert.deepEqual(await (await call(p, '/v2/staff/listings?limit=25')).json(), before);
+  assert.equal((await call(p, '/v2/staff/listing-import-preview')).status, 405);
+  const agent = await startStaffPreview({ port: 0, actor: 'agent' });
+  t.after(() => agent.close());
+  assert.equal(
+    (await call(agent, '/v2/staff/listing-import-preview', { method: 'POST', body: { csv } }))
+      .status,
+    403,
+  );
+});

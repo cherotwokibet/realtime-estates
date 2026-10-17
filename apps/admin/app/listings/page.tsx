@@ -42,6 +42,9 @@ export default async function ListingsPage() {
         </nav>
         <section className="enq-contacts" aria-label="Authorized listing queue">
           <h1>Listing work</h1>
+          <a className="enq-secondary" href="/listings/import">
+            Preview listing CSV
+          </a>
           <p>
             Read the latest revision before making a change. An unfinished draft leaves the approved
             public listing intact.
