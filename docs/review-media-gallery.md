@@ -1,0 +1,15 @@
+# Pending reviewer gallery identities — 17 October 2026
+
+Migration0027 adds the read-only `app_api.read_review_media_gallery(listing, revision, expectedVersion)` function to the normal migration order. It requires a current enabled tenant administrator and an exact submitted pending revision. The output is a separate `review_media_gallery` projection with listing ID, revision, version, pending state and four to twelve ordered photos containing only media ID, description and position. Existing review DTOs remain unchanged.
+
+Every accepted association is checked through `read_review_media_preview` using the actual current version before expected-version comparison. Any missing sealed attachment/job/capture/lease/verified-manifest provenance prevents the entire gallery from returning. Ineligible actors, draft/decided revisions and malformed galleries are unavailable before stale currency is disclosed. Eligible stale reads return40001. No private storage keys, paths, manifests, credentials or image bytes appear in the result.
+
+The function is stable, owned by realtor_owner, SECURITY DEFINER with fixed pg_catalog search path, PUBLIC execution revoked and api_runtime execution granted. It creates no rows, operation receipts or audits. The gallery metadata is a statement snapshot; actual byte delivery must independently repeat current authorization before and after native storage I/O. No continuous network-transmission authorization is claimed.
+
+Seven focused SQL checks passed, including three new gallery cases: exact ordered projection and no mutation; role/tenant/stale/decided denials; one historical unsealed reference after three valid sealed references denying the whole gallery; uploader revocation versus current reviewer demotion/tenant disablement; fixed definer and worker execution denial. These are restricted-role local PGlite checks with synthetic relational provenance, not native-byte or hosted PostgreSQL concurrency evidence.
+
+Initial bad-provenance fixtures were correctly rejected by the existing submitted-media immutability trigger and sealed-provenance foreign key. The final fixture inserts a legacy unsealed reference while draft, asserts normal submission refusal, then represents a privileged historical pending row. No trigger or constraint is disabled. Both failed focused logs and the interrupted initial broad run are retained in sibling `rebuild-preservation/2026-10-12-source/review-gallery-*.txt`.
+
+Next: validate this exact bounded projection in the API and SDK, with a fixed gallery GET route and expected revision-version header. Add a fixed reviewer image SDK read, server-only admin proxy and review image UI. Verify signed native delivery from gallery-discovered IDs, current access loss/decision during I/O and actual browser rendering. This checkpoint adds no HTTP/SDK/BFF/UI/browser/device/current-CI/UAT/cutover evidence. KES10,000 total monthly price, vendor resources and old live system remain intact.
+
+Final full database suite:252 passed, zero failures and zero skips. Seven focused cases overlap this suite. Other app/type/native/browser suites were not rerun for this SQL-only checkpoint.

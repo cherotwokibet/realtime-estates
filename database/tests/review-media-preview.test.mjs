@@ -274,6 +274,143 @@ const review = (f, x, actor = ADMIN, version = x.version, tenant = T) =>
       ]),
     tenant,
   );
+
+const gallery = (f, x, actor = ADMIN, version = x.version, tenant = T) =>
+  f.api(
+    actor,
+    () => scalar(f.db, 'SELECT app_api.read_review_media_gallery($1,1,$2)', [x.listing, version]),
+    tenant,
+  );
+
+test('review gallery projects only ordered current pending sealed media identities without mutation', async () => {
+  const f = await fixture();
+  try {
+    const x = await pending(f, 940),
+      before = await snapshot(f.db),
+      g = await gallery(f, x);
+    assert.deepEqual(Object.keys(g).sort(), [
+      'kind',
+      'listingId',
+      'photos',
+      'revision',
+      'state',
+      'version',
+    ]);
+    assert.equal(g.kind, 'review_media_gallery');
+    assert.equal(g.listingId, x.listing);
+    assert.equal(g.revision, 1);
+    assert.equal(g.version, x.version);
+    assert.equal(g.state, 'pending');
+    assert.equal(g.photos.length, 4);
+    assert.equal(g.photos[0].id, x.media);
+    for (const [position, photo] of g.photos.entries()) {
+      assert.deepEqual(Object.keys(photo).sort(), ['alt', 'id', 'position']);
+      assert.equal(photo.position, position);
+      assert.match(photo.id, /^[a-f0-9-]{36}$/);
+      assert.equal(typeof photo.alt, 'string');
+    }
+    assert.equal(new Set(g.photos.map((p) => p.id)).size, 4);
+    assert.deepEqual(await snapshot(f.db), before);
+    await denied(() => gallery(f, x, AGENT));
+    await denied(() => gallery(f, x, CUSTOMER));
+    await denied(() => gallery(f, x, OTHERADMIN, x.version, OTHER));
+    await denied(() => gallery(f, x, ADMIN, '2'), '40001');
+    await denied(() => gallery(f, x, AGENT, '2'));
+    await f.api(ADMIN, () =>
+      scalar(f.db, "SELECT app_api.decide_revision($1,1,$2,false,'Synthetic changes')", [
+        x.listing,
+        x.version,
+      ]),
+    );
+    await denied(() => gallery(f, x));
+  } finally {
+    await f.db.close();
+  }
+});
+
+test('one unsealed historical association denies the entire gallery before stale currency', async () => {
+  const f = await fixture();
+  try {
+    const x = await f.attached(950);
+    for (let position = 1; position < 3; position++)
+      await seedSyntheticSealedMedia(f.db, {
+        tenantId: T,
+        listingId: x.listing,
+        revision: 1,
+        position,
+      });
+    await f.db.query(
+      "INSERT INTO app_private.revision_media(tenant_id,listing_id,revision_no,id,public_object_key,content_type,bytes,width,height,sha256,alt_text,position,accepted) VALUES($1,$2,1,$3,'legacy-gallery/3.webp','image/webp',100,100,100,$4,'Historical unsealed reference',3,true)",
+      [T, x.listing, id(95003), hash('legacy')],
+    );
+    await denied(
+      () =>
+        f.api(AGENT, () =>
+          scalar(f.db, 'SELECT app_api.submit_revision($1,1,$2)', [x.listing, x.version]),
+        ),
+      '23514',
+    );
+    // Historical inconsistent pending row, inserted by the fixture owner only.
+    // Normal submission refuses it; no immutability trigger is disabled.
+    x.version = String(
+      await scalar(
+        f.db,
+        "UPDATE app_private.listing_revisions SET state='pending',submitted_at=now(),submitted_by=$1 WHERE tenant_id=$2 AND listing_id=$3 AND revision_no=1 RETURNING version",
+        [AGENT, T, x.listing],
+      ),
+    );
+    const before = await snapshot(f.db);
+    await denied(() => gallery(f, x));
+    await denied(() => gallery(f, x, ADMIN, '2'));
+    assert.deepEqual(await snapshot(f.db), before);
+  } finally {
+    await f.db.close();
+  }
+});
+
+test('review gallery checks present authority and isolated privilege on every read', async () => {
+  const f = await fixture();
+  try {
+    const x = await pending(f, 960),
+      g = await gallery(f, x);
+    await f.db.query(
+      'UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',
+      [T, AGENT],
+    );
+    assert.deepEqual(await gallery(f, x), g);
+    await f.db.query(
+      "UPDATE app_private.memberships SET role='agent' WHERE tenant_id=$1 AND user_id=$2",
+      [T, ADMIN],
+    );
+    await denied(() => gallery(f, x));
+    await f.db.query(
+      "UPDATE app_private.memberships SET role='admin' WHERE tenant_id=$1 AND user_id=$2",
+      [T, ADMIN],
+    );
+    const flags = (
+      await f.db.query(
+        "SELECT pg_get_userbyid(proowner) owner,prosecdef,proconfig FROM pg_proc WHERE oid='app_api.read_review_media_gallery(uuid,integer,bigint)'::regprocedure",
+      )
+    ).rows[0];
+    assert.deepEqual(flags, {
+      owner: 'realtor_owner',
+      prosecdef: true,
+      proconfig: ['search_path=pg_catalog'],
+    });
+    await denied(
+      () =>
+        f.coordinator(() =>
+          scalar(f.db, 'SELECT app_api.read_review_media_gallery($1,1,$2)', [x.listing, x.version]),
+        ),
+      '42501',
+    );
+    await denied(() => gallery(f, x, ADMIN, '0'), '23514');
+    await f.db.query('UPDATE app_private.tenants SET enabled=false WHERE id=$1', [T]);
+    await denied(() => gallery(f, x));
+  } finally {
+    await f.db.close();
+  }
+});
 test('review image policy requires current admin and exact pending version without mutation or draft-authority reuse', async () => {
   const f = await fixture();
   try {
