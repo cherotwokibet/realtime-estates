@@ -30,6 +30,7 @@ const files = [
   '0026_review_media_preview.sql',
   '0027_review_media_gallery.sql',
   '0028_listing_import_stock.sql',
+  '0029_listing_duplicate_candidates.sql',
 ];
 export async function applyTestMigrations(database, { after, through } = {}) {
   // Historical migration fixtures can continue through the reviewed current order.
