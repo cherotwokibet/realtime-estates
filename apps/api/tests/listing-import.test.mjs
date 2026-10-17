@@ -6,6 +6,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
 import { seedGuardedListingDraft } from '../../../database/test-helpers/guarded-listing-fixture.mjs';
 import { normalizeStaffDraftContentV2 } from '@realtor/domain';
+import { RealtorApiClient } from '../../../packages/api-client/dist/index.js';
 const T = '00000000-0000-4000-8000-000000000001',
   A = '00000000-0000-4000-8000-000000000010';
 const csv = (slug = 'new-stock') =>
@@ -227,6 +228,15 @@ test('import service composes with current restricted SQL and leaves listing/aud
       )
     ).rows;
   const before = await snapshot();
+  const sdk = new RealtorApiClient({
+    baseUrl: 'https://synthetic.invalid',
+    privacyNoticeVersion: 'synthetic',
+    fetch: async (url, init) => service(new Request(url, init)),
+  });
+  const checked = await sdk.previewListingImportV2(csv(), { bearerToken: 'synthetic' });
+  assert.equal(checked.existingStockChecked, true);
+  assert.equal(checked.rows[0].issues[0].code, 'EXISTING_SLUG');
+  assert.deepEqual(await snapshot(), before);
   const p = await (await service(req())).json();
   assert.equal(p.existingStockChecked, true);
   assert.equal(p.rows[0].issues[0].code, 'EXISTING_SLUG');

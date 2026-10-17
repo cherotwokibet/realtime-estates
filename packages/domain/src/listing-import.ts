@@ -249,3 +249,81 @@ export function previewListingImport(
     invalidRows: rows.length - validRows,
   });
 }
+
+/** Validate consistency with the original CSV, not independent truth of stock facts. */
+export function validateListingImportPreview(input: unknown, csv: string): ListingImportPreview {
+  const original = previewListingImport(csv);
+  let nodes = 0,
+    characters = 0;
+  const snapshot = (value: unknown, depth = 0): unknown => {
+    if (++nodes > 50000 || depth > 12) return invalid('Invalid import preview response.');
+    if (value === null || typeof value === 'boolean') return value;
+    if (typeof value === 'number') {
+      if (!Number.isSafeInteger(value)) return invalid('Invalid import preview response.');
+      return value;
+    }
+    if (typeof value === 'string') {
+      characters += value.length;
+      if (characters > 1024 * 1024) return invalid('Invalid import preview response.');
+      return value;
+    }
+    if (!value || typeof value !== 'object') return invalid('Invalid import preview response.');
+    const array = Array.isArray(value),
+      prototype = Object.getPrototypeOf(value);
+    if (
+      array ? prototype !== Array.prototype : prototype !== Object.prototype && prototype !== null
+    )
+      return invalid('Invalid import preview response.');
+    const keys = Reflect.ownKeys(value);
+    if (array) {
+      const length = Object.getOwnPropertyDescriptor(value, 'length')?.value;
+      if (!Number.isSafeInteger(length) || length < 0 || length > 100 || keys.length !== length + 1)
+        return invalid('Invalid import preview response.');
+      const out: unknown[] = [];
+      for (let i = 0; i < length; i++) {
+        const d = Object.getOwnPropertyDescriptor(value, String(i));
+        if (!d?.enumerable || !Object.hasOwn(d, 'value'))
+          return invalid('Invalid import preview response.');
+        out.push(snapshot(d.value, depth + 1));
+      }
+      return out;
+    }
+    if (keys.length > 32 || keys.some((key) => typeof key !== 'string'))
+      return invalid('Invalid import preview response.');
+    const out: Record<string, unknown> = Object.create(null);
+    for (const key of (keys as string[]).sort()) {
+      const d = Object.getOwnPropertyDescriptor(value, key);
+      if (!d?.enumerable || !Object.hasOwn(d, 'value'))
+        return invalid('Invalid import preview response.');
+      out[key] = snapshot(d.value, depth + 1);
+    }
+    return out;
+  };
+  const data = snapshot(input) as Record<string, unknown>;
+  if (!data || data.existingStockChecked !== true || !Array.isArray(data.rows))
+    return invalid('Invalid import preview response.');
+  const candidates = new Set(original.rows.flatMap((row) => (row.slug === null ? [] : [row.slug])));
+  const collisions = new Set<string>();
+  for (const item of data.rows) {
+    if (!item || typeof item !== 'object' || Array.isArray(item))
+      return invalid('Invalid import preview response.');
+    const row = item as Record<string, unknown>;
+    if (!Array.isArray(row.issues)) return invalid('Invalid import preview response.');
+    for (const issue of row.issues) {
+      if (
+        issue &&
+        typeof issue === 'object' &&
+        (issue as Record<string, unknown>).code === 'EXISTING_SLUG'
+      ) {
+        if (typeof row.slug !== 'string' || !candidates.has(row.slug))
+          return invalid('Invalid import preview response.');
+        collisions.add(row.slug);
+      }
+    }
+  }
+  const expected = previewListingImport(csv, [...collisions], true);
+  // Sort object keys through the same own-data snapshot; output is recomputed/frozen.
+  if (JSON.stringify(data) !== JSON.stringify(snapshot(expected)))
+    return invalid('Invalid import preview response.');
+  return expected;
+}

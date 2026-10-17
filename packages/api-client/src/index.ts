@@ -1,4 +1,7 @@
 import {
+  previewListingImport,
+  validateListingImportPreview,
+  type ListingImportPreview,
   validateReviewMediaGallery,
   type ReviewMediaGallery,
   validateListingControlCommand,
@@ -2446,6 +2449,23 @@ export class RealtorApiClient {
       data,
     });
   }
+  async previewListingImportV2(
+    csv: string,
+    options: StaffRequestOptions,
+  ): Promise<ListingImportPreview> {
+    const captured = uploadOptions(options);
+    try {
+      previewListingImport(csv);
+    } catch {
+      return invalid('VALIDATION', 'Use a valid bounded listing CSV file.');
+    }
+    const data = await this.request('/v2/staff/listing-import-preview', 'POST', captured, { csv });
+    try {
+      return validateListingImportPreview(data, csv);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid listing import preview.');
+    }
+  }
   async getReviewMediaGalleryV2(
     listingId: string,
     revision: number,
@@ -4202,7 +4222,8 @@ export class RealtorApiClient {
     binary?: Uint8Array<ArrayBuffer>,
     revisionVersion?: string,
   ): Promise<unknown> {
-    const writes = method !== 'GET';
+    const importPreview = path === '/v2/staff/listing-import-preview' && method === 'POST';
+    const writes = method !== 'GET' && !importPreview;
     const upload = UPLOAD_PATH.test(path),
       finalization = FINALIZE_PATH.test(path),
       enquiry = STAFF_ENQUIRY_PATH.test(path),
@@ -4254,20 +4275,93 @@ export class RealtorApiClient {
           signal: controller.signal,
           ...(binary ? { body: binary } : body ? { body: JSON.stringify(body) } : {}),
         });
+        if (importPreview && controller.signal.aborted) {
+          await result.body?.cancel();
+          throw new ApiClientError(
+            interruption ?? 'CANCELLED',
+            'Import preview request was interrupted.',
+          );
+        }
         if (
           result.redirected ||
           (result.status >= 300 && result.status < 400) ||
           (result.url && new URL(result.url).href !== new URL(url).href)
-        )
+        ) {
+          if (importPreview) await result.body?.cancel();
           throw new ApiClientError('REDIRECT', 'API redirects are not permitted.', {
             submissionUncertain: writes,
           });
-        if (!/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type') ?? ''))
+        }
+        if (
+          !/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type') ?? '')
+        ) {
+          if (importPreview) await result.body?.cancel();
           throw new ApiClientError('INVALID_RESPONSE', 'Expected a JSON API response.', {
             status: result.status,
             submissionUncertain: writes,
           });
-        const raw = await result.text();
+        }
+        let raw: string;
+        if (importPreview) {
+          const maximum = 1024 * 1024,
+            declared = result.headers.get('content-length');
+          if (
+            result.headers.has('content-encoding') ||
+            (declared !== null &&
+              (!/^(0|[1-9]\d*)$/.test(declared) || Number(declared) > maximum)) ||
+            !result.body
+          ) {
+            await result.body?.cancel();
+            throw new ApiClientError(
+              'INVALID_RESPONSE',
+              'Invalid import preview response framing.',
+            );
+          }
+          const reader = result.body.getReader(),
+            chunks: Uint8Array[] = [];
+          let size = 0;
+          const cancelBody = () => {
+            void reader.cancel().catch(() => {});
+          };
+          controller.signal.addEventListener('abort', cancelBody, { once: true });
+          try {
+            for (;;) {
+              const part = await reader.read();
+              if (part.done) break;
+              size += part.value.byteLength;
+              if (size > maximum) {
+                await reader.cancel();
+                throw new ApiClientError(
+                  'INVALID_RESPONSE',
+                  'Import preview response is too large.',
+                );
+              }
+              chunks.push(part.value);
+            }
+            if (declared !== null && Number(declared) !== size)
+              throw new ApiClientError(
+                'INVALID_RESPONSE',
+                'Invalid import preview response length.',
+              );
+            const bytes = new Uint8Array(size);
+            let offset = 0;
+            for (const chunk of chunks) {
+              bytes.set(chunk, offset);
+              offset += chunk.byteLength;
+            }
+            try {
+              raw = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+            } catch {
+              throw new ApiClientError(
+                'INVALID_RESPONSE',
+                'Invalid import preview response encoding.',
+              );
+            }
+          } finally {
+            controller.signal.removeEventListener('abort', cancelBody);
+            reader.releaseLock();
+          }
+        } else raw = await result.text();
         if (raw.length > (upload || finalization ? 4096 : MAX_JSON_CHARACTERS))
           throw new ApiClientError(
             'INVALID_RESPONSE',
