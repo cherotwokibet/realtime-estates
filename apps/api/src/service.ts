@@ -1,4 +1,6 @@
 import {
+  validateListingDuplicateRequest,
+  validateListingDuplicateCandidates,
   previewListingImport,
   validateReviewMediaGallery,
   validateListingControlCommand,
@@ -1403,6 +1405,74 @@ export function createApiService(
             return previewListingImport(csv, existing, true);
           });
           return response(200, preview, correlationId);
+        }
+        const duplicateRoute = /^\/v2\/staff\/listings\/([^/]+)\/duplicate-candidates$/.exec(path);
+        if (duplicateRoute) {
+          if (method !== 'GET')
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Duplicate reads require GET.', {
+              Allow: 'GET',
+            });
+          const listingId = uuid(duplicateRoute[1], 'listingId');
+          const search = new URL(request.url).search;
+          const parameters =
+            /^\?listingVersion=([1-9]\d{0,15})&revision=([1-9]\d{0,9})&revisionVersion=([1-9]\d{0,15})&limit=([1-9]\d?)$/.exec(
+              search,
+            );
+          let forbidden = request.body !== null || request.url.includes('#') || !parameters;
+          request.headers.forEach((_, name) => {
+            if (
+              [
+                'cookie',
+                'content-type',
+                'content-length',
+                'content-encoding',
+                'transfer-encoding',
+                'expect',
+                'range',
+                'idempotency-key',
+                'x-actor-id',
+                'x-tenant-id',
+                'x-role',
+                'x-actor',
+                'x-tenant',
+                'x-company-id',
+                'x-assigned-agent-id',
+                'x-revision-version',
+              ].includes(name) ||
+              name.startsWith('if-')
+            )
+              forbidden = true;
+          });
+          if (forbidden || !parameters)
+            throw new HttpError(400, 'INVALID_INPUT', 'Unsupported duplicate lookup.');
+          let lookup;
+          try {
+            lookup = validateListingDuplicateRequest({
+              listingId,
+              listingVersion: parameters[1],
+              revision: Number(parameters[2]),
+              revisionVersion: parameters[3],
+              limit: Number(parameters[4]),
+            });
+          } catch {
+            throw new HttpError(400, 'INVALID_INPUT', 'Invalid duplicate target.');
+          }
+          const result = await options.database.transaction(context, async (query) => {
+            await assertAdmin(query);
+            const found = await query.query(
+              'SELECT app_api.read_listing_duplicate_candidates($1::uuid,$2::bigint,$3::integer,$4::bigint,$5::integer) AS receipt',
+              [
+                lookup.listingId,
+                lookup.listingVersion,
+                lookup.revision,
+                lookup.revisionVersion,
+                lookup.limit,
+              ],
+            );
+            if (found.rows.length !== 1) throw new Error('Invalid duplicate projection.');
+            return validateListingDuplicateCandidates(scalar(found, 'receipt'), lookup);
+          });
+          return response(200, result, correlationId);
         }
         const reviewGalleryRoute =
           /^\/v2\/staff\/reviews\/([^/]+)\/revisions\/([1-9]\d*)\/media-gallery$/.exec(path);

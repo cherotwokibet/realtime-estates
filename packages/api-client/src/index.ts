@@ -1,4 +1,8 @@
 import {
+  validateListingDuplicateRequest,
+  validateListingDuplicateCandidates,
+  type ListingDuplicateRequest,
+  type ListingDuplicateCandidates,
   previewListingImport,
   validateListingImportPreview,
   type ListingImportPreview,
@@ -2449,6 +2453,25 @@ export class RealtorApiClient {
       data,
     });
   }
+  async getListingDuplicateCandidatesV2(
+    input: ListingDuplicateRequest,
+    options: StaffRequestOptions,
+  ): Promise<ListingDuplicateCandidates> {
+    const captured = uploadOptions(options);
+    let lookup: ListingDuplicateRequest;
+    try {
+      lookup = validateListingDuplicateRequest(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid duplicate lookup target.');
+    }
+    const path = `/v2/staff/listings/${lookup.listingId}/duplicate-candidates?listingVersion=${lookup.listingVersion}&revision=${lookup.revision}&revisionVersion=${lookup.revisionVersion}&limit=${lookup.limit}`;
+    const data = await this.request(path, 'GET', captured);
+    try {
+      return validateListingDuplicateCandidates(data, lookup);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid listing duplicate candidates.');
+    }
+  }
   async previewListingImportV2(
     csv: string,
     options: StaffRequestOptions,
@@ -4223,6 +4246,9 @@ export class RealtorApiClient {
     revisionVersion?: string,
   ): Promise<unknown> {
     const importPreview = path === '/v2/staff/listing-import-preview' && method === 'POST';
+    const boundedRead =
+      importPreview ||
+      (method === 'GET' && /^\/v2\/staff\/listings\/[0-9a-f-]+\/duplicate-candidates\?/.test(path));
     const writes = method !== 'GET' && !importPreview;
     const upload = UPLOAD_PATH.test(path),
       finalization = FINALIZE_PATH.test(path),
@@ -4275,7 +4301,7 @@ export class RealtorApiClient {
           signal: controller.signal,
           ...(binary ? { body: binary } : body ? { body: JSON.stringify(body) } : {}),
         });
-        if (importPreview && controller.signal.aborted) {
+        if (boundedRead && controller.signal.aborted) {
           await result.body?.cancel();
           throw new ApiClientError(
             interruption ?? 'CANCELLED',
@@ -4287,7 +4313,7 @@ export class RealtorApiClient {
           (result.status >= 300 && result.status < 400) ||
           (result.url && new URL(result.url).href !== new URL(url).href)
         ) {
-          if (importPreview) await result.body?.cancel();
+          if (boundedRead) await result.body?.cancel();
           throw new ApiClientError('REDIRECT', 'API redirects are not permitted.', {
             submissionUncertain: writes,
           });
@@ -4295,14 +4321,14 @@ export class RealtorApiClient {
         if (
           !/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type') ?? '')
         ) {
-          if (importPreview) await result.body?.cancel();
+          if (boundedRead) await result.body?.cancel();
           throw new ApiClientError('INVALID_RESPONSE', 'Expected a JSON API response.', {
             status: result.status,
             submissionUncertain: writes,
           });
         }
         let raw: string;
-        if (importPreview) {
+        if (boundedRead) {
           const maximum = 1024 * 1024,
             declared = result.headers.get('content-length');
           if (

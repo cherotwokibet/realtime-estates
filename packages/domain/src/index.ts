@@ -22,3 +22,4 @@ export * from './listing-successor.js';
 export * from './listing-controls.js';
 export * from './review-gallery.js';
 export * from './listing-import.js';
+export * from './listing-duplicates.js';
