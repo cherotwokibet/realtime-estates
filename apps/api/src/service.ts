@@ -1,4 +1,8 @@
 import {
+  validateListingVerificationCommand,
+  validateListingVerificationReceipt,
+  validateListingVerificationOriginal,
+  validateListingVerificationHistory,
   validateListingDuplicateRequest,
   validateListingDuplicateCandidates,
   previewListingImport,
@@ -80,6 +84,8 @@ export interface EnquiryLimiter {
   consume(key: string): LimiterResult | Promise<LimiterResult>;
 }
 export interface ApiServiceOptions {
+  /** Explicit synthetic private-check policy; omission leaves its routes unavailable. */
+  readonly verificationMode?: 'synthetic-check-record-v1';
   /** Explicit internal synthetic mode. Omission disables all reminder admission/capture HTTP routes. */
   readonly reminderCaptureMode?: 'capture-only-v1';
   readonly database: TransactionDatabase;
@@ -1198,6 +1204,12 @@ export function createApiService(
   )
     throw new Error('Unsupported reminder capture mode.');
   const reminderCaptureEnabled = options.reminderCaptureMode === 'capture-only-v1';
+  if (
+    options.verificationMode !== undefined &&
+    options.verificationMode !== 'synthetic-check-record-v1'
+  )
+    throw new Error('Unsupported verification policy.');
+  const verificationEnabled = options.verificationMode === 'synthetic-check-record-v1';
   const tenantId = uuid(options.tenantId, 'Configured tenant');
   const privacyNoticeVersion = text(
     options.privacyNoticeVersion,
@@ -1328,6 +1340,129 @@ export function createApiService(
       if (path.startsWith('/v1/staff/') || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const verificationOperation =
+          /^\/v2\/staff\/listings\/([^/]+)\/verification-operations\/([^/]+)$/.exec(path);
+        const verificationHistory = /^\/v2\/staff\/listings\/([^/]+)\/verification-history$/.exec(
+          path,
+        );
+        if (verificationOperation || verificationHistory) {
+          if (!verificationEnabled)
+            throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+          if (
+            (verificationHistory && method !== 'GET') ||
+            (verificationOperation && !['GET', 'POST'].includes(method))
+          )
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method is not allowed.', {
+              Allow: verificationHistory ? 'GET' : 'GET, POST',
+            });
+          const listingId = uuid((verificationOperation ?? verificationHistory)![1], 'listingId'),
+            operationId = verificationOperation
+              ? uuid(verificationOperation[2], 'operationId')
+              : null;
+          const match = verificationHistory
+            ? /^\?limit=([1-9]\d?)(?:&beforeVersion=([1-9]\d{0,15}))?$/.exec(
+                new URL(request.url).search,
+              )
+            : null;
+          const pageLimit = match ? Number(match[1]) : 0;
+          const beforeVersion = match?.[2] ?? null;
+          let forbidden =
+            request.url.includes('#') ||
+            (verificationHistory ? !match || pageLimit > 25 : request.url.includes('?')) ||
+            (method === 'GET' && request.body !== null);
+          if (beforeVersion !== null && BigInt(beforeVersion) > 9007199254740991n) forbidden = true;
+          const declared = request.headers.get('content-length');
+          if (
+            method === 'POST' &&
+            declared !== null &&
+            (!/^(0|[1-9]\d*)$/.test(declared) || Number(declared) > 16384)
+          )
+            forbidden = true;
+          request.headers.forEach((_, name) => {
+            if (
+              [
+                'cookie',
+                'content-encoding',
+                'transfer-encoding',
+                'expect',
+                'range',
+                'idempotency-key',
+                'x-actor-id',
+                'x-tenant-id',
+                'x-role',
+                'x-actor',
+                'x-tenant',
+                'x-company-id',
+                'x-assigned-agent-id',
+                'x-revision-version',
+              ].includes(name) ||
+              name.startsWith('if-') ||
+              (method === 'GET' && ['content-type', 'content-length'].includes(name))
+            )
+              forbidden = true;
+          });
+          if (forbidden)
+            throw new HttpError(400, 'INVALID_INPUT', 'Unsupported private check context.');
+          const value = await options.database.transaction(context, async (query) => {
+            await assertAdmin(query);
+            if (verificationHistory) {
+              const data = await query.query(
+                'SELECT app_api.read_listing_verification_history($1::uuid,$2::integer,$3::bigint) AS receipt',
+                [listingId, pageLimit, beforeVersion],
+              );
+              if (data.rows.length !== 1) throw Error('Invalid check history projection.');
+              return validateListingVerificationHistory(
+                scalar(data, 'receipt'),
+                listingId,
+                pageLimit,
+                beforeVersion,
+              );
+            }
+            if (method === 'GET') {
+              const data = await query.query(
+                'SELECT app_api.read_listing_verification($1::uuid,$2::uuid) AS receipt',
+                [listingId, operationId],
+              );
+              if (data.rows.length !== 1) throw Error('Invalid original check projection.');
+              return validateListingVerificationOriginal(
+                scalar(data, 'receipt'),
+                listingId,
+                operationId!,
+                actorId!,
+              );
+            }
+            let command;
+            try {
+              command = validateListingVerificationCommand(
+                await jsonBody(request, 16384, true, true, true, true),
+              );
+            } catch (error) {
+              if (error instanceof HttpError) throw error;
+              throw new HttpError(400, 'INVALID_INPUT', 'Invalid synthetic check command.');
+            }
+            if (command.target.listingId !== listingId || command.operationId !== operationId)
+              throw new HttpError(400, 'INVALID_INPUT', 'Check command changed route.');
+            const data = await query.query(
+              'SELECT app_api.record_synthetic_listing_verification($1::uuid,$2::uuid,$3::bigint,$4::integer,$5::bigint,$6::bigint,$7::text,$8::text,$9::text,$10::text,$11::text) AS receipt',
+              [
+                listingId,
+                operationId,
+                command.target.listingVersion,
+                command.target.revision,
+                command.target.revisionVersion,
+                command.expectedVerificationVersion,
+                command.subject,
+                command.outcome,
+                command.evidenceReference,
+                command.note,
+                command.observedAt,
+              ],
+            );
+            if (data.rows.length !== 1) throw Error('Invalid check receipt projection.');
+            return validateListingVerificationReceipt(scalar(data, 'receipt'), command, actorId!);
+          });
+          return response(200, value, correlationId);
+        }
         if (path === '/v2/staff/listing-import-preview') {
           if (method !== 'POST')
             throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Import previews require POST.', {

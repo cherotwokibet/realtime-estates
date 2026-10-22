@@ -418,4 +418,52 @@ test('private synthetic verification ledger is current-admin scoped, atomic and 
       assert.equal((await as(1, 10, () => history())).records[1].target.listingVersion, '1');
     },
   );
+  await t.test(
+    'keyset older-history pages remain stable after new records and expose every retained version',
+    async () => {
+      const page = async (before) =>
+        (
+          await db.query(
+            'SELECT app_api.read_listing_verification_history($1,1,$2::bigint) AS history',
+            [id(100), before],
+          )
+        ).rows[0].history;
+      const older = await as(1, 10, () => page('2'));
+      assert.deepEqual(
+        older.records.map((x) => x.verificationVersion),
+        ['1'],
+      );
+      assert.equal(older.beforeVersion, '2');
+      assert.equal(older.hasMore, false);
+      await as(1, 10, () =>
+        write(
+          command(310, {
+            target: { ...target, listingVersion: '2' },
+            expectedVerificationVersion: '2',
+          }),
+        ),
+      );
+      const after = await as(1, 10, () => page('2'));
+      assert.deepEqual(after.records, older.records);
+      assert.equal(after.verificationVersion, '3');
+      assert.deepEqual(
+        (await as(1, 10, () => page(null))).records.map((x) => x.verificationVersion),
+        ['3'],
+      );
+      assert.deepEqual(
+        (await as(1, 10, () => page('3'))).records.map((x) => x.verificationVersion),
+        ['2'],
+      );
+      assert.equal((await as(1, 10, () => page('1'))).records.length, 0);
+      for (const before of ['0', '9007199254740992'])
+        await assert.rejects(
+          as(1, 10, () => page(before)),
+          { code: '23514' },
+        );
+      await assert.rejects(
+        as(1, 12, () => page('2')),
+        { code: 'P0002' },
+      );
+    },
+  );
 });

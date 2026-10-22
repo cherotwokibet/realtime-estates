@@ -1041,3 +1041,9 @@ Checkpoint121 saved:23d6dca pushed/fresh matching clean private clone/fsck verif
 ## Private check ledger checkpoint122 — 22 October 2026
 
 Default0030 current-admin/company guarded synthetic check ledger with atomic record/counter/audit/originalreceipt, exact replayafterlaterstate and bounded history implemented.276fullDB/11focused(overlap)/229domain/fullformat passed. SecurityinventoryupdatedforthreenewFORCERLStables;oldfailedlogsretained. No publicbadge/currentlistingmutation;no hostedrace/operator/deviceacceptance.06-6open21/97tasks22percent0/14gates. API/SDK/resultDTO123 sourcework active but unbuilt/untested; preserveit separately and see CONTINUATION.md exactnext. Dashboardpublicationstillpending.
+
+## Private check API, history and admin boundary — checkpoint123, 23 October 2026
+
+277database/235domain/238SDK/236API/281admin/26web checks passed; eight workspace types/fullformat and both production builds passed. Exact synthetic-only API and server-held admin boundaries support one-write recording, GET-only original recovery and strict cursor history. Recording UI and signed browser integration remain next;06-6open21/97tasks22percent0/14gates. Next.js security patch16.4.2 applied; root audit still18mobile/transitive advisories, no full security clearance. See listing-verification-api.md and CONTINUATION.md tail for evidence, retained initial failures and exact next steps.
+
+Dashboard publication118–122 recovered: native deploymentappgdep_6ada7593df0081918452de7e12b19927 succeeded, sourcee25a1d3,443notes preserved. Browser import/export matched before reload; reload now requires OpenAI sign-in, so final visual check pending. Keep owner-private audience, merge fresh browser edits after sign-in, never rerun checkpoint generators or publish old archive. KES10000grossmonthly/vendor/oldlive intact.

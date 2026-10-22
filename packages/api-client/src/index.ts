@@ -1,4 +1,11 @@
 import {
+  validateListingVerificationCommand,
+  validateListingVerificationReceipt,
+  validateListingVerificationOriginal,
+  validateListingVerificationHistory,
+  type ListingVerificationCommand,
+  type ListingVerificationReceipt,
+  type ListingVerificationHistory,
   validateListingDuplicateRequest,
   validateListingDuplicateCandidates,
   type ListingDuplicateRequest,
@@ -3067,6 +3074,101 @@ export class RealtorApiClient {
       return uncertainWriteError(error);
     }
   }
+  async recordSyntheticListingVerificationV2(
+    input: ListingVerificationCommand,
+    options: StaffRequestOptions,
+  ): Promise<ListingVerificationReceipt> {
+    const captured = uploadOptions(options);
+    let command: ListingVerificationCommand;
+    try {
+      command = validateListingVerificationCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Review the original synthetic check facts.');
+    }
+    try {
+      const data = await this.request(
+        `/v2/staff/listings/${command.target.listingId}/verification-operations/${command.operationId}`,
+        'POST',
+        captured,
+        { ...command },
+      );
+      try {
+        return validateListingVerificationReceipt(data, command);
+      } catch {
+        return invalid('INVALID_RESPONSE', 'Invalid private check receipt.');
+      }
+    } catch (error) {
+      return uncertainWriteError(error);
+    }
+  }
+  async getListingVerificationReceiptV2(
+    input: ListingVerificationCommand,
+    options: StaffRequestOptions,
+  ): Promise<ListingVerificationReceipt> {
+    const captured = uploadOptions(options);
+    let command: ListingVerificationCommand;
+    try {
+      command = validateListingVerificationCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Review the retained original check.');
+    }
+    const data = await this.request(
+      `/v2/staff/listings/${command.target.listingId}/verification-operations/${command.operationId}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateListingVerificationReceipt(data, command);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid original check receipt.');
+    }
+  }
+  async getListingVerificationOriginalV2(
+    listingId: string,
+    operationId: string,
+    options: StaffRequestOptions,
+  ): Promise<ListingVerificationReceipt> {
+    const captured = uploadOptions(options),
+      listing = uuid(listingId, 'VALIDATION', 'Listing ID'),
+      operation = uuid(operationId, 'VALIDATION', 'Operation ID');
+    const data = await this.request(
+      `/v2/staff/listings/${listing}/verification-operations/${operation}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateListingVerificationOriginal(data, listing, operation);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid original private check.');
+    }
+  }
+  async getListingVerificationHistoryV2(
+    listingId: string,
+    pageLimit: number,
+    options: StaffRequestOptions,
+    beforeVersion: string | null = null,
+  ): Promise<ListingVerificationHistory> {
+    const captured = uploadOptions(options),
+      listing = uuid(listingId, 'VALIDATION', 'Listing ID'),
+      limit = integer(pageLimit, 1, 25, 'VALIDATION', 'History limit');
+    if (
+      beforeVersion !== null &&
+      (typeof beforeVersion !== 'string' ||
+        !/^[1-9]\d{0,15}$/.test(beforeVersion) ||
+        BigInt(beforeVersion) > 9007199254740991n)
+    )
+      return invalid('VALIDATION', 'Invalid history cursor.');
+    const data = await this.request(
+      `/v2/staff/listings/${listing}/verification-history?limit=${limit}${beforeVersion === null ? '' : `&beforeVersion=${beforeVersion}`}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateListingVerificationHistory(data, listing, limit, beforeVersion);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid private check history.');
+    }
+  }
   async controlListingV2(
     input: ListingControlCommand,
     options: StaffRequestOptions,
@@ -4246,9 +4348,15 @@ export class RealtorApiClient {
     revisionVersion?: string,
   ): Promise<unknown> {
     const importPreview = path === '/v2/staff/listing-import-preview' && method === 'POST';
+    const verification =
+      /^\/v2\/staff\/listings\/[0-9a-f-]+\/verification-(?:operations\/[0-9a-f-]+|history\?limit=[1-9]\d?(?:&beforeVersion=[1-9]\d{0,15})?)$/.test(
+        path,
+      );
     const boundedRead =
       importPreview ||
-      (method === 'GET' && /^\/v2\/staff\/listings\/[0-9a-f-]+\/duplicate-candidates\?/.test(path));
+      (method === 'GET' &&
+        /^\/v2\/staff\/listings\/[0-9a-f-]+\/duplicate-candidates\?/.test(path)) ||
+      verification;
     const writes = method !== 'GET' && !importPreview;
     const upload = UPLOAD_PATH.test(path),
       finalization = FINALIZE_PATH.test(path),
@@ -4396,7 +4504,8 @@ export class RealtorApiClient {
           );
         let payload: unknown;
         try {
-          if (enquiry) assertEnquiryJsonTokens(raw);
+          if (verification) assertMediaJsonTokens(raw);
+          else if (enquiry) assertEnquiryJsonTokens(raw);
           else if (
             upload ||
             /^\/v2\/staff\/listings\/[^/]+\/revisions\/[^/]+\/(?:workspace|media-registrations|media-jobs|media-attach-intents|media-removals|media-reorders|media-operations)(?:\/[^/]+)?(?:\/finalize)?$/.test(
@@ -4404,11 +4513,13 @@ export class RealtorApiClient {
             )
           )
             assertMediaJsonTokens(raw);
-          payload = /^\/v2\/staff\/listings\/[^/]+(?:\/revision-operations\/[^/]+)?$/.test(path)
-            ? parseListingSuccessorJsonV2(raw)
-            : path.startsWith('/v2/')
-              ? parseListingJsonV2(raw)
-              : JSON.parse(raw);
+          payload =
+            verification ||
+            /^\/v2\/staff\/listings\/[^/]+(?:\/revision-operations\/[^/]+)?$/.test(path)
+              ? parseListingSuccessorJsonV2(raw)
+              : path.startsWith('/v2/')
+                ? parseListingJsonV2(raw)
+                : JSON.parse(raw);
         } catch {
           throw new ApiClientError('INVALID_RESPONSE', 'Malformed API JSON.', {
             status: result.status,

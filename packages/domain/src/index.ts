@@ -24,3 +24,4 @@ export * from './review-gallery.js';
 export * from './listing-import.js';
 export * from './listing-duplicates.js';
 export * from './listing-verification.js';
+export * from './listing-verification-results.js';

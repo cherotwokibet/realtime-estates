@@ -643,6 +643,8 @@ test('pre-cancellation prevents transport and in-flight fetch cancellation sends
 });
 
 test('deadline includes ignored fetch and streamed body waits without awaiting uncooperative cancellation', async () => {
+  // Allow loaded CI workers to enter the body read before testing its deadline.
+  const timeoutMs = 250;
   let calls = 0;
   await rejects(
     () =>
@@ -651,7 +653,7 @@ test('deadline includes ignored fetch and streamed body waits without awaiting u
           calls++;
           return new Promise(() => {});
         }),
-        { ...options, timeoutMs: 5 },
+        { ...options, timeoutMs },
       ),
     'TIMEOUT',
   );
@@ -661,7 +663,7 @@ test('deadline includes ignored fetch and streamed body waits without awaiting u
     () =>
       get(
         client(async () => body.response),
-        { ...options, timeoutMs: 5 },
+        { ...options, timeoutMs },
       ),
     'TIMEOUT',
   );
