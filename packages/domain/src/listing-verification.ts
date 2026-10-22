@@ -70,6 +70,7 @@ function version(value: unknown): string {
 function instant(value: unknown): string {
   if (
     typeof value !== 'string' ||
+    value.startsWith('0000') ||
     !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(value) ||
     !Number.isFinite(Date.parse(value)) ||
     new Date(value).toISOString() !== value
@@ -120,7 +121,7 @@ export function validateListingVerificationCommand(input: unknown): ListingVerif
     Array.from(row.note).length > 600 ||
     row.note.length === 0 ||
     /[\uD800-\uDFFF]/u.test(row.note) ||
-    /[\u0000-\u001f\u007f]/.test(row.note)
+    /[\u0000-\u001f\u007f-\u009f]/.test(row.note)
   )
     return invalid();
   return Object.freeze({

@@ -70,6 +70,8 @@ test('only named subjects and outcomes are accepted, inconclusive may explicitly
     { note: ' secret ' },
     { note: 'x'.repeat(601) },
     { note: 'x\u0000' },
+    { note: 'x\u0085x' },
+    { note: '\u00a0Synthetic' },
     { note: '\ud800' },
   ])
     assert.throws(() => validateListingVerificationCommand({ ...command(), ...patch }));
@@ -136,6 +138,7 @@ test('commands reject caller authority, rounding, malformed calendars and unknow
     { expectedVerificationVersion: 0 },
     { expectedVerificationVersion: '01' },
     { observedAt: '2026-02-30T00:00:00.000Z' },
+    { observedAt: '0000-01-01T00:00:00.000Z' },
     { observedAt: '2026-10-22T20:00:00Z' },
     { target: { ...command().target, listingVersion: '9007199254740992' } },
     { target: { ...command().target, actorId: id(9) } },
