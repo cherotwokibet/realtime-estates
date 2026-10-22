@@ -499,6 +499,30 @@ test('without explicit synthetic accepted-media metadata, actual SQL submission 
   }
 });
 
+test('signed duplicate read binds current target and admin without changing stock', async (t) => {
+  const p = await startStaffPreview({ port: 0, actor: 'admin' });
+  t.after(() => p.close());
+  const before = await (await call(p, '/v2/staff/listings?limit=25')).json();
+  const row = before.items.find((x) => x.latest);
+  assert.ok(row);
+  const path = `/v2/staff/listings/${row.listingId}/duplicate-candidates?listingVersion=${row.version}&revision=${row.latest.revision}&revisionVersion=${row.latest.version}&limit=20`;
+  const response = await call(p, path);
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).kind, 'listing_duplicate_candidates');
+  assert.equal(
+    (
+      await call(
+        p,
+        path.replace(`listingVersion=${row.version}`, `listingVersion=9007199254740991`),
+      )
+    ).status,
+    409,
+  );
+  assert.deepEqual(await (await call(p, '/v2/staff/listings?limit=25')).json(), before);
+  const agent = await startStaffPreview({ port: 0, actor: 'agent' });
+  t.after(() => agent.close());
+  assert.equal((await call(agent, path)).status, 403);
+});
 test('signed local import preview reaches admin-only read-only service without creating stock', async (t) => {
   const p = await startStaffPreview({ port: 0, actor: 'admin' });
   t.after(() => p.close());

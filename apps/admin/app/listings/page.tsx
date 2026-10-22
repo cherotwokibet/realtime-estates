@@ -91,6 +91,9 @@ export default async function ListingsPage() {
                     <a className="enq-secondary" href={`/listings/${item.listingId}/controls`}>
                       Availability &amp; publication
                     </a>
+                    <a className="enq-secondary" href={`/listings/${item.listingId}/duplicates`}>
+                      Review possible duplicates
+                    </a>
                     {item.latest ? (
                       <>
                         <strong>

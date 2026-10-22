@@ -777,6 +777,12 @@ export async function startStaffPreview(options = {}) {
           (enquiryCatalogue && url.pathname === '/v2/properties'));
       if (
         url.search &&
+        !(
+          /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/duplicate-candidates$/.test(url.pathname) &&
+          /^\?listingVersion=[1-9]\d{0,15}&revision=[1-9]\d{0,9}&revisionVersion=[1-9]\d{0,15}&limit=[1-9]\d?$/.test(
+            url.search,
+          )
+        ) &&
         (!(url.pathname === '/v2/staff/listings' || reviewQueue || enquiryQueue) ||
           [...url.searchParams.keys()].some((key) => key !== 'limit') ||
           url.searchParams.getAll('limit').length > 1)
@@ -819,6 +825,11 @@ export async function startStaffPreview(options = {}) {
             return failure(405, 'METHOD_NOT_ALLOWED', 'Listing queue is read-only.', {
               Allow: 'GET',
             });
+          const response = await service(request);
+          response.headers.set('X-Synthetic-Staff-Preview', 'true');
+          return response;
+        }
+        if (/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/duplicate-candidates$/.test(url.pathname)) {
           const response = await service(request);
           response.headers.set('X-Synthetic-Staff-Preview', 'true');
           return response;
