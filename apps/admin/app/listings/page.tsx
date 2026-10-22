@@ -94,6 +94,9 @@ export default async function ListingsPage() {
                     <a className="enq-secondary" href={`/listings/${item.listingId}/duplicates`}>
                       Review possible duplicates
                     </a>
+                    <a className="enq-secondary" href={`/listings/${item.listingId}/verification`}>
+                      Private synthetic assessments
+                    </a>
                     {item.latest ? (
                       <>
                         <strong>

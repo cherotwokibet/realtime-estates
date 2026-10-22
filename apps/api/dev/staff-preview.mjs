@@ -738,6 +738,7 @@ export async function startStaffPreview(options = {}) {
     }
     const service = createApiService({
       database,
+      verificationMode: 'synthetic-check-record-v1',
       ...(reminderCaptureMode ? { reminderCaptureMode } : {}),
       tenantId: company.id,
       privacyNoticeVersion: 'synthetic-staff-notice-v1',
@@ -777,6 +778,10 @@ export async function startStaffPreview(options = {}) {
           (enquiryCatalogue && url.pathname === '/v2/properties'));
       if (
         url.search &&
+        !(
+          /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/verification-history$/.test(url.pathname) &&
+          /^\?limit=[1-9]\d?(?:&beforeVersion=[1-9]\d{0,15})?$/.test(url.search)
+        ) &&
         !(
           /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/duplicate-candidates$/.test(url.pathname) &&
           /^\?listingVersion=[1-9]\d{0,15}&revision=[1-9]\d{0,9}&revisionVersion=[1-9]\d{0,15}&limit=[1-9]\d?$/.test(
@@ -830,6 +835,15 @@ export async function startStaffPreview(options = {}) {
           return response;
         }
         if (/^\/v2\/staff\/listings\/[0-9a-f-]{36}\/duplicate-candidates$/.test(url.pathname)) {
+          const response = await service(request);
+          response.headers.set('X-Synthetic-Staff-Preview', 'true');
+          return response;
+        }
+        if (
+          /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/verification-(?:operations\/[0-9a-f-]{36}|history)$/.test(
+            url.pathname,
+          )
+        ) {
           const response = await service(request);
           response.headers.set('X-Synthetic-Staff-Preview', 'true');
           return response;

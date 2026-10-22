@@ -206,3 +206,17 @@ export async function listingVerificationRequest(request: Request): Promise<Resp
     clearTimeout(timer);
   }
 }
+
+/** A successful history read establishes current-admin access for the initial private screen. */
+export async function readInitialListingVerificationHistory(listingId: string) {
+  const config = previewConfiguration(process.env),
+    client = new RealtorApiClient({
+      baseUrl: config.origin,
+      privacyNoticeVersion: 'synthetic-preview-v1',
+      allowLoopbackHttp: true,
+    });
+  return client.getListingVerificationHistoryV2(listingId, 20, {
+    bearerToken: config.bearerToken,
+    timeoutMs: 10000,
+  });
+}
