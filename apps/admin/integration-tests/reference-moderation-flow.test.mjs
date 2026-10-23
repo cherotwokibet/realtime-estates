@@ -5,6 +5,11 @@ import { PGlite } from '@electric-sql/pglite';
 import { referenceModerationRequest } from '../dist/tests/lib/reference-moderation-server.js';
 import { referenceDraftRequest } from '../dist/tests/lib/reference-draft-server.js';
 import { createReferenceModerationClient } from '../dist/tests/lib/reference-moderation-client.js';
+import {
+  referenceModerationSession,
+  prepareReferenceModerationAttempt,
+  restoreReferenceModerationAttempt,
+} from '../dist/tests/lib/reference-moderation-workspace.js';
 import { createApiService } from '../../../apps/api/dist/service.js';
 import { normalizeStaffDraftContentV2 } from '@realtor/domain';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
@@ -150,6 +155,14 @@ test('unmounted moderation browser adapter through BFF/SDK/API/restricted SQL pr
   };
   const agent = createReferenceModerationClient(scope(), transport),
     admin = createReferenceModerationClient({ ...scope(), actorId: id(13) }, transport);
+  const data = new Map(),
+    storage = {
+      getItem: (k) => data.get(k) ?? null,
+      setItem: (k, v) => data.set(k, v),
+      removeItem: (k) => data.delete(k),
+    };
+  const agentSession = referenceModerationSession(storage, scope()),
+    adminSession = referenceModerationSession(storage, { ...scope(), actorId: id(13) });
   const command = (review, action, op) => ({
     policy: 'synthetic-reference-transition-v1',
     operationId: id(op),
@@ -159,7 +172,7 @@ test('unmounted moderation browser adapter through BFF/SDK/API/restricted SQL pr
     review,
     reason: null,
   });
-  let original, pending, approval;
+  let original, pending, approval, submissionAttempt, approvalAttempt;
   await t.test(
     'exact private read and one committed submission with lost browser acknowledgement remain uncertain',
     async () => {
@@ -167,12 +180,16 @@ test('unmounted moderation browser adapter through BFF/SDK/API/restricted SQL pr
       assert.deepEqual(draft.content, content);
       assert.equal(draft.photos.length, 4);
       original = command(draft, 'submit', 400);
+      submissionAttempt = prepareReferenceModerationAttempt(agent, agentSession, original, cat);
       loseBrowser = true;
       await assert.rejects(
-        () => agent.transition(original, cat),
+        () => submissionAttempt.submit(),
         (e) => e.submissionUncertain,
       );
       loseBrowser = false;
+      assert.equal(submissionAttempt.status, 'uncertain');
+      assert.equal(submissionAttempt.canDiscard, false);
+      assert.ok(agentSession.load());
       assert.equal(upstream.filter((c) => c.method === 'POST').length, 1);
       assert.equal(
         (await db.query('SELECT version FROM app_private.listing_revisions')).rows[0].version,
@@ -184,7 +201,7 @@ test('unmounted moderation browser adapter through BFF/SDK/API/restricted SQL pr
     'browser recovery posts the original body only to BFF while every upstream recovery request is GET',
     async () => {
       const start = upstream.length,
-        first = await agent.recover(original, cat);
+        first = await submissionAttempt.recoverOriginal();
       assert.equal(first.state, 'pending');
       assert.equal(first.revisionVersion, '4');
       assert.ok(upstream.slice(start).every((c) => c.method === 'GET'));
@@ -208,6 +225,17 @@ test('unmounted moderation browser adapter through BFF/SDK/API/restricted SQL pr
         }),
       ]);
       assert.deepEqual(await agent.catalogue('1'), cat);
+      const before = upstream.filter((c) => c.method === 'POST').length;
+      const restored = await restoreReferenceModerationAttempt(
+        agent,
+        referenceModerationSession(storage, scope()),
+      );
+      assert.equal(restored.status, 'uncertain');
+      assert.deepEqual(restored.original, original);
+      assert.equal((await restored.recoverOriginal()).state, 'pending');
+      assert.equal(upstream.filter((c) => c.method === 'POST').length, before);
+      restored.discard();
+      assert.equal(agentSession.load(), null);
       assert.equal(
         (await agent.recover(original, cat)).review.attributes.location.county.label,
         'Synthetic original county',
@@ -235,17 +263,28 @@ test('unmounted moderation browser adapter through BFF/SDK/API/restricted SQL pr
     'operational change makes displayed review stale and exact refreshed approval preserves pause',
     async () => {
       await as(13, (q) => q.query("SELECT app_api.set_publication($1,2,'paused')", [id(100)]));
+      const stale = prepareReferenceModerationAttempt(
+        admin,
+        adminSession,
+        command(pending, 'approve', 401),
+        cat,
+      );
       await assert.rejects(
-        () => admin.transition(command(pending, 'approve', 401), cat),
+        () => stale.submit(),
         (e) => e.kind === 'HTTP' && e.status === 409 && !e.submissionUncertain,
       );
+      assert.equal(stale.status, 'rejected');
+      stale.discard();
       approval = command(await admin.read('review', '4', cat), 'approve', 401);
+      approvalAttempt = prepareReferenceModerationAttempt(admin, adminSession, approval, cat);
       corruptReply = true;
       await assert.rejects(
-        () => admin.transition(approval, cat),
+        () => approvalAttempt.submit(),
         (e) => e.kind === 'HTTP' && e.status === 502 && e.submissionUncertain,
       );
       corruptReply = false;
+      assert.equal(approvalAttempt.status, 'uncertain');
+      assert.throws(() => approvalAttempt.discard());
       assert.equal(
         (await db.query('SELECT version FROM app_private.listing_revisions')).rows[0].version,
         5,
@@ -260,8 +299,13 @@ test('unmounted moderation browser adapter through BFF/SDK/API/restricted SQL pr
   await t.test(
     'original approval GET settles only exact verified result and preserves approved historical snapshot',
     async () => {
-      const before = upstream.filter((c) => c.method === 'POST').length,
-        r = await admin.recover(approval, cat);
+      const before = upstream.filter((c) => c.method === 'POST').length;
+      const restored = await restoreReferenceModerationAttempt(
+        admin,
+        referenceModerationSession(storage, { ...scope(), actorId: id(13) }),
+      );
+      const r = await restored.recoverOriginal();
+      assert.equal(restored.status, 'received');
       assert.equal(r.state, 'approved');
       assert.equal(r.actorId, id(13));
       assert.equal(r.revisionVersion, '5');
@@ -282,19 +326,25 @@ test('unmounted moderation browser adapter through BFF/SDK/API/restricted SQL pr
     'revoked current membership and actor rotation deny original recovery without sending another transition',
     async () => {
       const before = upstream.filter((c) => c.method === 'POST').length;
+      const unsettled = await restoreReferenceModerationAttempt(admin, adminSession);
       await db.query(
         'UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',
         [id(1), id(13)],
       );
       await assert.rejects(
-        () => admin.recover(approval, cat),
+        () => unsettled.recoverOriginal(),
         (e) => e.kind === 'HTTP' && e.status === 403 && !e.submissionUncertain,
       );
+      assert.equal(unsettled.status, 'uncertain');
+      assert.equal(unsettled.canDiscard, false);
+      assert.throws(() => unsettled.discard());
       actor = 10;
       await assert.rejects(
-        () => admin.recover(approval, cat),
+        () => unsettled.recoverOriginal(),
         (e) => e.kind === 'HTTP' && e.status === 409,
       );
+      assert.equal(unsettled.status, 'uncertain');
+      assert.ok(adminSession.load());
       assert.equal(upstream.filter((c) => c.method === 'POST').length, before);
     },
   );

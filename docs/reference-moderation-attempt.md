@@ -1,0 +1,35 @@
+# Retained reference moderation originals — checkpoint 144
+
+23 October 2026. Independent synthetic candidate. The controller is not a mounted reviewer screen and no current preview, default schema, production startup or vendor system was enabled or changed.
+
+Added `apps/admin/lib/reference-moderation-workspace.ts`, after reading admin `AGENTS.md` and installed Next server/client and route-handler guidance. It provides a tab-session original store and an attempt controller for all four transition actions.
+
+`referenceModerationSession` scopes each retained original to preview instance, company, actor, listing and revision. It stores the complete canonical command and scope/schema envelope, bounded to 160 KiB. The full catalogue and bearer tokens are not stored. This is intended for `sessionStorage`, not durable cross-tab storage. The original contains private review facts/rejection text and must not be logged or put in URLs. Reads treat persisted JSON as untrusted: framing size, strict duplicate/integer syntax, envelope/scope and catalogue-version hint are checked before fetching the immutable historical catalogue. Full domain validation happens after that catalogue is loaded. A version hint is not authority.
+
+`prepareReferenceModerationAttempt` detaches and freezes the command/catalogue. Its first `submit()` must claim empty storage and verify exact readback before any client POST. A competing prepared handle, including an identical command, cannot claim the retained record and send again. A controller permits only one in-flight operation. It exposes no replay/replacement method: uncertain attempts use `recoverOriginal()` only.
+
+`restoreReferenceModerationAttempt` reads the retained original, fetches its historical catalogue version, validates the exact command and verifies storage has not changed during the await. It starts **uncertain**, even if a previous component had already received a result. It does not automatically send a transition or recover a receipt. Explicit recovery uses the existing browser adapter/BFF's upstream GET-only path.
+
+Denied, aborted, malformed or mismatched recovery never clears uncertainty or permits discard. A valid result must match the complete original, verified scope actor, exact next version and outcome, and the stored original must still match when the result arrives. A known rejected write can be explicitly discarded; unexpected failures remain uncertain. A successful reject decision is a received receipt with result state `rejected`, distinct from a request that was rejected before mutation. Settlement does not automatically clear storage; explicit discard verifies/removes only that original and confirms removal. A never-submitted prepared handle cannot clear another handle's stored operation.
+
+## Verification actually run
+
+- Complete admin suite: **334 checks plus 4 existing static-markup checks passed**, zero failures/skips. Includes eleven new controller/store checks. Initial focused ten passed; the final full suite adds the all-four-actions/rejection-outcome case. These overlap and are not additive counts.
+- Registered reference integration script: **13 checks passed**, zero failures/skips, retaining the six draft checks and strengthening the seven existing moderation checks with the actual new controller/store. The focused seven moderation checks also passed. No new integration test count is claimed.
+- API build/test compilation, all eight workspace typechecks and full formatting/Git whitespace checks passed. No failures observed.
+
+New unit proof covers storage-before-send, immutable capture, all four actions/exact rejection text, first-claim/one-flight refusal, denial/malformed recovery locks, simulated reload/historical catalogue restoration with no automatic send, scope changes/tampering, storage write/readback/clear failures, duplicate/integer/size bounds, getter refusal, pre/post-dispatch cancellation and changed storage during a valid response.
+
+The connected proof runs controller + memory-backed tab-store substitute → no-bearer browser adapter → server-only BFF → SDK → actual opt-in API → restricted PGlite with the four explicit isolated proposals. It proves a lost committed submission, exact GET recovery, reconstruction after catalogue activation using original labels, explicit clear after settlement, stale operational rejection with safe discard, retained malformed committed approval, restored approval recovery, preserved pause/approved attributes, and uncertainty remaining locked after current membership revocation or actor rotation.
+
+This simulates storage/reload by reconstructing the controller against a memory store. It is **not** actual browser `sessionStorage`, page reload, Next route mounting or hydration acceptance. Synthetic sealed-photo metadata is not native image proof. No actual moderation browser, new signed loopback moderation workflow, installed device, hosted PostgreSQL race, full root suite, operator UAT or cutover gate is claimed.
+
+Evidence is in sibling `rebuild-preservation/2026-10-12-source`: `reference-moderation-attempt-admin-tests.txt`, `reference-moderation-attempt-integration.txt`, `reference-moderation-attempt-focused.txt` (initial ten), `reference-moderation-attempt-integration-focused.txt`, `reference-moderation-attempt-types.txt`, `reference-moderation-attempt-format.txt`, plus exact source/restore evidence.
+
+## Exact next
+
+Create the reference moderation review component/workspace around this controller. Show the complete private content, immutable historical location/amenity attributes, ordered media facts and current operational context together; require an explicit reject reason and exact reviewed revision. Keep controls disabled until storage restoration is checked, persist before one POST, render uncertainty with explicit original recovery, and refresh current facts only after explicit settlement/clear. A failed restore/recovery must not offer a replacement command. Do not reuse the current ordinary draft UI to edit an adopted pending/approved/rejected revision.
+
+Before mounting, add a server-bound initial review context that resolves the saved catalogue version rather than selecting the current catalogue. The API read already loads/validates that historical catalogue inside its transaction; an explicit opt-in review+catalogue context DTO can expose that exact pair under current authorization, with separate bounded transport. It does not yet exist. Connect the component, loader and prepared BFF routes default-off after tests, then enable the fourth proposal only in an independent explicit disposable preview and verify actual browser/reload/access-loss behavior. Preserve main occupied `.next`, the rejected old cleanup controls and the independent worktree. Public mapper, create/successor/import conversion and external real PostgreSQL/devices/rights/accounts/retention/UAT/cutover/advisory gates remain open.
+
+KES 10,000 remains the total monthly client price baseline. Vendor resources and old live system remain intact; checklist stays 23/97 tasks (24%) and 0/14 accepted gates until complete task acceptance is evidenced.
