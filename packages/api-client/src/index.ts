@@ -1,4 +1,10 @@
 import {
+  validateListingReferenceCatalogue,
+  validateSyntheticReferenceDraftCommand,
+  validateSyntheticReferenceDraftReceipt,
+  type ListingReferenceCatalogue,
+  type SyntheticReferenceDraftCommand,
+  type SyntheticReferenceDraftReceipt,
   validateListingVerificationCommand,
   validateListingVerificationReceipt,
   validateListingVerificationOriginal,
@@ -25,6 +31,11 @@ import {
   validateListingSuccessorSnapshot,
   type ListingSuccessorCommand,
   type ListingSuccessorReceipt,
+} from '@realtor/domain';
+export type {
+  ListingReferenceCatalogue,
+  SyntheticReferenceDraftCommand,
+  SyntheticReferenceDraftReceipt,
 } from '@realtor/domain';
 export {
   validateListingControlCommand,
@@ -3074,6 +3085,86 @@ export class RealtorApiClient {
       return uncertainWriteError(error);
     }
   }
+  async getSyntheticReferenceCatalogueV3(
+    version: string,
+    options: StaffRequestOptions,
+  ): Promise<ListingReferenceCatalogue> {
+    const captured = uploadOptions(options);
+    if (
+      version !== 'current' &&
+      (typeof version !== 'string' ||
+        version.length > 16 ||
+        !/^[1-9]\d*$/.test(version) ||
+        BigInt(version) > 9007199254740991n)
+    )
+      return invalid('VALIDATION', 'Invalid synthetic catalogue version.');
+    const data = await this.request(`/v3/staff/reference-catalogues/${version}`, 'GET', captured);
+    try {
+      const catalogue = validateListingReferenceCatalogue(data);
+      if (version !== 'current' && catalogue.version !== version) throw Error();
+      return catalogue;
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid synthetic reference catalogue.');
+    }
+  }
+  async saveSyntheticReferenceDraftV3(
+    input: SyntheticReferenceDraftCommand,
+    originalCatalogue: ListingReferenceCatalogue,
+    expectedActorId: string,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceDraftReceipt> {
+    const captured = uploadOptions(options),
+      actor = uuid(expectedActorId, 'VALIDATION', 'Expected actor');
+    let catalogue: ListingReferenceCatalogue, command: SyntheticReferenceDraftCommand;
+    try {
+      catalogue = validateListingReferenceCatalogue(originalCatalogue);
+      command = validateSyntheticReferenceDraftCommand(input, catalogue);
+      if (new TextEncoder().encode(JSON.stringify(command)).byteLength > 131072) throw Error();
+    } catch {
+      return invalid('VALIDATION', 'Review the retained synthetic draft and catalogue.');
+    }
+    try {
+      const data = await this.request(
+        `/v3/staff/listings/${command.listingId}/reference-draft-operations/${command.operationId}`,
+        'POST',
+        captured,
+        { ...command },
+      );
+      try {
+        return validateSyntheticReferenceDraftReceipt(data, command, catalogue, actor);
+      } catch {
+        return invalid('INVALID_RESPONSE', 'Invalid synthetic reference draft receipt.');
+      }
+    } catch (error) {
+      return uncertainWriteError(error);
+    }
+  }
+  async getSyntheticReferenceDraftReceiptV3(
+    input: SyntheticReferenceDraftCommand,
+    originalCatalogue: ListingReferenceCatalogue,
+    expectedActorId: string,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceDraftReceipt> {
+    const captured = uploadOptions(options),
+      actor = uuid(expectedActorId, 'VALIDATION', 'Expected actor');
+    let catalogue: ListingReferenceCatalogue, command: SyntheticReferenceDraftCommand;
+    try {
+      catalogue = validateListingReferenceCatalogue(originalCatalogue);
+      command = validateSyntheticReferenceDraftCommand(input, catalogue);
+    } catch {
+      return invalid('VALIDATION', 'Review the retained original draft and catalogue.');
+    }
+    const data = await this.request(
+      `/v3/staff/listings/${command.listingId}/reference-draft-operations/${command.operationId}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateSyntheticReferenceDraftReceipt(data, command, catalogue, actor);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid original reference draft receipt.');
+    }
+  }
   async recordSyntheticListingVerificationV2(
     input: ListingVerificationCommand,
     options: StaffRequestOptions,
@@ -4348,6 +4439,11 @@ export class RealtorApiClient {
     revisionVersion?: string,
   ): Promise<unknown> {
     const importPreview = path === '/v2/staff/listing-import-preview' && method === 'POST';
+    const referenceCatalogue =
+      /^\/v3\/staff\/reference-catalogues\/(?:current|[1-9]\d{0,15})$/.test(path);
+    const referenceDraft =
+      /^\/v3\/staff\/listings\/[0-9a-f-]+\/reference-draft-operations\/[0-9a-f-]+$/.test(path);
+    const reference = referenceCatalogue || referenceDraft;
     const verification =
       /^\/v2\/staff\/listings\/[0-9a-f-]+\/verification-(?:operations\/[0-9a-f-]+|history\?limit=[1-9]\d?(?:&beforeVersion=[1-9]\d{0,15})?)$/.test(
         path,
@@ -4356,7 +4452,8 @@ export class RealtorApiClient {
       importPreview ||
       (method === 'GET' &&
         /^\/v2\/staff\/listings\/[0-9a-f-]+\/duplicate-candidates\?/.test(path)) ||
-      verification;
+      verification ||
+      reference;
     const writes = method !== 'GET' && !importPreview;
     const upload = UPLOAD_PATH.test(path),
       finalization = FINALIZE_PATH.test(path),
@@ -4410,7 +4507,8 @@ export class RealtorApiClient {
           ...(binary ? { body: binary } : body ? { body: JSON.stringify(body) } : {}),
         });
         if (boundedRead && controller.signal.aborted) {
-          await result.body?.cancel();
+          if (reference) void result.body?.cancel().catch(() => {});
+          else await result.body?.cancel();
           throw new ApiClientError(
             interruption ?? 'CANCELLED',
             'Import preview request was interrupted.',
@@ -4421,7 +4519,10 @@ export class RealtorApiClient {
           (result.status >= 300 && result.status < 400) ||
           (result.url && new URL(result.url).href !== new URL(url).href)
         ) {
-          if (boundedRead) await result.body?.cancel();
+          if (boundedRead) {
+            if (reference) void result.body?.cancel().catch(() => {});
+            else await result.body?.cancel();
+          }
           throw new ApiClientError('REDIRECT', 'API redirects are not permitted.', {
             submissionUncertain: writes,
           });
@@ -4429,7 +4530,10 @@ export class RealtorApiClient {
         if (
           !/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type') ?? '')
         ) {
-          if (boundedRead) await result.body?.cancel();
+          if (boundedRead) {
+            if (reference) void result.body?.cancel().catch(() => {});
+            else await result.body?.cancel();
+          }
           throw new ApiClientError('INVALID_RESPONSE', 'Expected a JSON API response.', {
             status: result.status,
             submissionUncertain: writes,
@@ -4437,7 +4541,7 @@ export class RealtorApiClient {
         }
         let raw: string;
         if (boundedRead) {
-          const maximum = 1024 * 1024,
+          const maximum = (referenceCatalogue ? 6 : 1) * 1024 * 1024,
             declared = result.headers.get('content-length');
           if (
             result.headers.has('content-encoding') ||
@@ -4445,7 +4549,8 @@ export class RealtorApiClient {
               (!/^(0|[1-9]\d*)$/.test(declared) || Number(declared) > maximum)) ||
             !result.body
           ) {
-            await result.body?.cancel();
+            if (reference) void result.body?.cancel().catch(() => {});
+            else await result.body?.cancel();
             throw new ApiClientError(
               'INVALID_RESPONSE',
               'Invalid import preview response framing.',
@@ -4454,6 +4559,7 @@ export class RealtorApiClient {
           const reader = result.body.getReader(),
             chunks: Uint8Array[] = [];
           let size = 0;
+          let emptyFrames = 0;
           const cancelBody = () => {
             void reader.cancel().catch(() => {});
           };
@@ -4462,9 +4568,19 @@ export class RealtorApiClient {
             for (;;) {
               const part = await reader.read();
               if (part.done) break;
+              if (reference && !part.value.byteLength) {
+                if (++emptyFrames > 1024) {
+                  void reader.cancel().catch(() => {});
+                  throw new ApiClientError('INVALID_RESPONSE', 'Too many empty response frames.');
+                }
+                if (emptyFrames % 64 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
+                continue;
+              }
+              emptyFrames = 0;
               size += part.value.byteLength;
               if (size > maximum) {
-                await reader.cancel();
+                if (reference) void reader.cancel().catch(() => {});
+                else await reader.cancel();
                 throw new ApiClientError(
                   'INVALID_RESPONSE',
                   'Import preview response is too large.',
@@ -4496,7 +4612,14 @@ export class RealtorApiClient {
             reader.releaseLock();
           }
         } else raw = await result.text();
-        if (raw.length > (upload || finalization ? 4096 : MAX_JSON_CHARACTERS))
+        if (
+          raw.length >
+          (upload || finalization
+            ? 4096
+            : referenceCatalogue
+              ? 6 * 1024 * 1024
+              : MAX_JSON_CHARACTERS)
+        )
           throw new ApiClientError(
             'INVALID_RESPONSE',
             'API response exceeded the supported size.',
@@ -4504,7 +4627,7 @@ export class RealtorApiClient {
           );
         let payload: unknown;
         try {
-          if (verification) assertMediaJsonTokens(raw);
+          if (verification || reference) assertMediaJsonTokens(raw);
           else if (enquiry) assertEnquiryJsonTokens(raw);
           else if (
             upload ||
@@ -4515,6 +4638,7 @@ export class RealtorApiClient {
             assertMediaJsonTokens(raw);
           payload =
             verification ||
+            reference ||
             /^\/v2\/staff\/listings\/[^/]+(?:\/revision-operations\/[^/]+)?$/.test(path)
               ? parseListingSuccessorJsonV2(raw)
               : path.startsWith('/v2/')
