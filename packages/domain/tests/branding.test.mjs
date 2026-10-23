@@ -43,3 +43,50 @@ test('branding rejects secret/unknown fields, scriptable URLs, CSS injection and
   ];
   for (const config of invalid) assert.throws(() => validateTenantBrandConfig(config));
 });
+
+test('public branding refuses inherited, hidden, symbolic and accessor fields without invoking getters', () => {
+  let reads = 0;
+  const getter = { ...brand };
+  Object.defineProperty(getter, 'companyName', {
+    enumerable: true,
+    get() {
+      reads++;
+      return 'Hidden company';
+    },
+  });
+  const nested = { ...brand, colors: { ...brand.colors } };
+  Object.defineProperty(nested.colors, 'primary', {
+    enumerable: true,
+    get() {
+      reads++;
+      return '#000000';
+    },
+  });
+  const hidden = { ...brand };
+  Object.defineProperty(hidden, 'secret', { value: 'synthetic', enumerable: false });
+  const symbol = { ...brand, [Symbol('secret')]: 'synthetic' };
+  for (const candidate of [
+    getter,
+    nested,
+    hidden,
+    symbol,
+    Object.create(brand),
+    { ...brand, logo: Object.create(brand.logo) },
+  ])
+    assert.throws(() => validateTenantBrandConfig(candidate));
+  assert.equal(reads, 0);
+});
+
+test('brand outputs detach and deeply freeze explicit public configuration', () => {
+  const input = structuredClone(brand),
+    value = validateTenantBrandConfig(input);
+  input.colors.primary = '#ffffff';
+  input.features.viewings = false;
+  assert.equal(value.colors.primary, '#6a1833');
+  assert.equal(value.features.viewings, true);
+  assert.ok(Object.isFrozen(value));
+  for (const child of ['colors', 'logo', 'contact', 'features'])
+    assert.ok(Object.isFrozen(value[child]));
+  const nullPrototype = Object.assign(Object.create(null), brand);
+  assert.equal(validateTenantBrandConfig(nullPrototype).slug, brand.slug);
+});

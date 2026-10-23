@@ -25,14 +25,29 @@ function record(
   label: string,
   allowedKeys: readonly string[],
 ): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(value))
+  )
     throw new DomainError('INVALID_BRAND', `${label} must be an object.`);
-  if (Object.keys(value).some((key) => !allowedKeys.includes(key)))
+  const keys = Reflect.ownKeys(value);
+  if (
+    keys.length !== allowedKeys.length ||
+    keys.some((key) => typeof key !== 'string' || !allowedKeys.includes(key))
+  )
     throw new DomainError(
       'INVALID_BRAND',
       `${label} contains an unsupported field. Secrets are prohibited.`,
     );
-  return value as Record<string, unknown>;
+  const result: Record<string, unknown> = {};
+  for (const key of allowedKeys) {
+    const field = Object.getOwnPropertyDescriptor(value, key);
+    if (!field?.enumerable || !Object.hasOwn(field, 'value'))
+      throw new DomainError('INVALID_BRAND', `${label} requires explicit data fields.`);
+    result[key] = field.value;
+  }
+  return result;
 }
 function text(value: unknown, label: string, max: number): string {
   if (
