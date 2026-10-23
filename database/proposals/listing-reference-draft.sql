@@ -3,12 +3,25 @@
 BEGIN;
 SET LOCAL ROLE realtor_owner;
 
+CREATE TABLE app_private.synthetic_reference_catalogues (
+  version bigint PRIMARY KEY CHECK (version BETWEEN 1 AND 9007199254740991),
+  payload jsonb NOT NULL
+);
+CREATE TRIGGER immutable_reference_catalogue BEFORE UPDATE OR DELETE ON app_private.synthetic_reference_catalogues
+  FOR EACH ROW EXECUTE FUNCTION app_private.immutable_audit();
+CREATE TABLE app_private.synthetic_reference_catalogue_current (
+  singleton boolean PRIMARY KEY CHECK (singleton), version bigint REFERENCES app_private.synthetic_reference_catalogues(version)
+);
+INSERT INTO app_private.synthetic_reference_catalogue_current VALUES(true,NULL);
+REVOKE ALL ON app_private.synthetic_reference_catalogues,app_private.synthetic_reference_catalogue_current FROM PUBLIC,api_runtime;
+
 CREATE TABLE app_private.synthetic_reference_locations (
   catalogue_version bigint NOT NULL CHECK (catalogue_version BETWEEN 1 AND 9007199254740991),
   id uuid NOT NULL, kind text NOT NULL CHECK (kind IN ('county','locality','neighbourhood')),
   parent_id uuid, parent_kind text,
   label text NOT NULL CHECK (app_private.disclosure_text_valid(to_jsonb(label),160)),
   PRIMARY KEY (catalogue_version,id), UNIQUE (catalogue_version,id,kind),
+  FOREIGN KEY (catalogue_version) REFERENCES app_private.synthetic_reference_catalogues(version),
   FOREIGN KEY (catalogue_version,parent_id,parent_kind)
     REFERENCES app_private.synthetic_reference_locations(catalogue_version,id,kind),
   CHECK ((kind='county' AND parent_id IS NULL AND parent_kind IS NULL)
@@ -22,8 +35,13 @@ CREATE TABLE app_private.synthetic_reference_amenities (
   property_types text[] NOT NULL CHECK (cardinality(property_types)>0 AND property_types <@
     ARRAY['apartment','bedsitter','studio','bungalow','maisonette','townhouse','villa','commercial','land']::text[]
     AND array_position(property_types,NULL) IS NULL),
-  PRIMARY KEY (catalogue_version,id), UNIQUE (catalogue_version,code)
+  PRIMARY KEY (catalogue_version,id), UNIQUE (catalogue_version,code),
+  FOREIGN KEY (catalogue_version) REFERENCES app_private.synthetic_reference_catalogues(version)
 );
+CREATE TRIGGER immutable_reference_location BEFORE UPDATE OR DELETE ON app_private.synthetic_reference_locations
+  FOR EACH ROW EXECUTE FUNCTION app_private.immutable_audit();
+CREATE TRIGGER immutable_reference_amenity BEFORE UPDATE OR DELETE ON app_private.synthetic_reference_amenities
+  FOR EACH ROW EXECUTE FUNCTION app_private.immutable_audit();
 -- Migration-owner curated only; labels for a version cannot be rewritten by runtime.
 REVOKE ALL ON app_private.synthetic_reference_locations,app_private.synthetic_reference_amenities FROM PUBLIC,api_runtime;
 
@@ -87,8 +105,7 @@ BEGIN
     OR p_selection->>'catalogueVersion' !~ '^[1-9][0-9]{0,15}$'
     THEN RAISE EXCEPTION 'Invalid combined draft' USING ERRCODE='23514'; END IF;
   v_catalogue:=(p_selection->>'catalogueVersion')::bigint;
-  -- Candidate policy: current means highest owner-installed location catalogue.
-  IF v_catalogue IS DISTINCT FROM (SELECT max(catalogue_version) FROM app_private.synthetic_reference_locations)
+  IF v_catalogue IS DISTINCT FROM (SELECT version FROM app_private.synthetic_reference_catalogue_current WHERE singleton)
     THEN RAISE EXCEPTION 'Stale reference catalogue' USING ERRCODE='40001'; END IF;
   IF jsonb_typeof(p_selection->'location') IS DISTINCT FROM 'object'
     OR NOT (p_selection->'location' ?& ARRAY['countyId','localityId','neighbourhoodId'])

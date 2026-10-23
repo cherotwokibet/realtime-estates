@@ -1,5 +1,7 @@
 # Synthetic reference draft persistence candidate
 
+Checkpoint130 supersedes the max-installed-location development policy with an explicit immutable catalogue manifest, owner-only validated ingestion and atomic activation pointer, including empty catalogues. See [listing-reference-install-candidate.md](listing-reference-install-candidate.md). The checkpoint129 evidence and remaining application/moderation restrictions below remain historical and applicable respectively.
+
 Checkpoint129, 23 October 2026. This is executable SQL in `database/proposals/listing-reference-draft.sql`, explicitly loaded only into disposable candidate test databases. It is absent from the default migration list and has no HTTP, SDK, editor or mobile caller. Task06-1 remains open. No hosted database, real reference dataset, device, operator acceptance or production result is claimed.
 
 ## Chosen compatibility boundary

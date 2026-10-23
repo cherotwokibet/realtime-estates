@@ -23,6 +23,12 @@ test('isolated reference candidate binds content, labels and receipt to one edit
   await db.exec(
     await readFile(new URL('../proposals/listing-reference-draft.sql', import.meta.url), 'utf8'),
   );
+  await db.exec(
+    await readFile(
+      new URL('../proposals/listing-reference-catalogue-install.sql', import.meta.url),
+      'utf8',
+    ),
+  );
   for (const tenant of [1, 2]) {
     await db.query('INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,$2,$2)', [
       id(tenant),
@@ -39,16 +45,27 @@ test('isolated reference candidate binds content, labels and receipt to one edit
         [id(tenant), id(user), role],
       );
   }
-  await db.query(
-    `INSERT INTO app_private.synthetic_reference_locations VALUES
-    (1,$1,'county',NULL,NULL,'Synthetic county'),(1,$2,'locality',$1,'county','Synthetic locality'),
-    (1,$3,'neighbourhood',$2,'locality','Synthetic neighbourhood'),(1,$4,'county',NULL,NULL,'Other synthetic county')`,
-    [id(200), id(201), id(202), id(203)],
-  );
-  await db.query(
-    "INSERT INTO app_private.synthetic_reference_amenities VALUES(1,$1,'synthetic-lift','Synthetic lift',ARRAY['apartment'])",
-    [id(210)],
-  );
+  await db.query('SELECT app_private.install_synthetic_reference_catalogue(0,$1::jsonb)', [
+    JSON.stringify({
+      policy: 'synthetic-reference-catalogue-v1',
+      version: '1',
+      country: 'KE',
+      locations: [
+        { id: id(200), kind: 'county', parentId: null, label: 'Synthetic county' },
+        { id: id(201), kind: 'locality', parentId: id(200), label: 'Synthetic locality' },
+        { id: id(202), kind: 'neighbourhood', parentId: id(201), label: 'Synthetic neighbourhood' },
+        { id: id(203), kind: 'county', parentId: null, label: 'Other synthetic county' },
+      ],
+      amenities: [
+        {
+          id: id(210),
+          code: 'synthetic-lift',
+          label: 'Synthetic lift',
+          propertyTypes: ['apartment'],
+        },
+      ],
+    }),
+  ]);
   async function as(tenant, user, work, rollback = false) {
     await db.exec('BEGIN; SET LOCAL ROLE api_runtime');
     try {
@@ -299,10 +316,15 @@ test('isolated reference candidate binds content, labels and receipt to one edit
   await t.test(
     'historical receipts retain labels after future owner catalogue installation',
     async () => {
-      await db.query(
-        "INSERT INTO app_private.synthetic_reference_locations VALUES(2,$1,'county',NULL,NULL,'Synthetic next county')",
-        [id(200)],
-      );
+      await db.query('SELECT app_private.install_synthetic_reference_catalogue(1,$1::jsonb)', [
+        JSON.stringify({
+          policy: 'synthetic-reference-catalogue-v1',
+          version: '2',
+          country: 'KE',
+          locations: [],
+          amenities: [],
+        }),
+      ]);
       const receipt = await as(1, 11, () => read());
       assert.equal(receipt.attributes.location.county.label, 'Synthetic county');
       assert.equal((await as(1, 11, () => save())).revisionVersion, '3');
