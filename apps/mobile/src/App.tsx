@@ -21,6 +21,8 @@ import {
 } from '@realtor/demo';
 import { searchCatalogue } from '@realtor/demo/search';
 import { formatKes, kesFromMinor } from '@realtor/domain';
+import { resolveMobileReferenceConfig } from './reference-catalogue';
+import { ReferenceCatalogueApp } from './ReferenceCatalogueApp';
 
 const tenantSlug = resolveDemoTenantSlug(Constants.expoConfig?.extra?.tenantSlug);
 const brand = getDemoBrand(tenantSlug);
@@ -188,7 +190,23 @@ function PropertyCard({
   );
 }
 
+const referenceConfig = resolveMobileReferenceConfig(
+  Constants.expoConfig?.extra?.mobileReference,
+  tenantSlug,
+  __DEV__,
+);
 export default function App() {
+  if (referenceConfig.mode === 'error')
+    return (
+      <SafeAreaView>
+        <Text accessibilityRole="alert">The property catalogue is not configured correctly.</Text>
+      </SafeAreaView>
+    );
+  if (referenceConfig.mode === 'synthetic-reference-public-v1')
+    return <ReferenceCatalogueApp config={referenceConfig} />;
+  return <DemoApp />;
+}
+function DemoApp() {
   const [tab, setTab] = useState<Tab>('Home');
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [draftFilters, setDraftFilters] = useState<Filters>(emptyFilters);

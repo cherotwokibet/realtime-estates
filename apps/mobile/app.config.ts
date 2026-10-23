@@ -1,11 +1,40 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 import { getDemoBrand, resolveDemoTenantSlug } from '@realtor/demo';
+import { resolveMobileReferenceConfig } from './src/reference-catalogue.ts';
 
 /** Build-time synthetic tenant configuration. No signing keys or provider secrets belong here. */
 export default ({ config }: ConfigContext): ExpoConfig => {
   const tenantSlug = resolveDemoTenantSlug(process.env.TENANT_SLUG);
   const brand = getDemoBrand(tenantSlug);
   const applicationId = `com.boniface.realtor.preview.${tenantSlug.replaceAll('-', '')}`;
+  const mode = process.env.MOBILE_CATALOGUE_MODE;
+  const extra: Record<string, unknown> = { ...config.extra, tenantSlug };
+  delete extra.mobileReference;
+  if (mode !== undefined) {
+    const candidate = {
+      mode,
+      apiOrigin: process.env.MOBILE_API_ORIGIN,
+      allowLoopbackHttp: process.env.MOBILE_ALLOW_LOOPBACK_API === 'true',
+    };
+    if (
+      process.env.MOBILE_ALLOW_LOOPBACK_API !== undefined &&
+      !['true', 'false'].includes(process.env.MOBILE_ALLOW_LOOPBACK_API)
+    )
+      throw Error('Invalid mobile loopback configuration.');
+    const resolved = resolveMobileReferenceConfig(
+      candidate,
+      tenantSlug,
+      ['development', 'test'].includes(process.env.NODE_ENV ?? ''),
+    );
+    if (resolved.mode !== 'synthetic-reference-public-v1')
+      throw Error('Invalid synthetic mobile catalogue configuration.');
+    extra.mobileReference = candidate;
+  } else if (
+    process.env.MOBILE_API_ORIGIN !== undefined ||
+    process.env.MOBILE_ALLOW_LOOPBACK_API !== undefined
+  ) {
+    throw Error('An explicit mobile catalogue mode is required.');
+  }
   return {
     ...config,
     name: `${brand.name} Preview`,
@@ -13,6 +42,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     scheme: `${tenantSlug}-preview`,
     android: { ...config.android, package: applicationId },
     ios: { ...config.ios, bundleIdentifier: applicationId },
-    extra: { ...config.extra, tenantSlug },
+    extra,
   };
 };

@@ -2,13 +2,16 @@
   "name": "@realtor/mobile",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
     "typecheck": "tsc --noEmit",
-    "export:android": "expo export --platform android"
+    "test": "tsc -p tsconfig.tests.json && node --test tests/*.test.mjs",
+    "export:android": "expo export --platform android --output-dir dist/android"
   },
   "dependencies": {
+    "@realtor/api-client": "0.1.0",
     "@realtor/demo": "0.1.0",
     "@realtor/domain": "0.1.0",
     "expo": "57.0.27",
