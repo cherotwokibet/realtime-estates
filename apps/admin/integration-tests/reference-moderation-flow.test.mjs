@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { referenceModerationRequest } from '../dist/tests/lib/reference-moderation-server.js';
+import { POST as transitionRoute } from '../dist/tests/app/api/staff/listings/[id]/reference-transition-operations/[operationId]/route.js';
+import { POST as recoveryRoute } from '../dist/tests/app/api/staff/listings/[id]/reference-transition-operations/[operationId]/recover/route.js';
+import { readReferenceModerationScreen } from '../dist/tests/lib/reference-moderation-screen.js';
 import { referenceDraftRequest } from '../dist/tests/lib/reference-draft-server.js';
 import { createReferenceModerationClient } from '../dist/tests/lib/reference-moderation-client.js';
 import {
@@ -146,7 +149,11 @@ test('unmounted moderation browser adapter through BFF/SDK/API/restricted SQL pr
     const req = new Request('http://127.0.0.1:3001' + path, { ...init, headers });
     const r = await (path.includes('reference-catalogues')
       ? referenceDraftRequest(req)
-      : referenceModerationRequest(req));
+      : path.endsWith('/recover')
+        ? recoveryRoute(req)
+        : path.includes('reference-transition-operations')
+          ? transitionRoute(req)
+          : referenceModerationRequest(req));
     if (loseBrowser && r.ok && init.method === 'POST' && !path.endsWith('/recover')) {
       await r.body.cancel();
       throw Error('Synthetic browser reply lost after BFF completed');
@@ -246,6 +253,11 @@ test('unmounted moderation browser adapter through BFF/SDK/API/restricted SQL pr
         (e) => e.kind === 'HTTP' && e.status === 409,
       );
       pending = await admin.read('review', '4', cat);
+      const initial = await readReferenceModerationScreen(id(100), '1', '4', process.env);
+      assert.deepEqual(initial.context.review, pending);
+      assert.deepEqual(initial.context.catalogue, cat);
+      assert.equal(initial.scope.actorId, id(13));
+      assert.equal(JSON.stringify(initial).includes('a.b.c'), false);
       assert.deepEqual(pending.content, content);
       assert.equal(pending.attributes.location.county.label, 'Synthetic original county');
       await assert.rejects(
@@ -300,6 +312,10 @@ test('unmounted moderation browser adapter through BFF/SDK/API/restricted SQL pr
     'original approval GET settles only exact verified result and preserves approved historical snapshot',
     async () => {
       const before = upstream.filter((c) => c.method === 'POST').length;
+      const shell = await readReferenceModerationScreen(id(100), '1', '4', process.env);
+      assert.equal(shell.context, null);
+      assert.equal(shell.scope.actorId, id(13));
+      assert.ok(adminSession.load());
       const restored = await restoreReferenceModerationAttempt(
         admin,
         referenceModerationSession(storage, { ...scope(), actorId: id(13) }),

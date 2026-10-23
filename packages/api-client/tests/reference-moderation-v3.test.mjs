@@ -78,6 +78,144 @@ const recover = (sdk, c = command(), catalogue = cat(), opts = options) =>
   sdk.getSyntheticReferenceTransitionReceiptV3(c, catalogue, id(10), opts);
 const read = (sdk, catalogue = cat(), opts = options) =>
   sdk.getSyntheticReferenceReviewV3(id(100), 1, '3', catalogue, opts);
+const context = () => ({
+  policy: 'synthetic-reference-context-v1',
+  review: review(),
+  catalogue: cat(),
+});
+const initial = (sdk, opts = options) =>
+  sdk.getSyntheticReferenceReviewContextV3(id(100), 1, '3', opts);
+test('initial context reads one fixed GET without a catalogue hint and strictly binds both returned parts', async () => {
+  const calls = [],
+    sdk = client(async (url, init) => {
+      calls.push({ url, init });
+      return Response.json(context());
+    });
+  assert.deepEqual(await initial(sdk), context());
+  assert.deepEqual(
+    await sdk.getSyntheticReferenceRevisionContextV3(id(100), 1, '3', options),
+    context(),
+  );
+  assert.match(calls[0].url, /\/reviews\/.+\/reference-revisions\/1\/3\/context$/);
+  assert.match(calls[1].url, /\/listings\/.+\/context$/);
+  assert.ok(
+    calls.every(
+      (c) => c.init.method === 'GET' && c.init.body === undefined && c.init.credentials === 'omit',
+    ),
+  );
+  for (const mutate of [
+    (c) => (c.catalogue.version = '2'),
+    (c) => (c.catalogue.locations[0].label = 'Renamed'),
+    (c) => (c.review.listingId = id(101)),
+    (c) => (c.review.revisionVersion = '4'),
+    (c) => (c.review.state = 'draft'),
+    (c) => (c.extra = true),
+  ]) {
+    const c = context();
+    mutate(c);
+    await assert.rejects(
+      () => initial(client(async () => Response.json(c))),
+      (e) => e.kind === 'INVALID_RESPONSE' && !e.submissionUncertain,
+    );
+  }
+});
+test('context has a separate combined byte bound while ordinary review reads retain 128 KiB', async () => {
+  const c = context();
+  for (let i = 1000; i < 1700; i++)
+    c.catalogue.locations.push({
+      id: id(i),
+      kind: 'county',
+      parentId: null,
+      label: 'S'.repeat(160),
+    });
+  assert.ok(Buffer.byteLength(JSON.stringify(c)) > 131072);
+  assert.deepEqual(await initial(client(async () => Response.json(c))), c);
+  let cancelled = false;
+  await assert.rejects(
+    () =>
+      initial(
+        client(
+          async () =>
+            new Response(
+              new ReadableStream({
+                start(ctrl) {
+                  ctrl.enqueue(new Uint8Array(6 * 1024 * 1024 + 131072 + 129));
+                },
+                cancel() {
+                  cancelled = true;
+                  return new Promise(() => {});
+                },
+              }),
+              { headers: { 'content-type': 'application/json' } },
+            ),
+        ),
+      ),
+    (e) => e.kind === 'INVALID_RESPONSE',
+  );
+  assert.equal(cancelled, true);
+  await assert.rejects(
+    () =>
+      read(
+        client(async () => Response.json(review(), { headers: { 'content-length': '131073' } })),
+      ),
+    (e) => e.kind === 'INVALID_RESPONSE',
+  );
+});
+test('context retains strict wire parsing, framing, cancellation and canonical input checks', async () => {
+  const raw = JSON.stringify(context());
+  for (const make of [
+    () =>
+      new Response(raw.replace('"revision":1', '"revision":1.0'), {
+        headers: { 'content-type': 'application/json' },
+      }),
+    () =>
+      new Response(raw.replace('"bedrooms":1', '"bedrooms":1e0'), {
+        headers: { 'content-type': 'application/json' },
+      }),
+    () =>
+      new Response(raw.replace('"catalogue":', '"catalogue":{},"catalogue":'), {
+        headers: { 'content-type': 'application/json' },
+      }),
+    () => new Response(new Uint8Array([255]), { headers: { 'content-type': 'application/json' } }),
+    () => Response.json(context(), { headers: { 'content-length': '1' } }),
+    () => Response.json(context(), { headers: { 'content-encoding': 'gzip' } }),
+  ])
+    await assert.rejects(
+      () => initial(client(async () => make())),
+      (e) => e.kind === 'INVALID_RESPONSE',
+    );
+  let calls = 0;
+  const sdk = client(async () => {
+    calls++;
+    return Response.json(context());
+  });
+  for (const [listing, rev, version] of [
+    [id(100), 0, '3'],
+    [id(100), 1, '03'],
+    [id(100), 1, '9007199254740992'],
+    ['invalid', 1, '3'],
+  ])
+    await assert.rejects(
+      () => sdk.getSyntheticReferenceReviewContextV3(listing, rev, version, options),
+      (e) => e.kind === 'VALIDATION',
+    );
+  assert.equal(calls, 0);
+  const ctrl = new AbortController();
+  ctrl.abort();
+  await assert.rejects(
+    () => initial(sdk, { ...options, signal: ctrl.signal }),
+    (e) => e.kind === 'CANCELLED' && !e.submissionUncertain,
+  );
+  assert.equal(calls, 0);
+  await assert.rejects(
+    () =>
+      initial(
+        client(() => new Promise(() => {})),
+        { ...options, timeoutMs: 100 },
+      ),
+    (e) => e.kind === 'TIMEOUT' && !e.submissionUncertain,
+  );
+});
 test('SDK captures complete originals before await and uses one fixed POST/explicit GET for every action', async () => {
   for (const action of ['submit', 'withdraw', 'approve', 'reject']) {
     const c = structuredClone(command(action)),

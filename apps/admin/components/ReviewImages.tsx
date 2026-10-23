@@ -1,12 +1,12 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import type { ReviewMediaGallery } from '@realtor/domain';
-import { readReviewGallery } from '../lib/review-gallery-client';
+import { readReviewGallery } from '../lib/review-gallery-client.ts';
 import {
   createReviewImageBatch,
   type PrivateImageState,
   type PrivateImageBatch,
-} from '../lib/private-image';
+} from '../lib/private-image.ts';
 export default function ReviewImages({
   instanceId,
   listingId,

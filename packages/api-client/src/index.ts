@@ -3,6 +3,9 @@ import {
   validateSyntheticReferenceDraftCommand,
   validateSyntheticReferenceDraftReceipt,
   validateSyntheticReferenceRevision,
+  validateSyntheticReferenceContext,
+  SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES,
+  type SyntheticReferenceContext,
   validateSyntheticReferenceTransitionCommand,
   validateSyntheticReferenceTransitionReceipt,
   type SyntheticReferenceRevision,
@@ -39,6 +42,7 @@ import {
   type ListingSuccessorReceipt,
 } from '@realtor/domain';
 export type {
+  SyntheticReferenceContext,
   SyntheticReferenceRevision,
   SyntheticReferenceTransitionCommand,
   SyntheticReferenceTransitionReceipt,
@@ -3178,6 +3182,53 @@ export class RealtorApiClient {
       options,
     );
   }
+  /** Read a saved revision and its authoritative historical catalogue in one authorized snapshot. */
+  async getSyntheticReferenceRevisionContextV3(
+    listingId: string,
+    revision: number,
+    expectedVersion: string,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceContext> {
+    return this.referenceContext('listings', listingId, revision, expectedVersion, options);
+  }
+  async getSyntheticReferenceReviewContextV3(
+    listingId: string,
+    revision: number,
+    expectedVersion: string,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceContext> {
+    return this.referenceContext('reviews', listingId, revision, expectedVersion, options);
+  }
+  private async referenceContext(
+    kind: 'listings' | 'reviews',
+    listingId: string,
+    revision: number,
+    expectedVersion: string,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceContext> {
+    const captured = uploadOptions(options),
+      listing = uuid(listingId, 'VALIDATION', 'Listing ID'),
+      number = integer(revision, 1, 2147483647, 'VALIDATION', 'Revision'),
+      version = staffVersion(expectedVersion, 'VALIDATION');
+    if (listing !== listingId || BigInt(version) > 9007199254740991n)
+      return invalid('VALIDATION', 'Use canonical reference identity and version.');
+    const data = await this.request(
+      `/v3/staff/${kind}/${listing}/reference-revisions/${number}/${version}/context`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateSyntheticReferenceContext(
+        data,
+        listing,
+        number,
+        version,
+        kind === 'reviews' ? 'review' : 'revision',
+      );
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid synthetic reference context.');
+    }
+  }
   private async referenceRevision(
     kind: 'listings' | 'reviews',
     listingId: string,
@@ -4604,7 +4655,12 @@ export class RealtorApiClient {
       /^\/v3\/staff\/reference-catalogues\/(?:current|[1-9]\d{0,15})$/.test(path);
     const referenceDraft =
       /^\/v3\/staff\/listings\/[0-9a-f-]+\/reference-draft-operations\/[0-9a-f-]+$/.test(path);
+    const referenceContext =
+      /^\/v3\/staff\/(?:listings|reviews)\/[0-9a-f-]+\/reference-revisions\/[1-9]\d{0,9}\/[1-9]\d{0,15}\/context$/.test(
+        path,
+      );
     const referenceModeration =
+      referenceContext ||
       /^\/v3\/staff\/listings\/[0-9a-f-]+\/reference-transition-operations\/[0-9a-f-]+$/.test(
         path,
       ) ||
@@ -4713,7 +4769,12 @@ export class RealtorApiClient {
         }
         let raw: string;
         if (boundedRead) {
-          const maximum = referenceModeration ? 131072 : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
+          const maximum =
+              referenceContext && result.ok
+                ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
+                : referenceModeration
+                  ? 131072
+                  : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
             declared = result.headers.get('content-length');
           if (
             result.headers.has('content-encoding') ||
@@ -4788,9 +4849,11 @@ export class RealtorApiClient {
           raw.length >
           (upload || finalization
             ? 4096
-            : referenceCatalogue
-              ? 6 * 1024 * 1024
-              : MAX_JSON_CHARACTERS)
+            : referenceContext
+              ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
+              : referenceCatalogue
+                ? 6 * 1024 * 1024
+                : MAX_JSON_CHARACTERS)
         )
           throw new ApiClientError(
             'INVALID_RESPONSE',

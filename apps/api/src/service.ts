@@ -3,6 +3,7 @@ import {
   validateSyntheticReferenceDraftCommand,
   validateSyntheticReferenceDraftReceipt,
   validateSyntheticReferenceRevision,
+  validateSyntheticReferenceContext,
   validateSyntheticReferenceTransitionCommand,
   validateSyntheticReferenceTransitionReceipt,
   validateListingVerificationCommand,
@@ -1407,7 +1408,7 @@ export function createApiService(
         const transitionRoute =
           /^\/v3\/staff\/listings\/([^/]+)\/reference-transition-operations\/([^/]+)$/.exec(path);
         const revisionRoute =
-          /^\/v3\/staff\/(listings|reviews)\/([^/]+)\/reference-revisions\/([1-9]\d{0,9})\/([1-9]\d{0,15})$/.exec(
+          /^\/v3\/staff\/(listings|reviews)\/([^/]+)\/reference-revisions\/([1-9]\d{0,9})\/([1-9]\d{0,15})(\/context)?$/.exec(
             path,
           );
         const moderationRoute = transitionRoute || revisionRoute;
@@ -1546,17 +1547,31 @@ export function createApiService(
                 );
                 if (data.rows.length !== 1) throw Error('Invalid reference revision projection.');
                 const raw = scalar(data, 'review');
+                const originalCatalogue = await historical(raw);
                 const review = validateSyntheticReferenceRevision(
                   raw,
-                  await historical(raw),
+                  originalCatalogue,
                   moderationListing!,
                   moderationRevision!,
                   moderationVersion!,
                 );
                 if (revisionRoute[1] === 'reviews' && review.state !== 'pending')
                   throw Error('Invalid pending reference review.');
+                const result = revisionRoute[5]
+                  ? validateSyntheticReferenceContext(
+                      {
+                        policy: 'synthetic-reference-context-v1',
+                        review,
+                        catalogue: originalCatalogue,
+                      },
+                      moderationListing!,
+                      moderationRevision!,
+                      moderationVersion!,
+                      revisionRoute[1] === 'reviews' ? 'review' : 'revision',
+                    )
+                  : review;
                 active();
-                return review;
+                return result;
               }
               if (method === 'GET') {
                 const data = await query.query(

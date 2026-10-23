@@ -192,6 +192,10 @@ test('moderation SDK composes with opt-in API and restricted SQL through origina
       );
       actor = 13;
       pending = await review('4');
+      const initial = await sdk.getSyntheticReferenceReviewContextV3(id(100), 1, '4', options);
+      assert.deepEqual(initial.review, pending);
+      assert.deepEqual(initial.catalogue, cat);
+      assert.equal(initial.catalogue.version, '1');
       assert.equal(pending.attributes.location.county.label, 'Synthetic original county');
       assert.deepEqual(pending.content, content);
       await assert.rejects(
@@ -199,6 +203,10 @@ test('moderation SDK composes with opt-in API and restricted SQL through origina
         (e) => e.kind === 'HTTP' && e.status === 404,
       );
       actor = 10;
+      await assert.rejects(
+        () => sdk.getSyntheticReferenceReviewContextV3(id(100), 1, '4', options),
+        (e) => e.kind === 'HTTP' && e.status === 403,
+      );
       await assert.rejects(
         () => review('4'),
         (e) => e.kind === 'HTTP' && e.status === 403,

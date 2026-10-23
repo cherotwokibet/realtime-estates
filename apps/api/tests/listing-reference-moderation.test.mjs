@@ -210,7 +210,13 @@ test('opt-in reference moderation validates actual restricted SQL before commit 
     'default routes do not query SQL and invalid/incompatible policy refuses startup',
     async () => {
       const before = commits;
-      for (const path of [revision(), revision('3', 'reviews'), operation(300)])
+      for (const path of [
+        revision(),
+        revision('3', 'reviews'),
+        revision() + '/context',
+        revision('3', 'reviews') + '/context',
+        operation(300),
+      ])
         assert.equal((await service(false)(request('GET', path))).status, 404);
       assert.equal(commits, before);
       for (const options of [
@@ -241,6 +247,35 @@ test('opt-in reference moderation validates actual restricted SQL before commit 
       tenant = 2;
       assert.equal((await call('GET', revision())).status, 404);
       tenant = 1;
+    },
+  );
+  await t.test(
+    'initial context discovers the original saved catalogue under the same current authorization',
+    async () => {
+      const path = revision() + '/context';
+      const r = await call('GET', path);
+      assert.equal(r.status, 200);
+      assert.deepEqual(await r.json(), {
+        policy: 'synthetic-reference-context-v1',
+        review: draft,
+        catalogue: cat,
+      });
+      assert.equal((await call('GET', revision('4') + '/context')).status, 409);
+      assert.equal((await call('POST', path, {})).status, 405);
+      assert.equal((await call('GET', path + '?catalogue=2')).status, 400);
+      actor = 11;
+      assert.equal((await call('GET', path)).status, 404);
+      actor = 12;
+      assert.equal((await call('GET', path)).status, 403);
+      actor = 10;
+      tenant = 2;
+      assert.equal((await call('GET', path)).status, 404);
+      tenant = 1;
+      const before = commits;
+      badRead = true;
+      assert.equal((await call('GET', path)).status, 503);
+      badRead = false;
+      assert.equal(commits, before);
     },
   );
   await t.test(

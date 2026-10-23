@@ -8,6 +8,7 @@ import {
   validateSyntheticReferenceTransitionReceipt as receipt,
   SYNTHETIC_REFERENCE_MODERATION_MAX_BYTES,
   validateSyntheticReferencePublicAttributes as publicAttributes,
+  validateSyntheticReferenceContext as context,
 } from '../dist/index.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const cat = () => ({
@@ -72,6 +73,55 @@ const result = (c) => ({
   ],
 });
 const readReview = (r) => read(r, cat(), id(20), 1, '3');
+test('initial reference context binds the saved catalogue, target, version and pending state', () => {
+  const input = {
+    policy: 'synthetic-reference-context-v1',
+    review: structuredClone(review()),
+    catalogue: cat(),
+  };
+  const out = context(input, id(20), 1, '3', 'review');
+  assert.deepEqual(out, input);
+  input.catalogue.locations[0].label = 'Changed';
+  input.review.content.privateAddress = 'Changed';
+  assert.equal(out.catalogue.locations[0].label, 'Synthetic county');
+  assert.equal(out.review.content.privateAddress, 'PRIVATE SENTINEL');
+  assert.ok(Object.isFrozen(out) && Object.isFrozen(out.catalogue.locations[0]));
+  for (const mutate of [
+    (v) => (v.catalogue.version = '2'),
+    (v) => (v.catalogue.locations[0].label = 'Latest label'),
+    (v) => (v.review.revisionVersion = '4'),
+    (v) => (v.review.listingId = id(21)),
+    (v) => (v.review.revision = 2),
+    (v) => (v.extra = true),
+    (v) => (v.policy = 'synthetic-reference-revision-v1'),
+    (v) => (v.review.state = 'draft'),
+  ]) {
+    const changed = structuredClone(out);
+    mutate(changed);
+    assert.throws(() => context(changed, id(20), 1, '3', 'review'));
+  }
+  const draft = structuredClone(out);
+  draft.review.state = 'draft';
+  assert.equal(context(draft, id(20), 1, '3', 'revision').review.state, 'draft');
+});
+test('initial context rejects executable and hidden envelope properties without invoking getters', () => {
+  let calls = 0;
+  for (const key of ['policy', 'review', 'catalogue']) {
+    const input = { policy: 'synthetic-reference-context-v1', review: review(), catalogue: cat() };
+    Object.defineProperty(input, key, {
+      enumerable: true,
+      get() {
+        calls++;
+        throw Error();
+      },
+    });
+    assert.throws(() => context(input, id(20), 1, '3', 'review'));
+  }
+  const input = { policy: 'synthetic-reference-context-v1', review: review(), catalogue: cat() };
+  Object.defineProperty(input, 'hidden', { value: true });
+  assert.throws(() => context(input, id(20), 1, '3', 'review'));
+  assert.equal(calls, 0);
+});
 test('private reference projection is exact, detached and preserves historical labels and operational context', () => {
   const input = structuredClone(review()),
     output = readReview(input);

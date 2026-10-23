@@ -3,10 +3,15 @@ import {
   normalizeStaffDraftContentV2,
   type StaffDraftPropertyTypeV2,
 } from './staff-draft-content.js';
-import { snapshotListingReferenceAttributes } from './listing-reference-catalogue.js';
+import {
+  snapshotListingReferenceAttributes,
+  validateListingReferenceCatalogue,
+  type ListingReferenceCatalogue,
+} from './listing-reference-catalogue.js';
 import type { StaffListingSummary } from './staff-listings.js';
 
 export const SYNTHETIC_REFERENCE_MODERATION_MAX_BYTES = 131072;
+export const SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES = 6 * 1024 * 1024 + 131072 + 128;
 const invalid = (): never => {
   throw new DomainError(
     'INVALID_REFERENCE_MODERATION',
@@ -265,6 +270,35 @@ export function validateSyntheticReferenceRevision(
       photos: Object.freeze(photos),
     }),
   );
+}
+export interface SyntheticReferenceContext {
+  readonly policy: 'synthetic-reference-context-v1';
+  readonly review: SyntheticReferenceRevision;
+  readonly catalogue: ListingReferenceCatalogue;
+}
+/** Initial discovery uses the saved snapshot's catalogue, never the active catalogue pointer. */
+export function validateSyntheticReferenceContext(
+  input: unknown,
+  listingId: string,
+  revisionNo: number,
+  expectedVersion: string,
+  kind: 'revision' | 'review',
+): SyntheticReferenceContext {
+  const c = own(input, ['policy', 'review', 'catalogue']);
+  if (c.policy !== 'synthetic-reference-context-v1' || !['revision', 'review'].includes(kind))
+    return invalid();
+  const catalogue = validateListingReferenceCatalogue(c.catalogue);
+  if (new TextEncoder().encode(JSON.stringify(catalogue)).byteLength > 6 * 1024 * 1024)
+    return invalid();
+  const review = validateSyntheticReferenceRevision(
+    c.review,
+    catalogue,
+    listingId,
+    revisionNo,
+    expectedVersion,
+  );
+  if (kind === 'review' && review.state !== 'pending') return invalid();
+  return Object.freeze({ policy: 'synthetic-reference-context-v1', review, catalogue });
 }
 export type SyntheticReferenceAction = 'submit' | 'withdraw' | 'approve' | 'reject';
 export interface SyntheticReferenceTransitionCommand {
