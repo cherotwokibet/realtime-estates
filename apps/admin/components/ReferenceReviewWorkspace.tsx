@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { validateSyntheticReferenceContext } from '@realtor/domain';
+import { validateSyntheticReferenceContext, formatKes, kesFromMinor } from '@realtor/domain';
 import type { ReferenceModerationScreen } from '../lib/reference-moderation-screen.ts';
 import { createReferenceModerationClient } from '../lib/reference-moderation-client.ts';
 import {
@@ -193,10 +193,17 @@ function ReferenceReview(props: ReferenceModerationScreen) {
       : typeof value === 'object'
         ? JSON.stringify(value)
         : String(value);
+  const label = (key: string) =>
+    key === 'amountMinor'
+      ? 'Advertised price'
+      : key
+          .replace(/([A-Z])/g, ' $1')
+          .toLowerCase()
+          .replace(/^./, (c) => c.toUpperCase());
   const receipt = current.current?.receipt;
   if (!reviewed)
     return (
-      <section aria-label="Saved reference review">
+      <section className="reference-review draft-panel" aria-label="Saved reference review">
         <h1>Review saved listing</h1>
         <p role="status">{message}</p>
         {phase === 'locked' && (
@@ -208,7 +215,11 @@ function ReferenceReview(props: ReferenceModerationScreen) {
       </section>
     );
   return (
-    <section aria-label="Saved reference review">
+    <section
+      className="reference-review draft-panel"
+      aria-label="Saved reference review"
+      data-phase={phase}
+    >
       <h1>Review saved listing</h1>
       <p role="status" aria-live="polite">
         {message}
@@ -218,17 +229,65 @@ function ReferenceReview(props: ReferenceModerationScreen) {
         {reviewed.revisionVersion}
       </p>
       <h2>Complete private content</h2>
-      <dl>
+      <dl className="reference-review-facts">
         {Object.entries(reviewed.content).map(([key, value]) => (
-          <div key={key}>
-            <dt>{key.replace(/([A-Z])/g, ' $1')}</dt>
-            <dd style={{ whiteSpace: 'pre-wrap' }}>{display(value)}</dd>
+          <div
+            key={key}
+            className={
+              ['description', 'pricing', 'location'].includes(key)
+                ? 'reference-review-wide'
+                : undefined
+            }
+          >
+            <dt>{label(key)}</dt>
+            <dd style={{ whiteSpace: 'pre-wrap' }}>
+              {key === 'amountMinor' ? (
+                reviewed.content.amountMinor === null ? (
+                  'Not supplied'
+                ) : (
+                  formatKes(kesFromMinor(reviewed.content.amountMinor))
+                )
+              ) : key === 'location' ? (
+                Object.entries(reviewed.content.location)
+                  .map(([name, v]) => `${label(name)}: ${v ?? 'Not supplied'}`)
+                  .join(' · ')
+              ) : key === 'pricing' ? (
+                <>
+                  <p>Disclosure: {reviewed.content.pricing.declaration.replaceAll('_', ' ')}</p>
+                  <ul>
+                    {reviewed.content.pricing.charges.map((charge) => (
+                      <li key={charge.id}>
+                        <strong>{charge.name}</strong>:{' '}
+                        {charge.amountStatus === 'known'
+                          ? formatKes(kesFromMinor(charge.amountMinor))
+                          : 'Quote required'}
+                        {' · '}
+                        {charge.timing.replaceAll('_', ' ')}
+                        {' · '}
+                        {charge.classification.replaceAll('_', ' ')}
+                        {' · '}
+                        {charge.mandatory ? 'Mandatory' : 'Optional'}
+                      </li>
+                    ))}
+                  </ul>
+                  {reviewed.content.pricing.charges.length === 0 && (
+                    <p>
+                      {reviewed.content.pricing.declaration === 'complete'
+                        ? 'No additional charges declared.'
+                        : 'Charges not fully declared.'}
+                    </p>
+                  )}
+                </>
+              ) : (
+                display(value)
+              )}
+            </dd>
           </div>
         ))}
       </dl>
       <h2>Saved historical references</h2>
       <p>Catalogue version {reviewed.attributes.catalogueVersion}</p>
-      <dl>
+      <dl className="reference-review-facts">
         {Object.entries(reviewed.attributes.location).map(([key, value]) => (
           <div key={key}>
             <dt>{key}</dt>
