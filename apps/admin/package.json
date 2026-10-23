@@ -9,7 +9,7 @@
     "build": "next build",
     "typecheck": "tsc --noEmit",
     "test": "tsc -p tsconfig.tests.json && node --conditions=react-server --test tests/*.test.mjs && node --test ui-tests/*.test.mjs",
-    "test:reference-integration": "npm run build --workspace=@realtor/api && tsc -p tsconfig.tests.json && node --conditions=react-server --test integration-tests/reference-draft-flow.test.mjs"
+    "test:reference-integration": "npm run build --workspace=@realtor/api && tsc -p tsconfig.tests.json && node --conditions=react-server --test integration-tests/reference-draft-flow.test.mjs integration-tests/reference-moderation-flow.test.mjs"
   },
   "dependencies": {
     "@realtor/api-client": "0.1.0",

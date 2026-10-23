@@ -4,6 +4,7 @@ export async function readReferenceJson(
   source: Request | Response,
   maximum: number,
   signal: AbortSignal,
+  parse: (source: string) => unknown = parseVerificationJson,
 ): Promise<unknown> {
   const declared = source.headers.get('content-length');
   if (
@@ -49,7 +50,7 @@ export async function readReferenceJson(
       bytes.set(c, offset);
       offset += c.byteLength;
     }
-    return parseVerificationJson(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
+    return parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
   } finally {
     signal.removeEventListener('abort', abort);
     if (!complete) void reader.cancel().catch(() => {});
