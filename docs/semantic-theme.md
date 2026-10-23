@@ -1,5 +1,7 @@
 # Shared semantic theme foundation
 
+This records checkpoint125. Checkpoint126 subsequently composed the first web and mobile controls through palette-only validation without fabricated company contacts; see [theme-composition.md](theme-composition.md) for the newer bounded implementation and browser evidence. Full manifest composition and application-wide migration remain open.
+
 `createTenantTheme` accepts the existing public company-brand schema and returns frozen semantic colors, spacing, typography, radii and minimum control size. `tenantThemeCss` maps those same values to fixed CSS variable names and units; native-facing values remain numeric where appropriate. Company names, contacts and arbitrary keys never enter generated CSS. These functions do not resolve a company or authorize data.
 
 Primary, secondary, accent and background colors retain the configured six-digit values. Each has an independently selected black or white foreground. Links use the primary color only when its contrast against the configured background meets4.5:1; otherwise they use the readable background foreground. The surface palette is fixed white with dark text. The outline color contrasts against the configured background. This avoids treating a decorative gold accent as readable small text automatically.
