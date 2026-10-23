@@ -31,6 +31,13 @@ export default async function DraftPage({
           <span aria-hidden="true">/</span>
           <span>Listing draft</span>
         </nav>
+        {process.env.NODE_ENV === 'development' &&
+          process.env.STAFF_PREVIEW_MODE === 'synthetic' &&
+          process.env.STAFF_PREVIEW_REFERENCE === 'synthetic-reference-draft-v1' && (
+            <p>
+              <a href={`/drafts/${id}/${revision}/references`}>Edit location and amenities</a>
+            </p>
+          )}
         <DraftEditor
           key={`${id}/${revision}/${process.env.STAFF_PREVIEW_INSTANCE ?? ''}`}
           listingId={id}

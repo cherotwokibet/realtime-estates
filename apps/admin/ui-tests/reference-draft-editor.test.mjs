@@ -57,3 +57,11 @@ test('unknown property type does not promise type-inapplicable amenities', () =>
   assert.match(html, /Synthetic lift.*unavailable for this property type/);
   assert.match(html, /<input type="checkbox" disabled=""/);
 });
+import ReferenceDraftWorkspace from '../dist/tests/components/ReferenceDraftWorkspace.js';
+test('mounted reference workspace includes explicit refresh and retains disabled recovery-first initial state', () => {
+  const html = renderToStaticMarkup(React.createElement(ReferenceDraftWorkspace, props()));
+  assert.match(html, /Refresh current reference draft/);
+  assert.match(html, /Reference draft editor/);
+  assert.match(html, /fieldset disabled/);
+  assert.ok(!html.includes('PRIVATE-NOT-FOR-RENDER'));
+});

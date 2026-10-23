@@ -27,7 +27,7 @@ export interface ReferenceDraftEditorProps {
   client?: ReferenceDraftClient;
   onReceipt?: (receipt: SyntheticReferenceDraftReceipt) => void;
 }
-/** Candidate component, deliberately not mounted until the authorized BFF/preview boundary is wired. */
+/** Reference picker mounted only through the current-authorized synthetic workspace route. */
 export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
   const catalogue = useMemo(
     () => validateListingReferenceCatalogue(props.catalogue),
