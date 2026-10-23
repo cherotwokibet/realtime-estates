@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createTenantTheme, tenantThemeCss, themeContrast } from '../dist/index.js';
+import {
+  createTenantTheme,
+  tenantThemeCss,
+  themeContrast,
+  createBrandTheme,
+  brandThemeCss,
+} from '../dist/index.js';
 const brand = {
   tenantId: 'synthetic-estates',
   slug: 'synthetic-estates',
@@ -12,6 +18,26 @@ const brand = {
   currency: 'KES',
   features: { viewings: true, customerAccounts: false },
 };
+test('palette-only themes match full public manifest presentation without inventing identity or contacts', () => {
+  const palette = createBrandTheme(brand.colors),
+    full = createTenantTheme(brand);
+  assert.deepEqual(full.colors, palette.colors);
+  assert.deepEqual(brandThemeCss(brand.colors), tenantThemeCss(brand));
+  assert.equal(Object.hasOwn(palette, 'tenantId'), false);
+  assert.equal(Object.hasOwn(palette, 'contact'), false);
+  let reads = 0;
+  const malicious = { ...brand.colors };
+  Object.defineProperty(malicious, 'primary', {
+    enumerable: true,
+    get() {
+      reads++;
+      return '#ffffff';
+    },
+  });
+  assert.throws(() => createBrandTheme(malicious));
+  assert.equal(reads, 0);
+  assert.throws(() => brandThemeCss({ ...brand.colors, apiKey: 'synthetic' }));
+});
 test('sRGB contrast uses exact black/white references and does not round borderline failures', () => {
   assert.equal(themeContrast('#000000', '#ffffff'), 21);
   assert.equal(themeContrast('#ffffff', '#000000'), 21);

@@ -79,6 +79,17 @@ function safeLogoUrl(value: unknown): string {
   );
 }
 
+/** Presentation palette only; no identity, contact or data-access context is inferred. */
+export function validateBrandColors(input: unknown): TenantBrandConfig['colors'] {
+  const colors = record(input, 'Colors', ['primary', 'secondary', 'accent', 'background']);
+  return Object.freeze({
+    primary: color(colors.primary),
+    secondary: color(colors.secondary),
+    accent: color(colors.accent),
+    background: color(colors.background),
+  });
+}
+
 export function validateTenantBrandConfig(input: unknown): TenantBrandConfig {
   const config = record(input, 'Brand config', [
     'tenantId',
@@ -100,7 +111,7 @@ export function validateTenantBrandConfig(input: unknown): TenantBrandConfig {
       'INVALID_BRAND',
       'Slug must contain lowercase words separated by single hyphens.',
     );
-  const colors = record(config.colors, 'Colors', ['primary', 'secondary', 'accent', 'background']);
+  const colors = validateBrandColors(config.colors);
   const logo = record(config.logo, 'Logo', ['url', 'alt']);
   const contact = record(config.contact, 'Contact', ['email', 'phone']);
   const features = record(config.features, 'Features', ['viewings', 'customerAccounts']);
@@ -118,12 +129,7 @@ export function validateTenantBrandConfig(input: unknown): TenantBrandConfig {
     tenantId,
     slug,
     companyName: text(config.companyName, 'Company name', 120),
-    colors: Object.freeze({
-      primary: color(colors.primary),
-      secondary: color(colors.secondary),
-      accent: color(colors.accent),
-      background: color(colors.background),
-    }),
+    colors,
     logo: Object.freeze({ url: safeLogoUrl(logo.url), alt: text(logo.alt, 'Logo alt text', 200) }),
     contact: Object.freeze({
       email,

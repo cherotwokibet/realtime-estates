@@ -14,6 +14,7 @@ import {
 import Constants from 'expo-constants';
 import {
   getDemoBrand,
+  getDemoTheme,
   propertiesForCompany,
   resolveDemoTenantSlug,
   type DemoProperty,
@@ -23,6 +24,7 @@ import { formatKes, kesFromMinor } from '@realtor/domain';
 
 const tenantSlug = resolveDemoTenantSlug(Constants.expoConfig?.extra?.tenantSlug);
 const brand = getDemoBrand(tenantSlug);
+const theme = getDemoTheme(tenantSlug);
 const catalogue = propertiesForCompany(tenantSlug);
 const photos = {
   studio: require('../assets/demo/studio-room.jpg'),
@@ -633,7 +635,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   chipText: { fontSize: 13, fontWeight: '600', color: '#344054' },
-  onPrimary: { color: '#fff' },
+  onPrimary: { color: theme.colors.onPrimary },
   searchPanel: {
     marginVertical: 17,
     padding: 17,
@@ -654,8 +656,8 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   primary: {
-    minHeight: 50,
-    borderRadius: 10,
+    minHeight: theme.minimumControlSize,
+    borderRadius: theme.radius.control,
     paddingHorizontal: 17,
     paddingVertical: 14,
     alignItems: 'center',
@@ -666,7 +668,7 @@ const s = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     fontWeight: '600',
-    color: '#fff',
+    color: theme.colors.onPrimary,
     textAlign: 'center',
   },
   textButton: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },

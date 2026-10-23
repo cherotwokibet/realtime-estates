@@ -1,5 +1,5 @@
 import { DomainError } from './errors.js';
-import { validateTenantBrandConfig } from './branding.js';
+import { validateBrandColors, validateTenantBrandConfig } from './branding.js';
 
 function rgb(input: string): number[] {
   if (typeof input !== 'string' || !/^#[a-f0-9]{6}$/i.test(input))
@@ -25,12 +25,15 @@ function foreground(background: string): '#000000' | '#ffffff' {
 }
 /** Public presentation only. A theme never selects or authorizes company data. */
 export function createTenantTheme(input: unknown) {
-  const brand = validateTenantBrandConfig(input),
-    { primary, secondary, accent, background } = brand.colors;
+  const brand = validateTenantBrandConfig(input);
+  return Object.freeze({ ...createBrandTheme(brand.colors), tenantId: brand.tenantId });
+}
+/** Palette-only composition does not fabricate company identity or contact information. */
+export function createBrandTheme(input: unknown) {
+  const { primary, secondary, accent, background } = validateBrandColors(input);
   const onBackground = foreground(background);
   return Object.freeze({
     policy: 'semantic-theme-v1' as const,
-    tenantId: brand.tenantId,
     colors: Object.freeze({
       primary,
       onPrimary: foreground(primary),
@@ -63,8 +66,15 @@ export function createTenantTheme(input: unknown) {
 export type TenantTheme = ReturnType<typeof createTenantTheme>;
 /** Fixed variable names/units; arbitrary company strings never enter CSS. */
 export function tenantThemeCss(input: unknown): Readonly<Record<string, string>> {
-  const theme = createTenantTheme(input),
-    variables: Record<string, string> = {};
+  return cssVariables(createTenantTheme(input));
+}
+export function brandThemeCss(input: unknown): Readonly<Record<string, string>> {
+  return cssVariables(createBrandTheme(input));
+}
+function cssVariables(
+  theme: ReturnType<typeof createBrandTheme>,
+): Readonly<Record<string, string>> {
+  const variables: Record<string, string> = {};
   for (const [name, color] of Object.entries(theme.colors))
     variables[`--color-${name.replace(/[A-Z]/g, (letter) => '-' + letter.toLowerCase())}`] = color;
   for (const [name, value] of Object.entries(theme.spacing))

@@ -17,9 +17,9 @@ html {
 body {
   margin: 0;
   background: var(--paper);
-  color: var(--ink);
+  color: var(--color-on-surface, var(--ink));
   font:
-    15px/1.6 -apple-system,
+    var(--font-body-size, 16px)/var(--font-body-line-height, 24px) -apple-system,
     BlinkMacSystemFont,
     'Segoe UI',
     Arial,
@@ -43,7 +43,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 summary:focus-visible {
-  outline: 3px solid var(--brand);
+  outline: 3px solid var(--color-outline, var(--brand));
   outline-offset: 4px;
 }
 button {
@@ -68,7 +68,7 @@ button {
   justify-content: center;
   padding: 7px 20px;
   background: var(--brand);
-  color: #fff;
+  color: var(--color-on-primary, #fff);
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.1px;
@@ -78,7 +78,7 @@ button {
   height: 5px;
   width: 5px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--color-on-primary, #fff);
   flex: none;
 }
 .site-header {
@@ -115,7 +115,7 @@ button {
   display: grid;
   place-items: center;
   background: var(--brand);
-  color: #fff;
+  color: var(--color-on-primary, #fff);
   border-radius: 8px;
   font-size: 18px;
   letter-spacing: -1px;
@@ -290,7 +290,7 @@ button {
 }
 .purpose-tabs input:checked + span {
   background: var(--brand);
-  color: white;
+  color: var(--color-on-primary, white);
   box-shadow: 0 2px 4px #5e02021a;
 }
 .purpose-tabs input:focus-visible + span {
@@ -357,19 +357,18 @@ button {
   justify-content: center;
   gap: 10px;
   background: var(--brand);
-  color: white;
+  color: var(--color-on-primary, white);
   border: 1px solid var(--brand);
-  border-radius: 6px;
+  border-radius: var(--radius-control, 8px);
   padding: 12px 21px;
   font-size: 12px;
   font-weight: 600;
-  min-height: 46px;
+  min-height: var(--control-min-size, 48px);
   transition:
     box-shadow 0.2s,
     filter 0.2s;
 }
 .primary:hover {
-  filter: brightness(1.15);
   text-decoration: none;
   box-shadow: 0 3px 10px #5e02021a;
 }
@@ -604,7 +603,7 @@ h2 {
 }
 .card-arrow:hover {
   background: var(--brand);
-  color: #fff;
+  color: var(--color-on-primary, #fff);
 }
 .empty {
   display: grid;

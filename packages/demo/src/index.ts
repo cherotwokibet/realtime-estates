@@ -1,3 +1,4 @@
+import { createBrandTheme, brandThemeCss } from '@realtor/domain';
 export type DemoProperty = {
   id: string;
   tenantSlug: string;
@@ -37,6 +38,22 @@ export function resolveDemoTenantSlug(value: unknown = 'realtime-estates'): Demo
 }
 export function getDemoBrand(slug: string) {
   return demoBrands[resolveDemoTenantSlug(slug)];
+}
+function demoPalette(slug: string) {
+  const brand = getDemoBrand(slug);
+  return {
+    primary: brand.primary,
+    secondary: slug === 'realtime-estates' ? '#194d3e' : '#305a49',
+    accent: brand.accent,
+    background: '#ffffff',
+  };
+}
+/** Synthetic presentation configuration only; no invented company contacts or protected scope. */
+export function getDemoTheme(slug: string) {
+  return createBrandTheme(demoPalette(slug));
+}
+export function getDemoThemeCss(slug: string) {
+  return brandThemeCss(demoPalette(slug));
 }
 export const demoProperties: readonly DemoProperty[] = [
   {

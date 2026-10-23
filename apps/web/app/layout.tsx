@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './styles.css';
-import { tenantBrand } from '../lib/tenant';
+import { tenantBrand, tenantThemeCss } from '../lib/tenant';
 export const metadata: Metadata = {
   title: `${tenantBrand.name} | Find your next place`,
   description: 'Development preview of the independently owned Realtor platform.',
@@ -11,7 +11,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en-KE">
       <body
         style={
-          { '--brand': tenantBrand.primary, '--accent': tenantBrand.accent } as React.CSSProperties
+          {
+            ...tenantThemeCss,
+            '--brand': tenantBrand.primary,
+            '--accent': tenantBrand.accent,
+          } as React.CSSProperties
         }
       >
         <a className="skip" href="#main">
