@@ -44,6 +44,8 @@ Native applications stay in scope. At release, choose a build/distribution strat
 
 ## Proposed managed-service boundary
 
+The explicit optional-module deferral and later activation criteria are in [optional-module-scope.md](optional-module-scope.md). Payment collection, commission settlement, paid advertising, in-app chat and advanced marketing/growth alerts are not pilot launch commitments. Core transactional notifications remain separately scoped and unaccepted until verified; no provider charge or capability is implied by this planning record.
+
 Include company branding/configuration, hosted public web and staff admin, the mobile versions once verified, catalogue/search/favourites, enquiry and viewing workflow, standard security maintenance, monitored backups/restore, routine transactional email and bounded support. Domain and publisher renewal costs must be recorded inside the allocation if Boniface absorbs them. An existing domain can be connected once account control is established.
 
 Planning placeholders: five staff, up to 300 active listings, 10 GB retained media and up to two hours of routine support each month. These are proposed commercial allowances, not current Realtime usage, accepted contract terms or implemented limits. Measure traffic and email before setting their allowances. Support for service incidents and defect remediation needs its own policy; the routine-support allowance does not automatically permit ignoring outages. New features and bespoke workflows require separate scoping. Verify whether the labour allowance can cover actual support hours at Boniface's chosen rate.

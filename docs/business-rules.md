@@ -6,6 +6,8 @@ Boniface has approved continuing the rebuild, will build with Codex, and set KES
 
 ## 1. Actors, ownership and company boundaries
 
+Optional-module scope is recorded in [optional-module-scope.md](optional-module-scope.md). In-app chat and advanced marketing/growth alerts are deferred alongside payment collection, commission settlement and paid advertising. Core enquiry/contact history, direct WhatsApp/call links, configured transactional email/viewing reminders and future consented transactional push retain their own acceptance requirements. A displayed fee or refundable deposit is a price disclosure, not a collection or payment-confirmation feature. This scope record does not mark any provider integration or client release gate passed.
+
 Every protected resource has an immutable `tenantId`; every mutation records the authenticated `actorId`. Resolve the company from a validated domain or explicit configured context and verify current membership on the server. A client-supplied company ID, owner ID, role or display name never grants access. Unknown or suspended company contexts fail closed. Public responses contain approved public fields only; unpublished revisions, private addresses, lead contacts and moderation reasons are separate private projections.
 
 `createdById` is immutable historical attribution. `assignedAgentId` is current operational responsibility and may be changed only by an administrator. A listing belongs to the company; assignment grants limited working access and does not mean legal ownership of the property. Property owner/authority-to-advertise evidence is private and independent of staff account ownership.
