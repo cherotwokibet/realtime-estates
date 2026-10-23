@@ -283,8 +283,8 @@ function ReferenceReview(props: ReferenceModerationScreen) {
         <legend>Decision on this saved review</legend>
         <label>
           <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} />I
-          inspected all saved content, historical references, operational context and verified
-          photos.
+          reviewed the saved content, historical references, operational context and photo order,
+          including any unavailable-image warning in this synthetic preview.
         </label>
         <label>
           Rejection reason
