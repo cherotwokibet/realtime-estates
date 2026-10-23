@@ -1,10 +1,28 @@
 /** Synthetic development only. No persistent identity or database. Never print or persist the bearer token. */
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { startStaffPreview } from '../apps/api/dev/staff-preview.mjs';
 if (process.env.NODE_ENV === 'production') throw new Error('Staff preview refuses production.');
 const root = fileURLToPath(new URL('../', import.meta.url));
+const referenceDraftMode = process.env.STAFF_PREVIEW_REFERENCE;
+if (referenceDraftMode !== undefined && referenceDraftMode !== 'synthetic-reference-draft-v1')
+  throw new Error('Choose the explicit synthetic-reference-draft-v1 reference mode or omit it.');
+const uiPort = process.env.STAFF_PREVIEW_UI_PORT ?? '3001';
+if (
+  !/^[1-9]\d{3,4}$/.test(uiPort) ||
+  Number(uiPort) < 1024 ||
+  Number(uiPort) > 65535 ||
+  (referenceDraftMode && uiPort === '3001')
+)
+  throw new Error(
+    'Use an explicit reference preview UI port from 1024 to 65535, separate from ordinary port3001.',
+  );
+if (referenceDraftMode && existsSync(new URL('../apps/admin/.next/dev/lock', import.meta.url)))
+  throw new Error(
+    'Reference preview requires a separate checkout; this admin development directory is occupied.',
+  );
 const actor = process.env.STAFF_PREVIEW_ACTOR ?? 'agent';
 if (!['agent', 'admin'].includes(actor))
   throw new Error('Choose agent or admin for the synthetic UI launcher.');
@@ -26,22 +44,26 @@ const nativeUploads =
         powerShellPath: process.env.STAFF_PREVIEW_POWERSHELL_PATH,
       };
 const preview = await startStaffPreview({
+  ...(referenceDraftMode ? { port: 0 } : {}),
   tenantSlug: process.env.TENANT_SLUG ?? 'realtime-estates',
   actor,
   seedPendingReviews:
     nativeUploads === undefined &&
     actor === 'admin' &&
+    !referenceDraftMode &&
     !process.env.STAFF_PREVIEW_SUCCESSOR_TERMINAL,
   creationReplyFault: process.env.STAFF_PREVIEW_CREATION_REPLY_FAULT,
   successorReplyFault: process.env.STAFF_PREVIEW_SUCCESSOR_REPLY_FAULT,
   controlReplyFault: process.env.STAFF_PREVIEW_CONTROL_REPLY_FAULT,
   successorTerminalFixture: process.env.STAFF_PREVIEW_SUCCESSOR_TERMINAL,
+  referenceDraftMode,
+  referenceReplyFault: process.env.STAFF_PREVIEW_REFERENCE_REPLY_FAULT,
   ...(nativeUploads === undefined ? {} : { nativeUploads }),
 });
 const next = fileURLToPath(new URL('../node_modules/next/dist/bin/next', import.meta.url));
 const child = spawn(
   process.execPath,
-  [next, 'dev', 'apps/admin', '-p', '3001', '-H', '127.0.0.1'],
+  [next, 'dev', 'apps/admin', '-p', uiPort, '-H', '127.0.0.1'],
   {
     cwd: root,
     stdio: 'inherit',
@@ -58,10 +80,10 @@ const child = spawn(
   },
 );
 console.log(
-  `Synthetic staff editor: http://127.0.0.1:3001/drafts/${preview.listingId}/${preview.revision}`,
+  `Synthetic staff editor: http://127.0.0.1:${uiPort}/drafts/${preview.listingId}/${preview.revision}${referenceDraftMode ? '/references' : ''}`,
 );
-console.log('Synthetic authorized listing work: http://127.0.0.1:3001/listings');
-if (actor === 'admin') console.log('Synthetic moderator queue: http://127.0.0.1:3001/reviews');
+console.log(`Synthetic authorized listing work: http://127.0.0.1:${uiPort}/listings`);
+if (actor === 'admin') console.log(`Synthetic moderator queue: http://127.0.0.1:${uiPort}/reviews`);
 console.log(
   'Disposable data; changes disappear when this preview stops. Identity expires in 30 minutes.',
 );

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { request as httpRequest } from 'node:http';
 import { createDevelopmentServer } from '../dist/http.js';
 
-test('only exact creation and successor POST receive bounded 128KiB transport allowance', async () => {
+test('only exact creation, successor and reference draft POST receive bounded 128KiB transport allowance', async () => {
   let calls = 0;
   const server = createDevelopmentServer(async (r) => {
     calls++;
@@ -13,11 +13,12 @@ test('only exact creation and successor POST receive bounded 128KiB transport al
   const origin = `http://127.0.0.1:${server.address().port}`,
     path =
       '/v2/staff/listings/00000000-0000-4000-8000-000000000003/creation-operations/00000000-0000-4000-8000-000000000004',
-    body = '界'.repeat(30000);
+    body = '界'.repeat(43690) + 'xx';
   try {
     for (const operationPath of [
       path,
       path.replace('/creation-operations/', '/revision-operations/'),
+      path.replace('/v2/', '/v3/').replace('/creation-operations/', '/reference-draft-operations/'),
     ]) {
       assert.equal((await fetch(origin + operationPath, { method: 'POST', body })).status, 200);
       for (const [method, p] of [
@@ -33,7 +34,7 @@ test('only exact creation and successor POST receive bounded 128KiB transport al
         413,
       );
     }
-    assert.equal(calls, 2);
+    assert.equal(calls, 3);
   } finally {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));

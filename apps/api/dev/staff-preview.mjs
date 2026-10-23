@@ -6,6 +6,8 @@ import { seedHistoricalConfirmedViewing } from '../../../database/test-helpers/h
  * Tokens/private keys are never logged, persisted or returned from an HTTP endpoint.
  */
 import { randomUUID } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { validateListingReferenceCatalogue } from '@realtor/domain';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../../../database/test-helpers/synthetic-sealed-media.mjs';
 import { seedGuardedListingDraft } from '../../../database/test-helpers/guarded-listing-fixture.mjs';
@@ -20,6 +22,25 @@ import { MediaCoordinatorDatabase } from '@realtor/media/coordinator-database';
 import { createNativeMediaPreview, nativeMediaPreviewConfiguration } from './media-preview.mjs';
 
 const id = (number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
+export const REFERENCE_PREVIEW_CATALOGUE = validateListingReferenceCatalogue({
+  policy: 'synthetic-reference-catalogue-v1',
+  version: '1',
+  country: 'KE',
+  locations: [
+    { id: id(31001), kind: 'county', parentId: null, label: 'Synthetic preview county' },
+    { id: id(31002), kind: 'locality', parentId: id(31001), label: 'Synthetic preview town' },
+    { id: id(31003), kind: 'neighbourhood', parentId: id(31002), label: 'Synthetic preview block' },
+    { id: id(31004), kind: 'county', parentId: null, label: 'Synthetic preview county' },
+  ],
+  amenities: [
+    {
+      id: id(31010),
+      code: 'synthetic-preview-lift',
+      label: 'Synthetic preview lift',
+      propertyTypes: ['studio', 'apartment'],
+    },
+  ],
+});
 export const STAFF_PREVIEW_FIXTURES = Object.freeze({
   realtimeListingId: id(400),
   realtimePeerListingId: id(401),
@@ -86,11 +107,32 @@ function configuration({
   successorReplyFault,
   controlReplyFault,
   successorTerminalFixture,
+  referenceDraftMode,
+  referenceReplyFault,
   seedAcceptedMedia = nativeUploads === undefined && enquiryPreview === undefined,
   seedPendingReviews = false,
 } = {}) {
   if (process.env.NODE_ENV === 'production')
     throw new StaffPreviewConfigurationError('Staff preview refuses NODE_ENV=production.');
+  if (
+    referenceDraftMode !== undefined &&
+    (referenceDraftMode !== 'synthetic-reference-draft-v1' ||
+      nativeUploads !== undefined ||
+      enquiryPreview !== undefined ||
+      seedPendingReviews ||
+      successorTerminalFixture !== undefined)
+  )
+    throw new StaffPreviewConfigurationError(
+      'Reference preview requires its explicit isolated synthetic mode.',
+    );
+  if (
+    referenceReplyFault !== undefined &&
+    (referenceReplyFault !== 'invalid-first-applied-v1' ||
+      referenceDraftMode !== 'synthetic-reference-draft-v1')
+  )
+    throw new StaffPreviewConfigurationError(
+      'Reference reply fault requires explicit reference mode.',
+    );
   if (typeof tenantSlug !== 'string' || !Object.hasOwn(COMPANIES, tenantSlug))
     throw new StaffPreviewConfigurationError(
       'Choose the configured realtime-estates or sample-homes synthetic company.',
@@ -231,6 +273,8 @@ function configuration({
     successorReplyFault,
     controlReplyFault,
     successorTerminalFixture,
+    referenceDraftMode,
+    referenceReplyFault,
   };
 }
 function syntheticContent(title = 'Synthetic staff monthly studio') {
@@ -582,7 +626,10 @@ export async function startStaffPreview(options = {}) {
     successorReplyFault,
     controlReplyFault,
     successorTerminalFixture,
+    referenceDraftMode,
+    referenceReplyFault,
   } = configuration(options);
+  let referenceReplyFaultPending = !!referenceReplyFault;
   let controlReplyFaultPending = !!controlReplyFault;
   let successorReplyFaultPending = !!successorReplyFault;
   let creationReplyFaultPending = !!creationReplyFault;
@@ -609,6 +656,20 @@ export async function startStaffPreview(options = {}) {
   let jwksServer;
   try {
     await seed(db, seedAcceptedMedia, seedPendingReviews);
+    if (referenceDraftMode) {
+      // Explicit disposable owner fixture only. These are never default migrations.
+      for (const file of [
+        'listing-reference-draft.sql',
+        'listing-reference-catalogue-install.sql',
+        'listing-reference-read.sql',
+      ])
+        await db.exec(
+          await readFile(new URL('../../../database/proposals/' + file, import.meta.url), 'utf8'),
+        );
+      await db.query('SELECT app_private.install_synthetic_reference_catalogue(0,$1::jsonb)', [
+        JSON.stringify(REFERENCE_PREVIEW_CATALOGUE),
+      ]);
+    }
     if (successorTerminalFixture) {
       for (const fixtureCompany of Object.values(COMPANIES)) {
         // Explicit terminal history only: old revision metadata is synthetic, never native-byte proof.
@@ -739,6 +800,7 @@ export async function startStaffPreview(options = {}) {
     const service = createApiService({
       database,
       verificationMode: 'synthetic-check-record-v1',
+      ...(referenceDraftMode ? { referenceDraftMode } : {}),
       ...(reminderCaptureMode ? { reminderCaptureMode } : {}),
       tenantId: company.id,
       privacyNoticeVersion: 'synthetic-staff-notice-v1',
@@ -815,6 +877,7 @@ export async function startStaffPreview(options = {}) {
             tenantSlug,
             historicalSyntheticViewings: !!historicalViewings,
             syntheticReminderCapture: !!reminderCaptureMode,
+            syntheticReferenceDrafts: !!referenceDraftMode,
             acceptedMediaMetadataOnly: seedAcceptedMedia,
             successorHistoricalMetadataOnly: !!successorTerminalFixture,
             nativeUploads: !!nativeMedia,
@@ -822,6 +885,31 @@ export async function startStaffPreview(options = {}) {
             retainedSyntheticMedia: !!nativeMedia,
             tokenExpiresAt: expiresAt,
           });
+        if (
+          referenceDraftMode &&
+          (url.pathname === '/v3/staff/reference-session' ||
+            /^\/v3\/staff\/reference-catalogues\/(current|[1-9]\d{0,15})$/.test(url.pathname) ||
+            /^\/v3\/staff\/listings\/[0-9a-f-]{36}\/reference-draft-operations\/[0-9a-f-]{36}$/.test(
+              url.pathname,
+            ))
+        ) {
+          const response = await service(request);
+          response.headers.set('X-Synthetic-Staff-Preview', 'true');
+          if (referenceReplyFaultPending && request.method === 'POST' && response.status === 200) {
+            referenceReplyFaultPending = false;
+            return Response.json(
+              { syntheticReplyCorruption: true },
+              {
+                status: 200,
+                headers: {
+                  'Cache-Control': 'private, no-store',
+                  'X-Synthetic-Staff-Preview': 'true',
+                },
+              },
+            );
+          }
+          return response;
+        }
         if (
           url.pathname === '/v2/staff/listings' ||
           /^\/v2\/staff\/listings\/[0-9a-f-]{36}$/i.test(url.pathname)
@@ -1248,6 +1336,7 @@ export async function startStaffPreview(options = {}) {
       successorHistoricalMetadataOnly: !!successorTerminalFixture,
       enquiryCatalogueMetadataOnly: !!enquiryCatalogue,
       pendingReviewFixtures: seedPendingReviews,
+      syntheticReferenceDrafts: !!referenceDraftMode,
       nativeUploads: !!nativeMedia,
       close,
     };
