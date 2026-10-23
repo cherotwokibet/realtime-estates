@@ -2,6 +2,9 @@ import {
   validateListingReferenceCatalogue,
   validateSyntheticReferenceDraftCommand,
   validateSyntheticReferenceDraftReceipt,
+  validateSyntheticReferenceRevision,
+  validateSyntheticReferenceTransitionCommand,
+  validateSyntheticReferenceTransitionReceipt,
   validateListingVerificationCommand,
   validateListingVerificationReceipt,
   validateListingVerificationOriginal,
@@ -89,6 +92,8 @@ export interface EnquiryLimiter {
 export interface ApiServiceOptions {
   /** Isolated synthetic reference candidates only; omitted keeps every v3 reference route unavailable. */
   readonly referenceDraftMode?: 'synthetic-reference-draft-v1';
+  /** Separate isolated candidate. Requires reference draft mode; never installs schema. */
+  readonly referenceModerationMode?: 'synthetic-reference-transition-v1';
   /** Explicit synthetic private-check policy; omission leaves its routes unavailable. */
   readonly verificationMode?: 'synthetic-check-record-v1';
   /** Explicit internal synthetic mode. Omission disables all reminder admission/capture HTTP routes. */
@@ -220,11 +225,19 @@ async function jsonBody(
         deadlineTimer = setTimeout(() => reject(timedOut()), deadlineMs);
       })
     : null;
+  let abortBody: (() => void) | undefined;
+  const aborted: Promise<never> | null = deadlineMs
+    ? new Promise((_, reject) => {
+        abortBody = () => reject(new HttpError(400, 'REQUEST_ABORTED', 'Request was cancelled.'));
+        request.signal.addEventListener('abort', abortBody, { once: true });
+        if (request.signal.aborted) abortBody();
+      })
+    : null;
   try {
     for (;;) {
       if (expires && Date.now() >= expires) throw timedOut();
       const { value, done } = await (timeout
-        ? Promise.race([reader.read(), timeout])
+        ? Promise.race([reader.read(), timeout, aborted!])
         : reader.read());
       if (done) break;
       if (deadlineMs && !value.byteLength) {
@@ -247,6 +260,7 @@ async function jsonBody(
     throw error;
   } finally {
     if (deadlineTimer) clearTimeout(deadlineTimer);
+    if (abortBody) request.signal.removeEventListener('abort', abortBody);
     reader.releaseLock();
   }
   if (exactLength && declared !== null && Number(declared) !== size)
@@ -1248,6 +1262,13 @@ export function createApiService(
   )
     throw new Error('Unsupported reference draft mode.');
   const referenceEnabled = options.referenceDraftMode === 'synthetic-reference-draft-v1';
+  if (
+    options.referenceModerationMode !== undefined &&
+    (options.referenceModerationMode !== 'synthetic-reference-transition-v1' || !referenceEnabled)
+  )
+    throw new Error('Unsupported reference moderation mode.');
+  const referenceModerationEnabled =
+    options.referenceModerationMode === 'synthetic-reference-transition-v1';
   const tenantId = uuid(options.tenantId, 'Configured tenant');
   const privacyNoticeVersion = text(
     options.privacyNoticeVersion,
@@ -1383,14 +1404,23 @@ export function createApiService(
         const operationRoute =
           /^\/v3\/staff\/listings\/([^/]+)\/reference-draft-operations\/([^/]+)$/.exec(path);
         const sessionRoute = path === '/v3/staff/reference-session';
-        if (!catalogueRoute && !operationRoute && !sessionRoute)
+        const transitionRoute =
+          /^\/v3\/staff\/listings\/([^/]+)\/reference-transition-operations\/([^/]+)$/.exec(path);
+        const revisionRoute =
+          /^\/v3\/staff\/(listings|reviews)\/([^/]+)\/reference-revisions\/([1-9]\d{0,9})\/([1-9]\d{0,15})$/.exec(
+            path,
+          );
+        const moderationRoute = transitionRoute || revisionRoute;
+        if (moderationRoute && !referenceModerationEnabled)
+          throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+        if (!catalogueRoute && !operationRoute && !sessionRoute && !moderationRoute)
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
         if (
-          ((catalogueRoute || sessionRoute) && method !== 'GET') ||
-          (operationRoute && !['GET', 'POST'].includes(method))
+          ((catalogueRoute || sessionRoute || revisionRoute) && method !== 'GET') ||
+          ((operationRoute || transitionRoute) && !['GET', 'POST'].includes(method))
         )
           throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method is not allowed.', {
-            Allow: catalogueRoute || sessionRoute ? 'GET' : 'GET, POST',
+            Allow: catalogueRoute || sessionRoute || revisionRoute ? 'GET' : 'GET, POST',
           });
         const actorId = await identity(request, true);
         let forbidden =
@@ -1442,6 +1472,20 @@ export function createApiService(
           catalogueRoute && catalogueRoute[1] !== 'current' ? catalogueRoute[1]! : null;
         if (catalogueVersion !== null && BigInt(catalogueVersion) > 9007199254740991n)
           throw new HttpError(400, 'INVALID_INPUT', 'Invalid catalogue version.');
+        const moderationListing = moderationRoute
+          ? uuid(revisionRoute ? revisionRoute[2] : transitionRoute![1], 'listingId')
+          : null;
+        const transitionId = transitionRoute ? uuid(transitionRoute[2], 'operationId') : null;
+        const moderationRevision = revisionRoute ? Number(revisionRoute[3]) : null;
+        const moderationVersion = revisionRoute?.[4] ?? null;
+        if (
+          moderationRoute &&
+          ((revisionRoute ? revisionRoute[2] : transitionRoute![1]) !== moderationListing ||
+            (transitionRoute && transitionRoute[2] !== transitionId) ||
+            (revisionRoute &&
+              (moderationRevision! > 2147483647 || BigInt(moderationVersion!) > 9007199254740991n)))
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Canonical moderation route required.');
         const result = await options.database.transaction(
           { tenantId, actorId, correlationId },
           async (query) => {
@@ -1463,6 +1507,131 @@ export function createApiService(
               return value;
             }
             if (catalogueRoute) return catalogue(catalogueVersion);
+            if (moderationRoute) {
+              const active = () => {
+                if (request.signal.aborted)
+                  throw new HttpError(400, 'REQUEST_ABORTED', 'Request was cancelled.');
+              };
+              active();
+              // Read only own data descriptors from SQL projections before their complete domain validation.
+              const field = (input: unknown, key: string): unknown => {
+                if (
+                  !input ||
+                  typeof input !== 'object' ||
+                  ![Object.prototype, null].includes(Object.getPrototypeOf(input))
+                )
+                  throw Error('Invalid moderation projection.');
+                const d = Object.getOwnPropertyDescriptor(input, key);
+                if (!d?.enumerable || !Object.hasOwn(d, 'value'))
+                  throw Error('Invalid moderation projection.');
+                return d.value;
+              };
+              const historicalVersion = (review: unknown) => {
+                const version = field(field(review, 'attributes'), 'catalogueVersion');
+                if (
+                  typeof version !== 'string' ||
+                  !/^[1-9]\d{0,15}$/.test(version) ||
+                  BigInt(version) > 9007199254740991n
+                )
+                  throw Error('Invalid historical reference version.');
+                return version;
+              };
+              const historical = (review: unknown) => catalogue(historicalVersion(review));
+              if (revisionRoute) {
+                const data = await query.query(
+                  revisionRoute[1] === 'reviews'
+                    ? 'SELECT app_api.read_synthetic_reference_review($1::uuid,$2::integer,$3::bigint) AS review'
+                    : 'SELECT app_api.read_synthetic_reference_revision($1::uuid,$2::integer,$3::bigint) AS review',
+                  [moderationListing, moderationRevision, moderationVersion],
+                );
+                if (data.rows.length !== 1) throw Error('Invalid reference revision projection.');
+                const raw = scalar(data, 'review');
+                const review = validateSyntheticReferenceRevision(
+                  raw,
+                  await historical(raw),
+                  moderationListing!,
+                  moderationRevision!,
+                  moderationVersion!,
+                );
+                if (revisionRoute[1] === 'reviews' && review.state !== 'pending')
+                  throw Error('Invalid pending reference review.');
+                active();
+                return review;
+              }
+              if (method === 'GET') {
+                const data = await query.query(
+                  'SELECT app_api.read_synthetic_reference_transition($1::uuid,$2::uuid) AS receipt',
+                  [moderationListing, transitionId],
+                );
+                if (data.rows.length !== 1) throw Error('Invalid original transition projection.');
+                const raw = scalar(data, 'receipt'),
+                  rawReview = field(raw, 'review');
+                const originalCatalogue = await historical(rawReview);
+                const originalCommand = validateSyntheticReferenceTransitionCommand(
+                  {
+                    policy: field(raw, 'policy'),
+                    operationId: field(raw, 'operationId'),
+                    action: field(raw, 'action'),
+                    listingId: field(raw, 'listingId'),
+                    revision: field(raw, 'revision'),
+                    review: rawReview,
+                    reason: field(raw, 'reason'),
+                  },
+                  originalCatalogue,
+                );
+                if (
+                  originalCommand.listingId !== moderationListing ||
+                  originalCommand.operationId !== transitionId
+                )
+                  throw Error('Original transition changed route.');
+                const receipt = validateSyntheticReferenceTransitionReceipt(
+                  raw,
+                  originalCommand,
+                  originalCatalogue,
+                  actorId!,
+                );
+                active();
+                return receipt;
+              }
+              const body = await jsonBody(request, 131072, true, true, true, true, true, 10000);
+              active();
+              let selected;
+              try {
+                selected = historicalVersion(field(body, 'review'));
+              } catch {
+                throw new HttpError(400, 'INVALID_INPUT', 'Invalid reference transition command.');
+              }
+              const originalCatalogue = await catalogue(selected);
+              let command;
+              try {
+                command = validateSyntheticReferenceTransitionCommand(body, originalCatalogue);
+              } catch {
+                throw new HttpError(400, 'INVALID_INPUT', 'Invalid reference transition command.');
+              }
+              if (command.listingId !== moderationListing || command.operationId !== transitionId)
+                throw new HttpError(400, 'INVALID_INPUT', 'Reference transition changed route.');
+              active();
+              const data = await query.query(
+                'SELECT app_api.execute_synthetic_reference_transition($1::uuid,$2::integer,$3::uuid,$4::text,$5::jsonb,$6::text) AS receipt',
+                [
+                  moderationListing,
+                  command.revision,
+                  transitionId,
+                  command.action,
+                  JSON.stringify(command.review),
+                  command.reason,
+                ],
+              );
+              if (data.rows.length !== 1) throw Error('Invalid reference transition receipt.');
+              const receipt = validateSyntheticReferenceTransitionReceipt(
+                scalar(data, 'receipt'),
+                command,
+                originalCatalogue,
+                actorId!,
+              );
+              active();
+              return receipt;
+            }
             if (method === 'GET') {
               const data = await query.query(
                 'SELECT app_api.read_synthetic_reference_draft_context($1::uuid,$2::uuid) AS original',
