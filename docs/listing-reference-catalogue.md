@@ -1,5 +1,7 @@
 # Synthetic normalized location and amenity contract
 
+Checkpoint129 adds a separately tested, isolated persistence candidate. See [listing-reference-draft-candidate.md](listing-reference-draft-candidate.md) for the combined editorial-version command, original receipt recovery, explicit legacy refusal and deliberate submission block. The checkpoint128 contract evidence below remains historical; default migrations and applications still have no reference-aware feature.
+
 Checkpoint128 adds shared reference-catalogue validation, selection and detached label snapshots as a foundation for task06-1. It does not add persistence, HTTP routes, editor controls or approved public projections. No real Kenyan location dataset, official county coverage or evidence of data rights is claimed. All test names and amenity codes are explicitly synthetic.
 
 ## Reference and selection rules
