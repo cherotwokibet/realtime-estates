@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { snapshotListingReferenceAttributes } from '@realtor/domain';
 import {
   createCatalogueLoader,
   resolveCatalogueConfig,
@@ -66,6 +67,106 @@ const ready = (result) => {
   assert.notEqual(result.mode, 'error');
   return result;
 };
+const referenceEnvironment = {
+  WEB_CATALOGUE_REFERENCE: 'synthetic-reference-public-v1',
+  NODE_ENV: 'test',
+};
+const referenceProperty = () => {
+  const catalogue = {
+    policy: 'synthetic-reference-catalogue-v1',
+    version: '1',
+    country: 'KE',
+    locations: [
+      { id: id(200), kind: 'county', parentId: null, label: 'Synthetic County' },
+      { id: id(201), kind: 'locality', parentId: id(200), label: 'Synthetic Town' },
+      { id: id(202), kind: 'neighbourhood', parentId: id(201), label: 'Synthetic Area' },
+    ],
+    amenities: [
+      { id: id(300), code: 'synthetic-lift', label: 'Synthetic lift', propertyTypes: ['studio'] },
+    ],
+  };
+  return property({
+    locality: 'Synthetic Area',
+    reference: {
+      revisionVersion: '5',
+      attributes: snapshotListingReferenceAttributes(
+        {
+          catalogueVersion: '1',
+          location: { countyId: id(200), localityId: id(201), neighbourhoodId: id(202) },
+          amenityIds: [id(300)],
+        },
+        catalogue,
+        'studio',
+      ),
+    },
+  });
+};
+test('explicit synthetic reference web mode maps approved historical amenities and exact pricing through the real SDK', async () => {
+  const source = referenceProperty(),
+    calls = [];
+  const loader = connected([source], referenceEnvironment, async (url, init) => {
+    calls.push({ url, init });
+    return json({ policy: 'synthetic-reference-public-v1', items: [source], limit: 100 });
+  });
+  const result = ready(await loader.list({ location: 'Synthetic Town' }));
+  assert.equal(calls.length, 1);
+  assert.ok(calls[0].url.endsWith('/v3/properties?limit=100'));
+  assert.equal(calls[0].init.headers.Authorization, undefined);
+  assert.equal(result.sourceLabel, 'API connected · Synthetic reference preview');
+  assert.equal(result.items[0].priceMinor, 2000001);
+  assert.deepEqual(result.items[0].amenities, ['Synthetic lift']);
+  assert.equal(result.items[0].amenitiesKnown, true);
+  assert.equal(result.items[0].reference.revisionVersion, '5');
+  assert.equal(result.items[0].reference.attributes.location.county.id, id(200));
+  assert.ok(Object.isFrozen(result.items[0].reference.attributes.amenities));
+});
+test('legacy absence stays unknown and an adopted empty amenity selection stays explicitly empty', async () => {
+  const adopted = structuredClone(referenceProperty());
+  adopted.reference.attributes.amenities = [];
+  const legacy = property({ id: id(101), reference: { attributes: null, revisionVersion: null } });
+  const result = ready(
+    await connected([adopted, legacy], referenceEnvironment, async () =>
+      json({ policy: 'synthetic-reference-public-v1', items: [adopted, legacy], limit: 100 }),
+    ).list(),
+  );
+  assert.equal(result.items[0].amenitiesKnown, true);
+  assert.deepEqual(result.items[0].amenities, []);
+  assert.equal(result.items[1].amenitiesKnown, false);
+  assert.deepEqual(result.items[1].amenities, []);
+  assert.equal(result.items[1].reference.attributes, null);
+});
+test('reference web mode refuses production, demo, unspecified data and unknown modes without a request', async () => {
+  let calls = 0;
+  for (const patch of [
+    { NODE_ENV: 'production' },
+    { WEB_CATALOGUE_MODE: 'demo' },
+    { WEB_CATALOGUE_DATA: 'unspecified' },
+    { WEB_CATALOGUE_REFERENCE: 'live' },
+  ]) {
+    const result = await connected([], { ...referenceEnvironment, ...patch }, async () => {
+      calls++;
+      throw Error();
+    }).list();
+    assert.equal(result.mode, 'error');
+    assert.equal(result.code, 'CONFIGURATION');
+  }
+  assert.equal(calls, 0);
+});
+test('reference read errors and changed public labels remain errors with no v2 or demo fallback', async () => {
+  for (const mode of ['missing', 'renamed']) {
+    let calls = 0;
+    const source = structuredClone(referenceProperty());
+    source.reference.attributes.location.county.label = 'Newer label';
+    const result = await connected([], referenceEnvironment, async () => {
+      calls++;
+      if (mode === 'missing') throw Error();
+      return json({ policy: 'synthetic-reference-public-v1', items: [source], limit: 100 });
+    }).list();
+    assert.equal(result.mode, 'error');
+    assert.equal(result.code, 'UNAVAILABLE');
+    assert.equal(calls, 1);
+  }
+});
 
 test('default mode stays synthetic demo even with an API origin, with company-separated immutable fixtures', async () => {
   let calls = 0;

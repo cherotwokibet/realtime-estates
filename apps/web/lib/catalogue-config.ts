@@ -6,6 +6,7 @@ export interface CatalogueEnvironment {
   readonly API_ORIGIN?: string;
   readonly ALLOW_LOOPBACK_API?: string;
   readonly WEB_CATALOGUE_DATA?: string;
+  readonly WEB_CATALOGUE_REFERENCE?: string;
   readonly TENANT_SLUG?: string;
   readonly NODE_ENV?: string;
 }
@@ -19,6 +20,7 @@ export type CatalogueConfig =
       readonly apiOrigin: string;
       readonly allowLoopbackHttp: boolean;
       readonly limit: 100;
+      readonly referenceMode?: 'synthetic-reference-public-v1';
     };
 export type CatalogueConfigResolution =
   | { readonly status: 'ready'; readonly config: CatalogueConfig }
@@ -39,6 +41,15 @@ export function resolveCatalogueConfig(
     const dataKind = environment.WEB_CATALOGUE_DATA ?? 'unspecified';
     if (dataKind !== 'synthetic' && dataKind !== 'unspecified')
       throw new Error('Unsupported data declaration');
+    const referenceMode = environment.WEB_CATALOGUE_REFERENCE;
+    if (
+      referenceMode !== undefined &&
+      (referenceMode !== 'synthetic-reference-public-v1' ||
+        mode !== 'connected' ||
+        dataKind !== 'synthetic' ||
+        !['development', 'test'].includes(environment.NODE_ENV ?? ''))
+    )
+      throw new Error('Reference reads require an explicit synthetic development preview.');
     if (mode === 'demo')
       return Object.freeze({
         status: 'ready',
@@ -70,6 +81,7 @@ export function resolveCatalogueConfig(
         apiOrigin: new URL(environment.API_ORIGIN).origin,
         allowLoopbackHttp,
         limit: 100,
+        ...(referenceMode ? { referenceMode } : {}),
       }),
     });
   } catch {

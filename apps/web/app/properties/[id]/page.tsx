@@ -233,11 +233,15 @@ export default async function Property({ params }: { params: Promise<{ id: strin
               </div>
             </dl>
             <h2>Features &amp; amenities</h2>
-            {p.amenitiesKnown ? (
+            {p.amenitiesKnown && p.amenities.length === 0 ? (
+              <p>No amenities have been listed.</p>
+            ) : p.amenitiesKnown ? (
               <ul className="amenities">
-                {p.amenities.map((amenity) => (
-                  <li key={amenity}>{amenity}</li>
-                ))}
+                {p.reference?.attributes
+                  ? p.reference.attributes.amenities.map((amenity) => (
+                      <li key={amenity.id}>{amenity.label}</li>
+                    ))
+                  : p.amenities.map((amenity) => <li key={amenity}>{amenity}</li>)}
               </ul>
             ) : (
               <p>Amenities have not been supplied.</p>

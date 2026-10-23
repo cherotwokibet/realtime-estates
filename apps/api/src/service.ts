@@ -4,6 +4,9 @@ import {
   validateSyntheticReferenceDraftReceipt,
   validateSyntheticReferenceRevision,
   validateSyntheticReferenceContext,
+  validateSyntheticReferencePublicAttributes,
+  PROPERTY_TYPES,
+  type PropertyType,
   validateSyntheticReferenceTransitionCommand,
   validateSyntheticReferenceTransitionReceipt,
   validateListingVerificationCommand,
@@ -454,6 +457,178 @@ function publicRowV2(row: Record<string, unknown>): Record<string, unknown> {
     pricing,
   );
   return { ...item, pricing, location };
+}
+function publicReferenceRow(row: Record<string, unknown>): Record<string, unknown> {
+  const keys = [
+    'id',
+    'slug',
+    'revision',
+    'title',
+    'description',
+    'purpose',
+    'propertyType',
+    'currency',
+    'amountMinor',
+    'rentPeriod',
+    'bedrooms',
+    'privateBathrooms',
+    'sharedBathrooms',
+    'country',
+    'locality',
+    'publicPrecision',
+    'latitude',
+    'longitude',
+    'photos',
+    'pricing',
+    'location',
+    'referenceAttributes',
+    'referenceRevisionVersion',
+    'referenceCatalogue',
+  ];
+  if (
+    !row ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(row)) ||
+    Reflect.ownKeys(row).length !== keys.length ||
+    Reflect.ownKeys(row).some((k) => typeof k !== 'string' || !keys.includes(k))
+  )
+    throw Error('Invalid public reference projection.');
+  const captured: Record<string, unknown> = {};
+  for (const key of keys) {
+    const d = Object.getOwnPropertyDescriptor(row, key);
+    if (!d?.enumerable || !Object.hasOwn(d, 'value'))
+      throw Error('Invalid public projection field.');
+    captured[key] = d.value;
+  }
+  const { referenceAttributes, referenceRevisionVersion, referenceCatalogue, ...base } = captured;
+  const checkedCatalogue =
+    referenceAttributes === null ? null : validateListingReferenceCatalogue(referenceCatalogue);
+  if (new TextEncoder().encode(JSON.stringify(checkedCatalogue)).byteLength > 131072)
+    throw Error('Public reference validation context too large.');
+  for (const field of [
+    'id',
+    'slug',
+    'title',
+    'description',
+    'purpose',
+    'propertyType',
+    'currency',
+    'amountMinor',
+    'country',
+    'locality',
+    'publicPrecision',
+  ])
+    if (typeof base[field] !== 'string') throw Error('Invalid public scalar field.');
+  if (
+    typeof base.revision !== 'number' ||
+    !Number.isInteger(base.revision) ||
+    base.revision < 1 ||
+    base.revision > 2147483647 ||
+    !/^[1-9]\d{0,14}$/.test(base.amountMinor as string) ||
+    BigInt(base.amountMinor as string) > 100000000000000n
+  )
+    throw Error('Invalid public numeric field.');
+  for (const field of ['bedrooms', 'privateBathrooms', 'sharedBathrooms'])
+    if (
+      base[field] !== null &&
+      (typeof base[field] !== 'number' ||
+        !Number.isSafeInteger(base[field]) ||
+        (base[field] as number) < 0)
+    )
+      throw Error('Invalid public room count.');
+  for (const field of ['latitude', 'longitude'])
+    if (
+      base[field] !== null &&
+      (typeof base[field] !== 'string' || !Number.isFinite(Number(base[field])))
+    )
+      throw Error('Invalid public coordinate.');
+  if (base.rentPeriod !== null && typeof base.rentPeriod !== 'string')
+    throw Error('Invalid public rental period.');
+  if (
+    base.currency !== 'KES' ||
+    base.country !== 'KE' ||
+    !['rent', 'sale'].includes(base.purpose as string) ||
+    !['area', 'exact'].includes(base.publicPrecision as string) ||
+    (base.purpose === 'sale' && base.rentPeriod !== null) ||
+    (base.purpose === 'rent' &&
+      !['day', 'week', 'month', 'year'].includes(base.rentPeriod as string)) ||
+    (base.latitude === null) !== (base.longitude === null) ||
+    (base.publicPrecision === 'area' && base.latitude !== null) ||
+    (base.latitude !== null &&
+      (Number(base.latitude) < -90 ||
+        Number(base.latitude) > 90 ||
+        Number(base.longitude) < -180 ||
+        Number(base.longitude) > 180))
+  )
+    throw Error('Invalid public location or listing kind.');
+  const rawPhotos = base.photos;
+  if (
+    !Array.isArray(rawPhotos) ||
+    Object.getPrototypeOf(rawPhotos) !== Array.prototype ||
+    rawPhotos.length < 4 ||
+    rawPhotos.length > 12 ||
+    Reflect.ownKeys(rawPhotos).length !== rawPhotos.length + 1
+  )
+    throw Error('Invalid public photos.');
+  const photoKeys = new Set<string>();
+  base.photos = Object.freeze(
+    Array.from({ length: rawPhotos.length }, (_, i) => {
+      const d = Object.getOwnPropertyDescriptor(rawPhotos, String(i));
+      if (!d?.enumerable || !Object.hasOwn(d, 'value'))
+        throw Error('Invalid public photo element.');
+      const photo = d.value;
+      if (
+        !photo ||
+        ![Object.prototype, null].includes(Object.getPrototypeOf(photo)) ||
+        Reflect.ownKeys(photo).length !== 2 ||
+        Reflect.ownKeys(photo).some((k) => k !== 'key' && k !== 'alt')
+      )
+        throw Error('Invalid public photo fields.');
+      const key = Object.getOwnPropertyDescriptor(photo, 'key'),
+        alt = Object.getOwnPropertyDescriptor(photo, 'alt');
+      if (
+        !key?.enumerable ||
+        !alt?.enumerable ||
+        !Object.hasOwn(key, 'value') ||
+        !Object.hasOwn(alt, 'value') ||
+        typeof key.value !== 'string' ||
+        typeof alt.value !== 'string' ||
+        key.value.length > 1024 ||
+        [...alt.value].length > 300 ||
+        !alt.value.trim() ||
+        !/^[A-Za-z\d][A-Za-z\d/_-]*\.(?:webp|jpg|png)$/.test(key.value) ||
+        photoKeys.has(key.value)
+      )
+        throw Error('Invalid public photo values.');
+      photoKeys.add(key.value);
+      return Object.freeze({ key: key.value, alt: alt.value });
+    }),
+  );
+  if (
+    !PROPERTY_TYPES.includes(base.propertyType as PropertyType) ||
+    (referenceAttributes === null && referenceCatalogue !== null)
+  )
+    throw Error('Invalid public reference context.');
+  const reference = validateSyntheticReferencePublicAttributes(
+    { attributes: referenceAttributes, revisionVersion: referenceRevisionVersion },
+    checkedCatalogue,
+    base.propertyType as PropertyType,
+  );
+  const item = publicRowV2(base);
+  if (reference.attributes) {
+    const l = reference.attributes.location,
+      expected = {
+        county: l.county?.label ?? null,
+        town: l.locality?.label ?? null,
+        area: l.neighbourhood?.label ?? null,
+      };
+    const location = item.location as Record<string, unknown>;
+    if (Object.keys(expected).some((k) => location[k] !== expected[k as keyof typeof expected]))
+      throw Error('Public reference location changed.');
+    const deepest = l.neighbourhood?.label ?? l.locality?.label ?? l.county?.label;
+    if (deepest !== undefined && base.locality !== deepest)
+      throw Error('Public reference locality changed.');
+  }
+  return Object.freeze({ ...item, reference });
 }
 
 const REVIEW_METADATA = `r.listing_id AS "listingId",l.slug,r.revision_no AS revision,r.state,r.version::text AS version,
@@ -1296,6 +1471,64 @@ export function createApiService(
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method.toUpperCase();
+      if (path === '/v3/properties') {
+        if (!referenceModerationEnabled)
+          throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+        if (method !== 'GET')
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method is not allowed.', {
+            Allow: 'GET',
+          });
+        const values = url.searchParams.getAll('limit');
+        if (
+          [...url.searchParams.keys()].some((k) => k !== 'limit') ||
+          values.length > 1 ||
+          (values.length === 1 && !/^(?:[1-9]\d?|100)$/.test(values[0]!)) ||
+          request.body !== null ||
+          request.url.includes('#')
+        )
+          throw new HttpError(
+            400,
+            'INVALID_INPUT',
+            'Use a bounded public page without context overrides.',
+          );
+        const pageLimit = limit(request);
+        const items = await options.database.transaction(
+          { tenantId, actorId: null, correlationId },
+          async (query) => {
+            const result = await query.query(
+              `SELECT listing_id AS id,slug,revision_no AS revision,title,description,purpose,
+            property_type AS "propertyType",currency,amount_minor::text AS "amountMinor",rent_period AS "rentPeriod",bedrooms,
+            private_bathrooms AS "privateBathrooms",shared_bathrooms AS "sharedBathrooms",country,locality,public_precision AS "publicPrecision",
+            latitude::text AS latitude,longitude::text AS longitude,photo_refs AS photos,pricing,location,
+            reference_attributes AS "referenceAttributes",reference_revision_version AS "referenceRevisionVersion",reference_catalogue AS "referenceCatalogue"
+            FROM app_api.public_listings_reference_v3 ORDER BY approved_at DESC,listing_id LIMIT $1`,
+              [pageLimit],
+            );
+            if (result.rows.length > pageLimit)
+              throw Error('Public reference projection exceeded page bound.');
+            const items = result.rows.map(publicReferenceRow);
+            if (
+              new TextEncoder().encode(
+                JSON.stringify({
+                  policy: 'synthetic-reference-public-v1',
+                  items,
+                  limit: pageLimit,
+                }),
+              ).byteLength >
+              3 * 1024 * 1024
+            )
+              throw Error('Public reference page too large.');
+            if (request.signal.aborted)
+              throw new HttpError(400, 'REQUEST_ABORTED', 'Request was cancelled.');
+            return items;
+          },
+        );
+        return response(
+          200,
+          { policy: 'synthetic-reference-public-v1', items, limit: pageLimit },
+          correlationId,
+        );
+      }
       if ((path === '/v1/properties' || path === '/v2/properties') && method === 'GET') {
         const pageLimit = limit(request);
         const v2 = path === '/v2/properties';

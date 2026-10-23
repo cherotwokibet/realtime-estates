@@ -168,6 +168,73 @@ export function validateSyntheticReferencePublicAttributes(
     }),
   );
 }
+export type SyntheticReferencePublicSnapshot = ReturnType<
+  typeof validateSyntheticReferencePublicAttributes
+>;
+/** Public wire shape only. Historical catalogue membership is checked by the server against its stored catalogue. */
+export function validateSyntheticReferencePublicSnapshot(
+  input: unknown,
+): SyntheticReferencePublicSnapshot {
+  const p = own(input, ['attributes', 'revisionVersion']);
+  if (p.attributes === null) {
+    if (p.revisionVersion !== null) return invalid();
+    return Object.freeze({ attributes: null, revisionVersion: null });
+  }
+  const revisionVersion = version(p.revisionVersion);
+  if (BigInt(revisionVersion) < 2n) return invalid();
+  const a = own(p.attributes, ['catalogueVersion', 'country', 'location', 'amenities']);
+  if (a.country !== 'KE') return invalid();
+  const location = own(a.location, ['county', 'locality', 'neighbourhood']),
+    seen = new Set<string>();
+  const label = (v: unknown) => {
+    const s = text(v, 160);
+    if (s.normalize('NFC') !== s) return invalid();
+    return s;
+  };
+  const takeId = (v: unknown) => {
+    const id = uuid(v);
+    if (seen.has(id)) return invalid();
+    seen.add(id);
+    return id;
+  };
+  const takeLocation = (v: unknown) => {
+    if (v === null) return null;
+    const row = own(v, ['id', 'label']);
+    return Object.freeze({ id: takeId(row.id), label: label(row.label) });
+  };
+  const county = takeLocation(location.county),
+    locality = takeLocation(location.locality),
+    neighbourhood = takeLocation(location.neighbourhood);
+  if ((locality && !county) || (neighbourhood && !locality)) return invalid();
+  const codes = new Set<string>();
+  let previous = '';
+  const amenities = array(a.amenities, 50).map((v) => {
+    const row = own(v, ['id', 'code', 'label']),
+      id = takeId(row.id);
+    if (
+      id <= previous ||
+      typeof row.code !== 'string' ||
+      row.code.length > 64 ||
+      !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(row.code) ||
+      codes.has(row.code)
+    )
+      return invalid();
+    previous = id;
+    codes.add(row.code);
+    return Object.freeze({ id, code: row.code, label: label(row.label) });
+  });
+  return bounded(
+    Object.freeze({
+      attributes: Object.freeze({
+        catalogueVersion: version(a.catalogueVersion),
+        country: 'KE' as const,
+        location: Object.freeze({ county, locality, neighbourhood }),
+        amenities: Object.freeze(amenities),
+      }),
+      revisionVersion,
+    }),
+  );
+}
 /** Private staff projection. Original catalogue is server-controlled historical data, never the latest catalogue or caller authority. */
 export function validateSyntheticReferenceRevision(
   input: unknown,

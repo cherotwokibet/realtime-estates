@@ -15,8 +15,18 @@ const cat = {
   policy: 'synthetic-reference-catalogue-v1',
   version: '1',
   country: 'KE',
-  locations: [{ id: id(200), kind: 'county', parentId: null, label: 'Synthetic original county' }],
-  amenities: [],
+  locations: [
+    { id: id(200), kind: 'county', parentId: null, label: 'Synthetic original county' },
+    { id: id(201), kind: 'county', parentId: null, label: 'Synthetic unselected county' },
+  ],
+  amenities: [
+    {
+      id: id(202),
+      code: 'synthetic-unused',
+      label: 'Synthetic unselected amenity',
+      propertyTypes: ['land'],
+    },
+  ],
 };
 const content = normalizeStaffDraftContentV2({
   title: 'Synthetic moderation API',
@@ -99,6 +109,8 @@ test('opt-in reference moderation validates actual restricted SQL before commit 
     corrupt = false,
     badRead = false,
     badOriginal = false,
+    badPublic = '',
+    lastPublicCatalogue = null,
     reads = 0,
     writes = 0,
     commits = 0,
@@ -115,6 +127,52 @@ test('opt-in reference moderation validates actual restricted SQL before commit 
           async query(sql, args) {
             if (sql.includes('execute_synthetic_reference_transition')) writes++;
             const value = await db.query(sql, args);
+            if (sql.includes('FROM app_api.public_listings_reference_v3') && value.rows[0])
+              lastPublicCatalogue = value.rows[0].referenceCatalogue;
+            if (
+              badPublic &&
+              sql.includes('FROM app_api.public_listings_reference_v3') &&
+              value.rows[0]
+            ) {
+              if (badPublic === 'rename')
+                value.rows[0].referenceAttributes.location.county.label =
+                  'Synthetic renamed projection';
+              if (badPublic === 'extra') value.rows[0].privateAddress = 'PRIVATE-MODERATION-API';
+              if (badPublic === 'version') value.rows[0].referenceRevisionVersion = null;
+              if (badPublic === 'photoextra')
+                value.rows[0].photos[0].privateAddress = 'PRIVATE-MODERATION-API';
+              if (badPublic === 'titleobject')
+                value.rows[0].title = { privateAddress: 'PRIVATE-MODERATION-API' };
+              if (badPublic === 'coordinate') {
+                value.rows[0].latitude = '1';
+                value.rows[0].longitude = '2';
+              }
+              if (badPublic === 'overpage') value.rows.push(...Array(10).fill(value.rows[0]));
+              if (badPublic === 'catalogueGetter')
+                Object.defineProperty(value.rows[0].referenceCatalogue.locations[0], 'label', {
+                  enumerable: true,
+                  get() {
+                    reads++;
+                    return 'Changed';
+                  },
+                });
+              if (badPublic === 'photoGetter')
+                Object.defineProperty(value.rows[0].photos[0], 'alt', {
+                  enumerable: true,
+                  get() {
+                    reads++;
+                    return 'Changed';
+                  },
+                });
+              if (badPublic === 'getter')
+                Object.defineProperty(value.rows[0], 'referenceCatalogue', {
+                  enumerable: true,
+                  get() {
+                    reads++;
+                    return {};
+                  },
+                });
+            }
             if (corrupt && sql.includes('execute_synthetic_reference_transition'))
               value.rows[0].receipt.actorId = id(99);
             if (badRead && sql.includes('read_synthetic_reference_revision'))
@@ -211,6 +269,7 @@ test('opt-in reference moderation validates actual restricted SQL before commit 
     async () => {
       const before = commits;
       for (const path of [
+        '/v3/properties',
         revision(),
         revision('3', 'reviews'),
         revision() + '/context',
@@ -445,6 +504,100 @@ test('opt-in reference moderation validates actual restricted SQL before commit 
         'paused',
       );
       actor = 10;
+    },
+  );
+  await t.test(
+    'anonymous public reference page uses approved historical facts and fails closed before commit on corrupted projections',
+    async () => {
+      const path = '/v3/properties?limit=10';
+      const anonymous = () => service()(new Request('https://synthetic.invalid' + path));
+      assert.deepEqual((await (await anonymous()).json()).items, []);
+      const lv = (await db.query('SELECT version FROM app_private.listings WHERE id=$1', [id(101)]))
+        .rows[0].version;
+      await database.transaction({ tenantId: id(1), actorId: id(13) }, (q) =>
+        q.query("SELECT app_api.set_publication($1,$2,'published')", [id(101), lv]),
+      );
+      const response = await anonymous();
+      assert.equal(response.status, 200);
+      const page = await response.json();
+      assert.equal(page.policy, 'synthetic-reference-public-v1');
+      assert.equal(page.limit, 10);
+      assert.equal(page.items.length, 1);
+      assert.equal(page.items[0].id, id(101));
+      assert.equal(page.items[0].reference.revisionVersion, '5');
+      assert.equal(page.items[0].reference.attributes.catalogueVersion, '1');
+      assert.equal(
+        page.items[0].reference.attributes.location.county.label,
+        'Synthetic original county',
+      );
+      const raw = JSON.stringify(page);
+      assert.equal(lastPublicCatalogue.locations.length, 1);
+      assert.equal(lastPublicCatalogue.amenities.length, 0);
+      assert.ok(!JSON.stringify(lastPublicCatalogue).includes('unselected'));
+      for (const secret of [
+        'PRIVATE-MODERATION-API',
+        'referenceCatalogue',
+        'actorId',
+        'reason',
+        'review',
+      ])
+        assert.ok(!raw.includes('"' + secret + '"') && !raw.includes('PRIVATE-MODERATION-API'));
+      for (const kind of [
+        'rename',
+        'extra',
+        'version',
+        'getter',
+        'photoextra',
+        'titleobject',
+        'coordinate',
+        'overpage',
+        'catalogueGetter',
+        'photoGetter',
+      ]) {
+        badPublic = kind;
+        const before = commits;
+        assert.equal((await anonymous()).status, 503);
+        assert.equal(commits, before);
+      }
+      badPublic = '';
+      assert.equal(reads, 0);
+      tenant = 2;
+      assert.deepEqual((await (await anonymous()).json()).items, []);
+      tenant = 1;
+      for (const suffix of ['?tenant=2', '?limit=01', '?limit=1&limit=1'])
+        assert.equal((await call('GET', '/v3/properties' + suffix)).status, 400);
+      assert.equal((await call('POST', '/v3/properties', {})).status, 405);
+      const legacy = await (await call('GET', '/v2/properties')).json();
+      assert.ok(!Object.hasOwn(legacy.items[0], 'reference'));
+      await database.transaction({ tenantId: id(1), actorId: id(10) }, (q) =>
+        seedGuardedListingDraft(q, {
+          listingId: id(102),
+          slug: 'synthetic-legacy-public',
+          actorId: id(10),
+          content,
+        }),
+      );
+      for (let position = 0; position < 4; position++)
+        await seedSyntheticSealedMedia(db, { tenantId: id(1), listingId: id(102), position });
+      await database.transaction({ tenantId: id(1), actorId: id(10) }, async (q) => {
+        await q.query("SELECT app_api.confirm_availability($1,1,'available')", [id(102)]);
+        await q.query('SELECT app_api.submit_revision($1,1,2)', [id(102)]);
+      });
+      await database.transaction({ tenantId: id(1), actorId: id(13) }, async (q) => {
+        await q.query('SELECT app_api.decide_revision($1,1,3,true,NULL)', [id(102)]);
+      });
+      const legacyVersion = (
+        await db.query('SELECT version FROM app_private.listings WHERE id=$1', [id(102)])
+      ).rows[0].version;
+      await database.transaction({ tenantId: id(1), actorId: id(13) }, (q) =>
+        q.query("SELECT app_api.set_publication($1,$2,'published')", [id(102), legacyVersion]),
+      );
+      const mixed = await (await anonymous()).json();
+      assert.equal(mixed.items.length, 2);
+      assert.deepEqual(mixed.items.find((p) => p.id === id(102)).reference, {
+        attributes: null,
+        revisionVersion: null,
+      });
     },
   );
   await t.test(

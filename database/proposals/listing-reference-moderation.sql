@@ -164,13 +164,24 @@ BEGIN
 END $$;
 
 CREATE VIEW app_api.public_listings_reference_v3 WITH(security_barrier=true) AS
- SELECT p.*,a.attributes AS reference_attributes,a.approved_version::text AS reference_revision_version
+ SELECT p.*,a.attributes AS reference_attributes,a.approved_version::text AS reference_revision_version,
+ CASE WHEN a.attributes IS NULL THEN NULL ELSE jsonb_build_object(
+  'policy',c.payload->'policy','version',c.payload->'version','country',c.payload->'country',
+  'locations',(SELECT coalesce(jsonb_agg(e.value ORDER BY e.value->>'id'),'[]'::jsonb)
+    FROM jsonb_array_elements(c.payload->'locations') e(value)
+    WHERE e.value->>'id' IN (a.attributes#>>'{location,county,id}',a.attributes#>>'{location,locality,id}',a.attributes#>>'{location,neighbourhood,id}')),
+  'amenities',(SELECT coalesce(jsonb_agg(e.value ORDER BY e.value->>'id'),'[]'::jsonb)
+    FROM jsonb_array_elements(c.payload->'amenities') e(value)
+    WHERE e.value->>'id' IN (SELECT x.value->>'id' FROM jsonb_array_elements(a.attributes->'amenities') x(value)))
+ ) END AS reference_catalogue
  FROM app_api.public_listings_v2 p JOIN app_private.listing_revisions r
  ON r.tenant_id=p.tenant_id AND r.listing_id=p.listing_id AND r.revision_no=p.revision_no
  LEFT JOIN app_private.synthetic_reference_approved a
  ON a.tenant_id=p.tenant_id AND a.listing_id=p.listing_id AND a.revision_no=p.revision_no
+ LEFT JOIN app_private.synthetic_reference_catalogues c
+ ON c.version=(a.attributes->>'catalogueVersion')::bigint
  WHERE r.synthetic_reference_attributes IS NULL OR
-  (a.approved_version=r.version AND a.attributes=r.synthetic_reference_attributes);
+  (a.approved_version=r.version AND a.attributes=r.synthetic_reference_attributes AND c.payload IS NOT NULL);
 REVOKE ALL ON FUNCTION app_private.synthetic_reference_projection(app_private.listing_revisions,bigint),
  app_api.read_synthetic_reference_revision(uuid,integer,bigint),app_api.read_synthetic_reference_review(uuid,integer,bigint),
  app_api.execute_synthetic_reference_transition(uuid,integer,uuid,text,jsonb,text),app_api.read_synthetic_reference_transition(uuid,uuid) FROM PUBLIC;

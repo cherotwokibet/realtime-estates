@@ -6,6 +6,8 @@ import {
   validateSyntheticReferenceContext,
   SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES,
   type SyntheticReferenceContext,
+  validateSyntheticReferencePublicSnapshot,
+  type SyntheticReferencePublicSnapshot,
   validateSyntheticReferenceTransitionCommand,
   validateSyntheticReferenceTransitionReceipt,
   type SyntheticReferenceRevision,
@@ -43,6 +45,7 @@ import {
 } from '@realtor/domain';
 export type {
   SyntheticReferenceContext,
+  SyntheticReferencePublicSnapshot,
   SyntheticReferenceRevision,
   SyntheticReferenceTransitionCommand,
   SyntheticReferenceTransitionReceipt,
@@ -269,6 +272,14 @@ export interface PropertyPage {
 export interface PublicPropertyV2 extends PublicProperty {
   readonly pricing: PricingDisclosure;
   readonly location: PublicLocationV2;
+}
+export interface SyntheticReferencePublicPropertyV3 extends PublicPropertyV2 {
+  readonly reference: SyntheticReferencePublicSnapshot;
+}
+export interface SyntheticReferencePropertyPageV3 {
+  readonly policy: 'synthetic-reference-public-v1';
+  readonly items: readonly SyntheticReferencePublicPropertyV3[];
+  readonly limit: number;
 }
 export interface PropertyPageV2 {
   readonly items: readonly PublicPropertyV2[];
@@ -1003,6 +1014,32 @@ function publicPropertyV2(input: unknown): PublicPropertyV2 {
     return Object.freeze({ ...base, pricing, location });
   } catch {
     return invalid('INVALID_RESPONSE', 'Invalid public pricing or location disclosure.');
+  }
+}
+function publicReferenceProperty(input: unknown): SyntheticReferencePublicPropertyV3 {
+  const value = attachRecord(
+    input,
+    [...PUBLIC_FIELDS, 'pricing', 'location', 'reference'],
+    'INVALID_RESPONSE',
+  );
+  const { reference: rawReference, ...baseInput } = value;
+  const base = publicPropertyV2(baseInput);
+  try {
+    const reference = validateSyntheticReferencePublicSnapshot(rawReference);
+    if (reference.attributes) {
+      const l = reference.attributes.location;
+      if (
+        base.location.county !== (l.county?.label ?? null) ||
+        base.location.town !== (l.locality?.label ?? null) ||
+        base.location.area !== (l.neighbourhood?.label ?? null)
+      )
+        throw Error();
+      const deepest = l.neighbourhood?.label ?? l.locality?.label ?? l.county?.label;
+      if (deepest !== undefined && base.locality !== deepest) throw Error();
+    }
+    return Object.freeze({ ...base, reference });
+  } catch {
+    return invalid('INVALID_RESPONSE', 'Invalid public historical reference snapshot.');
   }
 }
 function staffVersion(
@@ -2441,6 +2478,30 @@ export class RealtorApiClient {
     staffOptions(options);
     const path = staffPath(listingId, revision);
     return staffDraft(await this.request(path, 'GET', options), revision);
+  }
+  /** Default-off synthetic extension; public facts only, with explicit legacy absence. */
+  async getSyntheticReferencePropertiesV3(
+    options: RequestOptions & { limit?: number } = {},
+  ): Promise<SyntheticReferencePropertyPageV3> {
+    requestOptions(options, ['limit']);
+    const limit = integer(options.limit ?? 50, 1, 100, 'VALIDATION', 'Limit');
+    const data = attachRecord(
+      await this.request(`/v3/properties?limit=${limit}`, 'GET', options),
+      ['policy', 'items', 'limit'],
+      'INVALID_RESPONSE',
+    );
+    if (
+      data.policy !== 'synthetic-reference-public-v1' ||
+      data.limit !== limit ||
+      !Array.isArray(data.items) ||
+      data.items.length > limit
+    )
+      return invalid('INVALID_RESPONSE', 'Invalid public reference page.');
+    return Object.freeze({
+      policy: 'synthetic-reference-public-v1',
+      limit,
+      items: Object.freeze(data.items.map(publicReferenceProperty)),
+    });
   }
   async getStaffDraftWorkspaceV2(
     listingId: string,
@@ -4651,6 +4712,7 @@ export class RealtorApiClient {
     revisionVersion?: string,
   ): Promise<unknown> {
     const importPreview = path === '/v2/staff/listing-import-preview' && method === 'POST';
+    const publicReference = /^\/v3\/properties\?limit=(?:[1-9]\d?|100)$/.test(path);
     const referenceCatalogue =
       /^\/v3\/staff\/reference-catalogues\/(?:current|[1-9]\d{0,15})$/.test(path);
     const referenceDraft =
@@ -4668,6 +4730,7 @@ export class RealtorApiClient {
         path,
       );
     const reference =
+      publicReference ||
       referenceCatalogue ||
       referenceDraft ||
       referenceModeration ||
@@ -4769,8 +4832,9 @@ export class RealtorApiClient {
         }
         let raw: string;
         if (boundedRead) {
-          const maximum =
-              referenceContext && result.ok
+          const maximum = publicReference
+              ? 3 * 1024 * 1024
+              : referenceContext && result.ok
                 ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
                 : referenceModeration
                   ? 131072
@@ -4862,7 +4926,7 @@ export class RealtorApiClient {
           );
         let payload: unknown;
         try {
-          if (referenceModeration) {
+          if (referenceModeration || publicReference) {
             // Guard nullable public-pointer and room counts before JSON numeric rounding.
             const tokens =
               raw.match(

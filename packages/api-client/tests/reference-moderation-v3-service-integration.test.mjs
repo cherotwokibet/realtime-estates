@@ -264,6 +264,7 @@ test('moderation SDK composes with opt-in API and restricted SQL through origina
   await t.test(
     'paused approval remains private until explicit restore; approved reference sidecar retains original facts',
     async () => {
+      assert.deepEqual((await sdk.getSyntheticReferencePropertiesV3({ limit: 10 })).items, []);
       assert.equal(
         (await as(12, (q) => q.query('SELECT * FROM app_api.public_listings_reference_v3'))).rows
           .length,
@@ -279,6 +280,12 @@ test('moderation SDK composes with opt-in API and restricted SQL through origina
       assert.equal(row.reference_revision_version, '7');
       assert.deepEqual(row.reference_attributes, approval.review.attributes);
       assert.ok(!JSON.stringify(row).includes('PRIVATE SDK REVIEW'));
+      const page = await sdk.getSyntheticReferencePropertiesV3({ limit: 10 });
+      assert.equal(page.items.length, 1);
+      assert.equal(page.items[0].reference.revisionVersion, '7');
+      assert.deepEqual(page.items[0].reference.attributes, approval.review.attributes);
+      assert.ok(!JSON.stringify(page).includes('PRIVATE SDK REVIEW'));
+      assert.ok(!JSON.stringify(page).includes('referenceCatalogue'));
     },
   );
   await t.test(

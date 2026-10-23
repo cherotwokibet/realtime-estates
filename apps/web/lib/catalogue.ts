@@ -2,6 +2,8 @@ import {
   RealtorApiClient,
   type PublicPhoto,
   type PublicPropertyV2,
+  type SyntheticReferencePublicPropertyV3,
+  type SyntheticReferencePublicSnapshot,
   type PropertyType,
 } from '@realtor/api-client';
 import { propertiesForCompany, type DemoProperty } from '@realtor/demo';
@@ -55,6 +57,7 @@ export interface CatalogueProperty {
   readonly areaSqm: number | null;
   readonly amenities: readonly string[];
   readonly amenitiesKnown: boolean;
+  readonly reference?: SyntheticReferencePublicSnapshot;
   readonly locality: string;
   readonly location: PublicLocationV2;
   readonly publicPrecision: 'area' | 'exact';
@@ -166,7 +169,11 @@ function fromDemo(property: DemoProperty): CatalogueProperty {
     ),
   });
 }
-function fromConnected(property: PublicPropertyV2): CatalogueProperty {
+function fromConnected(
+  property: PublicPropertyV2 | SyntheticReferencePublicPropertyV3,
+): CatalogueProperty {
+  const reference = 'reference' in property ? property.reference : undefined;
+  const attributes = reference?.attributes;
   return Object.freeze({
     id: property.id,
     slug: property.slug,
@@ -182,8 +189,9 @@ function fromConnected(property: PublicPropertyV2): CatalogueProperty {
     privateBathrooms: property.privateBathrooms,
     sharedBathrooms: property.sharedBathrooms,
     areaSqm: null,
-    amenities: Object.freeze([]),
-    amenitiesKnown: false,
+    amenities: Object.freeze(attributes?.amenities.map((a) => a.label) ?? []),
+    amenitiesKnown: attributes !== undefined && attributes !== null,
+    ...(reference ? { reference } : {}),
     locality: property.locality,
     location: property.location,
     publicPrecision: property.publicPrecision,
@@ -264,12 +272,16 @@ export function createCatalogueLoader(
         allowLoopbackHttp: config.allowLoopbackHttp,
         ...(dependencies.fetch ? { fetch: dependencies.fetch } : {}),
       });
-      const page = await api.listPropertiesV2({ limit: config.limit });
+      const page = config.referenceMode
+        ? await api.getSyntheticReferencePropertiesV3({ limit: config.limit })
+        : await api.listPropertiesV2({ limit: config.limit });
       const source = page.items.map(fromConnected);
       return Object.freeze({
         mode: 'connected',
         dataKind: config.dataKind,
-        sourceLabel: 'API connected · Preview environment',
+        sourceLabel: config.referenceMode
+          ? 'API connected · Synthetic reference preview'
+          : 'API connected · Preview environment',
         filters,
         items: filterItems(source, filters),
         sourceCount: source.length,

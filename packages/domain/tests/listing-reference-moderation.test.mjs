@@ -9,6 +9,7 @@ import {
   SYNTHETIC_REFERENCE_MODERATION_MAX_BYTES,
   validateSyntheticReferencePublicAttributes as publicAttributes,
   validateSyntheticReferenceContext as context,
+  validateSyntheticReferencePublicSnapshot as publicSnapshot,
 } from '../dist/index.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const cat = () => ({
@@ -19,6 +20,58 @@ const cat = () => ({
   amenities: [
     { id: id(2), code: 'synthetic-lift', label: 'Synthetic lift', propertyTypes: ['apartment'] },
   ],
+});
+test('public wire snapshot is detached and exact with explicit legacy absence and no private fields', () => {
+  const input = structuredClone({ attributes: review().attributes, revisionVersion: '4' });
+  const output = publicSnapshot(input);
+  assert.deepEqual(output, input);
+  input.attributes.location.county.label = 'Changed';
+  assert.equal(output.attributes.location.county.label, 'Synthetic county');
+  assert.ok(Object.isFrozen(output.attributes.amenities[0]));
+  assert.deepEqual(publicSnapshot({ attributes: null, revisionVersion: null }), {
+    attributes: null,
+    revisionVersion: null,
+  });
+  for (const mutate of [
+    (p) => (p.revisionVersion = '1'),
+    (p) => (p.revisionVersion = null),
+    (p) => (p.attributes = null),
+    (p) => (p.actorId = id(50)),
+    (p) => (p.reason = 'Private'),
+    (p) => (p.attributes.privateAddress = 'Private'),
+    (p) => (p.attributes.location.county.privateAddress = 'Private'),
+    (p) => (p.attributes.country = 'UG'),
+    (p) => (p.attributes.amenities[0].code = 'Invalid Code'),
+    (p) => p.attributes.amenities.push(structuredClone(p.attributes.amenities[0])),
+    (p) => {
+      p.attributes.location.county = null;
+      p.attributes.location.locality = { id: id(9), label: 'Orphan locality' };
+    },
+  ]) {
+    const changed = structuredClone(output);
+    mutate(changed);
+    assert.throws(() => publicSnapshot(changed));
+  }
+});
+test('public snapshot rejects getters without execution and server membership validation remains stronger', () => {
+  const input = structuredClone({ attributes: review().attributes, revisionVersion: '4' });
+  let calls = 0;
+  Object.defineProperty(input.attributes.location.county, 'label', {
+    enumerable: true,
+    get() {
+      calls++;
+      return 'Changed';
+    },
+  });
+  assert.throws(() => publicSnapshot(input));
+  assert.equal(calls, 0);
+  const renamed = structuredClone({ attributes: review().attributes, revisionVersion: '4' });
+  renamed.attributes.location.county.label = 'Renamed structurally valid label';
+  assert.equal(
+    publicSnapshot(renamed).attributes.location.county.label,
+    renamed.attributes.location.county.label,
+  );
+  assert.throws(() => publicAttributes(renamed, cat(), 'apartment'));
 });
 const selection = {
   catalogueVersion: '1',
