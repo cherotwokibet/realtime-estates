@@ -5,7 +5,12 @@ import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
 import { seedSyntheticSealedMedia } from '../test-helpers/synthetic-sealed-media.mjs';
-import { normalizeStaffDraftContentV2 } from '../../packages/domain/dist/index.js';
+import {
+  normalizeStaffDraftContentV2,
+  validateSyntheticReferenceRevision,
+  validateSyntheticReferenceTransitionReceipt,
+  validateSyntheticReferencePublicAttributes,
+} from '../../packages/domain/dist/index.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 test('isolated reference moderation binds reviewed facts and immutable approved public attributes', async (t) => {
   const db = new PGlite();
@@ -138,24 +143,45 @@ test('isolated reference moderation binds reviewed facts and immutable approved 
   const snapshot = async (user = 11, listing = 100) =>
     as(user, async () => {
       const r = await state(listing);
-      return (
+      const projection = (
         await db.query('SELECT app_api.read_synthetic_reference_revision($1,1,$2) AS r', [
           id(listing),
           r.version,
         ])
       ).rows[0].r;
+      assert.deepEqual(
+        validateSyntheticReferenceRevision(projection, cat, id(listing), 1, String(r.version)),
+        projection,
+      );
+      return projection;
     });
   const command = (user, action, review, op, reason = null, listing = 100) =>
-    as(
-      user,
-      async () =>
-        (
-          await db.query(
-            'SELECT app_api.execute_synthetic_reference_transition($1,1,$2,$3,$4::jsonb,$5) AS r',
-            [id(listing), id(op), action, JSON.stringify(review), reason],
-          )
-        ).rows[0].r,
-    );
+    as(user, async () => {
+      const result = (
+        await db.query(
+          'SELECT app_api.execute_synthetic_reference_transition($1,1,$2,$3,$4::jsonb,$5) AS r',
+          [id(listing), id(op), action, JSON.stringify(review), reason],
+        )
+      ).rows[0].r;
+      assert.deepEqual(
+        validateSyntheticReferenceTransitionReceipt(
+          result,
+          {
+            policy: 'synthetic-reference-transition-v1',
+            operationId: id(op),
+            action,
+            listingId: id(listing),
+            revision: 1,
+            review,
+            reason,
+          },
+          cat,
+          id(user),
+        ),
+        result,
+      );
+      return result;
+    });
   await t.test(
     'proposal is separate and original adopted-submit guard stays closed before installation',
     async () => {
@@ -360,6 +386,20 @@ test('isolated reference moderation binds reviewed facts and immutable approved 
         await as(13, () => db.query('SELECT * FROM app_api.public_listings_reference_v3'))
       ).rows[0];
       assert.equal(row.reference_revision_version, '5');
+      assert.deepEqual(
+        validateSyntheticReferencePublicAttributes(
+          {
+            attributes: row.reference_attributes,
+            revisionVersion: row.reference_revision_version,
+          },
+          cat,
+          row.property_type,
+        ),
+        {
+          attributes: approval.review.attributes,
+          revisionVersion: approval.revisionVersion,
+        },
+      );
       assert.equal(row.reference_attributes.location.county.label, 'Synthetic original county');
       assert.equal(row.latitude, null);
       assert.equal(row.longitude, null);
