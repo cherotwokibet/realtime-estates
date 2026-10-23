@@ -7,6 +7,13 @@ import { startStaffPreview } from '../apps/api/dev/staff-preview.mjs';
 if (process.env.NODE_ENV === 'production') throw new Error('Staff preview refuses production.');
 const root = fileURLToPath(new URL('../', import.meta.url));
 const referenceDraftMode = process.env.STAFF_PREVIEW_REFERENCE;
+const referenceModerationMode = process.env.STAFF_PREVIEW_REFERENCE_MODERATION;
+if (
+  referenceModerationMode !== undefined &&
+  (referenceModerationMode !== 'synthetic-reference-transition-v1' ||
+    referenceDraftMode !== 'synthetic-reference-draft-v1')
+)
+  throw new Error('Moderation preview requires its explicit reference draft and transition modes.');
 if (referenceDraftMode !== undefined && referenceDraftMode !== 'synthetic-reference-draft-v1')
   throw new Error('Choose the explicit synthetic-reference-draft-v1 reference mode or omit it.');
 const uiPort = process.env.STAFF_PREVIEW_UI_PORT ?? '3001';
@@ -58,6 +65,8 @@ const preview = await startStaffPreview({
   successorTerminalFixture: process.env.STAFF_PREVIEW_SUCCESSOR_TERMINAL,
   referenceDraftMode,
   referenceReplyFault: process.env.STAFF_PREVIEW_REFERENCE_REPLY_FAULT,
+  referenceModerationMode,
+  referenceModerationReplyFault: process.env.STAFF_PREVIEW_REFERENCE_MODERATION_REPLY_FAULT,
   ...(nativeUploads === undefined ? {} : { nativeUploads }),
 });
 const next = fileURLToPath(new URL('../node_modules/next/dist/bin/next', import.meta.url));
@@ -83,6 +92,10 @@ console.log(
   `Synthetic staff editor: http://127.0.0.1:${uiPort}/drafts/${preview.listingId}/${preview.revision}${referenceDraftMode ? '/references' : ''}`,
 );
 console.log(`Synthetic authorized listing work: http://127.0.0.1:${uiPort}/listings`);
+if (referenceModerationMode)
+  console.log(
+    `Synthetic saved reference review: http://127.0.0.1:${uiPort}/reviews/${preview.listingId}/${preview.revision}/references/${preview.referenceReviewVersion}`,
+  );
 if (actor === 'admin') console.log(`Synthetic moderator queue: http://127.0.0.1:${uiPort}/reviews`);
 console.log(
   'Disposable data; changes disappear when this preview stops. Identity expires in 30 minutes.',

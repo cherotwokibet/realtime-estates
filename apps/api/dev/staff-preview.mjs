@@ -7,7 +7,11 @@ import { seedHistoricalConfirmedViewing } from '../../../database/test-helpers/h
  */
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
-import { validateListingReferenceCatalogue } from '@realtor/domain';
+import {
+  validateListingReferenceCatalogue,
+  normalizeStaffDraftContentV2,
+  validateSyntheticReferenceRevision,
+} from '@realtor/domain';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
 import { seedSyntheticSealedMedia } from '../../../database/test-helpers/synthetic-sealed-media.mjs';
 import { seedGuardedListingDraft } from '../../../database/test-helpers/guarded-listing-fixture.mjs';
@@ -109,6 +113,8 @@ function configuration({
   successorTerminalFixture,
   referenceDraftMode,
   referenceReplyFault,
+  referenceModerationMode,
+  referenceModerationReplyFault,
   seedAcceptedMedia = nativeUploads === undefined && enquiryPreview === undefined,
   seedPendingReviews = false,
 } = {}) {
@@ -124,6 +130,23 @@ function configuration({
   )
     throw new StaffPreviewConfigurationError(
       'Reference preview requires its explicit isolated synthetic mode.',
+    );
+  if (
+    referenceModerationMode !== undefined &&
+    (referenceModerationMode !== 'synthetic-reference-transition-v1' ||
+      referenceDraftMode !== 'synthetic-reference-draft-v1' ||
+      !seedAcceptedMedia)
+  )
+    throw new StaffPreviewConfigurationError(
+      'Moderation preview requires explicit reference mode and synthetic accepted metadata.',
+    );
+  if (
+    referenceModerationReplyFault !== undefined &&
+    (referenceModerationReplyFault !== 'invalid-first-transition-v1' ||
+      referenceModerationMode !== 'synthetic-reference-transition-v1')
+  )
+    throw new StaffPreviewConfigurationError(
+      'Moderation reply fault requires explicit moderation mode.',
     );
   if (
     referenceReplyFault !== undefined &&
@@ -275,6 +298,8 @@ function configuration({
     successorTerminalFixture,
     referenceDraftMode,
     referenceReplyFault,
+    referenceModerationMode,
+    referenceModerationReplyFault,
   };
 }
 function syntheticContent(title = 'Synthetic staff monthly studio') {
@@ -628,8 +653,11 @@ export async function startStaffPreview(options = {}) {
     successorTerminalFixture,
     referenceDraftMode,
     referenceReplyFault,
+    referenceModerationMode,
+    referenceModerationReplyFault,
   } = configuration(options);
   let referenceReplyFaultPending = !!referenceReplyFault;
+  let referenceModerationReplyFaultPending = !!referenceModerationReplyFault;
   let controlReplyFaultPending = !!controlReplyFault;
   let successorReplyFaultPending = !!successorReplyFault;
   let creationReplyFaultPending = !!creationReplyFault;
@@ -662,6 +690,7 @@ export async function startStaffPreview(options = {}) {
         'listing-reference-draft.sql',
         'listing-reference-catalogue-install.sql',
         'listing-reference-read.sql',
+        ...(referenceModerationMode ? ['listing-reference-moderation.sql'] : []),
       ])
         await db.exec(
           await readFile(new URL('../../../database/proposals/' + file, import.meta.url), 'utf8'),
@@ -669,6 +698,65 @@ export async function startStaffPreview(options = {}) {
       await db.query('SELECT app_private.install_synthetic_reference_catalogue(0,$1::jsonb)', [
         JSON.stringify(REFERENCE_PREVIEW_CATALOGUE),
       ]);
+      if (referenceModerationMode) {
+        for (const fixtureCompany of Object.values(COMPANIES)) {
+          const listing = fixtureCompany.listing;
+          await bootstrapAs(db, fixtureCompany, fixtureCompany.agent, async () => {
+            const content = normalizeStaffDraftContentV2({
+              ...syntheticContent('Synthetic reference review studio'),
+              locality: 'Synthetic preview block',
+              location: {
+                county: 'Synthetic preview county',
+                town: 'Synthetic preview town',
+                area: 'Synthetic preview block',
+              },
+            });
+            await db.query(
+              'SELECT app_api.save_synthetic_reference_draft($1,1,2,$2,$3::jsonb,$4::jsonb)',
+              [
+                listing,
+                id(32000 + Number(listing.slice(-3))),
+                JSON.stringify(content),
+                JSON.stringify({
+                  catalogueVersion: '1',
+                  location: {
+                    countyId: id(31001),
+                    localityId: id(31002),
+                    neighbourhoodId: id(31003),
+                  },
+                  amenityIds: [id(31010)],
+                }),
+              ],
+            );
+            await db.query("SELECT app_api.confirm_availability($1,1,'available')", [listing]);
+            const projection = await db.query(
+              'SELECT app_api.read_synthetic_reference_revision($1,1,3) AS review',
+              [listing],
+            );
+            const review = validateSyntheticReferenceRevision(
+              projection.rows[0].review,
+              REFERENCE_PREVIEW_CATALOGUE,
+              listing,
+              1,
+              '3',
+            );
+            await db.query(
+              "SELECT app_api.execute_synthetic_reference_transition($1,1,$2,'submit',$3::jsonb,NULL)",
+              [listing, id(33000 + Number(listing.slice(-3))), JSON.stringify(review)],
+            );
+          });
+        }
+        await db.query('SELECT app_private.install_synthetic_reference_catalogue(1,$1::jsonb)', [
+          JSON.stringify({
+            ...REFERENCE_PREVIEW_CATALOGUE,
+            version: '2',
+            locations: REFERENCE_PREVIEW_CATALOGUE.locations.map((r) => ({
+              ...r,
+              label: 'Synthetic newer ' + r.kind,
+            })),
+          }),
+        ]);
+      }
     }
     if (successorTerminalFixture) {
       for (const fixtureCompany of Object.values(COMPANIES)) {
@@ -801,6 +889,7 @@ export async function startStaffPreview(options = {}) {
       database,
       verificationMode: 'synthetic-check-record-v1',
       ...(referenceDraftMode ? { referenceDraftMode } : {}),
+      ...(referenceModerationMode ? { referenceModerationMode } : {}),
       ...(reminderCaptureMode ? { reminderCaptureMode } : {}),
       tenantId: company.id,
       privacyNoticeVersion: 'synthetic-staff-notice-v1',
@@ -878,6 +967,7 @@ export async function startStaffPreview(options = {}) {
             historicalSyntheticViewings: !!historicalViewings,
             syntheticReminderCapture: !!reminderCaptureMode,
             syntheticReferenceDrafts: !!referenceDraftMode,
+            syntheticReferenceModeration: !!referenceModerationMode,
             acceptedMediaMetadataOnly: seedAcceptedMedia,
             successorHistoricalMetadataOnly: !!successorTerminalFixture,
             nativeUploads: !!nativeMedia,
@@ -889,14 +979,28 @@ export async function startStaffPreview(options = {}) {
           referenceDraftMode &&
           (url.pathname === '/v3/staff/reference-session' ||
             /^\/v3\/staff\/reference-catalogues\/(current|[1-9]\d{0,15})$/.test(url.pathname) ||
+            (referenceModerationMode &&
+              /^\/v3\/staff\/(?:listings|reviews)\/[0-9a-f-]{36}\/(?:reference-transition-operations\/[0-9a-f-]{36}|reference-revisions\/[1-9]\d{0,9}\/[1-9]\d{0,15}(?:\/context)?)$/.test(
+                url.pathname,
+              )) ||
             /^\/v3\/staff\/listings\/[0-9a-f-]{36}\/reference-draft-operations\/[0-9a-f-]{36}$/.test(
               url.pathname,
             ))
         ) {
           const response = await service(request);
           response.headers.set('X-Synthetic-Staff-Preview', 'true');
-          if (referenceReplyFaultPending && request.method === 'POST' && response.status === 200) {
-            referenceReplyFaultPending = false;
+          const draftFault =
+            referenceReplyFaultPending && url.pathname.includes('/reference-draft-operations/');
+          const moderationFault =
+            referenceModerationReplyFaultPending &&
+            url.pathname.includes('/reference-transition-operations/');
+          if (
+            (draftFault || moderationFault) &&
+            request.method === 'POST' &&
+            response.status === 200
+          ) {
+            if (draftFault) referenceReplyFaultPending = false;
+            if (moderationFault) referenceModerationReplyFaultPending = false;
             return Response.json(
               { syntheticReplyCorruption: true },
               {
@@ -1337,6 +1441,8 @@ export async function startStaffPreview(options = {}) {
       enquiryCatalogueMetadataOnly: !!enquiryCatalogue,
       pendingReviewFixtures: seedPendingReviews,
       syntheticReferenceDrafts: !!referenceDraftMode,
+      syntheticReferenceModeration: !!referenceModerationMode,
+      ...(referenceModerationMode ? { referenceReviewVersion: '4' } : {}),
       nativeUploads: !!nativeMedia,
       close,
     };
