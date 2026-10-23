@@ -106,6 +106,9 @@ BEGIN
     OR p_selection->>'catalogueVersion' !~ '^[1-9][0-9]{0,15}$'
     THEN RAISE EXCEPTION 'Invalid combined draft' USING ERRCODE='23514'; END IF;
   v_catalogue:=(p_selection->>'catalogueVersion')::bigint;
+  -- Keep this catalogue current through the save transaction; owner activation takes FOR UPDATE.
+  -- Original replay above does not mutate a draft and need not lock the current pointer.
+  PERFORM 1 FROM app_private.synthetic_reference_catalogue_current WHERE singleton FOR SHARE;
   IF v_catalogue IS DISTINCT FROM (SELECT version FROM app_private.synthetic_reference_catalogue_current WHERE singleton)
     THEN RAISE EXCEPTION 'Stale reference catalogue' USING ERRCODE='40001'; END IF;
   IF jsonb_typeof(p_selection->'location') IS DISTINCT FROM 'object'
