@@ -5,7 +5,10 @@ import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
 import { seedSyntheticSealedMedia } from '../test-helpers/synthetic-sealed-media.mjs';
-import { normalizeStaffDraftContentV2 } from '../../packages/domain/dist/index.js';
+import {
+  normalizeStaffDraftContentV2,
+  validateSyntheticReferenceDraftReceipt,
+} from '../../packages/domain/dist/index.js';
 
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 test('isolated reference candidate binds content, labels and receipt to one editorial version', async (t) => {
@@ -63,6 +66,12 @@ test('isolated reference candidate binds content, labels and receipt to one edit
           label: 'Synthetic lift',
           propertyTypes: ['apartment'],
         },
+        {
+          id: id(211),
+          code: 'synthetic-parking',
+          label: 'Synthetic parking',
+          propertyTypes: ['apartment'],
+        },
       ],
     }),
   ]);
@@ -81,6 +90,9 @@ test('isolated reference candidate binds content, labels and receipt to one edit
       throw e;
     }
   }
+  const originalCatalogue = (
+    await db.query('SELECT payload FROM app_private.synthetic_reference_catalogues WHERE version=1')
+  ).rows[0].payload;
   const content = normalizeStaffDraftContentV2({
     title: 'Synthetic combined draft',
     description: 'Synthetic candidate only.',
@@ -100,7 +112,7 @@ test('isolated reference candidate binds content, labels and receipt to one edit
   const selection = {
     catalogueVersion: '1',
     location: { countyId: id(200), localityId: id(201), neighbourhoodId: id(202) },
-    amenityIds: [id(210)],
+    amenityIds: [id(211), id(210)],
   };
   for (const tenant of [1, 2])
     await as(tenant, 11, () =>
@@ -186,6 +198,23 @@ test('isolated reference candidate binds content, labels and receipt to one edit
 
   await t.test('one update, exact original replay and authorized GET recovery', async () => {
     const receipt = await as(1, 11, () => save());
+    assert.deepEqual(
+      validateSyntheticReferenceDraftReceipt(
+        receipt,
+        {
+          policy: 'synthetic-reference-draft-v1',
+          operationId: id(300),
+          listingId: id(100),
+          revision: 1,
+          expectedVersion: '2',
+          content,
+          selection,
+        },
+        originalCatalogue,
+        id(11),
+      ),
+      receipt,
+    );
     assert.equal(receipt.revisionVersion, '3');
     assert.equal(receipt.attributes.location.locality.label, 'Synthetic locality');
     assert.equal(receipt.attributes.amenities[0].code, 'synthetic-lift');
@@ -221,6 +250,14 @@ test('isolated reference candidate binds content, labels and receipt to one edit
     'stale core version, cross-parent selection, stale catalogue and incompatible amenities reject atomically',
     async () => {
       await denied(() => as(1, 11, () => save(301, '2')), '40001');
+      await denied(
+        () =>
+          as(1, 11, () =>
+            save(311, '3', { ...content, locality: 'Contradictory legacy locality' }),
+          ),
+        '23514',
+      );
+      await denied(() => as(1, 11, () => save(312, '9007199254740991')), '23514');
       await denied(
         () =>
           as(1, 11, () =>
@@ -326,6 +363,23 @@ test('isolated reference candidate binds content, labels and receipt to one edit
         }),
       ]);
       const receipt = await as(1, 11, () => read());
+      assert.deepEqual(
+        validateSyntheticReferenceDraftReceipt(
+          receipt,
+          {
+            policy: 'synthetic-reference-draft-v1',
+            operationId: id(300),
+            listingId: id(100),
+            revision: 1,
+            expectedVersion: '2',
+            content,
+            selection,
+          },
+          originalCatalogue,
+          id(11),
+        ),
+        receipt,
+      );
       assert.equal(receipt.attributes.location.county.label, 'Synthetic county');
       assert.equal((await as(1, 11, () => save())).revisionVersion, '3');
       await denied(() => as(1, 11, () => save(309, '4')), '40001');
@@ -338,7 +392,12 @@ test('isolated reference candidate binds content, labels and receipt to one edit
         save(
           309,
           '4',
-          { ...content, propertyType: null, location: { county: null, town: null, area: null } },
+          {
+            ...content,
+            propertyType: null,
+            locality: null,
+            location: { county: null, town: null, area: null },
+          },
           next,
         ),
       );

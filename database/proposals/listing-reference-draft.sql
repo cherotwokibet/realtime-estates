@@ -98,6 +98,7 @@ BEGIN
     RETURN v_prior.receipt;
   END IF;
   IF NOT coalesce(app_private.creation_content_valid(p_content),false)
+    OR p_expected>=9007199254740991
     OR jsonb_typeof(p_selection) IS DISTINCT FROM 'object'
     OR NOT (p_selection ?& ARRAY['catalogueVersion','location','amenityIds'])
     OR p_selection-ARRAY['catalogueVersion','location','amenityIds']<>'{}'::jsonb
@@ -142,7 +143,8 @@ BEGIN
   SELECT jsonb_build_object('county',max(label) FILTER (WHERE id=v_county),
     'town',max(label) FILTER (WHERE id=v_locality),'area',max(label) FILTER (WHERE id=v_area)) INTO v_location
     FROM app_private.synthetic_reference_locations WHERE catalogue_version=v_catalogue;
-  IF p_content->'location' IS DISTINCT FROM v_location THEN
+  IF p_content->'location' IS DISTINCT FROM v_location OR p_content->>'locality' IS DISTINCT FROM
+    coalesce(v_location->>'area',v_location->>'town',v_location->>'county') THEN
     RAISE EXCEPTION 'Explicit disclosure must match selected labels' USING ERRCODE='23514'; END IF;
   SELECT coalesce(jsonb_agg(jsonb_build_object('id',id,'code',code,'label',label) ORDER BY id),'[]'::jsonb)
     INTO v_amenities FROM app_private.synthetic_reference_amenities WHERE catalogue_version=v_catalogue AND id=ANY(v_ids);
@@ -166,7 +168,10 @@ BEGIN
     private_address=p_content->>'privateAddress',pricing=p_content->'pricing',location=p_content->'location',
     synthetic_reference_attributes=v_snapshot,synthetic_reference_operation=p_operation
     WHERE tenant_id=app_private.context_tenant() AND listing_id=p_id AND revision_no=p_revision RETURNING version INTO v_version;
-  v_receipt:=jsonb_build_object('operationId',p_operation,'listingId',p_id,'revision',p_revision,
+  v_receipt:=jsonb_build_object('policy','synthetic-reference-draft-v1','actorId',app_private.context_actor(),
+    'expectedVersion',p_expected::text,'content',p_content,
+    'selection',jsonb_set(p_selection,'{amenityIds}',to_jsonb(v_ids)),
+    'operationId',p_operation,'listingId',p_id,'revision',p_revision,
     'revisionVersion',v_version::text,'attributes',v_snapshot);
   INSERT INTO app_private.synthetic_reference_draft_receipts VALUES(app_private.context_tenant(),p_operation,
     app_private.context_actor(),p_id,p_revision,p_expected,p_content,p_selection,v_receipt);
