@@ -1,0 +1,26 @@
+# Actual browser reference editor verification
+
+Checkpoint138 — 23 October2026. Synthetic data only.
+
+A dedicated detached Git worktree was created at realtor-reference-preview from d2fd2910044b3cbdf82b1975d29b5a1250a811b0. The managed worktree tool reported that the chat's parent directory is not a repository, so git worktree add was used against the explicitly named realtor-platform repository. No original checkout was moved/reset. The new worktree has its own npm-ci installation (514 packages), package/API builds and admin .next. No dependency junction or credential copy was used. Port3003 was checked free. Its reference launcher uses an ephemeral API port and the explicit one-shot committed-response fault. No old124 process or rejected control was touched.
+
+Actual IAB browser interaction was performed on the new Next16.4.2 server, not static markup or an in-process request shim. The browser exercised hydrated native selects, checkboxes and buttons. Observed outcomes:
+
+1. Existing draft free text did not preselect reference IDs: County initially showed Unknown. Two duplicate county names were separately displayed with UUID suffixes00031001 and00031004. Save stayed disabled before explicit consent.
+2. County00031001 exposed its town; selecting that town exposed its neighbourhood. The applicable synthetic lift and replacement-consent checkboxes became checked before save.
+3. The first save committed but its configured response was corrupted. The browser displayed: The save result is unconfirmed. Recover the original before editing. Fields/save stayed disabled; explicit Recover original and Replay identical original controls appeared.
+4. A real browser reload read fresh saved location text and then displayed: A saved attempt needs original recovery before editing. This establishes actual tab-session retention through reload for this synthetic attempt. No automatic replacement save was observed.
+5. Clicking Recover original produced: Original saved at revision version3. Next request logs showed the same operation's /recover endpoint200 after historical catalogueGET200. There was no replacement operation during reload/recovery. Use saved result cleared the settled attempt and refreshed the workspace.
+6. Explicit consent with all location choices Unknown saved version4. After Use saved result, a fresh screen displayed Current draft location: Unknown. Thus unknown adoption was explicit and saved, rather than an inferred legacy mapping.
+7. Selecting county00031001, its town and neighbourhood, then switching to the duplicate-name county00031004 cleared both descendants; neighbourhood became disabled. This distinct county saved version5 after consent.
+8. A second browser tab loaded version4 before the first tab's version5 save. Its subsequent save returned409 and visibly displayed: The draft was not saved. Keep the original until you review this result. Discard rejected original appeared; no uncertain recovery/replay controls appeared. Explicit discard plus refresh loaded the newer county text.
+9. Directly opening the known unassigned synthetic listing401 produced Reference draft unavailable and the fresh-access requirement; no editable draft facts appeared.
+10. The primary tab's confirmed attempt was cleared and refreshed. It showed the saved county and a disabled save button until new explicit consent.
+
+The corresponding Next logs include first-operation502, same-operation/recover200, two later independent successful saves200 and one stale second-tab409. Screenshots of uncertainty and the final hydrated screen were visually inspected in the browser tool; no exported PNG artifact is claimed. The saved evidence file reference-browser-observations.txt records the actual visible outcomes and synthetic operation paths. No bearer/private key was printed or persisted.
+
+This verifies the exercised browser flow only. Membership revocation during an active browser session, catalogue activation during browser recovery, different property-type amenity availability, installed mobile devices, hosted PostgreSQL concurrency and operator UAT were not checked in this browser run. Earlier signed/in-process tests cover some server cases; those are not substituted for unrun browser/device checks. No new automated test count is claimed for this documentary checkpoint. Independent npm installation and four package/API builds succeeded; full main formatting/diff checks were run for the new records.
+
+The isolated reference preview is retained for continuation in execution session58908 on UI3003; its identity expires30minutes after startup. Primary IAB tab7 is marked for handoff; the stale/unauthorized test tab was closed. It is disposable, with no persistent identity/database. The old main preview PID27072 remains untouched. The isolated worktree's generated next-env import diff is ordinary runtime state, not a canonical source edit.
+
+No task or launch gate is closed solely by these cases. Next finish reference-aware moderation, approved snapshots, public reads and create/successor/import conversion, keeping adopted submission/default schema activation blocked until tested. Remaining browser role-loss/catalogue-change cases and device/operator/hosted concurrency acceptance remain explicit. Preserve old live/vendor resources and KES10,000 total recurring monthly/client baseline.
