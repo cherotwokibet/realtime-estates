@@ -2,6 +2,12 @@ import {
   validateListingReferenceCatalogue,
   validateSyntheticReferenceDraftCommand,
   validateSyntheticReferenceDraftReceipt,
+  validateSyntheticReferenceRevision,
+  validateSyntheticReferenceTransitionCommand,
+  validateSyntheticReferenceTransitionReceipt,
+  type SyntheticReferenceRevision,
+  type SyntheticReferenceTransitionCommand,
+  type SyntheticReferenceTransitionReceipt,
   type ListingReferenceCatalogue,
   type SyntheticReferenceDraftCommand,
   type SyntheticReferenceDraftReceipt,
@@ -33,6 +39,9 @@ import {
   type ListingSuccessorReceipt,
 } from '@realtor/domain';
 export type {
+  SyntheticReferenceRevision,
+  SyntheticReferenceTransitionCommand,
+  SyntheticReferenceTransitionReceipt,
   ListingReferenceCatalogue,
   SyntheticReferenceDraftCommand,
   SyntheticReferenceDraftReceipt,
@@ -3137,6 +3146,128 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid synthetic reference catalogue.');
     }
   }
+  async getSyntheticReferenceRevisionV3(
+    listingId: string,
+    revision: number,
+    expectedVersion: string,
+    originalCatalogue: ListingReferenceCatalogue,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceRevision> {
+    return this.referenceRevision(
+      'listings',
+      listingId,
+      revision,
+      expectedVersion,
+      originalCatalogue,
+      options,
+    );
+  }
+  async getSyntheticReferenceReviewV3(
+    listingId: string,
+    revision: number,
+    expectedVersion: string,
+    originalCatalogue: ListingReferenceCatalogue,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceRevision> {
+    return this.referenceRevision(
+      'reviews',
+      listingId,
+      revision,
+      expectedVersion,
+      originalCatalogue,
+      options,
+    );
+  }
+  private async referenceRevision(
+    kind: 'listings' | 'reviews',
+    listingId: string,
+    revision: number,
+    expectedVersion: string,
+    originalCatalogue: ListingReferenceCatalogue,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceRevision> {
+    const captured = uploadOptions(options),
+      listing = uuid(listingId, 'VALIDATION', 'Listing ID'),
+      number = integer(revision, 1, 2147483647, 'VALIDATION', 'Revision'),
+      version = staffVersion(expectedVersion, 'VALIDATION');
+    if (listing !== listingId || BigInt(version) > 9007199254740991n)
+      return invalid('VALIDATION', 'Use canonical reference identity and version.');
+    let catalogue: ListingReferenceCatalogue;
+    try {
+      catalogue = validateListingReferenceCatalogue(originalCatalogue);
+    } catch {
+      return invalid('VALIDATION', 'Review the original reference catalogue.');
+    }
+    const data = await this.request(
+      `/v3/staff/${kind}/${listing}/reference-revisions/${number}/${version}`,
+      'GET',
+      captured,
+    );
+    try {
+      const review = validateSyntheticReferenceRevision(data, catalogue, listing, number, version);
+      if (kind === 'reviews' && review.state !== 'pending') throw Error();
+      return review;
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid synthetic reference revision.');
+    }
+  }
+  async transitionSyntheticReferenceRevisionV3(
+    input: SyntheticReferenceTransitionCommand,
+    originalCatalogue: ListingReferenceCatalogue,
+    expectedActorId: string,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceTransitionReceipt> {
+    const captured = uploadOptions(options),
+      actor = uuid(expectedActorId, 'VALIDATION', 'Expected actor');
+    let catalogue: ListingReferenceCatalogue, command: SyntheticReferenceTransitionCommand;
+    try {
+      catalogue = validateListingReferenceCatalogue(originalCatalogue);
+      command = validateSyntheticReferenceTransitionCommand(input, catalogue);
+    } catch {
+      return invalid('VALIDATION', 'Review the retained original transition and catalogue.');
+    }
+    try {
+      const data = await this.request(
+        `/v3/staff/listings/${command.listingId}/reference-transition-operations/${command.operationId}`,
+        'POST',
+        captured,
+        { ...command },
+      );
+      try {
+        return validateSyntheticReferenceTransitionReceipt(data, command, catalogue, actor);
+      } catch {
+        return invalid('INVALID_RESPONSE', 'Invalid synthetic reference transition receipt.');
+      }
+    } catch (error) {
+      return uncertainWriteError(error);
+    }
+  }
+  async getSyntheticReferenceTransitionReceiptV3(
+    input: SyntheticReferenceTransitionCommand,
+    originalCatalogue: ListingReferenceCatalogue,
+    expectedActorId: string,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceTransitionReceipt> {
+    const captured = uploadOptions(options),
+      actor = uuid(expectedActorId, 'VALIDATION', 'Expected actor');
+    let catalogue: ListingReferenceCatalogue, command: SyntheticReferenceTransitionCommand;
+    try {
+      catalogue = validateListingReferenceCatalogue(originalCatalogue);
+      command = validateSyntheticReferenceTransitionCommand(input, catalogue);
+    } catch {
+      return invalid('VALIDATION', 'Review the retained original transition and catalogue.');
+    }
+    const data = await this.request(
+      `/v3/staff/listings/${command.listingId}/reference-transition-operations/${command.operationId}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateSyntheticReferenceTransitionReceipt(data, command, catalogue, actor);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid original reference transition receipt.');
+    }
+  }
   async saveSyntheticReferenceDraftV3(
     input: SyntheticReferenceDraftCommand,
     originalCatalogue: ListingReferenceCatalogue,
@@ -4473,8 +4604,18 @@ export class RealtorApiClient {
       /^\/v3\/staff\/reference-catalogues\/(?:current|[1-9]\d{0,15})$/.test(path);
     const referenceDraft =
       /^\/v3\/staff\/listings\/[0-9a-f-]+\/reference-draft-operations\/[0-9a-f-]+$/.test(path);
+    const referenceModeration =
+      /^\/v3\/staff\/listings\/[0-9a-f-]+\/reference-transition-operations\/[0-9a-f-]+$/.test(
+        path,
+      ) ||
+      /^\/v3\/staff\/(?:listings|reviews)\/[0-9a-f-]+\/reference-revisions\/[1-9]\d{0,9}\/[1-9]\d{0,15}$/.test(
+        path,
+      );
     const reference =
-      referenceCatalogue || referenceDraft || path === '/v3/staff/reference-session';
+      referenceCatalogue ||
+      referenceDraft ||
+      referenceModeration ||
+      path === '/v3/staff/reference-session';
     const verification =
       /^\/v2\/staff\/listings\/[0-9a-f-]+\/verification-(?:operations\/[0-9a-f-]+|history\?limit=[1-9]\d?(?:&beforeVersion=[1-9]\d{0,15})?)$/.test(
         path,
@@ -4572,7 +4713,7 @@ export class RealtorApiClient {
         }
         let raw: string;
         if (boundedRead) {
-          const maximum = (referenceCatalogue ? 6 : 1) * 1024 * 1024,
+          const maximum = referenceModeration ? 131072 : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
             declared = result.headers.get('content-length');
           if (
             result.headers.has('content-encoding') ||
@@ -4658,6 +4799,23 @@ export class RealtorApiClient {
           );
         let payload: unknown;
         try {
+          if (referenceModeration) {
+            // Guard nullable public-pointer and room counts before JSON numeric rounding.
+            const tokens =
+              raw.match(
+                /"(?:\\[\s\S]|[^"\\])*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\]:,]/g,
+              ) ?? [];
+            for (let i = 0; i < tokens.length; i++)
+              if (
+                tokens[i]?.startsWith('"') &&
+                tokens[i + 1] === ':' &&
+                ['publishedRevision', 'bedrooms', 'privateBathrooms', 'sharedBathrooms'].includes(
+                  JSON.parse(tokens[i]!),
+                ) &&
+                !/^(?:null|0|[1-9]\d*)$/.test(tokens[i + 2] ?? '')
+              )
+                throw Error('Invalid reference integer token.');
+          }
           if (verification || reference) assertMediaJsonTokens(raw);
           else if (enquiry) assertEnquiryJsonTokens(raw);
           else if (
