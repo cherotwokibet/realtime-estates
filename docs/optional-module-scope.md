@@ -1,6 +1,6 @@
 # Optional module scope and deferred acceptance
 
-Recorded23October2026 by Boniface + Codex under Boniface's approval to continue using best judgment. This makes the existing provisional pilot defaults explicit; it is not Realtime operator UAT, commercial contract acceptance or permission to collect funds. The recurring client baseline remains KES10,000 gross total/month. No provider purchase, account expansion or payment transaction is authorized by this record.
+Recorded23October2026 by Codex for Boniface under his approval to continue using best judgment. This makes the existing provisional pilot defaults explicit; it is not Realtime operator UAT, commercial contract acceptance or permission to collect funds. The recurring client baseline remains KES10,000 gross total/month. No provider purchase, account expansion or payment transaction is authorized by this record.
 
 ## First-release boundary
 
