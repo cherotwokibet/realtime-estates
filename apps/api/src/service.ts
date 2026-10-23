@@ -1,4 +1,7 @@
 import {
+  validateListingReferenceCatalogue,
+  validateSyntheticReferenceDraftCommand,
+  validateSyntheticReferenceDraftReceipt,
   validateListingVerificationCommand,
   validateListingVerificationReceipt,
   validateListingVerificationOriginal,
@@ -84,6 +87,8 @@ export interface EnquiryLimiter {
   consume(key: string): LimiterResult | Promise<LimiterResult>;
 }
 export interface ApiServiceOptions {
+  /** Isolated synthetic reference candidates only; omitted keeps every v3 reference route unavailable. */
+  readonly referenceDraftMode?: 'synthetic-reference-draft-v1';
   /** Explicit synthetic private-check policy; omission leaves its routes unavailable. */
   readonly verificationMode?: 'synthetic-check-record-v1';
   /** Explicit internal synthetic mode. Omission disables all reminder admission/capture HTTP routes. */
@@ -157,7 +162,7 @@ function limit(request: Request): number {
   return Number(value);
 }
 
-function assertDecisionJsonTokens(source: string): void {
+function assertDecisionJsonTokens(source: string, stringVersions = false): void {
   // Check original tokens before JSON.parse can round a fractional version. Whole
   // string tokens keep reason text separate; decoding keys catches escaped duplicates.
   // JSON.parse below independently rejects every syntax error or skipped character.
@@ -177,6 +182,7 @@ function assertDecisionJsonTokens(source: string): void {
       if (!keys || keys.has(key)) throw new Error('Duplicate JSON object key.');
       keys.add(key);
       if (
+        !stringVersions &&
         ['expectedVersion', 'expectedEnquiryVersion'].includes(key) &&
         !/^[1-9]\d*$/.test(tokens[index + 2] ?? '')
       )
@@ -191,6 +197,8 @@ async function jsonBody(
   strictDecision = false,
   exactLength = false,
   integerRevision = false,
+  stringVersions = false,
+  deadlineMs = 0,
 ): Promise<unknown> {
   if (
     !/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type') ?? '')
@@ -203,18 +211,42 @@ async function jsonBody(
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
+  let emptyChunks = 0;
+  let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
+  const expires = deadlineMs ? Date.now() + deadlineMs : 0;
+  const timedOut = () => new HttpError(408, 'REQUEST_TIMEOUT', 'Request body deadline exceeded.');
+  const timeout: Promise<never> | null = deadlineMs
+    ? new Promise((_, reject) => {
+        deadlineTimer = setTimeout(() => reject(timedOut()), deadlineMs);
+      })
+    : null;
   try {
     for (;;) {
-      const { value, done } = await reader.read();
+      if (expires && Date.now() >= expires) throw timedOut();
+      const { value, done } = await (timeout
+        ? Promise.race([reader.read(), timeout])
+        : reader.read());
       if (done) break;
+      if (deadlineMs && !value.byteLength) {
+        if (++emptyChunks > 1024)
+          throw new HttpError(400, 'INVALID_INPUT', 'Too many empty body frames.');
+        if (emptyChunks % 64 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
+        continue;
+      }
+      emptyChunks = 0;
       size += value.byteLength;
       if (size > maximum) {
-        await reader.cancel();
+        if (deadlineMs) void reader.cancel().catch(() => undefined);
+        else await reader.cancel();
         throw new HttpError(413, 'BODY_TOO_LARGE', 'Request body is too large.');
       }
       chunks.push(value);
     }
+  } catch (error) {
+    if (deadlineMs) void reader.cancel().catch(() => undefined);
+    throw error;
   } finally {
+    if (deadlineTimer) clearTimeout(deadlineTimer);
     reader.releaseLock();
   }
   if (exactLength && declared !== null && Number(declared) !== size)
@@ -227,7 +259,7 @@ async function jsonBody(
   }
   try {
     const source = new TextDecoder('utf-8', { fatal: true }).decode(body);
-    if (strictDecision) assertDecisionJsonTokens(source);
+    if (strictDecision) assertDecisionJsonTokens(source, stringVersions);
     return integerMoney
       ? integerRevision
         ? parseListingSuccessorJsonV2(source)
@@ -1210,6 +1242,12 @@ export function createApiService(
   )
     throw new Error('Unsupported verification policy.');
   const verificationEnabled = options.verificationMode === 'synthetic-check-record-v1';
+  if (
+    options.referenceDraftMode !== undefined &&
+    options.referenceDraftMode !== 'synthetic-reference-draft-v1'
+  )
+    throw new Error('Unsupported reference draft mode.');
+  const referenceEnabled = options.referenceDraftMode === 'synthetic-reference-draft-v1';
   const tenantId = uuid(options.tenantId, 'Configured tenant');
   const privacyNoticeVersion = text(
     options.privacyNoticeVersion,
@@ -1337,6 +1375,162 @@ export function createApiService(
       const reviewRoute =
         /^\/v2\/staff\/reviews\/([^/]+)\/revisions\/([1-9]\d*)(\/decision)?$/.exec(path);
       const v2Draft = path.startsWith('/v2/staff/');
+      if (path.startsWith('/v3/staff/')) {
+        if (!referenceEnabled) throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+        const catalogueRoute = /^\/v3\/staff\/reference-catalogues\/(current|[1-9]\d{0,15})$/.exec(
+          path,
+        );
+        const operationRoute =
+          /^\/v3\/staff\/listings\/([^/]+)\/reference-draft-operations\/([^/]+)$/.exec(path);
+        if (!catalogueRoute && !operationRoute)
+          throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+        if (
+          (catalogueRoute && method !== 'GET') ||
+          (operationRoute && !['GET', 'POST'].includes(method))
+        )
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method is not allowed.', {
+            Allow: catalogueRoute ? 'GET' : 'GET, POST',
+          });
+        const actorId = await identity(request, true);
+        let forbidden =
+          request.url.includes('?') ||
+          request.url.includes('#') ||
+          (method === 'GET' && request.body !== null);
+        request.headers.forEach((_, name) => {
+          if (
+            [
+              'cookie',
+              'content-encoding',
+              'transfer-encoding',
+              'expect',
+              'range',
+              'idempotency-key',
+              'x-actor-id',
+              'x-tenant-id',
+              'x-role',
+              'x-actor',
+              'x-tenant',
+              'x-company-id',
+              'x-assigned-agent-id',
+              'x-revision-version',
+            ].includes(name) ||
+            name.startsWith('if-') ||
+            (method === 'GET' && ['content-type', 'content-length'].includes(name))
+          )
+            forbidden = true;
+        });
+        const declared = request.headers.get('content-length');
+        if (
+          method === 'POST' &&
+          declared !== null &&
+          (!/^(0|[1-9]\d*)$/.test(declared) || Number(declared) > 131072)
+        )
+          forbidden = true;
+        if (forbidden) throw new HttpError(400, 'INVALID_INPUT', 'Unsupported reference context.');
+        const listingId = operationRoute ? uuid(operationRoute[1], 'listingId') : null,
+          operationId = operationRoute ? uuid(operationRoute[2], 'operationId') : null;
+        if (
+          operationRoute &&
+          (operationRoute[1] !== listingId ||
+            operationRoute[2] !== operationId ||
+            operationRoute[1].length !== 36 ||
+            operationRoute[2].length !== 36)
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Canonical route IDs required.');
+        const catalogueVersion =
+          catalogueRoute && catalogueRoute[1] !== 'current' ? catalogueRoute[1]! : null;
+        if (catalogueVersion !== null && BigInt(catalogueVersion) > 9007199254740991n)
+          throw new HttpError(400, 'INVALID_INPUT', 'Invalid catalogue version.');
+        const result = await options.database.transaction(
+          { tenantId, actorId, correlationId },
+          async (query) => {
+            await assertStaff(query);
+            async function catalogue(version: string | null) {
+              const data = await query.query(
+                'SELECT app_api.read_synthetic_reference_catalogue($1::bigint) AS catalogue',
+                [version],
+              );
+              if (data.rows.length !== 1) throw Error('Invalid catalogue projection.');
+              const value = validateListingReferenceCatalogue(scalar(data, 'catalogue'));
+              if (version !== null && value.version !== version)
+                throw Error('Catalogue projection changed version.');
+              if (new TextEncoder().encode(JSON.stringify(value)).byteLength > 6 * 1024 * 1024)
+                throw Error('Catalogue projection too large.');
+              return value;
+            }
+            if (catalogueRoute) return catalogue(catalogueVersion);
+            if (method === 'GET') {
+              const data = await query.query(
+                'SELECT app_api.read_synthetic_reference_draft_context($1::uuid,$2::uuid) AS original',
+                [listingId, operationId],
+              );
+              if (data.rows.length !== 1) throw Error('Invalid original reference projection.');
+              const original = scalar(data, 'original') as Record<string, unknown>;
+              if (
+                !original ||
+                typeof original !== 'object' ||
+                ![Object.prototype, null].includes(Object.getPrototypeOf(original)) ||
+                Reflect.ownKeys(original).length !== 3 ||
+                !['command', 'receipt', 'catalogue'].every((k) => {
+                  const descriptor = Object.getOwnPropertyDescriptor(original, k);
+                  return descriptor?.enumerable && Object.hasOwn(descriptor, 'value');
+                })
+              )
+                throw Error('Invalid original context.');
+              const command = validateSyntheticReferenceDraftCommand(
+                original.command,
+                original.catalogue,
+              );
+              if (command.listingId !== listingId || command.operationId !== operationId)
+                throw Error('Original reference changed route.');
+              return validateSyntheticReferenceDraftReceipt(
+                original.receipt,
+                command,
+                original.catalogue,
+                actorId!,
+              );
+            }
+            const body = await jsonBody(request, 131072, true, true, true, true, true, 10000);
+            const selected = (body as { selection?: { catalogueVersion?: unknown } })?.selection
+              ?.catalogueVersion;
+            if (
+              typeof selected !== 'string' ||
+              selected.length > 16 ||
+              !/^[1-9]\d*$/.test(selected) ||
+              BigInt(selected) > 9007199254740991n
+            )
+              throw new HttpError(400, 'INVALID_INPUT', 'Invalid catalogue selection.');
+            const originalCatalogue = await catalogue(selected);
+            let command;
+            try {
+              command = validateSyntheticReferenceDraftCommand(body, originalCatalogue);
+            } catch {
+              throw new HttpError(400, 'INVALID_INPUT', 'Invalid reference draft command.');
+            }
+            if (command.listingId !== listingId || command.operationId !== operationId)
+              throw new HttpError(400, 'INVALID_INPUT', 'Reference command changed route.');
+            const data = await query.query(
+              'SELECT app_api.save_synthetic_reference_draft($1::uuid,$2::integer,$3::bigint,$4::uuid,$5::jsonb,$6::jsonb) AS receipt',
+              [
+                listingId,
+                command.revision,
+                command.expectedVersion,
+                operationId,
+                JSON.stringify(command.content),
+                JSON.stringify(command.selection),
+              ],
+            );
+            if (data.rows.length !== 1) throw Error('Invalid reference receipt projection.');
+            return validateSyntheticReferenceDraftReceipt(
+              scalar(data, 'receipt'),
+              command,
+              originalCatalogue,
+              actorId!,
+            );
+          },
+        );
+        return response(200, result, correlationId);
+      }
       if (path.startsWith('/v1/staff/') || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
