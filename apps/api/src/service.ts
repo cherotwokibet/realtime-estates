@@ -1382,14 +1382,15 @@ export function createApiService(
         );
         const operationRoute =
           /^\/v3\/staff\/listings\/([^/]+)\/reference-draft-operations\/([^/]+)$/.exec(path);
-        if (!catalogueRoute && !operationRoute)
+        const sessionRoute = path === '/v3/staff/reference-session';
+        if (!catalogueRoute && !operationRoute && !sessionRoute)
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
         if (
-          (catalogueRoute && method !== 'GET') ||
+          ((catalogueRoute || sessionRoute) && method !== 'GET') ||
           (operationRoute && !['GET', 'POST'].includes(method))
         )
           throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method is not allowed.', {
-            Allow: catalogueRoute ? 'GET' : 'GET, POST',
+            Allow: catalogueRoute || sessionRoute ? 'GET' : 'GET, POST',
           });
         const actorId = await identity(request, true);
         let forbidden =
@@ -1445,6 +1446,9 @@ export function createApiService(
           { tenantId, actorId, correlationId },
           async (query) => {
             await assertStaff(query);
+            // Database membership is checked on every read; token claims never supply company/role.
+            if (sessionRoute)
+              return { policy: 'synthetic-reference-session-v1', tenantId, actorId };
             async function catalogue(version: string | null) {
               const data = await query.query(
                 'SELECT app_api.read_synthetic_reference_catalogue($1::bigint) AS catalogue',

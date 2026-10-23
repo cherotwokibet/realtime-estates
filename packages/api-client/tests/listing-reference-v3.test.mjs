@@ -237,3 +237,39 @@ test('empty frames and separate receipt/catalogue byte limits cancel hostile bod
     assert.equal(cancelled, true);
   }
 });
+
+test('reference session SDK returns only current server-bound company/actor and rejects altered wire', async () => {
+  const value = { policy: 'synthetic-reference-session-v1', tenantId: id(1), actorId: id(10) };
+  let calls = [];
+  const sdk = client(async (url, init) => {
+    calls.push({ url, init });
+    return Response.json(value);
+  });
+  assert.deepEqual(await sdk.getSyntheticReferenceSessionV3(options), value);
+  assert.equal(calls[0].url, 'https://synthetic.invalid/v3/staff/reference-session');
+  assert.equal(calls[0].init.method, 'GET');
+  assert.equal(calls[0].init.body, undefined);
+  for (const data of [
+    { ...value, role: 'admin' },
+    { ...value, actorId: 'bad' },
+    { ...value, policy: 'live' },
+  ])
+    await assert.rejects(
+      client(async () => Response.json(data)).getSyntheticReferenceSessionV3(options),
+    );
+  await assert.rejects(
+    client(
+      async () =>
+        new Response(
+          '{"policy":"synthetic-reference-session-v1","tenantId":"' +
+            id(1) +
+            '","actorId":"' +
+            id(10) +
+            '","actorId":"' +
+            id(11) +
+            '"}',
+          { headers: { 'content-type': 'application/json' } },
+        ),
+    ).getSyntheticReferenceSessionV3(options),
+  );
+});

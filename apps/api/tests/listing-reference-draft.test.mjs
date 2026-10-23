@@ -145,6 +145,37 @@ test('opt-in reference API uses restricted transactions and original catalogue r
     });
   let original;
   await t.test(
+    'reference session binds configured company and verified actor to current staff membership',
+    async () => {
+      const route = '/v3/staff/reference-session';
+      assert.equal((await service(false)(request('GET', route))).status, 404);
+      const value = await service()(request('GET', route));
+      assert.equal(value.status, 200);
+      assert.deepEqual(await value.json(), {
+        policy: 'synthetic-reference-session-v1',
+        tenantId: id(1),
+        actorId: id(10),
+      });
+      actor = 12;
+      assert.equal((await service()(request('GET', route))).status, 403);
+      actor = 10;
+      await db.query(
+        'UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',
+        [id(1), id(10)],
+      );
+      assert.equal((await service()(request('GET', route))).status, 403);
+      await db.query(
+        'UPDATE app_private.memberships SET active=true,revoked_at=NULL WHERE tenant_id=$1 AND user_id=$2',
+        [id(1), id(10)],
+      );
+      assert.equal((await service()(request('POST', route))).status, 405);
+      assert.equal(
+        (await service()(request('GET', route, '', { 'x-tenant-id': id(2) }))).status,
+        400,
+      );
+    },
+  );
+  await t.test(
     'default mode is404 with no database access; invalid configuration refuses',
     async () => {
       const before = commits;

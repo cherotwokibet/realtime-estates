@@ -3085,6 +3085,36 @@ export class RealtorApiClient {
       return uncertainWriteError(error);
     }
   }
+  async getSyntheticReferenceSessionV3(options: StaffRequestOptions): Promise<{
+    readonly policy: 'synthetic-reference-session-v1';
+    readonly tenantId: string;
+    readonly actorId: string;
+  }> {
+    const data = await this.request('/v3/staff/reference-session', 'GET', uploadOptions(options));
+    try {
+      if (
+        !data ||
+        typeof data !== 'object' ||
+        ![Object.prototype, null].includes(Object.getPrototypeOf(data)) ||
+        Reflect.ownKeys(data).length !== 3
+      )
+        throw Error();
+      const values: Record<string, unknown> = {};
+      for (const key of ['policy', 'tenantId', 'actorId']) {
+        const d = Object.getOwnPropertyDescriptor(data, key);
+        if (!d?.enumerable || !Object.hasOwn(d, 'value')) throw Error();
+        values[key] = d.value;
+      }
+      if (values.policy !== 'synthetic-reference-session-v1') throw Error();
+      return Object.freeze({
+        policy: 'synthetic-reference-session-v1',
+        tenantId: uuid(values.tenantId, 'INVALID_RESPONSE', 'Tenant'),
+        actorId: uuid(values.actorId, 'INVALID_RESPONSE', 'Actor'),
+      });
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid synthetic reference session.');
+    }
+  }
   async getSyntheticReferenceCatalogueV3(
     version: string,
     options: StaffRequestOptions,
@@ -4443,7 +4473,8 @@ export class RealtorApiClient {
       /^\/v3\/staff\/reference-catalogues\/(?:current|[1-9]\d{0,15})$/.test(path);
     const referenceDraft =
       /^\/v3\/staff\/listings\/[0-9a-f-]+\/reference-draft-operations\/[0-9a-f-]+$/.test(path);
-    const reference = referenceCatalogue || referenceDraft;
+    const reference =
+      referenceCatalogue || referenceDraft || path === '/v3/staff/reference-session';
     const verification =
       /^\/v2\/staff\/listings\/[0-9a-f-]+\/verification-(?:operations\/[0-9a-f-]+|history\?limit=[1-9]\d?(?:&beforeVersion=[1-9]\d{0,15})?)$/.test(
         path,
