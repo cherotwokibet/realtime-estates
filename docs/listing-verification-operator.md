@@ -1,5 +1,7 @@
 # Private synthetic assessment operator screen
 
+**Update, 25 October 2026:** the earlier partial browser attempt below is historical. Checkpoint 171 completed successful recording, full-reload original recovery, older-history paging, stale-target refusal and a separate agent-denial view. See `listing-controls-implementation-acceptance.md` and `evidence/listing-controls-acceptance-proof.json`. Task 06-6 is accepted as local implementation; production identity, real evidence policy, operator/device/hosted acceptance and release gates remain open. The protected old helper was left untouched; fresh independently owned port-3005 previews supplied the new proof.
+
 The dynamic `/listings/:id/verification` page requires fresh current-admin history and listing reads before rendering private assessment content. The listing queue links to it. It labels all records as synthetic staff statements and grants no public verified badge.
 
 The browser retains the exact validated command in sessionStorage before enabling explicit dispatch. Storage is namespaced by preview instance and listing, contains no bearer, and must read back the saved original exactly. Restored originals start uncertain; they cannot silently become fresh writes. Unknown, corrupt, foreign or duplicate-key storage blocks further preparation without deleting the saved input. Session storage is tab-local and the preview instance changes after restart; this is not production restart durability or account identity composition.
