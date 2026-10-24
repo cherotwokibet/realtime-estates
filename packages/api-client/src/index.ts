@@ -2,6 +2,11 @@ import {
   validateListingReferenceCatalogue,
   validateSyntheticReferenceDraftCommand,
   validateSyntheticReferenceDraftReceipt,
+  validateSyntheticReferenceCreationCommand,
+  validateSyntheticReferenceCreationReceipt,
+  SYNTHETIC_REFERENCE_CREATION_MAX_BYTES,
+  type SyntheticReferenceCreationCommand,
+  type SyntheticReferenceCreationReceipt,
   validateSyntheticReferenceRevision,
   validateSyntheticReferenceContext,
   SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES,
@@ -52,6 +57,8 @@ export type {
   ListingReferenceCatalogue,
   SyntheticReferenceDraftCommand,
   SyntheticReferenceDraftReceipt,
+  SyntheticReferenceCreationCommand,
+  SyntheticReferenceCreationReceipt,
 } from '@realtor/domain';
 export {
   validateListingControlCommand,
@@ -3412,6 +3419,63 @@ export class RealtorApiClient {
       return uncertainWriteError(error);
     }
   }
+  async createSyntheticReferenceListingV3(
+    input: SyntheticReferenceCreationCommand,
+    originalCatalogue: ListingReferenceCatalogue,
+    expectedActorId: string,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceCreationReceipt> {
+    const captured = uploadOptions(options),
+      actor = uuid(expectedActorId, 'VALIDATION', 'Expected actor');
+    let catalogue: ListingReferenceCatalogue, command: SyntheticReferenceCreationCommand;
+    try {
+      catalogue = validateListingReferenceCatalogue(originalCatalogue);
+      command = validateSyntheticReferenceCreationCommand(input, catalogue);
+    } catch {
+      return invalid('VALIDATION', 'Review the retained creation command and original catalogue.');
+    }
+    try {
+      const data = await this.request(
+        `/v3/staff/listings/${command.listingId}/reference-creation-operations/${command.operationId}`,
+        'POST',
+        captured,
+        { ...command },
+      );
+      try {
+        return validateSyntheticReferenceCreationReceipt(data, command, catalogue, actor);
+      } catch {
+        return invalid('INVALID_RESPONSE', 'Invalid reference creation receipt.');
+      }
+    } catch (error) {
+      return uncertainWriteError(error);
+    }
+  }
+  async getSyntheticReferenceCreationReceiptV3(
+    input: SyntheticReferenceCreationCommand,
+    originalCatalogue: ListingReferenceCatalogue,
+    expectedActorId: string,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceCreationReceipt> {
+    const captured = uploadOptions(options),
+      actor = uuid(expectedActorId, 'VALIDATION', 'Expected actor');
+    let catalogue: ListingReferenceCatalogue, command: SyntheticReferenceCreationCommand;
+    try {
+      catalogue = validateListingReferenceCatalogue(originalCatalogue);
+      command = validateSyntheticReferenceCreationCommand(input, catalogue);
+    } catch {
+      return invalid('VALIDATION', 'Review the retained original creation and catalogue.');
+    }
+    const data = await this.request(
+      `/v3/staff/listings/${command.listingId}/reference-creation-operations/${command.operationId}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateSyntheticReferenceCreationReceipt(data, command, catalogue, actor);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid original reference creation receipt.');
+    }
+  }
   async getSyntheticReferenceDraftReceiptV3(
     input: SyntheticReferenceDraftCommand,
     originalCatalogue: ListingReferenceCatalogue,
@@ -4717,6 +4781,8 @@ export class RealtorApiClient {
       /^\/v3\/staff\/reference-catalogues\/(?:current|[1-9]\d{0,15})$/.test(path);
     const referenceDraft =
       /^\/v3\/staff\/listings\/[0-9a-f-]+\/reference-draft-operations\/[0-9a-f-]+$/.test(path);
+    const referenceCreation =
+      /^\/v3\/staff\/listings\/[0-9a-f-]+\/reference-creation-operations\/[0-9a-f-]+$/.test(path);
     const referenceContext =
       /^\/v3\/staff\/(?:listings|reviews)\/[0-9a-f-]+\/reference-revisions\/[1-9]\d{0,9}\/[1-9]\d{0,15}\/context$/.test(
         path,
@@ -4733,6 +4799,7 @@ export class RealtorApiClient {
       publicReference ||
       referenceCatalogue ||
       referenceDraft ||
+      referenceCreation ||
       referenceModeration ||
       path === '/v3/staff/reference-session';
     const verification =
@@ -4834,11 +4901,15 @@ export class RealtorApiClient {
         if (boundedRead) {
           const maximum = publicReference
               ? 3 * 1024 * 1024
-              : referenceContext && result.ok
-                ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
-                : referenceModeration
-                  ? 131072
-                  : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
+              : referenceCreation
+                ? result.ok
+                  ? SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
+                  : 131072
+                : referenceContext && result.ok
+                  ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
+                  : referenceModeration
+                    ? 131072
+                    : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
             declared = result.headers.get('content-length');
           if (
             result.headers.has('content-encoding') ||
@@ -4913,11 +4984,13 @@ export class RealtorApiClient {
           raw.length >
           (upload || finalization
             ? 4096
-            : referenceContext
-              ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
-              : referenceCatalogue
-                ? 6 * 1024 * 1024
-                : MAX_JSON_CHARACTERS)
+            : referenceCreation
+              ? SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
+              : referenceContext
+                ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
+                : referenceCatalogue
+                  ? 6 * 1024 * 1024
+                  : MAX_JSON_CHARACTERS)
         )
           throw new ApiClientError(
             'INVALID_RESPONSE',
@@ -4926,7 +4999,7 @@ export class RealtorApiClient {
           );
         let payload: unknown;
         try {
-          if (referenceModeration || publicReference) {
+          if (referenceModeration || publicReference || referenceCreation) {
             // Guard nullable public-pointer and room counts before JSON numeric rounding.
             const tokens =
               raw.match(

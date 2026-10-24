@@ -2,6 +2,8 @@ import {
   validateListingReferenceCatalogue,
   validateSyntheticReferenceDraftCommand,
   validateSyntheticReferenceDraftReceipt,
+  validateSyntheticReferenceCreationCommand,
+  validateSyntheticReferenceCreationReceipt,
   validateSyntheticReferenceRevision,
   validateSyntheticReferenceContext,
   validateSyntheticReferencePublicAttributes,
@@ -98,6 +100,8 @@ export interface ApiServiceOptions {
   readonly referenceDraftMode?: 'synthetic-reference-draft-v1';
   /** Separate isolated candidate. Requires reference draft mode; never installs schema. */
   readonly referenceModerationMode?: 'synthetic-reference-transition-v1';
+  /** Fifth isolated candidate; requires moderation mode and never installs schema. */
+  readonly referenceCreationMode?: 'synthetic-reference-creation-v1';
   /** Explicit synthetic private-check policy; omission leaves its routes unavailable. */
   readonly verificationMode?: 'synthetic-check-record-v1';
   /** Explicit internal synthetic mode. Omission disables all reminder admission/capture HTTP routes. */
@@ -1445,6 +1449,14 @@ export function createApiService(
     throw new Error('Unsupported reference moderation mode.');
   const referenceModerationEnabled =
     options.referenceModerationMode === 'synthetic-reference-transition-v1';
+  if (
+    options.referenceCreationMode !== undefined &&
+    (options.referenceCreationMode !== 'synthetic-reference-creation-v1' ||
+      !referenceModerationEnabled)
+  )
+    throw new Error('Unsupported reference creation mode.');
+  const referenceCreationEnabled =
+    options.referenceCreationMode === 'synthetic-reference-creation-v1';
   const tenantId = uuid(options.tenantId, 'Configured tenant');
   const privacyNoticeVersion = text(
     options.privacyNoticeVersion,
@@ -1637,6 +1649,10 @@ export function createApiService(
         );
         const operationRoute =
           /^\/v3\/staff\/listings\/([^/]+)\/reference-draft-operations\/([^/]+)$/.exec(path);
+        const creationRoute =
+          /^\/v3\/staff\/listings\/([^/]+)\/reference-creation-operations\/([^/]+)$/.exec(path);
+        if (creationRoute && !referenceCreationEnabled)
+          throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
         const sessionRoute = path === '/v3/staff/reference-session';
         const transitionRoute =
           /^\/v3\/staff\/listings\/([^/]+)\/reference-transition-operations\/([^/]+)$/.exec(path);
@@ -1647,11 +1663,18 @@ export function createApiService(
         const moderationRoute = transitionRoute || revisionRoute;
         if (moderationRoute && !referenceModerationEnabled)
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
-        if (!catalogueRoute && !operationRoute && !sessionRoute && !moderationRoute)
+        if (
+          !catalogueRoute &&
+          !operationRoute &&
+          !creationRoute &&
+          !sessionRoute &&
+          !moderationRoute
+        )
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
         if (
           ((catalogueRoute || sessionRoute || revisionRoute) && method !== 'GET') ||
-          ((operationRoute || transitionRoute) && !['GET', 'POST'].includes(method))
+          ((operationRoute || transitionRoute || creationRoute) &&
+            !['GET', 'POST'].includes(method))
         )
           throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method is not allowed.', {
             Allow: catalogueRoute || sessionRoute || revisionRoute ? 'GET' : 'GET, POST',
@@ -1692,14 +1715,15 @@ export function createApiService(
         )
           forbidden = true;
         if (forbidden) throw new HttpError(400, 'INVALID_INPUT', 'Unsupported reference context.');
-        const listingId = operationRoute ? uuid(operationRoute[1], 'listingId') : null,
-          operationId = operationRoute ? uuid(operationRoute[2], 'operationId') : null;
+        const commandRoute = operationRoute || creationRoute;
+        const listingId = commandRoute ? uuid(commandRoute[1], 'listingId') : null,
+          operationId = commandRoute ? uuid(commandRoute[2], 'operationId') : null;
         if (
-          operationRoute &&
-          (operationRoute[1] !== listingId ||
-            operationRoute[2] !== operationId ||
-            operationRoute[1].length !== 36 ||
-            operationRoute[2].length !== 36)
+          commandRoute &&
+          (commandRoute[1] !== listingId ||
+            commandRoute[2] !== operationId ||
+            commandRoute[1].length !== 36 ||
+            commandRoute[2].length !== 36)
         )
           throw new HttpError(400, 'INVALID_INPUT', 'Canonical route IDs required.');
         const catalogueVersion =
@@ -1741,6 +1765,106 @@ export function createApiService(
               return value;
             }
             if (catalogueRoute) return catalogue(catalogueVersion);
+            if (creationRoute) {
+              const active = () => {
+                if (request.signal.aborted)
+                  throw new HttpError(400, 'REQUEST_ABORTED', 'Request was cancelled.');
+              };
+              const field = (input: unknown, key: string): unknown => {
+                if (
+                  !input ||
+                  typeof input !== 'object' ||
+                  ![Object.prototype, null].includes(Object.getPrototypeOf(input))
+                )
+                  throw Error('Invalid creation projection.');
+                const d = Object.getOwnPropertyDescriptor(input, key);
+                if (!d?.enumerable || !Object.hasOwn(d, 'value'))
+                  throw Error('Invalid creation projection.');
+                return d.value;
+              };
+              const version = (input: unknown) => {
+                if (
+                  typeof input !== 'string' ||
+                  !/^[1-9]\d{0,15}$/.test(input) ||
+                  BigInt(input) > 9007199254740991n
+                )
+                  throw Error('Invalid creation catalogue version.');
+                return input;
+              };
+              active();
+              if (method === 'GET') {
+                const data = await query.query(
+                  'SELECT app_api.read_synthetic_reference_creation($1::uuid,$2::uuid) AS receipt',
+                  [listingId, operationId],
+                );
+                if (data.rows.length !== 1) throw Error('Invalid original creation projection.');
+                const raw = scalar(data, 'receipt'),
+                  creation = field(raw, 'creation'),
+                  draft = field(raw, 'referenceDraft'),
+                  originalRequest = field(creation, 'request');
+                const originalCatalogue = await catalogue(
+                  version(field(field(draft, 'attributes'), 'catalogueVersion')),
+                );
+                const command = validateSyntheticReferenceCreationCommand(
+                  {
+                    policy: field(raw, 'policy'),
+                    operationId: field(creation, 'operationId'),
+                    listingId: field(creation, 'listingId'),
+                    slug: field(originalRequest, 'slug'),
+                    content: field(originalRequest, 'content'),
+                    selection: field(draft, 'selection'),
+                  },
+                  originalCatalogue,
+                );
+                if (command.listingId !== listingId || command.operationId !== operationId)
+                  throw Error('Original creation changed route.');
+                const receipt = validateSyntheticReferenceCreationReceipt(
+                  raw,
+                  command,
+                  originalCatalogue,
+                  actorId!,
+                );
+                active();
+                return receipt;
+              }
+              const body = await jsonBody(request, 131072, true, true, true, true, true, 10000);
+              active();
+              let selected: string;
+              try {
+                selected = version(field(field(body, 'selection'), 'catalogueVersion'));
+              } catch {
+                throw new HttpError(400, 'INVALID_INPUT', 'Invalid creation catalogue selection.');
+              }
+              const originalCatalogue = await catalogue(selected);
+              let command;
+              try {
+                command = validateSyntheticReferenceCreationCommand(body, originalCatalogue);
+              } catch {
+                throw new HttpError(400, 'INVALID_INPUT', 'Invalid reference creation command.');
+              }
+              if (command.listingId !== listingId || command.operationId !== operationId)
+                throw new HttpError(400, 'INVALID_INPUT', 'Reference creation changed route.');
+              active();
+              const data = await query.query(
+                'SELECT app_api.create_synthetic_reference_listing($1::uuid,$2::uuid,$3::text,$4::jsonb,$5::jsonb) AS receipt',
+                [
+                  listingId,
+                  operationId,
+                  command.slug,
+                  JSON.stringify(command.content),
+                  JSON.stringify(command.selection),
+                ],
+              );
+              if (data.rows.length !== 1) throw Error('Invalid creation projection.');
+              const receipt = validateSyntheticReferenceCreationReceipt(
+                scalar(data, 'receipt'),
+                command,
+                originalCatalogue,
+                actorId!,
+              );
+              active();
+              return receipt;
+            }
             if (moderationRoute) {
               const active = () => {
                 if (request.signal.aborted)
