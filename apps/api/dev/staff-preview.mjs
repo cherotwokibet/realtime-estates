@@ -117,6 +117,8 @@ function configuration({
   referenceModerationReplyFault,
   referenceCreationMode,
   referenceCreationReplyFault,
+  referenceSuccessorMode,
+  referenceSuccessorReplyFault,
   referencePublicMode,
   seedAcceptedMedia = nativeUploads === undefined && enquiryPreview === undefined,
   seedPendingReviews = false,
@@ -142,6 +144,24 @@ function configuration({
   )
     throw new StaffPreviewConfigurationError(
       'Moderation preview requires explicit reference mode and synthetic accepted metadata.',
+    );
+  if (
+    referenceSuccessorMode !== undefined &&
+    (referenceSuccessorMode !== 'synthetic-reference-successor-v1' ||
+      referenceModerationMode !== 'synthetic-reference-transition-v1' ||
+      referenceDraftMode !== 'synthetic-reference-draft-v1' ||
+      referencePublicMode !== undefined)
+  )
+    throw new StaffPreviewConfigurationError(
+      'Successor preview requires explicit isolated reference moderation mode.',
+    );
+  if (
+    referenceSuccessorReplyFault !== undefined &&
+    (referenceSuccessorReplyFault !== 'invalid-first-successor-v1' ||
+      referenceSuccessorMode !== 'synthetic-reference-successor-v1')
+  )
+    throw new StaffPreviewConfigurationError(
+      'Successor reply fault requires explicit reference successor mode.',
     );
   if (
     referenceCreationMode !== undefined &&
@@ -330,6 +350,8 @@ function configuration({
     referenceModerationReplyFault,
     referenceCreationMode,
     referenceCreationReplyFault,
+    referenceSuccessorMode,
+    referenceSuccessorReplyFault,
     referencePublicMode,
   };
 }
@@ -760,10 +782,13 @@ export async function startStaffPreview(options = {}) {
     referenceModerationReplyFault,
     referenceCreationMode,
     referenceCreationReplyFault,
+    referenceSuccessorMode,
+    referenceSuccessorReplyFault,
     referencePublicMode,
   } = configuration(options);
   let referenceReplyFaultPending = !!referenceReplyFault;
   let referenceModerationReplyFaultPending = !!referenceModerationReplyFault;
+  let referenceSuccessorReplyFaultPending = !!referenceSuccessorReplyFault;
   let referenceCreationReplyFaultPending = !!referenceCreationReplyFault;
   let controlReplyFaultPending = !!controlReplyFault;
   let successorReplyFaultPending = !!successorReplyFault;
@@ -799,6 +824,7 @@ export async function startStaffPreview(options = {}) {
         'listing-reference-read.sql',
         ...(referenceModerationMode ? ['listing-reference-moderation.sql'] : []),
         ...(referenceCreationMode ? ['listing-reference-creation.sql'] : []),
+        ...(referenceSuccessorMode ? ['listing-reference-successor.sql'] : []),
       ])
         await db.exec(
           await readFile(new URL('../../../database/proposals/' + file, import.meta.url), 'utf8'),
@@ -854,6 +880,26 @@ export async function startStaffPreview(options = {}) {
             );
           });
         }
+        if (referenceSuccessorMode)
+          for (const fixtureCompany of Object.values(COMPANIES))
+            await bootstrapAs(db, fixtureCompany, fixtureCompany.admin, async () => {
+              const listing = fixtureCompany.listing;
+              const data = await db.query(
+                'SELECT app_api.read_synthetic_reference_review($1,1,4) AS review',
+                [listing],
+              );
+              const review = validateSyntheticReferenceRevision(
+                data.rows[0].review,
+                REFERENCE_PREVIEW_CATALOGUE,
+                listing,
+                1,
+                '4',
+              );
+              await db.query(
+                "SELECT app_api.execute_synthetic_reference_transition($1,1,$2,'approve',$3::jsonb,NULL)",
+                [listing, id(38000 + Number(listing.slice(-3))), JSON.stringify(review)],
+              );
+            });
         if (referencePublicMode)
           for (const fixtureCompany of Object.values(COMPANIES))
             await seedPublicReferenceListing(db, fixtureCompany);
@@ -1002,6 +1048,7 @@ export async function startStaffPreview(options = {}) {
       ...(referenceDraftMode ? { referenceDraftMode } : {}),
       ...(referenceModerationMode ? { referenceModerationMode } : {}),
       ...(referenceCreationMode ? { referenceCreationMode } : {}),
+      ...(referenceSuccessorMode ? { referenceSuccessorMode } : {}),
       ...(reminderCaptureMode ? { reminderCaptureMode } : {}),
       tenantId: company.id,
       privacyNoticeVersion: 'synthetic-staff-notice-v1',
@@ -1086,6 +1133,7 @@ export async function startStaffPreview(options = {}) {
             syntheticReferenceDrafts: !!referenceDraftMode,
             syntheticReferenceModeration: !!referenceModerationMode,
             syntheticReferenceCreation: !!referenceCreationMode,
+            syntheticReferenceSuccessor: !!referenceSuccessorMode,
             syntheticPublicReferences: !!referencePublicMode,
             acceptedMediaMetadataOnly: seedAcceptedMedia,
             successorHistoricalMetadataOnly: !!successorTerminalFixture,
@@ -1099,6 +1147,15 @@ export async function startStaffPreview(options = {}) {
           response.headers.set('X-Synthetic-Staff-Preview', 'true');
           return response;
         }
+        const referenceSuccessorRoute =
+          referenceSuccessorMode &&
+          /^\/v3\/staff\/listings\/[0-9a-f-]{36}\/reference-successor-operations\/[0-9a-f-]{36}$/.test(
+            url.pathname,
+          );
+        if (referenceSuccessorRoute && !['GET', 'POST'].includes(request.method))
+          return failure(405, 'METHOD_NOT_ALLOWED', 'Successor accepts POST or original GET.', {
+            Allow: 'GET, POST',
+          });
         const referenceCreationRoute =
           referenceCreationMode &&
           /^\/v3\/staff\/listings\/[0-9a-f-]{36}\/reference-creation-operations\/[0-9a-f-]{36}$/.test(
@@ -1112,6 +1169,7 @@ export async function startStaffPreview(options = {}) {
           referenceDraftMode &&
           (url.pathname === '/v3/staff/reference-session' ||
             referenceCreationRoute ||
+            referenceSuccessorRoute ||
             /^\/v3\/staff\/reference-catalogues\/(current|[1-9]\d{0,15})$/.test(url.pathname) ||
             (referenceModerationMode &&
               /^\/v3\/staff\/(?:listings|reviews)\/[0-9a-f-]{36}\/(?:reference-transition-operations\/[0-9a-f-]{36}|reference-revisions\/[1-9]\d{0,9}\/[1-9]\d{0,15}(?:\/context)?)$/.test(
@@ -1128,14 +1186,16 @@ export async function startStaffPreview(options = {}) {
           const moderationFault =
             referenceModerationReplyFaultPending &&
             url.pathname.includes('/reference-transition-operations/');
+          const successorFault = referenceSuccessorReplyFaultPending && referenceSuccessorRoute;
           const creationFault = referenceCreationReplyFaultPending && referenceCreationRoute;
           if (
-            (draftFault || moderationFault || creationFault) &&
+            (draftFault || moderationFault || creationFault || successorFault) &&
             request.method === 'POST' &&
             response.status === 200
           ) {
             if (draftFault) referenceReplyFaultPending = false;
             if (moderationFault) referenceModerationReplyFaultPending = false;
+            if (successorFault) referenceSuccessorReplyFaultPending = false;
             if (creationFault) referenceCreationReplyFaultPending = false;
             return Response.json(
               { syntheticReplyCorruption: true },
@@ -1579,11 +1639,14 @@ export async function startStaffPreview(options = {}) {
       syntheticReferenceDrafts: !!referenceDraftMode,
       syntheticReferenceModeration: !!referenceModerationMode,
       syntheticReferenceCreation: !!referenceCreationMode,
+      syntheticReferenceSuccessor: !!referenceSuccessorMode,
       syntheticPublicReferences: !!referencePublicMode,
       ...(referencePublicMode
         ? { referencePublicListingId: id(Number(company.listing.slice(-3)) + 10) }
         : {}),
-      ...(referenceModerationMode ? { referenceReviewVersion: '4' } : {}),
+      ...(referenceModerationMode
+        ? { referenceReviewVersion: referenceSuccessorMode ? '5' : '4' }
+        : {}),
       nativeUploads: !!nativeMedia,
       close,
     };

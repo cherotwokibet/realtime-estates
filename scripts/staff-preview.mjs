@@ -8,7 +8,21 @@ if (process.env.NODE_ENV === 'production') throw new Error('Staff preview refuse
 const root = fileURLToPath(new URL('../', import.meta.url));
 const referenceDraftMode = process.env.STAFF_PREVIEW_REFERENCE;
 const referenceModerationMode = process.env.STAFF_PREVIEW_REFERENCE_MODERATION;
+const referenceSuccessorMode = process.env.STAFF_PREVIEW_REFERENCE_SUCCESSOR;
 const referenceCreationMode = process.env.STAFF_PREVIEW_REFERENCE_CREATION;
+if (
+  referenceSuccessorMode !== undefined &&
+  (referenceSuccessorMode !== 'synthetic-reference-successor-v1' ||
+    referenceDraftMode !== 'synthetic-reference-draft-v1' ||
+    referenceModerationMode !== 'synthetic-reference-transition-v1')
+)
+  throw new Error('Successor preview requires explicit reference draft and moderation modes.');
+if (
+  process.env.STAFF_PREVIEW_REFERENCE_SUCCESSOR_REPLY_FAULT !== undefined &&
+  (process.env.STAFF_PREVIEW_REFERENCE_SUCCESSOR_REPLY_FAULT !== 'invalid-first-successor-v1' ||
+    !referenceSuccessorMode)
+)
+  throw new Error('Successor reply fault requires explicit reference successor mode.');
 if (
   referenceCreationMode !== undefined &&
   (referenceCreationMode !== 'synthetic-reference-creation-v1' ||
@@ -81,6 +95,8 @@ const preview = await startStaffPreview({
   referenceReplyFault: process.env.STAFF_PREVIEW_REFERENCE_REPLY_FAULT,
   referenceModerationMode,
   referenceCreationMode,
+  referenceSuccessorMode,
+  referenceSuccessorReplyFault: process.env.STAFF_PREVIEW_REFERENCE_SUCCESSOR_REPLY_FAULT,
   referenceCreationReplyFault: process.env.STAFF_PREVIEW_REFERENCE_CREATION_REPLY_FAULT,
   referenceModerationReplyFault: process.env.STAFF_PREVIEW_REFERENCE_MODERATION_REPLY_FAULT,
   ...(nativeUploads === undefined ? {} : { nativeUploads }),
@@ -108,6 +124,10 @@ console.log(
   `Synthetic staff editor: http://127.0.0.1:${uiPort}/drafts/${preview.listingId}/${preview.revision}${referenceDraftMode ? '/references' : ''}`,
 );
 console.log(`Synthetic authorized listing work: http://127.0.0.1:${uiPort}/listings`);
+if (referenceSuccessorMode)
+  console.log(
+    `Synthetic reference successor: http://127.0.0.1:${uiPort}/listings/${preview.listingId}/successor`,
+  );
 if (referenceCreationMode)
   console.log(`Synthetic reference creation: http://127.0.0.1:${uiPort}/listings/new`);
 if (referenceModerationMode)

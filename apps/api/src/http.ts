@@ -15,6 +15,9 @@ const REFERENCE_DRAFT_PATH = new RegExp(
 const REFERENCE_TRANSITION_PATH = new RegExp(
   `^/v3/staff/listings/${UUID.toLowerCase()}/reference-transition-operations/${UUID.toLowerCase()}$`,
 );
+const REFERENCE_SUCCESSOR_PATH = new RegExp(
+  `^/v3/staff/listings/${UUID.toLowerCase()}/reference-successor-operations/${UUID.toLowerCase()}$`,
+);
 const V2_UPLOAD_PATH = new RegExp(
   `^/v2/staff/listings/${UUID}/revisions/([1-9]\\d*)/media-jobs/${UUID}/uploads/${UUID}$`,
 );
@@ -161,7 +164,9 @@ export function createDevelopmentServer(
       const reference =
         method === 'POST' &&
         incoming.url === url.pathname &&
-        (REFERENCE_DRAFT_PATH.test(url.pathname) || REFERENCE_TRANSITION_PATH.test(url.pathname));
+        (REFERENCE_DRAFT_PATH.test(url.pathname) ||
+          REFERENCE_TRANSITION_PATH.test(url.pathname) ||
+          REFERENCE_SUCCESSOR_PATH.test(url.pathname));
       const maximum =
         creation || reference || (draft && Number(draft[1]) <= 2147483647)
           ? MAX_V2_DRAFT_BYTES
