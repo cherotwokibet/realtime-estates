@@ -8,6 +8,20 @@ if (process.env.NODE_ENV === 'production') throw new Error('Staff preview refuse
 const root = fileURLToPath(new URL('../', import.meta.url));
 const referenceDraftMode = process.env.STAFF_PREVIEW_REFERENCE;
 const referenceModerationMode = process.env.STAFF_PREVIEW_REFERENCE_MODERATION;
+const referenceCreationMode = process.env.STAFF_PREVIEW_REFERENCE_CREATION;
+if (
+  referenceCreationMode !== undefined &&
+  (referenceCreationMode !== 'synthetic-reference-creation-v1' ||
+    referenceDraftMode !== 'synthetic-reference-draft-v1' ||
+    referenceModerationMode !== 'synthetic-reference-transition-v1')
+)
+  throw new Error('Creation preview requires explicit reference draft and moderation modes.');
+if (
+  process.env.STAFF_PREVIEW_REFERENCE_CREATION_REPLY_FAULT !== undefined &&
+  (process.env.STAFF_PREVIEW_REFERENCE_CREATION_REPLY_FAULT !== 'invalid-first-created-v1' ||
+    !referenceCreationMode)
+)
+  throw new Error('Creation reply fault requires explicit reference creation mode.');
 if (
   referenceModerationMode !== undefined &&
   (referenceModerationMode !== 'synthetic-reference-transition-v1' ||
@@ -66,6 +80,8 @@ const preview = await startStaffPreview({
   referenceDraftMode,
   referenceReplyFault: process.env.STAFF_PREVIEW_REFERENCE_REPLY_FAULT,
   referenceModerationMode,
+  referenceCreationMode,
+  referenceCreationReplyFault: process.env.STAFF_PREVIEW_REFERENCE_CREATION_REPLY_FAULT,
   referenceModerationReplyFault: process.env.STAFF_PREVIEW_REFERENCE_MODERATION_REPLY_FAULT,
   ...(nativeUploads === undefined ? {} : { nativeUploads }),
 });
@@ -92,6 +108,8 @@ console.log(
   `Synthetic staff editor: http://127.0.0.1:${uiPort}/drafts/${preview.listingId}/${preview.revision}${referenceDraftMode ? '/references' : ''}`,
 );
 console.log(`Synthetic authorized listing work: http://127.0.0.1:${uiPort}/listings`);
+if (referenceCreationMode)
+  console.log(`Synthetic reference creation: http://127.0.0.1:${uiPort}/listings/new`);
 if (referenceModerationMode)
   console.log(
     `Synthetic saved reference review: http://127.0.0.1:${uiPort}/reviews/${preview.listingId}/${preview.revision}/references/${preview.referenceReviewVersion}`,

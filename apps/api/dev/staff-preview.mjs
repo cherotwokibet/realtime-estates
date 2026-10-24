@@ -115,6 +115,8 @@ function configuration({
   referenceReplyFault,
   referenceModerationMode,
   referenceModerationReplyFault,
+  referenceCreationMode,
+  referenceCreationReplyFault,
   referencePublicMode,
   seedAcceptedMedia = nativeUploads === undefined && enquiryPreview === undefined,
   seedPendingReviews = false,
@@ -140,6 +142,23 @@ function configuration({
   )
     throw new StaffPreviewConfigurationError(
       'Moderation preview requires explicit reference mode and synthetic accepted metadata.',
+    );
+  if (
+    referenceCreationMode !== undefined &&
+    (referenceCreationMode !== 'synthetic-reference-creation-v1' ||
+      referenceModerationMode !== 'synthetic-reference-transition-v1' ||
+      referencePublicMode !== undefined)
+  )
+    throw new StaffPreviewConfigurationError(
+      'Creation preview requires explicit isolated reference moderation mode.',
+    );
+  if (
+    referenceCreationReplyFault !== undefined &&
+    (referenceCreationReplyFault !== 'invalid-first-created-v1' ||
+      referenceCreationMode !== 'synthetic-reference-creation-v1')
+  )
+    throw new StaffPreviewConfigurationError(
+      'Creation reply fault requires explicit reference creation mode.',
     );
   if (
     referencePublicMode !== undefined &&
@@ -309,6 +328,8 @@ function configuration({
     referenceReplyFault,
     referenceModerationMode,
     referenceModerationReplyFault,
+    referenceCreationMode,
+    referenceCreationReplyFault,
     referencePublicMode,
   };
 }
@@ -737,10 +758,13 @@ export async function startStaffPreview(options = {}) {
     referenceReplyFault,
     referenceModerationMode,
     referenceModerationReplyFault,
+    referenceCreationMode,
+    referenceCreationReplyFault,
     referencePublicMode,
   } = configuration(options);
   let referenceReplyFaultPending = !!referenceReplyFault;
   let referenceModerationReplyFaultPending = !!referenceModerationReplyFault;
+  let referenceCreationReplyFaultPending = !!referenceCreationReplyFault;
   let controlReplyFaultPending = !!controlReplyFault;
   let successorReplyFaultPending = !!successorReplyFault;
   let creationReplyFaultPending = !!creationReplyFault;
@@ -774,6 +798,7 @@ export async function startStaffPreview(options = {}) {
         'listing-reference-catalogue-install.sql',
         'listing-reference-read.sql',
         ...(referenceModerationMode ? ['listing-reference-moderation.sql'] : []),
+        ...(referenceCreationMode ? ['listing-reference-creation.sql'] : []),
       ])
         await db.exec(
           await readFile(new URL('../../../database/proposals/' + file, import.meta.url), 'utf8'),
@@ -976,6 +1001,7 @@ export async function startStaffPreview(options = {}) {
       verificationMode: 'synthetic-check-record-v1',
       ...(referenceDraftMode ? { referenceDraftMode } : {}),
       ...(referenceModerationMode ? { referenceModerationMode } : {}),
+      ...(referenceCreationMode ? { referenceCreationMode } : {}),
       ...(reminderCaptureMode ? { reminderCaptureMode } : {}),
       tenantId: company.id,
       privacyNoticeVersion: 'synthetic-staff-notice-v1',
@@ -1059,6 +1085,7 @@ export async function startStaffPreview(options = {}) {
             syntheticReminderCapture: !!reminderCaptureMode,
             syntheticReferenceDrafts: !!referenceDraftMode,
             syntheticReferenceModeration: !!referenceModerationMode,
+            syntheticReferenceCreation: !!referenceCreationMode,
             syntheticPublicReferences: !!referencePublicMode,
             acceptedMediaMetadataOnly: seedAcceptedMedia,
             successorHistoricalMetadataOnly: !!successorTerminalFixture,
@@ -1072,9 +1099,19 @@ export async function startStaffPreview(options = {}) {
           response.headers.set('X-Synthetic-Staff-Preview', 'true');
           return response;
         }
+        const referenceCreationRoute =
+          referenceCreationMode &&
+          /^\/v3\/staff\/listings\/[0-9a-f-]{36}\/reference-creation-operations\/[0-9a-f-]{36}$/.test(
+            url.pathname,
+          );
+        if (referenceCreationRoute && !['GET', 'POST'].includes(request.method))
+          return failure(405, 'METHOD_NOT_ALLOWED', 'Creation accepts POST or original GET.', {
+            Allow: 'GET, POST',
+          });
         if (
           referenceDraftMode &&
           (url.pathname === '/v3/staff/reference-session' ||
+            referenceCreationRoute ||
             /^\/v3\/staff\/reference-catalogues\/(current|[1-9]\d{0,15})$/.test(url.pathname) ||
             (referenceModerationMode &&
               /^\/v3\/staff\/(?:listings|reviews)\/[0-9a-f-]{36}\/(?:reference-transition-operations\/[0-9a-f-]{36}|reference-revisions\/[1-9]\d{0,9}\/[1-9]\d{0,15}(?:\/context)?)$/.test(
@@ -1091,13 +1128,15 @@ export async function startStaffPreview(options = {}) {
           const moderationFault =
             referenceModerationReplyFaultPending &&
             url.pathname.includes('/reference-transition-operations/');
+          const creationFault = referenceCreationReplyFaultPending && referenceCreationRoute;
           if (
-            (draftFault || moderationFault) &&
+            (draftFault || moderationFault || creationFault) &&
             request.method === 'POST' &&
             response.status === 200
           ) {
             if (draftFault) referenceReplyFaultPending = false;
             if (moderationFault) referenceModerationReplyFaultPending = false;
+            if (creationFault) referenceCreationReplyFaultPending = false;
             return Response.json(
               { syntheticReplyCorruption: true },
               {
@@ -1539,6 +1578,7 @@ export async function startStaffPreview(options = {}) {
       pendingReviewFixtures: seedPendingReviews,
       syntheticReferenceDrafts: !!referenceDraftMode,
       syntheticReferenceModeration: !!referenceModerationMode,
+      syntheticReferenceCreation: !!referenceCreationMode,
       syntheticPublicReferences: !!referencePublicMode,
       ...(referencePublicMode
         ? { referencePublicListingId: id(Number(company.listing.slice(-3)) + 10) }
