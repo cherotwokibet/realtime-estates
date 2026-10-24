@@ -2199,6 +2199,44 @@ export function createApiService(
       if (path.startsWith('/v1/staff/') || v2Draft) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        if (path === '/v2/staff/session') {
+          if (method !== 'GET')
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Staff context is read-only.', {
+              Allow: 'GET',
+            });
+          let forbidden =
+            request.url.includes('?') || request.url.includes('#') || request.body !== null;
+          request.headers.forEach((_, name) => {
+            if (
+              [
+                'cookie',
+                'content-type',
+                'content-length',
+                'content-encoding',
+                'transfer-encoding',
+                'expect',
+                'range',
+                'idempotency-key',
+                'x-actor-id',
+                'x-tenant-id',
+                'x-role',
+                'x-actor',
+                'x-tenant',
+                'x-company-id',
+                'x-assigned-agent-id',
+                'x-revision-version',
+              ].includes(name) ||
+              name.startsWith('if-')
+            )
+              forbidden = true;
+          });
+          if (forbidden) throw new HttpError(400, 'INVALID_INPUT', 'Unsupported staff context.');
+          const value = await options.database.transaction(context, async (query) => {
+            await assertStaff(query);
+            return { policy: 'current-staff-session-v2', tenantId, actorId };
+          });
+          return response(200, value, correlationId);
+        }
         const verificationOperation =
           /^\/v2\/staff\/listings\/([^/]+)\/verification-operations\/([^/]+)$/.exec(path);
         const verificationHistory = /^\/v2\/staff\/listings\/([^/]+)\/verification-history$/.exec(

@@ -3171,6 +3171,21 @@ export class RealtorApiClient {
       return uncertainWriteError(error);
     }
   }
+  async getCurrentStaffSessionV2(options: StaffRequestOptions): Promise<{
+    readonly policy: 'current-staff-session-v2';
+    readonly tenantId: string;
+    readonly actorId: string;
+  }> {
+    const data = await this.request('/v2/staff/session', 'GET', uploadOptions(options));
+    const values = record(data, ['policy', 'tenantId', 'actorId'], 'INVALID_RESPONSE');
+    if (values.policy !== 'current-staff-session-v2')
+      return invalid('INVALID_RESPONSE', 'Invalid current staff context.');
+    return Object.freeze({
+      policy: 'current-staff-session-v2',
+      tenantId: uuid(values.tenantId, 'INVALID_RESPONSE', 'Tenant'),
+      actorId: uuid(values.actorId, 'INVALID_RESPONSE', 'Actor'),
+    });
+  }
   async getSyntheticReferenceSessionV3(options: StaffRequestOptions): Promise<{
     readonly policy: 'synthetic-reference-session-v1';
     readonly tenantId: string;
@@ -4859,7 +4874,9 @@ export class RealtorApiClient {
       /^\/v3\/staff\/(?:listings|reviews)\/[0-9a-f-]+\/reference-revisions\/[1-9]\d{0,9}\/[1-9]\d{0,15}$/.test(
         path,
       );
+    const staffSession = path === '/v2/staff/session';
     const reference =
+      staffSession ||
       publicReference ||
       referenceCatalogue ||
       referenceDraft ||
@@ -4964,19 +4981,21 @@ export class RealtorApiClient {
         }
         let raw: string;
         if (boundedRead) {
-          const maximum = publicReference
-              ? 3 * 1024 * 1024
-              : referenceCreation || referenceSuccessor
-                ? result.ok
-                  ? referenceSuccessor
-                    ? SYNTHETIC_REFERENCE_SUCCESSOR_MAX_BYTES
-                    : SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
-                  : 131072
-                : referenceContext && result.ok
-                  ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
-                  : referenceModeration
-                    ? 131072
-                    : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
+          const maximum = staffSession
+              ? 8192
+              : publicReference
+                ? 3 * 1024 * 1024
+                : referenceCreation || referenceSuccessor
+                  ? result.ok
+                    ? referenceSuccessor
+                      ? SYNTHETIC_REFERENCE_SUCCESSOR_MAX_BYTES
+                      : SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
+                    : 131072
+                  : referenceContext && result.ok
+                    ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
+                    : referenceModeration
+                      ? 131072
+                      : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
             declared = result.headers.get('content-length');
           if (
             result.headers.has('content-encoding') ||

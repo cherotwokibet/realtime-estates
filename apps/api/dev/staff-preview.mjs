@@ -1236,7 +1236,10 @@ export async function startStaffPreview(options = {}) {
           response.headers.set('X-Synthetic-Staff-Preview', 'true');
           return response;
         }
-        if (url.pathname === '/v2/staff/listing-import-preview') {
+        if (
+          url.pathname === '/v2/staff/session' ||
+          url.pathname === '/v2/staff/listing-import-preview'
+        ) {
           const response = await service(request);
           response.headers.set('X-Synthetic-Staff-Preview', 'true');
           return response;
