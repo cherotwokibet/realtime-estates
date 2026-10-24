@@ -4,6 +4,8 @@ import { RealtorApiClient } from '@realtor/api-client';
 import { normalizeStaffDraftContentV2 } from '@realtor/domain';
 import { startStaffPreview } from '../../api/dev/staff-preview.mjs';
 import { readRevisionProtocolScreen } from '../dist/tests/lib/revision-protocol-screen.js';
+import { draftToForm } from '../dist/tests/lib/editor-model.js';
+import { referenceFormCommand } from '../dist/tests/lib/reference-draft-form.js';
 import {
   readMixedDraftScreen,
   readReferenceEntryScreen,
@@ -148,4 +150,70 @@ test('mixed-row server handoff crosses signed HTTP before adoption and preserves
   assert.equal(receipt.revisionVersion, '3');
   assert.equal(calls.filter((c) => c.method === 'POST').length, before);
   assert.ok(!JSON.stringify(adopted).includes(p.bearerToken));
+  const form = draftToForm(adopted.screen.content);
+  Object.assign(form, {
+    title: 'Synthetic combined edit',
+    description: 'Changed through the maintained form model',
+    purpose: 'rent',
+    rentPeriod: 'month',
+    amount: '23456.78',
+    bedrooms: '2',
+    privateBathrooms: '1',
+    sharedBathrooms: '0',
+    privateAddress: 'Synthetic private combined address',
+    declaration: 'incomplete',
+    charges: [
+      {
+        id: id(34900),
+        name: 'Synthetic deposit',
+        amountStatus: 'known',
+        amount: '123.45',
+        timing: 'one_off',
+        classification: 'refundable_deposit',
+        mandatory: true,
+      },
+      {
+        id: id(34901),
+        name: 'Synthetic service',
+        amountStatus: 'quote_required',
+        amount: '',
+        timing: 'per_rental_period',
+        classification: 'fee',
+        mandatory: false,
+      },
+    ],
+  });
+  const combined = referenceFormCommand(form, adopted.screen.initialSelection, catalogue, {
+    operationId: id(34802),
+    listingId: id(480),
+    revision: 1,
+    expectedVersion: adopted.screen.expectedVersion,
+  });
+  const saved = await client.saveSyntheticReferenceDraftV3(combined, catalogue, id(11), opt);
+  assert.equal(saved.revisionVersion, '4');
+  const readback = await readMixedDraftScreen(id(480), '1', config, transport);
+  assert.equal(readback.kind, 'reference');
+  assert.equal(readback.screen.content.title, form.title);
+  assert.equal(readback.screen.content.amountMinor, 2345678);
+  assert.equal(readback.screen.content.pricing.charges[0].amountMinor, 12345);
+  assert.equal(readback.screen.content.pricing.charges[1].amountMinor, null);
+  assert.equal(readback.screen.content.bedrooms, 2);
+  assert.equal(readback.screen.content.privateAddress, form.privateAddress);
+  assert.deepEqual(readback.screen.initialSelection, combined.selection);
+  const recovered = await client.getSyntheticReferenceDraftReceiptV3(
+    combined,
+    catalogue,
+    id(11),
+    opt,
+  );
+  assert.deepEqual(recovered.content, combined.content);
+  assert.equal(recovered.revisionVersion, '4');
+  const firstAgain = await client.getSyntheticReferenceDraftReceiptV3(
+    command,
+    catalogue,
+    id(11),
+    opt,
+  );
+  assert.equal(firstAgain.revisionVersion, '3');
+  assert.equal(firstAgain.content.amountMinor, null);
 });

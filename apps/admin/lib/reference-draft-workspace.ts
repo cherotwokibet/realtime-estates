@@ -217,6 +217,7 @@ export function referenceDraftSession(store: Store, input: ReferenceDraftScope) 
 type Session = ReturnType<typeof referenceDraftSession>;
 export interface ReferenceDraftAttempt {
   readonly original: SyntheticReferenceDraftCommand;
+  readonly catalogue: ListingReferenceCatalogue;
   readonly status: 'ready' | 'sending' | 'uncertain' | 'received' | 'rejected';
   readonly receipt: SyntheticReferenceDraftReceipt | null;
   readonly canDiscard: boolean;
@@ -284,6 +285,7 @@ function attempt(
   }
   return Object.freeze({
     original,
+    catalogue,
     get status() {
       return status;
     },

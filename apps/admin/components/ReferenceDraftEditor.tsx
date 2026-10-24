@@ -1,5 +1,9 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { draftToForm, formToDraft, type DraftForm } from '../lib/editor-model.ts';
+import { referenceFormCommand } from '../lib/reference-draft-form.ts';
+import ReferencePropertyFields from './ReferencePropertyFields.tsx';
+import ReferenceDraftOriginal from './ReferenceDraftOriginal.tsx';
 import {
   validateListingReferenceCatalogue,
   selectListingReferenceAttributes,
@@ -9,7 +13,6 @@ import {
   type SyntheticReferenceDraftReceipt,
 } from '@realtor/domain';
 import {
-  buildReferenceDraftCommand,
   referenceDraftSession,
   prepareReferenceDraftAttempt,
   restoreReferenceDraftAttempt,
@@ -53,6 +56,7 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
     [props.initialSelection, catalogue, props.content.propertyType],
   );
   const [selected, setSelected] = useState<ListingReferenceSelection>(() => initialSelection),
+    [form, setForm] = useState<DraftForm>(() => draftToForm(props.content)),
     [confirmed, setConfirmed] = useState(false),
     [status, setStatus] = useState('restoring'),
     [message, setMessage] = useState('Checking for an original draft…'),
@@ -74,6 +78,7 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
     setConfirmed(false);
     setNeedsRefresh(false);
     setSelected(initialSelection);
+    setForm(draftToForm(props.content));
     if (!props.client) {
       flight.current = false;
       setStatus('blocked');
@@ -116,11 +121,13 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
     catalogue,
     initialSelection,
     props.editingDisabled,
+    props.content,
     retry,
   ]);
   let selectionError = false;
   try {
-    selectListingReferenceAttributes(selected, catalogue, props.content.propertyType);
+    const content = formToDraft(form);
+    selectListingReferenceAttributes(selected, catalogue, content.propertyType);
   } catch {
     selectionError = true;
   }
@@ -136,31 +143,39 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
             ? { ...old.location, localityId: value || null, neighbourhoodId: null }
             : { ...old.location, neighbourhoodId: value || null },
     }));
-  async function run(mode: 'submit' | 'recover' | 'replay') {
+  async function run(mode: 'prepare' | 'submit' | 'recover' | 'replay') {
     if (flight.current || !props.client || !session.current || needsRefresh) return;
     const scope = generation.current;
     flight.current = true;
     try {
-      if (mode === 'submit') {
-        if (!confirmed || selectionError || current.current || props.editingDisabled) return;
-        const command = buildReferenceDraftCommand(
-          {
-            operationId: crypto.randomUUID(),
-            listingId: props.scope.listingId,
-            revision: props.revision,
-            expectedVersion: props.expectedVersion,
-            content: props.content,
-            selection: selected,
-          },
-          catalogue,
-        );
+      if (mode === 'prepare') {
+        if (
+          status !== 'ready' ||
+          !confirmed ||
+          selectionError ||
+          current.current ||
+          props.editingDisabled
+        )
+          return;
+        const command = referenceFormCommand(form, selected, catalogue, {
+          operationId: crypto.randomUUID(),
+          listingId: props.scope.listingId,
+          revision: props.revision,
+          expectedVersion: props.expectedVersion,
+        });
         current.current = prepareReferenceDraftAttempt(
           props.client,
           session.current,
           command,
           catalogue,
         );
+        setStatus('reviewing');
+        setMessage(
+          'Review the full original below before sending. It has not been sent or retained yet.',
+        );
+        return;
       }
+      if (mode === 'submit' && (status !== 'reviewing' || props.editingDisabled)) return;
       const original = current.current;
       if (!original) return;
       setStatus('sending');
@@ -203,6 +218,19 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
       setMessage('The original could not be cleared. Keep it and retry.');
     }
   }
+  function revise() {
+    if (flight.current || status !== 'reviewing' || current.current?.status !== 'ready') return;
+    try {
+      current.current.discard();
+      current.current = null;
+      setStatus('ready');
+      setConfirmed(false);
+      setMessage('Revise the unsent facts and review again.');
+    } catch {
+      setStatus('blocked');
+      setMessage('The original could not be cleared. Keep it and retry loading.');
+    }
+  }
   const rows = (kind: string, parent: string | null) => {
     const selectedRows = catalogue.locations.filter(
       (row) => row.kind === kind && (kind === 'county' || row.parentId === parent),
@@ -217,7 +245,7 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
   };
   return (
     <section className="draft-panel" aria-label="Reference draft editor">
-      <h2>Location and amenities</h2>
+      <h2>Property, location and amenities</h2>
       {props.editingDisabled && (
         <p role="status">
           Fresh editing is unavailable for this saved snapshot. Retained original recovery remains
@@ -225,6 +253,7 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
         </p>
       )}
       <p>Reference editing preview. These drafts cannot be submitted yet.</p>
+      <ReferencePropertyFields form={form} setForm={setForm} disabled={locked} />
       <p>
         Current draft location:{' '}
         {[props.content.location.county, props.content.location.town, props.content.location.area]
@@ -285,9 +314,7 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
           <legend>Amenities</legend>
           {catalogue.amenities.map((row) => {
             const checked = selected.amenityIds.includes(row.id),
-              applicable =
-                props.content.propertyType !== null &&
-                row.propertyTypes.includes(props.content.propertyType);
+              applicable = row.propertyTypes.some((type) => type === form.propertyType);
             return (
               <label key={row.id}>
                 <input
@@ -315,26 +342,43 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
             checked={confirmed}
             onChange={(e) => setConfirmed(e.target.checked)}
           />
-          Apply this selection, including unknown values, to the draft.
+          Apply this selection, including unknown values, and review all property facts.
         </label>
       </fieldset>
       {selectionError && (
         <p role="alert">
-          Clear incompatible amenities or correct the selected location before saving.
+          Correct invalid property facts, exact costs or reference choices before reviewing. Clear
+          incompatible amenities explicitly.
         </p>
       )}
       <p role="status" aria-live="polite">
         {message}
       </p>
+      {current.current && (
+        <ReferenceDraftOriginal
+          command={current.current.original}
+          catalogue={current.current.catalogue}
+        />
+      )}
       <div className="draft-actions">
         <button
           type="button"
           className="draft-primary"
           disabled={locked || !confirmed || selectionError}
-          onClick={() => void run('submit')}
+          onClick={() => void run('prepare')}
         >
-          Save reference draft
+          Review reference draft
         </button>
+        {status === 'reviewing' && (
+          <>
+            <button type="button" className="draft-primary" onClick={() => void run('submit')}>
+              Send reviewed draft
+            </button>
+            <button type="button" className="draft-secondary" onClick={revise}>
+              Revise unsent facts
+            </button>
+          </>
+        )}
         {status === 'uncertain' && (
           <>
             <button type="button" className="draft-secondary" onClick={() => void run('recover')}>
