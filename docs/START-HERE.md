@@ -1363,3 +1363,7 @@ Domain/API/SDK reference-aware creation and original recovery implemented as exp
 ## Checkpoint151 publication verified — 24 October 2026
 
 Source34effa56db9acbefcd40ba0a7d25a7934306ac8c pushed/fresh matching clean clone/fsck. Private Site643fde840e7b97aaa7618b7cbb7254800d01bf52 deployment appgdep_6adbf74bb7b88191813257f5ab4a9ce2 succeeded; actual browser import/export539notes/fullstagefacts/new banner reload+screenshot verified. Baseline reference-creation-contract-2026-10-24-151; never rerun118–151 generators.23/97tasks24percent0/14gates unchanged. Next152 admin immutable creation original/session/controller, BFF and signed disposable fifth-proposal browser proof. Native freeRAM~625MiB, no emulator. See CONTINUATION tail for exact results/IDs/limits.
+
+## Reference creation retained workspace checkpoint152 — 24 October 2026
+
+Admin immutable original/session/controller implemented, not mounted. Storage/readback before POST, current scoped original, historical catalogue reload, explicit recovery/replay/clear, uncertain loss cannot discard or replace. Focused9 overlap full admin347+8UI checks0fail0skip;admin types/compile/targeted format/whitespace passed. Initial testfixture corrections retained/no product guard relaxed. See reference-creation-workspace.md/CONTINUATION tail. Next153 separate bounded browser/BFF transport and screen recovery/navigation/signed disposable fifth-proposal browser proof.23/97tasks24percent0/14gates/native pending/KES10000monthly/vendoroldlive preserved. Backup/restore/private publication pending completion record below.

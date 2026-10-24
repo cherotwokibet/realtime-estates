@@ -1,0 +1,15 @@
+# Retained original creation workspace
+
+Checkpoint 152, 24 October 2026. Synthetic controller only; no mounted creation screen or browser transport yet.
+
+The admin now has a reference-aware creation attempt and storage session. The picker builder derives public labels from explicitly selected IDs and preserves the slug, private facts and exact pricing. It never infers reference IDs from old text. Full domain validation detaches and freezes the original command and historical catalogue before dispatch.
+
+Storage uses a separate creation namespace scoped by preview instance, company, actor and listing. It contains the complete original command with its catalogue version, not a bearer token or a copy of the catalogue. The bounded envelope must be written and read back synchronously before a POST can start. A different original cannot replace an existing envelope. The eventual browser integration must use session storage and recover the retained listing scope before offering another allocation; this library alone does not enforce page navigation or prevent creation under another listing scope.
+
+The controller permits one in-flight call. Unknown interruptions, malformed successful receipts and cancellation after dispatch retain uncertainty. Denied recovery cannot discard the original or authorize another submission. Reload fetches only the retained historical catalogue, revalidates the complete command and verifies storage again. It restores uncertainty without automatically sending a POST or original GET. Recovery and replay are explicit actions bound to the original; successful confirmation still requires explicit clearing. A known precommit refusal can be discarded.
+
+Nine focused checks passed and overlap the full admin suite: 347 service/controller checks and eight existing UI markup checks, all with zero failures or skips. Admin type checking, test compilation, targeted formatting and Git whitespace checks passed. Initial test failures used frozen fixture objects as mutable inputs and changed a client method after the controller had deliberately bound it; the fixtures now clone mutable inputs and install denial behavior before construction. Initial diagnostics remain in sibling `reference-creation-workspace-focused-initial.txt`; no product guard was weakened.
+
+This checkpoint does not enable the candidate SQL/API, add BFF routes, persist through an actual browser, mount a new form, or establish native/hosted/UAT/cutover acceptance. No Next production build, full-root suite or device check was run here. Broad checklist remains 23/97 tasks (24%) and 0/14 accepted gates.
+
+Next: add a separate default-off browser/BFF transport with current fixed server authority, bounded composed receipts and body-only retained facts for recovery. Add screen-level restoration before new-listing controls, explicit uncertain resolution/navigation protection, then a disposable fifth-proposal fixture with signed HTTP and actual browser creation/reload/recovery checks. Continue successor/import/default-schema compatibility and external acceptance. KES 10,000 total monthly per realtor and existing live/vendor resources remain unchanged.
