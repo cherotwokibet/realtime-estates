@@ -24,10 +24,11 @@ const reply = (status: number, value: unknown) =>
 export async function listingCreationPreviewRequest(
   request: Request,
   params: { id: string; operationId: string },
+  trustedConfig?: ReturnType<typeof previewConfiguration>,
 ): Promise<Response> {
   let config: ReturnType<typeof previewConfiguration>;
   try {
-    config = previewConfiguration(process.env);
+    config = trustedConfig ?? previewConfiguration(process.env);
     assertPreviewRequest(request, config.instanceId);
   } catch {
     return reply(403, { error: { code: 'PREVIEW_UNAVAILABLE' }, submissionUncertain: false });

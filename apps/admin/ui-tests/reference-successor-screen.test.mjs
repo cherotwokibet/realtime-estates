@@ -27,7 +27,7 @@ const props = () => ({
   catalogue: catalogue(),
 });
 
-test('actual page preserves legacy default and exact configured mode renders a current-draft recovery shell', async () => {
+test('actual page uses retained ordinary default and exact reference mode renders a current-draft recovery shell', async () => {
   const saved = { ...process.env },
     oldFetch = globalThis.fetch,
     scope = props().scope;
@@ -70,13 +70,18 @@ test('actual page preserves legacy default and exact configured mode renders a c
     assert.equal(child.type, 'p');
     assert.equal(calls, 0);
     delete process.env.STAFF_PREVIEW_REFERENCE_SUCCESSOR;
-    globalThis.fetch = async () =>
-      Response.json({
-        ...props().listing,
-        latest: { ...props().listing.latest, state: 'approved' },
-      });
+    globalThis.fetch = async (url) =>
+      Response.json(
+        url.endsWith('/session')
+          ? { policy: 'current-staff-session-v2', tenantId: scope.tenantId, actorId: scope.actorId }
+          : {
+              ...props().listing,
+              latest: { ...props().listing.latest, state: 'approved' },
+            },
+      );
     child = main(await Page({ params: Promise.resolve({ id: scope.listingId }) }));
-    assert.equal(child.type.name, 'ListingSuccessor');
+    assert.equal(child.type.name, 'AllocationWorkspace');
+    assert.equal(child.props.kind, 'revision');
   } finally {
     globalThis.fetch = oldFetch;
     for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k];

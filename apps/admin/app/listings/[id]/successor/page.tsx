@@ -3,9 +3,9 @@ import { readReferenceSuccessorScreen } from '../../../../lib/reference-successo
 import type { CSSProperties } from 'react';
 import type { StaffListingSummary } from '@realtor/api-client';
 import { getDemoBrand, resolveDemoTenantSlug } from '@realtor/demo';
-import ListingSuccessor from '../../../../components/ListingSuccessor.tsx';
+import AllocationWorkspace from '../../../../components/AllocationWorkspace.tsx';
+import { readStaffAllocationScope } from '../../../../lib/staff-allocation-scope.ts';
 import { readStaffListingDetail } from '../../../../lib/listing-queue-server.ts';
-import { previewConfiguration } from '../../../../lib/staff-preview-policy.ts';
 export const dynamic = 'force-dynamic';
 export default async function SuccessorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,17 +19,16 @@ export default async function SuccessorPage({ params }: { params: Promise<{ id: 
     }
   }
   let listing: StaffListingSummary | null = null;
-  let instanceId: string | null = null;
+  let scope: Awaited<ReturnType<typeof readStaffAllocationScope>> | null = null;
   try {
     if (!references) {
-      instanceId = previewConfiguration(process.env).instanceId;
+      scope = await readStaffAllocationScope();
       listing = await readStaffListingDetail(id);
     }
   } catch {
     /* Failed authorized reads expose no private context or diagnostics. */
   }
   const brand = getDemoBrand(resolveDemoTenantSlug(process.env.TENANT_SLUG));
-  const latest = listing?.latest;
   return (
     <div className="draft-workspace" style={{ '--brand': brand.primary } as CSSProperties}>
       <a className="skip" href="#successor-main">
@@ -57,20 +56,8 @@ export default async function SuccessorPage({ params }: { params: Promise<{ id: 
               configuration.
             </p>
           )
-        ) : listing &&
-          latest &&
-          instanceId &&
-          (latest.state === 'approved' || latest.state === 'rejected') ? (
-          <ListingSuccessor
-            instanceId={instanceId}
-            listingId={listing.listingId}
-            expectedListingVersion={listing.version}
-            predecessor={{
-              revision: latest.revision,
-              version: latest.version,
-              state: latest.state,
-            }}
-          />
+        ) : listing && scope ? (
+          <AllocationWorkspace kind="revision" scope={scope} listing={listing} />
         ) : (
           <section className="enq-contacts">
             <h1>New draft unavailable</h1>

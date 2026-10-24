@@ -1,3 +1,4 @@
+import { captureAllocationIdentity, type AllocationIdentity } from './allocation-identity.ts';
 import {
   validateListingSuccessorCommand,
   validateListingSuccessorReceipt,
@@ -25,6 +26,7 @@ export interface ListingSuccessorClient {
 }
 export function createListingSuccessorClient(input: {
   instanceId: string;
+  scope?: AllocationIdentity;
   fetch?: typeof fetch;
   timeoutMs?: number;
 }): ListingSuccessorClient {
@@ -32,7 +34,7 @@ export function createListingSuccessorClient(input: {
     throw new ListingSuccessorError('validation');
   const c: Record<string, unknown> = {};
   for (const key of Reflect.ownKeys(input)) {
-    if (typeof key !== 'string' || !['instanceId', 'fetch', 'timeoutMs'].includes(key))
+    if (typeof key !== 'string' || !['instanceId', 'scope', 'fetch', 'timeoutMs'].includes(key))
       throw new ListingSuccessorError('validation');
     const d = Object.getOwnPropertyDescriptor(input, key);
     if (!d?.enumerable || !Object.hasOwn(d, 'value')) throw new ListingSuccessorError('validation');
@@ -44,6 +46,15 @@ export function createListingSuccessorClient(input: {
     (c.fetch !== undefined && typeof c.fetch !== 'function')
   )
     throw new ListingSuccessorError('validation');
+  let scope: AllocationIdentity | undefined;
+  try {
+    if (c.scope !== undefined) {
+      scope = captureAllocationIdentity(c.scope as AllocationIdentity);
+      if (scope.instanceId !== c.instanceId) throw Error();
+    }
+  } catch {
+    throw new ListingSuccessorError('validation');
+  }
   const timeout = c.timeoutMs ?? 20000;
   if (typeof timeout !== 'number' || !Number.isInteger(timeout) || timeout < 1 || timeout > 30000)
     throw new ListingSuccessorError('validation');
@@ -65,7 +76,7 @@ export function createListingSuccessorClient(input: {
       throw new ListingSuccessorError('validation');
     }
     if (signal?.aborted) throw new ListingSuccessorError('cancelled');
-    const path = `/api/staff/listings/${command.listingId}/revision-operations/${command.operationId}`,
+    const path = `/api/staff/listings/${command.listingId}/${scope ? 'retained-' : ''}revision-operations/${command.operationId}`,
       controller = new AbortController();
     let dispatched = false,
       interrupted: ListingSuccessorError | undefined,
@@ -99,6 +110,9 @@ export function createListingSuccessorClient(input: {
           headers: {
             Accept: 'application/json',
             'X-Preview-Instance': instance,
+            ...(scope
+              ? { 'X-Allocation-Actor': scope.actorId, 'X-Allocation-Tenant': scope.tenantId }
+              : {}),
             ...(write ? { 'Content-Type': 'application/json' } : {}),
           },
           ...(write
@@ -187,7 +201,7 @@ export function createListingSuccessorClient(input: {
           );
         }
         try {
-          return validateListingSuccessorReceipt(data, command);
+          return validateListingSuccessorReceipt(data, command, scope?.actorId);
         } catch {
           return invalid();
         }

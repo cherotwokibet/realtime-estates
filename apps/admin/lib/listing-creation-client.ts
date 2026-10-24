@@ -1,3 +1,4 @@
+import { captureAllocationIdentity, type AllocationIdentity } from './allocation-identity.ts';
 import {
   validateListingCreationCommand,
   validateListingCreationReceipt,
@@ -25,6 +26,7 @@ export interface ListingCreationClient {
 }
 export function createListingCreationClient(input: {
   instanceId: string;
+  scope?: AllocationIdentity;
   fetch?: typeof fetch;
   timeoutMs?: number;
 }): ListingCreationClient {
@@ -32,7 +34,7 @@ export function createListingCreationClient(input: {
     throw new ListingCreationError('validation');
   const c: Record<string, unknown> = {};
   for (const key of Reflect.ownKeys(input)) {
-    if (typeof key !== 'string' || !['instanceId', 'fetch', 'timeoutMs'].includes(key))
+    if (typeof key !== 'string' || !['instanceId', 'scope', 'fetch', 'timeoutMs'].includes(key))
       throw new ListingCreationError('validation');
     const d = Object.getOwnPropertyDescriptor(input, key);
     if (!d?.enumerable || !Object.hasOwn(d, 'value')) throw new ListingCreationError('validation');
@@ -44,6 +46,15 @@ export function createListingCreationClient(input: {
     (c.fetch !== undefined && typeof c.fetch !== 'function')
   )
     throw new ListingCreationError('validation');
+  let scope: AllocationIdentity | undefined;
+  try {
+    if (c.scope !== undefined) {
+      scope = captureAllocationIdentity(c.scope as AllocationIdentity);
+      if (scope.instanceId !== c.instanceId) throw Error();
+    }
+  } catch {
+    throw new ListingCreationError('validation');
+  }
   const timeout = c.timeoutMs ?? 20000;
   if (typeof timeout !== 'number' || !Number.isInteger(timeout) || timeout < 1 || timeout > 30000)
     throw new ListingCreationError('validation');
@@ -65,7 +76,7 @@ export function createListingCreationClient(input: {
       throw new ListingCreationError('validation');
     }
     if (signal?.aborted) throw new ListingCreationError('cancelled');
-    const path = `/api/staff/listings/${command.listingId}/creation-operations/${command.operationId}`,
+    const path = `/api/staff/listings/${command.listingId}/${scope ? 'retained-' : ''}creation-operations/${command.operationId}`,
       controller = new AbortController();
     let dispatched = false,
       interrupted: ListingCreationError | undefined,
@@ -99,6 +110,9 @@ export function createListingCreationClient(input: {
           headers: {
             Accept: 'application/json',
             'X-Preview-Instance': instance,
+            ...(scope
+              ? { 'X-Allocation-Actor': scope.actorId, 'X-Allocation-Tenant': scope.tenantId }
+              : {}),
             ...(write ? { 'Content-Type': 'application/json' } : {}),
           },
           ...(write
@@ -181,7 +195,7 @@ export function createListingCreationClient(input: {
           );
         }
         try {
-          return validateListingCreationReceipt(data, command);
+          return validateListingCreationReceipt(data, command, scope?.actorId);
         } catch {
           return invalid();
         }

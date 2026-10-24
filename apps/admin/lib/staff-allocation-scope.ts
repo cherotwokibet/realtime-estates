@@ -1,7 +1,7 @@
 import 'server-only';
 import { RealtorApiClient } from '@realtor/api-client';
 import { previewConfiguration } from './staff-preview-policy.ts';
-import { captureAllocationIdentity } from './allocation-recovery.ts';
+import { captureAllocationIdentity } from './allocation-identity.ts';
 /** Trusted server read supplies stale-scope identity, never a browser bearer or posted authority. */
 export async function readStaffAllocationScope(
   env: Readonly<Record<string, string | undefined>> = process.env,

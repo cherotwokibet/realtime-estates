@@ -1,5 +1,5 @@
-import ListingCreation from '../../../components/ListingCreation.tsx';
-import { previewConfiguration } from '../../../lib/staff-preview-policy.ts';
+import AllocationWorkspace from '../../../components/AllocationWorkspace.tsx';
+import { readStaffAllocationScope } from '../../../lib/staff-allocation-scope.ts';
 import { getDemoBrand, resolveDemoTenantSlug } from '@realtor/demo';
 import type { CSSProperties } from 'react';
 import ReferenceCreationWorkspace from '../../../components/ReferenceCreationWorkspace.tsx';
@@ -15,9 +15,9 @@ export default async function NewListingPage() {
       /* Stay closed on unavailable current identity/configuration. */
     }
   }
-  let instanceId: string | null = null;
+  let scope: Awaited<ReturnType<typeof readStaffAllocationScope>> | null = null;
   try {
-    instanceId = previewConfiguration(process.env).instanceId;
+    if (!references) scope = await readStaffAllocationScope();
   } catch {
     /* Credentials remain server-only. */
   }
@@ -49,8 +49,8 @@ export default async function NewListingPage() {
               synthetic configuration.
             </p>
           )
-        ) : instanceId ? (
-          <ListingCreation instanceId={instanceId} />
+        ) : scope ? (
+          <AllocationWorkspace kind="creation" scope={scope} />
         ) : (
           <p role="alert">
             Use the local synthetic staff launcher. Production staff creation is not configured.

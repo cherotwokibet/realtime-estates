@@ -13,11 +13,8 @@ import { ListingSuccessorError, type ListingSuccessorClient } from './listing-su
 import { parseVerificationJson } from './listing-verification-wire.ts';
 import { validateStaffListingSummary, type StaffListingSummary } from '@realtor/domain';
 
-export interface AllocationIdentity {
-  readonly instanceId: string;
-  readonly tenantId: string;
-  readonly actorId: string;
-}
+import { captureAllocationIdentity, type AllocationIdentity } from './allocation-identity.ts';
+export { captureAllocationIdentity, type AllocationIdentity } from './allocation-identity.ts';
 interface Store {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -57,14 +54,7 @@ function own(value: unknown, fields: readonly string[]): Record<string, unknown>
   }
   return out;
 }
-export function captureAllocationIdentity(input: AllocationIdentity): AllocationIdentity {
-  const v = own(input, ['instanceId', 'tenantId', 'actorId']);
-  return Object.freeze({
-    instanceId: uuid(v.instanceId),
-    tenantId: uuid(v.tenantId),
-    actorId: uuid(v.actorId),
-  });
-}
+
 export const ALLOCATION_STORAGE_MAX_BYTES = 262144;
 function session<C extends { listingId: string }>(
   store: Store,
