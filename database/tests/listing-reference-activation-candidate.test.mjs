@@ -311,3 +311,117 @@ test('explicit reference adoption never infers IDs from ordinary labels and cann
     false,
   );
 });
+
+test('authoritative mixed-row protocol read follows current assignment and persisted adoption without writing', async (t) => {
+  const { db, as, content } = await fixture(t);
+  await applyReferenceCandidate(db);
+  const read = (user, listing = 100, revision = 1, tenant = 1) =>
+    as(
+      user,
+      async () =>
+        (
+          await db.query('SELECT app_api.read_synthetic_revision_protocol($1,$2) AS result', [
+            id(listing),
+            revision,
+          ])
+        ).rows[0].result,
+      tenant,
+    );
+  const ordinary = {
+    listingId: id(100),
+    revision: 1,
+    listingVersion: '1',
+    revisionVersion: '2',
+    state: 'draft',
+    editable: true,
+    protocol: 'ordinary-v2',
+  };
+  await t.test(
+    'ordinary draft and terminal approved row are distinct; reads preserve all history',
+    async () => {
+      const before = await snapshot(db);
+      assert.deepEqual(await read(11), ordinary);
+      assert.deepEqual(await read(10), ordinary);
+      const approved = await read(11, 101);
+      assert.equal(approved.protocol, 'ordinary-v2');
+      assert.equal(approved.state, 'approved');
+      assert.equal(approved.editable, false);
+      assert.deepEqual(await snapshot(db), before);
+    },
+  );
+  await t.test(
+    'unassigned, customer, foreign tenant, absent, bare and malformed targets are denied',
+    async () => {
+      for (const args of [
+        [12],
+        [13],
+        [11, 100, 1, 2],
+        [11, 999],
+        [11, 102],
+        [11, 100, 2],
+        [11, 100, 0],
+        [11, 100, -1],
+        [11, 100, null],
+      ])
+        await assert.rejects(read(...args));
+      assert.equal(
+        (
+          await db.query(
+            "SELECT has_function_privilege('public','app_api.read_synthetic_revision_protocol(uuid,integer)','EXECUTE') AS allowed",
+          )
+        ).rows[0].allowed,
+        false,
+      );
+    },
+  );
+  await t.test(
+    'explicit adoption changes protocol and version, while another ordinary row stays ordinary',
+    async () => {
+      await db.query('SELECT app_private.install_synthetic_reference_catalogue(0,$1::jsonb)', [
+        JSON.stringify(catalogue()),
+      ]);
+      await as(11, () =>
+        db.query('SELECT app_api.save_synthetic_reference_draft($1,1,2,$2,$3::jsonb,$4::jsonb)', [
+          id(100),
+          id(990),
+          JSON.stringify(content),
+          JSON.stringify(command().selection),
+        ]),
+      );
+      assert.deepEqual(await read(11), {
+        ...ordinary,
+        revisionVersion: '3',
+        protocol: 'synthetic-reference-v1',
+      });
+      assert.equal((await read(11, 101)).protocol, 'ordinary-v2');
+      // Prior ordinary read is no permission to erase newly adopted facts.
+      await assert.rejects(
+        as(11, () =>
+          db.query('SELECT app_api.save_draft_v2($1,1,2,$2::jsonb)', [
+            id(100),
+            JSON.stringify(content),
+          ]),
+        ),
+      );
+    },
+  );
+  await t.test(
+    'reassignment and membership revocation invalidate earlier authorized reads',
+    async () => {
+      await db.query(
+        'UPDATE app_private.listings SET assigned_agent_id=$1 WHERE tenant_id=$2 AND id=$3',
+        [id(12), id(1), id(100)],
+      );
+      await assert.rejects(read(11));
+      assert.equal((await read(12)).protocol, 'synthetic-reference-v1');
+      await db.query(
+        'UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',
+        [id(1), id(12)],
+      );
+      await assert.rejects(read(12));
+      const before = await snapshot(db);
+      assert.equal((await read(10)).protocol, 'synthetic-reference-v1');
+      assert.deepEqual(await snapshot(db), before);
+    },
+  );
+});

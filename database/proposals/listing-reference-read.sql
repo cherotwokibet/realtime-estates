@@ -28,7 +28,26 @@ BEGIN
     'expectedVersion',v_request.expected_version::text,'content',v_request.content,'selection',v_selection),
     'receipt',v_request.receipt,'catalogue',app_api.read_synthetic_reference_catalogue((v_request.selection->>'catalogueVersion')::bigint));
 END $$;
-REVOKE ALL ON FUNCTION app_api.read_synthetic_reference_catalogue(bigint),app_api.read_synthetic_reference_draft_context(uuid,uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION app_api.read_synthetic_reference_catalogue(bigint),app_api.read_synthetic_reference_draft_context(uuid,uuid) TO api_runtime;
+-- Current row authority, not a browser flag, chooses the editing protocol.
+-- This bounded read does not expose facts, allocate a revision, or recover another actor's receipt.
+CREATE FUNCTION app_api.read_synthetic_revision_protocol(p_id uuid,p_revision integer) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE v_listing app_private.listings; v_revision app_private.listing_revisions;
+BEGIN
+  PERFORM app_private.assert_staff(ARRAY['agent','admin']);
+  v_listing:=app_private.lock_listing(p_id);
+  IF p_revision IS NULL OR p_revision<1 THEN
+    RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+  SELECT * INTO v_revision FROM app_private.listing_revisions
+    WHERE tenant_id=app_private.context_tenant() AND listing_id=p_id AND revision_no=p_revision;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+  RETURN jsonb_build_object('listingId',p_id,'revision',p_revision,
+    'listingVersion',v_listing.version::text,'revisionVersion',v_revision.version::text,
+    'state',v_revision.state,'editable',v_revision.state='draft',
+    'protocol',CASE WHEN v_revision.synthetic_reference_attributes IS NULL
+      THEN 'ordinary-v2' ELSE 'synthetic-reference-v1' END);
+END $$;
+REVOKE ALL ON FUNCTION app_api.read_synthetic_reference_catalogue(bigint),app_api.read_synthetic_reference_draft_context(uuid,uuid),app_api.read_synthetic_revision_protocol(uuid,integer) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app_api.read_synthetic_reference_catalogue(bigint),app_api.read_synthetic_reference_draft_context(uuid,uuid),app_api.read_synthetic_revision_protocol(uuid,integer) TO api_runtime;
 RESET ROLE;
 COMMIT;
