@@ -23,6 +23,9 @@ export interface ReferenceDraftEditorProps {
   expectedVersion: string;
   content: StaffDraftContentV2;
   catalogue: ListingReferenceCatalogue;
+  initialSelection?: ListingReferenceSelection;
+  /** Keep original recovery available after a terminal transition or catalogue replacement. */
+  editingDisabled?: boolean;
   /** Construct only in a current-authorized client adapter; no bearer credential is a component prop. */
   client?: ReferenceDraftClient;
   onReceipt?: (receipt: SyntheticReferenceDraftReceipt) => void;
@@ -38,7 +41,18 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
     location: { countyId: null, localityId: null, neighbourhoodId: null },
     amenityIds: [],
   });
-  const [selected, setSelected] = useState<ListingReferenceSelection>(unknown),
+  const initialSelection = useMemo(
+    () =>
+      props.initialSelection
+        ? selectListingReferenceAttributes(
+            props.initialSelection,
+            catalogue,
+            props.content.propertyType,
+          )
+        : unknown(),
+    [props.initialSelection, catalogue, props.content.propertyType],
+  );
+  const [selected, setSelected] = useState<ListingReferenceSelection>(() => initialSelection),
     [confirmed, setConfirmed] = useState(false),
     [status, setStatus] = useState('restoring'),
     [message, setMessage] = useState('Checking for an original draft…'),
@@ -59,7 +73,7 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
     setStatus('restoring');
     setConfirmed(false);
     setNeedsRefresh(false);
-    setSelected(unknown());
+    setSelected(initialSelection);
     if (!props.client) {
       flight.current = false;
       setStatus('blocked');
@@ -77,7 +91,9 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
         setMessage(
           original
             ? 'A saved attempt needs original recovery before editing.'
-            : 'Choose explicit reference facts.',
+            : props.editingDisabled
+              ? 'This saved snapshot is read-only. Original recovery remains available.'
+              : 'Choose explicit reference facts.',
         );
       } catch {
         if (generation.current === scope && !abort.signal.aborted) {
@@ -98,6 +114,8 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
     props.revision,
     props.expectedVersion,
     catalogue,
+    initialSelection,
+    props.editingDisabled,
     retry,
   ]);
   let selectionError = false;
@@ -106,7 +124,8 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
   } catch {
     selectionError = true;
   }
-  const locked = status !== 'ready' || needsRefresh || !props.client;
+  const locked =
+    status !== 'ready' || needsRefresh || !props.client || props.editingDisabled === true;
   const choose = (kind: 'countyId' | 'localityId' | 'neighbourhoodId', value: string) =>
     setSelected((old) => ({
       ...old,
@@ -123,7 +142,7 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
     flight.current = true;
     try {
       if (mode === 'submit') {
-        if (!confirmed || selectionError || current.current) return;
+        if (!confirmed || selectionError || current.current || props.editingDisabled) return;
         const command = buildReferenceDraftCommand(
           {
             operationId: crypto.randomUUID(),
@@ -199,6 +218,12 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
   return (
     <section className="draft-panel" aria-label="Reference draft editor">
       <h2>Location and amenities</h2>
+      {props.editingDisabled && (
+        <p role="status">
+          Fresh editing is unavailable for this saved snapshot. Retained original recovery remains
+          available.
+        </p>
+      )}
       <p>Reference editing preview. These drafts cannot be submitted yet.</p>
       <p>
         Current draft location:{' '}

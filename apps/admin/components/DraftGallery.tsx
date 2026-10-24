@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import type { MediaOperationReceiptV2, StaffDraftWorkspaceV2 } from '@realtor/api-client';
-import type { GalleryCommand } from '../lib/gallery-model';
+import type { GalleryCommand } from '../lib/gallery-model.ts';
 import {
   createPrivateImageBatch,
   privateGalleryScope,
@@ -9,8 +9,8 @@ import {
   type PrivateImageBatch,
   type PrivateImageState,
   type PrivateImageTuple,
-} from '../lib/private-image';
-import PrivateGalleryImage from './PrivateGalleryImage';
+} from '../lib/private-image.ts';
+import PrivateGalleryImage from './PrivateGalleryImage.tsx';
 
 export interface GalleryWork {
   command: GalleryCommand;

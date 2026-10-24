@@ -1,8 +1,6 @@
 import ReferenceDraftWorkspace from '../../../../../components/ReferenceDraftWorkspace.tsx';
-import {
-  readReferenceDraftScreen,
-  type ReferenceDraftScreen,
-} from '../../../../../lib/reference-draft-screen.ts';
+import { type ReferenceDraftScreen } from '../../../../../lib/reference-draft-screen.ts';
+import { readReferenceEntryScreen } from '../../../../../lib/mixed-draft-screen.ts';
 export const dynamic = 'force-dynamic';
 export default async function ReferencePage({
   params,
@@ -12,7 +10,7 @@ export default async function ReferencePage({
   const { id, revision } = await params;
   let screen: ReferenceDraftScreen | null = null;
   try {
-    screen = await readReferenceDraftScreen(id, revision);
+    screen = await readReferenceEntryScreen(id, revision);
   } catch {
     /* Fail closed without serializing private upstream errors or stale draft props. */
   }

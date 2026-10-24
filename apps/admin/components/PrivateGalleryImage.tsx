@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import type { PrivateImageState } from '../lib/private-image';
+import type { PrivateImageState } from '../lib/private-image.ts';
 
 export default function PrivateGalleryImage({
   state,

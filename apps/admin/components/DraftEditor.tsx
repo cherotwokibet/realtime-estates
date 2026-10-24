@@ -5,9 +5,9 @@ import {
   type StaffDraftV2,
   type StaffDraftWorkspaceV2,
 } from '@realtor/api-client';
-import DraftGallery, { type GalleryWork } from './DraftGallery';
-import PhotoUpload from './PhotoUpload';
-import type { PrivateImageTuple } from '../lib/private-image';
+import DraftGallery, { type GalleryWork } from './DraftGallery.tsx';
+import PhotoUpload from './PhotoUpload.tsx';
+import type { PrivateImageTuple } from '../lib/private-image.ts';
 import {
   createRemoveCommand,
   createReorderCommand,
@@ -16,7 +16,7 @@ import {
   moveGalleryPhoto,
   sameGalleryOrder,
   workspaceMatchesReceipt,
-} from '../lib/gallery-model';
+} from '../lib/gallery-model.ts';
 import {
   calculateWirePricingV2,
   kesFromMinor,
@@ -30,7 +30,7 @@ import {
   reconcileDraft,
   type DraftForm,
   type ChargeForm,
-} from '../lib/editor-model';
+} from '../lib/editor-model.ts';
 type Failure = { status: number; code: string; uncertain: boolean };
 async function requestDraft(
   path: string,

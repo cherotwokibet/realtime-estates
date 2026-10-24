@@ -12,7 +12,7 @@ export default function ReferenceDraftWorkspace(props: ReferenceDraftScreen) {
   return (
     <>
       <p>
-        <a href={`/drafts/${props.scope.listingId}/${props.revision}/references`}>
+        <a href={`/drafts/${props.scope.listingId}/${props.revision}`}>
           Refresh current reference draft
         </a>
       </p>

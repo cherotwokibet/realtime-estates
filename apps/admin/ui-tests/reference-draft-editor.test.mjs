@@ -34,6 +34,21 @@ const props = () => ({
     ],
   },
 });
+
+test('saved reference IDs are selected on first markup and a read-only snapshot keeps fresh controls disabled', () => {
+  const p = props();
+  p.initialSelection = {
+    catalogueVersion: '1',
+    location: { countyId: id(200), localityId: null, neighbourhoodId: null },
+    amenityIds: [],
+  };
+  p.editingDisabled = true;
+  const html = renderToStaticMarkup(React.createElement(ReferenceDraftEditor, p));
+  assert.ok(html.includes('<option value="' + id(200) + '" selected="">'));
+  assert.ok(html.includes('Retained original recovery remains available.'));
+  assert.match(html, /<fieldset disabled="">/);
+  assert.equal(html.includes('PRIVATE-NOT-FOR-RENDER'), false);
+});
 test('reference editor initial markup preserves UUID choices and unknown selection without text-to-ID inference', () => {
   const html = renderToStaticMarkup(React.createElement(ReferenceDraftEditor, props()));
   assert.ok(html.includes('value="' + id(200) + '"'));

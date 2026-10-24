@@ -11,7 +11,7 @@ import {
   matchPhotoStatus,
   matchPhotoAttachment,
   type PhotoCommand,
-} from '../lib/photo-model';
+} from '../lib/photo-model.ts';
 
 type Phase =
   | 'registration_unknown'
