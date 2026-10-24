@@ -230,6 +230,19 @@ export default function ReferenceCreationWorkspace(props: ReferenceCreationWorks
       if (gen === generation.current) flight.current = false;
     }
   }
+  function reloadOriginal() {
+    if (flight.current || !entry.current || !active.current) return;
+    try {
+      entry.current.verifyReload(active.current);
+      // Explicit same-page reload is safe only after readback of the complete retained original.
+      safeToLeave.current = true;
+      window.location.reload();
+    } catch {
+      safeToLeave.current = false;
+      setStatus('blocked');
+      setMessage('The original could not be verified in storage. Keep this tab and retry loading.');
+    }
+  }
   function finish() {
     if (flight.current || !entry.current || !active.current?.canDiscard) return;
     const original = active.current,
@@ -588,6 +601,9 @@ export default function ReferenceCreationWorkspace(props: ReferenceCreationWorks
         </button>
         {status === 'uncertain' && (
           <>
+            <button type="button" onClick={reloadOriginal}>
+              Reload retained workspace
+            </button>
             <button type="button" onClick={() => void run('recover')}>
               Recover original
             </button>

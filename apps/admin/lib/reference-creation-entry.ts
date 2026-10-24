@@ -131,6 +131,15 @@ export function openReferenceCreationEntry(
   return Object.freeze({
     scope,
     session,
+    verifyReload(attempt: ReferenceCreationAttempt) {
+      if (
+        released ||
+        attempt.status !== 'uncertain' ||
+        attempt.original.listingId !== scope.listingId
+      )
+        return fail();
+      session.verify(attempt.original);
+    },
     release(attempt: ReferenceCreationAttempt) {
       if (released || !attempt.canDiscard || attempt.original.listingId !== scope.listingId)
         return fail();

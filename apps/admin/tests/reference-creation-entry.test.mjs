@@ -222,3 +222,37 @@ test('screen reads current fixed identity and catalogue without exposing bearer 
   );
   assert.equal(calls.length, 0);
 });
+test('explicit reload requires an uncertain original with exact stored readback and rejects sending, tampered or confirmed attempts', async () => {
+  const store = memory(),
+    entry = openReferenceCreationEntry(store, identity, () => id(100)),
+    c = client();
+  let rejectWrite,
+    writes = 0;
+  c.create = () => {
+    writes++;
+    return new Promise((_, reject) => {
+      rejectWrite = reject;
+    });
+  };
+  const attempt = prepareReferenceCreationAttempt(c, entry.session, command(), catalogue());
+  assert.throws(() => entry.verifyReload(attempt));
+  const sending = attempt.submit();
+  assert.equal(attempt.status, 'sending');
+  assert.throws(() => entry.verifyReload(attempt));
+  rejectWrite(Error('Synthetic lost result'));
+  await assert.rejects(sending);
+  assert.equal(attempt.status, 'uncertain');
+  assert.doesNotThrow(() => entry.verifyReload(attempt));
+  assert.equal(writes, 1);
+  const key = [...store.map.keys()][0],
+    raw = store.map.get(key);
+  store.map.set(key, raw.replace('synthetic-reference-100', 'changed-original'));
+  assert.throws(() => entry.verifyReload(attempt));
+  assert.equal(writes, 1);
+  store.map.set(key, raw);
+  await attempt.recoverOriginal();
+  assert.equal(attempt.status, 'received');
+  assert.throws(() => entry.verifyReload(attempt));
+  entry.release(attempt);
+  assert.throws(() => entry.verifyReload(attempt));
+});
