@@ -1,4 +1,7 @@
 import {
+  validateRevisionProtocol,
+  validateRevisionProtocolTarget,
+  type RevisionProtocol,
   validateListingReferenceCatalogue,
   validateSyntheticReferenceDraftCommand,
   validateSyntheticReferenceDraftReceipt,
@@ -54,6 +57,7 @@ import {
   type ListingSuccessorReceipt,
 } from '@realtor/domain';
 export type {
+  RevisionProtocol,
   SyntheticReferenceContext,
   SyntheticReferencePublicSnapshot,
   SyntheticReferenceRevision,
@@ -3216,6 +3220,29 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid synthetic reference session.');
     }
   }
+  async getRevisionProtocolV3(
+    listingId: string,
+    revision: number,
+    options: StaffRequestOptions,
+  ): Promise<RevisionProtocol> {
+    let target;
+    try {
+      target = validateRevisionProtocolTarget({ listingId, revision });
+    } catch {
+      return invalid('VALIDATION', 'Invalid revision protocol target.');
+    }
+    const captured = uploadOptions(options);
+    const data = await this.request(
+      `/v3/staff/listings/${target.listingId}/revision-protocol/${target.revision}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateRevisionProtocol(data, target);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Revision protocol is unavailable.');
+    }
+  }
   async getSyntheticReferenceCatalogueV3(
     version: string,
     options: StaffRequestOptions,
@@ -4875,8 +4902,11 @@ export class RealtorApiClient {
         path,
       );
     const staffSession = path === '/v2/staff/session';
+    const revisionProtocol =
+      /^\/v3\/staff\/listings\/[0-9a-f-]{36}\/revision-protocol\/[1-9]\d{0,9}$/.test(path);
     const reference =
       staffSession ||
+      revisionProtocol ||
       publicReference ||
       referenceCatalogue ||
       referenceDraft ||
@@ -4981,21 +5011,22 @@ export class RealtorApiClient {
         }
         let raw: string;
         if (boundedRead) {
-          const maximum = staffSession
-              ? 8192
-              : publicReference
-                ? 3 * 1024 * 1024
-                : referenceCreation || referenceSuccessor
-                  ? result.ok
-                    ? referenceSuccessor
-                      ? SYNTHETIC_REFERENCE_SUCCESSOR_MAX_BYTES
-                      : SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
-                    : 131072
-                  : referenceContext && result.ok
-                    ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
-                    : referenceModeration
-                      ? 131072
-                      : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
+          const maximum =
+              staffSession || revisionProtocol
+                ? 8192
+                : publicReference
+                  ? 3 * 1024 * 1024
+                  : referenceCreation || referenceSuccessor
+                    ? result.ok
+                      ? referenceSuccessor
+                        ? SYNTHETIC_REFERENCE_SUCCESSOR_MAX_BYTES
+                        : SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
+                      : 131072
+                    : referenceContext && result.ok
+                      ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
+                      : referenceModeration
+                        ? 131072
+                        : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
             declared = result.headers.get('content-length');
           if (
             result.headers.has('content-encoding') ||

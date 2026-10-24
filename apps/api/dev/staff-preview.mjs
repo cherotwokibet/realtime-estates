@@ -1168,6 +1168,9 @@ export async function startStaffPreview(options = {}) {
         if (
           referenceDraftMode &&
           (url.pathname === '/v3/staff/reference-session' ||
+            /^\/v3\/staff\/listings\/[0-9a-f-]{36}\/revision-protocol\/[1-9]\d{0,9}$/.test(
+              url.pathname,
+            ) ||
             referenceCreationRoute ||
             referenceSuccessorRoute ||
             /^\/v3\/staff\/reference-catalogues\/(current|[1-9]\d{0,15})$/.test(url.pathname) ||

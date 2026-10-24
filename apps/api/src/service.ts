@@ -1,4 +1,6 @@
 import {
+  validateRevisionProtocol,
+  validateRevisionProtocolTarget,
   validateListingReferenceCatalogue,
   validateSyntheticReferenceDraftCommand,
   validateSyntheticReferenceDraftReceipt,
@@ -1669,6 +1671,8 @@ export function createApiService(
         if (successorRoute && !referenceSuccessorEnabled)
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
         const sessionRoute = path === '/v3/staff/reference-session';
+        const protocolRoute =
+          /^\/v3\/staff\/listings\/([^/]+)\/revision-protocol\/([1-9]\d{0,9})$/.exec(path);
         const transitionRoute =
           /^\/v3\/staff\/listings\/([^/]+)\/reference-transition-operations\/([^/]+)$/.exec(path);
         const revisionRoute =
@@ -1684,16 +1688,21 @@ export function createApiService(
           !creationRoute &&
           !successorRoute &&
           !sessionRoute &&
+          !protocolRoute &&
           !moderationRoute
         )
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
         if (
-          ((catalogueRoute || sessionRoute || revisionRoute) && method !== 'GET') ||
+          ((catalogueRoute || sessionRoute || revisionRoute || protocolRoute) &&
+            method !== 'GET') ||
           ((operationRoute || transitionRoute || creationRoute || successorRoute) &&
             !['GET', 'POST'].includes(method))
         )
           throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method is not allowed.', {
-            Allow: catalogueRoute || sessionRoute || revisionRoute ? 'GET' : 'GET, POST',
+            Allow:
+              catalogueRoute || sessionRoute || revisionRoute || protocolRoute
+                ? 'GET'
+                : 'GET, POST',
           });
         const actorId = await identity(request, true);
         let forbidden =
@@ -1749,6 +1758,17 @@ export function createApiService(
         const moderationListing = moderationRoute
           ? uuid(revisionRoute ? revisionRoute[2] : transitionRoute![1], 'listingId')
           : null;
+        let protocolTarget: ReturnType<typeof validateRevisionProtocolTarget> | undefined;
+        if (protocolRoute) {
+          try {
+            protocolTarget = validateRevisionProtocolTarget({
+              listingId: protocolRoute[1],
+              revision: Number(protocolRoute[2]),
+            });
+          } catch {
+            throw new HttpError(400, 'INVALID_INPUT', 'Canonical protocol target required.');
+          }
+        }
         const transitionId = transitionRoute ? uuid(transitionRoute[2], 'operationId') : null;
         const moderationRevision = revisionRoute ? Number(revisionRoute[3]) : null;
         const moderationVersion = revisionRoute?.[4] ?? null;
@@ -1767,6 +1787,14 @@ export function createApiService(
             // Database membership is checked on every read; token claims never supply company/role.
             if (sessionRoute)
               return { policy: 'synthetic-reference-session-v1', tenantId, actorId };
+            if (protocolTarget) {
+              const data = await query.query(
+                'SELECT app_api.read_synthetic_revision_protocol($1::uuid,$2::integer) AS protocol',
+                [protocolTarget.listingId, protocolTarget.revision],
+              );
+              if (data.rows.length !== 1) throw Error('Invalid revision protocol projection.');
+              return validateRevisionProtocol(scalar(data, 'protocol'), protocolTarget);
+            }
             async function catalogue(version: string | null) {
               const data = await query.query(
                 'SELECT app_api.read_synthetic_reference_catalogue($1::bigint) AS catalogue',
