@@ -1,9 +1,20 @@
-import ListingCreation from '../../../components/ListingCreation';
-import { previewConfiguration } from '../../../lib/staff-preview-policy';
+import ListingCreation from '../../../components/ListingCreation.tsx';
+import { previewConfiguration } from '../../../lib/staff-preview-policy.ts';
 import { getDemoBrand, resolveDemoTenantSlug } from '@realtor/demo';
 import type { CSSProperties } from 'react';
+import ReferenceCreationWorkspace from '../../../components/ReferenceCreationWorkspace.tsx';
+import { readReferenceCreationScreen } from '../../../lib/reference-creation-screen.ts';
 export const dynamic = 'force-dynamic';
-export default function NewListingPage() {
+export default async function NewListingPage() {
+  const references = process.env.STAFF_PREVIEW_REFERENCE_CREATION !== undefined;
+  let creation: Awaited<ReturnType<typeof readReferenceCreationScreen>> | null = null;
+  if (references) {
+    try {
+      creation = await readReferenceCreationScreen();
+    } catch {
+      /* Stay closed on unavailable current identity/configuration. */
+    }
+  }
   let instanceId: string | null = null;
   try {
     instanceId = previewConfiguration(process.env).instanceId;
@@ -29,7 +40,16 @@ export default function NewListingPage() {
         <span className="preview-pill">Local synthetic preview</span>
       </header>
       <main id="creation-main" className="draft-main">
-        {instanceId ? (
+        {references ? (
+          creation ? (
+            <ReferenceCreationWorkspace {...creation} />
+          ) : (
+            <p role="alert">
+              Reference creation is unavailable. Restore current staff access and the explicit
+              synthetic configuration.
+            </p>
+          )
+        ) : instanceId ? (
           <ListingCreation instanceId={instanceId} />
         ) : (
           <p role="alert">

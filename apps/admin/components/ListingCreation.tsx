@@ -1,11 +1,14 @@
 'use client';
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { validateListingCreationCommand } from '@realtor/api-client';
-import { createListingCreationClient, ListingCreationError } from '../lib/listing-creation-client';
+import {
+  createListingCreationClient,
+  ListingCreationError,
+} from '../lib/listing-creation-client.ts';
 import {
   prepareListingCreationAttempt,
   type ListingCreationAttempt,
-} from '../lib/listing-creation-attempt';
+} from '../lib/listing-creation-attempt.ts';
 export default function ListingCreation({ instanceId }: { instanceId: string }) {
   const [slug, setSlug] = useState(''),
     [title, setTitle] = useState(''),
