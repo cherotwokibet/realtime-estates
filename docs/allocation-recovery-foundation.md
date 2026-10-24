@@ -29,3 +29,5 @@ Full-suite results and source restore proof are recorded in the dated continuati
 3. Test current-draft recovery shell, actor/tenant/instance changes, concurrent tabs/controllers, storage failure, denied GET, explicit exact replay and fresh-current-version edit. Run actual Next/browser signed fixture before accepting task 06-2; keep isolated proposals default-off and legacy record-only compatibility intact.
 
 Vendor resources and the old live system remain intact. KES 10,000 is the total recurring client monthly price per realtor. External rights, accounts, media, hosting, device, operator review and approved cutover remain separate delivery work.
+
+Checkpoint167 follow-up: this foundation is now mounted in maintained ordinary pages using dedicated stale-scope checked BFF routes, verified in actual ordinary Next/browser reload journeys for creation and current-draft successor. See ordinary-allocation-recovery.md. Task06-2 accepted locally;24/97tasks(25percentrounded),0/14gates. Historical166 foundation-only limits above remain the record of that checkpoint, not the current mounting status.
