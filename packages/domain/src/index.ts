@@ -13,6 +13,7 @@ export * from './semantic-theme.js';
 export * from './listing-reference-catalogue.js';
 export * from './listing-reference-draft.js';
 export * from './listing-reference-creation.js';
+export * from './listing-reference-successor.js';
 export * from './listing-reference-moderation.js';
 
 export * from './enquiry-activity.js';

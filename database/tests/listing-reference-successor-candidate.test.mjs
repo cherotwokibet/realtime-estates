@@ -5,7 +5,10 @@ import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
 import { seedSyntheticSealedMedia } from '../test-helpers/synthetic-sealed-media.mjs';
-import { normalizeStaffDraftContentV2 } from '../../packages/domain/dist/index.js';
+import {
+  normalizeStaffDraftContentV2,
+  validateSyntheticReferenceSuccessorReceipt,
+} from '../../packages/domain/dist/index.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 test('isolated reference successor atomically adopts explicit references and preserves originals', async (t) => {
   const db = new PGlite();
@@ -167,6 +170,24 @@ test('isolated reference successor atomically adopts explicit references and pre
         ),
       tenant,
     );
+  const verify = (q, result) =>
+    assert.deepEqual(
+      validateSyntheticReferenceSuccessorReceipt(
+        result,
+        {
+          policy: 'synthetic-reference-successor-v1',
+          listingId: id(q.listing),
+          operationId: id(q.operation),
+          expectedListingVersion: q.listingVersion,
+          predecessor: { revision: q.predecessor, version: q.version, state: q.state },
+          content: q.content,
+          selection: q.selection,
+        },
+        catalogue,
+        id(11),
+      ),
+      result,
+    );
   const read = (q, user = 11, tenant = 1) =>
     as(
       user,
@@ -250,6 +271,7 @@ test('isolated reference successor atomically adopts explicit references and pre
         [id(q.listing)],
       );
       original = await start(q);
+      verify(q, original);
       assert.equal(original.policy, 'synthetic-reference-successor-v1');
       assert.deepEqual(original.successor.decision, {
         outcome: 'applied',
@@ -301,7 +323,7 @@ test('isolated reference successor atomically adopts explicit references and pre
         id(approved.listing),
       ]);
       assert.equal(before.published_revision_no, 1);
-      await start(approved);
+      verify(approved, await start(approved));
       const after = await scalar('SELECT to_jsonb(l) FROM app_private.listings l WHERE id=$1', [
         id(approved.listing),
       ]);
@@ -370,6 +392,7 @@ test('isolated reference successor atomically adopts explicit references and pre
       );
       await fail(() => read(legacy), 'P0002');
       const marked = await start(legacy);
+      verify(legacy, marked);
       assert.equal(marked.referenceDraft.revisionVersion, '3');
       assert.deepEqual(await read(legacy), marked);
     },
@@ -422,6 +445,7 @@ test('isolated reference successor atomically adopts explicit references and pre
       const before = await snapshot();
       assert.deepEqual(await read(q), original);
       assert.deepEqual(await start(q), original);
+      verify(q, await read(q));
       assert.deepEqual(await snapshot(), before);
       assert.equal(
         await scalar(
