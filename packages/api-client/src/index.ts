@@ -5,6 +5,11 @@ import {
   validateSyntheticReferenceCreationCommand,
   validateSyntheticReferenceCreationReceipt,
   SYNTHETIC_REFERENCE_CREATION_MAX_BYTES,
+  validateSyntheticReferenceSuccessorCommand,
+  validateSyntheticReferenceSuccessorReceipt,
+  SYNTHETIC_REFERENCE_SUCCESSOR_MAX_BYTES,
+  type SyntheticReferenceSuccessorCommand,
+  type SyntheticReferenceSuccessorReceipt,
   type SyntheticReferenceCreationCommand,
   type SyntheticReferenceCreationReceipt,
   validateSyntheticReferenceRevision,
@@ -3476,6 +3481,63 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid original reference creation receipt.');
     }
   }
+  async startSyntheticReferenceSuccessorV3(
+    input: SyntheticReferenceSuccessorCommand,
+    originalCatalogue: ListingReferenceCatalogue,
+    expectedActorId: string,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceSuccessorReceipt> {
+    const captured = uploadOptions(options),
+      actor = uuid(expectedActorId, 'VALIDATION', 'Expected actor');
+    let catalogue: ListingReferenceCatalogue, command: SyntheticReferenceSuccessorCommand;
+    try {
+      catalogue = validateListingReferenceCatalogue(originalCatalogue);
+      command = validateSyntheticReferenceSuccessorCommand(input, catalogue);
+    } catch {
+      return invalid('VALIDATION', 'Review the retained successor command and original catalogue.');
+    }
+    try {
+      const data = await this.request(
+        `/v3/staff/listings/${command.listingId}/reference-successor-operations/${command.operationId}`,
+        'POST',
+        captured,
+        { ...command },
+      );
+      try {
+        return validateSyntheticReferenceSuccessorReceipt(data, command, catalogue, actor);
+      } catch {
+        return invalid('INVALID_RESPONSE', 'Invalid reference successor receipt.');
+      }
+    } catch (error) {
+      return uncertainWriteError(error);
+    }
+  }
+  async getSyntheticReferenceSuccessorReceiptV3(
+    input: SyntheticReferenceSuccessorCommand,
+    originalCatalogue: ListingReferenceCatalogue,
+    expectedActorId: string,
+    options: StaffRequestOptions,
+  ): Promise<SyntheticReferenceSuccessorReceipt> {
+    const captured = uploadOptions(options),
+      actor = uuid(expectedActorId, 'VALIDATION', 'Expected actor');
+    let catalogue: ListingReferenceCatalogue, command: SyntheticReferenceSuccessorCommand;
+    try {
+      catalogue = validateListingReferenceCatalogue(originalCatalogue);
+      command = validateSyntheticReferenceSuccessorCommand(input, catalogue);
+    } catch {
+      return invalid('VALIDATION', 'Review the retained original successor and catalogue.');
+    }
+    const data = await this.request(
+      `/v3/staff/listings/${command.listingId}/reference-successor-operations/${command.operationId}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateSyntheticReferenceSuccessorReceipt(data, command, catalogue, actor);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid original reference successor receipt.');
+    }
+  }
   async getSyntheticReferenceDraftReceiptV3(
     input: SyntheticReferenceDraftCommand,
     originalCatalogue: ListingReferenceCatalogue,
@@ -4783,6 +4845,8 @@ export class RealtorApiClient {
       /^\/v3\/staff\/listings\/[0-9a-f-]+\/reference-draft-operations\/[0-9a-f-]+$/.test(path);
     const referenceCreation =
       /^\/v3\/staff\/listings\/[0-9a-f-]+\/reference-creation-operations\/[0-9a-f-]+$/.test(path);
+    const referenceSuccessor =
+      /^\/v3\/staff\/listings\/[0-9a-f-]+\/reference-successor-operations\/[0-9a-f-]+$/.test(path);
     const referenceContext =
       /^\/v3\/staff\/(?:listings|reviews)\/[0-9a-f-]+\/reference-revisions\/[1-9]\d{0,9}\/[1-9]\d{0,15}\/context$/.test(
         path,
@@ -4800,6 +4864,7 @@ export class RealtorApiClient {
       referenceCatalogue ||
       referenceDraft ||
       referenceCreation ||
+      referenceSuccessor ||
       referenceModeration ||
       path === '/v3/staff/reference-session';
     const verification =
@@ -4901,9 +4966,11 @@ export class RealtorApiClient {
         if (boundedRead) {
           const maximum = publicReference
               ? 3 * 1024 * 1024
-              : referenceCreation
+              : referenceCreation || referenceSuccessor
                 ? result.ok
-                  ? SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
+                  ? referenceSuccessor
+                    ? SYNTHETIC_REFERENCE_SUCCESSOR_MAX_BYTES
+                    : SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
                   : 131072
                 : referenceContext && result.ok
                   ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
@@ -4984,8 +5051,10 @@ export class RealtorApiClient {
           raw.length >
           (upload || finalization
             ? 4096
-            : referenceCreation
-              ? SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
+            : referenceCreation || referenceSuccessor
+              ? referenceSuccessor
+                ? SYNTHETIC_REFERENCE_SUCCESSOR_MAX_BYTES
+                : SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
               : referenceContext
                 ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
                 : referenceCatalogue
@@ -4999,7 +5068,7 @@ export class RealtorApiClient {
           );
         let payload: unknown;
         try {
-          if (referenceModeration || publicReference || referenceCreation) {
+          if (referenceModeration || publicReference || referenceCreation || referenceSuccessor) {
             // Guard nullable public-pointer and room counts before JSON numeric rounding.
             const tokens =
               raw.match(

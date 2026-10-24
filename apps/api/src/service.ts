@@ -4,6 +4,8 @@ import {
   validateSyntheticReferenceDraftReceipt,
   validateSyntheticReferenceCreationCommand,
   validateSyntheticReferenceCreationReceipt,
+  validateSyntheticReferenceSuccessorCommand,
+  validateSyntheticReferenceSuccessorReceipt,
   validateSyntheticReferenceRevision,
   validateSyntheticReferenceContext,
   validateSyntheticReferencePublicAttributes,
@@ -102,6 +104,7 @@ export interface ApiServiceOptions {
   readonly referenceModerationMode?: 'synthetic-reference-transition-v1';
   /** Fifth isolated candidate; requires moderation mode and never installs schema. */
   readonly referenceCreationMode?: 'synthetic-reference-creation-v1';
+  readonly referenceSuccessorMode?: 'synthetic-reference-successor-v1';
   /** Explicit synthetic private-check policy; omission leaves its routes unavailable. */
   readonly verificationMode?: 'synthetic-check-record-v1';
   /** Explicit internal synthetic mode. Omission disables all reminder admission/capture HTTP routes. */
@@ -1457,6 +1460,14 @@ export function createApiService(
     throw new Error('Unsupported reference creation mode.');
   const referenceCreationEnabled =
     options.referenceCreationMode === 'synthetic-reference-creation-v1';
+  if (
+    options.referenceSuccessorMode !== undefined &&
+    (options.referenceSuccessorMode !== 'synthetic-reference-successor-v1' ||
+      !referenceModerationEnabled)
+  )
+    throw new Error('Unsupported reference successor mode.');
+  const referenceSuccessorEnabled =
+    options.referenceSuccessorMode === 'synthetic-reference-successor-v1';
   const tenantId = uuid(options.tenantId, 'Configured tenant');
   const privacyNoticeVersion = text(
     options.privacyNoticeVersion,
@@ -1653,6 +1664,10 @@ export function createApiService(
           /^\/v3\/staff\/listings\/([^/]+)\/reference-creation-operations\/([^/]+)$/.exec(path);
         if (creationRoute && !referenceCreationEnabled)
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+        const successorRoute =
+          /^\/v3\/staff\/listings\/([^/]+)\/reference-successor-operations\/([^/]+)$/.exec(path);
+        if (successorRoute && !referenceSuccessorEnabled)
+          throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
         const sessionRoute = path === '/v3/staff/reference-session';
         const transitionRoute =
           /^\/v3\/staff\/listings\/([^/]+)\/reference-transition-operations\/([^/]+)$/.exec(path);
@@ -1667,13 +1682,14 @@ export function createApiService(
           !catalogueRoute &&
           !operationRoute &&
           !creationRoute &&
+          !successorRoute &&
           !sessionRoute &&
           !moderationRoute
         )
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
         if (
           ((catalogueRoute || sessionRoute || revisionRoute) && method !== 'GET') ||
-          ((operationRoute || transitionRoute || creationRoute) &&
+          ((operationRoute || transitionRoute || creationRoute || successorRoute) &&
             !['GET', 'POST'].includes(method))
         )
           throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method is not allowed.', {
@@ -1715,7 +1731,7 @@ export function createApiService(
         )
           forbidden = true;
         if (forbidden) throw new HttpError(400, 'INVALID_INPUT', 'Unsupported reference context.');
-        const commandRoute = operationRoute || creationRoute;
+        const commandRoute = operationRoute || creationRoute || successorRoute;
         const listingId = commandRoute ? uuid(commandRoute[1], 'listingId') : null,
           operationId = commandRoute ? uuid(commandRoute[2], 'operationId') : null;
         if (
@@ -1857,6 +1873,110 @@ export function createApiService(
               );
               if (data.rows.length !== 1) throw Error('Invalid creation projection.');
               const receipt = validateSyntheticReferenceCreationReceipt(
+                scalar(data, 'receipt'),
+                command,
+                originalCatalogue,
+                actorId!,
+              );
+              active();
+              return receipt;
+            }
+            if (successorRoute) {
+              const active = () => {
+                if (request.signal.aborted)
+                  throw new HttpError(400, 'REQUEST_ABORTED', 'Request was cancelled.');
+              };
+              const field = (input: unknown, key: string): unknown => {
+                if (
+                  !input ||
+                  typeof input !== 'object' ||
+                  ![Object.prototype, null].includes(Object.getPrototypeOf(input))
+                )
+                  throw Error('Invalid successor projection.');
+                const d = Object.getOwnPropertyDescriptor(input, key);
+                if (!d?.enumerable || !Object.hasOwn(d, 'value'))
+                  throw Error('Invalid successor projection.');
+                return d.value;
+              };
+              const version = (input: unknown) => {
+                if (
+                  typeof input !== 'string' ||
+                  !/^[1-9]\d{0,15}$/.test(input) ||
+                  BigInt(input) > 9007199254740991n
+                )
+                  throw Error('Invalid successor catalogue version.');
+                return input;
+              };
+              active();
+              if (method === 'GET') {
+                const data = await query.query(
+                  'SELECT app_api.read_synthetic_reference_successor($1::uuid,$2::uuid) AS receipt',
+                  [listingId, operationId],
+                );
+                if (data.rows.length !== 1) throw Error('Invalid original successor projection.');
+                const raw = scalar(data, 'receipt'),
+                  successor = field(raw, 'successor'),
+                  draft = field(raw, 'referenceDraft'),
+                  originalRequest = field(successor, 'request');
+                const originalCatalogue = await catalogue(
+                  version(field(field(draft, 'attributes'), 'catalogueVersion')),
+                );
+                const command = validateSyntheticReferenceSuccessorCommand(
+                  {
+                    policy: field(raw, 'policy'),
+                    operationId: field(successor, 'operationId'),
+                    listingId: field(successor, 'listingId'),
+                    expectedListingVersion: field(originalRequest, 'expectedListingVersion'),
+                    predecessor: field(originalRequest, 'predecessor'),
+                    content: field(originalRequest, 'content'),
+                    selection: field(draft, 'selection'),
+                  },
+                  originalCatalogue,
+                );
+                if (command.listingId !== listingId || command.operationId !== operationId)
+                  throw Error('Original successor changed route.');
+                const receipt = validateSyntheticReferenceSuccessorReceipt(
+                  raw,
+                  command,
+                  originalCatalogue,
+                  actorId!,
+                );
+                active();
+                return receipt;
+              }
+              const body = await jsonBody(request, 131072, true, true, true, true, true, 10000);
+              active();
+              let selected: string;
+              try {
+                selected = version(field(field(body, 'selection'), 'catalogueVersion'));
+              } catch {
+                throw new HttpError(400, 'INVALID_INPUT', 'Invalid successor catalogue selection.');
+              }
+              const originalCatalogue = await catalogue(selected);
+              let command;
+              try {
+                command = validateSyntheticReferenceSuccessorCommand(body, originalCatalogue);
+              } catch {
+                throw new HttpError(400, 'INVALID_INPUT', 'Invalid reference successor command.');
+              }
+              if (command.listingId !== listingId || command.operationId !== operationId)
+                throw new HttpError(400, 'INVALID_INPUT', 'Reference successor changed route.');
+              active();
+              const data = await query.query(
+                'SELECT app_api.start_synthetic_reference_successor($1::uuid,$2::uuid,$3::bigint,$4::integer,$5::bigint,$6::text,$7::jsonb,$8::jsonb) AS receipt',
+                [
+                  listingId,
+                  operationId,
+                  command.expectedListingVersion,
+                  command.predecessor.revision,
+                  command.predecessor.version,
+                  command.predecessor.state,
+                  JSON.stringify(command.content),
+                  JSON.stringify(command.selection),
+                ],
+              );
+              if (data.rows.length !== 1) throw Error('Invalid successor projection.');
+              const receipt = validateSyntheticReferenceSuccessorReceipt(
                 scalar(data, 'receipt'),
                 command,
                 originalCatalogue,
