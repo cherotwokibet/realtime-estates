@@ -552,6 +552,43 @@ test('signed local import preview reaches admin-only read-only service without c
   });
   assert.equal(response.status, 200);
   assert.equal((await response.json()).rows[0].issues[0].code, 'EXISTING_SLUG');
+  const largeCsv =
+    LISTING_IMPORT_COLUMNS.join(',') +
+    '\n' +
+    [1, 2]
+      .map((n) =>
+        [
+          'synthetic-escaped-import-' + n,
+          'Synthetic escaped row ' + n,
+          'x'.repeat(10000),
+          'rent',
+          'apartment',
+          '20000.01',
+          'month',
+          '2',
+          '1',
+          '',
+          'KE',
+          'Synthetic locality',
+          'area',
+        ].join(','),
+      )
+      .join('\n');
+  const encodedCsv =
+    '{"csv":"' +
+    Array.from(largeCsv, (ch) => '\\u' + ch.charCodeAt(0).toString(16).padStart(4, '0')).join('') +
+    '"}';
+  assert.ok(Buffer.byteLength(largeCsv) <= 32768);
+  assert.ok(Buffer.byteLength(encodedCsv) > 65536 && Buffer.byteLength(encodedCsv) <= 262144);
+  const escaped = await call(p, '/v2/staff/listing-import-preview', {
+    method: 'POST',
+    body: encodedCsv,
+  });
+  assert.equal(escaped.status, 200, 'valid escaped CSV JSON must reach import preview');
+  const preview = await escaped.json();
+  assert.equal(preview.validRows, 2);
+  assert.equal(preview.invalidRows, 0);
+  assert.equal(preview.existingStockChecked, true);
   assert.deepEqual(await (await call(p, '/v2/staff/listings?limit=25')).json(), before);
   assert.equal((await call(p, '/v2/staff/listing-import-preview')).status, 405);
   const agent = await startStaffPreview({ port: 0, actor: 'agent' });

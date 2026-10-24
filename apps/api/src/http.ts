@@ -1,6 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 const MAX_BODY_BYTES = 64 * 1024;
 const MAX_V2_DRAFT_BYTES = 128 * 1024;
+const MAX_IMPORT_PREVIEW_BYTES = 256 * 1024;
 const V2_DRAFT_PATH =
   /^\/v2\/staff\/listings\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}\/drafts\/([1-9]\d*)$/;
 type Handler = (request: Request) => Promise<Response>;
@@ -17,6 +18,9 @@ const REFERENCE_TRANSITION_PATH = new RegExp(
 );
 const REFERENCE_SUCCESSOR_PATH = new RegExp(
   `^/v3/staff/listings/${UUID.toLowerCase()}/reference-successor-operations/${UUID.toLowerCase()}$`,
+);
+const REFERENCE_CREATION_PATH = new RegExp(
+  `^/v3/staff/listings/${UUID.toLowerCase()}/reference-creation-operations/${UUID.toLowerCase()}$`,
 );
 const V2_UPLOAD_PATH = new RegExp(
   `^/v2/staff/listings/${UUID}/revisions/([1-9]\\d*)/media-jobs/${UUID}/uploads/${UUID}$`,
@@ -155,7 +159,7 @@ export function createDevelopmentServer(
         await sendResponse(incoming, outgoing, response, true);
         return;
       }
-      // Larger allowances are limited to exact full-draft command routes.
+      // Match raw canonical targets before granting each contract's bounded allowance.
       const draft = method === 'PUT' && url.search === '' ? V2_DRAFT_PATH.exec(url.pathname) : null;
       const creation =
         method === 'POST' &&
@@ -166,11 +170,14 @@ export function createDevelopmentServer(
         incoming.url === url.pathname &&
         (REFERENCE_DRAFT_PATH.test(url.pathname) ||
           REFERENCE_TRANSITION_PATH.test(url.pathname) ||
-          REFERENCE_SUCCESSOR_PATH.test(url.pathname));
+          REFERENCE_SUCCESSOR_PATH.test(url.pathname) ||
+          REFERENCE_CREATION_PATH.test(url.pathname));
       const maximum =
-        creation || reference || (draft && Number(draft[1]) <= 2147483647)
-          ? MAX_V2_DRAFT_BYTES
-          : MAX_BODY_BYTES;
+        method === 'POST' && incoming.url === '/v2/staff/listing-import-preview'
+          ? MAX_IMPORT_PREVIEW_BYTES
+          : creation || reference || (draft && Number(draft[1]) <= 2147483647)
+            ? MAX_V2_DRAFT_BYTES
+            : MAX_BODY_BYTES;
       const body = await readBody(incoming, maximum);
       const request = new Request(url, {
         method,

@@ -66,6 +66,71 @@ const call = (p, path, init = {}) =>
     ...init,
     headers: { authorization: 'Bearer ' + p.bearerToken, ...init.headers },
   });
+
+test('large valid Unicode reference creation crosses 64KiB through signed HTTP and retains exact original', async (t) => {
+  const p = await startStaffPreview(config);
+  t.after(() => p.close());
+  const sdk = client(p),
+    options = opt(p);
+  const actor = (await sdk.getSyntheticReferenceSessionV3(options)).actorId;
+  const cat = await sdk.getSyntheticReferenceCatalogueV3('current', options);
+  const base = command(35060, cat);
+  const c = {
+    ...base,
+    content: normalizeStaffDraftContentV2({
+      ...base.content,
+      title: '🏠'.repeat(160),
+      description: '🏠'.repeat(10000),
+      privateAddress: '🏠'.repeat(1000),
+      pricing: {
+        declaration: 'complete',
+        charges: Array.from({ length: 32 }, (_, i) => ({
+          id: 'fee-' + i,
+          name: '🏠'.repeat(160),
+          amountStatus: 'known',
+          amountMinor: 12345,
+          timing: 'one_off',
+          classification: 'refundable_deposit',
+          mandatory: true,
+        })),
+      },
+    }),
+  };
+  const bytes = Buffer.byteLength(JSON.stringify(c));
+  assert.ok(
+    bytes > 65536 && bytes <= 131072,
+    'valid scalar-bounded content exceeds generic transport limit',
+  );
+  const first = await call(
+    p,
+    `/v3/staff/listings/${c.listingId}/reference-creation-operations/${c.operationId}`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(c),
+    },
+  );
+  assert.equal(first.status, 200, `valid ${bytes}-byte original must reach the configured API`);
+  const committed = await first.json();
+  const original = await sdk.createSyntheticReferenceListingV3(c, cat, actor, options);
+  assert.deepEqual(original, committed);
+  assert.equal(original.creation.outcome, 'created');
+  assert.deepEqual(original.referenceDraft.content, c.content);
+  assert.deepEqual(
+    await sdk.getSyntheticReferenceCreationReceiptV3(c, cat, actor, options),
+    original,
+  );
+  assert.deepEqual(await sdk.createSyntheticReferenceListingV3(c, cat, actor, options), original);
+  const current = await sdk.getStaffDraftV2(c.listingId, 1, options);
+  assert.equal(current.version, '3');
+  assert.deepEqual(current.content, c.content);
+  assert.equal(
+    (await sdk.listStaffListingsV2({ ...options, limit: 50 })).items.filter(
+      (row) => row.listingId === c.listingId,
+    ).length,
+    1,
+  );
+});
 test('reference creation fixture and launcher reject orphan or incompatible modes before opening listeners', async () => {
   for (const patch of [
     { referenceCreationMode: 'live' },

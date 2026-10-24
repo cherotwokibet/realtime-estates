@@ -3,7 +3,37 @@ import assert from 'node:assert/strict';
 import { request as httpRequest } from 'node:http';
 import { createDevelopmentServer } from '../dist/http.js';
 
-test('only exact creation, successor and reference draft/transition/successor POST receive bounded 128KiB transport allowance', async () => {
+test('only canonical import preview POST receives 256KiB JSON allowance, independently of decoded CSV bounds', async () => {
+  let calls = 0;
+  const server = createDevelopmentServer(async (r) => {
+    calls++;
+    return new Response(String((await r.arrayBuffer()).byteLength));
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const origin = `http://127.0.0.1:${server.address().port}`,
+    path = '/v2/staff/listing-import-preview',
+    body = '界'.repeat(87381) + 'x';
+  try {
+    assert.equal(Buffer.byteLength(body), 262144);
+    const accepted = await fetch(origin + path, { method: 'POST', body });
+    assert.equal(accepted.status, 200);
+    assert.equal(await accepted.text(), '262144');
+    for (const [method, target] of [
+      ['PUT', path],
+      ['POST', path + '?x=1'],
+      ['POST', path + '/'],
+      ['POST', '/v2/staff/other-preview'],
+    ])
+      assert.equal((await fetch(origin + target, { method, body })).status, 413);
+    assert.equal((await fetch(origin + path, { method: 'POST', body: body + 'x' })).status, 413);
+    assert.equal(calls, 1);
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
+test('only exact creation, successor and reference creation/draft/transition/successor POST receive bounded 128KiB transport allowance', async () => {
   let calls = 0;
   const server = createDevelopmentServer(async (r) => {
     calls++;
@@ -17,6 +47,9 @@ test('only exact creation, successor and reference draft/transition/successor PO
   try {
     for (const operationPath of [
       path,
+      path
+        .replace('/v2/', '/v3/')
+        .replace('/creation-operations/', '/reference-creation-operations/'),
       path.replace('/creation-operations/', '/revision-operations/'),
       path.replace('/v2/', '/v3/').replace('/creation-operations/', '/reference-draft-operations/'),
       path
@@ -40,7 +73,7 @@ test('only exact creation, successor and reference draft/transition/successor PO
         413,
       );
     }
-    assert.equal(calls, 5);
+    assert.equal(calls, 6);
   } finally {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
