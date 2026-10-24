@@ -1,17 +1,30 @@
+import ReferenceSuccessorWorkspace from '../../../../components/ReferenceSuccessorWorkspace.tsx';
+import { readReferenceSuccessorScreen } from '../../../../lib/reference-successor-screen.ts';
 import type { CSSProperties } from 'react';
 import type { StaffListingSummary } from '@realtor/api-client';
 import { getDemoBrand, resolveDemoTenantSlug } from '@realtor/demo';
-import ListingSuccessor from '../../../../components/ListingSuccessor';
-import { readStaffListingDetail } from '../../../../lib/listing-queue-server';
-import { previewConfiguration } from '../../../../lib/staff-preview-policy';
+import ListingSuccessor from '../../../../components/ListingSuccessor.tsx';
+import { readStaffListingDetail } from '../../../../lib/listing-queue-server.ts';
+import { previewConfiguration } from '../../../../lib/staff-preview-policy.ts';
 export const dynamic = 'force-dynamic';
 export default async function SuccessorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const references = process.env.STAFF_PREVIEW_REFERENCE_SUCCESSOR !== undefined;
+  let successor: Awaited<ReturnType<typeof readReferenceSuccessorScreen>> | null = null;
+  if (references) {
+    try {
+      successor = await readReferenceSuccessorScreen(id);
+    } catch {
+      /* Current access required; no credential diagnostics. */
+    }
+  }
   let listing: StaffListingSummary | null = null;
   let instanceId: string | null = null;
   try {
-    instanceId = previewConfiguration(process.env).instanceId;
-    listing = await readStaffListingDetail(id);
+    if (!references) {
+      instanceId = previewConfiguration(process.env).instanceId;
+      listing = await readStaffListingDetail(id);
+    }
   } catch {
     /* Failed authorized reads expose no private context or diagnostics. */
   }
@@ -35,10 +48,19 @@ export default async function SuccessorPage({ params }: { params: Promise<{ id: 
         <span className="preview-pill">Local synthetic preview</span>
       </header>
       <main id="successor-main" className="draft-main">
-        {listing &&
-        latest &&
-        instanceId &&
-        (latest.state === 'approved' || latest.state === 'rejected') ? (
+        {references ? (
+          successor ? (
+            <ReferenceSuccessorWorkspace {...successor} />
+          ) : (
+            <p role="alert">
+              Reference successor unavailable. Restore current staff access and explicit synthetic
+              configuration.
+            </p>
+          )
+        ) : listing &&
+          latest &&
+          instanceId &&
+          (latest.state === 'approved' || latest.state === 'rejected') ? (
           <ListingSuccessor
             instanceId={instanceId}
             listingId={listing.listingId}

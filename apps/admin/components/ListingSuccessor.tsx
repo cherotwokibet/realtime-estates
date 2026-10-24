@@ -1,11 +1,11 @@
 'use client';
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { validateListingSuccessorCommand, type ListingSuccessorCommand } from '@realtor/api-client';
-import { createListingSuccessorClient } from '../lib/listing-successor-client';
+import { createListingSuccessorClient } from '../lib/listing-successor-client.ts';
 import {
   prepareListingSuccessorAttempt,
   type ListingSuccessorAttempt,
-} from '../lib/listing-successor-attempt';
+} from '../lib/listing-successor-attempt.ts';
 
 export default function ListingSuccessor({
   instanceId,
