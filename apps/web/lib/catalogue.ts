@@ -84,6 +84,7 @@ interface CatalogueSource {
   readonly sourceLabel: string;
 }
 export interface CatalogueSuccess extends CatalogueSource {
+  readonly referenceOptionsScope?: 'catalogue';
   readonly searchPage?: Readonly<{
     total: number;
     offset: number;
@@ -351,11 +352,19 @@ export function createCatalogueLoader(
           offset,
           ...(config.referenceMode ? filters.reference : {}),
         };
-        const page = problem
+        const pageRead = problem
           ? { items: [], total: 0, offset: 0, hasMore: false, maxOffset: 10000 }
           : config.referenceMode
-            ? await api.searchSyntheticReferencePropertiesV3(input)
-            : await api.searchPropertiesV2(input);
+            ? api.searchSyntheticReferencePropertiesV3(input)
+            : api.searchPropertiesV2(input);
+        const reads = await Promise.allSettled([
+          Promise.resolve(pageRead),
+          config.referenceMode ? api.getSyntheticReferenceSearchOptions() : Promise.resolve(null),
+        ] as const);
+        if (reads[0].status === 'rejected' || reads[1].status === 'rejected')
+          throw Error('Catalogue search or public choices unavailable.');
+        const page = reads[0].value,
+          referenceChoices = reads[1].value;
         const source = page.items.map(fromConnected);
         return Object.freeze({
           mode: 'connected',
@@ -365,7 +374,8 @@ export function createCatalogueLoader(
             : 'API connected · Catalogue search',
           filters: problem ? Object.freeze({ ...filters, error: problem }) : filters,
           items: Object.freeze(source),
-          referenceOptions: referenceOptions(source),
+          referenceOptions: referenceChoices ?? referenceOptions(source),
+          ...(referenceChoices ? { referenceOptionsScope: 'catalogue' as const } : {}),
           sourceCount: source.length,
           limit: LOADED_PAGE_SIZE,
           mayBeTruncated: false,

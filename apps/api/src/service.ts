@@ -1,5 +1,9 @@
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
 import {
+  PUBLIC_REFERENCE_OPTIONS_SQL,
+  publicReferenceOptions,
+} from './public-reference-options.js';
+import {
   validateRevisionProtocol,
   validateRevisionProtocolTarget,
   validateListingReferenceCatalogue,
@@ -1554,6 +1558,35 @@ export function createApiService(
           { policy: 'synthetic-reference-public-v1', items, limit: pageLimit },
           correlationId,
         );
+      }
+      if (path === '/v3/property-reference-options') {
+        if (!referenceModerationEnabled)
+          throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+        if (method !== 'GET')
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method is not allowed.', {
+            Allow: 'GET',
+          });
+        if (url.search || request.body !== null || request.url.includes('#'))
+          throw new HttpError(
+            400,
+            'INVALID_INPUT',
+            'Public choices do not accept query context or a body.',
+          );
+        if (request.signal.aborted)
+          throw new HttpError(400, 'REQUEST_ABORTED', 'Request was cancelled.');
+        const result = await options.database.transaction(
+          { tenantId, actorId: null, correlationId },
+          async (query) => {
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            return query.query(PUBLIC_REFERENCE_OPTIONS_SQL);
+          },
+        );
+        const body = publicReferenceOptions(result.rows);
+        if (new TextEncoder().encode(JSON.stringify(body)).byteLength > 3 * 1024 * 1024)
+          throw Error('Public reference choices exceed byte bound.');
+        if (request.signal.aborted)
+          throw new HttpError(400, 'REQUEST_ABORTED', 'Request was cancelled.');
+        return response(200, body, correlationId);
       }
       if (path === '/v2/properties/search' || path === '/v3/properties/search') {
         const reference = path === '/v3/properties/search';

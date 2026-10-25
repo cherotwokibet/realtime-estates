@@ -7,10 +7,12 @@ export default function ReferenceFilters({
   values,
   options,
   invalid,
+  scope,
 }: {
   values: Values;
   options: ReferenceOptions;
   invalid: readonly string[];
+  scope?: 'catalogue';
 }) {
   if (
     !REFERENCE_FILTER_KEYS.some(
@@ -39,7 +41,11 @@ export default function ReferenceFilters({
           >
             <option value="">Any {labels[key].toLowerCase()}</option>
             {values[key] && !options[key].some((row) => row.id === values[key]) && (
-              <option value={values[key]}>Selected option unavailable in loaded selection</option>
+              <option value={values[key]}>
+                {scope === 'catalogue'
+                  ? 'Selected option unavailable in current public choices'
+                  : 'Selected option unavailable in loaded selection'}
+              </option>
             )}
             {options[key].map((row) => (
               <option value={row.id} key={row.id}>
@@ -50,8 +56,11 @@ export default function ReferenceFilters({
         </label>
       ))}
       <p className="search-help">
-        Choices come from the loaded properties. All selected locations and the amenity must match
-        the same property. Properties without declared reference details cannot match these choices.
+        {scope === 'catalogue'
+          ? 'Choices cover this company’s approved public properties, using their saved labels.'
+          : 'Choices come from the loaded properties.'}{' '}
+        All selected locations and the amenity must match the same property. Properties without
+        declared reference details cannot match these choices.
       </p>
     </fieldset>
   );

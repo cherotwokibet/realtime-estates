@@ -69,12 +69,16 @@ test('mobile adapter reads the real anonymous HTTP/SQL approved historical proje
     });
     assert.equal(webPage.mode, 'connected');
     assert.equal(webPage.searchPage.total, 1);
+    assert.equal(webPage.referenceOptionsScope, 'catalogue');
+    assert.equal(webPage.referenceOptions.countyId[0].id, countyId);
+    assert.equal(webPage.referenceOptions.amenityId[0].id, amenityId);
     assert.equal(webPage.items[0].id, item.property.id);
     assert.equal(browseCatalogue(webPage, {}).matchingLoadedCount, 1);
     assert.equal((await web.detail(item.property.id)).status, 'found');
     const none = await web.list({ countyId: '00000000-0000-4000-8000-999999999999' });
     assert.equal(none.searchPage.total, 0);
     assert.deepEqual(none.items, []);
+    assert.equal(none.referenceOptions.amenityId[0].id, amenityId);
     const empty = await loadMobileReferenceCatalogue(config, {
       search: { location: 'No matching synthetic area', limit: 24 },
     });

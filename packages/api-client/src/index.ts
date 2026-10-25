@@ -330,6 +330,12 @@ export interface PublicSearchPage<T> {
   readonly hasMore: boolean;
   readonly maxOffset: 10000;
 }
+export type PublicReferenceSearchOptions = Readonly<
+  Record<
+    'countyId' | 'localityId' | 'neighbourhoodId' | 'amenityId',
+    readonly Readonly<{ id: string; label: string }>[]
+  >
+>;
 export type {
   PricingDisclosure,
   PricingInputV2,
@@ -2520,6 +2526,44 @@ export class RealtorApiClient {
     options: RequestOptions = {},
   ): Promise<PublicSearchPage<PublicPropertyV2>> {
     return this.publicSearch(input, options, false) as Promise<PublicSearchPage<PublicPropertyV2>>;
+  }
+  async getSyntheticReferenceSearchOptions(
+    options: RequestOptions = {},
+  ): Promise<PublicReferenceSearchOptions> {
+    requestOptions(options);
+    if (options.bearerToken !== undefined)
+      return invalid('VALIDATION', 'Public reference choices are anonymous.');
+    const data = attachRecord(
+      await this.request('/v3/property-reference-options', 'GET', options),
+      ['policy', 'options', 'maximumPerCategory'],
+      'INVALID_RESPONSE',
+    );
+    if (data.policy !== 'synthetic-reference-options-v1' || data.maximumPerCategory !== 5000)
+      return invalid('INVALID_RESPONSE', 'Invalid public reference choices.');
+    const keys = ['countyId', 'localityId', 'neighbourhoodId', 'amenityId'] as const,
+      captured = attachRecord(data.options, keys, 'INVALID_RESPONSE'),
+      seen = new Set<string>();
+    const result = {} as Record<
+      (typeof keys)[number],
+      readonly Readonly<{ id: string; label: string }>[]
+    >;
+    for (const key of keys) {
+      const rows = captured[key];
+      if (!Array.isArray(rows) || rows.length > 5000)
+        return invalid('INVALID_RESPONSE', 'Public reference choice limit exceeded.');
+      result[key] = Object.freeze(
+        rows.map((input) => {
+          const row = attachRecord(input, ['id', 'label'], 'INVALID_RESPONSE'),
+            id = uuid(row.id, 'INVALID_RESPONSE', 'Reference ID'),
+            label = text(row.label, 512, 'INVALID_RESPONSE', 'Public reference label', true);
+          if (seen.has(id) || label !== row.label || label.normalize('NFC') !== label)
+            return invalid('INVALID_RESPONSE', 'Duplicate or malformed public reference choices.');
+          seen.add(id);
+          return Object.freeze({ id, label });
+        }),
+      );
+    }
+    return Object.freeze(result);
   }
   async searchSyntheticReferencePropertiesV3(
     input: PublicSearchInput = {},
@@ -5031,6 +5075,7 @@ export class RealtorApiClient {
     const importPreview = path === '/v2/staff/listing-import-preview' && method === 'POST';
     const publicReference = /^\/v3\/properties\?limit=(?:[1-9]\d?|100)$/.test(path);
     const publicSearch = /^\/v[23]\/properties\/search\?/.test(path);
+    const publicReferenceOptions = path === '/v3/property-reference-options';
     const referenceCatalogue =
       /^\/v3\/staff\/reference-catalogues\/(?:current|[1-9]\d{0,15})$/.test(path);
     const referenceDraft =
@@ -5058,6 +5103,8 @@ export class RealtorApiClient {
       staffSession ||
       revisionProtocol ||
       publicReference ||
+      publicSearch ||
+      publicReferenceOptions ||
       referenceCatalogue ||
       referenceDraft ||
       referenceCreation ||
@@ -5165,7 +5212,7 @@ export class RealtorApiClient {
           const maximum =
               staffSession || revisionProtocol
                 ? 8192
-                : publicReference || publicSearch
+                : publicReference || publicSearch || publicReferenceOptions
                   ? 3 * 1024 * 1024
                   : referenceCreation || referenceSuccessor
                     ? result.ok
@@ -5269,7 +5316,14 @@ export class RealtorApiClient {
           );
         let payload: unknown;
         try {
-          if (referenceModeration || publicReference || referenceCreation || referenceSuccessor) {
+          if (
+            referenceModeration ||
+            publicReference ||
+            publicSearch ||
+            publicReferenceOptions ||
+            referenceCreation ||
+            referenceSuccessor
+          ) {
             // Guard nullable public-pointer and room counts before JSON numeric rounding.
             const tokens =
               raw.match(
@@ -5279,9 +5333,14 @@ export class RealtorApiClient {
               if (
                 tokens[i]?.startsWith('"') &&
                 tokens[i + 1] === ':' &&
-                ['publishedRevision', 'bedrooms', 'privateBathrooms', 'sharedBathrooms'].includes(
-                  JSON.parse(tokens[i]!),
-                ) &&
+                [
+                  'publishedRevision',
+                  'bedrooms',
+                  'privateBathrooms',
+                  'sharedBathrooms',
+                  ...(publicSearch ? ['total', 'limit', 'offset', 'maxOffset'] : []),
+                  ...(publicReferenceOptions ? ['maximumPerCategory'] : []),
+                ].includes(JSON.parse(tokens[i]!)) &&
                 !/^(?:null|0|[1-9]\d*)$/.test(tokens[i + 2] ?? '')
               )
                 throw Error('Invalid reference integer token.');

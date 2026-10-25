@@ -282,6 +282,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               errorFields={errorFields}
             />
             <ReferenceFilters
+              scope={catalogue.mode === 'error' ? undefined : catalogue.referenceOptionsScope}
               values={reference}
               options={
                 catalogue.mode === 'error' ? referenceOptions([]) : catalogue.referenceOptions

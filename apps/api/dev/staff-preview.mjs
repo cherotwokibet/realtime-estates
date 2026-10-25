@@ -1156,7 +1156,9 @@ export async function startStaffPreview(options = {}) {
           });
         if (
           referencePublicMode &&
-          (url.pathname === '/v3/properties' || url.pathname === '/v3/properties/search')
+          (url.pathname === '/v3/properties' ||
+            url.pathname === '/v3/properties/search' ||
+            url.pathname === '/v3/property-reference-options')
         ) {
           const response = await service(request);
           response.headers.set('X-Synthetic-Staff-Preview', 'true');

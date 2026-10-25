@@ -153,3 +153,98 @@ test('search streaming is bounded and duplicate JSON keys do not replace authori
       (e) => e.kind === 'INVALID_RESPONSE',
     );
 });
+
+const choices = () => ({
+  policy: 'synthetic-reference-options-v1',
+  maximumPerCategory: 5000,
+  options: {
+    countyId: [
+      { id: id(200), label: 'Synthetic County' },
+      { id: id(201), label: 'Synthetic County' },
+    ],
+    localityId: [],
+    neighbourhoodId: [],
+    amenityId: [{ id: id(300), label: 'Synthetic lift' }],
+  },
+});
+test('global public choices preserve same-label distinct IDs and freeze validated anonymous results', async () => {
+  let call;
+  const api = client(async (url, init) => {
+    call = { url, init };
+    return json(choices());
+  });
+  const result = await api.getSyntheticReferenceSearchOptions();
+  assert.equal(new URL(call.url).pathname, '/v3/property-reference-options');
+  assert.equal(new URL(call.url).search, '');
+  assert.equal(call.init.credentials, 'omit');
+  assert.equal(call.init.cache, 'no-store');
+  assert.equal(result.countyId.length, 2);
+  assert.notEqual(result.countyId[0].id, result.countyId[1].id);
+  assert.ok(Object.isFrozen(result));
+  assert.ok(Object.isFrozen(result.countyId));
+  assert.ok(Object.isFrozen(result.countyId[0]));
+  await assert.rejects(
+    () => api.getSyntheticReferenceSearchOptions({ bearerToken: 'secret' }),
+    (e) => e.kind === 'VALIDATION',
+  );
+});
+test('global choices refuse incomplete authority metadata, duplicate IDs, malformed labels and overflows', async () => {
+  const variants = [
+    { ...choices(), maximumPerCategory: 4999 },
+    { ...choices(), privateAddress: 'secret' },
+  ];
+  for (const mutate of [
+    (p) => p.options.countyId.push(p.options.countyId[0]),
+    (p) => p.options.amenityId.push({ id: id(200), label: 'Reused ID' }),
+    (p) => delete p.options.localityId,
+    (p) => (p.options.countyId[0].label = ' space '),
+    (p) => (p.options.countyId[0].label = 'e\u0301'),
+    (p) => (p.options.countyId[0].label = 'x'.repeat(513)),
+    (p) => (p.options.countyId[0].id = 'bad'),
+    (p) => (p.options.countyId[0].privateAddress = 'secret'),
+    (p) =>
+      (p.options.amenityId = Array.from({ length: 5001 }, (_, i) => ({
+        id: id(1000 + i),
+        label: 'Large',
+      }))),
+  ]) {
+    const p = choices();
+    mutate(p);
+    variants.push(p);
+  }
+  for (const body of variants)
+    await assert.rejects(
+      () => client(async () => json(body)).getSyntheticReferenceSearchOptions(),
+      (e) => e.kind === 'INVALID_RESPONSE',
+    );
+});
+test('otherwise valid v2/v3 search and options refuse duplicate and rounded metadata JSON tokens', async () => {
+  for (const reference of [false, true])
+    for (const raw of [
+      JSON.stringify(
+        page([], { policy: reference ? 'synthetic-reference-search-v1' : 'public-search-v1' }),
+      ).replace('"total":0', '"total":0,"total":0'),
+      JSON.stringify(
+        page([], { policy: reference ? 'synthetic-reference-search-v1' : 'public-search-v1' }),
+      ).replace('"total":0', '"total":0e0'),
+    ]) {
+      const api = client(
+        async () => new Response(raw, { headers: { 'content-type': 'application/json' } }),
+      );
+      await assert.rejects(
+        () => (reference ? api.searchSyntheticReferencePropertiesV3() : api.searchPropertiesV2()),
+        (e) => e.kind === 'INVALID_RESPONSE',
+      );
+    }
+  const raw = JSON.stringify(choices()).replace(
+    '"maximumPerCategory":5000',
+    '"maximumPerCategory":5000,"maximumPerCategory":5000',
+  );
+  await assert.rejects(
+    () =>
+      client(
+        async () => new Response(raw, { headers: { 'content-type': 'application/json' } }),
+      ).getSyntheticReferenceSearchOptions(),
+    (e) => e.kind === 'INVALID_RESPONSE',
+  );
+});

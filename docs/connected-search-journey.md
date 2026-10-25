@@ -1,5 +1,7 @@
 # Connected catalogue search — checkpoint 181
 
+Checkpoint 182 correction and follow-up (25 October 2026): catalogue-wide approved reference choices are now connected; see public-reference-options.md. That document also corrects the checkpoint-181 duplicate-key statement for both v2/v3 search and records the stricter parser classification and complete-envelope tests added at checkpoint 182. Browser/device acceptance remains pending; earlier results below are dated checkpoint-181 evidence.
+
 25 October 2026. This iteration connects the previously API-only tenant-wide search through the shared client, public web loader/results/detail lookup and native synthetic preview screen. Task 07-2 remains open for catalogue-wide reference choices and current-source browser verification; task 07-7 and native/device acceptance remain separate. Checklist stays 25/97 (26% rounded), 0/14 gates; KES 10,000 is the total monthly service baseline.
 
 ## Working path

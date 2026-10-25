@@ -561,6 +561,23 @@ test('opt-in reference moderation validates actual restricted SQL before commit 
       );
       assert.equal((await call('GET', '/v3/properties/search?id=' + id(101))).status, 200);
       assert.equal((await call('POST', '/v3/properties/search', {})).status, 405);
+      const optionResult = await call('GET', '/v3/property-reference-options');
+      assert.equal(optionResult.status, 200);
+      const optionBody = await optionResult.json();
+      assert.deepEqual(optionBody.options.countyId, [
+        { id: id(200), label: 'Synthetic original county' },
+      ]);
+      assert.deepEqual(optionBody.options.amenityId, []);
+      assert.equal(optionBody.maximumPerCategory, 5000);
+      assert.ok(!JSON.stringify(optionBody).includes('unselected'));
+      assert.equal((await call('GET', '/v3/property-reference-options?tenant=2')).status, 400);
+      assert.equal((await call('POST', '/v3/property-reference-options', {})).status, 405);
+      tenant = 2;
+      assert.deepEqual(
+        (await (await call('GET', '/v3/property-reference-options')).json()).options,
+        { countyId: [], localityId: [], neighbourhoodId: [], amenityId: [] },
+      );
+      tenant = 1;
       for (const secret of [
         'PRIVATE-MODERATION-API',
         'referenceCatalogue',
@@ -625,6 +642,76 @@ test('opt-in reference moderation validates actual restricted SQL before commit 
         attributes: null,
         revisionVersion: null,
       });
+    },
+  );
+  await t.test(
+    'global choices include approved IDs absent from a filtered page and remove paused stock identities',
+    async () => {
+      actor = 10;
+      tenant = 1;
+      const freshContent = {
+        ...content,
+        locality: 'Synthetic renamed county',
+        location: { county: 'Synthetic renamed county', town: null, area: null },
+      };
+      await database.transaction({ tenantId: id(1), actorId: id(10) }, (q) =>
+        seedGuardedListingDraft(q, {
+          listingId: id(103),
+          slug: 'synthetic-global-option',
+          actorId: id(10),
+          content: freshContent,
+        }),
+      );
+      for (let position = 0; position < 4; position++)
+        await seedSyntheticSealedMedia(db, { tenantId: id(1), listingId: id(103), position });
+      await database.transaction({ tenantId: id(1), actorId: id(10) }, async (q) => {
+        await q.query(
+          'SELECT app_api.save_synthetic_reference_draft($1,1,2,$2,$3::jsonb,$4::jsonb)',
+          [
+            id(103),
+            id(1600),
+            JSON.stringify(freshContent),
+            JSON.stringify({
+              catalogueVersion: '2',
+              location: { countyId: id(201), localityId: null, neighbourhoodId: null },
+              amenityIds: [],
+            }),
+          ],
+        );
+        await q.query("SELECT app_api.confirm_availability($1,1,'available')", [id(103)]);
+      });
+      const review = await read('3', 'listings', 103);
+      assert.equal((await post(facts(review, 'submit', 1601))).status, 200);
+      actor = 13;
+      const pendingReview = await read('4', 'reviews', 103);
+      assert.equal((await post(facts(pendingReview, 'approve', 1602))).status, 200);
+      const visibility = async (status) => {
+        const v = (
+          await db.query('SELECT version FROM app_private.listings WHERE id=$1', [id(103)])
+        ).rows[0].version;
+        await database.transaction({ tenantId: id(1), actorId: id(13) }, (q) =>
+          q.query('SELECT app_api.set_publication($1,$2,$3)', [id(103), v, status]),
+        );
+      };
+      await visibility('published');
+      const page = await (
+        await call('GET', '/v3/properties/search?countyId=' + id(200) + '&limit=1')
+      ).json();
+      assert.equal(page.total, 1);
+      assert.equal(page.items[0].id, id(101));
+      const options = await (await call('GET', '/v3/property-reference-options')).json();
+      assert.deepEqual(
+        new Set(options.options.countyId.map((row) => row.id)),
+        new Set([id(200), id(201)]),
+      );
+      assert.deepEqual(options.options.amenityId, []);
+      await visibility('paused');
+      const after = await (await call('GET', '/v3/property-reference-options')).json();
+      assert.deepEqual(
+        after.options.countyId.map((row) => row.id),
+        [id(200)],
+      );
+      actor = 10;
     },
   );
   await t.test(

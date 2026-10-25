@@ -221,6 +221,17 @@ test('global reference web search sends saved IDs and ordinary search refuses th
     async (url) => {
       calls++;
       const q = new URL(url);
+      if (q.pathname === '/v3/property-reference-options')
+        return json({
+          policy: 'synthetic-reference-options-v1',
+          maximumPerCategory: 5000,
+          options: {
+            countyId: [{ id: id(200), label: 'Synthetic County' }],
+            localityId: [],
+            neighbourhoodId: [],
+            amenityId: [{ id: id(300), label: 'Synthetic lift' }],
+          },
+        });
       assert.equal(q.pathname, '/v3/properties/search');
       assert.equal(q.searchParams.get('countyId'), id(200));
       assert.equal(q.searchParams.get('amenityId'), id(300));
@@ -234,7 +245,62 @@ test('global reference web search sends saved IDs and ordinary search refuses th
     throw Error('must not broaden');
   });
   assert.ok(ready(await ordinary.list({ countyId: id(200) })).filters.error);
-  assert.equal(calls, 1);
+  assert.equal(calls, 2);
+});
+
+test('global dropdown choices survive empty matching pages and never infer IDs from page labels', async () => {
+  const options = {
+    countyId: [{ id: id(200), label: 'Approved other-page County' }],
+    localityId: [],
+    neighbourhoodId: [],
+    amenityId: [{ id: id(300), label: 'Approved other-page lift' }],
+  };
+  const calls = [];
+  const loader = connected(
+    [],
+    { ...referenceEnvironment, WEB_CATALOGUE_SEARCH: 'public-search-v1' },
+    async (url) => {
+      calls.push(url);
+      return json(
+        new URL(url).pathname === '/v3/property-reference-options'
+          ? { policy: 'synthetic-reference-options-v1', maximumPerCategory: 5000, options }
+          : searchPayload([], 0, 0, 12, 'catalogue', true),
+      );
+    },
+  );
+  const result = ready(await loader.list({ countyId: id(999) }));
+  assert.deepEqual(result.items, []);
+  assert.equal(result.referenceOptionsScope, 'catalogue');
+  assert.deepEqual(result.referenceOptions, options);
+  assert.equal(calls.length, 2);
+  assert.equal(new URL(calls.find((url) => url.includes('property-reference-options'))).search, '');
+  const html = renderToStaticMarkup(
+    React.createElement(ReferenceFilters, {
+      values: result.filters.reference,
+      options: result.referenceOptions,
+      invalid: [],
+      scope: result.referenceOptionsScope,
+    }),
+  );
+  assert.ok(html.includes('approved public properties'));
+  assert.ok(html.includes('Approved other-page lift'));
+  assert.ok(html.includes('Selected option unavailable in current public choices'));
+});
+test('global choice read failure refuses the reference search display without fallback to current-page choices', async () => {
+  const source = referenceProperty();
+  let calls = 0;
+  const loader = connected(
+    [source],
+    { ...referenceEnvironment, WEB_CATALOGUE_SEARCH: 'public-search-v1' },
+    async (url) => {
+      calls++;
+      return new URL(url).pathname === '/v3/property-reference-options'
+        ? new Response('unavailable', { status: 503 })
+        : json(searchPayload([source], 1, 0, 12, 'catalogue', true));
+    },
+  );
+  assert.equal((await loader.list()).mode, 'error');
+  assert.equal(calls, 2);
 });
 
 test('public ID filtering uses saved identities rather than identical labels or legacy text', async () => {
