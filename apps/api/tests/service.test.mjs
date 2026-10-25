@@ -77,12 +77,27 @@ async function fixture(extraSearch = 0) {
       user,
       role,
     ]);
+  // Reuse existing search records so room boundaries preserve the 102-record price/paging fixture.
+  const groupedBedrooms = new Map(
+    extraSearch === 101
+      ? [
+          [id(5095), 6],
+          [id(5096), 7],
+          [id(5097), 8],
+          [id(5098), 9],
+          [id(5099), 10],
+          [id(5100), null],
+          [OTHER_PUBLIC, 7],
+        ]
+      : [],
+  );
   for (const [tenant, listing, agent, admin] of [
     [T, PUBLIC, AGENT, ADMIN],
     [OTHER, OTHER_PUBLIC, OTHER_ADMIN, OTHER_ADMIN],
     ...Array.from({ length: extraSearch }, (_, i) => [T, id(5000 + i), AGENT, ADMIN]),
   ]) {
     const searchIndex = Number(listing.slice(-12)) - 5000;
+    const bedrooms = groupedBedrooms.get(listing);
     await bootstrapAs(db, tenant, agent, async (query) => {
       await seedGuardedListingDraft(query, {
         listingId: listing,
@@ -101,6 +116,15 @@ async function fixture(extraSearch = 0) {
                   town: 'Synthetic Town',
                   area: 'Synthetic Area',
                 },
+              }
+            : {}),
+          ...(bedrooms !== undefined
+            ? {
+                propertyType: bedrooms === null ? 'land' : 'apartment',
+                bedrooms,
+                privateBathrooms:
+                  bedrooms === null || bedrooms === 10 ? null : content.privateBathrooms,
+                sharedBathrooms: bedrooms === 9 ? 2 : bedrooms === 10 ? 1 : null,
               }
             : {}),
         },
@@ -302,9 +326,54 @@ test('tenant-wide public search pages beyond 100 approved records with exact cou
     );
     assert.equal((await read('minMode=')).total, 102);
     assert.equal((await read('purpose=rent&period=month&min=20001.02')).total, 0);
-    assert.equal((await read('beds=0&privateBaths=1&location=Synthetic%20Town')).total, 101);
+    assert.equal((await read('beds=0&privateBaths=1&location=Synthetic%20Town')).total, 95);
+    const groupedIds = [];
+    for (const offset of [0, 2]) {
+      const grouped = await read(`beds=7&bedsMode=at_least&sort=title&limit=2&offset=${offset}`);
+      assert.equal(grouped.total, 4);
+      assert.equal(grouped.hasMore, offset === 0);
+      assert.equal(grouped.offset, offset);
+      groupedIds.push(...grouped.items.map((row) => row.id));
+    }
+    assert.deepEqual(groupedIds, [id(5096), id(5097), id(5098), id(5099)]);
+    assert.equal(new Set(groupedIds).size, 4);
+    for (const [beds, expectedId] of [
+      [6, id(5095)],
+      [7, id(5096)],
+      [8, id(5097)],
+      [9, id(5098)],
+      [10, id(5099)],
+    ])
+      for (const mode of ['', '&bedsMode=']) {
+        const exactBedrooms = await read(`beds=${beds}${mode}`);
+        assert.equal(exactBedrooms.total, 1);
+        assert.equal(exactBedrooms.items[0].id, expectedId);
+        assert.equal(exactBedrooms.items[0].bedrooms, beds);
+      }
+    assert.equal((await read('beds=0')).total, 96);
+    assert.equal((await read('beds=0&bedsMode=at_least')).total, 101);
+    assert.equal((await read('type=land')).items[0].bedrooms, null);
+    assert.equal((await read('type=land&beds=0')).total, 0);
+    assert.equal((await read('type=land&beds=0&bedsMode=at_least')).total, 0);
+    assert.equal((await read('beds=100&bedsMode=at_least')).total, 0);
+    assert.equal((await read('bedsMode=')).total, 102);
+    const groupedComposition = await read(
+      'purpose=rent&period=month&type=apartment&beds=7&bedsMode=at_least&privateBaths=1&min=20000.97&minMode=over&max=20000.99&sort=price_low',
+    );
+    assert.equal(groupedComposition.total, 2);
+    assert.deepEqual(
+      groupedComposition.items.map((row) => row.id),
+      [id(5097), id(5098)],
+    );
+    assert.equal((await read('beds=7&bedsMode=at_least&privateBaths=2')).total, 0);
+    assert.equal((await read('beds=7&bedsMode=at_least&privateBaths=1')).total, 3);
+    assert.equal((await read('beds=7&bedsMode=at_least&sharedBaths=1')).total, 2);
+    assert.equal((await read('beds=7&bedsMode=at_least&sharedBaths=2')).total, 1);
+    assert.equal((await read('sharedBaths=0')).total, 2);
+    const foreignGroup = await read('beds=7&bedsMode=at_least', other);
+    assert.equal(foreignGroup.total, 1);
+    assert.equal(foreignGroup.items[0].id, OTHER_PUBLIC);
     for (const query of [
-      'sharedBaths=0',
       'location=PRIVATE',
       'location=%25',
       'location=%5F',
@@ -339,6 +408,15 @@ test('tenant-wide public search pages beyond 100 approved records with exact cou
       'purpose=rent&min=20000&minMode=over',
       'period=month&min=20000&minMode=over',
       'purpose=rent&period=month&min=20000.02&minMode=over&max=20000.01',
+      'bedsMode=at_least',
+      'beds=&bedsMode=at_least',
+      'beds=7&bedsMode=over',
+      'beds=7&bedsMode=At_least',
+      'beds=7&bedsMode=%20at_least',
+      'beds=7&bedsMode=at_least&bedsMode=at_least',
+      'beds=7&bedsMode=&bedsMode=',
+      'beds=7%2B&bedsMode=at_least',
+      'beds=07&bedsMode=at_least',
     ])
       assert.equal((await service(request('/v2/properties/search?' + query))).status, 400, query);
     const wrong = await service(request('/v2/properties/search', { method: 'POST', body: {} }));

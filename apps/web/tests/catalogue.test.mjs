@@ -990,6 +990,147 @@ test('bedroom filters preserve explicit zero and match exact counts while exclud
   assert.equal(any.filters.bedsText, '');
   assert.equal(ready(await loader.list({ beds: '0' })).filters.bedsText, '0');
 });
+test('7+ bedrooms includes declared 7 through 100 while exact 7, 8, 9, 10 and studio zero stay distinct', async () => {
+  const counts = [0, 6, 7, 8, 9, 10, 100, null];
+  const loader = connected(
+    counts.map((bedrooms, index) =>
+      property({
+        id: id(2000 + index),
+        slug: 'declared-bedroom-' + index,
+        bedrooms,
+        propertyType: bedrooms === null ? 'land' : bedrooms === 0 ? 'studio' : 'apartment',
+      }),
+    ),
+  );
+  const grouped = ready(
+    await loader.list({
+      beds: '7',
+      bedsMode: 'at_least',
+      type: 'apartment',
+      purpose: 'rent',
+      period: 'month',
+      min: '20000.00',
+      minMode: 'over',
+      max: '20000.01',
+    }),
+  );
+  assert.equal(grouped.filters.error, null);
+  assert.equal(grouped.filters.bedsText, '7');
+  assert.equal(grouped.filters.bedsMode, 'at_least');
+  assert.deepEqual(
+    grouped.items.map((item) => item.bedrooms),
+    [7, 8, 9, 10, 100],
+  );
+  for (const beds of ['7', '8', '9', '10']) {
+    const exact = ready(await loader.list({ beds }));
+    assert.equal(exact.filters.bedsMode, '');
+    assert.deepEqual(
+      exact.items.map((item) => item.bedrooms),
+      [Number(beds)],
+    );
+  }
+  assert.deepEqual(
+    ready(await loader.list({ beds: '0', type: 'studio' })).items.map((item) => item.bedrooms),
+    [0],
+  );
+  assert.deepEqual(
+    ready(await loader.list({ beds: '0', bedsMode: 'at_least' })).items.map(
+      (item) => item.bedrooms,
+    ),
+    [0, 6, 7, 8, 9, 10, 100],
+  );
+  const reset = ready(await loader.list({ beds: '', bedsMode: '' }));
+  assert.equal(reset.filters.error, null);
+  assert.equal(reset.filters.bedsText, '');
+  assert.equal(reset.filters.bedsMode, '');
+  assert.equal(reset.items.length, counts.length);
+});
+
+test('global v2 and v3 grouped bedroom searches preserve both comparison modes in transport and paging', async () => {
+  for (const reference of [false, true]) {
+    const calls = [];
+    const loader = connected(
+      [],
+      {
+        ...(reference ? referenceEnvironment : {}),
+        WEB_CATALOGUE_SEARCH: 'public-search-v1',
+      },
+      async (url) => {
+        calls.push(new URL(url));
+        return json(
+          new URL(url).pathname === '/v3/property-reference-options'
+            ? {
+                policy: 'synthetic-reference-options-v1',
+                maximumPerCategory: 5000,
+                options: { countyId: [], localityId: [], neighbourhoodId: [], amenityId: [] },
+              }
+            : searchPayload([], 0, 12, 12, 'price_low', reference),
+        );
+      },
+    );
+    const result = ready(
+      await loader.list({
+        beds: '7',
+        bedsMode: 'at_least',
+        purpose: 'rent',
+        period: 'month',
+        min: '20000.00',
+        minMode: 'over',
+        max: '20000.01',
+        sort: 'price_low',
+        page: '2',
+      }),
+    );
+    assert.equal(result.filters.error, null);
+    const request = calls.find((url) => url.pathname.endsWith('/properties/search'));
+    assert.equal(request.pathname, reference ? '/v3/properties/search' : '/v2/properties/search');
+    assert.equal(request.searchParams.get('beds'), '7');
+    assert.equal(request.searchParams.get('bedsMode'), 'at_least');
+    assert.equal(request.searchParams.get('minMode'), 'over');
+    assert.equal(request.searchParams.get('max'), '20000.01');
+    assert.equal(request.searchParams.get('offset'), '12');
+    const next = new URL(
+      loadedPageHref(result.filters, 'price_low', 3),
+      'https://synthetic.invalid',
+    );
+    assert.equal(next.searchParams.get('beds'), '7');
+    assert.equal(next.searchParams.get('bedsMode'), 'at_least');
+    assert.equal(next.searchParams.get('minMode'), 'over');
+    assert.equal(next.searchParams.get('page'), '3');
+  }
+});
+
+test('bedroom comparison errors retain correction state and refuse global search before transport', async () => {
+  let calls = 0;
+  const loader = connected([], { WEB_CATALOGUE_SEARCH: 'public-search-v1' }, async () => {
+    calls++;
+    throw Error('invalid grouped bedrooms must not dispatch');
+  });
+  for (const bedsMode of [
+    'unknown',
+    'AT_LEAST',
+    ' ',
+    ' at_least ',
+    ['at_least'],
+    ['at_least', ''],
+    ['at_least', 'at_least'],
+  ]) {
+    const result = ready(await loader.list({ beds: '7', bedsMode }));
+    assert.ok(result.filters.error, String(bedsMode));
+    assert.equal(result.filters.bedsText, '7');
+    if (typeof bedsMode === 'string') assert.equal(result.filters.bedsMode, bedsMode);
+    assert.deepEqual(result.items, []);
+  }
+  for (const beds of [undefined, '', ' ', '7+', '-1', '01', '1.5', '1e1', '101', ['7']]) {
+    const result = ready(await loader.list({ beds, bedsMode: 'at_least' }));
+    assert.ok(result.filters.error, String(beds));
+    assert.equal(result.filters.bedsMode, 'at_least');
+    assert.deepEqual(result.items, []);
+  }
+  assert.equal(calls, 0);
+  assert.equal(parseCatalogueFilters({ beds: '7' }).bedsMode, '');
+  assert.equal(parseCatalogueFilters({ beds: '', bedsMode: '' }).error, null);
+});
 test('private and shared bathroom minima stay separate and null never qualifies as declared zero', async () => {
   const loader = connected([
     property({ privateBathrooms: 0, sharedBathrooms: 2 }),

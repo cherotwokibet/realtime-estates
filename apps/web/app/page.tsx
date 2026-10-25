@@ -77,6 +77,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
     minMode,
     maxText,
     bedsText,
+    bedsMode,
     privateBathsText,
     sharedBathsText,
     reference,
@@ -98,6 +99,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
       minMode ||
       maxText ||
       bedsText ||
+      bedsMode ||
       privateBathsText ||
       sharedBathsText,
     ) || Object.values(reference).some(Boolean);
@@ -115,6 +117,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
             'minMode',
             'max',
             'beds',
+            'bedsMode',
             'privateBaths',
             'sharedBaths',
           ].filter((key) => q[key] !== undefined && typeof q[key] !== 'string')
@@ -143,13 +146,18 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
                         : error === 'Enter a positive maximum price in KES.' ||
                             error === 'Enter a valid KES amount with at most two decimal places.'
                           ? ['max']
-                          : error === 'Choose an exact bedroom count from 0 to 100.'
+                          : error === 'Choose a bedroom count from 0 to 100.'
                             ? ['beds']
-                            : error === 'Choose a minimum private bathroom count from 0 to 100.'
-                              ? ['privateBaths']
-                              : error === 'Choose a minimum shared bathroom count from 0 to 100.'
-                                ? ['sharedBaths']
-                                : [];
+                            : error === 'Choose a supported bedroom comparison.'
+                              ? ['bedsMode']
+                              : error === 'Enter a bedroom count to use At least.'
+                                ? ['beds', 'bedsMode']
+                                : error === 'Choose a minimum private bathroom count from 0 to 100.'
+                                  ? ['privateBaths']
+                                  : error ===
+                                      'Choose a minimum shared bathroom count from 0 to 100.'
+                                    ? ['sharedBaths']
+                                    : [];
   const validation = (field: string) =>
     errorFields.includes(field)
       ? { 'aria-invalid': true as const, 'aria-describedby': 'search-error' }
@@ -201,6 +209,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               minMode,
               maxText,
               bedsText,
+              bedsMode,
               privateBathsText,
               sharedBathsText,
               error,
@@ -291,6 +300,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
             </div>
             <RoomFilters
               bedsText={bedsText}
+              bedsMode={bedsMode}
               privateBathsText={privateBathsText}
               sharedBathsText={sharedBathsText}
               errorFields={errorFields}
@@ -386,6 +396,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               {purpose && <span>{purpose === 'rent' ? 'For rent' : 'For sale'}</span>}
               {type && <span>{type[0]?.toUpperCase() + type.slice(1)}</span>}
               {period && purpose !== 'sale' && <span>Rent per {period}</span>}
+              {bedsText && (
+                <span>
+                  Bedrooms: {bedsMode === 'at_least' ? bedsText + '+' : 'exactly ' + bedsText}
+                </span>
+              )}
               {minText && (
                 <span>
                   Base price {minMode === 'over' ? 'over' : 'from'}{' '}

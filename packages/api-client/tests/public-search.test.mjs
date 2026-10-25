@@ -258,6 +258,106 @@ test('v2/v3 snapshot exact Over bounds and accept empty equality while blank mod
     assert.equal(observed.url.searchParams.get('minMode'), 'over');
   }
 });
+test('v2/v3 grouped bedroom filters reject malformed modes and counts before I/O', async () => {
+  let calls = 0,
+    reads = 0;
+  const api = client(async () => {
+    calls++;
+    return json(page());
+  });
+  for (const search of [
+    (query) => api.searchPropertiesV2(query),
+    (query) => api.searchSyntheticReferencePropertiesV3(query),
+  ]) {
+    for (const input of [
+      { bedsMode: 'at_least' },
+      { beds: '', bedsMode: 'at_least' },
+      { beds: '7', bedsMode: 'over' },
+      { beds: '7', bedsMode: 'exact' },
+      { beds: '7', bedsMode: 'At_least' },
+      { beds: '7', bedsMode: ' at_least' },
+      { beds: '7', bedsMode: 'at_least ' },
+      { beds: '7', bedsMode: ' ' },
+      { beds: '7', bedsMode: ['at_least', 'at_least'] },
+      { beds: '7', bedsMode: null },
+      { beds: '7', bedsMode: true },
+      { beds: null, bedsMode: 'at_least' },
+      { beds: '7+', bedsMode: 'at_least' },
+      { beds: '07', bedsMode: 'at_least' },
+      { beds: '-1', bedsMode: 'at_least' },
+      { beds: '1.1', bedsMode: 'at_least' },
+      { beds: '1e1', bedsMode: 'at_least' },
+      { beds: '101', bedsMode: 'at_least' },
+    ])
+      await assert.rejects(
+        () => search(input),
+        (e) => e.kind === 'VALIDATION',
+      );
+    const getter = { beds: '7' };
+    Object.defineProperty(getter, 'bedsMode', {
+      enumerable: true,
+      get() {
+        reads++;
+        return 'at_least';
+      },
+    });
+    await assert.rejects(
+      () => search(getter),
+      (e) => e.kind === 'VALIDATION',
+    );
+  }
+  assert.equal(calls, 0);
+  assert.equal(reads, 0);
+});
+
+test('v2/v3 snapshot grouped bedroom paging and preserve exact seven through ten and studio zero', async () => {
+  for (const reference of [false, true]) {
+    let release, observed;
+    const api = client(async (url, init) => {
+      observed = { url: new URL(url), init };
+      await new Promise((resolve) => (release = resolve));
+      return json(
+        page([], {
+          policy: reference ? 'synthetic-reference-search-v1' : 'public-search-v1',
+          limit: Number(observed.url.searchParams.get('limit')),
+          offset: Number(observed.url.searchParams.get('offset')),
+        }),
+      );
+    });
+    const search = (input) =>
+      reference ? api.searchSyntheticReferencePropertiesV3(input) : api.searchPropertiesV2(input);
+    for (const offset of [0, 2]) {
+      release = undefined;
+      const input = { beds: '7', bedsMode: 'at_least', limit: 2, offset };
+      const pending = search(input);
+      input.beds = '8';
+      input.bedsMode = '';
+      input.offset = 4;
+      while (!release) await new Promise((resolve) => setImmediate(resolve));
+      release();
+      await pending;
+      assert.equal(observed.url.pathname, `/v${reference ? 3 : 2}/properties/search`);
+      assert.equal(observed.url.searchParams.get('beds'), '7');
+      assert.equal(observed.url.searchParams.get('bedsMode'), 'at_least');
+      assert.equal(observed.url.searchParams.get('limit'), '2');
+      assert.equal(observed.url.searchParams.get('offset'), String(offset));
+      assert.equal(observed.init.credentials, 'omit');
+      assert.equal(observed.init.cache, 'no-store');
+      assert.equal(observed.init.headers.Authorization, undefined);
+    }
+    for (const beds of ['0', '7', '8', '9', '10'])
+      for (const mode of [{}, { bedsMode: '' }]) {
+        release = undefined;
+        const pending = search({ beds, ...mode });
+        while (!release) await new Promise((resolve) => setImmediate(resolve));
+        release();
+        await pending;
+        assert.equal(observed.url.searchParams.get('beds'), beds);
+        assert.equal(observed.url.searchParams.has('bedsMode'), false);
+      }
+  }
+});
+
 test('search rejects inconsistent count/order/page metadata, duplicate identities and private DTO fields', async () => {
   for (const extra of [
     { total: 1 },

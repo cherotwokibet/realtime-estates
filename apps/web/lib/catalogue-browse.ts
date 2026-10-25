@@ -139,6 +139,7 @@ export function loadedPageHref(filters: CatalogueFilters, sort: string, page: nu
     minMode: filters.minMode,
     max: filters.maxText,
     beds: filters.bedsText,
+    bedsMode: filters.bedsMode,
     privateBaths: filters.privateBathsText,
     sharedBaths: filters.sharedBathsText,
     ...filters.reference,

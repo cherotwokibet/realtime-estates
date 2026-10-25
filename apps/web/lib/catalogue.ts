@@ -49,6 +49,7 @@ export interface CatalogueFilters {
   readonly minMode: string;
   readonly maxText: string;
   readonly bedsText: string;
+  readonly bedsMode: string;
   readonly privateBathsText: string;
   readonly sharedBathsText: string;
   readonly error: string | null;
@@ -156,7 +157,6 @@ export function parseCatalogueFilters(query: CatalogueQuery): CatalogueFilters {
     if (value && (!/^(0|[1-9]\d{0,2})$/.test(value) || Number(value) > 100)) error = message;
     return value;
   };
-  const bedsText = room('beds', 'Choose an exact bedroom count from 0 to 100.');
   const privateBathsText = room(
     'privateBaths',
     'Choose a minimum private bathroom count from 0 to 100.',
@@ -178,7 +178,8 @@ export function parseCatalogueFilters(query: CatalogueQuery): CatalogueFilters {
     minText: parsed.minText,
     minMode: parsed.minMode,
     maxText: parsed.maxText,
-    bedsText,
+    bedsText: parsed.bedsText,
+    bedsMode: parsed.bedsMode,
     privateBathsText,
     sharedBathsText,
     error,
@@ -278,7 +279,10 @@ function filterItems(
         (!filters.purpose || property.purpose === filters.purpose) &&
         (!filters.type || property.type === filters.type) &&
         (!filters.bedsText ||
-          (property.bedrooms !== null && property.bedrooms === Number(filters.bedsText))) &&
+          (property.bedrooms !== null &&
+            (filters.bedsMode === 'at_least'
+              ? property.bedrooms >= Number(filters.bedsText)
+              : property.bedrooms === Number(filters.bedsText)))) &&
         (!filters.privateBathsText ||
           (property.privateBathrooms !== null &&
             property.privateBathrooms >= Number(filters.privateBathsText))) &&
@@ -358,6 +362,7 @@ export function createCatalogueLoader(
           ...(filters.minMode === 'over' ? { minMode: 'over' as const } : {}),
           max: filters.maxText,
           beds: filters.bedsText,
+          ...(filters.bedsMode === 'at_least' ? { bedsMode: 'at_least' as const } : {}),
           privateBaths: filters.privateBathsText,
           sharedBaths: filters.sharedBathsText,
           sort: browse.sort as 'catalogue' | 'title' | 'price_low' | 'price_high',

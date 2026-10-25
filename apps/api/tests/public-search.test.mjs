@@ -107,6 +107,46 @@ test('both search versions bind strict Over without changing exact cents or uppe
     }
 });
 
+test('both search versions keep exact bedroom counts and bind an explicit inclusive group', () => {
+  for (const reference of [false, true])
+    for (const beds of ['0', '6', '7', '8', '9', '10', '100'])
+      for (const mode of [{}, { bedsMode: '' }, { bedsMode: 'at_least' }]) {
+        const query = publicSearchQuery(new URLSearchParams({ beds, ...mode }), reference);
+        assert.match(query.sql, mode.bedsMode ? /bedrooms >= \$\d+/ : /bedrooms = \$\d+/);
+        assert.ok(query.values.includes(Number(beds)));
+        assert.ok(!query.values.includes('at_least'));
+        assert.doesNotMatch(query.sql, /COALESCE\(bedrooms/);
+      }
+});
+
+test('both search versions reject malformed grouped bedroom modes and missing counts', () => {
+  for (const reference of [false, true])
+    for (const query of [
+      'bedsMode=at_least',
+      'beds=&bedsMode=at_least',
+      'beds=7&bedsMode=over',
+      'beds=7&bedsMode=exact',
+      'beds=7&bedsMode=At_least',
+      'beds=7&bedsMode=%20at_least',
+      'beds=7&bedsMode=at_least%20',
+      'beds=7&bedsMode=%20',
+      'beds=7&bedsMode=at_least&bedsMode=at_least',
+      'beds=7&bedsMode=&bedsMode=',
+      'beds=7&beds=8&bedsMode=at_least',
+      'beds=7%2B&bedsMode=at_least',
+      'beds=07&bedsMode=at_least',
+      'beds=-1&bedsMode=at_least',
+      'beds=1.1&bedsMode=at_least',
+      'beds=1e1&bedsMode=at_least',
+      'beds=101&bedsMode=at_least',
+    ])
+      assert.throws(
+        () => publicSearchQuery(new URLSearchParams(query), reference),
+        /supported public search/,
+        query,
+      );
+});
+
 test('both search versions refuse malformed, repeated and unbounded Over modes', () => {
   for (const reference of [false, true])
     for (const query of [

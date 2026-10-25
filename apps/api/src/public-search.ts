@@ -16,6 +16,7 @@ const keys = [
   'minMode',
   'max',
   'beds',
+  'bedsMode',
   'privateBaths',
   'sharedBaths',
   'sort',
@@ -51,6 +52,8 @@ export function publicSearchQuery(params: URLSearchParams, reference = false) {
   if (q.type && !PROPERTY_TYPES.includes(q.type as (typeof PROPERTY_TYPES)[number])) fail();
   if (q.period && !['day', 'week', 'month', 'year'].includes(q.period)) fail();
   if (q.minMode && q.minMode !== 'over') fail();
+  if (q.bedsMode && q.bedsMode !== 'at_least') fail();
+  if (q.bedsMode === 'at_least' && (q.beds === undefined || q.beds === '')) fail();
   if (
     (q.min || q.max || sort.startsWith('price_')) &&
     !(q.purpose === 'sale' || (q.purpose === 'rent' && q.period))
@@ -97,7 +100,11 @@ export function publicSearchQuery(params: URLSearchParams, reference = false) {
     ['sharedBaths', 'shared_bathrooms'],
   ] as const) {
     if (q[key] !== undefined && q[key] !== '')
-      predicates.push(column + (key === 'beds' ? ' = ' : ' >= ') + bind(integer(key, 0, 100)));
+      predicates.push(
+        column +
+          (key === 'beds' && q.bedsMode !== 'at_least' ? ' = ' : ' >= ') +
+          bind(integer(key, 0, 100)),
+      );
   }
   const prices: Partial<Record<'min' | 'max', number>> = {};
   for (const key of ['min', 'max'] as const) {

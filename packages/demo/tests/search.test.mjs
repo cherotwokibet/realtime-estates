@@ -18,7 +18,7 @@ test('search applies all URL filters together and inclusive exact maximum', () =
   );
 });
 test('duplicate known URL filters fail closed instead of silently dropping constraints', () => {
-  for (const key of ['location', 'purpose', 'type', 'min', 'minMode', 'max']) {
+  for (const key of ['location', 'purpose', 'type', 'min', 'minMode', 'max', 'beds', 'bedsMode']) {
     const result = searchCatalogue('realtime-estates', {
       [key]: key === 'max' ? ['18000', '1e4'] : ['first', 'second'],
     });
@@ -110,6 +110,67 @@ test('configured tenants reject inherited object keys and unknown names', () => 
   assert.equal(getDemoBrand('sample-homes').primary, '#10465b');
   assert.equal(getDemoBrand('sample-homes').initials, 'SH');
   assert.throws(() => searchCatalogue('constructor', {}));
+});
+test('explicit At least bedroom groups compose with exact filters while the default remains exact', () => {
+  assert.deepEqual(
+    searchCatalogue('realtime-estates', { beds: '2' }).items.map((item) => item.id),
+    ['demo-kilimani-1'],
+  );
+  assert.deepEqual(
+    searchCatalogue('realtime-estates', { beds: '2', bedsMode: 'at_least' }).items.map(
+      (item) => item.id,
+    ),
+    ['demo-kilimani-1', 'demo-kitengela-1'],
+  );
+  assert.deepEqual(
+    searchCatalogue('realtime-estates', {
+      beds: '2',
+      bedsMode: 'at_least',
+      purpose: 'rent',
+    }).items.map((item) => item.id),
+    ['demo-kilimani-1'],
+  );
+  assert.deepEqual(
+    searchCatalogue('realtime-estates', { beds: '0', type: 'studio' }).items.map((item) => item.id),
+    ['demo-ruaka-1'],
+  );
+  assert.equal(
+    searchCatalogue('realtime-estates', { beds: '0', bedsMode: 'at_least' }).items.length,
+    4,
+  );
+  for (const beds of ['7', '8', '9', '10']) {
+    const result = searchCatalogue('realtime-estates', { beds });
+    assert.equal(result.error, null);
+    assert.equal(result.bedsText, beds);
+    assert.equal(result.bedsMode, '');
+  }
+  const reset = searchCatalogue('realtime-estates', { beds: '', bedsMode: '' });
+  assert.equal(reset.error, null);
+  assert.equal(reset.bedsText, '');
+  assert.equal(reset.bedsMode, '');
+  assert.equal(reset.items.length, 4);
+});
+test('bedroom group modes reject malformed requests without broadening demo results', () => {
+  for (const bedsMode of [
+    'unknown',
+    'AT_LEAST',
+    ' ',
+    ' at_least ',
+    ['at_least'],
+    ['at_least', ''],
+    ['at_least', 'at_least'],
+  ]) {
+    const result = searchCatalogue('realtime-estates', { beds: '7', bedsMode });
+    assert.ok(result.error, String(bedsMode));
+    assert.deepEqual(result.items, []);
+    if (typeof bedsMode === 'string') assert.equal(result.bedsMode, bedsMode);
+  }
+  for (const beds of [undefined, '', ' ', '7+', '-1', '01', '1.5', '1e1', '101', ['7']]) {
+    const result = searchCatalogue('realtime-estates', { beds, bedsMode: 'at_least' });
+    assert.ok(result.error, String(beds));
+    assert.equal(result.bedsMode, 'at_least');
+    assert.deepEqual(result.items, []);
+  }
 });
 test('malformed, overprecise and zero prices produce errors, never an unfiltered result set', () => {
   for (const max of ['0', '-1', '18.001', '1e4', 'NaN', '100000000000000000000']) {
