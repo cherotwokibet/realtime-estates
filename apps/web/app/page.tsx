@@ -10,6 +10,7 @@ import {
 } from '../components/PublicShell';
 import { PricingDisclosureSummary } from '../components/PricingDisclosure';
 import RoomFilters from '../components/RoomFilters';
+import PriceFilters from '../components/PriceFilters';
 import ReferenceFilters from '../components/ReferenceFilters';
 import { parseReferenceFilters, referenceOptions } from '../lib/catalogue-reference-filters';
 import LoadedCataloguePager from '../components/LoadedCataloguePager';
@@ -72,6 +73,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
     purpose,
     type,
     period,
+    minText,
     maxText,
     bedsText,
     privateBathsText,
@@ -91,6 +93,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
       purpose ||
       type ||
       period ||
+      minText ||
       maxText ||
       bedsText ||
       privateBathsText ||
@@ -106,6 +109,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
             'purpose',
             'type',
             'period',
+            'min',
             'max',
             'beds',
             'privateBaths',
@@ -115,23 +119,29 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
           ? browse.errorField === 'sort'
             ? ['sort']
             : []
-          : error === 'Choose rent or buy.'
+          : error === 'Choose rent or buy.' ||
+              error === 'Choose rent or buy before filtering by price.'
             ? ['purpose']
             : error === 'Choose a supported property type.'
               ? ['type']
               : error === 'Choose a supported rental period.' ||
                   error === 'Choose a rental period when filtering rent by price.'
                 ? ['period']
-                : error === 'Enter a positive maximum price in KES.' ||
-                    error === 'Enter a valid KES amount with at most two decimal places.'
-                  ? ['max']
-                  : error === 'Choose an exact bedroom count from 0 to 100.'
-                    ? ['beds']
-                    : error === 'Choose a minimum private bathroom count from 0 to 100.'
-                      ? ['privateBaths']
-                      : error === 'Choose a minimum shared bathroom count from 0 to 100.'
-                        ? ['sharedBaths']
-                        : [];
+                : error === 'Minimum price must not exceed maximum price.'
+                  ? ['min', 'max']
+                  : error === 'Enter a positive minimum price in KES.' ||
+                      error === 'Enter a valid minimum KES amount with at most two decimal places.'
+                    ? ['min']
+                    : error === 'Enter a positive maximum price in KES.' ||
+                        error === 'Enter a valid KES amount with at most two decimal places.'
+                      ? ['max']
+                      : error === 'Choose an exact bedroom count from 0 to 100.'
+                        ? ['beds']
+                        : error === 'Choose a minimum private bathroom count from 0 to 100.'
+                          ? ['privateBaths']
+                          : error === 'Choose a minimum shared bathroom count from 0 to 100.'
+                            ? ['sharedBaths']
+                            : [];
   const validation = (field: string) =>
     errorFields.includes(field)
       ? { 'aria-invalid': true as const, 'aria-describedby': 'search-error' }
@@ -179,6 +189,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               purpose,
               type,
               period,
+              minText,
               maxText,
               bedsText,
               privateBathsText,
@@ -258,18 +269,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
                   ))}
                 </select>
               </label>
-              <label className="search-field">
-                <span>Maximum base price (KES)</span>
-                <input
-                  name="max"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  defaultValue={maxText}
-                  placeholder="Any budget"
-                  {...validation('max')}
-                />
-              </label>
+              <PriceFilters minText={minText} maxText={maxText} errorFields={errorFields} />
               <button className="primary search-button" type="submit">
                 <Icon kind="search" />
                 Search properties
@@ -301,8 +301,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               </select>
             </label>
             <p className="search-help">
-              Price filters use the stated rental period and base price. Additional costs appear in
-              each property’s details.
+              Minimum and maximum are inclusive and use the stated rental period and base price.
+              Additional costs appear in each property’s details.
             </p>
             {error && (
               <p role="alert" id="search-error" className="error">
@@ -371,6 +371,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               {purpose && <span>{purpose === 'rent' ? 'For rent' : 'For sale'}</span>}
               {type && <span>{type[0]?.toUpperCase() + type.slice(1)}</span>}
               {period && purpose !== 'sale' && <span>Rent per {period}</span>}
+              {minText && (
+                <span>
+                  Base price from {formatKes(kesFromMajor(minText))}
+                  {purpose !== 'sale' && period
+                    ? ' / rental ' + period + '; sale prices one-off'
+                    : ''}
+                </span>
+              )}
               {maxText && (
                 <span>
                   Base price up to {formatKes(kesFromMajor(maxText))}

@@ -307,6 +307,7 @@ export interface PublicSearchInput {
   readonly purpose?: 'rent' | 'sale';
   readonly type?: PropertyType;
   readonly period?: RentalPeriod;
+  readonly min?: string;
   readonly max?: string;
   readonly beds?: string;
   readonly privateBaths?: string;
@@ -2588,6 +2589,7 @@ export class RealtorApiClient {
       'purpose',
       'type',
       'period',
+      'min',
       'max',
       'beds',
       'privateBaths',
@@ -2604,6 +2606,7 @@ export class RealtorApiClient {
       offset = integer(q.offset ?? 0, 0, 10000, 'VALIDATION', 'Offset'),
       sort = q.sort ?? 'catalogue';
     const params = new URLSearchParams();
+    const prices: Partial<Record<'min' | 'max', number>> = {};
     for (const [key, value] of Object.entries(q)) {
       if (key === 'limit' || key === 'offset') continue;
       if (typeof value !== 'string') return invalid('VALIDATION', 'Search values must be text.');
@@ -2625,11 +2628,12 @@ export class RealtorApiClient {
         (!/^(0|[1-9]\d{0,2})$/.test(value) || Number(value) > 100)
       )
         invalid('VALIDATION', 'Invalid room count.');
-      if (key === 'max') {
+      if (key === 'min' || key === 'max') {
         try {
-          if (kesFromMajor(value).minorUnits <= 0) throw Error();
+          prices[key] = kesFromMajor(value).minorUnits;
+          if (prices[key]! <= 0) throw Error();
         } catch {
-          invalid('VALIDATION', 'Invalid price maximum.');
+          invalid('VALIDATION', 'Invalid price ' + (key === 'min' ? 'minimum.' : 'maximum.'));
         }
       }
       params.set(key, value);
@@ -2637,10 +2641,12 @@ export class RealtorApiClient {
     if (!['catalogue', 'title', 'price_low', 'price_high'].includes(sort as string))
       invalid('VALIDATION', 'Invalid order.');
     if (
-      (q.max || String(sort).startsWith('price_')) &&
+      (q.min || q.max || String(sort).startsWith('price_')) &&
       !(q.purpose === 'sale' || (q.purpose === 'rent' && q.period))
     )
       invalid('VALIDATION', 'Choose a price basis.');
+    if (prices.min !== undefined && prices.max !== undefined && prices.min > prices.max)
+      invalid('VALIDATION', 'Minimum price must not exceed maximum price.');
     params.set('limit', String(limit));
     params.set('offset', String(offset));
     if (new TextEncoder().encode(params.toString()).byteLength > 8192)

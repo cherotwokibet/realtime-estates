@@ -60,6 +60,13 @@ test('public search validates inputs and anonymous scope before transport, witho
     { beds: '00' },
     { period: 'hour' },
     { max: '1.001' },
+    { min: '1.001' },
+    { purpose: 'sale', min: '0' },
+    { purpose: 'sale', min: '-1' },
+    { purpose: 'sale', min: '1e4' },
+    { purpose: 'sale', min: '100000000000000000000' },
+    { purpose: 'sale', min: '20000.02', max: '20000.01' },
+    { purpose: 'rent', min: '100' },
     { sort: 'price_low' },
     { purpose: 'rent', max: '100' },
     { tenantId: id(1) },
@@ -92,7 +99,14 @@ test('public search validates inputs and anonymous scope before transport, witho
 });
 test('public search keeps exact facts, snapshots query and uses fixed anonymous no-store transport', async () => {
   let release, observed;
-  const input = { purpose: 'rent', period: 'month', max: '20000.01', beds: '0', limit: 1 };
+  const input = {
+    purpose: 'rent',
+    period: 'month',
+    min: '20000.01',
+    max: '20000.01',
+    beds: '0',
+    limit: 1,
+  };
   const api = client(async (url, init) => {
     observed = { url, init };
     await new Promise((resolve) => (release = resolve));
@@ -100,11 +114,13 @@ test('public search keeps exact facts, snapshots query and uses fixed anonymous 
   });
   const pending = api.searchPropertiesV2(input);
   input.max = '1';
+  input.min = '2';
   while (!release) await new Promise((resolve) => setImmediate(resolve));
   release();
   const result = await pending;
   assert.equal(new URL(observed.url).pathname, '/v2/properties/search');
   assert.equal(new URL(observed.url).searchParams.get('max'), '20000.01');
+  assert.equal(new URL(observed.url).searchParams.get('min'), '20000.01');
   assert.equal(observed.init.credentials, 'omit');
   assert.equal(observed.init.cache, 'no-store');
   assert.equal(observed.init.redirect, 'error');
@@ -112,6 +128,33 @@ test('public search keeps exact facts, snapshots query and uses fixed anonymous 
   assert.equal(result.items[0].amountMinor, 2000001);
   assert.ok(Object.isFrozen(result));
   assert.ok(Object.isFrozen(result.items));
+});
+
+test('reference search validates minimum ranges before I/O and preserves the exact decimal bound', async () => {
+  const calls = [];
+  const api = client(async (url) => {
+    calls.push(url);
+    return json(page([], { policy: 'synthetic-reference-search-v1' }));
+  });
+  for (const query of [
+    { min: '1' },
+    { purpose: 'rent', min: '1' },
+    { purpose: 'sale', min: ['1', '2'] },
+    { purpose: 'sale', min: '20000.02', max: '20000.01' },
+    { purpose: 'sale', min: 'NaN' },
+  ])
+    await assert.rejects(
+      () => api.searchSyntheticReferencePropertiesV3(query),
+      (e) => e.kind === 'VALIDATION',
+    );
+  assert.equal(calls.length, 0);
+  await api.searchSyntheticReferencePropertiesV3({
+    purpose: 'rent',
+    period: 'month',
+    min: '20000.01',
+  });
+  assert.equal(new URL(calls[0]).pathname, '/v3/properties/search');
+  assert.equal(new URL(calls[0]).searchParams.get('min'), '20000.01');
 });
 test('search rejects inconsistent count/order/page metadata, duplicate identities and private DTO fields', async () => {
   for (const extra of [

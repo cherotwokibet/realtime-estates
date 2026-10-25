@@ -24,6 +24,14 @@ test('public search refuses ambiguous, unknown, costly and incompatible query sh
     'purpose=rent&max=100',
     'purpose=rent&period=month&max=1.001',
     'purpose=sale&max=0',
+    'purpose=rent&min=100',
+    'purpose=sale&min=0',
+    'purpose=sale&min=-1',
+    'purpose=sale&min=1e2',
+    'purpose=sale&min=1.001',
+    'purpose=sale&min=100000000000000000000',
+    'purpose=sale&min=1&min=2',
+    'purpose=sale&min=20000.02&max=20000.01',
     'location=%00',
     'location=' + 'a'.repeat(161),
     'location=' + 'a'.repeat(8200),
@@ -37,6 +45,7 @@ test('all caller text is bound and SQL ordering remains a fixed whitelist', () =
       location: attack,
       purpose: 'rent',
       period: 'month',
+      min: '20000.00',
       max: '20000.01',
       beds: '0',
       privateBaths: '0',
@@ -49,6 +58,8 @@ test('all caller text is bound and SQL ordering remains a fixed whitelist', () =
   assert.ok(!q.sql.includes(attack));
   assert.ok(q.values.includes("%!%' OR true --!_!!%"));
   assert.ok(q.values.includes('2000001'));
+  assert.ok(q.values.includes('2000000'));
+  assert.ok(q.sql.includes('amount_minor >= '));
   assert.ok(q.sql.includes('amount_minor <= '));
   assert.ok(q.sql.includes('AS MATERIALIZED'));
   assert.ok(q.sql.includes('count(*)::text'));
@@ -57,4 +68,19 @@ test('all caller text is bound and SQL ordering remains a fixed whitelist', () =
   assert.ok(Object.isFrozen(q.values));
   assert.equal(q.limit, 40);
   assert.equal(q.offset, 100);
+});
+
+test('both public search versions retain inclusive exact minimum and equality ranges', () => {
+  for (const reference of [false, true]) {
+    const query = publicSearchQuery(
+      new URLSearchParams({ purpose: 'sale', min: '20000.01', max: '20000.01' }),
+      reference,
+    );
+    assert.equal(query.values.filter((value) => value === '2000001').length, 2);
+    assert.match(query.sql, /amount_minor >= \$\d+::bigint/);
+    assert.match(query.sql, /amount_minor <= \$\d+::bigint/);
+    assert.ok(
+      query.sql.includes(reference ? 'public_listings_reference_v3' : 'public_listings_v2'),
+    );
+  }
 });

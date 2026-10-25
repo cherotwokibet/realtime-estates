@@ -141,6 +141,10 @@ test('global web search uses trusted SDK transport and never slices a server pag
   const result = ready(
     await loader.list({
       page: '2',
+      purpose: 'rent',
+      period: 'month',
+      min: '20000.01',
+      max: '20000.02',
       beds: '0',
       location: 'Synthetic',
       tenantId: 'foreign',
@@ -160,6 +164,8 @@ test('global web search uses trusted SDK transport and never slices a server pag
   assert.equal(url.searchParams.get('offset'), '12');
   assert.equal(url.searchParams.get('limit'), '12');
   assert.equal(url.searchParams.get('beds'), '0');
+  assert.equal(url.searchParams.get('min'), '20000.01');
+  assert.equal(url.searchParams.get('max'), '20000.02');
   assert.equal(url.searchParams.get('tenantId'), null);
   assert.equal(calls[0].init.credentials, 'omit');
   assert.equal(calls[0].init.cache, 'no-store');
@@ -173,6 +179,8 @@ test('global web search uses trusted SDK transport and never slices a server pag
   assert.ok(html.includes('Next search page'));
   assert.ok(!html.includes('matching loaded properties'));
   assert.ok(html.includes('13–24 of 30'));
+  assert.ok(html.includes('min=20000.01'));
+  assert.ok(html.includes('max=20000.02'));
 });
 test('global web original detail is addressed by ID beyond the original loaded page without fallback', async () => {
   const target = property({ id: id(999) }),
@@ -716,8 +724,14 @@ test('connected projection preserves exact v2 disclosure and location while undi
 
 test('connected maximum-price filters compare exact cents inclusively and preserve existing invalid-input messages', async () => {
   const loader = connected();
-  assert.equal(ready(await loader.list({ max: '20000.01', period: 'month' })).items.length, 1);
-  assert.equal(ready(await loader.list({ max: '20000.00', period: 'month' })).items.length, 0);
+  assert.equal(
+    ready(await loader.list({ purpose: 'rent', max: '20000.01', period: 'month' })).items.length,
+    1,
+  );
+  assert.equal(
+    ready(await loader.list({ purpose: 'rent', max: '20000.00', period: 'month' })).items.length,
+    0,
+  );
   for (const [max, error] of [
     ['0', 'Enter a positive maximum price in KES.'],
     ['-1', 'Enter a valid KES amount with at most two decimal places.'],
@@ -757,7 +771,12 @@ test('rental price filters require an explicit period and never convert mixed re
   );
   for (const purpose of ['', 'rent']) {
     const result = ready(await loader.list({ purpose, max: '20000.01' }));
-    assert.equal(result.filters.error, 'Choose a rental period when filtering rent by price.');
+    assert.equal(
+      result.filters.error,
+      purpose
+        ? 'Choose a rental period when filtering rent by price.'
+        : 'Choose rent or buy before filtering by price.',
+    );
     assert.equal(result.items.length, 0);
   }
   assert.deepEqual(
@@ -908,7 +927,7 @@ test('a full bounded catalogue warns about truncation and a missing detail remai
     property({ id: id(index + 100), slug: `synthetic-bounded-${index}` }),
   );
   const loader = connected(items);
-  const result = ready(await loader.list({ max: '0.01', period: 'month' }));
+  const result = ready(await loader.list({ purpose: 'rent', max: '0.01', period: 'month' }));
   assert.equal(result.items.length, 0);
   assert.equal(result.sourceCount, 100);
   assert.equal(result.limit, 100);
@@ -1008,6 +1027,7 @@ test('room filters combine with exact cents, type and rental period without clai
       beds: '0',
       privateBaths: '1',
       type: 'studio',
+      purpose: 'rent',
       period: 'month',
       max: '20000.01',
     }),
@@ -1021,6 +1041,7 @@ test('room filters combine with exact cents, type and rental period without clai
       await connected(items).list({
         beds: '0',
         privateBaths: '1',
+        purpose: 'rent',
         period: 'month',
         max: '20000.00',
       }),
@@ -1033,4 +1054,82 @@ test('demo general bathroom counts never become private/shared bathroom claims',
   assert.ok(ready(await loader.list()).items.length > 0);
   assert.equal(ready(await loader.list({ privateBaths: '0' })).items.length, 0);
   assert.equal(ready(await loader.list({ sharedBaths: '0' })).items.length, 0);
+});
+
+test('minimum base price includes the exact cent and composes with maximum and rental period', async () => {
+  const loader = connected([
+    property({ amountMinor: 2000000 }),
+    property({ id: id(101), slug: 'exact-bound', amountMinor: 2000001 }),
+    property({ id: id(102), slug: 'upper-bound', amountMinor: 2000002 }),
+    property({ id: id(103), slug: 'other-period', amountMinor: 2000001, rentPeriod: 'day' }),
+  ]);
+  const exact = ready(
+    await loader.list({ purpose: 'rent', period: 'month', min: '20000.01', max: '20000.01' }),
+  );
+  assert.deepEqual(
+    exact.items.map((item) => item.id),
+    [id(101)],
+  );
+  assert.equal(exact.filters.minText, '20000.01');
+  assert.deepEqual(
+    ready(await loader.list({ purpose: 'rent', period: 'month', min: '20000.01' })).items.map(
+      (item) => item.id,
+    ),
+    [id(101), id(102)],
+  );
+  const invalid = ready(
+    await loader.list({ purpose: 'rent', period: 'month', min: '20000.02', max: '20000.01' }),
+  );
+  assert.match(invalid.filters.error, /Minimum price/);
+  assert.deepEqual(invalid.items, []);
+  assert.equal(ready(await loader.list()).filters.minText, '');
+});
+
+test('invalid minimum price or inverted range refuses global search before transport', async () => {
+  let calls = 0;
+  const loader = connected([], { WEB_CATALOGUE_SEARCH: 'public-search-v1' }, async () => {
+    calls++;
+    throw Error('must not dispatch invalid filters');
+  });
+  for (const min of [['1', '2'], '0', '-1', '1e2', '1.001', 'NaN', '100000000000000000000']) {
+    const result = ready(await loader.list({ purpose: 'sale', min }));
+    assert.ok(result.filters.error, String(min));
+    assert.deepEqual(result.items, []);
+  }
+  for (const query of [
+    { purpose: 'rent', min: '1' },
+    { purpose: 'sale', min: '20000.02', max: '20000.01' },
+  ])
+    assert.ok(ready(await loader.list(query)).filters.error);
+  assert.equal(calls, 0);
+});
+
+test('either price bound requires an explicit purpose even with a period, across demo and connected modes', async () => {
+  let globalCalls = 0;
+  const global = connected([], { WEB_CATALOGUE_SEARCH: 'public-search-v1' }, async () => {
+    globalCalls++;
+    throw Error('invalid search must not dispatch');
+  });
+  const bounded = connected([
+    property(),
+    property({ id: id(101), slug: 'synthetic-sale-price', purpose: 'sale', rentPeriod: null }),
+  ]);
+  const demo = createCatalogueLoader(resolveCatalogueConfig({ TENANT_SLUG: 'realtime-estates' }));
+  for (const loader of [demo, bounded, global]) {
+    for (const bounds of [
+      { min: '20000.01' },
+      { max: '20000.01' },
+      { min: '20000.00', max: '20000.01' },
+    ]) {
+      for (const purpose of [undefined, '']) {
+        const result = ready(await loader.list({ ...bounds, purpose, period: 'month' }));
+        assert.equal(result.filters.error, 'Choose rent or buy before filtering by price.');
+        assert.equal(result.filters.period, 'month');
+        assert.equal(result.filters.minText, bounds.min ?? '');
+        assert.equal(result.filters.maxText, bounds.max ?? '');
+        assert.deepEqual(result.items, []);
+      }
+    }
+  }
+  assert.equal(globalCalls, 0);
 });

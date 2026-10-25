@@ -18,7 +18,7 @@ test('search applies all URL filters together and inclusive exact maximum', () =
   );
 });
 test('duplicate known URL filters fail closed instead of silently dropping constraints', () => {
-  for (const key of ['location', 'purpose', 'type', 'max']) {
+  for (const key of ['location', 'purpose', 'type', 'min', 'max']) {
     const result = searchCatalogue('realtime-estates', {
       [key]: key === 'max' ? ['18000', '1e4'] : ['first', 'second'],
     });
@@ -28,6 +28,28 @@ test('duplicate known URL filters fail closed instead of silently dropping const
   const oneArray = searchCatalogue('realtime-estates', { max: ['18000'] });
   assert.ok(oneArray.error);
   assert.equal(oneArray.items.length, 0);
+});
+
+test('inclusive minimum and maximum compose and invalid ranges never broaden demo results', () => {
+  const exact = searchCatalogue('realtime-estates', { min: '18000.00', max: '18000.00' });
+  assert.deepEqual(
+    exact.items.map((item) => item.id),
+    ['demo-ruaka-1'],
+  );
+  assert.equal(exact.minText, '18000.00');
+  assert.equal(
+    searchCatalogue('realtime-estates', { min: '18000.01', max: '18000.01' }).items.length,
+    0,
+  );
+  for (const min of ['0', '-1', '18.001', '1e4', 'NaN', '100000000000000000000']) {
+    const result = searchCatalogue('realtime-estates', { min });
+    assert.ok(result.error, min);
+    assert.equal(result.items.length, 0);
+  }
+  const reversed = searchCatalogue('realtime-estates', { min: '18000.01', max: '18000' });
+  assert.match(reversed.error, /Minimum price/);
+  assert.equal(reversed.items.length, 0);
+  assert.equal(searchCatalogue('realtime-estates', {}).minText, '');
 });
 test('configured tenants reject inherited object keys and unknown names', () => {
   for (const slug of ['constructor', 'toString', '__proto__', 'unknown', '', null, 12]) {

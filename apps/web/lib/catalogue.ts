@@ -45,6 +45,7 @@ export interface CatalogueFilters {
   readonly purpose: string;
   readonly type: string;
   readonly period: string;
+  readonly minText: string;
   readonly maxText: string;
   readonly bedsText: string;
   readonly privateBathsText: string;
@@ -140,7 +141,9 @@ export function parseCatalogueFilters(query: CatalogueQuery): CatalogueFilters {
   if (query.period !== undefined && typeof query.period !== 'string')
     error = 'Use one value for each search filter.';
   if (period && !RENTAL_PERIODS.has(period)) error = 'Choose a supported rental period.';
-  if (!error && parsed.maxText && parsed.purpose !== 'sale' && !period)
+  if (!error && (parsed.minText || parsed.maxText) && !['rent', 'sale'].includes(parsed.purpose))
+    error = 'Choose rent or buy before filtering by price.';
+  if (!error && (parsed.minText || parsed.maxText) && parsed.purpose !== 'sale' && !period)
     error = 'Choose a rental period when filtering rent by price.';
   const room = (key: string, message: string) => {
     const raw = query[key];
@@ -164,13 +167,14 @@ export function parseCatalogueFilters(query: CatalogueQuery): CatalogueFilters {
   const reference = parseReferenceFilters(query);
   if (reference.invalid.length)
     error = 'Choose one supported location or amenity option per field.';
-  // An absent/empty period includes all rents; a maximum requires an explicit rent period.
+  // An absent/empty period includes all rents; either price bound requires an explicit rent period.
   return Object.freeze({
     reference: reference.values,
     location: parsed.location,
     purpose: parsed.purpose,
     type,
     period,
+    minText: parsed.minText,
     maxText: parsed.maxText,
     bedsText,
     privateBathsText,
@@ -252,6 +256,7 @@ function filterItems(
   filters: CatalogueFilters,
 ): readonly CatalogueProperty[] {
   if (filters.error) return Object.freeze([]);
+  const minimum = filters.minText ? kesFromMajor(filters.minText).minorUnits : undefined;
   const maximum = filters.maxText ? kesFromMajor(filters.maxText).minorUnits : undefined;
   const location = filters.location.toLowerCase();
   return Object.freeze(
@@ -281,6 +286,8 @@ function filterItems(
         (!filters.period ||
           property.purpose === 'sale' ||
           property.rentalPeriod === filters.period) &&
+        (minimum === undefined ||
+          matchesNumericRange(property.priceMinor, { min: { value: minimum, inclusive: true } })) &&
         (maximum === undefined ||
           matchesNumericRange(property.priceMinor, { max: { value: maximum, inclusive: true } }))
       );
@@ -343,6 +350,7 @@ export function createCatalogueLoader(
           purpose: filters.purpose as 'rent' | 'sale',
           type: filters.type as PropertyType,
           period: filters.period as RentalPeriod,
+          min: filters.minText,
           max: filters.maxText,
           beds: filters.bedsText,
           privateBaths: filters.privateBathsText,

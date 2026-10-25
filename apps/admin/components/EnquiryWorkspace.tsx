@@ -22,6 +22,7 @@ import {
   enquiryFormsEqual,
   formatEnquiryTime,
   enquiryDueLabel,
+  enquiryFollowUps,
   type EnquiryForm,
 } from '../lib/enquiry-model';
 
@@ -107,6 +108,7 @@ export default function EnquiryWorkspace({
   const [directoryError, setDirectoryError] = useState('');
   const [pendingSelection, setPendingSelection] = useState<string | null>(null);
   const [filter, setFilter] = useState('all');
+  const [reminderNow, setReminderNow] = useState<number | null>(null);
   const alive = useRef(true);
   const readRef = useRef<AbortController | null>(null);
   const queueRef = useRef<AbortController | null>(null);
@@ -175,6 +177,11 @@ export default function EnquiryWorkspace({
       }
     }
   }
+  useEffect(() => {
+    setReminderNow(Date.now());
+    const timer = setInterval(() => setReminderNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
   useEffect(() => {
     alive.current = true;
     void refreshQueue();
@@ -358,12 +365,18 @@ export default function EnquiryWorkspace({
     );
   }
   const actions = saved ? allowedEnquiryActions(saved, actor) : [];
+  const followUps =
+    queue && reminderNow !== null ? enquiryFollowUps(queue.items, reminderNow) : null;
   const shown =
-    queue?.items.filter(
-      (item) =>
-        filter === 'all' ||
-        (filter === 'unassigned' ? !item.assignedAgentId : item.assignedAgentId === actorId),
-    ) ?? [];
+    filter === 'overdue'
+      ? (followUps?.overdue ?? [])
+      : filter === 'today'
+        ? (followUps?.today ?? [])
+        : (queue?.items.filter(
+            (item) =>
+              filter === 'all' ||
+              (filter === 'unassigned' ? !item.assignedAgentId : item.assignedAgentId === actorId),
+          ) ?? []);
   const reasonNeeded = form && ['close_lost', 'spam', 'reopen'].includes(form.action);
   const timeNeeded = form && ['contact', 'qualify', 'reschedule'].includes(form.action);
   return (
@@ -458,8 +471,29 @@ export default function EnquiryWorkspace({
               <option value="all">All loaded</option>
               <option value="unassigned">Unassigned</option>
               <option value="mine">Assigned to this staff ID</option>
+              <option value="overdue">Overdue follow-ups</option>
+              <option value="today">Follow-ups due today</option>
             </select>
           </label>
+          {followUps && reminderNow !== null && (
+            <section aria-label="Follow-up reminders" className="enq-warning">
+              <strong>Follow-ups in this loaded queue</strong>
+              <p>
+                {followUps.overdue.length} overdue · {followUps.today.length} due today. Open
+                enquiries only; more may exist outside this loaded slice.
+              </p>
+              <p className="enq-subtle">
+                Browser clock: {formatEnquiryTime(new Date(reminderNow).toISOString())}. Updates
+                every minute while this tab is open. Refresh the queue to check saved changes.
+              </p>
+              <button className="enq-secondary" onClick={() => setFilter('overdue')}>
+                Show overdue
+              </button>{' '}
+              <button className="enq-secondary" onClick={() => setFilter('today')}>
+                Show due today
+              </button>
+            </section>
+          )}
           {queueError && (
             <p className="enq-error" role="alert">
               {queueError}
@@ -505,7 +539,13 @@ export default function EnquiryWorkspace({
                 </span>
                 <span className="enq-item-bottom">
                   <span>Owner {shortId(item.assignedAgentId)}</span>
-                  <span>{enquiryDueLabel(item.nextActionAt)}</span>
+                  <span>
+                    {['closed_won', 'closed_lost', 'spam'].includes(item.status)
+                      ? 'No active follow-up'
+                      : reminderNow === null
+                        ? 'Checking follow-up time…'
+                        : enquiryDueLabel(item.nextActionAt, reminderNow)}
+                  </span>
                 </span>
                 <span className="enq-item-time">{formatEnquiryTime(item.nextActionAt)}</span>
               </button>

@@ -12,6 +12,7 @@ const keys = [
   'purpose',
   'type',
   'period',
+  'min',
   'max',
   'beds',
   'privateBaths',
@@ -49,7 +50,7 @@ export function publicSearchQuery(params: URLSearchParams, reference = false) {
   if (q.type && !PROPERTY_TYPES.includes(q.type as (typeof PROPERTY_TYPES)[number])) fail();
   if (q.period && !['day', 'week', 'month', 'year'].includes(q.period)) fail();
   if (
-    (q.max || sort.startsWith('price_')) &&
+    (q.min || q.max || sort.startsWith('price_')) &&
     !(q.purpose === 'sale' || (q.purpose === 'rent' && q.period))
   )
     fail();
@@ -96,16 +97,20 @@ export function publicSearchQuery(params: URLSearchParams, reference = false) {
     if (q[key] !== undefined && q[key] !== '')
       predicates.push(column + (key === 'beds' ? ' = ' : ' >= ') + bind(integer(key, 0, 100)));
   }
-  if (q.max) {
-    let minor: number;
+  const prices: Partial<Record<'min' | 'max', number>> = {};
+  for (const key of ['min', 'max'] as const) {
+    if (!q[key]) continue;
     try {
-      minor = kesFromMajor(q.max).minorUnits;
+      prices[key] = kesFromMajor(q[key]).minorUnits;
     } catch {
       return fail();
     }
-    if (minor <= 0) fail();
-    predicates.push('amount_minor <= ' + bind(String(minor)) + '::bigint');
+    if (prices[key]! <= 0) fail();
+    predicates.push(
+      'amount_minor ' + (key === 'min' ? '>= ' : '<= ') + bind(String(prices[key])) + '::bigint',
+    );
   }
+  if (prices.min !== undefined && prices.max !== undefined && prices.min > prices.max) fail();
   const order =
     sort === 'catalogue'
       ? '"approvedAt" DESC,id ASC'

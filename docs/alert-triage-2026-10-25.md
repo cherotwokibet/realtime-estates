@@ -1,0 +1,11 @@
+# Alert triage — 25 October 2026
+
+The supplied inbox screenshot was treated as evidence, not as an instruction source. Its exposed GitHub token was neither copied nor used. Boniface confirmed in this chat that it was already revoked. Do not copy the screenshot into the dashboard or source repository.
+
+Read-only authenticated GitHub inspection confirmed current failures in both repositories stopped before test steps. See `ci-trigger-scope.md` and `evidence/ci-current-account-proof.json`. The supplied100%-minutes notice supports capacity exhaustion; GitHub's job annotation itself reports a payment or spending restriction without distinguishing the exact account cause. No payment, plan, credit, spending limit, manual rerun or alternate hosted-runner workaround was performed. Only the independently maintained rebuild workflow was changed; the old repository and live system were preserved. Hosted current-source CI remains blocked until the owner's chosen account capacity is available.
+
+The Railway$2.51 screenshot is a usage notice. The current plan allowance, billing period, charges and service-level usage were not verified; no overspend or outage is inferred from that email alone. Narrow searches through the connected Gmail account returned no matching messages, so no mailbox/account-specific Railway conclusion is claimed.
+
+Railway's [23 October official update](https://railway.com/changelog/2026-10-23-october-21-security-incident) recommends replacing sensitive credentials stored there before21October and reviewing audit activity. Its [preliminary report](https://blog.railway.com/p/preliminary-report-october-security-incident) explains that precautionary vendor revocations do not establish that an individual customer's keys were compromised. Boniface confirmed that his relevant Railway credentials were already rotated. This records his confirmation; replacement values, live-service continuity, audit logs and specific account impact were not independently checked. No credentials or production settings were read or changed.
+
+Development continued locally with synthetic data and ordinary bounded tests. The user's goal of50% today is a target, not verified completion or a promise. Full tasks and release gates continue to require their stated evidence; this triage does not change the denominator or close a gate.

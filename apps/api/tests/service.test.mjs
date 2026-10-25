@@ -261,6 +261,20 @@ test('tenant-wide public search pages beyond 100 approved records with exact cou
     );
     assert.equal((await read('purpose=rent&period=month&max=20000.00')).total, 1);
     assert.equal((await read('purpose=rent&period=month&max=20000.01')).total, 2);
+    assert.equal((await read('purpose=rent&period=month&min=20000.00')).total, 102);
+    assert.equal((await read('purpose=rent&period=month&min=20000.01')).total, 101);
+    assert.equal((await read('purpose=rent&period=month&min=20000.02')).total, 100);
+    const exact = await read('purpose=rent&period=month&min=20000.01&max=20000.01');
+    assert.equal(exact.total, 1);
+    assert.equal(exact.items[0].id, id(5000));
+    assert.equal(exact.items[0].amountMinor, 2000001);
+    const range = await read('purpose=rent&period=month&min=20000.01&max=20000.02&sort=price_low');
+    assert.equal(range.total, 2);
+    assert.deepEqual(
+      range.items.map((row) => row.id),
+      [id(5000), id(5001)],
+    );
+    assert.equal((await read('purpose=rent&period=month&min=20001.02')).total, 0);
     assert.equal((await read('beds=0&privateBaths=1&location=Synthetic%20Town')).total, 101);
     for (const query of [
       'sharedBaths=0',
@@ -283,6 +297,9 @@ test('tenant-wide public search pages beyond 100 approved records with exact cou
       'sort=price_low',
       'offset=10001',
       'countyId=' + T,
+      'purpose=rent&min=20000',
+      'purpose=rent&period=month&min=20000.02&max=20000.01',
+      'purpose=sale&min=1&min=2',
     ])
       assert.equal((await service(request('/v2/properties/search?' + query))).status, 400);
     const wrong = await service(request('/v2/properties/search', { method: 'POST', body: {} }));

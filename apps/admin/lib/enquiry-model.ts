@@ -2,6 +2,7 @@ import type {
   EnquiryOperationInputV2,
   EnquiryOperationKindV2,
   StaffEnquiryDetailV2,
+  StaffEnquirySummaryV2,
   StaffEnquiryStatusV2,
 } from '@realtor/api-client';
 
@@ -183,6 +184,24 @@ export function enquiryDueLabel(value: string | null, now: number = Date.now()):
   if (day(due) === day(now)) return 'Due today';
   if (day(due) === day(now + 24 * 60 * 60 * 1000)) return 'Due tomorrow';
   return 'Upcoming';
+}
+/** In-app reminders over an already authorized loaded slice; no new reads or notifications. */
+export function enquiryFollowUps(items: readonly StaffEnquirySummaryV2[], now: number) {
+  if (!Number.isFinite(now)) return fail('Current time is unavailable.');
+  const active = items
+    .filter((item) => OPEN.includes(item.status) && item.nextActionAt !== null)
+    .map((item) => ({ item, due: Date.parse(utc(item.nextActionAt)) }))
+    .sort((a, b) => a.due - b.due || (a.item.id < b.item.id ? -1 : a.item.id > b.item.id ? 1 : 0));
+  return Object.freeze({
+    overdue: Object.freeze(active.filter(({ due }) => due < now).map(({ item }) => item)),
+    today: Object.freeze(
+      active
+        .filter(
+          ({ item, due }) => due >= now && enquiryDueLabel(item.nextActionAt, now) === 'Due today',
+        )
+        .map(({ item }) => item),
+    ),
+  });
 }
 export function enquiryForm(detail: StaffEnquiryDetailV2, role: 'admin' | 'agent'): EnquiryForm {
   return {
