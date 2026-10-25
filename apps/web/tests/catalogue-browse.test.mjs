@@ -124,6 +124,7 @@ test('paging URLs preserve allowlisted filters and explicit zero while encoding 
     period: 'month',
     type: 'studio',
     min: '20000.00',
+    minMode: 'over',
     max: '20000.01',
     beds: '0',
     privateBaths: '1',
@@ -141,6 +142,7 @@ test('paging URLs preserve allowlisted filters and explicit zero while encoding 
     privateBaths: '1',
     sharedBaths: '0',
     min: '20000.00',
+    minMode: 'over',
     max: '20000.01',
     sort: 'price_low',
     page: '2',
@@ -150,6 +152,11 @@ test('paging URLs preserve allowlisted filters and explicit zero while encoding 
   assert.equal(url.searchParams.has('TENANT_SLUG'), false);
   assert.ok(!loadedPageHref(f, 'price_low', 1).includes('page='));
   assert.throws(() => loadedPageHref(f, 'title', 0));
+  assert.ok(
+    !loadedPageHref(filters({ purpose: 'sale', min: '1' }), 'catalogue', 1).includes('minMode'),
+  );
+  assert.equal(loadedPageHref(filters(), 'catalogue', 1), '/#properties');
+  assert.throws(() => loadedPageHref(filters({ minMode: 'unknown' }), 'catalogue', 1));
 });
 test('loaded browsing never changes the catalogue detail lookup or invents global count/cursor semantics', async () => {
   const loader = createCatalogueLoader(resolveCatalogueConfig({ TENANT_SLUG: 'realtime-estates' }));

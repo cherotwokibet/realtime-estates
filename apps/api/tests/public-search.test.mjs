@@ -71,16 +71,65 @@ test('all caller text is bound and SQL ordering remains a fixed whitelist', () =
 });
 
 test('both public search versions retain inclusive exact minimum and equality ranges', () => {
-  for (const reference of [false, true]) {
-    const query = publicSearchQuery(
-      new URLSearchParams({ purpose: 'sale', min: '20000.01', max: '20000.01' }),
-      reference,
-    );
-    assert.equal(query.values.filter((value) => value === '2000001').length, 2);
-    assert.match(query.sql, /amount_minor >= \$\d+::bigint/);
-    assert.match(query.sql, /amount_minor <= \$\d+::bigint/);
-    assert.ok(
-      query.sql.includes(reference ? 'public_listings_reference_v3' : 'public_listings_v2'),
-    );
-  }
+  for (const reference of [false, true])
+    for (const mode of [{}, { minMode: '' }]) {
+      const query = publicSearchQuery(
+        new URLSearchParams({ purpose: 'sale', min: '20000.01', max: '20000.01', ...mode }),
+        reference,
+      );
+      assert.equal(query.values.filter((value) => value === '2000001').length, 2);
+      assert.match(query.sql, /amount_minor >= \$\d+::bigint/);
+      assert.match(query.sql, /amount_minor <= \$\d+::bigint/);
+      assert.ok(
+        query.sql.includes(reference ? 'public_listings_reference_v3' : 'public_listings_v2'),
+      );
+    }
+});
+
+test('both search versions bind strict Over without changing exact cents or upper-bound semantics', () => {
+  for (const reference of [false, true])
+    for (const basis of [{ purpose: 'sale' }, { purpose: 'rent', period: 'month' }]) {
+      const query = publicSearchQuery(
+        new URLSearchParams({ ...basis, min: '20000.01', minMode: 'over', max: '20000.01' }),
+        reference,
+      );
+      assert.equal(query.values.filter((value) => value === '2000001').length, 2);
+      assert.match(query.sql, /amount_minor > \$\d+::bigint/);
+      assert.doesNotMatch(query.sql, /amount_minor >=/);
+      assert.match(query.sql, /amount_minor <= \$\d+::bigint/);
+      assert.ok(!query.values.includes('over'));
+      const largest = publicSearchQuery(
+        new URLSearchParams({ ...basis, min: '90071992547409.91', minMode: 'over' }),
+        reference,
+      );
+      assert.ok(largest.values.includes('9007199254740991'));
+      assert.match(largest.sql, /amount_minor > \$\d+::bigint/);
+    }
+});
+
+test('both search versions refuse malformed, repeated and unbounded Over modes', () => {
+  for (const reference of [false, true])
+    for (const query of [
+      'minMode=over',
+      'purpose=sale&minMode=over',
+      'purpose=sale&min=&minMode=over',
+      'purpose=sale&max=100&minMode=over',
+      'purpose=sale&min=0&minMode=over',
+      'purpose=sale&min=1.001&minMode=over',
+      'purpose=sale&min=90071992547409.92&minMode=over',
+      'purpose=sale&min=1&minMode=Over',
+      'purpose=sale&min=1&minMode=inclusive',
+      'purpose=sale&min=1&minMode=%20',
+      'purpose=sale&min=1&minMode=over&minMode=over',
+      'purpose=sale&min=1&minMode=&minMode=over',
+      'purpose=sale&min=1&minMode=&minMode=',
+      'purpose=rent&min=1&minMode=over',
+      'period=month&min=1&minMode=over',
+      'purpose=sale&min=2&max=1&minMode=over',
+    ])
+      assert.throws(
+        () => publicSearchQuery(new URLSearchParams(query), reference),
+        /supported public search/,
+        query,
+      );
 });

@@ -46,6 +46,7 @@ export interface CatalogueFilters {
   readonly type: string;
   readonly period: string;
   readonly minText: string;
+  readonly minMode: string;
   readonly maxText: string;
   readonly bedsText: string;
   readonly privateBathsText: string;
@@ -175,6 +176,7 @@ export function parseCatalogueFilters(query: CatalogueQuery): CatalogueFilters {
     type,
     period,
     minText: parsed.minText,
+    minMode: parsed.minMode,
     maxText: parsed.maxText,
     bedsText,
     privateBathsText,
@@ -287,7 +289,9 @@ function filterItems(
           property.purpose === 'sale' ||
           property.rentalPeriod === filters.period) &&
         (minimum === undefined ||
-          matchesNumericRange(property.priceMinor, { min: { value: minimum, inclusive: true } })) &&
+          matchesNumericRange(property.priceMinor, {
+            min: { value: minimum, inclusive: filters.minMode !== 'over' },
+          })) &&
         (maximum === undefined ||
           matchesNumericRange(property.priceMinor, { max: { value: maximum, inclusive: true } }))
       );
@@ -351,6 +355,7 @@ export function createCatalogueLoader(
           type: filters.type as PropertyType,
           period: filters.period as RentalPeriod,
           min: filters.minText,
+          ...(filters.minMode === 'over' ? { minMode: 'over' as const } : {}),
           max: filters.maxText,
           beds: filters.bedsText,
           privateBaths: filters.privateBathsText,

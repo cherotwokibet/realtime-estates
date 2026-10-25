@@ -274,6 +274,33 @@ test('tenant-wide public search pages beyond 100 approved records with exact cou
       range.items.map((row) => row.id),
       [id(5000), id(5001)],
     );
+    const over = await read('purpose=rent&period=month&min=20000.00&minMode=over&sort=price_low');
+    assert.equal(over.total, 101);
+    assert.equal(over.items[0].id, id(5000));
+    assert.equal(over.items[0].amountMinor, 2000001);
+    assert.ok(over.items.every((row) => row.amountMinor > 2000000));
+    const strictRange = await read(
+      'purpose=rent&period=month&min=20000.01&minMode=over&max=20000.02&sort=price_low',
+    );
+    assert.equal(strictRange.total, 1);
+    assert.deepEqual(
+      strictRange.items.map((row) => row.id),
+      [id(5001)],
+    );
+    assert.equal(strictRange.items[0].amountMinor, 2000002);
+    const strictEqual = await read(
+      'purpose=rent&period=month&min=20000.01&minMode=over&max=20000.01',
+    );
+    assert.equal(strictEqual.total, 0);
+    assert.deepEqual(strictEqual.items, []);
+    assert.equal(strictEqual.hasMore, false);
+    assert.equal((await read('purpose=rent&period=month&min=20000.01&minMode=over')).total, 100);
+    assert.equal((await read('purpose=rent&period=month&min=20001.01&minMode=over')).total, 0);
+    assert.equal(
+      (await read('purpose=rent&period=month&min=20000.01&minMode=&max=20000.01')).total,
+      1,
+    );
+    assert.equal((await read('minMode=')).total, 102);
     assert.equal((await read('purpose=rent&period=month&min=20001.02')).total, 0);
     assert.equal((await read('beds=0&privateBaths=1&location=Synthetic%20Town')).total, 101);
     for (const query of [
@@ -300,8 +327,20 @@ test('tenant-wide public search pages beyond 100 approved records with exact cou
       'purpose=rent&min=20000',
       'purpose=rent&period=month&min=20000.02&max=20000.01',
       'purpose=sale&min=1&min=2',
+      'minMode=over',
+      'purpose=rent&period=month&minMode=over',
+      'purpose=rent&period=month&min=&minMode=over',
+      'purpose=rent&period=month&max=20000&minMode=over',
+      'purpose=rent&period=month&min=0&minMode=over',
+      'purpose=rent&period=month&min=20000.001&minMode=over',
+      'purpose=rent&period=month&min=20000&minMode=Over',
+      'purpose=rent&period=month&min=20000&minMode=over&minMode=over',
+      'purpose=rent&period=month&min=20000&minMode=&minMode=',
+      'purpose=rent&min=20000&minMode=over',
+      'period=month&min=20000&minMode=over',
+      'purpose=rent&period=month&min=20000.02&minMode=over&max=20000.01',
     ])
-      assert.equal((await service(request('/v2/properties/search?' + query))).status, 400);
+      assert.equal((await service(request('/v2/properties/search?' + query))).status, 400, query);
     const wrong = await service(request('/v2/properties/search', { method: 'POST', body: {} }));
     assert.equal(wrong.status, 405);
     assert.equal(wrong.headers.get('Allow'), 'GET');

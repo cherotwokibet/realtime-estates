@@ -308,6 +308,7 @@ export interface PublicSearchInput {
   readonly type?: PropertyType;
   readonly period?: RentalPeriod;
   readonly min?: string;
+  readonly minMode?: 'over';
   readonly max?: string;
   readonly beds?: string;
   readonly privateBaths?: string;
@@ -2590,6 +2591,7 @@ export class RealtorApiClient {
       'type',
       'period',
       'min',
+      'minMode',
       'max',
       'beds',
       'privateBaths',
@@ -2623,6 +2625,8 @@ export class RealtorApiClient {
         invalid('VALIDATION', 'Invalid property type.');
       if (key === 'period' && !['day', 'week', 'month', 'year'].includes(value))
         invalid('VALIDATION', 'Invalid period.');
+      if (key === 'minMode' && value !== 'over')
+        invalid('VALIDATION', 'Invalid minimum price mode.');
       if (
         ['beds', 'privateBaths', 'sharedBaths'].includes(key) &&
         (!/^(0|[1-9]\d{0,2})$/.test(value) || Number(value) > 100)
@@ -2647,6 +2651,8 @@ export class RealtorApiClient {
       invalid('VALIDATION', 'Choose a price basis.');
     if (prices.min !== undefined && prices.max !== undefined && prices.min > prices.max)
       invalid('VALIDATION', 'Minimum price must not exceed maximum price.');
+    if (q.minMode === 'over' && prices.min === undefined)
+      invalid('VALIDATION', 'Over requires a positive minimum price.');
     params.set('limit', String(limit));
     params.set('offset', String(offset));
     if (new TextEncoder().encode(params.toString()).byteLength > 8192)

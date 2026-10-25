@@ -156,6 +156,108 @@ test('reference search validates minimum ranges before I/O and preserves the exa
   assert.equal(new URL(calls[0]).pathname, '/v3/properties/search');
   assert.equal(new URL(calls[0]).searchParams.get('min'), '20000.01');
 });
+
+test('v2/v3 strict Over modes require a valid positive bound and price basis before transport', async () => {
+  let calls = 0,
+    reads = 0;
+  const api = client(async () => {
+    calls++;
+    return json(page());
+  });
+  for (const search of [
+    (query) => api.searchPropertiesV2(query),
+    (query) => api.searchSyntheticReferencePropertiesV3(query),
+  ]) {
+    for (const input of [
+      { minMode: 'over' },
+      { purpose: 'sale', minMode: 'over' },
+      { purpose: 'sale', min: '', minMode: 'over' },
+      { purpose: 'sale', max: '100', minMode: 'over' },
+      { purpose: 'sale', min: '0', minMode: 'over' },
+      { purpose: 'sale', min: '1.001', minMode: 'over' },
+      { purpose: 'sale', min: '90071992547409.92', minMode: 'over' },
+      { purpose: 'sale', min: '1', minMode: 'Over' },
+      { purpose: 'sale', min: '1', minMode: 'inclusive' },
+      { purpose: 'sale', min: '1', minMode: ' ' },
+      { purpose: 'sale', min: '1', minMode: ['over', 'over'] },
+      { purpose: 'sale', min: '1', minMode: null },
+      { purpose: 'sale', min: '1', minMode: true },
+      { purpose: 'rent', min: '1', minMode: 'over' },
+      { period: 'month', min: '1', minMode: 'over' },
+      { purpose: 'sale', min: '2', max: '1', minMode: 'over' },
+    ])
+      await assert.rejects(
+        () => search(input),
+        (e) => e.kind === 'VALIDATION',
+      );
+    const getter = { purpose: 'sale', min: '1' };
+    Object.defineProperty(getter, 'minMode', {
+      enumerable: true,
+      get() {
+        reads++;
+        return 'over';
+      },
+    });
+    await assert.rejects(
+      () => search(getter),
+      (e) => e.kind === 'VALIDATION',
+    );
+  }
+  assert.equal(calls, 0);
+  assert.equal(reads, 0);
+});
+
+test('v2/v3 snapshot exact Over bounds and accept empty equality while blank mode stays inclusive', async () => {
+  for (const reference of [false, true]) {
+    let release, observed;
+    const api = client(async (url, init) => {
+      observed = { url: new URL(url), init };
+      await new Promise((resolve) => (release = resolve));
+      return json(
+        page([], { policy: reference ? 'synthetic-reference-search-v1' : 'public-search-v1' }),
+      );
+    });
+    const search = (input) =>
+      reference ? api.searchSyntheticReferencePropertiesV3(input) : api.searchPropertiesV2(input);
+    const input = {
+      purpose: 'rent',
+      period: 'month',
+      min: '20000.01',
+      minMode: 'over',
+      max: '20000.01',
+    };
+    const pending = search(input);
+    input.min = '1';
+    input.minMode = '';
+    input.max = '2';
+    while (!release) await new Promise((resolve) => setImmediate(resolve));
+    release();
+    assert.equal((await pending).total, 0);
+    assert.equal(observed.url.pathname, `/v${reference ? 3 : 2}/properties/search`);
+    assert.equal(observed.url.searchParams.get('min'), '20000.01');
+    assert.equal(observed.url.searchParams.get('minMode'), 'over');
+    assert.equal(observed.url.searchParams.get('max'), '20000.01');
+    assert.equal(observed.init.credentials, 'omit');
+    assert.equal(observed.init.headers.Authorization, undefined);
+
+    for (const mode of [{}, { minMode: '' }]) {
+      release = undefined;
+      const inclusive = search({ purpose: 'sale', min: '90071992547409.91', ...mode });
+      while (!release) await new Promise((resolve) => setImmediate(resolve));
+      release();
+      await inclusive;
+      assert.equal(observed.url.searchParams.get('min'), '90071992547409.91');
+      assert.equal(observed.url.searchParams.has('minMode'), false);
+    }
+    release = undefined;
+    const largest = search({ purpose: 'sale', min: '90071992547409.91', minMode: 'over' });
+    while (!release) await new Promise((resolve) => setImmediate(resolve));
+    release();
+    await largest;
+    assert.equal(observed.url.searchParams.get('min'), '90071992547409.91');
+    assert.equal(observed.url.searchParams.get('minMode'), 'over');
+  }
+});
 test('search rejects inconsistent count/order/page metadata, duplicate identities and private DTO fields', async () => {
   for (const extra of [
     { total: 1 },

@@ -1,15 +1,33 @@
-/** Inclusive base-price bounds; blank does not constrain that side of the range. */
+/** Explicit lower comparison and inclusive maximum, using exact KES amounts. */
 export default function PriceFilters({
   minText,
+  minMode,
   maxText,
   errorFields,
 }: {
   minText: string;
+  minMode: string;
   maxText: string;
   errorFields: readonly string[];
 }) {
   return (
     <>
+      <label className="search-field">
+        <span>Minimum price comparison</span>
+        <select
+          name="minMode"
+          defaultValue={minMode}
+          {...(errorFields.includes('minMode')
+            ? { 'aria-invalid': true as const, 'aria-describedby': 'search-error' }
+            : {})}
+        >
+          <option value="">At least</option>
+          <option value="over">Over (excludes equal price)</option>
+          {minMode && minMode !== 'over' && (
+            <option value={minMode}>Unsupported comparison: {minMode}</option>
+          )}
+        </select>
+      </label>
       {[
         {
           name: 'min',

@@ -6,6 +6,7 @@ export type CatalogueSearch = {
   purpose: string;
   type: string;
   minText: string;
+  minMode: string;
   maxText: string;
   error: string | null;
   items: readonly DemoProperty[];
@@ -17,17 +18,21 @@ export function searchCatalogue(tenantSlug: string, query: SearchQuery): Catalog
     purpose = value('purpose'),
     type = value('type'),
     minText = value('min'),
+    minMode = typeof query.minMode === 'string' ? query.minMode : '',
     maxText = value('max');
   let minimum: number | undefined,
     maximum: number | undefined,
     error: string | null = null;
-  const malformedKeys = ['location', 'purpose', 'type', 'min', 'max'].filter(
+  const malformedKeys = ['location', 'purpose', 'type', 'min', 'minMode', 'max'].filter(
     (key) => query[key] !== undefined && typeof query[key] !== 'string',
   );
   if (malformedKeys.length) error = 'Use one value for each search filter.';
   if (purpose && !['rent', 'sale'].includes(purpose)) error = 'Choose rent or buy.';
   if (type && !['apartment', 'bedsitter', 'studio', 'maisonette', 'land'].includes(type))
     error = 'Choose a supported property type.';
+  if (minMode && minMode !== 'over') error = 'Choose a supported minimum price comparison.';
+  if (!error && minMode === 'over' && !minText)
+    error = 'Enter a positive minimum price to use Over.';
   if (minText) {
     try {
       minimum = kesFromMajor(minText).minorUnits;
@@ -55,9 +60,11 @@ export function searchCatalogue(tenantSlug: string, query: SearchQuery): Catalog
           (!purpose || p.purpose === purpose) &&
           (!type || p.type === type) &&
           (minimum === undefined ||
-            matchesNumericRange(p.priceMinor, { min: { value: minimum, inclusive: true } })) &&
+            matchesNumericRange(p.priceMinor, {
+              min: { value: minimum, inclusive: minMode !== 'over' },
+            })) &&
           (maximum === undefined ||
             matchesNumericRange(p.priceMinor, { max: { value: maximum, inclusive: true } })),
       );
-  return { location, purpose, type, minText, maxText, error, items };
+  return { location, purpose, type, minText, minMode, maxText, error, items };
 }

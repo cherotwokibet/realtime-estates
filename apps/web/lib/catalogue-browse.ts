@@ -136,6 +136,7 @@ export function loadedPageHref(filters: CatalogueFilters, sort: string, page: nu
     type: filters.type,
     period: filters.period,
     min: filters.minText,
+    minMode: filters.minMode,
     max: filters.maxText,
     beds: filters.bedsText,
     privateBaths: filters.privateBathsText,

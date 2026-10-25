@@ -1104,6 +1104,145 @@ test('invalid minimum price or inverted range refuses global search before trans
   assert.equal(calls, 0);
 });
 
+test('Over compares exact base-price cents on the explicit rental or sale basis in bounded catalogues', async () => {
+  const loader = connected([
+    property({ amountMinor: 2000000 }),
+    property({ id: id(101), slug: 'exact-threshold', amountMinor: 2000001 }),
+    property({ id: id(102), slug: 'one-cent-above', amountMinor: 2000002 }),
+    property({ id: id(103), slug: 'other-period-over', amountMinor: 2000002, rentPeriod: 'day' }),
+    property({
+      id: id(104),
+      slug: 'sale-over',
+      amountMinor: 2000002,
+      purpose: 'sale',
+      rentPeriod: null,
+    }),
+  ]);
+  const query = { purpose: 'rent', period: 'month', min: '20000.01', max: '20000.02' };
+  const strict = ready(await loader.list({ ...query, minMode: 'over' }));
+  assert.equal(strict.filters.error, null);
+  assert.equal(strict.filters.minMode, 'over');
+  assert.deepEqual(
+    strict.items.map((item) => item.id),
+    [id(102)],
+  );
+  assert.deepEqual(
+    ready(await loader.list(query)).items.map((item) => item.id),
+    [id(101), id(102)],
+  );
+  const equal = ready(await loader.list({ ...query, max: query.min, minMode: 'over' }));
+  assert.equal(equal.filters.error, null);
+  assert.deepEqual(equal.items, []);
+  assert.deepEqual(
+    ready(await loader.list({ ...query, purpose: 'sale', minMode: 'over' })).items.map(
+      (item) => item.id,
+    ),
+    [id(104)],
+  );
+  const demo = createCatalogueLoader(resolveCatalogueConfig({ TENANT_SLUG: 'realtime-estates' }));
+  const demoQuery = { purpose: 'rent', period: 'month', min: '18000', max: '18000' };
+  assert.deepEqual(
+    ready(await demo.list(demoQuery)).items.map((item) => item.id),
+    ['demo-ruaka-1'],
+  );
+  const demoStrict = ready(await demo.list({ ...demoQuery, minMode: 'over' }));
+  assert.equal(demoStrict.filters.error, null);
+  assert.deepEqual(demoStrict.items, []);
+});
+
+test('global v2 and v3 searches retain Over and exact bounds through SDK transport and page URLs', async () => {
+  for (const reference of [false, true]) {
+    const calls = [];
+    const loader = connected(
+      [],
+      { ...(reference ? referenceEnvironment : {}), WEB_CATALOGUE_SEARCH: 'public-search-v1' },
+      async (url) => {
+        calls.push(new URL(url));
+        return json(
+          new URL(url).pathname === '/v3/property-reference-options'
+            ? {
+                policy: 'synthetic-reference-options-v1',
+                maximumPerCategory: 5000,
+                options: { countyId: [], localityId: [], neighbourhoodId: [], amenityId: [] },
+              }
+            : searchPayload([], 0, 12, 12, 'price_low', reference),
+        );
+      },
+    );
+    const result = ready(
+      await loader.list({
+        purpose: 'rent',
+        period: 'month',
+        min: '20000.01',
+        minMode: 'over',
+        max: '20000.01',
+        sort: 'price_low',
+        page: '2',
+      }),
+    );
+    assert.equal(result.filters.error, null);
+    assert.deepEqual(result.items, []);
+    const search = calls.find((url) => url.pathname.endsWith('/properties/search'));
+    assert.equal(search.pathname, reference ? '/v3/properties/search' : '/v2/properties/search');
+    assert.equal(search.searchParams.get('minMode'), 'over');
+    assert.equal(search.searchParams.get('min'), '20000.01');
+    assert.equal(search.searchParams.get('max'), '20000.01');
+    assert.equal(search.searchParams.get('offset'), '12');
+    const next = new URL(
+      loadedPageHref(result.filters, 'price_low', 3),
+      'https://synthetic.invalid',
+    );
+    assert.equal(next.searchParams.get('minMode'), 'over');
+    assert.equal(next.searchParams.get('min'), '20000.01');
+    assert.equal(next.searchParams.get('max'), '20000.01');
+    assert.equal(next.searchParams.get('page'), '3');
+  }
+});
+
+test('invalid minimum comparison state refuses global search while retaining the correction values', async () => {
+  let calls = 0;
+  const loader = connected([], { WEB_CATALOGUE_SEARCH: 'public-search-v1' }, async () => {
+    calls++;
+    throw Error('invalid comparison must not dispatch');
+  });
+  for (const minMode of [
+    'unknown',
+    'OVER',
+    ' ',
+    ' over ',
+    ['over'],
+    ['over', ''],
+    ['over', 'over'],
+  ]) {
+    const result = ready(await loader.list({ purpose: 'sale', min: '20000.01', minMode }));
+    assert.ok(result.filters.error, String(minMode));
+    assert.equal(result.filters.minText, '20000.01');
+    if (typeof minMode === 'string') assert.equal(result.filters.minMode, minMode);
+    assert.deepEqual(result.items, []);
+  }
+  for (const query of [
+    { purpose: 'sale', minMode: 'over' },
+    { purpose: 'sale', min: '', minMode: 'over' },
+    { purpose: 'sale', min: '0', minMode: 'over' },
+    { purpose: 'sale', min: '-1', minMode: 'over' },
+    { purpose: 'rent', min: '20000.01', minMode: 'over' },
+    { period: 'month', min: '20000.01', minMode: 'over' },
+    { purpose: 'sale', min: '20000.02', minMode: 'over', max: '20000.01' },
+  ]) {
+    const result = ready(await loader.list(query));
+    assert.ok(result.filters.error, JSON.stringify(query));
+    assert.equal(result.filters.minMode, 'over');
+    assert.deepEqual(result.items, []);
+  }
+  assert.equal(calls, 0);
+  for (const minMode of [undefined, '']) {
+    const result = parseCatalogueFilters({ min: '', minMode });
+    assert.equal(result.error, null);
+    assert.equal(result.minText, '');
+    assert.equal(result.minMode, '');
+  }
+});
+
 test('either price bound requires an explicit purpose even with a period, across demo and connected modes', async () => {
   let globalCalls = 0;
   const global = connected([], { WEB_CATALOGUE_SEARCH: 'public-search-v1' }, async () => {

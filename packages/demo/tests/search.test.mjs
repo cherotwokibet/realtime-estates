@@ -18,7 +18,7 @@ test('search applies all URL filters together and inclusive exact maximum', () =
   );
 });
 test('duplicate known URL filters fail closed instead of silently dropping constraints', () => {
-  for (const key of ['location', 'purpose', 'type', 'min', 'max']) {
+  for (const key of ['location', 'purpose', 'type', 'min', 'minMode', 'max']) {
     const result = searchCatalogue('realtime-estates', {
       [key]: key === 'max' ? ['18000', '1e4'] : ['first', 'second'],
     });
@@ -50,6 +50,56 @@ test('inclusive minimum and maximum compose and invalid ranges never broaden dem
   assert.match(reversed.error, /Minimum price/);
   assert.equal(reversed.items.length, 0);
   assert.equal(searchCatalogue('realtime-estates', {}).minText, '');
+});
+test('Over excludes the exact lower price, includes the next cent and keeps the maximum inclusive', () => {
+  const exact = { location: 'Ruaka', purpose: 'rent', min: '18000', max: '18000.00' };
+  assert.deepEqual(
+    searchCatalogue('realtime-estates', exact).items.map((item) => item.id),
+    ['demo-ruaka-1'],
+  );
+  const strict = searchCatalogue('realtime-estates', { ...exact, minMode: 'over' });
+  assert.equal(strict.error, null);
+  assert.equal(strict.minMode, 'over');
+  assert.deepEqual(strict.items, []);
+  assert.deepEqual(
+    searchCatalogue('realtime-estates', { ...exact, min: '17999.99', minMode: 'over' }).items.map(
+      (item) => item.id,
+    ),
+    ['demo-ruaka-1'],
+  );
+  assert.equal(
+    searchCatalogue('realtime-estates', { ...exact, min: '18000.01', minMode: 'over' }).items
+      .length,
+    0,
+  );
+});
+test('minimum comparison rejects unsupported or repeated values and Over without a positive minimum', () => {
+  for (const minMode of [
+    'inclusive',
+    'OVER',
+    ' ',
+    ' over ',
+    ['over'],
+    ['over', ''],
+    ['over', 'over'],
+  ]) {
+    const result = searchCatalogue('realtime-estates', { min: '18000', minMode });
+    assert.ok(result.error, String(minMode));
+    assert.deepEqual(result.items, []);
+  }
+  const unsupported = searchCatalogue('realtime-estates', { min: '18000', minMode: ' unknown ' });
+  assert.equal(unsupported.minMode, ' unknown ');
+  for (const min of [undefined, '', ' ', '0', '-1']) {
+    const result = searchCatalogue('realtime-estates', { min, minMode: 'over' });
+    assert.ok(result.error, String(min));
+    assert.deepEqual(result.items, []);
+  }
+  for (const minMode of [undefined, '']) {
+    const result = searchCatalogue('realtime-estates', { min: '', minMode });
+    assert.equal(result.error, null);
+    assert.equal(result.items.length, 4);
+    assert.equal(result.minMode, '');
+  }
 });
 test('configured tenants reject inherited object keys and unknown names', () => {
   for (const slug of ['constructor', 'toString', '__proto__', 'unknown', '', null, 12]) {
