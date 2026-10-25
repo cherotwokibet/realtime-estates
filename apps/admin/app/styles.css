@@ -1,11 +1,11 @@
-:root {
-  --ink: #202429;
-  --muted: #606871;
-  --canvas: #f6f7f9;
-  --surface: #fff;
-  --line: #e2e5e9;
-  --brand: #5e0202;
-  --focus: #1557bb;
+body {
+  --ink: var(--color-on-surface);
+  --muted: var(--feedback-help-foreground);
+  --canvas: var(--color-background);
+  --surface: var(--color-surface);
+  --line: var(--card-default-border);
+  --brand: var(--color-primary);
+  --focus: var(--focus-ring-color);
 }
 .draft-cost-preview dl {
   margin: 16px 0;
@@ -471,11 +471,12 @@ body {
   background: var(--canvas);
   color: var(--ink);
   font:
-    16px/1.55 -apple-system,
+    var(--font-body-size) / var(--font-body-line-height) -apple-system,
     BlinkMacSystemFont,
     'Segoe UI',
     Arial,
     sans-serif;
+  font-weight: var(--font-body-weight);
 }
 a {
   color: inherit;
@@ -579,7 +580,7 @@ header[id] {
   display: grid;
   place-items: center;
   background: var(--brand);
-  color: #fff;
+  color: var(--color-on-primary);
   font-size: 14px;
   font-weight: 750;
   letter-spacing: 0.5px;

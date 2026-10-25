@@ -2183,3 +2183,229 @@ h2 {
     gap: 8px;
   }
 }
+
+/* Shared component states; the root installs these fixed aliases from the semantic theme. */
+a:focus-visible,
+button:focus-visible,
+.primary:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible,
+.property-card:focus-visible,
+.public-info-card:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: 0 0 0 var(--focus-ring-offset) var(--focus-ring-gap-color);
+}
+.primary {
+  background: var(--button-default-background);
+  color: var(--button-default-foreground);
+  border-color: var(--button-default-border);
+  border-radius: var(--button-radius);
+  min-height: var(--button-min-height);
+  padding: var(--button-padding-y) var(--button-padding-x);
+  font-size: var(--button-font-size);
+  line-height: var(--button-line-height);
+  font-weight: var(--button-font-weight);
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+}
+.primary:focus-visible {
+  background: var(--button-focus-background);
+  color: var(--button-focus-foreground);
+  border-color: var(--button-focus-border);
+}
+.primary:hover {
+  background: var(--button-hover-background);
+  color: var(--button-hover-foreground);
+  border-color: var(--button-hover-border);
+}
+.primary:active {
+  background: var(--button-pressed-background);
+  color: var(--button-pressed-foreground);
+  border-color: var(--button-pressed-border);
+}
+.primary:disabled,
+.primary[aria-disabled='true'] {
+  background: var(--button-disabled-background);
+  color: var(--button-disabled-foreground);
+  border-color: var(--button-disabled-border);
+  cursor: not-allowed;
+  opacity: 1;
+  box-shadow: none;
+}
+.search-field input,
+.search-field select,
+.search-field > div {
+  background: var(--field-default-background);
+  color: var(--field-default-foreground);
+  border-color: var(--field-default-border);
+  border-radius: var(--field-radius);
+  height: var(--field-min-height);
+  min-height: var(--field-min-height);
+  font-size: var(--field-font-size);
+  line-height: var(--field-line-height);
+  font-weight: var(--field-font-weight);
+}
+.search-field input,
+.search-field select {
+  padding: var(--field-padding-y) var(--field-padding-x);
+}
+.search-field input:hover,
+.search-field select:hover,
+.search-field > div:hover {
+  background: var(--field-hover-background);
+  color: var(--field-hover-foreground);
+  border-color: var(--field-hover-border);
+}
+.search-field input:active,
+.search-field select:active {
+  background: var(--field-pressed-background);
+  color: var(--field-pressed-foreground);
+  border-color: var(--field-pressed-border);
+}
+.search-field input:focus-visible,
+.search-field select:focus-visible,
+.search-field > div:focus-within {
+  background: var(--field-focus-background);
+  color: var(--field-focus-foreground);
+  border-color: var(--field-focus-border);
+}
+.search-field input:disabled,
+.search-field select:disabled,
+.search-field > div:has(> input:disabled) {
+  background: var(--field-disabled-background);
+  color: var(--field-disabled-foreground);
+  border-color: var(--field-disabled-border);
+  cursor: not-allowed;
+  opacity: 1;
+}
+.search-field input[aria-invalid='true'],
+.search-field select[aria-invalid='true'],
+.search-field > div:has(> input[aria-invalid='true']) {
+  background: var(--feedback-error-background);
+  color: var(--feedback-error-foreground);
+  border-color: var(--feedback-error-border);
+}
+.search-field > div > input {
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.search-field input::placeholder,
+.search-field > div > .icon {
+  color: var(--feedback-help-foreground);
+}
+.search-field > span {
+  color: var(--feedback-help-foreground);
+  font-size: var(--font-small-size);
+  line-height: var(--font-small-line-height);
+  font-weight: var(--font-strong-weight);
+}
+.search-help {
+  color: var(--feedback-help-foreground);
+  font-size: var(--font-small-size);
+  line-height: var(--font-small-line-height);
+}
+.error {
+  background: var(--feedback-error-background);
+  color: var(--feedback-error-foreground);
+  border-color: var(--feedback-error-border);
+  font-size: var(--font-small-size);
+  line-height: var(--font-small-line-height);
+  padding: var(--space-sm) var(--space-md);
+}
+.purpose-tabs {
+  flex-wrap: wrap;
+}
+.purpose-tabs label > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--field-default-background);
+  color: var(--field-default-foreground);
+  border: 1px solid var(--field-default-border);
+  min-height: var(--button-min-height);
+  border-radius: var(--button-radius);
+  padding: var(--button-padding-y) var(--button-padding-x);
+  font-size: var(--font-small-size);
+  line-height: var(--font-small-line-height);
+}
+.purpose-tabs label:hover > span {
+  background: var(--field-hover-background);
+  color: var(--field-hover-foreground);
+  border-color: var(--field-hover-border);
+}
+.purpose-tabs input:checked + span {
+  background: var(--feedback-selected-background);
+  color: var(--feedback-selected-foreground);
+  border-color: var(--feedback-selected-border);
+}
+.purpose-tabs label:active > span {
+  background: var(--button-pressed-background);
+  color: var(--button-pressed-foreground);
+  border-color: var(--button-pressed-border);
+}
+.purpose-tabs input:disabled + span {
+  background: var(--field-disabled-background);
+  color: var(--field-disabled-foreground);
+  border-color: var(--field-disabled-border);
+  cursor: not-allowed;
+}
+.purpose-tabs input:focus-visible + span {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: 0 0 0 var(--focus-ring-offset) var(--focus-ring-gap-color);
+}
+.property-card,
+.public-info-card {
+  background: var(--card-default-background);
+  color: var(--card-default-foreground);
+  border-color: var(--card-default-border);
+  border-radius: var(--card-radius);
+  font-size: var(--card-font-size);
+  line-height: var(--card-line-height);
+}
+.property-body,
+.public-info-card {
+  padding: var(--card-padding-y) var(--card-padding-x);
+}
+.property-card:hover,
+.public-info-card:hover {
+  background: var(--card-hover-background);
+  color: var(--card-hover-foreground);
+  border-color: var(--card-hover-border);
+}
+.property-card:active,
+.public-info-card:active {
+  background: var(--card-pressed-background);
+  color: var(--card-pressed-foreground);
+  border-color: var(--card-pressed-border);
+}
+.property-card:focus-within,
+.public-info-card:focus-within {
+  background: var(--card-focus-background);
+  color: var(--card-focus-foreground);
+  border-color: var(--card-focus-border);
+}
+.property-card[aria-selected='true'],
+.public-info-card[aria-selected='true'] {
+  background: var(--card-selected-background);
+  color: var(--card-selected-foreground);
+  border-color: var(--card-selected-border);
+}
+.property-card[aria-disabled='true'],
+.public-info-card[aria-disabled='true'] {
+  background: var(--card-disabled-background);
+  color: var(--card-disabled-foreground);
+  border-color: var(--card-disabled-border);
+  opacity: 1;
+}
+.property-card .location,
+.property-card .property-type {
+  color: var(--feedback-help-foreground);
+}

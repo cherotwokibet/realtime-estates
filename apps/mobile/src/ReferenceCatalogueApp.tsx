@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   SafeAreaView,
@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { getDemoBrand } from '@realtor/demo';
+import { getDemoBrand, getDemoTheme } from '@realtor/demo';
 import { formatKes } from '@realtor/domain';
 import {
   loadMobileReferenceCatalogue,
@@ -16,6 +16,91 @@ import {
   type MobileReferenceItem,
   type MobileReferenceResult,
 } from './reference-catalogue';
+import { createReferenceCatalogueStyles } from './reference-theme';
+
+type CatalogueStyles = ReturnType<typeof createReferenceCatalogueStyles>;
+function CatalogueButton({
+  label,
+  onPress,
+  styles: s,
+  accessibilityLabel,
+  disabled = false,
+}: {
+  label: string;
+  onPress: () => void;
+  styles: CatalogueStyles;
+  accessibilityLabel?: string;
+  disabled?: boolean;
+}) {
+  const [focused, setFocused] = useState(false),
+    [hovered, setHovered] = useState(false);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={({ pressed }) => [
+        s.button,
+        hovered && s.buttonHovered,
+        pressed && s.buttonPressed,
+        focused && !disabled && s.focused,
+        disabled && s.buttonDisabled,
+      ]}
+    >
+      {({ pressed }) => (
+        <Text
+          style={[
+            s.buttonText,
+            hovered && s.buttonHoveredText,
+            pressed && s.buttonPressedText,
+            disabled && s.buttonDisabledText,
+          ]}
+        >
+          {label}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+function CatalogueCard({
+  children,
+  onPress,
+  label,
+  styles: s,
+}: {
+  children: React.ReactNode;
+  onPress: () => void;
+  label: string;
+  styles: CatalogueStyles;
+}) {
+  const [focused, setFocused] = useState(false),
+    [hovered, setHovered] = useState(false);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      onHoverIn={() => setHovered(true)}
+      onHoverOut={() => setHovered(false)}
+      style={({ pressed }) => [
+        s.card,
+        hovered && s.cardHovered,
+        pressed && s.cardPressed,
+        focused && s.focused,
+      ]}
+    >
+      {children}
+    </Pressable>
+  );
+}
 
 export function ReferenceCatalogueApp({
   config,
@@ -23,6 +108,9 @@ export function ReferenceCatalogueApp({
   config: Extract<MobileReferenceConfig, { mode: 'synthetic-reference-public-v1' }>;
 }) {
   const brand = getDemoBrand(config.tenantSlug);
+  const theme = useMemo(() => getDemoTheme(config.tenantSlug), [config.tenantSlug]);
+  const s = useMemo(() => StyleSheet.create(createReferenceCatalogueStyles(theme)), [theme]);
+  const [queryFocused, setQueryFocused] = useState(false);
   const [result, setResult] = useState<MobileReferenceResult | null>(null);
   const [request, setRequest] = useState(0);
   const [query, setQuery] = useState('');
@@ -48,7 +136,7 @@ export function ReferenceCatalogueApp({
   return (
     <SafeAreaView style={s.root}>
       <View style={s.header}>
-        <Text accessibilityRole="header" style={[s.brand, { color: brand.primary }]}>
+        <Text accessibilityRole="header" style={s.brand}>
           {brand.name}
         </Text>
         <Text style={s.notice}>Synthetic API preview · no real availability</Text>
@@ -62,15 +150,17 @@ export function ReferenceCatalogueApp({
               value={query}
               onChangeText={setQuery}
               placeholder="Town, county or area"
-              style={s.input}
+              onFocus={() => setQueryFocused(true)}
+              onBlur={() => setQueryFocused(false)}
+              selectionColor={theme.components.focus.color}
+              placeholderTextColor={theme.components.feedback.help.foreground}
+              style={[s.input, queryFocused && s.inputFocused, queryFocused && s.focused]}
             />
-            <Pressable
-              accessibilityRole="button"
+            <CatalogueButton
+              label="Search all approved properties"
               onPress={() => setSearch({ location: query, offset: 0 })}
-              style={s.button}
-            >
-              <Text>Search all approved properties</Text>
-            </Pressable>
+              styles={s}
+            />
             <Text style={s.notice}>
               Search covers matching public properties. Results may change between pages; traversal
               is limited to offset 10,000.
@@ -78,31 +168,31 @@ export function ReferenceCatalogueApp({
           </View>
         )}
         {result === null && (
-          <Text accessibilityLiveRegion="polite">Loading approved property details…</Text>
+          <Text accessibilityLiveRegion="polite" style={s.copy}>
+            Loading approved property details…
+          </Text>
         )}
         {result?.status === 'error' && (
           <View>
-            <Text accessibilityRole="alert">The property catalogue could not be loaded.</Text>
-            <Pressable
-              accessibilityRole="button"
+            <Text accessibilityRole="alert" style={[s.copy, s.error]}>
+              The property catalogue could not be loaded.
+            </Text>
+            <CatalogueButton
+              label="Try again"
               onPress={() => setRequest((value) => value + 1)}
-              style={s.button}
-            >
-              <Text>Try again</Text>
-            </Pressable>
+              styles={s}
+            />
           </View>
         )}
         {result?.status === 'ready' &&
           (selected ? (
-            <View style={s.card}>
-              <Pressable
-                accessibilityRole="button"
+            <View style={[s.card, s.cardSelected]}>
+              <CatalogueButton
+                label="← Back to results"
                 accessibilityLabel="Back to property results"
                 onPress={() => setSelected(null)}
-                style={s.button}
-              >
-                <Text>← Back to results</Text>
-              </Pressable>
+                styles={s}
+              />
               <Text accessibilityRole="header" style={s.title}>
                 {selected.property.title}
               </Text>
@@ -131,9 +221,9 @@ export function ReferenceCatalogueApp({
                 Features & amenities
               </Text>
               {selected.amenities === null ? (
-                <Text>Not supplied</Text>
+                <Text style={s.copy}>Not supplied</Text>
               ) : selected.amenities.length === 0 ? (
-                <Text>No amenities selected in the approved listing.</Text>
+                <Text style={s.copy}>No amenities selected in the approved listing.</Text>
               ) : (
                 selected.amenities.map((amenity) => (
                   <Text key={amenity.id} style={s.copy}>
@@ -154,7 +244,7 @@ export function ReferenceCatalogueApp({
                 </Text>
               ))}
               {selected.property.pricing.charges.length === 0 && (
-                <Text>No named charges supplied.</Text>
+                <Text style={s.copy}>No named charges supplied.</Text>
               )}
               {selected.recurring !== null && (
                 <Text style={s.copy}>
@@ -185,34 +275,30 @@ export function ReferenceCatalogueApp({
               </Text>
               {result.searchPage && (
                 <View>
-                  <Text>
+                  <Text style={s.copy}>
                     {shown.length ? result.searchPage.offset + 1 : 0}–
                     {result.searchPage.offset + shown.length} of {result.searchPage.total}
                   </Text>
                   {result.searchPage.offset > 0 && (
-                    <Pressable
-                      accessibilityRole="button"
+                    <CatalogueButton
+                      label="Previous search page"
                       onPress={() =>
                         setSearch({ ...search, offset: Math.max(0, search.offset - 24) })
                       }
-                      style={s.button}
-                    >
-                      <Text>Previous search page</Text>
-                    </Pressable>
+                      styles={s}
+                    />
                   )}
                   {result.searchPage.hasMore &&
                     result.searchPage.offset + 24 <= result.searchPage.maxOffset && (
-                      <Pressable
-                        accessibilityRole="button"
+                      <CatalogueButton
+                        label="Next search page"
                         onPress={() => setSearch({ ...search, offset: search.offset + 24 })}
-                        style={s.button}
-                      >
-                        <Text>Next search page</Text>
-                      </Pressable>
+                        styles={s}
+                      />
                     )}
                   {result.searchPage.hasMore &&
                     result.searchPage.offset + 24 > result.searchPage.maxOffset && (
-                      <Text>
+                      <Text style={s.copy}>
                         Narrow your search to see more matching properties within the paging limit.
                       </Text>
                     )}
@@ -224,14 +310,13 @@ export function ReferenceCatalogueApp({
                   loaded page.
                 </Text>
               )}
-              {shown.length === 0 && <Text>No properties match this search.</Text>}
+              {shown.length === 0 && <Text style={s.copy}>No properties match this search.</Text>}
               {shown.map((item) => (
-                <Pressable
+                <CatalogueCard
                   key={item.property.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`View ${item.property.title}, ${item.base}${item.property.rentPeriod ? ` per ${item.property.rentPeriod}` : ''}`}
+                  label={`View ${item.property.title}, ${item.base}${item.property.rentPeriod ? ` per ${item.property.rentPeriod}` : ''}`}
                   onPress={() => setSelected(item)}
-                  style={s.card}
+                  styles={s}
                 >
                   <Text accessibilityRole="header" style={s.heading}>
                     {item.property.title}
@@ -242,7 +327,7 @@ export function ReferenceCatalogueApp({
                     {item.property.rentPeriod ? ` / ${item.property.rentPeriod}` : ''}
                   </Text>
                   <Text style={s.notice}>View details and additional costs →</Text>
-                </Pressable>
+                </CatalogueCard>
               ))}
             </View>
           ))}
@@ -250,38 +335,3 @@ export function ReferenceCatalogueApp({
     </SafeAreaView>
   );
 }
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f7f7f2' },
-  header: { padding: 20, backgroundColor: '#fff' },
-  brand: { fontSize: 23, fontWeight: '700' },
-  notice: { fontSize: 13, lineHeight: 20, color: '#475467', marginVertical: 8 },
-  copy: { fontSize: 16, lineHeight: 25, color: '#26332b', marginVertical: 7 },
-  page: { padding: 20, paddingBottom: 44 },
-  title: { fontSize: 28, lineHeight: 36, fontWeight: '700', color: '#26332b', marginVertical: 12 },
-  heading: {
-    fontSize: 21,
-    lineHeight: 29,
-    fontWeight: '600',
-    marginVertical: 12,
-    color: '#26332b',
-  },
-  price: { fontSize: 23, fontWeight: '700', color: '#26332b', marginVertical: 12 },
-  card: { padding: 18, backgroundColor: '#fff', borderRadius: 16, marginVertical: 10 },
-  button: {
-    padding: 14,
-    minHeight: 48,
-    backgroundColor: '#edf0e9',
-    borderRadius: 10,
-    marginVertical: 12,
-  },
-  input: {
-    minHeight: 50,
-    borderWidth: 1,
-    borderColor: '#667085',
-    borderRadius: 10,
-    padding: 12,
-    backgroundColor: '#fff',
-    fontSize: 16,
-    color: '#26332b',
-  },
-});

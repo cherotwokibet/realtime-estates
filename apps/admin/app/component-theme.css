@@ -1,0 +1,189 @@
+/* Shared semantic component states follow the existing workspace sheets. */
+:is(.draft-primary, .enq-primary, .reference-review button) {
+  min-height: var(--button-min-height);
+  padding: var(--button-padding-y) var(--button-padding-x);
+  border-radius: var(--button-radius);
+  font-size: var(--button-font-size);
+  line-height: var(--button-line-height);
+  font-weight: var(--button-font-weight);
+  background: var(--button-default-background);
+  color: var(--button-default-foreground);
+  border: 1px solid var(--button-default-border);
+}
+:is(.draft-primary, .enq-primary, .reference-review button):hover:not(:disabled):not(
+    [aria-disabled='true']
+  ) {
+  background: var(--button-hover-background);
+  color: var(--button-hover-foreground);
+  border-color: var(--button-hover-border);
+  filter: none;
+}
+:is(.draft-primary, .enq-primary, .reference-review button):active:not(:disabled):not(
+    [aria-disabled='true']
+  ) {
+  background: var(--button-pressed-background);
+  color: var(--button-pressed-foreground);
+  border-color: var(--button-pressed-border);
+}
+:is(.draft-workspace, .enq-app, .reference-review)
+  :is(.draft-primary, .enq-primary, .reference-review button):is(
+    :disabled,
+    [aria-disabled='true']
+  ) {
+  background: var(--button-disabled-background);
+  color: var(--button-disabled-foreground);
+  border-color: var(--button-disabled-border);
+  opacity: 1;
+  cursor: default;
+}
+:is(
+    .draft-field,
+    .enq-app,
+    .listing-verification,
+    .listing-controls,
+    .listing-creation,
+    .photo-upload-fields,
+    .reference-review
+  )
+  :is(input:not([type='checkbox']):not([type='file']), select, textarea) {
+  min-height: var(--field-min-height);
+  padding: var(--field-padding-y) var(--field-padding-x);
+  border: 1px solid var(--field-default-border);
+  border-radius: var(--field-radius);
+  background: var(--field-default-background);
+  color: var(--field-default-foreground);
+  font-size: var(--field-font-size);
+  line-height: var(--field-line-height);
+  font-weight: var(--field-font-weight);
+}
+:is(
+    .draft-field,
+    .enq-app,
+    .listing-verification,
+    .listing-controls,
+    .listing-creation,
+    .photo-upload-fields,
+    .reference-review
+  )
+  :is(input, select, textarea):hover:not(:disabled) {
+  border-color: var(--field-hover-border);
+}
+:is(
+    .draft-field,
+    .enq-app,
+    .listing-verification,
+    .listing-controls,
+    .listing-creation,
+    .photo-upload-fields,
+    .reference-review
+  )
+  :is(input, select, textarea):focus:not(:disabled) {
+  background: var(--field-focus-background);
+  color: var(--field-focus-foreground);
+  border-color: var(--field-focus-border);
+}
+:is(
+    .draft-field,
+    .enq-app,
+    .listing-verification,
+    .listing-controls,
+    .listing-creation,
+    .photo-upload-fields,
+    .reference-review
+  )
+  :is(input, select, textarea):disabled {
+  background: var(--field-disabled-background);
+  color: var(--field-disabled-foreground);
+  border-color: var(--field-disabled-border);
+  opacity: 1;
+}
+:is(
+    .draft-field,
+    .enq-app,
+    .listing-verification,
+    .listing-controls,
+    .listing-creation,
+    .photo-upload-fields,
+    .reference-review
+  )
+  :is(input, select, textarea)[aria-invalid='true'] {
+  border-color: var(--feedback-error-border);
+}
+:is(
+    .draft-field,
+    .enq-app,
+    .listing-verification,
+    .listing-controls,
+    .listing-creation,
+    .photo-upload-fields,
+    .reference-review
+  )
+  :is(input, textarea)::placeholder {
+  color: var(--feedback-help-foreground);
+  opacity: 1;
+}
+:is(.draft-workspace, .enq-app, .reference-review) input[type='checkbox'] {
+  accent-color: var(--field-selected-border);
+}
+.draft-help,
+.draft-field small,
+.enq-form small,
+.photo-upload-fields small {
+  color: var(--feedback-help-foreground);
+  font-size: var(--font-small-size);
+  line-height: var(--font-small-line-height);
+}
+.draft-message-error,
+.enq-error,
+.field-error,
+.listing-creation [role='alert'],
+.listing-verification [role='alert'] {
+  background: var(--feedback-error-background);
+  color: var(--feedback-error-foreground);
+  border-color: var(--feedback-error-border);
+}
+.draft-panel,
+.metric-card,
+.review-select,
+.enq-item,
+.enq-queue,
+.enq-detail,
+.gallery-card {
+  background: var(--card-default-background);
+  color: var(--card-default-foreground);
+  border-color: var(--card-default-border);
+  border-radius: var(--card-radius);
+}
+.draft-panel,
+.review-select,
+.enq-item {
+  padding: var(--card-padding-y) var(--card-padding-x);
+}
+:is(.metric-card, .review-select, .enq-item):hover:not(:disabled) {
+  background: var(--card-hover-background);
+  color: var(--card-hover-foreground);
+  border-color: var(--card-hover-border);
+}
+:is(.metric-card, .review-select, .enq-item):active:not(:disabled) {
+  background: var(--card-pressed-background);
+  color: var(--card-pressed-foreground);
+  border-color: var(--card-pressed-border);
+}
+:is(.enq-app, .draft-workspace) :is(.review-select, .enq-item):disabled {
+  background: var(--card-disabled-background);
+  color: var(--card-disabled-foreground);
+  border-color: var(--card-disabled-border);
+  opacity: 1;
+}
+.enq-item.enq-selected,
+.review-select.review-selected {
+  background: var(--card-selected-background);
+  color: var(--card-selected-foreground);
+  border-color: var(--card-selected-border);
+  box-shadow: inset 3px 0 var(--card-selected-border);
+}
+html body :is(button, a, summary, input, select, textarea, [tabindex]):focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  box-shadow: 0 0 0 var(--focus-ring-offset) var(--focus-ring-gap-color);
+}

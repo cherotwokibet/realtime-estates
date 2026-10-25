@@ -4,14 +4,17 @@ import './reviews.css';
 import './gallery.css';
 import './enquiries.css';
 import './creation.css';
+import './component-theme.css';
+import { getDemoThemeCss, resolveDemoTenantSlug } from '@realtor/demo';
 export const metadata = {
   title: 'Staff workspace preview',
   robots: { index: false, follow: false },
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const theme = getDemoThemeCss(resolveDemoTenantSlug(process.env.TENANT_SLUG));
   return (
     <html lang="en-KE">
-      <body>{children}</body>
+      <body style={theme as React.CSSProperties}>{children}</body>
     </html>
   );
 }
