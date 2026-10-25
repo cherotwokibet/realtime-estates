@@ -1,5 +1,7 @@
 # Combined editor preview preparation — checkpoint 175
 
+Checkpoint 182 update, 25 October 2026: the stopped warm checkout is now **4cd3aa2af8157506a3feeaa35653b4e504565379**, safely fast-forwarded after source backup with generated file/hash/patch, cache and dependencies preserved. Four package builds plus API build passed, and 13 current search/API/SDK/web hashes match canonical source. No UI server or emulator was launched; actual browser verification remains pending. See public-reference-options.md and public-options-warm-ready.json. The checkpoint-175 account below is dated history; do not reset the warm checkout to its older commit.
+
 25 October 2026. The existing stopped `realtor-moderation-preview` checkout has been safely updated from `364abf5a0af2272f7e29a77abe24dce035a5b657` to the backed-up source `14d9453fc585fa830be8af5eff2c500a9722e3ef`. This prepares actual browser verification; it does not constitute that verification. Checklist remains 25/97 (26% rounded), 0/14 accepted gates, task 06-1 open. KES 10,000 remains the total recurring monthly price per realtor.
 
 Before updating, the checkout was detached, with only its generated `apps/admin/next-env.d.ts` changed. No process command line referenced this checkout, its admin development lock was absent and port 3005 was free. Its real node_modules directory and existing .next cache were retained. The generated file was copied with its binary Git patch and SHA-256 recorded in the preservation folder. No reset, stash, deletion, cache replacement or dependency reinstall was used.
