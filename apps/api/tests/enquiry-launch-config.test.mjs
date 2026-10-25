@@ -58,6 +58,33 @@ test('enquiry launcher rejects production, malformed ports and all requested por
   assert.equal(enquiryLaunchConfiguration({ ENQUIRY_UI_PORT: '3002' }).uiPort, '3002');
 });
 
+test('enquiry journey launcher requires the exact trusted fixture while keeping a public UI optional', () => {
+  const config = enquiryLaunchConfiguration({
+    ENQUIRY_UI_PORT: '3005',
+    ENQUIRY_API_PORT: '0',
+    ENQUIRY_JOURNEY_FIXTURE: 'enquiry-queue-v1',
+  });
+  assert.deepEqual(config, {
+    uiPort: '3005',
+    apiPort: '0',
+    webPort: undefined,
+    journeyFixture: 'enquiry-queue-v1',
+  });
+  assert.ok(Object.isFrozen(config));
+  assert.equal(
+    enquiryLaunchConfiguration({ ENQUIRY_JOURNEY_FIXTURE: 'enquiry-queue-v1' }, ['--web']).webPort,
+    '3002',
+  );
+  for (const value of ['', 'public-search-v1', 'Enquiry-queue-v1', 'enquiry-queue-v1 ', true])
+    assert.throws(() => enquiryLaunchConfiguration({ ENQUIRY_JOURNEY_FIXTURE: value }));
+  assert.throws(() =>
+    enquiryLaunchConfiguration({
+      NODE_ENV: 'production',
+      ENQUIRY_JOURNEY_FIXTURE: 'enquiry-queue-v1',
+    }),
+  );
+});
+
 test('existing admin and requested web development locks refuse startup without touching them', async (t) => {
   const root = await fixture(t);
   for (const app of ['admin', 'web']) {

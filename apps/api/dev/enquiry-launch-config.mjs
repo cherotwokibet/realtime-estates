@@ -1,6 +1,7 @@
 import { lstat } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
+import { journeyFixtureSelection } from './journey-fixtures.mjs';
 
 /** Development launcher values only; no tenant or identity authority comes from a UI port. */
 export function enquiryLaunchConfiguration(env, args = []) {
@@ -21,9 +22,15 @@ export function enquiryLaunchConfiguration(env, args = []) {
   )
     throw Error('Choose an enquiry API port of 0 or from 1024 to 65535.');
   const webPort = args.includes('--web') ? '3002' : undefined;
+  const journeyFixture = journeyFixtureSelection(env.ENQUIRY_JOURNEY_FIXTURE, 'enquiry-queue-v1');
   if (uiPort === webPort || apiPort === uiPort || apiPort === webPort)
     throw Error('Enquiry API, admin and public web ports must be separate.');
-  return Object.freeze({ uiPort, apiPort, webPort });
+  return Object.freeze({
+    uiPort,
+    apiPort,
+    webPort,
+    ...(journeyFixture === undefined ? {} : { journeyFixture }),
+  });
 }
 
 /** Fail before API seeding; probes release their own sockets and never stop another process. */

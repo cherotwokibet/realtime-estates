@@ -1,4 +1,5 @@
 import { resolveDemoTenantSlug } from '@realtor/demo';
+import { journeyFixtureSelection } from './journey-fixtures.mjs';
 export function referencePublicLaunchConfiguration(env) {
   if (
     env.NODE_ENV === 'production' ||
@@ -14,7 +15,15 @@ export function referencePublicLaunchConfiguration(env) {
     ['3000', '3001'].includes(port)
   )
     throw Error('Choose an explicit separate public reference UI port.');
-  return Object.freeze({ port, tenantSlug: resolveDemoTenantSlug(env.TENANT_SLUG) });
+  const journeyFixture = journeyFixtureSelection(
+    env.REFERENCE_PUBLIC_JOURNEY_FIXTURE,
+    'public-search-v1',
+  );
+  return Object.freeze({
+    port,
+    tenantSlug: resolveDemoTenantSlug(env.TENANT_SLUG),
+    ...(journeyFixture === undefined ? {} : { journeyFixture }),
+  });
 }
 /** Public web reads receive the API origin but never the staff bearer or an enquiry-write configuration. */
 export function referencePublicWebEnvironment(env, preview) {
@@ -29,6 +38,7 @@ export function referencePublicWebEnvironment(env, preview) {
     url.search ||
     url.hash ||
     preview.tenantSlug !== config.tenantSlug ||
+    preview.journeyFixture?.kind !== config.journeyFixture ||
     preview.syntheticPublicReferences !== true
   )
     throw Error('An owned disposable public reference preview is required.');
@@ -49,6 +59,7 @@ export function referencePublicWebEnvironment(env, preview) {
     'WEB_ENQUIRY_PROPERTY_MODE',
     'WEB_ENQUIRY_API_ORIGIN',
     'WEB_ENQUIRY_INSTANCE',
+    'REFERENCE_PUBLIC_JOURNEY_FIXTURE',
   ])
     delete child[key];
   return child;

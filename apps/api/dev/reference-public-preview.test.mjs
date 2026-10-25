@@ -61,6 +61,27 @@ test('public web child receives only public read configuration and no inherited 
     referencePublicWebEnvironment(source, { ...preview, origin: 'https://outside.invalid' }),
   );
 });
+
+test('public journey launcher requires an exact fixture and matches its owned API before spawning the website', () => {
+  const configured = { ...env, REFERENCE_PUBLIC_JOURNEY_FIXTURE: 'public-search-v1' };
+  assert.equal(referencePublicLaunchConfiguration(configured).journeyFixture, 'public-search-v1');
+  for (const value of ['', 'enquiry-queue-v1', 'Public-search-v1', 'public-search-v1 ', true])
+    assert.throws(() =>
+      referencePublicLaunchConfiguration({ ...env, REFERENCE_PUBLIC_JOURNEY_FIXTURE: value }),
+    );
+  const preview = {
+    origin: 'http://127.0.0.1:4109',
+    tenantSlug: 'realtime-estates',
+    syntheticPublicReferences: true,
+  };
+  assert.throws(() => referencePublicWebEnvironment(configured, preview));
+  const child = referencePublicWebEnvironment(configured, {
+    ...preview,
+    journeyFixture: { kind: 'public-search-v1' },
+  });
+  assert.equal(child.REFERENCE_PUBLIC_JOURNEY_FIXTURE, undefined);
+  assert.equal(child.TENANT_SLUG, 'realtime-estates');
+});
 test('anonymous real HTTP public read exposes only approved historical reference facts and stays tenant isolated', async (t) => {
   const p = await startStaffPreview({ port: 0, ...modes });
   t.after(() => p.close());

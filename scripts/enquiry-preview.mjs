@@ -54,6 +54,7 @@ try {
     port: Number(launch.apiPort),
     tenantSlug: process.env.TENANT_SLUG ?? 'realtime-estates',
     enquiryPreview: 'synthetic-v1',
+    ...(launch.journeyFixture ? { journeyFixture: launch.journeyFixture } : {}),
     ...(process.argv.includes('--reminder-capture')
       ? { reminderCaptureMode: 'capture-only-v1' }
       : {}),
@@ -66,7 +67,9 @@ try {
     ...(process.argv.includes('--invalid-first-outcome-reply')
       ? { viewingReplyFault: 'invalid-first-outcome-v1' }
       : {}),
-    ...(process.argv.includes('--web') ? { enquiryCatalogue: 'synthetic-v1' } : {}),
+    ...(process.argv.includes('--web') || launch.journeyFixture
+      ? { enquiryCatalogue: 'synthetic-v1' }
+      : {}),
     ...(process.argv.includes('--invalid-first-reschedule-reply')
       ? { viewingReplyFault: 'invalid-first-reschedule-v1' }
       : {}),
@@ -86,6 +89,10 @@ try {
   if (process.argv.includes('--historical-viewings'))
     console.log(
       'Fictional historical confirmed viewings enabled for outcome testing. No past HTTP execution or real attendance is implied. Requires --web.',
+    );
+  if (preview.journeyFixture)
+    console.log(
+      'Explicit enquiry journey fixture: 60 synthetic admin leads and 53 assigned-agent leads; no real prospects.',
     );
   const { admin, agent } = preview.enquiryStaff;
   child = spawn(

@@ -10,6 +10,12 @@ import { readFile } from 'node:fs/promises';
 import { publicSearchQuery } from '../dist/public-search.js';
 import { staffEnquiryQueueQuery } from '../dist/enquiry-queue.js';
 import {
+  journeyFixtureSelection,
+  freezeJourneyManifest,
+  publicJourneyStock,
+  seedEnquiryJourney,
+} from './journey-fixtures.mjs';
+import {
   validateListingReferenceCatalogue,
   normalizeStaffDraftContentV2,
   validateSyntheticReferenceRevision,
@@ -36,7 +42,9 @@ export const REFERENCE_PREVIEW_CATALOGUE = validateListingReferenceCatalogue({
     { id: id(31001), kind: 'county', parentId: null, label: 'Synthetic preview county' },
     { id: id(31002), kind: 'locality', parentId: id(31001), label: 'Synthetic preview town' },
     { id: id(31003), kind: 'neighbourhood', parentId: id(31002), label: 'Synthetic preview block' },
-    { id: id(31004), kind: 'county', parentId: null, label: 'Synthetic preview county' },
+    { id: id(31004), kind: 'county', parentId: null, label: 'Synthetic choice county' },
+    { id: id(31005), kind: 'locality', parentId: id(31004), label: 'Synthetic choice town' },
+    { id: id(31006), kind: 'neighbourhood', parentId: id(31005), label: 'Synthetic choice block' },
   ],
   amenities: [
     {
@@ -122,11 +130,30 @@ function configuration({
   referenceSuccessorMode,
   referenceSuccessorReplyFault,
   referencePublicMode,
+  journeyFixture,
   seedAcceptedMedia = nativeUploads === undefined && enquiryPreview === undefined,
   seedPendingReviews = false,
 } = {}) {
   if (process.env.NODE_ENV === 'production')
     throw new StaffPreviewConfigurationError('Staff preview refuses NODE_ENV=production.');
+  journeyFixtureSelection(journeyFixture);
+  if (
+    journeyFixture === 'public-search-v1' &&
+    (referenceDraftMode !== 'synthetic-reference-draft-v1' ||
+      referenceModerationMode !== 'synthetic-reference-transition-v1' ||
+      referencePublicMode !== 'synthetic-reference-public-v1' ||
+      !seedAcceptedMedia)
+  )
+    throw new StaffPreviewConfigurationError(
+      'Public journey fixtures require explicit compatible public reference modes and metadata.',
+    );
+  if (
+    journeyFixture === 'enquiry-queue-v1' &&
+    (enquiryPreview !== 'synthetic-v1' || enquiryCatalogue !== 'synthetic-v1')
+  )
+    throw new StaffPreviewConfigurationError(
+      'Enquiry journey fixtures require explicit compatible enquiry and catalogue modes.',
+    );
   if (
     referenceDraftMode !== undefined &&
     (referenceDraftMode !== 'synthetic-reference-draft-v1' ||
@@ -355,6 +382,7 @@ function configuration({
     referenceSuccessorMode,
     referenceSuccessorReplyFault,
     referencePublicMode,
+    journeyFixture,
   };
 }
 function syntheticContent(title = 'Synthetic staff monthly studio') {
@@ -426,21 +454,25 @@ async function bootstrapAs(db, company, actor, operation) {
     throw error;
   }
 }
-async function seedPublicReferenceListing(db, company) {
-  const listing = id(Number(company.listing.slice(-3)) + 10);
+async function seedPublicReferenceListing(db, company, fixture) {
+  const { listingId, slug, operationBase, referenceLocation, locationDisclosure, ...contentFacts } =
+    fixture ?? {};
+  const listing = listingId ?? id(Number(company.listing.slice(-3)) + 10);
   const content = normalizeStaffDraftContentV2({
     ...syntheticContent('Synthetic approved historical reference studio'),
-    locality: 'Synthetic preview block',
+    ...contentFacts,
+    ...(fixture ? { pricing: { declaration: 'complete', charges: [] } } : {}),
+    locality: locationDisclosure?.area ?? 'Synthetic preview block',
     location: {
-      county: 'Synthetic preview county',
-      town: 'Synthetic preview town',
-      area: 'Synthetic preview block',
+      county: locationDisclosure?.county ?? 'Synthetic preview county',
+      town: locationDisclosure?.town ?? 'Synthetic preview town',
+      area: locationDisclosure?.area ?? 'Synthetic preview block',
     },
   });
   await bootstrapAs(db, company, company.agent, () =>
     seedGuardedListingDraft(db, {
       listingId: listing,
-      slug: `synthetic-reference-public-${listing.slice(-3)}`,
+      slug: slug ?? `synthetic-reference-public-${listing.slice(-3)}`,
       content,
       actorId: company.agent,
     }),
@@ -455,12 +487,16 @@ async function seedPublicReferenceListing(db, company) {
   await bootstrapAs(db, company, company.agent, async () => {
     await db.query('SELECT app_api.save_synthetic_reference_draft($1,1,2,$2,$3::jsonb,$4::jsonb)', [
       listing,
-      id(35000 + Number(listing.slice(-3))),
+      id(operationBase ?? 35000 + Number(listing.slice(-3))),
       JSON.stringify(content),
       JSON.stringify({
         catalogueVersion: '1',
-        location: { countyId: id(31001), localityId: id(31002), neighbourhoodId: id(31003) },
-        amenityIds: [id(31010)],
+        location: referenceLocation ?? {
+          countyId: id(31001),
+          localityId: id(31002),
+          neighbourhoodId: id(31003),
+        },
+        amenityIds: ['studio', 'apartment'].includes(content.propertyType) ? [id(31010)] : [],
       }),
     ]);
     await db.query("SELECT app_api.confirm_availability($1,1,'available')", [listing]);
@@ -477,7 +513,11 @@ async function seedPublicReferenceListing(db, company) {
     );
     await db.query(
       "SELECT app_api.execute_synthetic_reference_transition($1,1,$2,'submit',$3::jsonb,NULL)",
-      [listing, id(36000 + Number(listing.slice(-3))), JSON.stringify(review)],
+      [
+        listing,
+        id(operationBase === undefined ? 36000 + Number(listing.slice(-3)) : operationBase + 1),
+        JSON.stringify(review),
+      ],
     );
   });
   await bootstrapAs(db, company, company.admin, async () => {
@@ -494,7 +534,11 @@ async function seedPublicReferenceListing(db, company) {
     );
     await db.query(
       "SELECT app_api.execute_synthetic_reference_transition($1,1,$2,'approve',$3::jsonb,NULL)",
-      [listing, id(37000 + Number(listing.slice(-3))), JSON.stringify(review)],
+      [
+        listing,
+        id(operationBase === undefined ? 37000 + Number(listing.slice(-3)) : operationBase + 2),
+        JSON.stringify(review),
+      ],
     );
   });
 }
@@ -787,6 +831,7 @@ export async function startStaffPreview(options = {}) {
     referenceSuccessorMode,
     referenceSuccessorReplyFault,
     referencePublicMode,
+    journeyFixture,
   } = configuration(options);
   let referenceReplyFaultPending = !!referenceReplyFault;
   let referenceModerationReplyFaultPending = !!referenceModerationReplyFault;
@@ -813,7 +858,7 @@ export async function startStaffPreview(options = {}) {
               ? other.admin
               : other.agent;
   const db = new PGlite();
-  let database, coordinator, nativeMedia;
+  let database, coordinator, nativeMedia, journeyManifest;
   let apiServer;
   let jwksServer;
   try {
@@ -905,6 +950,16 @@ export async function startStaffPreview(options = {}) {
         if (referencePublicMode)
           for (const fixtureCompany of Object.values(COMPANIES))
             await seedPublicReferenceListing(db, fixtureCompany);
+        if (journeyFixture === 'public-search-v1') {
+          const stock = publicJourneyStock(tenantSlug);
+          for (const fixture of stock.rows) await seedPublicReferenceListing(db, company, fixture);
+          journeyManifest = freezeJourneyManifest({
+            policy: 'synthetic-journey-fixtures-v1',
+            kind: journeyFixture,
+            tenantSlug,
+            public: stock.manifest,
+          });
+        }
         await db.query('SELECT app_private.install_synthetic_reference_catalogue(1,$1::jsonb)', [
           JSON.stringify({
             ...REFERENCE_PREVIEW_CATALOGUE,
@@ -952,6 +1007,21 @@ export async function startStaffPreview(options = {}) {
     }
     if (enquiryCatalogue) await seedEnquiryCatalogue(db);
     if (enquiryPreview) await seedEnquiries(db);
+    if (journeyFixture === 'enquiry-queue-v1') {
+      const enquiries = await seedEnquiryJourney(
+        db,
+        company,
+        tenantSlug,
+        bootstrapAs,
+        ENQUIRY_PREVIEW_FIXTURES[tenantSlug].contacted,
+      );
+      journeyManifest = freezeJourneyManifest({
+        policy: 'synthetic-journey-fixtures-v1',
+        kind: journeyFixture,
+        tenantSlug,
+        enquiries,
+      });
+    }
     if (historicalViewings)
       for (const [index, fixtureCompany] of Object.entries(COMPANIES).entries()) {
         const [slug, c] = fixtureCompany;
@@ -1678,6 +1748,7 @@ export async function startStaffPreview(options = {}) {
       syntheticReferenceCreation: !!referenceCreationMode,
       syntheticReferenceSuccessor: !!referenceSuccessorMode,
       syntheticPublicReferences: !!referencePublicMode,
+      ...(journeyManifest ? { journeyFixture: journeyManifest } : {}),
       ...(referencePublicMode
         ? { referencePublicListingId: id(Number(company.listing.slice(-3)) + 10) }
         : {}),

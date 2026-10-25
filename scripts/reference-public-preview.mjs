@@ -17,6 +17,7 @@ const preview = await startStaffPreview({
   referenceDraftMode: 'synthetic-reference-draft-v1',
   referenceModerationMode: 'synthetic-reference-transition-v1',
   referencePublicMode: 'synthetic-reference-public-v1',
+  ...(config.journeyFixture ? { journeyFixture: config.journeyFixture } : {}),
 });
 const child = spawn(
   process.execPath,
@@ -42,6 +43,10 @@ console.log(
 console.log(
   'Disposable synthetic listings and metadata only; no real image-byte or production acceptance proof.',
 );
+if (preview.journeyFixture)
+  console.log(
+    'Explicit public journey fixture: 32 synthetic approved listings; no real stock or image bytes.',
+  );
 let stopping = false;
 async function stop() {
   if (stopping) return;

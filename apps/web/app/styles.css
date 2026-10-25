@@ -1991,7 +1991,10 @@ h2 {
 }
 @media (max-width: 580px) {
   .search-form {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .search-field:first-child {
+    grid-column: 1 / -1;
   }
   .search-button {
     grid-column: auto;
