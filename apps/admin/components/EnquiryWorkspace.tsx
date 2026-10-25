@@ -6,7 +6,8 @@ import EnquiryViewings from './EnquiryViewings';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   StaffEnquiryDetailV2,
-  StaffEnquiryPageV2,
+  StaffEnquiryQueuePageV3,
+  StaffEnquiryQueueFilterV3,
   EnquiryAssigneePageV2,
   EnquiryOperationInputV2,
   EnquiryOperationReceiptV2,
@@ -78,7 +79,9 @@ export default function EnquiryWorkspace({
     () => createEnquiryPreviewClient({ basePath: `/api/enquiry-preview/${actor}`, instanceId }),
     [actor, instanceId],
   );
-  const [queue, setQueue] = useState<StaffEnquiryPageV2 | null>(null);
+  const [queue, setQueue] = useState<StaffEnquiryQueuePageV3 | null>(null);
+  const [queueFilter, setQueueFilter] = useState<StaffEnquiryQueueFilterV3>('all');
+  const [queueHistory, setQueueHistory] = useState<readonly (string | null)[]>([]);
   const [directory, setDirectory] = useState<EnquiryAssigneePageV2 | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [saved, setSaved] = useState<StaffEnquiryDetailV2 | null>(null);
@@ -135,21 +138,32 @@ export default function EnquiryWorkspace({
       setSaved(null);
       setCurrent(null);
       setQueue(null);
+      setQueueHistory([]);
       setDirectory(null);
       setNotice(
         'Private saved details have been hidden. Local input and any original command are retained in this tab.',
       );
     }
   }
-  async function refreshQueue() {
+  async function refreshQueue(
+    requestedFilter: StaffEnquiryQueueFilterV3 = queueFilter,
+    after: string | null = null,
+    history: readonly (string | null)[] = [],
+  ) {
     queueRef.current?.abort();
     const controller = new AbortController();
     queueRef.current = controller;
     const mayApply = readGuard.current.capture();
     setQueueBusy(true);
     setQueueError('');
+    setQueue(null);
+    setQueueFilter(requestedFilter);
+    setQueueHistory(history);
     try {
-      const value = await client.list(controller.signal);
+      const value = await client.queue(
+        { limit: 50, filter: requestedFilter, ...(after === null ? {} : { after }) },
+        controller.signal,
+      );
       if (alive.current && !controller.signal.aborted && mayApply()) setQueue(value);
     } catch (e) {
       if (alive.current && !controller.signal.aborted) {
@@ -368,15 +382,11 @@ export default function EnquiryWorkspace({
   const followUps =
     queue && reminderNow !== null ? enquiryFollowUps(queue.items, reminderNow) : null;
   const shown =
-    filter === 'overdue'
-      ? (followUps?.overdue ?? [])
-      : filter === 'today'
-        ? (followUps?.today ?? [])
-        : (queue?.items.filter(
-            (item) =>
-              filter === 'all' ||
-              (filter === 'unassigned' ? !item.assignedAgentId : item.assignedAgentId === actorId),
-          ) ?? []);
+    queue?.items.filter(
+      (item) =>
+        filter === 'all' ||
+        (filter === 'unassigned' ? !item.assignedAgentId : item.assignedAgentId === actorId),
+    ) ?? [];
   const reasonNeeded = form && ['close_lost', 'spam', 'reopen'].includes(form.action);
   const timeNeeded = form && ['contact', 'qualify', 'reschedule'].includes(form.action);
   return (
@@ -459,20 +469,74 @@ export default function EnquiryWorkspace({
           </div>
           <p className="enq-subtle">
             {queue
-              ? `${queue.items.length} loaded${queue.truncated ? ' · more available' : ' · end of visible slice'}`
+              ? `${queue.items.length} on this page${queue.hasMore ? ' · older matching enquiries available' : ' · end of this matching queue'}`
               : queueBusy
                 ? 'Loading visible enquiries…'
                 : 'Queue unavailable'}
-            . This is a bounded queue, not a company total.
+            . No company total is inferred. Refresh returns to the first page; records and access
+            can change between pages. The selected enquiry stays open while browsing pages.
           </p>
           <label className="enq-filter">
-            Show within loaded enquiries
+            Search the authorized queue
+            <select
+              value={queueFilter}
+              disabled={queueBusy || busy}
+              onChange={(e) => {
+                setFilter('all');
+                void refreshQueue(e.target.value as StaffEnquiryQueueFilterV3);
+              }}
+            >
+              <option value="all">All enquiries</option>
+              <option value="open">Open enquiries</option>
+              <option value="overdue">Overdue follow-ups</option>
+              <option value="today">Follow-ups still due today</option>
+            </select>
+          </label>
+          {queue && (
+            <>
+              <p className="enq-subtle">
+                Server time: {formatEnquiryTime(queue.asOf)}. Today uses Nairobi time and excludes
+                already overdue follow-ups. Each page is a fresh read, not a frozen snapshot.
+              </p>
+              <nav aria-label="Enquiry queue pages" className="enq-nav">
+                <button
+                  className="enq-secondary"
+                  disabled={queueBusy || busy || !queueHistory.length}
+                  onClick={() => void refreshQueue(queueFilter)}
+                >
+                  First page
+                </button>
+                <button
+                  className="enq-secondary"
+                  disabled={queueBusy || busy || !queueHistory.length}
+                  onClick={() =>
+                    void refreshQueue(
+                      queueFilter,
+                      queueHistory[queueHistory.length - 1] ?? null,
+                      queueHistory.slice(0, -1),
+                    )
+                  }
+                >
+                  Previous page
+                </button>
+                <button
+                  className="enq-secondary"
+                  disabled={queueBusy || busy || !queue.hasMore || queue.nextAfter === null}
+                  onClick={() =>
+                    void refreshQueue(queueFilter, queue.nextAfter, [...queueHistory, queue.after])
+                  }
+                >
+                  Older enquiries
+                </button>
+              </nav>
+            </>
+          )}
+          <label className="enq-filter">
+            Show within this page
             <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-              <option value="all">All loaded</option>
+              <option value="all">All on this page</option>
               <option value="unassigned">Unassigned</option>
               <option value="mine">Assigned to this staff ID</option>
-              <option value="overdue">Overdue follow-ups</option>
-              <option value="today">Follow-ups due today</option>
             </select>
           </label>
           {followUps && reminderNow !== null && (
@@ -486,10 +550,24 @@ export default function EnquiryWorkspace({
                 Browser clock: {formatEnquiryTime(new Date(reminderNow).toISOString())}. Updates
                 every minute while this tab is open. Refresh the queue to check saved changes.
               </p>
-              <button className="enq-secondary" onClick={() => setFilter('overdue')}>
+              <button
+                className="enq-secondary"
+                disabled={queueBusy || busy}
+                onClick={() => {
+                  setFilter('all');
+                  void refreshQueue('overdue');
+                }}
+              >
                 Show overdue
               </button>{' '}
-              <button className="enq-secondary" onClick={() => setFilter('today')}>
+              <button
+                className="enq-secondary"
+                disabled={queueBusy || busy}
+                onClick={() => {
+                  setFilter('all');
+                  void refreshQueue('today');
+                }}
+              >
                 Show due today
               </button>
             </section>
@@ -554,7 +632,9 @@ export default function EnquiryWorkspace({
           {queue && !shown.length && (
             <div className="enq-empty">
               <h3>No enquiries in this view</h3>
-              <p>Try another loaded-queue filter or refresh. No customer activity is invented.</p>
+              <p>
+                Try another queue or page filter, browse older enquiries, or refresh the first page.
+              </p>
             </div>
           )}
         </section>

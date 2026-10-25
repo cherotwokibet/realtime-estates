@@ -1,5 +1,7 @@
 # Loaded enquiry follow-up reminders
 
+Checkpoint188 follow-up, 25 October 2026: [enquiry-queue-pagination.md](enquiry-queue-pagination.md) records the new reachable server-filtered queue and page controls. The older implementation and evidence below describe checkpoint184's loaded-only scope. Loaded-page counts remain labelled; older due work can now be requested through the server queue. Complete current browser/operator acceptance is still open.
+
 Checkpoint184, 25 October 2026 (Africa/Nairobi). The existing synthetic staff enquiry workspace now shows overdue and due-today follow-ups, with matching queue filters. This completes a missing implementation slice of task08-2; the whole task and release gates remain open for current browser/operator acceptance.
 
 Only open enquiries in the already authorized loaded queue contribute. Closed-won, closed-lost and spam records are excluded even when they retain a historical follow-up date. Overdue means before the captured current instant; an enquiry due exactly now remains due today. Today uses Nairobi's UTC+03:00 civil day. Results are oldest-first, with stable ID ordering for equal times. Input rows are not mutated. The projection cannot fetch or infer additional company records.

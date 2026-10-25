@@ -807,6 +807,7 @@ test('default staff preview keeps its old draft surface and does not enable enqu
     assert.equal(draft.status, 200);
     for (const path of [
       base,
+      '/v3/staff/enquiries',
       '/v2/staff/enquiry-assignees',
       base + '/' + ENQUIRY_PREVIEW_FIXTURES['realtime-estates'].general,
     ])
@@ -859,6 +860,63 @@ test('one opt-in database provides fixed admin and assigned-agent views with tru
     const page = await read(preview, base + '?limit=1');
     assert.equal(page.items.length, 1);
     assert.equal(page.truncated, true);
+    const queueBase = '/v3/staff/enquiries',
+      traversed = [];
+    let after;
+    for (let step = 0; step < 3; step++) {
+      const queue = await read(
+        preview,
+        queueBase + '?limit=2&filter=all' + (after ? '&after=' + after : ''),
+      );
+      assert.equal(queue.policy, 'staff-enquiry-queue-v3');
+      assert.equal(queue.after, after ?? null);
+      assert.equal(queue.timeZone, 'Africa/Nairobi');
+      assert.equal(queue.hasMore, step < 2);
+      assert.equal(Object.hasOwn(queue, 'total'), false);
+      assert.equal(queue.nextAfter, queue.hasMore ? queue.items.at(-1).id : null);
+      traversed.push(...queue.items.map((row) => row.id));
+      after = queue.nextAfter;
+    }
+    assert.equal(new Set(traversed).size, 5);
+    assert.deepEqual(new Set(traversed), new Set(admin.items.map((row) => row.id)));
+    const agentQueue = await read(preview, queueBase + '?filter=open', { role: 'agent' });
+    assert.deepEqual(
+      new Set(agentQueue.items.map((row) => row.id)),
+      new Set(agent.items.map((row) => row.id)),
+    );
+    assert.equal((await read(preview, queueBase + '?filter=overdue')).items.length, 2);
+    assert.equal(
+      (await read(preview, queueBase + '?filter=overdue', { role: 'agent' })).items[0].id,
+      preview.enquiryFixtures.contacted,
+    );
+    assert.equal((await read(preview, queueBase + '?filter=today')).items.length, 0);
+    for (const query of [
+      '?filter=',
+      '?limit=101',
+      '?filter=Open',
+      '?filter=all&filter=all',
+      '?after=',
+      '?actor=agent',
+      '?after=bad',
+    ])
+      assert.equal((await call(preview, queueBase + query)).status, 400);
+    assert.equal((await call(preview, queueBase, { method: 'POST' })).status, 405);
+    assert.equal((await call(preview, queueBase, { token: null })).status, 401);
+    assert.equal(
+      (await call(preview, queueBase + '?after=' + preview.enquiryFixtures.peer, { role: 'agent' }))
+        .status,
+      404,
+    );
+    assert.equal(
+      (
+        await call(
+          preview,
+          queueBase + '?after=' + ENQUIRY_PREVIEW_FIXTURES['sample-homes'].general,
+        )
+      ).status,
+      404,
+    );
+    assert.equal((await call(preview, '/v3/staff/reference-session')).status, 404);
     const contact = await read(preview, base + '/' + preview.enquiryFixtures.contacted, {
       role: 'agent',
     });

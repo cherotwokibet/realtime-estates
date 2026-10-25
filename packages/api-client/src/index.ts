@@ -611,6 +611,24 @@ export interface StaffEnquiryPageV2 {
   readonly limit: number;
   readonly truncated: boolean;
 }
+export type StaffEnquiryQueueFilterV3 = 'all' | 'open' | 'overdue' | 'today';
+export interface StaffEnquiryQueueInputV3 {
+  readonly limit?: number;
+  readonly filter?: StaffEnquiryQueueFilterV3;
+  readonly after?: string;
+}
+/** Current authorized keyset page, without a company-wide or cross-request count. */
+export interface StaffEnquiryQueuePageV3 {
+  readonly policy: 'staff-enquiry-queue-v3';
+  readonly items: readonly StaffEnquirySummaryV2[];
+  readonly limit: number;
+  readonly filter: StaffEnquiryQueueFilterV3;
+  readonly after: string | null;
+  readonly hasMore: boolean;
+  readonly nextAfter: string | null;
+  readonly asOf: string;
+  readonly timeZone: 'Africa/Nairobi';
+}
 export interface EnquiryAssigneeV2 {
   readonly userId: string;
   readonly role: 'agent' | 'admin';
@@ -2181,6 +2199,82 @@ function enquiryOptions(
   delete value.limit;
   return Object.freeze({ options: uploadOptions(value as unknown as StaffRequestOptions), limit });
 }
+export function validateStaffEnquiryQueueInputV3(input: unknown): Readonly<{
+  limit: number;
+  filter: StaffEnquiryQueueFilterV3;
+  after: string | null;
+}> {
+  if (!input || typeof input !== 'object')
+    return invalid('VALIDATION', 'Use enquiry queue fields.');
+  const q = attachRecord(input, Object.keys(input), 'VALIDATION');
+  if (Object.keys(q).some((key) => !['limit', 'filter', 'after'].includes(key)))
+    return invalid('VALIDATION', 'Unsupported enquiry queue field.');
+  const limit = Object.hasOwn(q, 'limit') ? integer(q.limit, 1, 100, 'VALIDATION', 'Limit') : 50;
+  const filter = Object.hasOwn(q, 'filter') ? q.filter : 'all';
+  if (typeof filter !== 'string' || !['all', 'open', 'overdue', 'today'].includes(filter))
+    return invalid('VALIDATION', 'Invalid enquiry queue filter.');
+  const after = Object.hasOwn(q, 'after') ? uuid(q.after, 'VALIDATION', 'Enquiry cursor') : null;
+  if (after !== null && after !== q.after)
+    return invalid('VALIDATION', 'Use a canonical enquiry cursor.');
+  return Object.freeze({ limit, filter: filter as StaffEnquiryQueueFilterV3, after });
+}
+export function validateStaffEnquiryQueuePageV3(
+  input: unknown,
+  selection: StaffEnquiryQueueInputV3 = {},
+): StaffEnquiryQueuePageV3 {
+  const expected = validateStaffEnquiryQueueInputV3(selection);
+  const value = attachRecord(
+    input,
+    ['policy', 'items', 'limit', 'filter', 'after', 'hasMore', 'nextAfter', 'asOf', 'timeZone'],
+    'INVALID_RESPONSE',
+  );
+  const items = enquiryArray(value.items, expected.limit).map(validateStaffEnquirySummaryV2);
+  const asOf = enquiryTime(value.asOf, 'INVALID_RESPONSE')!;
+  if (
+    value.policy !== 'staff-enquiry-queue-v3' ||
+    value.limit !== expected.limit ||
+    value.filter !== expected.filter ||
+    value.after !== expected.after ||
+    value.timeZone !== 'Africa/Nairobi' ||
+    typeof value.hasMore !== 'boolean' ||
+    (value.hasMore && items.length !== expected.limit)
+  )
+    return invalid('INVALID_RESPONSE', 'Inconsistent enquiry queue metadata.');
+  if (
+    new Set(items.map((item) => item.id)).size !== items.length ||
+    items.some((item) => item.id === expected.after) ||
+    value.nextAfter !== (value.hasMore ? items.at(-1)?.id : null)
+  )
+    return invalid('INVALID_RESPONSE', 'Invalid enquiry queue cursor.');
+  const instant = Date.parse(asOf),
+    nextMidnight = Math.floor((instant + 10800000) / 86400000) * 86400000 - 10800000 + 86400000;
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index]!;
+    // Millisecond DTO dates cannot establish UUID tie order for distinct database microseconds.
+    if (index > 0 && item.createdAt > items[index - 1]!.createdAt)
+      return invalid('INVALID_RESPONSE', 'Invalid enquiry queue ordering.');
+    const open = ['new', 'assigned', 'contacted', 'qualified'].includes(item.status),
+      due = item.nextActionAt === null ? null : Date.parse(item.nextActionAt);
+    if (
+      expected.filter !== 'all' &&
+      (!open ||
+        (expected.filter === 'overdue' && (due === null || due >= instant)) ||
+        (expected.filter === 'today' && (due === null || due < instant || due >= nextMidnight)))
+    )
+      return invalid('INVALID_RESPONSE', 'Enquiry does not match the queue filter.');
+  }
+  return Object.freeze({
+    policy: 'staff-enquiry-queue-v3',
+    items: Object.freeze(items),
+    limit: expected.limit,
+    filter: expected.filter,
+    after: expected.after,
+    hasMore: value.hasMore,
+    nextAfter: value.nextAfter as string | null,
+    asOf,
+    timeZone: 'Africa/Nairobi',
+  });
+}
 function assertEnquiryJsonTokens(source: string): void {
   assertMediaJsonTokens(source);
   const tokens =
@@ -3263,6 +3357,23 @@ export class RealtorApiClient {
       limit: captured.limit,
       truncated: data.truncated,
     });
+  }
+  async listStaffEnquiriesV3(
+    input: StaffEnquiryQueueInputV3,
+    options: StaffRequestOptions,
+  ): Promise<StaffEnquiryQueuePageV3> {
+    const selected = validateStaffEnquiryQueueInputV3(input),
+      captured = uploadOptions(options);
+    const params = new URLSearchParams({ limit: String(selected.limit), filter: selected.filter });
+    if (selected.after !== null) params.set('after', selected.after);
+    return validateStaffEnquiryQueuePageV3(
+      await this.request(`/v3/staff/enquiries?${params}`, 'GET', captured),
+      {
+        limit: selected.limit,
+        filter: selected.filter,
+        ...(selected.after === null ? {} : { after: selected.after }),
+      },
+    );
   }
   /** Current authorized bounded queue only; open and re-read a revision before editing it. */
   async getStaffListingV2(
@@ -5093,6 +5204,10 @@ export class RealtorApiClient {
     const importPreview = path === '/v2/staff/listing-import-preview' && method === 'POST';
     const publicReference = /^\/v3\/properties\?limit=(?:[1-9]\d?|100)$/.test(path);
     const publicSearch = /^\/v[23]\/properties\/search\?/.test(path);
+    const enquiryQueue =
+      /^\/v3\/staff\/enquiries\?limit=(?:[1-9]\d?|100)&filter=(?:all|open|overdue|today)(?:&after=[0-9a-f-]{36})?$/.test(
+        path,
+      );
     const publicReferenceOptions = path === '/v3/property-reference-options';
     const referenceCatalogue =
       /^\/v3\/staff\/reference-catalogues\/(?:current|[1-9]\d{0,15})$/.test(path);
@@ -5133,7 +5248,9 @@ export class RealtorApiClient {
       /^\/v2\/staff\/listings\/[0-9a-f-]+\/verification-(?:operations\/[0-9a-f-]+|history\?limit=[1-9]\d?(?:&beforeVersion=[1-9]\d{0,15})?)$/.test(
         path,
       );
+    const strictRead = reference || enquiryQueue;
     const boundedRead =
+      enquiryQueue ||
       publicSearch ||
       importPreview ||
       (method === 'GET' &&
@@ -5143,7 +5260,7 @@ export class RealtorApiClient {
     const writes = method !== 'GET' && !importPreview;
     const upload = UPLOAD_PATH.test(path),
       finalization = FINALIZE_PATH.test(path),
-      enquiry = STAFF_ENQUIRY_PATH.test(path),
+      enquiry = STAFF_ENQUIRY_PATH.test(path) || enquiryQueue,
       listingQueue = /^\/v2\/staff\/listings\?limit=[1-9]\d?$/.test(path);
     const expectedStatus =
       (path === '/v1/enquiries' || path === '/v2/staff/enquiry-captures') && method === 'POST'
@@ -5193,7 +5310,7 @@ export class RealtorApiClient {
           ...(binary ? { body: binary } : body ? { body: JSON.stringify(body) } : {}),
         });
         if (boundedRead && controller.signal.aborted) {
-          if (reference) void result.body?.cancel().catch(() => {});
+          if (strictRead) void result.body?.cancel().catch(() => {});
           else await result.body?.cancel();
           throw new ApiClientError(
             interruption ?? 'CANCELLED',
@@ -5206,7 +5323,7 @@ export class RealtorApiClient {
           (result.url && new URL(result.url).href !== new URL(url).href)
         ) {
           if (boundedRead) {
-            if (reference) void result.body?.cancel().catch(() => {});
+            if (strictRead) void result.body?.cancel().catch(() => {});
             else await result.body?.cancel();
           }
           throw new ApiClientError('REDIRECT', 'API redirects are not permitted.', {
@@ -5217,7 +5334,7 @@ export class RealtorApiClient {
           !/^application\/json(?:\s*;[^\r\n]*)?$/i.test(result.headers.get('content-type') ?? '')
         ) {
           if (boundedRead) {
-            if (reference) void result.body?.cancel().catch(() => {});
+            if (strictRead) void result.body?.cancel().catch(() => {});
             else await result.body?.cancel();
           }
           throw new ApiClientError('INVALID_RESPONSE', 'Expected a JSON API response.', {
@@ -5246,11 +5363,12 @@ export class RealtorApiClient {
             declared = result.headers.get('content-length');
           if (
             result.headers.has('content-encoding') ||
+            (enquiryQueue && result.headers.has('content-range')) ||
             (declared !== null &&
               (!/^(0|[1-9]\d*)$/.test(declared) || Number(declared) > maximum)) ||
             !result.body
           ) {
-            if (reference) void result.body?.cancel().catch(() => {});
+            if (strictRead) void result.body?.cancel().catch(() => {});
             else await result.body?.cancel();
             throw new ApiClientError(
               'INVALID_RESPONSE',
@@ -5269,7 +5387,7 @@ export class RealtorApiClient {
             for (;;) {
               const part = await reader.read();
               if (part.done) break;
-              if (reference && !part.value.byteLength) {
+              if (strictRead && !part.value.byteLength) {
                 if (++emptyFrames > 1024) {
                   void reader.cancel().catch(() => {});
                   throw new ApiClientError('INVALID_RESPONSE', 'Too many empty response frames.');
@@ -5280,7 +5398,7 @@ export class RealtorApiClient {
               emptyFrames = 0;
               size += part.value.byteLength;
               if (size > maximum) {
-                if (reference) void reader.cancel().catch(() => {});
+                if (strictRead) void reader.cancel().catch(() => {});
                 else await reader.cancel();
                 throw new ApiClientError(
                   'INVALID_RESPONSE',

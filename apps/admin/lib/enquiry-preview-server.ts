@@ -35,6 +35,7 @@ import {
   type EnquiryOperationInputV2,
 } from '@realtor/api-client';
 import { assertPreviewRequest } from './staff-preview-policy.ts';
+import { parseEnquiryQueueSearch } from './enquiry-queue.ts';
 
 type Actor = 'admin' | 'agent';
 type Action =
@@ -57,6 +58,7 @@ type Action =
   | 'viewing-confirm-recover'
   | 'viewing-properties'
   | 'list'
+  | 'queue'
   | 'detail'
   | 'assignees'
   | 'command'
@@ -232,48 +234,51 @@ function requestShape(request: Request, params: Params, action: Action): number 
     reminderCapture = action === 'reminder-capture' || action === 'reminder-capture-recover';
   if (reminderCapture ? !params.admissionOperationId : params.admissionOperationId !== undefined)
     throw new BoundaryError(400, 'INVALID_INPUT');
-  const path = reminderAdmit
-    ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/reminder-admissions${action.endsWith('-recover') ? '/recover' : ''}`
-    : reminderCapture
-      ? `${base}/enquiries/${params.id}/viewing-reminder-admissions/${params.admissionOperationId}/captures${action.endsWith('-recover') ? '/recover' : ''}`
-      : outcome
-        ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/${action.startsWith('viewing-complete') ? 'completions' : 'no-shows'}${action.endsWith('-recover') ? '/recover' : ''}`
-        : action === 'viewing-reschedule' || action === 'viewing-reschedule-recover'
-          ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/reschedules${action.endsWith('-recover') ? '/recover' : ''}`
-          : action === 'viewing-history'
-            ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/history`
-            : terminal
-              ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/${action.startsWith('viewing-cancel') ? 'cancellations' : 'declines'}${action.endsWith('-recover') ? '/recover' : ''}`
-              : action === 'viewing-confirm' || action === 'viewing-confirm-recover'
-                ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/confirmations${action === 'viewing-confirm-recover' ? '/recover' : ''}`
-                : action === 'viewing-properties'
-                  ? `${base}/viewing-properties`
-                  : action === 'list'
-                    ? `${base}/enquiries`
-                    : action === 'assignees'
-                      ? `${base}/assignees`
-                      : action === 'viewing-list' || action === 'viewing-request'
-                        ? `${base}/enquiries/${params.id}/viewings`
-                        : action === 'viewing-detail'
-                          ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}`
-                          : action === 'viewing-propose'
-                            ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/proposals`
-                            : action === 'viewing-recover'
-                              ? `${base}/enquiries/${params.id}/viewings/recover`
-                              : action === 'contacts' || action === 'contact-record'
-                                ? `${base}/enquiries/${params.id}/contacts`
-                                : action === 'contact-recover'
-                                  ? `${base}/enquiries/${params.id}/contacts/recover`
-                                  : action === 'activity'
-                                    ? `${base}/enquiries/${params.id}/activity`
-                                    : action === 'detail'
-                                      ? `${base}/enquiries/${params.id}`
-                                      : action === 'command'
-                                        ? `${base}/enquiries/${params.id}/operations`
-                                        : `${base}/enquiries/${params.id}/operations/${params.operationId}`;
+  const path =
+    action === 'queue'
+      ? `${base}/queue`
+      : reminderAdmit
+        ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/reminder-admissions${action.endsWith('-recover') ? '/recover' : ''}`
+        : reminderCapture
+          ? `${base}/enquiries/${params.id}/viewing-reminder-admissions/${params.admissionOperationId}/captures${action.endsWith('-recover') ? '/recover' : ''}`
+          : outcome
+            ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/${action.startsWith('viewing-complete') ? 'completions' : 'no-shows'}${action.endsWith('-recover') ? '/recover' : ''}`
+            : action === 'viewing-reschedule' || action === 'viewing-reschedule-recover'
+              ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/reschedules${action.endsWith('-recover') ? '/recover' : ''}`
+              : action === 'viewing-history'
+                ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/history`
+                : terminal
+                  ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/${action.startsWith('viewing-cancel') ? 'cancellations' : 'declines'}${action.endsWith('-recover') ? '/recover' : ''}`
+                  : action === 'viewing-confirm' || action === 'viewing-confirm-recover'
+                    ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/confirmations${action === 'viewing-confirm-recover' ? '/recover' : ''}`
+                    : action === 'viewing-properties'
+                      ? `${base}/viewing-properties`
+                      : action === 'list'
+                        ? `${base}/enquiries`
+                        : action === 'assignees'
+                          ? `${base}/assignees`
+                          : action === 'viewing-list' || action === 'viewing-request'
+                            ? `${base}/enquiries/${params.id}/viewings`
+                            : action === 'viewing-detail'
+                              ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}`
+                              : action === 'viewing-propose'
+                                ? `${base}/enquiries/${params.id}/viewings/${params.viewingId}/proposals`
+                                : action === 'viewing-recover'
+                                  ? `${base}/enquiries/${params.id}/viewings/recover`
+                                  : action === 'contacts' || action === 'contact-record'
+                                    ? `${base}/enquiries/${params.id}/contacts`
+                                    : action === 'contact-recover'
+                                      ? `${base}/enquiries/${params.id}/contacts/recover`
+                                      : action === 'activity'
+                                        ? `${base}/enquiries/${params.id}/activity`
+                                        : action === 'detail'
+                                          ? `${base}/enquiries/${params.id}`
+                                          : action === 'command'
+                                            ? `${base}/enquiries/${params.id}/operations`
+                                            : `${base}/enquiries/${params.id}/operations/${params.operationId}`;
   if (
     url.pathname !== path ||
-    (['list', 'assignees', 'viewing-properties'].includes(action)
+    (['list', 'queue', 'assignees', 'viewing-properties'].includes(action)
       ? params.id !== undefined || params.operationId !== undefined
       : !params.id) ||
     (action === 'operation' ? !params.operationId : params.operationId !== undefined)
@@ -305,7 +310,14 @@ function requestShape(request: Request, params: Params, action: Action): number 
     throw new BoundaryError(400, 'INVALID_INPUT');
   if (params.actor === 'agent' && action === 'assignees') throw new BoundaryError(403, 'FORBIDDEN');
   let limit: number | undefined;
-  if (
+  if (action === 'queue') {
+    try {
+      if (!url.search && request.url.includes('?')) throw new Error();
+      parseEnquiryQueueSearch(url.searchParams);
+    } catch {
+      throw new BoundaryError(400, 'INVALID_INPUT');
+    }
+  } else if (
     action === 'list' ||
     action === 'assignees' ||
     action === 'activity' ||
@@ -850,7 +862,12 @@ export async function enquiryPreviewRequest(
         viewing.command,
         options,
       );
-    } else if (action === 'list') result = await client.listStaffEnquiriesV2({ ...options, limit });
+    } else if (action === 'queue')
+      result = await client.listStaffEnquiriesV3(
+        parseEnquiryQueueSearch(new URL(request.url).searchParams),
+        options,
+      );
+    else if (action === 'list') result = await client.listStaffEnquiriesV2({ ...options, limit });
     else if (action === 'assignees')
       result = await client.listEnquiryAssigneesV2({ ...options, limit });
     else if (action === 'contacts')

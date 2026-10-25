@@ -71,6 +71,12 @@ import {
   type EnquiryOperationReceiptV2,
 } from '@realtor/api-client';
 import { validateEnquiryCommand } from './enquiry-model.ts';
+import {
+  validateStaffEnquiryQueuePageV3,
+  type StaffEnquiryQueueInputV3,
+  type StaffEnquiryQueuePageV3,
+} from '@realtor/api-client';
+import { enquiryQueueInput, enquiryQueueSearch } from './enquiry-queue.ts';
 
 export type EnquiryPreviewErrorKind =
   'validation' | 'network' | 'timeout' | 'cancelled' | 'response' | 'http';
@@ -195,6 +201,7 @@ export interface EnquiryPreviewClient {
   prepareCapture(input: StaffEnquiryInput, key: string): CaptureAttempt;
   activity(id: string, signal?: AbortSignal): Promise<EnquiryActivityPage>;
   list(signal?: AbortSignal): Promise<StaffEnquiryPageV2>;
+  queue(input: StaffEnquiryQueueInputV3, signal?: AbortSignal): Promise<StaffEnquiryQueuePageV3>;
   detail(id: string, signal?: AbortSignal): Promise<StaffEnquiryDetailV2>;
   assignees(signal?: AbortSignal): Promise<EnquiryAssigneePageV2>;
   apply(
@@ -1016,6 +1023,17 @@ export function createEnquiryPreviewClient(input: Configuration): EnquiryPreview
       ),
     list: (signal?: AbortSignal) =>
       request(`${basePath}/enquiries?limit=50`, 'GET', signal, enquiryPage),
+    queue: (input: StaffEnquiryQueueInputV3, signal?: AbortSignal) => {
+      let captured: StaffEnquiryQueueInputV3;
+      try {
+        captured = enquiryQueueInput(input);
+      } catch {
+        throw new EnquiryPreviewError('validation');
+      }
+      return request(`${basePath}/queue?${enquiryQueueSearch(captured)}`, 'GET', signal, (value) =>
+        validateStaffEnquiryQueuePageV3(value, captured),
+      );
+    },
     detail: async (id: string, signal?: AbortSignal) => {
       const selected = selectedId(id);
       return request(`${basePath}/enquiries/${selected}`, 'GET', signal, (value) =>

@@ -19,7 +19,7 @@ export default async function Advisor({ params }: { params: Promise<{ id: string
           <span aria-hidden="true">/</span>
           <a href="/company">Company</a>
           <span aria-hidden="true">/</span>
-          <span aria-current="page">Sample advisor</span>
+          <span aria-current="page">{advisor.name}</span>
         </nav>
         <AdvisorContent info={info} advisor={advisor} />
       </main>

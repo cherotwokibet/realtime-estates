@@ -3,48 +3,114 @@ import type { PublicAdvisor, PublicCompanyInfo } from '../lib/public-company.ts'
 function ProfileNotice({ info }: { info: PublicCompanyInfo }) {
   return (
     <p className="public-info-notice">
-      {info.synthetic
-        ? 'Synthetic development preview. Company branding is configured; the sample advisor is not a real person. No real availability or viewing booking is offered.'
-        : 'Development preview. Verified company, contact and advisor information has not been supplied.'}
+      {info.contentStatus === 'configured'
+        ? 'Configured public information · Development preview. Company and advisor details have not been independently verified.'
+        : info.synthetic
+          ? 'Synthetic development preview. Company branding is configured; the sample advisor is not a real person. No real availability or viewing booking is offered.'
+          : 'Development preview. Verified company, contact and advisor information has not been supplied.'}
     </p>
   );
 }
 
-function ContactFacts() {
+function UnavailablePublicContent({ info }: { info: PublicCompanyInfo }) {
+  return (
+    <section className="public-info-intro" aria-labelledby="public-info-unavailable">
+      <span className="eyebrow">{info.name}</span>
+      <h1 id="public-info-unavailable">Company information is unavailable.</h1>
+      <p role="alert">Public company information could not be loaded. Please try again later.</p>
+      <a className="primary" href="/">
+        Explore properties
+      </a>
+    </section>
+  );
+}
+
+function ContactFacts({ info }: { info: PublicCompanyInfo }) {
+  const configured = info.contentStatus === 'configured';
+  const contact = info.content?.contact;
+  const emailParts = contact?.email?.split('@');
   return (
     <dl className="public-contact-facts">
       <div>
-        <dt>Phone and WhatsApp</dt>
-        <dd>Verified number not supplied</dd>
+        <dt>Phone</dt>
+        <dd>
+          {contact?.phone ? (
+            <a href={'tel:' + contact.phone}>{contact.phone}</a>
+          ) : configured ? (
+            'Phone number not supplied'
+          ) : (
+            'Verified number not supplied'
+          )}
+        </dd>
+      </div>
+      <div>
+        <dt>WhatsApp</dt>
+        <dd>
+          {contact?.whatsapp && contact.phone ? (
+            <a
+              href={'https://wa.me/' + contact.phone.slice(1)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open WhatsApp
+            </a>
+          ) : (
+            'WhatsApp channel not supplied'
+          )}
+        </dd>
       </div>
       <div>
         <dt>Email</dt>
-        <dd>Verified email not supplied</dd>
+        <dd>
+          {contact?.email && emailParts ? (
+            <a href={'mailto:' + encodeURIComponent(emailParts[0]!) + '@' + emailParts[1]}>
+              {contact.email}
+            </a>
+          ) : configured ? (
+            'Email not supplied'
+          ) : (
+            'Verified email not supplied'
+          )}
+        </dd>
       </div>
       <div>
         <dt>Office</dt>
-        <dd>Verified address not supplied</dd>
+        <dd>
+          {info.content?.company.officeAddress ??
+            (configured ? 'Office address not supplied' : 'Verified address not supplied')}
+        </dd>
       </div>
       <div>
         <dt>Opening hours</dt>
-        <dd>Verified hours not supplied</dd>
+        <dd>
+          {info.content?.company.openingHours ??
+            (configured ? 'Opening hours not supplied' : 'Verified hours not supplied')}
+        </dd>
       </div>
     </dl>
   );
 }
 
 export function CompanyContent({ info }: { info: PublicCompanyInfo }) {
+  if (info.contentStatus === 'invalid') return <UnavailablePublicContent info={info} />;
   return (
     <>
       <ProfileNotice info={info} />
       <section className="public-info-intro" aria-labelledby="company-title">
         <span className="eyebrow">COMPANY INFORMATION</span>
         <h1 id="company-title">{info.name}</h1>
-        <p>Explore homes with clear property details and costs in one place.</p>
         <p>
-          This preview demonstrates the company’s public pages. Its legal identity, history, service
-          coverage and credentials still need verified information before launch.
+          {info.content?.company.summary ??
+            'Explore homes with clear property details and costs in one place.'}
         </p>
+        {info.content ? (
+          <p>{info.content.company.about}</p>
+        ) : (
+          <p>
+            This preview demonstrates the company’s public pages. Its legal identity, history,
+            service coverage and credentials still need verified information before launch.
+          </p>
+        )}
         <div className="public-info-actions">
           <a className="primary" href="/">
             Explore properties
@@ -66,8 +132,24 @@ export function CompanyContent({ info }: { info: PublicCompanyInfo }) {
           <a href="/#how">How to use the catalogue →</a>
         </section>
         <section className="public-info-card" aria-labelledby="company-team">
-          <h2 id="company-team">Meet the team</h2>
-          {info.advisor ? (
+          <h2 id="company-team">
+            {info.contentStatus === 'configured' ? 'Advisor profiles' : 'Meet the team'}
+          </h2>
+          {info.contentStatus === 'configured' ? (
+            info.advisors.length ? (
+              <ul>
+                {info.advisors.map((advisor) => (
+                  <li key={advisor.id}>
+                    <h3>{advisor.name}</h3>
+                    <p>{advisor.role}</p>
+                    <a href={'/agents/' + advisor.id}>View advisor profile →</a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No advisor profiles have been supplied.</p>
+            )
+          ) : info.advisor ? (
             <>
               <p className="public-profile-kind">Synthetic sample profile</p>
               <h3>{info.advisor.name}</h3>
@@ -87,21 +169,29 @@ export function CompanyContent({ info }: { info: PublicCompanyInfo }) {
 }
 
 export function ContactContent({ info }: { info: PublicCompanyInfo }) {
+  if (info.contentStatus === 'invalid') return <UnavailablePublicContent info={info} />;
   return (
     <>
       <ProfileNotice info={info} />
       <section className="public-info-intro" aria-labelledby="contact-title">
         <span className="eyebrow">CONTACT INFORMATION</span>
         <h1 id="contact-title">Get in touch with {info.name}.</h1>
-        <p>
-          Verified contact channels are not available in this preview. No call, email, WhatsApp
-          message or office visit can be arranged here.
-        </p>
+        {info.contentStatus === 'configured' ? (
+          <p>
+            Company contact details supplied for this preview appear below. Confirm availability,
+            opening hours and viewing arrangements directly with the company.
+          </p>
+        ) : (
+          <p>
+            Verified contact channels are not available in this preview. No call, email, WhatsApp
+            message or office visit can be arranged here.
+          </p>
+        )}
       </section>
       <div className="public-info-grid">
         <section className="public-info-card" aria-labelledby="contact-details">
           <h2 id="contact-details">Contact details</h2>
-          <ContactFacts />
+          <ContactFacts info={info} />
         </section>
         <section className="public-info-card" aria-labelledby="contact-enquiry">
           <h2 id="contact-enquiry">Enquiries and viewings</h2>
@@ -139,47 +229,72 @@ export function AdvisorContent({
   info: PublicCompanyInfo;
   advisor: PublicAdvisor;
 }) {
+  if (info.contentStatus === 'invalid' || !info.advisors.includes(advisor))
+    return <UnavailablePublicContent info={info} />;
+  const configured = advisor.source === 'configuration';
   return (
     <>
       <ProfileNotice info={info} />
       <section className="public-info-intro" aria-labelledby="advisor-title">
-        <span className="eyebrow">SAMPLE ADVISOR PROFILE</span>
+        <span className="eyebrow">{configured ? 'ADVISOR PROFILE' : 'SAMPLE ADVISOR PROFILE'}</span>
         <div className="public-advisor-heading">
           <span className="public-advisor-avatar" aria-hidden="true">
-            SP
+            {configured ? 'AD' : 'SP'}
           </span>
           <div>
             <h1 id="advisor-title">{advisor.name}</h1>
             <p>{advisor.role}</p>
           </div>
         </div>
-        <p>
-          A synthetic profile for {info.name}. This is not a real person and does not represent an
-          employment relationship, verified qualification or property assignment.
-        </p>
+        {configured ? (
+          <p>
+            Public advisor information for {info.name}. Confirm the supplied details with the
+            company.
+          </p>
+        ) : (
+          <p>
+            A synthetic profile for {info.name}. This is not a real person and does not represent an
+            employment relationship, verified qualification or property assignment.
+          </p>
+        )}
       </section>
       <div className="public-info-grid">
         <section className="public-info-card" aria-labelledby="advisor-about">
           <h2 id="advisor-about">About this profile</h2>
-          <p>
-            This page demonstrates how a public advisor profile connects to company information and
-            contact options. Biography, languages, qualifications and service areas have not been
-            supplied.
-          </p>
-          <p>
-            No properties are assigned to this sample advisor. Browse the company catalogue to
-            explore its available preview listings.
-          </p>
+          {configured ? (
+            <p>{advisor.bio}</p>
+          ) : (
+            <p>
+              This page demonstrates how a public advisor profile connects to company information
+              and contact options. Biography, languages, qualifications and service areas have not
+              been supplied.
+            </p>
+          )}
+          {configured ? (
+            <p>
+              Property assignments are not supplied by this profile. Browse the company catalogue
+              for public listings.
+            </p>
+          ) : (
+            <p>
+              No properties are assigned to this sample advisor. Browse the company catalogue to
+              explore its available preview listings.
+            </p>
+          )}
           <a className="primary" href="/">
             Explore company properties
           </a>
         </section>
         <section className="public-info-card" aria-labelledby="advisor-contact">
           <h2 id="advisor-contact">Contact information</h2>
-          <p>
-            No verified personal contact information is available. The company contact page shows
-            which channels are available in this preview.
-          </p>
+          {configured ? (
+            <p>Use the company contact page for the supplied company channels.</p>
+          ) : (
+            <p>
+              No verified personal contact information is available. The company contact page shows
+              which channels are available in this preview.
+            </p>
+          )}
           <div className="public-info-actions">
             <a href="/contact">Company contact information →</a>
             <a href="/company">About {info.name} →</a>

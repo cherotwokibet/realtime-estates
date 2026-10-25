@@ -1,4 +1,5 @@
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
+import { staffEnquiryQueueQuery, EnquiryQueueInputError } from './enquiry-queue.js';
 import {
   PUBLIC_REFERENCE_OPTIONS_SQL,
   publicReferenceOptions,
@@ -1750,7 +1751,8 @@ export function createApiService(
       const reviewRoute =
         /^\/v2\/staff\/reviews\/([^/]+)\/revisions\/([1-9]\d*)(\/decision)?$/.exec(path);
       const v2Draft = path.startsWith('/v2/staff/');
-      if (path.startsWith('/v3/staff/')) {
+      const enquiryQueueV3 = path === '/v3/staff/enquiries';
+      if (path.startsWith('/v3/staff/') && !enquiryQueueV3) {
         if (!referenceEnabled) throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
         const catalogueRoute = /^\/v3\/staff\/reference-catalogues\/(current|[1-9]\d{0,15})$/.exec(
           path,
@@ -2319,9 +2321,106 @@ export function createApiService(
         );
         return response(200, result, correlationId);
       }
-      if (path.startsWith('/v1/staff/') || v2Draft) {
+      if (path.startsWith('/v1/staff/') || v2Draft || enquiryQueueV3) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        if (enquiryQueueV3) {
+          if (method !== 'GET')
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Enquiry queue is read-only.', {
+              Allow: 'GET',
+            });
+          let forbidden = request.body !== null || request.url.includes('#');
+          request.headers.forEach((_, name) => {
+            if (
+              [
+                'cookie',
+                'content-type',
+                'content-length',
+                'content-encoding',
+                'transfer-encoding',
+                'expect',
+                'range',
+                'idempotency-key',
+                'x-actor-id',
+                'x-tenant-id',
+                'x-role',
+                'x-actor',
+                'x-tenant',
+                'x-company-id',
+                'x-assigned-agent-id',
+                'x-revision-version',
+              ].includes(name) ||
+              name.startsWith('if-')
+            )
+              forbidden = true;
+          });
+          if (forbidden)
+            throw new HttpError(400, 'INVALID_INPUT', 'Unsupported enquiry queue context.');
+          let selected: ReturnType<typeof staffEnquiryQueueQuery>;
+          try {
+            selected = staffEnquiryQueueQuery(url.searchParams);
+          } catch (error) {
+            if (!(error instanceof EnquiryQueueInputError)) throw error;
+            throw new HttpError(400, 'INVALID_INPUT', error.message);
+          }
+          const result = await options.database.transaction(context, async (query) => {
+            await assertStaff(query);
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            return query.query(
+              `WITH clock AS MATERIALIZED (
+              SELECT date_trunc('milliseconds',statement_timestamp()) AS captured_at
+            ), anchor AS MATERIALIZED (
+              SELECT e.created_at,e.id FROM app_private.enquiries e WHERE e.tenant_id=$1::uuid AND e.id=$2::uuid
+            ), candidates AS MATERIALIZED (
+              SELECT ${ENQUIRY_SELECT},e.created_at AS "_queueCreatedAt"
+              FROM app_private.enquiries e CROSS JOIN clock c
+              WHERE e.tenant_id=$1::uuid
+                AND ($2::uuid IS NULL OR EXISTS (SELECT 1 FROM anchor a WHERE e.created_at<a.created_at OR (e.created_at=a.created_at AND e.id>a.id)))
+                AND ($3::text='all' OR (e.status IN ('new','assigned','contacted','qualified') AND (
+                  $3::text='open' OR ($3::text='overdue' AND e.next_action_at<c.captured_at)
+                  OR ($3::text='today' AND e.next_action_at>=c.captured_at AND e.next_action_at<((date_trunc('day',c.captured_at AT TIME ZONE 'Africa/Nairobi')+interval '1 day') AT TIME ZONE 'Africa/Nairobi'))
+                )))
+              ORDER BY e.created_at DESC,e.id ASC LIMIT $4
+            ) SELECT ($2::uuid IS NULL OR EXISTS(SELECT 1 FROM anchor)) AS "anchorVisible",
+              to_char(c.captured_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "asOf",
+              COALESCE((SELECT jsonb_agg(to_jsonb(p)-'_queueCreatedAt' ORDER BY p."_queueCreatedAt" DESC,p.id ASC) FROM candidates p),'[]'::jsonb) AS items
+            FROM clock c`,
+              [tenantId, selected.after, selected.filter, selected.limit + 1],
+            );
+          });
+          if (result.rows.length !== 1) throw Error('Invalid enquiry queue snapshot.');
+          const row = result.rows[0]!;
+          if (row.anchorVisible === false)
+            throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+          if (
+            row.anchorVisible !== true ||
+            !Array.isArray(row.items) ||
+            row.items.length > selected.limit + 1
+          )
+            throw Error('Invalid enquiry queue bounds.');
+          const projected = row.items.map((item) => enquiryProjection(item, false));
+          if (
+            new Set(projected.map((item) => item.id)).size !== projected.length ||
+            projected.some((item) => item.id === selected.after)
+          )
+            throw Error('Repeated enquiry queue identity.');
+          const items = projected.slice(0, selected.limit),
+            hasMore = projected.length > selected.limit;
+          const page = {
+            policy: 'staff-enquiry-queue-v3',
+            items,
+            limit: selected.limit,
+            filter: selected.filter,
+            after: selected.after,
+            hasMore,
+            nextAfter: hasMore ? items.at(-1)!.id : null,
+            asOf: enquiryInstant(row.asOf, true),
+            timeZone: 'Africa/Nairobi',
+          };
+          if (new TextEncoder().encode(JSON.stringify(page)).byteLength > 1024 * 1024)
+            throw Error('Enquiry queue response exceeded bound.');
+          return response(200, page, correlationId);
+        }
         if (path === '/v2/staff/session') {
           if (method !== 'GET')
             throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Staff context is read-only.', {

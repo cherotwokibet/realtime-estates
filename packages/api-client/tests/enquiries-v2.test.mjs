@@ -6,6 +6,8 @@ import {
   validateStaffEnquirySummaryV2,
   validateStaffEnquiryDetailV2,
   validateEnquiryOperationReceiptV2,
+  validateStaffEnquiryQueueInputV3,
+  validateStaffEnquiryQueuePageV3,
 } from '../dist/index.js';
 
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -53,6 +55,262 @@ const detail = (patch = {}) => ({
   noticeVersion: 'synthetic-v1',
   closureReason: null,
   ...patch,
+});
+const queuePage = (patch = {}) => ({
+  policy: 'staff-enquiry-queue-v3',
+  items: [],
+  limit: 50,
+  filter: 'all',
+  after: null,
+  hasMore: false,
+  nextAfter: null,
+  asOf: NOW,
+  timeZone: 'Africa/Nairobi',
+  ...patch,
+});
+test('v3 enquiry queue snapshots exact inputs and refuses malformed fields or staff options before I/O', async () => {
+  let calls = 0,
+    reads = 0;
+  const api = client(async () => {
+    calls++;
+    return json(queuePage());
+  });
+  assert.deepEqual(validateStaffEnquiryQueueInputV3({}), { limit: 50, filter: 'all', after: null });
+  assert.ok(Object.isFrozen(validateStaffEnquiryQueueInputV3({})));
+  for (const input of [
+    null,
+    [],
+    new Date(),
+    { limit: 0 },
+    { limit: 101 },
+    { limit: '50' },
+    { limit: undefined },
+    { filter: '' },
+    { filter: 'Open' },
+    { filter: ' open' },
+    { filter: 'open ' },
+    { filter: ['all'] },
+    { after: '' },
+    { after: null },
+    { after: 'bad' },
+    { after: '00000000-0000-4000-800A-000000000100' },
+    { tenantId: OTHER },
+    { offset: 50 },
+    { sort: 'id' },
+  ])
+    await assert.rejects(
+      () => api.listStaffEnquiriesV3(input, OPTIONS),
+      (e) => e.kind === 'VALIDATION',
+    );
+  for (const field of ['limit', 'filter', 'after']) {
+    const input = {};
+    Object.defineProperty(input, field, {
+      enumerable: true,
+      get() {
+        reads++;
+        return field === 'limit' ? 50 : 'all';
+      },
+    });
+    await assert.rejects(
+      () => api.listStaffEnquiriesV3(input, OPTIONS),
+      (e) => e.kind === 'VALIDATION',
+    );
+  }
+  const bearer = {};
+  Object.defineProperty(bearer, 'bearerToken', {
+    enumerable: true,
+    get() {
+      reads++;
+      return 'secret';
+    },
+  });
+  for (const options of [
+    bearer,
+    { ...OPTIONS, tenantId: OTHER },
+    { ...OPTIONS, after: OTHER },
+    { bearerToken: '' },
+  ])
+    await assert.rejects(
+      () => api.listStaffEnquiriesV3({}, options),
+      (e) => e.kind === 'VALIDATION',
+    );
+  assert.equal(reads, 0);
+  assert.equal(calls, 0);
+});
+test('v3 enquiry queue sends one immutable authenticated no-store keyset request', async () => {
+  let release, observed;
+  const input = { limit: 2, filter: 'open', after: OTHER },
+    options = { ...OPTIONS };
+  const api = client(async (url, init) => {
+    observed = { url: new URL(url), init };
+    await new Promise((resolve) => (release = resolve));
+    return json(queuePage({ limit: 2, filter: 'open', after: OTHER }));
+  });
+  const pending = api.listStaffEnquiriesV3(input, options);
+  input.after = OPERATION;
+  input.filter = 'all';
+  input.limit = 100;
+  options.bearerToken = 'changed';
+  while (!release) await new Promise((resolve) => setImmediate(resolve));
+  release();
+  const page = await pending;
+  assert.equal(observed.url.pathname, '/v3/staff/enquiries');
+  assert.equal(observed.url.search, '?limit=2&filter=open&after=' + OTHER);
+  assert.equal(observed.init.headers.Authorization, 'Bearer synthetic-staff');
+  assert.equal(observed.init.credentials, 'omit');
+  assert.equal(observed.init.cache, 'no-store');
+  assert.equal(observed.init.redirect, 'error');
+  assert.equal(observed.init.method, 'GET');
+  assert.ok(Object.isFrozen(page));
+  assert.ok(Object.isFrozen(page.items));
+  assert.equal(Object.hasOwn(page, 'total'), false);
+});
+test('v3 enquiry queue validates exact page/cursor metadata and safe summary fields', () => {
+  const input = { limit: 1 },
+    good = queuePage({ limit: 1, items: [summary()], hasMore: true, nextAfter: ENQUIRY });
+  assert.equal(validateStaffEnquiryQueuePageV3(good, input).nextAfter, ENQUIRY);
+  for (const patch of [
+    { policy: 'other' },
+    { limit: 2 },
+    { filter: 'open' },
+    { after: OTHER },
+    { timeZone: 'UTC' },
+    { asOf: 'bad' },
+    { hasMore: 'true' },
+    { nextAfter: OTHER },
+    { nextAfter: null },
+    { items: [] },
+    { items: [summary(), summary()] },
+    { items: [{ ...summary(), phone: '+254700000000' }] },
+    { total: 100 },
+  ])
+    assert.throws(
+      () => validateStaffEnquiryQueuePageV3({ ...good, ...patch }, input),
+      (e) => e.kind === 'INVALID_RESPONSE',
+    );
+  assert.throws(
+    () =>
+      validateStaffEnquiryQueuePageV3(queuePage({ after: ENQUIRY, items: [summary()] }), {
+        after: ENQUIRY,
+      }),
+    (e) => e.kind === 'INVALID_RESPONSE',
+  );
+  assert.throws(
+    () => validateStaffEnquiryQueuePageV3(queuePage({ items: [summary(), summary()] })),
+    (e) => e.kind === 'INVALID_RESPONSE',
+  );
+  assert.throws(
+    () => validateStaffEnquiryQueuePageV3(queuePage({ nextAfter: ENQUIRY })),
+    (e) => e.kind === 'INVALID_RESPONSE',
+  );
+  let reads = 0;
+  const getter = { ...good };
+  Object.defineProperty(getter, 'asOf', {
+    enumerable: true,
+    get() {
+      reads++;
+      return NOW;
+    },
+  });
+  assert.throws(
+    () => validateStaffEnquiryQueuePageV3(getter, input),
+    (e) => e.kind === 'INVALID_RESPONSE',
+  );
+  assert.equal(reads, 0);
+});
+test('v3 enquiry queue checks server-time filters at exact now and Nairobi midnight without using the browser clock', () => {
+  const asOf = '2026-10-25T20:59:59.999Z',
+    before = '2026-10-25T20:59:59.998Z',
+    midnight = '2026-10-25T21:00:00.000Z';
+  const row = (nextActionAt, status = 'contacted') => summary({ status, nextActionAt });
+  const check = (filter, item) =>
+    validateStaffEnquiryQueuePageV3(queuePage({ filter, asOf, items: [item] }), { filter });
+  assert.equal(check('today', row(asOf)).items.length, 1);
+  assert.equal(check('overdue', row(before)).items.length, 1);
+  assert.equal(check('open', row(null, 'new')).items.length, 1);
+  for (const [filter, item] of [
+    ['today', row(midnight)],
+    ['today', row(before)],
+    ['overdue', row(asOf)],
+    ['today', row(asOf, 'closed_won')],
+    ['overdue', row(before, 'spam')],
+    ['open', row(null, 'closed_lost')],
+    ['today', row(null, 'new')],
+  ])
+    assert.throws(
+      () => check(filter, item),
+      (e) => e.kind === 'INVALID_RESPONSE',
+    );
+});
+test('v3 enquiry queue does not invent UUID tie order from millisecond-only timestamps', () => {
+  const items = [summary({ id: OTHER }), summary({ id: ENQUIRY })];
+  assert.equal(validateStaffEnquiryQueuePageV3(queuePage({ items })).items.length, 2);
+  assert.throws(
+    () =>
+      validateStaffEnquiryQueuePageV3(
+        queuePage({ items: [summary({ createdAt: '2026-10-11T08:20:30.000Z' }), summary()] }),
+      ),
+    (e) => e.kind === 'INVALID_RESPONSE',
+  );
+});
+test('v3 enquiry queue rejects duplicate/rounded JSON and bounded stream framing without retries', async () => {
+  const text = JSON.stringify(queuePage());
+  const responses = [
+    () => raw(text.replace('"limit":50', '"limit":50,"limit":50')),
+    () => raw(text.replace('"limit":50', '"limit":50e0')),
+    () => raw(' '.repeat(1024 * 1024 + 1)),
+    () => json(queuePage(), 200, { 'content-encoding': 'gzip' }),
+    () => json(queuePage(), 200, { 'content-range': 'bytes 0-10/20' }),
+    () => json(queuePage(), 200, { 'content-length': '1' }),
+    () => new Response(new Uint8Array([0xff]), { headers: { 'content-type': 'application/json' } }),
+    () =>
+      new Response(
+        new ReadableStream({
+          pull(controller) {
+            controller.enqueue(new Uint8Array());
+          },
+        }),
+        { headers: { 'content-type': 'application/json' } },
+      ),
+  ];
+  for (const response of responses) {
+    let calls = 0;
+    await assert.rejects(
+      () =>
+        client(async () => {
+          calls++;
+          return response();
+        }).listStaffEnquiriesV3({}, OPTIONS),
+      (e) => e.kind === 'INVALID_RESPONSE' && !e.submissionUncertain,
+    );
+    assert.equal(calls, 1);
+  }
+  let calls = 0;
+  await assert.rejects(
+    () =>
+      client(async () => {
+        calls++;
+        return json(
+          { error: { code: 'NOT_FOUND', message: 'Resource is unavailable.' }, requestId: REQUEST },
+          404,
+        );
+      }).listStaffEnquiriesV3({ after: OTHER }, OPTIONS),
+    (e) =>
+      e.kind === 'HTTP' &&
+      e.status === 404 &&
+      e.serverCode === 'NOT_FOUND' &&
+      !e.submissionUncertain,
+  );
+  assert.equal(calls, 1);
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(
+    () =>
+      client(async () => {
+        throw Error('Must not send');
+      }).listStaffEnquiriesV3({}, { ...OPTIONS, signal: controller.signal }),
+    (e) => e.kind === 'CANCELLED',
+  );
 });
 const assign = (patch = {}) => ({
   operationId: OPERATION,

@@ -37,6 +37,9 @@ test('public company presentation uses exact configured identities and refuses u
   assert.ok(Object.isFrozen(first.advisor));
   assert.deepEqual(Object.keys(first).sort(), [
     'advisor',
+    'advisors',
+    'content',
+    'contentStatus',
     'mode',
     'name',
     'slug',

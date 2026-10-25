@@ -1,5 +1,7 @@
 # Public company, contact and advisor journey
 
+Checkpoint188 follow-up, 25 October 2026: optional trusted [public-company-content.md](public-company-content.md) now supplies bounded company/advisor/contact presentation without changing the tenant or brand authority. Absent configuration keeps the earlier synthetic/unavailable behavior described below; invalid configuration fails as one unavailable document. Real factual approval and complete browser acceptance remain open.
+
 25 October 2026. Independently written implementation for the missing public portions of task 07-1. No vendor content, customer data or real personal identity was imported.
 
 Public `/company` and `/contact` pages use the trusted deployment brand and the existing public shell, theme, skip-to-main target and notices. Header and footer link both pages; narrow navigation wraps and retains every link. Company links a synthetic advisor profile at `/agents/sample-advisor-realtime` or `/agents/sample-advisor-homes` for its exact configured company. Advisor links return to company, contact and catalogue. Unknown or foreign company profile IDs go through the normal not-found page, whose copy now also applies to profiles.
