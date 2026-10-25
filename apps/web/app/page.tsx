@@ -371,10 +371,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
           ) : browse.outOfRange ? (
             <div className="empty">
               <h3>Choose an available loaded page.</h3>
-              <p>
-                The matching loaded properties still exist; this page is outside their current
-                range.
-              </p>
+              <p>This page is outside the current loaded selection. Return to its first page.</p>
             </div>
           ) : properties.length ? (
             <div className="property-grid">
