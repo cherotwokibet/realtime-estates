@@ -10,6 +10,8 @@ import {
 } from '../components/PublicShell';
 import { PricingDisclosureSummary } from '../components/PricingDisclosure';
 import RoomFilters from '../components/RoomFilters';
+import LoadedCataloguePager from '../components/LoadedCataloguePager';
+import { browseLoadedCatalogue } from '../lib/catalogue-browse';
 
 export const dynamic = 'force-dynamic';
 
@@ -72,9 +74,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
     bedsText,
     privateBathsText,
     sharedBathsText,
-    error,
+    error: filterError,
   } = catalogue.filters;
-  const properties = catalogue.mode === 'error' ? [] : catalogue.items;
+  const browse = browseLoadedCatalogue(
+    catalogue.mode === 'error' ? [] : catalogue.items,
+    catalogue.filters,
+    q,
+  );
+  const error = filterError ?? browse.error;
+  const properties = browse.items;
   const mode = catalogue.mode === 'error' ? 'unavailable' : catalogue.mode;
   const synthetic = catalogue.mode !== 'error' && catalogue.dataKind === 'synthetic';
   const money = (n: number) => formatKes(kesFromMinor(n));
@@ -101,23 +109,27 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
           'privateBaths',
           'sharedBaths',
         ].filter((key) => q[key] !== undefined && typeof q[key] !== 'string')
-      : error === 'Choose rent or buy.'
-        ? ['purpose']
-        : error === 'Choose a supported property type.'
-          ? ['type']
-          : error === 'Choose a supported rental period.' ||
-              error === 'Choose a rental period when filtering rent by price.'
-            ? ['period']
-            : error === 'Enter a positive maximum price in KES.' ||
-                error === 'Enter a valid KES amount with at most two decimal places.'
-              ? ['max']
-              : error === 'Choose an exact bedroom count from 0 to 100.'
-                ? ['beds']
-                : error === 'Choose a minimum private bathroom count from 0 to 100.'
-                  ? ['privateBaths']
-                  : error === 'Choose a minimum shared bathroom count from 0 to 100.'
-                    ? ['sharedBaths']
-                    : [];
+      : browse.error && !filterError
+        ? browse.errorField === 'sort'
+          ? ['sort']
+          : []
+        : error === 'Choose rent or buy.'
+          ? ['purpose']
+          : error === 'Choose a supported property type.'
+            ? ['type']
+            : error === 'Choose a supported rental period.' ||
+                error === 'Choose a rental period when filtering rent by price.'
+              ? ['period']
+              : error === 'Enter a positive maximum price in KES.' ||
+                  error === 'Enter a valid KES amount with at most two decimal places.'
+                ? ['max']
+                : error === 'Choose an exact bedroom count from 0 to 100.'
+                  ? ['beds']
+                  : error === 'Choose a minimum private bathroom count from 0 to 100.'
+                    ? ['privateBaths']
+                    : error === 'Choose a minimum shared bathroom count from 0 to 100.'
+                      ? ['sharedBaths']
+                      : [];
   const validation = (field: string) =>
     errorFields.includes(field)
       ? { 'aria-invalid': true as const, 'aria-describedby': 'search-error' }
@@ -170,6 +182,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               privateBathsText,
               sharedBathsText,
               error,
+              browse.sort,
             ])}
             action="/"
             className="search-panel"
@@ -265,6 +278,15 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               sharedBathsText={sharedBathsText}
               errorFields={errorFields}
             />
+            <label className="search-field browse-sort">
+              <span>Order loaded results</span>
+              <select name="sort" defaultValue={browse.sort} {...validation('sort')}>
+                <option value="catalogue">Catalogue order</option>
+                <option value="title">Title</option>
+                <option value="price_low">Base price: low to high</option>
+                <option value="price_high">Base price: high to low</option>
+              </select>
+            </label>
             <p className="search-help">
               Price filters use the stated rental period and base price. Additional costs appear in
               each property’s details.
@@ -297,10 +319,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               <span>
                 {catalogue.mode === 'error'
                   ? 'Results unavailable'
-                  : properties.length +
+                  : browse.matchingLoadedCount +
                     ' ' +
                     (synthetic ? 'sample ' : '') +
-                    (properties.length === 1 ? 'property' : 'properties')}
+                    (browse.matchingLoadedCount === 1
+                      ? 'matching loaded property'
+                      : 'matching loaded properties')}
               </span>
               {filtered && <Link href="/">Clear filters</Link>}
             </div>
@@ -343,6 +367,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
             <div className="empty">
               <h3>Check your search filters.</h3>
               <p>Correct the highlighted fields to search again.</p>
+            </div>
+          ) : browse.outOfRange ? (
+            <div className="empty">
+              <h3>Choose an available loaded page.</h3>
+              <p>
+                The matching loaded properties still exist; this page is outside their current
+                range.
+              </p>
             </div>
           ) : properties.length ? (
             <div className="property-grid">
@@ -460,6 +492,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
                 </Link>
               )}
             </div>
+          )}
+          {catalogue.mode !== 'error' && !error && (
+            <LoadedCataloguePager browse={browse} filters={catalogue.filters} />
           )}
         </section>
         <section className="approach" id="how">
