@@ -37,6 +37,9 @@ export interface CatalogueFilters {
   readonly type: string;
   readonly period: string;
   readonly maxText: string;
+  readonly bedsText: string;
+  readonly privateBathsText: string;
+  readonly sharedBathsText: string;
   readonly error: string | null;
 }
 export interface CatalogueProperty {
@@ -122,6 +125,25 @@ export function parseCatalogueFilters(query: CatalogueQuery): CatalogueFilters {
   if (period && !RENTAL_PERIODS.has(period)) error = 'Choose a supported rental period.';
   if (!error && parsed.maxText && parsed.purpose !== 'sale' && !period)
     error = 'Choose a rental period when filtering rent by price.';
+  const room = (key: string, message: string) => {
+    const raw = query[key];
+    if (raw !== undefined && typeof raw !== 'string') {
+      error = 'Use one value for each search filter.';
+      return '';
+    }
+    const value = typeof raw === 'string' ? raw.trim() : '';
+    if (value && (!/^(0|[1-9]\d{0,2})$/.test(value) || Number(value) > 100)) error = message;
+    return value;
+  };
+  const bedsText = room('beds', 'Choose an exact bedroom count from 0 to 100.');
+  const privateBathsText = room(
+    'privateBaths',
+    'Choose a minimum private bathroom count from 0 to 100.',
+  );
+  const sharedBathsText = room(
+    'sharedBaths',
+    'Choose a minimum shared bathroom count from 0 to 100.',
+  );
   // An absent/empty period includes all rents; a maximum requires an explicit rent period.
   return Object.freeze({
     location: parsed.location,
@@ -129,6 +151,9 @@ export function parseCatalogueFilters(query: CatalogueQuery): CatalogueFilters {
     type,
     period,
     maxText: parsed.maxText,
+    bedsText,
+    privateBathsText,
+    sharedBathsText,
     error,
   });
 }
@@ -223,6 +248,14 @@ function filterItems(
         (!location || searchableLocation.includes(location)) &&
         (!filters.purpose || property.purpose === filters.purpose) &&
         (!filters.type || property.type === filters.type) &&
+        (!filters.bedsText ||
+          (property.bedrooms !== null && property.bedrooms === Number(filters.bedsText))) &&
+        (!filters.privateBathsText ||
+          (property.privateBathrooms !== null &&
+            property.privateBathrooms >= Number(filters.privateBathsText))) &&
+        (!filters.sharedBathsText ||
+          (property.sharedBathrooms !== null &&
+            property.sharedBathrooms >= Number(filters.sharedBathsText))) &&
         (!filters.period ||
           property.purpose === 'sale' ||
           property.rentalPeriod === filters.period) &&

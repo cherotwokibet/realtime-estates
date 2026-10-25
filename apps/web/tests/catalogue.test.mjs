@@ -563,3 +563,86 @@ test('connected source alone never declares data real or live', async () => {
   assert.equal(result.sourceLabel, 'API connected · Preview environment');
   assert.equal('isLive' in result, false);
 });
+
+test('bedroom filters preserve explicit zero and match exact counts while excluding unknown bedrooms', async () => {
+  const loader = connected([
+    property(),
+    property({ id: id(101), slug: 'two-bed', propertyType: 'apartment', bedrooms: 2 }),
+    property({ id: id(102), slug: 'unknown-bed', propertyType: 'land', bedrooms: null }),
+  ]);
+  assert.deepEqual(
+    ready(await loader.list({ beds: '0' })).items.map((p) => p.id),
+    [id(100)],
+  );
+  assert.deepEqual(
+    ready(await loader.list({ beds: '2' })).items.map((p) => p.id),
+    [id(101)],
+  );
+  const any = ready(await loader.list({ beds: '' }));
+  assert.equal(any.items.length, 3);
+  assert.equal(any.filters.bedsText, '');
+  assert.equal(ready(await loader.list({ beds: '0' })).filters.bedsText, '0');
+});
+test('private and shared bathroom minima stay separate and null never qualifies as declared zero', async () => {
+  const loader = connected([
+    property({ privateBathrooms: 0, sharedBathrooms: 2 }),
+    property({ id: id(101), slug: 'private-two', privateBathrooms: 2, sharedBathrooms: 0 }),
+    property({ id: id(102), slug: 'unknown-baths', privateBathrooms: null, sharedBathrooms: null }),
+  ]);
+  assert.deepEqual(
+    ready(await loader.list({ privateBaths: '1' })).items.map((p) => p.id),
+    [id(101)],
+  );
+  assert.deepEqual(
+    ready(await loader.list({ sharedBaths: '1' })).items.map((p) => p.id),
+    [id(100)],
+  );
+  assert.deepEqual(
+    ready(await loader.list({ privateBaths: '0', sharedBaths: '0' })).items.map((p) => p.id),
+    [id(100), id(101)],
+  );
+  assert.equal(ready(await loader.list({ privateBaths: '2', sharedBaths: '2' })).items.length, 0);
+});
+test('room query boundaries reject repeated, fractional, signed, exponential and out-of-range values', () => {
+  for (const key of ['beds', 'privateBaths', 'sharedBaths']) {
+    for (const bad of [['1', '2'], '-1', '+1', '1.5', '1e1', '01', '101', '9999999999999999999999'])
+      assert.ok(parseCatalogueFilters({ [key]: bad }).error, `${key}: ${bad}`);
+    assert.equal(parseCatalogueFilters({ [key]: '100' }).error, null);
+    assert.equal(parseCatalogueFilters({ [key]: ' 0 ' }).error, null);
+  }
+});
+test('room filters combine with exact cents, type and rental period without claiming global counts', async () => {
+  const items = Array.from({ length: 100 }, (_, i) =>
+    property({ id: id(100 + i), slug: 'bounded-room-' + i, privateBathrooms: i === 0 ? 1 : 0 }),
+  );
+  const result = ready(
+    await connected(items).list({
+      beds: '0',
+      privateBaths: '1',
+      type: 'studio',
+      period: 'month',
+      max: '20000.01',
+    }),
+  );
+  assert.equal(result.items.length, 1);
+  assert.equal(result.sourceCount, 100);
+  assert.equal(result.mayBeTruncated, true);
+  assert.equal(result.items[0].priceMinor, 2000001);
+  assert.equal(
+    ready(
+      await connected(items).list({
+        beds: '0',
+        privateBaths: '1',
+        period: 'month',
+        max: '20000.00',
+      }),
+    ).items.length,
+    0,
+  );
+});
+test('demo general bathroom counts never become private/shared bathroom claims', async () => {
+  const loader = createCatalogueLoader(resolveCatalogueConfig({ TENANT_SLUG: 'realtime-estates' }));
+  assert.ok(ready(await loader.list()).items.length > 0);
+  assert.equal(ready(await loader.list({ privateBaths: '0' })).items.length, 0);
+  assert.equal(ready(await loader.list({ sharedBaths: '0' })).items.length, 0);
+});

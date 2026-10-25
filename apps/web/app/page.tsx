@@ -9,6 +9,7 @@ import {
   PublicFooter,
 } from '../components/PublicShell';
 import { PricingDisclosureSummary } from '../components/PricingDisclosure';
+import RoomFilters from '../components/RoomFilters';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,18 +63,44 @@ const bathCount = (value: number | null, kind: string) =>
 export default async function Home({ searchParams }: { searchParams: Promise<Query> }) {
   const q = await searchParams;
   const catalogue = await loadCatalogue(q);
-  const { location, purpose, type, period, maxText, error } = catalogue.filters;
+  const {
+    location,
+    purpose,
+    type,
+    period,
+    maxText,
+    bedsText,
+    privateBathsText,
+    sharedBathsText,
+    error,
+  } = catalogue.filters;
   const properties = catalogue.mode === 'error' ? [] : catalogue.items;
   const mode = catalogue.mode === 'error' ? 'unavailable' : catalogue.mode;
   const synthetic = catalogue.mode !== 'error' && catalogue.dataKind === 'synthetic';
   const money = (n: number) => formatKes(kesFromMinor(n));
-  const filtered = Boolean(location || purpose || type || period || maxText);
+  const filtered = Boolean(
+    location ||
+    purpose ||
+    type ||
+    period ||
+    maxText ||
+    bedsText ||
+    privateBathsText ||
+    sharedBathsText,
+  );
   // Associate the current single search error with its actual field, rather than marking every filter invalid.
   const errorFields =
     error === 'Use one value for each search filter.'
-      ? ['location', 'purpose', 'type', 'period', 'max'].filter(
-          (key) => q[key] !== undefined && typeof q[key] !== 'string',
-        )
+      ? [
+          'location',
+          'purpose',
+          'type',
+          'period',
+          'max',
+          'beds',
+          'privateBaths',
+          'sharedBaths',
+        ].filter((key) => q[key] !== undefined && typeof q[key] !== 'string')
       : error === 'Choose rent or buy.'
         ? ['purpose']
         : error === 'Choose a supported property type.'
@@ -84,7 +111,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
             : error === 'Enter a positive maximum price in KES.' ||
                 error === 'Enter a valid KES amount with at most two decimal places.'
               ? ['max']
-              : [];
+              : error === 'Choose an exact bedroom count from 0 to 100.'
+                ? ['beds']
+                : error === 'Choose a minimum private bathroom count from 0 to 100.'
+                  ? ['privateBaths']
+                  : error === 'Choose a minimum shared bathroom count from 0 to 100.'
+                    ? ['sharedBaths']
+                    : [];
   const validation = (field: string) =>
     errorFields.includes(field)
       ? { 'aria-invalid': true as const, 'aria-describedby': 'search-error' }
@@ -127,7 +160,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
         </section>
         <section className="search-wrap container" id="search" aria-labelledby="search-title">
           <form
-            key={JSON.stringify([location, purpose, type, period, maxText, error])}
+            key={JSON.stringify([
+              location,
+              purpose,
+              type,
+              period,
+              maxText,
+              bedsText,
+              privateBathsText,
+              sharedBathsText,
+              error,
+            ])}
             action="/"
             className="search-panel"
             aria-describedby={error && !errorFields.length ? 'search-error' : undefined}
@@ -216,6 +259,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
                 Search properties
               </button>
             </div>
+            <RoomFilters
+              bedsText={bedsText}
+              privateBathsText={privateBathsText}
+              sharedBathsText={sharedBathsText}
+              errorFields={errorFields}
+            />
             <p className="search-help">
               Price filters use the stated rental period and base price. Additional costs appear in
               each property’s details.
