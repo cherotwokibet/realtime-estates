@@ -10,6 +10,8 @@ import {
 } from '../components/PublicShell';
 import { PricingDisclosureSummary } from '../components/PricingDisclosure';
 import RoomFilters from '../components/RoomFilters';
+import ReferenceFilters from '../components/ReferenceFilters';
+import { parseReferenceFilters, referenceOptions } from '../lib/catalogue-reference-filters';
 import LoadedCataloguePager from '../components/LoadedCataloguePager';
 import { browseLoadedCatalogue } from '../lib/catalogue-browse';
 
@@ -74,6 +76,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
     bedsText,
     privateBathsText,
     sharedBathsText,
+    reference,
     error: filterError,
   } = catalogue.filters;
   const browse = browseLoadedCatalogue(
@@ -86,50 +89,53 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
   const mode = catalogue.mode === 'error' ? 'unavailable' : catalogue.mode;
   const synthetic = catalogue.mode !== 'error' && catalogue.dataKind === 'synthetic';
   const money = (n: number) => formatKes(kesFromMinor(n));
-  const filtered = Boolean(
-    location ||
-    purpose ||
-    type ||
-    period ||
-    maxText ||
-    bedsText ||
-    privateBathsText ||
-    sharedBathsText,
-  );
+  const filtered =
+    Boolean(
+      location ||
+      purpose ||
+      type ||
+      period ||
+      maxText ||
+      bedsText ||
+      privateBathsText ||
+      sharedBathsText,
+    ) || Object.values(reference).some(Boolean);
   // Associate the current single search error with its actual field, rather than marking every filter invalid.
-  const errorFields =
-    error === 'Use one value for each search filter.'
-      ? [
-          'location',
-          'purpose',
-          'type',
-          'period',
-          'max',
-          'beds',
-          'privateBaths',
-          'sharedBaths',
-        ].filter((key) => q[key] !== undefined && typeof q[key] !== 'string')
-      : browse.error && !filterError
-        ? browse.errorField === 'sort'
-          ? ['sort']
-          : []
-        : error === 'Choose rent or buy.'
-          ? ['purpose']
-          : error === 'Choose a supported property type.'
-            ? ['type']
-            : error === 'Choose a supported rental period.' ||
-                error === 'Choose a rental period when filtering rent by price.'
-              ? ['period']
-              : error === 'Enter a positive maximum price in KES.' ||
-                  error === 'Enter a valid KES amount with at most two decimal places.'
-                ? ['max']
-                : error === 'Choose an exact bedroom count from 0 to 100.'
-                  ? ['beds']
-                  : error === 'Choose a minimum private bathroom count from 0 to 100.'
-                    ? ['privateBaths']
-                    : error === 'Choose a minimum shared bathroom count from 0 to 100.'
-                      ? ['sharedBaths']
-                      : [];
+  const errorFields: readonly string[] =
+    error === 'Choose one supported location or amenity option per field.'
+      ? parseReferenceFilters(q).invalid
+      : error === 'Use one value for each search filter.'
+        ? [
+            'location',
+            'purpose',
+            'type',
+            'period',
+            'max',
+            'beds',
+            'privateBaths',
+            'sharedBaths',
+          ].filter((key) => q[key] !== undefined && typeof q[key] !== 'string')
+        : browse.error && !filterError
+          ? browse.errorField === 'sort'
+            ? ['sort']
+            : []
+          : error === 'Choose rent or buy.'
+            ? ['purpose']
+            : error === 'Choose a supported property type.'
+              ? ['type']
+              : error === 'Choose a supported rental period.' ||
+                  error === 'Choose a rental period when filtering rent by price.'
+                ? ['period']
+                : error === 'Enter a positive maximum price in KES.' ||
+                    error === 'Enter a valid KES amount with at most two decimal places.'
+                  ? ['max']
+                  : error === 'Choose an exact bedroom count from 0 to 100.'
+                    ? ['beds']
+                    : error === 'Choose a minimum private bathroom count from 0 to 100.'
+                      ? ['privateBaths']
+                      : error === 'Choose a minimum shared bathroom count from 0 to 100.'
+                        ? ['sharedBaths']
+                        : [];
   const validation = (field: string) =>
     errorFields.includes(field)
       ? { 'aria-invalid': true as const, 'aria-describedby': 'search-error' }
@@ -183,6 +189,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               sharedBathsText,
               error,
               browse.sort,
+              reference,
             ])}
             action="/"
             className="search-panel"
@@ -277,6 +284,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               privateBathsText={privateBathsText}
               sharedBathsText={sharedBathsText}
               errorFields={errorFields}
+            />
+            <ReferenceFilters
+              values={reference}
+              options={
+                catalogue.mode === 'error' ? referenceOptions([]) : catalogue.referenceOptions
+              }
+              invalid={parseReferenceFilters(q).invalid}
             />
             <label className="search-field browse-sort">
               <span>Order loaded results</span>

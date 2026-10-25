@@ -23,6 +23,13 @@ import {
   type CatalogueConfigResolution,
   type CatalogueDataKind,
 } from './catalogue-config.ts';
+import {
+  parseReferenceFilters,
+  matchesReferenceFilters,
+  referenceOptions,
+  type ReferenceFilters,
+  type ReferenceOptions,
+} from './catalogue-reference-filters.ts';
 export { resolveCatalogueConfig } from './catalogue-config.ts';
 export type {
   CatalogueConfig,
@@ -32,6 +39,7 @@ export type {
 } from './catalogue-config.ts';
 export type CatalogueQuery = SearchQuery;
 export interface CatalogueFilters {
+  readonly reference: ReferenceFilters;
   readonly location: string;
   readonly purpose: string;
   readonly type: string;
@@ -75,6 +83,7 @@ interface CatalogueSource {
   readonly sourceLabel: string;
 }
 export interface CatalogueSuccess extends CatalogueSource {
+  readonly referenceOptions: ReferenceOptions;
   readonly filters: CatalogueFilters;
   readonly items: readonly CatalogueProperty[];
   readonly sourceCount: number;
@@ -144,8 +153,12 @@ export function parseCatalogueFilters(query: CatalogueQuery): CatalogueFilters {
     'sharedBaths',
     'Choose a minimum shared bathroom count from 0 to 100.',
   );
+  const reference = parseReferenceFilters(query);
+  if (reference.invalid.length)
+    error = 'Choose one supported location or amenity option per field.';
   // An absent/empty period includes all rents; a maximum requires an explicit rent period.
   return Object.freeze({
+    reference: reference.values,
     location: parsed.location,
     purpose: parsed.purpose,
     type,
@@ -246,6 +259,7 @@ function filterItems(
         .toLowerCase();
       return (
         (!location || searchableLocation.includes(location)) &&
+        matchesReferenceFilters(property, filters.reference) &&
         (!filters.purpose || property.purpose === filters.purpose) &&
         (!filters.type || property.type === filters.type) &&
         (!filters.bedsText ||
@@ -291,6 +305,7 @@ export function createCatalogueLoader(
           mode: 'demo',
           dataKind: 'synthetic',
           sourceLabel: 'Demo · Synthetic listings',
+          referenceOptions: referenceOptions(source),
           filters,
           items: filterItems(source, filters),
           sourceCount: source.length,
@@ -311,6 +326,7 @@ export function createCatalogueLoader(
       const source = page.items.map(fromConnected);
       return Object.freeze({
         mode: 'connected',
+        referenceOptions: referenceOptions(source),
         dataKind: config.dataKind,
         sourceLabel: config.referenceMode
           ? 'API connected · Synthetic reference preview'

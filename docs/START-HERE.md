@@ -41,21 +41,25 @@ Next dependency-ready work: extend only existing explicit native-media and moder
 Sourceb1820d4f2946f1efa8de18eeb286a5a1fd97c7da pushed/freshmatchingcleanGitHubclone/fsck passed. ExactcurrentstafflistingGET independentofqueue-truncation;strict route-boundsummary/trustedtenant/currentstaff/FORCERLS/latestpredecessor+listingversions inonestatement. SDKoneGET/exactrevisiontoken guard/server-onlyfixedsyntheticreader/GET-onlypreviewallowlist.195domain198API218SDK70integration213admin10signedpreview/8types/package+APIbuilds/formatpassed;focused16overlap. Signedfreshpredecessor/laterdraftversion/adminread/peer+assignmentlossdenial;previewforeigncompany/nonstaff/POSTdenial verified. InitialadminBearerprefixassertionincorrect;firsttexteditdidnotmatchformattedline,exactassertioncorrected,twofailedlogsretained;runtimeheaderstandardunchanged. PriorSQL70c098cCI38834699071 andHTTP70f604cCI38836214293 succeeded8m34s/8m43s;currentdetailCInotyetclaimed.Prior232DBnotrerun.No newUI/browser/device/UAT/productionpass.See docs/staff-listing-detail.md.
 
 Owner-private dashboard7be113562c246af644397f116227a724f538cbfa deploymentappgdep_6ad1849340408191964e250fba1414c9 succeeded.326notesretained+3=329;lateexportunchanged/unsavedempty,canonicalimport/reload/export allstages/tasks/status/gates/evidence/notes match;livebanner/JPEGinspected.19/97tasks(20percent)0/14gates unchanged. Next actualsuccessorBFF/browsertransport/immutableattempt/form/uncertaindiscard-navigation-concurrencyguards/GEToriginal/deliberatereplay/newemptygallery/freshcurrenteditorread. Use readStaffListingDetail forfreshlisting+latestpredecessor context,notboundedqueue. Addnormal opt-in terminalfixture/targetedcommittedreplyfault and actualbrowserstale/access/recovery/publicsnapshotproof. Legacyzero-version allocationcompatibility/SQLnumericboundary/realPGrace/rights/accounts/retention/devices/UAT/cutoveropen;KES10,000totalmonthly/vendor/oldlive preserved.
+
 ## Successor HTTP/SDK checkpoint83 published — 16 October 2026
 
 Source70f604c0ecc36b16b1710f930366d10b2b71b18d pushed/freshmatchingcleanGitHubclone/fsck passed. Fixed successorPOST/originalGET/strictbody+authority+headerguards/128KiBexactPOSTbridge;insideTxvalidation againstretainedcommand+verifiedactor. SDKoneexplicitwrite/nohiddenretry/GEToriginal+routeboundsnapshot;actoroptionalforclientformatonly/serveralwaysverifiedactor. Exactmoney+successorrevisionJSONtokensrejectrounding/exponents/escapedkeys,otherlistingparserunchanged. Final194domain196API217SDK70integration/8types/package+APIbuilds/formatpassed;focusedoverlap. ActualRS256/JWKS/loopbackHTTP/restrictedLOGIN committedreplydiscard→syntheticthrow→oneGEToriginal/lateredit/replay/stale/accesslossrestore/wrongadapterrollback→deliberateretry passed. Firstfocused17of18 expected500 vs existing503 corrected,failedlogretained;pre-token-guard fullpass superseded. Prior232DBnotrerun;no successorBFF/operator/browser/native/UAT/hostedracepass. See docs/listing-successor-http.md.
 
 Owner-private dashboardab8591bfebf2a9279a1535c2a01719dcc6c27b35 deploymentappgdep_6ad180c045888191af3a3c1741fbac71 succeeded.323notesretained+3=326;lateexportunchanged/unsavedempty,canonicalimport/reload/export allstages/tasks/status/gates/evidence/notes match;livebanner/JPEGinspected.19/97tasks(20percent)0/14gates unchanged. Next protectedBFF/browsertransport/immutableoriginalattempt and explicitnewdraftform,uncertain discard/navigation/concurrencyguards,GETrecovery/deliberatereplay/newemptygallery/freshcurrenteditorread,normal opt-in terminalpredecessor previewfixture and targetedcommittedreplyfault;actualbrowserstale/access/recovery/publicsnapshotproof. Current listing version/predecessor must come from fresh authorizedread;existing boundedqueue read may require explicit single-listing context beforeproduction. Legacyzero-version allocationcompatibility/SQLnumericboundary/realPGrace/rights/accounts/retention/devices/UAT/cutoverremainopen;KES10,000totalmonthly/vendor/oldlive preserved.
+
 ## Durable successor SQL checkpoint82 published — 16 October 2026
 
 Migration0023source70c098c305740624bf372fdac9f77d971948367a pushed/freshmatchingcleanGitHubclone/fsck passed. Private immutable request/result ledgers/FORCERLS/deferredcompletion;currentlisting+latestpredecessor locks/correlatedversion+terminalstate;atomicnewdraft/listingversionincrement/emptygallery;exactoriginal/currentrequester/accessloss-restoration recovery;approvedsnapshot/publication/availability/freshness/assignment preserved. Seven focused cases overlap232fullDB;69existing signedHTTPintegration passed;formatpassed. Failureafterallocation rollback/privateimmutability/orphanrejection/approved published-paused-archived snapshot verified. Legacyzero-version allocation remains deliberate compatibility;newguardedrequest conflicts againstits newerrevision,noexclusiveallocationclaim. SQLnumeric-boundaryfixture/realPGrace/successorHTTP/SDK/operatorbrowser notrun. Prior domain192/8types unchanged,notrerun. MainCI domain dc3cee2 actualrun38833241902 succeeded9m20s;oldermainruns cancelledbysupersedingwork,notpassed. See docs/listing-successor-sql.md.
 
 Owner-private dashboardb72ce381cc2fa319ee7c7fda16706e53e5a5357e deploymentappgdep_6ad17cae4de08191a185e37798a2e506 succeeded.320notesretained+3=323;lateexportunchanged/unsavedempty,canonicalimport/reload/export allstages/tasks/status/gates/evidence/notes match;livebanner/JPEGinspected.19/97tasks(20percent),0/14gates unchanged. Next route-boundGETsnapshotvalidator,fixed successorHTTP/SDK/transactional verifiedactor+retainedcommand responsevalidation;actual signedHTTP uncertainty/rollback/stale/access/replay proof;thenBFF/operator/newemptygallery/freshcurrentread. Rights/accounts/retention/realPG races/devices/UAT/cutoverremainopen;KES10,000totalmonthly/vendor/oldlive preserved.
+
 ## Successor domain checkpoint81 published — 16 October 2026
 
 Source dc3cee21f74e481a46e98160df6b73df88ce606e pushed/fresh matching clean GitHub clone/fsck passed. Strict immutable successor command/pure plan/original receipt bind listing/operation/actor/exact normalized content and correlated listing/latest predecessor version+terminal state;stale conflicts before bounded exhaustion,explicit content/new empty gallery,no predecessor/publication mutation in pure projection. Original receipt versions historical. Final192domain(8new),domainbuild/8workspace types/packagebuilds/formatcheck passed;earlier190 superseded.Other runtime suites notrerun. No successorSQL/HTTP/SDK/BFF/browser/hostedrace/device/UAT pass. See docs/listing-successor-domain.md and docs/listing-successor-next.md.
 
 Owner-private dashboard dcf172e1e20b249150d277391b80b02b7ab90fcf deploymentappgdep_6ad178fd3dec819199eae8cc6794ad59 succeeded.317notes retained+3=320;lateexport unchanged/unsavedempty,canonicalimport/reload/export allstages/tasks/status/gates/evidence/notes match;livebanner/JPEG inspected.19/97tasks(20percent),0/14gates unchanged. Next migration0023durableprivate request/result/deferredcompletion/currentlisting+latestlocks,exact original/currentaccess recovery,approvedsnapshotpreservation/rollback/denialtests and explicitlegacyzero-version allocation transition. Then protectedHTTP/SDK/operator uncertainty proof. Rights/accounts/retention/realPG races/devices/UAT/cutover remainopen;KES10,000totalmonthly/vendor/oldlive preserved.
+
 ## Checkpoint80 publication — 16 October 2026
 
 Formatting/CI sourcecaf1f46fd2519e1384ab845294b463a3c10f22cf pushed/fresh matching clean GitHub clone/fsck passed;actual PR1CI38831346029 succeeded7m26s at2b10e04,normal merge047f4fa browser confirmed Merged. Main follow-up CI not yet claimed. Owner-private dashboard317d9089e346b3c56ddd6d8c3ee010f693a876bd deploymentappgdep_6ad176e4ef988191ba2845db6c9ca782 succeeded.315notes retained+2=317;lateexport unchanged/unsavedempty;canonical import/reload/export allstages/tasks/status/gates/evidence/notes match. Live20percent,19/97tasks,0/14gates;JPEG inspected. Expired Sites credential renewed before packaging,no duplicate deployment. No active local checks/preview remain. Next docs/listing-successor-next.md guarded successor domain→storage/compatibility→HTTP/SDK→operator;legacy zero-version allocation must be addressed before exclusive creation claim. Rights/accounts/hosted/device/UAT/cutover still open;KES10,000monthlytotal/vendor/oldlive preserved.
@@ -300,307 +304,157 @@ Latest shared staff client verified; next protected preview BFF/form. See CONTIN
 
 Latest 13 October checkpoint: protected staff capture API and signed-identity/restricted-SQL replay proof; see staff-enquiry-capture.md and CONTINUATION.md. Next shared staff capture client/attempt then protected preview form. Dashboard publication pending.
 
-
-
 # Rebuild foundation — 9 October 2026
-
-
 
 ## Property-linked enquiry checkpoint — 12 October 2026
 
-
-
 Opt-in connected synthetic catalogue→property→enquiry→staff detail verified with listing ID and original contacted revision1. Foreign/unpublished selections denied. Exact receipt replay after pause verified in SQL. 26web,19boundary,9API,170client,20database tests; eight typechecks and both builds passed. See property-enquiry.md/eight logs. First DB assertion column typo fixed before final20pass. Next protected attributable staff capture, then contact history/viewings. Narrow/device/UAT/production remain open. Checklist16/97,gates0/14,price/vendor/live preserved.
-
-
 
 ## Public website general enquiry checkpoint — 12 October 2026
 
-
-
 Opt-in public /enquire now saves fictional general web enquiries into the shared admin inbox; shared form/CSS and bounded handler serve both applications. Actual catalogue→form→saved admin detail browser proof recorded. 24 web,26 affected boundary and170 API-client tests passed; eight typechecks and both production builds passed. See public-enquiry.md/six logs. Narrow override did not apply to the tested tab;390px not passed. Next eligible published synthetic property context, then staff capture/contact history. Checklist16/97,gates0/14,price/vendor/live preserved.
-
-
 
 ## Shared guest transport checkpoint — 12 October 2026
 
-
-
 Shared same-origin enquiry transport now omits ambient cookies, refuses redirects and rejects caller identity/tenant headers. Admin form uses it; actual synthetic desktop save verified. 170/170 API-client tests, eight workspace typechecks and admin production build passed. See enquiry-proxy.md and four logs. Next explicitly opt in public-web server configuration/route, then eligible property context; public controls remain disabled. Checklist16/97, gates0/14, price/vendor/live preserved.
-
-
 
 ## Connected synthetic intake form — 12 October 2026
 
-
-
 Opt-in local admin preview now includes guest enquiry capture at /enquiry-intake, backed by fixed same-origin bounded proxy and guest-only API allowlist. Actual browser saved a fictional general web enquiry and opened its version1 record in the shared admin inbox. Final32/32 affected tests, admin production build and eight workspace typechecks passed. See enquiry-intake-form.md, three evidence logs and private screenshots. Initial route/notice/adapter issues were corrected and documented.
-
-
 
 Next connect the validated form/transport to the public website with server-owned tenant/property context; then attributable staff capture/contact history. Main public-site form remains disabled; no responsive/device/UAT or browser lost-reply proof claimed here. Memory-only recovery and disposable restart remain limitations. Checklist16/97, gates0/14; originals/live and KES10,000 price preserved.
 
-
-
 ## Public intake attempt checkpoint — 12 October 2026
-
-
 
 Shared public enquiry attempt retains validated raw form values and original key, locks concurrent sends and requires explicit same-body replay after an uncertain reply. 165 API-client tests, one actual API/restricted SQL lost-committed-reply integration and eight workspace typechecks passed. See enquiry-intake.md and its three evidence logs. Earlier 800-test inbox proof remains historical.
 
-
-
 Next connect the opt-in synthetic public form through server-controlled configuration and notice; then protected staff intake/contact history. No browser form or device verification claimed here. Memory-only attempt state is not reload/crash persistent. Checklist16/97, gates0/14; vendor/live systems and KES10,000 price preserved.
-
-
 
 ## Connected enquiry inbox checkpoint — 12 October 2026
 
-
-
 800/800 affected tests, shared package/API builds, admin test compilation/production build and eight workspace typechecks passed on 209 frozen source hashes; zero failures/skips/cancellations/todos. Opt-in synthetic admin/assigned-agent inbox now connects server-only identities to assignment, contact and Nairobi follow-up, separate historical receipt/current comparison and explicit adoption. Actual desktop handover and stale admin conflict retained raw reason and exact follow-up timestamp. See enquiry-inbox.md and evidence/2026-10-12-enquiry-ui.md. Earlier755 backend evidence remains separate; focused counts overlap.
-
-
 
 Next connect reviewed public/protected-staff enquiry intake with notice/idempotent original capture recovery; then attributable contact history and separate viewing scheduling. Browser lost-reply/reload, physical devices, broader responsive/operator/accessibility proof, production identity/persistence, real PostgreSQL concurrency, independent backup/private platform remote, rights/accounts and all launch gates remain open. Preview identities expire30min and data is disposable; tab-local drafts/uncertain commands are not crash-persistent. KES10,000 total monthly price, checklist16/97, gates0/14 and originals/live preserved. Never rerun historical checkpoint generators.
 
-
-
-
-
 Progress audit closed previously uncredited implementation items04-1,05-2,05-3 with evidence; no gate accepted. See progress-audit.md. The tracker separates verified local capabilities from full delivery completion.
-
-
 
 ## Staff enquiry operations checkpoint — 12 October 2026
 
-
-
 755/755 affected API/development-preview/database/media/shared-client/admin tests, shared package/API builds, admin test compilation/production build and eight workspace typechecks passed on 192 frozen source hashes; zero failures/skips/cancellations/todos. Additive0010, typed private list/detail/admin-only picker and assignment/contact/reschedule/reopen commands retain immutable original receipts and current-role/assignment guards. Actual signed JWT/JWKS loopback HTTP→restricted SQL tests verified lost committed reply recovery, later historical readback, reassignment and cross-company/privacy denials. Reads do not change version/audit/operation counts; no automatic retries or fresh version adoption. See enquiry-operations.md and evidence/2026-10-12-enquiry-operations.md; focused counts overlap and earlier703 stays historical.
-
-
 
 Next build the opt-in staff enquiry inbox and detail controls with server-only proxies, explicit original-command recovery and current-state comparison that preserve raw input. Provide admin and assigned-agent fixtures against the same synthetic database; show Nairobi follow-up dates and disclose bounded queues. Then separately connect reviewed public and protected staff intake, contact history and viewing scheduling. No outbound notification follows from saving an enquiry.
 
-
-
 Local synthetic backend/shared-client proof only. The admin enquiry inbox, public/staff form enablement, contact-history UI, overdue reminders, viewing calendar, physical/narrow devices, accessibility/operator UAT, production identity/provider/persistence, real PostgreSQL concurrency, distributed rate controls, private source remote/independent backup, rights/account evidence and all launch gates remain open. Existing vendor/live systems and KES10,000 total monthly client price are preserved. No new dependency, provider or paid service was provisioned. Checklist13/97 and accepted gates0/14 remain unchanged. Earlier sections remain at-time history; never rerun old checkpoint scripts.
-
-
 
 ## Private saved gallery images checkpoint — 12 October 2026
 
-
-
 703/703 affected API/development-preview/database/media/shared-client/admin tests passed, zero failures/skips/cancellations/todos. Shared package/API builds, admin test compilation, admin production build and all eight workspace typechecks passed on 187 frozen source hashes. The strict shared binary GET, server-only Next proxy and saved-version gallery now read bounded private WebP bytes, display eligible sealed images, and retain labelled legacy/unavailable placeholders. Current tuple/version scopes, at most two batch reads, explicit reload, cancellation and Blob URL cleanup preserve raw editor text and existing operation locks. Actual desktop checks/screenshots are recorded in evidence/2026-10-12-gallery-images.md; see private-gallery-images.md and gallery-images-tests.txt/types.txt/build.txt. Individual exact raw logs use the 2026-10-12-gallery-images prefix. Focused proxy attempts reported7pass/2fail twice before9pass; focused SDK/model/proxy checks overlap the combined run and are not added. Earlier630/627 checkpoints remain separate at-time evidence.
-
-
 
 Next connect the staff enquiry inbox to admin assignment and assigned-agent contact with dated follow-up. Existing SQL capture/assignment/transitions are not a connected CRM: typed list/detail/commands, a narrow active-staff picker, legacy status convergence and original-command/uncertain-write recovery must be specified and verified before operational controls. Full viewing scheduling follows separately. The archive realtor-operations-next-step.md records the read-only scout.
 
-
-
 This remains local, synthetic and development-only. Production identity/provider/persistent composition, continuous authorization during network transmission, CDN/public delivery, global memory/concurrency quotas, retention/isolation, crash/all-store restart, real PostgreSQL concurrency, independent backup/private source remote, rights/accounts, physical/narrow devices, complete accessibility/operator UAT and all launch gates remain open. Delivered bytes cannot be remotely unseen; observed invalidation revokes owned URLs without claiming zero browser retention. No new provider or paid service was provisioned. Checklist13/97, accepted gates0/14; KES10,000 total monthly client price and vendor resources/live systems are preserved. Earlier sections remain historical; never rerun old checkpoint generators.
-
-
 
 ## Private saved-photo backend checkpoint — 12 October 2026
 
-
-
 630/630 affected API/development-preview/database/media/shared-client tests passed, zero failures/skips/cancellations/todos; shared package/API builds and all eight workspace typechecks passed on 132 frozen source hashes. Additive0009 authorizes the current active admin/assigned agent and exact current draft photo/version through immutable attachment, capture and sealed output. Original uploader revocation does not hide an eligible saved photo; processing/recovery authorization is unchanged. The optional raw-path HTTP hook reads only configured request/seal/output stores, independently checks actual WebP bytes/hash/size and repeats current authorization after I/O. Actual signed HTTP/native integration returned exactly the independently reopened output, refused stale/foreign/unauthenticated/ranged/conditional requests, refused a deliberately tampered file, and refused removed association version4; no additional conversion or draft/history mutation by reads. See private-media-preview.md and evidence/2026-10-12-private-preview.md; private-preview-tests.txt/types.txt/build.txt. SQL uses serialized PGlite; focused13/19 probes and earlier627 checks are overlapping/separate, not added.
-
-
 
 Next strict bounded shared binary client, server-only admin proxy and gallery rendering with stale/unavailable states, cancellation/Blob URL cleanup and raw text preservation; then actual desktop image/remove/stale proof. This checkpoint is backend-only: admin image rendering/device/operator acceptance is unverified. Default API/metadata preview do not enable private images. Current native development mode retains fixed roots and a disposable database; unknown work still cannot retry/relaunch/repair/delete/rotate roots. No production identity/provider/persistent composition/CDN/global quotas/retention/isolation, distributed revocation during network transmission, crash/all-store restart or real PostgreSQL concurrency proof. Independent backup/private platform source remote, rights/accounts and all launch gates remain open. Checklist13/97, gates0/14; KES10,000 total monthly client price unchanged; originals/live preserved. Earlier sections are at-time history; never rerun old generators.
 
-
-
 ## Local admin photo workflow checkpoint — 12 October 2026
-
-
 
 627 affected API/development-preview/database/media/shared-client/admin tests, shared package/API builds, admin production build and all eight workspace typechecks passed, zero failures/skips/cancellations/todos. Explicit owned-root Windows composition connects signed local staff identity through restricted API/coordinator logins, actual image verification and no-body exact-version finalization. Shared binary/status SDK and sequential admin controls preserve original request identity and uncertainty. Actual desktop upload/attachment read version3; two-tab stale refusal/current comparison preserved an unsaved title and invalid price, then explicit adoption allowed a separate text save at version5. See admin-photo-upload.md and evidence/2026-10-12-admin-photo.md; admin-photo-tests.txt/types.txt/build.txt. Focused counts overlap and are not added.
 
-
-
 Next private authorized saved image previews: exact current association under staff/RLS, configured seal/store/request joins and actual byte hash/size verification; deny foreign/removed/legacy/unsealed/tampered images without accepting paths/storage identifiers from the browser. Default API and metadata preview remain separate. Next proxy buffers one bounded photo; no end-to-end streaming/global quota claim. Native mode owns retained fixed roots and a disposable database; occupied/partial roots refuse restart, unknown work never triggers retry/relaunch/root rotation. Production sign-in/persistent composition/crash/PostgreSQL concurrency/retention/isolation, browser reload/network-fault/device/operator acceptance, private platform source remote, independent backup and rights/accounts remain open. Checklist13/97, gates0/14; KES10,000 total monthly price unchanged; originals/live preserved. Earlier checkpoint sections are at-time history; never rerun old generators.
-
-
 
 ## Authenticated development streaming upload checkpoint — 11 October 2026
 
-
-
 551 affected API/dev-preview/database/media/shared-client tests, shared package/API builds and all eight workspace typechecks passed, zero failures/skips/cancellations/todos. Additive0008 checks current staff/original requester, exact tuple, registered assignment, draft and expiry before new bytes. Optional exact loopback GET/PUT hook supplies headers/lazy input; service checks access again after collection, consumes original fresh-only admission and projects narrow status. Actual signed JWT/JWKS HTTP → supervised Windows conversion → lost completed reply → API/upload-journal reopen → authenticated read-only GET verified one native invocation, actual output hash and unchanged draft/no photos. See development-streaming-uploads.md and evidence/2026-10-11-streaming-upload.md; stream-upload-tests.txt/types.txt/build.txt. Earlier counts and46-check focused probe are separate/overlapping, not added.
-
-
 
 Next explicit synthetic development composition with stable owned roots/lifecycle, shared binary client/status methods, then sequential admin attachment and private image previews. Default API entry point does not enable uploads. Current history access remains required; no automatic retry/relaunch/adoption/root rotation. Metadata-only pre-processor gap stays blocked. No browser/CORS/production provider/session, crash/all-store restart, real PostgreSQL concurrency, global quotas, retention/isolation, independent backup/private platform source remote, rights/account closure, device/operator or gate acceptance. Checklist13/97 and all14 gates open; KES10,000 total monthly client price unchanged; originals/live preserved. Earlier sections are at-time history; do not rerun old generators.
 
-
-
 ## Private upload admission checkpoint — 11 October 2026
-
-
 
 178 media tests, shared package builds and all eight workspace typechecks passed, zero failures/skips/cancellations/todos. New bounded cancellable/deadline byte reader and durable original upload journal prepare private ingress. Exclusive permanent job reservation and fresh-only one-use tickets prevent reopened/identical history granting another run. Actual synthetic PNG stream → persisted upload binding → existing restricted SQL/Windows processor → discarded successful local result → reopened read-only reconciliation verified actual output hash with exactly one native invocation and unchanged draft/photos. See private-upload-admission.md and evidence/2026-10-11-upload-admission.md; upload-admission-tests.txt/types.txt/build.txt. Earlier272/456 counts separate, not additive/full-platform acceptance.
 
-
-
 Next exact loopback streaming/preflight adapter with current staff/job authorization before body consumption, narrow original-status readback and processing only from fresh admission; then sequential gallery attachment and private image delivery. Helpers authenticate nobody and expose no HTTP/browser upload route. Keep existing64 KiB JSON cap, no SQL transaction across streaming/native work, no automatic retry/relaunch/token adoption/root rotation. Metadata-only admission cannot recover missing processor input/request; unknown history stays blocked. No production/provider/isolation/quotas/retention/crash/PostgreSQL-race/device/operator acceptance, independent backup/private platform source remote or rights/account closure. Checklist13/97 and all14 gates remain open; KES10,000 total monthly client price unchanged, originals/live preserved. Earlier paragraphs are at-time history; inspect current Git/recovery/publication records and never rerun old generators.
-
-
 
 ## Admin draft gallery UI checkpoint — 11 October 2026
 
-
-
 272 affected API/SDK/HTTP-preview/admin tests and all eight workspace typechecks passed, zero failures/skips/cancellations/todos; shared packages/API builds and admin production build passed. Atomic authorized workspace read, complete-set local ordering, confirmed removal and original-operation recovery now connect the admin gallery to existing commands. Explicit fresh-gallery comparison preserves raw unsaved/invalid text. Actual desktop two-tab QA verified order/removal, stale conflict and explicit adoption followed by text save. See admin-gallery.md and evidence/2026-10-11-admin-gallery.md; tracked admin-gallery-tests.txt/types.txt/build.txt. Earlier456 backend tests remain separate, not additive/full-platform acceptance.
-
-
 
 Next authenticated private file upload/quarantine and authorized image delivery integrated with the existing single-attempt processing/exact-version attachment contracts. SQL-only gallery metadata honestly has no image previews. Attempted390px browser viewport remained1265px; narrow/device and browser network-fault injection remain unverified. Production provider/session/isolation/quotas/retention/PostgreSQL races, independent backup/private source remote, rights/accounts, device/operator UAT and all14 gates remain open. Unknown native work stays blocked; no automatic write retry/token adoption/relaunch/reclaim/delete/root rotation. Checklist13/97; KES10,000 total monthly client price unchanged. Originals/live preserved. Earlier checkpoint paragraphs are at-time history; inspect latest Git/recovery/publication records and never rerun old generators.
 
-
-
 ## Exact-version draft photo removal and ordering checkpoint — 11 October 2026
-
-
 
 456 combined affected SQL/API/SDK/HTTP/dev-preview/media tests and all eight workspace typechecks passed, zero failures/skips/cancellations/todos; package/API builds passed. Additive0007 provides authenticated removal and complete-set ordering, exact immutable operation receipts, explicit contiguous-position repair and exact-token noop. Current authorization and original principal govern recovery after later edits/removal/submission. Existing attachments, seals, snapshots and physical objects remain retained. Actual supervised stored output survives a deliberately lost successful removal reply and later readback; no object deletion. See media-gallery-commands.md and evidence/2026-10-11-media-gallery.md; logs media-gallery-tests.txt/media-gallery-types.txt. Earlier410/142/318 counts remain separate, not additive/full-platform acceptance.
 
-
-
 Next connect these commands and sequential verified attachment to the draft/gallery UI, with explicit pending/uncertain/conflict states and original-operation readback; then public upload transport/delivery. Production provider/isolation/quotas/retention/PostgreSQL races, independent backup/private source remote, rights/accounts, devices/operator UAT and all14 release gates remain open. Unknown native work remains retained/blocked; no automatic write retry, token adoption, relaunch/reclaim/delete/root rotation. Checklist13/97; KES10,000 total monthly price unchanged; vendor originals/live untouched. Earlier checkpoint paragraphs are at-time history; inspect latest Git/recovery/publication records and never rerun old generators.
-
-
 
 ## Authenticated synthetic photo attachment checkpoint — 11 October 2026
 
-
-
 410 combined affected SQL/API/SDK/HTTP/media tests and all eight workspace typechecks passed, zero failures/skips/cancellations; package/API builds and corrected64-case probe passed. New0006 provides authenticated exact-version attachment intents, coordinator-only finalization, immutable terminal receipts, derived actor audit and exact sealed provenance. Submission/new approval reject old metadata-only photos without verification backfill. Actual supervised Windows conversion attaches once and recovers a deliberately lost successful COMMIT reply through original readback. See media-attachment.md and evidence/2026-10-11-media-attachment.md; tracked media-attachment-tests.txt/media-attachment-types.txt. Earlier142/318 checkpoint counts remain separate; no full-platform/UI build, remote CI or device/operator acceptance claimed.
-
-
 
 Next exact-version photo removal/reordering with immutable historical receipts, contiguous positions and reference retention; then draft/gallery UI and public transport/delivery. Explicit labelled privileged SQL-only fixtures preserve existing policy/moderation/preview tests, distinct from actual-byte evidence. No automatic write retry, version adoption, relaunch/reclaim/delete/root rotation. Unknown native outcomes stay blocked. Intervening unsupported bigint revision tokens cause conservative rollback, never clamping. Production isolation/provider/quotas/retention, PostgreSQL races, independent backup/private source remote, rights/accounts, devices/operator UAT and all14 release gates remain open. Checklist13/97; KES10,000 total monthly price unchanged; originals/live untouched. Earlier paragraphs are at-time history; inspect latest Git/recovery/publication records and never rerun old checkpoint generators.
 
-
-
 ## One explicit synthetic photo workflow checkpoint — 11 October 2026
-
-
 
 142 focused media tests and all eight workspace typechecks passed, zero failures/skips/cancellations; media build and corrected25-case probe passed. New reusable one-use controller persists original input/claim/worker context before SQL, launches only its live armed attempt, independently verifies/stores actual bytes, persists the exact seal request and writes each command once. A real Windows/PGlite flow deliberately loses all three successful capture/claim/seal COMMIT acknowledgements and resolves original facts through read-only history. Separate actual reopening reads the verified result without relaunching. See synthetic-one-attempt.md and evidence/2026-10-11-media-one-attempt.md; tracked media-one-attempt-tests.txt/media-one-attempt-types.txt. Earlier318 combined evidence remains separate, not a combined/full-platform/UI/device run.
 
-
-
 Next authenticated exact-version attachment/finalization, removal/reordering and verified provenance gates excluding old metadata-only fixtures; then draft/gallery UI integration. Missing/conflicting/superseded original claims, partial seals and unknown native attempts stay blocked; no retry/relaunch/reclaim/delete/root rotation. Read-only unsealed history grants no continuation authority; exact stored verified history can recover after expiry/submission under current SQL authorization. No worker/DB crash, power-loss, production isolation/provider/quotas/retention/audit, PostgreSQL race, device/operator UAT or launch acceptance. Checklist13/97 and all14 gates open; KES10,000 total monthly baseline; originals/live untouched. Earlier paragraphs are at-time history; inspect latest Git/recovery/publication records and never rerun checkpoint generators.
-
-
 
 ## Persistent worker admission checkpoint — 11 October 2026
 
-
-
 117 focused media tests and all eight workspace typechecks passed, zero failures/skips/cancellations; media build and initial34-case probe passed. New stable worker/journal-bound exclusive admission blocks other jobs and reopened instances around unconfirmed work. One-use same-instance journal ticket consumption precedes arm/launch; only a live unarmed not_launched release or exact confirmed-empty journal/native flow preserves completion and archives the slot. Unknown history remains retained and blocked. Actual codec/storage/restricted SQL integration includes admission/archive/reopen, with independent byte verification and no accepted-photo/version mutation. See synthetic-worker-admission.md and evidence/2026-10-11-media-worker-admission.md; tracked media-worker-admission-tests.txt/media-worker-admission-types.txt. Earlier318 combined tests are separate, not a combined337/full-platform/UI/device run.
-
-
 
 Next bounded one-explicit-attempt orchestrator plus persisted original input-generation/claim request intent and exact read-only SQL uncertainty reconciliation. readProcessing exposes only the latest lease: missing/conflicting/superseded claims stay blocked; no automatic write retry, new lease/revision adoption or historical launch authority. Admission close/reopen/SQL expiry/PID disappearance never releases active work; no deletion/repair/root rotation/recovery scanner. Known native empty failures release capacity without image success. No forced worker/DB crash, power-loss, production isolation/provider/quotas/retention/audit, PostgreSQL race, device/operator UAT or launch acceptance. Checklist13/97 and all14 gates open; KES10,000 total monthly baseline; originals/live untouched. Earlier paragraphs are at-time history; inspect latest actual Git/recovery/publication records and never rerun checkpoint generators.
 
-
-
 ## Synthetic attempt history checkpoint — 11 October 2026
-
-
 
 318 combined affected API/SQL/SDK/HTTP/media tests and all eight workspace typechecks passed, zero failures/skips/cancellations; media build and initial53-case probe passed. Additive0005 plus strict five-command coordinator guard provide private eligible upload context without owner ID lookup. New attempt-journal records exclusive intent and immutable termination observations; incomplete/unknown history stays blocked and never yields a reconstructed ticket. Actual supervised codec integration records/reopens history while retaining independent native accounting and byte readback before SQL seal. No accepted-photo or draft-version mutation. See synthetic-attempt-journal.md and evidence/2026-10-11-media-attempt-journal.md; tracked media-attempt-journal-tests.txt/media-attempt-journal-types.txt.
 
-
-
 Next bounded local orchestrator with one explicit attempt, persistent worker admission and conservative explicit startup reconciliation; then exact-version authenticated attachment/provenance. Journal I/O admission is not a global worker lock, and recorded termination supplies no relaunch/output/cleanup authority. SQL expiry/PID disappearance/store reopen never clears unknown history; no rotating trusted roots to evade it. No automatic retry/repair/delete, power-loss/DB restart/worker-crash/production recovery proof. PostgreSQL races, production isolation/providers, quotas/retention/audit, rights/accounts, devices/operator UAT and all14 gates remain open. Checklist13/97; KES10,000 total monthly baseline; originals/live untouched. Earlier paragraphs are at-time history; inspect Git/recovery/publication records and never rerun old checkpoint generators.
-
-
 
 ## Restart-readable synthetic storage checkpoint — 11 October 2026
 
-
-
 83 focused media tests and all eight workspace typechecks passed, zero failures/skips/cancellations; media build passed. New durable-store subpath commits canonical byte-checked identities, reopens exact objects and retains incomplete/conflicting objects. A separate Node writer commits, exits on controlled stop and its receipt is recovered. Actual supervised codec output is stored/reopened and reconciled with restricted historical SQL; no draft version/accepted-photo change. See durable-synthetic-store.md and evidence/2026-10-11-media-durable-store.md; tracked media-durable-store-tests.txt/media-durable-store-types.txt. The earlier283-test checkpoint is separate; no combined296/full-platform/UI/device acceptance is claimed.
-
-
 
 Next: bounded durable worker-attempt journal/admission and explicit startup reconciliation, plus a reviewed private job-context lookup, then exact-version authenticated attachment/provenance. Store reopening never proves worker termination. SQL expiry never releases an unknown process attempt. Permanent job/kind reservations block later generations; no cleanup/repair/sweeper or worker restart authority exists. PGlite stayed alive; private object IDs used privileged fixture bootstrap only. Power loss, real PostgreSQL races, production isolation/provider accounts, quotas/retention/audit, devices/operator UAT and all14 gates remain open. Checklist13/97; KES10,000 total monthly baseline; vendor originals/live untouched. Earlier paragraphs are at-time history; inspect Git/recovery/publication records and never rerun old checkpoint generators.
 
-
-
 ## Persisted synthetic processing checkpoint — 11 October 2026
-
-
 
 283 combined affected API/SQL/SDK/HTTP/media tests and all eight workspace typechecks passed, zero failures/skips/cancellations. Migration0004 adds immutable captured inputs, globally bound three-attempt/180s leases and sealed output facts. Separate restricted coordinator adapter and actual Windows child→bounded readback→storage→SQL-seal integration are verified locally. Changed grants/roles/definitions and a temporary catalog shadow fail closed. Registration API/SDK projections and API guard remain unchanged; no draft version or accepted photo changes. See processing-coordinator.md and evidence/2026-10-11-media-processing.md; tracked logs media-processing-tests.txt/media-processing-types.txt. Failed build probe retained; no grant widened.
 
-
-
 Next build a reusable bounded local orchestrator with durable generation/object mapping and explicit recovery, then authenticated attach intents/finalize/remove/reorder plus provenance submission gates. Current object-id/opaque-handle mapping is test-memory only. SQL lease expiry is not OS termination proof; retain/block unknown attempts. Production orchestration/uploads/quotas, real PostgreSQL concurrency, isolation/provider accounts, retention/audit, devices/operator UAT and all14 gates remain open. Checklist13/97; KES10,000 total monthly baseline; originals/live untouched. Earlier paragraphs are at-time history. Inspect Git/recovery/publication records; never rerun old checkpoint generators.
-
-
 
 ## Authenticated media registration checkpoint — 11 October 2026
 
-
-
 202 affected API/SQL/SDK/HTTP regression tests and all eight workspace typechecks passed, with zero failures/skips/cancellations. Migration0003, authenticated registration/readback routes and strict shared SDK now preserve one immutable historical receipt across lost responses, later saves/submission/approval and expiry, under current authorization and original requester. Registration changes no draft version or accepted-photo count and issues no capability. See media-registration.md and evidence/2026-10-11-media-registration.md; logs media-registration-tests.txt/media-registration-types.txt. Initial SDK fixture permission errors were corrected without widening runtime privileges; failed probe remains preserved.
-
-
 
 Next implement persisted synthetic processing claims/leases, captured input identity and sealed output from the supervised codec, then explicit authenticated attach-intent/finalize/remove/reorder and provenance submission gates. No bytes are bound to registered jobs yet. Real PostgreSQL races, quotas/retention, production/provider isolation, devices/operator UAT and every release gate remain open. Earlier paragraphs below are at-time history. Preserve vendor originals/live systems and KES10,000 total monthly price. Inspect latest Git/recovery/publication records; never rerun old checkpoint generators. No UI production build, unchanged51-media-suite rerun or full-platform acceptance is claimed.
 
-
-
 Windows local processor checkpoint:51 focused synthetic media tests and all eight workspace typechecks passed. Atomic Job Object launch, actual zero-membership barriers, timeout/cancel, a surviving detached child/grandchild and actual child-codec/storage flow are verified locally. Unknown outcomes block reuse and retain attempts. See evidence/2026-10-10-media-processor.md and media-processor-tests.txt/media-processor-types.txt. This establishes process lifetime only, not a production filesystem/network/resource sandbox, durable jobs or listing acceptance. Earlier checkpoint paragraphs remain at-time history; every release gate stays open.
-
-
 
 10 October storage update: the separate local-store subpath now verifies streamed quarantine/output storage, cancellation and integrity readback using synthetic bytes.32 focused media tests and all eight typechecks passed; see evidence/2026-10-10-media-storage.md. Storage receipts are not image/SQL acceptance, and disposable cleanup is not a production retention sweeper. Next implement/test the Windows supervisor in processor-containment-plan.md, then authenticated media intents/provenance. Earlier checkpoints below remain historical evidence; all stage/release gates stay open.
 
-
-
 10 October codec update: packages/media now performs actual local synthetic static-image conversion; 14 focused tests and all eight workspace typechecks passed. See evidence/2026-10-10-media-codec.md for exact limits. This is not upload/storage/SQL acceptance or a combined rerun of the earlier 265 platform tests. Next private storage and an isolated processor harness, then authenticated media commands.
 
-
-
 10 October moderation update: the local authenticated admin queue/detail/decision journey is implemented; see moderation.md and evidence/2026-10-10-moderation.md. Final 265-test rerun, all seven workspace typechecks and the admin production build passed; see CONTINUATION.md and completed logs. Trusted photo storage, isolated processing and attachment remain the next implementation tasks; see trusted-media-plan.md, trusted-media-commands.md and trusted-media-runtime.md. The new media documents are proposed contracts, not implemented upload evidence. No stage/release gate is accepted.
-
-
 
 ## Verified work
 
 The local vendor resources, UAT folder and two delivery media folders were inventoried and snapshotted. SHA-256 hashes of every archived file were verified by reading the snapshots back. Generated build/cache directories and Git internals are excluded and listed in the manifest. Original files were not edited. Read-only snapshot copies live outside this repository in ../rebuild-preservation/2026-10-09. This is a same-device recovery copy, not an independent disaster-recovery backup.
 
-
-
 Remote Figma and Miro documents are references, not fully preserved exports. Obtain owner exports/history before declaring design preservation complete. The supplied PDF/proposal are included in the vendor snapshot. Additional media not in the listed source roots must be inventoried before migration.
-
-
 
 ## Proposed pilot scope
 
 Responsive public website, Android/iOS application, admin portal, shared identity, property catalogue and resilient media, search, favourites, agent contact, viewing requests, moderation, lead assignment/status, simple operational reporting and configuration for a second realtor. Deliver and verify a listing-to-enquiry vertical slice before expanding. Payments, paid ads, commission settlement, AI recommendations and advanced marketplace growth are later scope. No synthetic UAT listings enter real stock.
 
-
-
 ## Architecture decisions — provisional until Stage 01 review
 
 One TypeScript monorepo now implements apps/web (Next.js), apps/admin (Next.js), apps/mobile (Expo/React Native), apps/api (modular TypeScript service), packages/domain, packages/demo, packages/api-client and the Node-only experimental packages/media. V2 pricing/location inputs now converge across shared validators, revision storage, reviewed snapshots, API and public client; public web now deliberately connects to v2 through server-only configuration with exact disclosure; local authenticated existing-draft editing now uses raw v2 inputs and recoverable optimistic saves. The local synthetic admin review queue/detail/decisions are implemented; real sessions, full navigation/pagination, native operational integration and legacy staff contract convergence remain follow-up work. See moderation.md and staff-drafts.md. Shared business contracts and semantic brand configuration support platform-appropriate UI. Exact versions and compatibility reasons are recorded in development.md and package-lock.json. PostgreSQL with PostGIS remains the production target; current tested migrations use bounded coordinates without the extension. Object storage/media processing and providers are not provisioned.
 
-
-
 Tenant identity is resolved and authorized on the server; every tenant resource, object-storage path, query, job and audit event is scoped. Include automated cross-tenant denial tests. Company name, logo, colors, domains, contact details, feature switches and policies are validated configuration. New client onboarding must pass a two-tenant reproduction test. Separate deployments/databases remain an option for contractual isolation.
-
-
 
 ## Ownership and access register
 
@@ -624,36 +478,25 @@ Tenant identity is resolved and authorized on the server; every tenant resource,
 
 | Replacement providers | Not selected | Compare recurring cost, backups, region, portability and support | Engineering + Boniface |
 
-
-
 ## Repository and contribution rules
 
 Treat new source as private pending an explicit licensing decision. No open-source licence is granted by this document. Contributors must have agreed rights to contribute. Do not copy vendor implementation into replacement code. Preserve requirements and permitted assets separately. Never commit secrets, signing keys, credentials or customer exports. Review dependency licences before adoption. Use reviewed changes and CI before production; keep schema migrations reversible where practical. Remote repository and access policies remain pending; a local Git repository alone does not establish legal ownership.
-
-
 
 ## Proposed success and release gates
 
 The realtor can publish accurate stock, receive and assign enquiries, schedule viewings and follow up without a parallel unmanaged spreadsheet. Establish baseline and target measures with the realtor: enquiry response time, listing freshness, lead follow-up completion and weekly active staff. No numeric business claims until agreed. Release requires role/tenant/ownership denial tests, upload recovery, exact pricing, device and accessibility checks, end-to-end UAT, backup restore rehearsal, migration reconciliation and rollback rehearsal.
 
-
-
 ## Open decisions
 
 Builder confirmed: Boniface with Codex. Total recurring service-price baseline: KES 10,000 per realtor per month; see service-budget.md. Weekly availability remains unknown. Broad approval permits the provisional implementation defaults in business-rules.md and acceptance-catalogue.md. Operator validation, permitted asset/data reuse, account/store control and reviewed policies remain open. Staff publish after moderation; visitors enquire; payments remain deferred. On 9 October Boniface explicitly requested UI/UX informed by supplied Figma/Miro/apps or better and authorized design improvements using research and judgment; see design-resource-register.md and ux-blueprint.md.
-
-
 
 ## Commercial and delivery baseline
 
 See [service-budget.md](service-budget.md) for confirmed staffing/price, sourced candidate costs, proposed limits and solo delivery sequence. Allocations are estimates; no suppliers provisioned.
 
-
-
 ## Next
 
 Use CONTINUATION.md for the latest implementation/test checkpoint and next actions. Continue reversible work with synthetic data while obtaining design exports, account/rights evidence and independent backup/private remote. Stage 01 and release gates remain open. No live changes or vendor retirement occurred.
-
 
 ## Durable viewing cancellation/decline backend — 14 October 2026
 
@@ -729,56 +572,39 @@ Next exact checklist docs/viewing-outcomes-operator-next.md: fixed kind BFF/reco
 
 Latest16October: guarded preview/reminder fixture conversion;47preview+22reminder+1candidate-helper checks passed. See docs/guarded-preview-fixtures.md. AllocationSQL0024 remains proposal;continue remaining fixture conversion before final-schema promotion.19/97tasks0/14gates.
 
-
 Checkpoint89 published: dashboard92158c7 deploymentappgdep_6ad1debbd09881919cb9dbe084a72c6b succeeded;344notes canonical/browsermatch. Sourcee155629 freshGitHubrestoreverified. Next media-upload-context initialfixtures then remaining inventory;0024notregistered. No activechecks/preview.
-
 
 Latestmediafixturegroup:7initialallocationsconverted,42checks passedwithproposal0024 explicitlyapplied in4suites. See docs/guarded-media-fixtures.md. Next jobs/gallery/attachment fixtures pluslaterguardedsuccessors;0024stillnotnormalstartup.
 
-
 Checkpoint90published:12b72b1 dashboarddeploymentappgdep_6ad1e07a2ea48191b48b873d1e6baaea succeeded;347notes canonical/browsermatch.42media checks undercandidate passed/source30bb763 freshrestoreverified.36literalzero calls remain forconversion/classification;next jobs/gallery/attachment. No activechecks/preview/helper;0024notstartup.
-
 
 Latest guardedmedia lifecycle:39checks passed undercandidate0024 acrossjobs/gallery/attachment+existinghelper.3initial+3laterallocations converted;next viewingscheduling/listingsuccessor/serviceSDKinitialfixtures. See docs/guarded-media-lifecycle-fixtures.md;0024notstartup.
 
-
 Checkpoint91published:2cdd85e dashboarddeploymentappgdep_6ad1ec6702d081919baea926a3ab75d3 succeeded;350notes canonical/browsermatch.39checks/source1b3dae8 freshrestoreverified.30literalzero calls remainforclassification/conversion;next viewingpublish/listingsuccessor(includingexplicitcompatibilitytest).0024notstartup;noactivechecks/preview/helper.
-
 
 Latestviewing/successor/SDKmedia fixturegroup:59DB+30SDKintegration checkspassed underexplicitcandidate0024;6ordinaryinitialcallsconverted;22convertedtotal. See docs/guarded-viewing-sdk-fixtures.md. NextAPIservice/moderation thenremainingSDK;0024notstartup.
 
-
 Checkpoint92published:281b3f4 dashboarddeploymentappgdep_6ad1f89fa4d48191a2dc1805cf18ea70 succeeded;353notes canonical/browsermatch.59DB+30SDKchecks/sourcef5a502a freshrestoreverified.24literalzero calls includeintentionaldenial/historicalcontracts;nextAPIservice/moderation thenremainingSDK.0024notstartup;noactivechecks/preview/helper.
-
 
 LatestAPIservice/moderation:33checks passed undercandidate0024;guardededitablecreation andterminalsuccessors;bareHTTPcreationseparatecoverage. See docs/guarded-api-fixtures.md. NextremainingSDKintegrationfixtures;0024notstartup.
 
-
 Checkpoint93 published: dashboard a9f09c6 deployment appgdep_6ad207c9dac881919955e28d105a58cb succeeded;356 notes match canonical/browser.33 service/moderation checks passed;source a155e84 fresh restore verified.18 literal calls include intentional/historical coverage; next remaining SDK fixtures. Moderation SDK preallocates2/3 and needs legitimate deferred successor setup.0024 remains outside startup; no active checks/preview/helper.
-
 
 LatestSDKlifecycle:236DB+70SDKintegrationpassed(23focusedoverlap). See docs/guarded-sdk-lifecycle-fixtures.md. FoundationusesDEFAULT helper andneedsconversion;doNOTclassifyhistorical-only. Remaining10literalcalls include7foundationcompatibility.0024notstartup;nextfoundation thenpromotion/fullfinalschema.
 
-
 Checkpoint94 published: dashboard d8dbb392 deployment appgdep_6ad2181140c881918fd71970e57bba6b succeeded;359 notes canonical/browser match. Source acdb889 fresh restore verified.236DB+70SDK integration passed(23focused overlap),mixed default/candidate schema. Next foundation7 compatibility calls underdefaulthelper;doNOTclassify historical-only/freeze whole suite.0024 still outside startup;no activechecks/preview/helper.
-
 
 LatestSQLallocation:0024 now normal local/test migration order;236DB/200API/70integration/47preview/194media checks passed(0skips). See docs/draft-allocation-activation.md. Candidateupgradetests intentionallypre0024;historical0001fixtures explicit. Nextfreshmanualoperatorbrowser thenavailability/publication/moderatorimages. Oldlive/vendorunchanged;19/97tasks0/14gates.
 
-
 Checkpoint95 published: normal local migration0024 active;236DB/200API/70integration/47preview/194media passed,0skips. Sourcee3f39a3 freshGitHubrestoreverified;dashboarda6d6a5a deploymentappgdep_6ad226b2fa448191b2de05ca245f7739 succeeded;362notes canonical/browsermatch. Next freshoperatorbrowser default0024,thenavailability/publication/moderatorimages. Noactivechecks/preview/helper;oldliveunchanged;19/97tasks0/14gates.
-
 
 Latestdefault0024operatorbrowser: uncertain successor GETrecovery→savedfacts/fourdecodednativeimages→pending→explicitapproval selectedrev2;separateguardedcreation freshread/emptygallery. Finaladminbuildpassed;ownedpreviewclosed/rootsretained. See docs/allocation-operator-browser.md. Prior747checksnotrerun;nextguardedavailability/publication/moderatorimages;19/97tasks0/14gates.
 
-
 Checkpoint96published: actualdefault0024browser creation/successorGETrecovery/native4images/approvalselected2;finaladminbuildpassed. Source4f5abc6 freshrestoreverified;dashboard7fdb171 deploymentappgdep_6ad2359811548191b8bc3e9994f2b9df succeeded;365notes canonical/browsermatch. Noactivechecks/preview/helper. Nextguardedavailability/publicationcommandcontracts thenSQL/API/SDK/operator;moderatorimagepolicy/UI after.19/97tasks0/14gates;oldlive/vendorintact.
-
 
 Latestavailability/publicationcontracts:205domainchecks(10new)+8types/packagebuilds passed;final10focusedoverlap. See docs/listing-controls-contracts.md. SQLledger/API/SDK/operatorpending;legacyRPCsunchanged. Nextprivateimmutableledger/recovery/paritytests.19/97tasks0/14gates;oldlive/vendorintact.
 
 Latest publication97 (16 October): availability/publication domain contracts6f37ca2 backed up/restored cleanly;205 domain checks,8 workspace typechecks and4 package builds passed. Owner-private dashboard74867a1 deployed successfully;368 notes preserved and all stages matched after import/reload/export.19/97tasks,0/14gates. Next private SQL request/result ledger and restricted-role parity/recovery/rollback tests; domain-only checkpoint, legacy SQL unchanged. See listing-controls-contracts.md and CONTINUATION.md.
-
 
 ## Durable listing controls verified — 16 October 2026
 
@@ -878,7 +704,6 @@ Exactnext apps/api/dev/media-preview.mjs imports draftfactoryandcreatesimages ne
 
 Checkpoint105 fixednativepair shares1active+1queuedstorage admission acrossdraft/review,overflow503,jointdrainbeforestoresclose;HTTP rawreviewroutebodyframing-safe. Signednativefourimagessealed/submittedpending/hashmatchedreviewbytes;draft/approveddenied,missingauth401/stale409.215finalAPIpassed,33focusedbefore2newdigitcases,50fullpreviewbeforepreviewregexrepair,1signedfinaloverlap,8types/4packagesbeforeclass-onlyrepair/finalAPIcompilepassed. Initialsignedfixtureusedabsentreviewphoto.id correctedtoretainedsealedworkspaceIDs;intermediateoverescapeduploadregexrestorationcausedregression/restoredexactHEAD/final215passed;failedlogsretained. No SDK/BFF/UI/browser/device/currentCI/UAT/cutoverpass; nativeauthorityloss/decisionduringIO stilldoublesonly. See docs/review-media-composition.md. Next validatedpendingreviewmediaIDsDTO(versionbound,currentadmin),fixedSDK/BFF/reviewUI thenactualbrowser/nativeaccessloss.19/97tasks0/14gates;KES10000totalmonthly/vendor-oldliveintact. Backup/dashboardpending.
 
-
 ## Native reviewer checkpoint105 published — 17 October 2026
 
 Source11e0c9ae6a7c65e79964ff382dbed1db5adfb537 pushed/freshGitHubclone review-media-composition-restore exactHEAD/clean/fsckpassed. Nativepair shares1active+1queuedstorage acrossfixedpolicies,overflow503,jointdrain. ExactrawreviewHTTP hook. FouractualsealednativeimagespendingreviewSHA256matched draftbytes;draft/approveddenied/missingidentity401/stale409.215finalAPIpassed/zero skips;1finalsignedoverlap.33focusedand50fullpreviewpassedbeforedigit-classrepair;two new revision12casesincludedfinal215.8types/4packagespassedbeforedigitclass-onlyrepair/finalAPIcompilepassed. Initialsignedfixtureabsentreviewphotos.id correctedtoretainedsealedworkspaceIDs;intermediateuploadregexrestorationoverescape causedfailures/restoredexactHEAD/final215passed;failurelogsretained. Nativeaccessloss/decisionduringIOstilldoublesonly;no SDK/BFF/UI/browser/device/currentCI/hostedrace/UAT/cutoverpass. docs/review-media-composition.md.
@@ -890,7 +715,6 @@ Exactnext reviewer identity projection: packages/api-client/src/index.ts ReviewD
 ## Reviewer gallery SQL verified — 17 October 2026
 
 Checkpoint106 default0027read_review_media_gallery currentenabledadmin/exactsubmittedpending/version;4–12orderedphotos id/alt/position only,allacceptedassociations useexistingread_review_media_preview fullsealedprovenanceactualversionbeforeexpectedcompare;oneunsealedhistoricalreference denieswholegallery/no partialIDs. Stabledefiner/realtor_owner/pg_catalog/PUBLICrevoked/runtimeonly/read-only.252fullDBpassed/noskips;7focusedoverlap/3newgallerycases. InitialfixtureshitpendingimmutabilityandsealedFK;corrected3validsealed+1legacydraftreference/assertnormalsubmitrefusal/privilegedhistoricalpendingrow/no guardsdisabled. Failedfocusedlogsretained,initialbroadinterrupted;finalfullpasssupersedes. No newAPI/SDK/BFF/UI/native/browser/types/currentCI/device/UAT/hostedrace/cutoverclaim. docs/review-media-gallery.md. Next strictboundedDTO/servicefixedgalleryGET+SDKimageGET/BFF/reviewUI/nativegallerydiscovery/browser/currentaccessloss.19/97tasks0/14gates;KES10000monthlytotal/vendor-oldlive intact. Backup/dashboardpending.
-
 
 ## Reviewer gallery checkpoint106 published — 17 October 2026
 
@@ -904,7 +728,6 @@ Exactnext apps/api/src/service.ts reviewRoute near1321 and reviewGET near2810 re
 
 Checkpoint107 sharedstrictfrozengalleryDTO exactkind/listing/revision/version/pending/4–12uniqueorderedidaltposition;300Unicode scalaralt/accessor/sparse/extra-pathdenials. FixedgalleryGETrequiredX-Revision-Version,verifiedactor/trustedtenant/currentadmin/typedread_review_media_gallery;badprojectionvalidatedbeforecommit/callercontext-body-query-framingdenied. SDKgetReviewMediaGalleryV2/getReviewMediaPreviewV2fixedroutes/exactversion/boundedread/cancel/no retry. Signednativefourgallery-discoveredIDs equal sealedworkspaceIDs/reviewerSDKbyteshashmatchdraftbytes.219API224SDK71integration207domain50preview=771passed/noskips;7focusedoverlap/8types4packages/APIcompile/formatpassed. InitialAPIduplicategalleryRoutevariablecompileerror corrected/failedlogretained;newSDKtestsregisteredexplicitdefaultlist. SQLunchanged/prior252DBnotrerun. No adminBFF/UI/actualbrowser/device/currentCI/hostedrace/UAT/cutoverpass;nativeaccessloss/decisionduringIOstillnext. docs/review-gallery-http.md.19/97tasks0/14gates;KES10000totalmonthly/vendor-oldliveintact. Backup/dashboardpending.
 
-
 ## Reviewer API/client checkpoint107 published — 17 October 2026
 
 Sourcede0feee5d87426799846cc532aa4d7a9c8a77927 pushed;freshGitHubclone review-gallery-http-restore exactHEAD/clean/fsckpassed. StrictfrozengalleryDTO exactversion/pending/4–12uniqueorderedidaltposition/300Unicode scalar/accessor-sparse-extra-keydenial. FixedgalleryGETrequiredX-Revision-Version/currentadmin/verifiedactor/trustedtenant/typedSQL/validatebeforecommit;SDKfixedgallery/imageGETboundedread/cancel/no retry. Signednativefourgallery-discoveredIDs matchsealedworkspaceIDs/allreviewerSDKbyteshashmatchdraftbytes.219API224SDK71integration207domain50preview=771passed/noskips;7focusedoverlap/8types4packages/APIcompile/formatpassed. InitialduplicategalleryRoutecompileerrorcorrected/logretained;newSDKtestregistereddefaultexplicitlist. SQLunchanged/prior252DBnotrerun. No adminBFF/UI/actualbrowser/device/currentCI/hostedrace/UAT/cutoverpass;nativecurrentaccessloss/decisionduringIOstillnext. docs/review-gallery-http.md.
@@ -916,7 +739,6 @@ Exactnext read apps/admin/AGENTS.md andinstalledNextdocs;reviewUIcurrentlykeyalt
 ## Reviewer admin proxy verified — 17 October 2026
 
 Checkpoint108 fixeddevelopmentserver-onlyreviewgallery/imageGET Nextdynamicroutes. ExactloopbackHost/sameorigin/configuredinstance/syntheticmedia/canonicalrevisionversionmediaIDs;browserAuthorization/cookies/callercontext/bodyframing/query/range/conditionaldenied. Serverheldbearer/newreviewSDKonly/cancel30sectimeout;strictgalleryrevalidation/ownedboundedimagecopy/exacttupleMIME;safeprivate-no-store-nosniff-sameoriginresponses/denialmapping/noSQL-cookie-token-pathleak.246adminpassed/noskips(8newparent-subchecks),8workspace types4packages/finaladminbuild/formatpassed. Controlledfetch-throughSDK/compiledroutes only;notnewrealserver/native/browserproof. No failedtest/build. Prior771API-SDK-integration-domain-preview252DBnotrerun. Reviewscreenunchanged/referenceonly. docs/review-media-proxy.md. Next boundbrowsergallerytransport/fixedreviewimagebatch/UIcleanup-on-version-decision-denial/unmount/actualnativebrowser.19/97tasks0/14gates;KES10000monthlytotal/vendor-oldliveintact. Backup/dashboardpending.
-
 
 ## Reviewer admin proxy checkpoint108 published — 17 October 2026
 
@@ -930,7 +752,6 @@ Exactnext UI: apps/admin/lib/private-image.ts collect() fixesdraftpath near113 a
 
 Checkpoint109 bounded32KiBgallerybrowsertransport/fixedinstance-version/path/credentialomit/no redirects/UTF8+strictDTO/cancel20sec/latebodycancel/no retry. Separatefixedreviewimagebatch sharesmaintaineddraftreader limits2reads10MiB/timeout/URL-tuple/framing/stale-deniedclear/ownedURLcleanup. PendingReviewImages unmounts onreview-version/decisionbusy/blocked/error;decodefailurecleanup.251adminpassed/noskips(5new),8types4packages/finaladminbuild/formatpassed/Nextenvrestored;no failedruns. Actualtab44 signednativefresh4images listing400revision2version7listing4 allblobcomplete natural100x80/112x80/124x80/136x80;DOMJSON/JPEGsavedinspected. Syntheticack+approveimagesabsentduringbusy/readbackapprovedrev2version8listing5selected2queue0/noimages. ActualURLrevocationcountunitonly. Tab44closedbeforepreviewSIGINTintentionalwrapperexit1/ownedrootsretained/portclosed. Prior771API-SDK-integration-domain-preview252DBnotrerun. No nativecurrentaccessloss/decisionduringIO/browserrestoration/device/currentCI/hostedrace/UAT/cutoverpass. docs/review-images-ui.md.19/97tasks0/14gates;KES10000monthlytotal/vendor-oldliveintact. Backup/dashboardpending.
 
-
 ## Reviewer image UI checkpoint109 published — 17 October 2026
 
 Source0a9c5069feee15cd2a6e1e9e1407abb3775f85fd pushed;freshGitHubclone review-images-ui-restore exactHEAD/clean/fsckpassed. Bounded32KiBgallerybrowsertransport/exactinstance-version-path/no credentials-redirects/strictUTF8DTO/cancel20sec/latebodycancel/no retry. Fixedreviewimagefactory sharesmaintaineddraftreader2reads10MiB/URLtuple-framing/timeout/stale-deniedclear/ownedURLcleanup. Pendingcomponentunmountsreview-version/decisionbusy/blocked/error;decodefailurecleanup.251adminpassed/noskips(5new),8types4packages/finaladminbuild/formatpassed/Nextenvrestored;no failedruns. Actualtab44 nativefreshfourblobcompleteimages100x80/112x80/124x80/136x80 forlisting400revision2version7listing4;DOMJSON/JPEGretainedinspected. Syntheticack+approve removedimagesduringbusy;readbackapprovedrev2version8listing5selected2queue0/noimages. URLrevocationcallcountunitonly. Tab44closedbeforeownedpreviewSIGINTintentionalwrapperexit1/rootsretained/portclosed. Prior771API-SDK-integration-domain-preview252DBnotrerun. No nativecurrentaccessloss/decisionduringIO/browserrestoration/device/currentCI/hostedrace/UAT/cutoverpass. docs/review-images-ui.md.
@@ -942,7 +763,6 @@ Exactnext nativeauthorization-during-read: currentconsumerdoubles alreadydenyaft
 ## Native reviewer access and moderation implementation accepted — 17 October 2026
 
 Checkpoint110 testonlyproductunchanged:actualnativeonegeneratedtarget/three relationalsealedextras/signedRS256JWKS/loopbackHTTP/restrictedSQL/stores;testadapterpausesafterrealoutputreadoutsideSQL. Independentlocaldemotiontransaction→release→404JSONnoimage;restoreadmin/exactsamependingversion→hashidenticalbytes;secondpausedread+signedHTTP rejectioncommit→404noimage;decidedfollowupbeforeIO.4store reads1decoder asserted. OnePGlitesessionsequencedcompletedtransactions,notindependentPGconcurrency/continuousnetworkauth.220fullAPIpassed/noskips/1focusedoverlap.25currentmoderationacceptanceauditpassed/noskips:disclosureSQL/successorSQL/moderationSDKintegration/nativefour-image successor. Canonical06-5 implementationverifiedlocallyclosedafteractual109browsernativeimages+approval and110nativeauthorityloss;oldtrustedmediagapfilled.20/97tasks21percent0/14gates. Other06/08bulkimport/duplicates/notifications/providers/durableagentrecovery andmobile/platform/release remainopen. docs/review-native-access.md/moderation-implementation-acceptance.md. Historicalbrowsernotrerun;browserloss-restoration/device/currentCI/hostedrace/UAT/cutoverunrun. Nofailedruns;ownednativerootsretained/servershandlesclosed. KES10000totalmonthly/vendor-oldliveintact. Backup/dashboardpending.
-
 
 ## Native reviewer access and task06-5 checkpoint110 published — 17 October 2026
 
@@ -1567,3 +1387,9 @@ Checkpoint177final: implementatione95407dcprivatelypushed/freshmatchingcleanGitH
 Checkpoint178: actualprivateGitHubFoundation120/source03b7afcfailedbeforejobstart;annotationcitesfailedpaymentsORspendingrestriction,ownerBillingandplansreviewrequired(exactcauseunknown). No accountchange/credits/rerun/workaround. Latestobservedgreen115/source21095c93/11m42s,notlatercodeCIpass. Seeci-account-blocker.md/proofJSON/CONTINUATIONexactnext179. No newtestorproductbrowserpass;25/97tasks26percent0/14gates. Warm14d9453/protectedpreviews/vendorlivepreserved;format/backup/privatepublicationfollows.
 
 Checkpoint178final: documentatione9b590d2privatelypushed/freshmatchingcleanrestore/fsckverified;targeteddocsformatpassed. Owner-privateSite appgdep_6add77f4c9c8819186a56678e528bc7d succeeded;actualreload/screenshot646notespreserved. ActualCI120jobnotstarted(accountpaymentORspendingrestriction),ownerBillingandplansreviewrequired;no billing/limits/credits/rerun/workaroundchanges. Latestobservedgreen115/source21095c9notlatercodeCIpass. Owneralertreported178;donotrepeatunchangedalert.25/97tasks26percent0/14gates;continueusefullocalworkexactnext179perCONTINUATION. Warm14d9453/protectedpreviews/vendorlivepreserved. One-shot178hasrun;neverrerun.
+
+## Checkpoint179 — public explicit reference filters,25 October 2026
+
+Stage07/task07-2 intended deliverable: saved public county/locality/neighbourhood/amenity ID filters with labelled GET controls and URL preservation. Implemented exact canonical single UUID/blank validation; invalid/repeated inputs refuse without widening. Intersection uses same property's validated historical public identities; no label-to-ID inference for legacy/demo. Options from unfiltered bounded source preserve same-label distinct IDs/historical label variants and absent selection recovery. One amenity only; count/options/paging still within loaded100, not global search.51webchecks(44existing+7new)andwebTypeScript passed. Initial strict SDK fixture violations and page union inference corrected without relaxing validators; failedlogs retained. See public-reference-filters.md and sibling reference-filters evidence. InitialRAM497504KiB/later421904KiB;no newUI/emulator/warmmutation. Protected previews/vendorlive preserved. No new productbrowser/Nextbuild/fullAPI/DB/admin/mobile/device/hosted/operator/cutoverclaim. GitHubrestriction alreadyalerted178;no billing/credits/limits/plan/rerun/workaroundchange.25/97tasks26percent0/14gates;06-1/07-2open,06-6locallyaccepted,KES10000totalmonthly. Format/backup/privatepublication follows.
+
+Exactnext180: implement true bounded server-wide publicsearch/count/paging plus identityfilters before07-2closure. Actualcurrent-sourcebrowser reference/room/sort/pageURLs/unavailable/reset/back/refresh/keyboard/mobile whenRAMpermits. Separatecombinededitor review-revise-send/originalGET recoveryproof;preservewarm14d9453/generatedfile/cachebeforeupdates. Controlleddeploymentadmissioncomposition/artifactrouteattestation/drain/ownerDDLserialization/lease/deadline/health/reconciliation/hostedlocks remains. Externalrights/accounts/media/hosting/devices/operatorUAT/approvedcutoverremainrequired. AfterownerresolvesGitHubrestriction verifyexactcurrentworkflow;do notrepeatunchangedalert or bypasslimits.

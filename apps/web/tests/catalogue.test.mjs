@@ -1,5 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import ReferenceFilters from '../dist/tests/components/ReferenceFilters.js';
+import { loadedPageHref } from '../dist/tests/lib/catalogue-browse.js';
+import {
+  parseReferenceFilters,
+  referenceOptions,
+} from '../dist/tests/lib/catalogue-reference-filters.js';
 import { snapshotListingReferenceAttributes } from '@realtor/domain';
 import {
   createCatalogueLoader,
@@ -101,6 +109,193 @@ const referenceProperty = () => {
     },
   });
 };
+
+test('public ID filtering uses saved identities rather than identical labels or legacy text', async () => {
+  const first = referenceProperty(),
+    other = structuredClone(first);
+  other.id = id(101);
+  other.reference.attributes.location.county.id = id(210);
+  other.reference.attributes.location.locality.id = id(211);
+  other.reference.attributes.location.neighbourhood.id = id(212);
+  other.reference.attributes.amenities[0].id = id(310);
+  const legacy = property({ id: id(102), reference: { attributes: null, revisionVersion: null } });
+  const loader = connected([first, other, legacy], referenceEnvironment, async () =>
+    json({ policy: 'synthetic-reference-public-v1', items: [first, other, legacy], limit: 100 }),
+  );
+  assert.deepEqual(
+    ready(
+      await loader.list({
+        countyId: id(200),
+        localityId: id(201),
+        neighbourhoodId: id(202),
+        amenityId: id(300),
+      }),
+    ).items.map((x) => x.id),
+    [first.id],
+  );
+  assert.equal(ready(await loader.list({ countyId: id(210), amenityId: id(300) })).items.length, 0);
+  assert.equal(ready(await loader.list({ neighbourhoodId: id(999) })).items.length, 0);
+  assert.equal(ready(await loader.list()).items.length, 3);
+});
+
+test('reference GET filters reject repeated/malformed/oversized identities without widening results', async () => {
+  const source = referenceProperty();
+  const loader = connected([source], referenceEnvironment, async () =>
+    json({ policy: 'synthetic-reference-public-v1', items: [source], limit: 100 }),
+  );
+  for (const key of ['countyId', 'localityId', 'neighbourhoodId', 'amenityId'])
+    for (const value of [
+      [id(200)],
+      ' ' + id(200),
+      id(200) + ' ',
+      'Synthetic County',
+      id(200).toUpperCase().replace('4000', 'A000'),
+      'x'.repeat(10000),
+    ]) {
+      const result = ready(await loader.list({ [key]: value }));
+      assert.equal(result.items.length, 0);
+      assert.equal(
+        result.filters.error,
+        'Choose one supported location or amenity option per field.',
+      );
+      assert.deepEqual(parseReferenceFilters({ [key]: value }).invalid, [key]);
+    }
+});
+
+test('public reference facets use unfiltered loaded snapshots and preserve exact source limits', async () => {
+  const source = referenceProperty(),
+    calls = [];
+  const loader = connected([source], referenceEnvironment, async (url, init) => {
+    calls.push({ url, init });
+    return json({
+      policy: 'synthetic-reference-public-v1',
+      items: Array.from({ length: 100 }, (_, i) => ({
+        ...source,
+        id: id(1000 + i),
+        slug: 'synthetic-' + i,
+      })),
+      limit: 100,
+    });
+  });
+  const result = ready(
+    await loader.list({
+      amenityId: id(999),
+      beds: '0',
+      purpose: 'rent',
+      period: 'month',
+      max: '20000.01',
+    }),
+  );
+  assert.equal(result.items.length, 0);
+  assert.equal(result.sourceCount, 100);
+  assert.equal(result.mayBeTruncated, true);
+  assert.equal(result.limit, 100);
+  assert.deepEqual(result.referenceOptions.amenityId, [{ id: id(300), label: 'Synthetic lift' }]);
+  assert.equal(
+    result.referenceOptions.neighbourhoodId[0].label,
+    'Synthetic County › Synthetic Town › Synthetic Area',
+  );
+  assert.ok(Object.isFrozen(result.referenceOptions));
+  assert.ok(Object.isFrozen(result.referenceOptions.countyId));
+  assert.ok(Object.isFrozen(result.referenceOptions.countyId[0]));
+  assert.equal(calls.length, 1);
+  assert.ok(calls[0].url.endsWith('/v3/properties?limit=100'));
+  assert.equal(calls[0].init.headers.Authorization, undefined);
+});
+
+test('demo/legacy amenity labels do not invent public reference identities', async () => {
+  const demo = ready(
+    await createCatalogueLoader(
+      resolveCatalogueConfig({ WEB_CATALOGUE_MODE: 'demo', TENANT_SLUG: 'realtime-estates' }),
+    ).list(),
+  );
+  assert.ok(demo.items.length > 0);
+  assert.deepEqual(demo.referenceOptions, {
+    countyId: [],
+    localityId: [],
+    neighbourhoodId: [],
+    amenityId: [],
+  });
+  const result = ready(
+    await createCatalogueLoader(
+      resolveCatalogueConfig({ WEB_CATALOGUE_MODE: 'demo', TENANT_SLUG: 'realtime-estates' }),
+    ).list({ amenityId: id(300) }),
+  );
+  assert.equal(result.items.length, 0);
+});
+
+test('historic labels and same-label different IDs remain distinct immutable choices', async () => {
+  const source = referenceProperty(),
+    old = structuredClone(source),
+    other = structuredClone(source);
+  old.id = id(101);
+  old.reference.attributes.catalogueVersion = '2';
+  old.reference.attributes.amenities[0].label = 'Earlier lift';
+  other.id = id(102);
+  other.reference.attributes.amenities[0].id = id(301);
+  const loader = connected([source, old, other], referenceEnvironment, async () =>
+    json({ policy: 'synthetic-reference-public-v1', items: [source, old, other], limit: 100 }),
+  );
+  const result = ready(await loader.list({ amenityId: id(300) }));
+  assert.equal(result.items.length, 2);
+  assert.deepEqual(result.referenceOptions.amenityId, [
+    { id: id(300), label: 'Earlier lift / Synthetic lift' },
+    { id: id(301), label: 'Synthetic lift' },
+  ]);
+});
+
+test('reference identity filters compose with room and exact-cent budget constraints', async () => {
+  const source = referenceProperty();
+  const loader = connected([source], referenceEnvironment, async () =>
+    json({ policy: 'synthetic-reference-public-v1', items: [source], limit: 100 }),
+  );
+  const query = {
+    countyId: id(200),
+    amenityId: id(300),
+    beds: '0',
+    privateBaths: '1',
+    purpose: 'rent',
+    period: 'month',
+    max: '20000.01',
+  };
+  assert.equal(ready(await loader.list(query)).items.length, 1);
+  for (const extra of [{ sharedBaths: '0' }, { max: '20000.00' }, { beds: '1' }])
+    assert.equal(ready(await loader.list({ ...query, ...extra })).items.length, 0);
+  const href = loadedPageHref(parseCatalogueFilters(query), 'title', 2),
+    url = new URL(href, 'https://web.example.invalid');
+  for (const [key, value] of Object.entries(query)) assert.equal(url.searchParams.get(key), value);
+  assert.equal(url.searchParams.get('page'), '2');
+});
+
+test('reference controls label options, preserve unavailable selections and escape supplied labels', () => {
+  const values = parseReferenceFilters({ countyId: id(200), amenityId: id(999) }).values;
+  const options = {
+    ...referenceOptions([]),
+    countyId: [{ id: id(200), label: '<script>County</script>' }],
+  };
+  const html = renderToStaticMarkup(
+    React.createElement(ReferenceFilters, { values, options, invalid: ['amenityId'] }),
+  );
+  assert.ok(html.includes('&lt;script&gt;County&lt;/script&gt;'));
+  assert.ok(!html.includes('<script>'));
+  assert.match(html, new RegExp('value="' + id(999) + '" selected=""'));
+  assert.ok(html.includes('Selected option unavailable in loaded selection'));
+  assert.match(
+    html,
+    /<select(?=[^>]*name="amenityId")(?=[^>]*aria-invalid="true")(?=[^>]*aria-describedby="search-error")[^>]*>/,
+  );
+  assert.ok(html.includes('All selected locations and the amenity must match the same property'));
+  assert.equal(
+    renderToStaticMarkup(
+      React.createElement(ReferenceFilters, {
+        values: parseReferenceFilters({}).values,
+        options: referenceOptions([]),
+        invalid: [],
+      }),
+    ),
+    '',
+  );
+});
 test('explicit synthetic reference web mode maps approved historical amenities and exact pricing through the real SDK', async () => {
   const source = referenceProperty(),
     calls = [];

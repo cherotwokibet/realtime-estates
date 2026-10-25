@@ -110,6 +110,7 @@ export function loadedPageHref(filters: CatalogueFilters, sort: string, page: nu
     beds: filters.bedsText,
     privateBaths: filters.privateBathsText,
     sharedBaths: filters.sharedBathsText,
+    ...filters.reference,
   }))
     if (value) params.set(key, value);
   if (sort !== 'catalogue') params.set('sort', sort);
