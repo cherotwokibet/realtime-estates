@@ -1,4 +1,8 @@
-import { RealtorApiClient, type SyntheticReferencePublicPropertyV3 } from '@realtor/api-client';
+import {
+  RealtorApiClient,
+  type SyntheticReferencePublicPropertyV3,
+  type PublicSearchInput,
+} from '@realtor/api-client';
 import { resolveDemoTenantSlug, type DemoTenantSlug } from '@realtor/demo';
 import { formatKes, kesFromMinor } from '@realtor/domain';
 
@@ -68,12 +72,23 @@ export type MobileReferenceResult =
       status: 'ready';
       items: readonly MobileReferenceItem[];
       mayBeTruncated: boolean;
+      searchPage?: Readonly<{
+        total: number;
+        offset: number;
+        limit: number;
+        hasMore: boolean;
+        maxOffset: number;
+      }>;
     }>;
 
 /** One anonymous bounded SDK read. Errors never substitute demo stock or expose transport details. */
 export async function loadMobileReferenceCatalogue(
   config: MobileReferenceConfig,
-  options: Readonly<{ signal?: AbortSignal; fetch?: typeof globalThis.fetch }> = {},
+  options: Readonly<{
+    signal?: AbortSignal;
+    fetch?: typeof globalThis.fetch;
+    search?: PublicSearchInput;
+  }> = {},
 ): Promise<MobileReferenceResult> {
   if (config.mode !== 'synthetic-reference-public-v1') return Object.freeze({ status: 'error' });
   try {
@@ -83,10 +98,12 @@ export async function loadMobileReferenceCatalogue(
       privacyNoticeVersion: 'mobile-catalogue-read-only',
       ...(options.fetch ? { fetch: options.fetch } : {}),
     });
-    const page = await api.getSyntheticReferencePropertiesV3({
-      limit: 100,
-      signal: options.signal,
-    });
+    const page = options.search
+      ? await api.searchSyntheticReferencePropertiesV3(options.search, { signal: options.signal })
+      : await api.getSyntheticReferencePropertiesV3({
+          limit: 100,
+          signal: options.signal,
+        });
     const items = page.items.map((property) => {
       const attributes = property.reference.attributes;
       return Object.freeze({
@@ -106,7 +123,18 @@ export async function loadMobileReferenceCatalogue(
     return Object.freeze({
       status: 'ready',
       items: Object.freeze(items),
-      mayBeTruncated: items.length === page.limit,
+      mayBeTruncated: !('total' in page) && items.length === page.limit,
+      ...('total' in page
+        ? {
+            searchPage: Object.freeze({
+              total: page.total,
+              offset: page.offset,
+              limit: page.limit,
+              hasMore: page.hasMore,
+              maxOffset: page.maxOffset,
+            }),
+          }
+        : {}),
     });
   } catch {
     return Object.freeze({ status: 'error' });

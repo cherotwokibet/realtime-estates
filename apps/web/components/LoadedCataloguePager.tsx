@@ -8,25 +8,31 @@ export default function LoadedCataloguePager({
   filters: CatalogueFilters;
 }) {
   if (browse.error || filters.error) return null;
+  const label = browse.scope === 'catalogue' ? 'search' : 'loaded';
   return (
-    <nav className="loaded-pager" aria-label="Loaded catalogue pages">
+    <nav
+      className="loaded-pager"
+      aria-label={
+        browse.scope === 'catalogue' ? 'Catalogue search pages' : 'Loaded catalogue pages'
+      }
+    >
       <p>
         {browse.outOfRange
-          ? 'That page is outside the loaded results.'
-          : `Page ${browse.page} of ${browse.pageCount} · ${browse.start}–${browse.end} of ${browse.matchingLoadedCount} matching loaded properties.`}
+          ? `That page is outside the ${label} results.`
+          : `Page ${browse.page} of ${browse.pageCount} · ${browse.start}–${browse.end} of ${browse.matchingLoadedCount} matching ${browse.scope === 'catalogue' ? '' : 'loaded '}properties.`}
       </p>
       {browse.outOfRange ? (
-        <a href={loadedPageHref(filters, browse.sort, 1)}>Return to first loaded page</a>
+        <a href={loadedPageHref(filters, browse.sort, 1)}>Return to first {label} page</a>
       ) : (
         <>
           {browse.page > 1 && (
             <a rel="prev" href={loadedPageHref(filters, browse.sort, browse.page - 1)}>
-              Previous loaded page
+              Previous {label} page
             </a>
           )}
           {browse.page < browse.pageCount && (
             <a rel="next" href={loadedPageHref(filters, browse.sort, browse.page + 1)}>
-              Next loaded page
+              Next {label} page
             </a>
           )}
         </>

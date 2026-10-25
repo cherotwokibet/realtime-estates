@@ -534,6 +534,33 @@ test('opt-in reference moderation validates actual restricted SQL before commit 
       assert.equal(lastPublicCatalogue.locations.length, 1);
       assert.equal(lastPublicCatalogue.amenities.length, 0);
       assert.ok(!JSON.stringify(lastPublicCatalogue).includes('unselected'));
+      const searchPath = '/v3/properties/search?countyId=' + id(200) + '&limit=1';
+      const searched = await call('GET', searchPath);
+      assert.equal(searched.status, 200);
+      const searchPage = await searched.json();
+      assert.equal(searchPage.policy, 'synthetic-reference-search-v1');
+      assert.equal(searchPage.total, 1);
+      assert.equal(
+        searchPage.items[0].reference.attributes.location.county.label,
+        'Synthetic original county',
+      );
+      for (const suffix of [
+        'countyId=' + id(201),
+        'amenityId=' + id(202),
+        'localityId=' + id(200),
+      ]) {
+        const res = await call('GET', '/v3/properties/search?' + suffix);
+        assert.equal(res.status, 200);
+        assert.equal((await res.json()).total, 0);
+      }
+      assert.equal((await call('GET', '/v3/properties/search?countyId=x')).status, 400);
+      assert.equal(
+        (await call('GET', '/v3/properties/search?countyId=' + id(200) + '&countyId=' + id(200)))
+          .status,
+        400,
+      );
+      assert.equal((await call('GET', '/v3/properties/search?id=' + id(101))).status, 200);
+      assert.equal((await call('POST', '/v3/properties/search', {})).status, 405);
       for (const secret of [
         'PRIVATE-MODERATION-API',
         'referenceCatalogue',

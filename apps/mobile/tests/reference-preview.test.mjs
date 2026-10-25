@@ -5,6 +5,11 @@ import {
   loadMobileReferenceCatalogue,
   resolveMobileReferenceConfig,
 } from '../dist/tests/src/reference-catalogue.js';
+import {
+  createCatalogueLoader,
+  resolveCatalogueConfig,
+} from '../../web/dist/tests/lib/catalogue.js';
+import { browseCatalogue } from '../../web/dist/tests/lib/catalogue-browse.js';
 test('mobile adapter reads the real anonymous HTTP/SQL approved historical projection for two fixed companies', async (t) => {
   const rows = [];
   for (const tenantSlug of ['realtime-estates', 'sample-homes']) {
@@ -33,6 +38,48 @@ test('mobile adapter reads the real anonymous HTTP/SQL approved historical proje
     assert.equal(item.initial, 'KES 41,500');
     assert.equal(item.amenities[0].label, 'Synthetic preview lift');
     assert.match(item.location, /Synthetic preview town/);
+    const searches = await loadMobileReferenceCatalogue(config, {
+      search: { location: 'Synthetic preview town', limit: 1, offset: 0 },
+    });
+    assert.equal(searches.status, 'ready');
+    assert.equal(searches.searchPage.total, 1);
+    assert.equal(searches.items[0].property.id, item.property.id);
+    assert.equal(searches.mayBeTruncated, false);
+    const countyId = item.property.reference.attributes.location.county.id,
+      amenityId = item.amenities[0].id;
+    const web = createCatalogueLoader(
+      resolveCatalogueConfig({
+        WEB_CATALOGUE_MODE: 'connected',
+        WEB_CATALOGUE_SEARCH: 'public-search-v1',
+        WEB_CATALOGUE_REFERENCE: 'synthetic-reference-public-v1',
+        WEB_CATALOGUE_DATA: 'synthetic',
+        TENANT_SLUG: tenantSlug,
+        API_ORIGIN: preview.origin,
+        ALLOW_LOOPBACK_API: 'true',
+        NODE_ENV: 'test',
+      }),
+    );
+    const webPage = await web.list({
+      countyId,
+      amenityId,
+      beds: '0',
+      purpose: 'rent',
+      period: 'month',
+      sort: 'price_low',
+    });
+    assert.equal(webPage.mode, 'connected');
+    assert.equal(webPage.searchPage.total, 1);
+    assert.equal(webPage.items[0].id, item.property.id);
+    assert.equal(browseCatalogue(webPage, {}).matchingLoadedCount, 1);
+    assert.equal((await web.detail(item.property.id)).status, 'found');
+    const none = await web.list({ countyId: '00000000-0000-4000-8000-999999999999' });
+    assert.equal(none.searchPage.total, 0);
+    assert.deepEqual(none.items, []);
+    const empty = await loadMobileReferenceCatalogue(config, {
+      search: { location: 'No matching synthetic area', limit: 24 },
+    });
+    assert.equal(empty.status, 'ready');
+    assert.equal(empty.searchPage.total, 0);
     assert.ok(!JSON.stringify(result).includes('PRIVATE SYNTHETIC STAFF FIXTURE ADDRESS'));
     assert.ok(!JSON.stringify(result).includes(preview.bearerToken));
     rows.push(item.property.id);

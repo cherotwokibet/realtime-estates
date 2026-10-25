@@ -324,6 +324,11 @@ test('API service with actual PostgreSQL migration enforces identity, tenant iso
           OTHER_PUBLIC,
         );
         assert.equal((await service(request('/v1/properties?limit=101'))).status, 400);
+        assert.equal((await service(request('/v3/properties/search'))).status, 404);
+        assert.equal(
+          (await service(request('/v3/properties/search', { method: 'POST', body: {} }))).status,
+          404,
+        );
       },
     );
     await t.test(

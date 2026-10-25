@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ReferenceFilters from '../dist/tests/components/ReferenceFilters.js';
-import { loadedPageHref } from '../dist/tests/lib/catalogue-browse.js';
+import { loadedPageHref, browseCatalogue } from '../dist/tests/lib/catalogue-browse.js';
 import {
   parseReferenceFilters,
   referenceOptions,
@@ -109,6 +109,133 @@ const referenceProperty = () => {
     },
   });
 };
+
+const searchPayload = (
+  items,
+  total,
+  offset,
+  limit = 12,
+  sort = 'catalogue',
+  reference = false,
+) => ({
+  policy: reference ? 'synthetic-reference-search-v1' : 'public-search-v1',
+  items,
+  total,
+  offset,
+  limit,
+  sort,
+  hasMore: offset + items.length < total,
+  maxOffset: 10000,
+});
+test('global web search uses trusted SDK transport and never slices a server page twice', async () => {
+  const calls = [],
+    items = Array.from({ length: 12 }, (_, i) => property({ id: id(1000 + i) }));
+  const loader = connected(
+    items,
+    { WEB_CATALOGUE_SEARCH: 'public-search-v1' },
+    async (url, init) => {
+      calls.push({ url, init });
+      return json(searchPayload(items, 30, 12));
+    },
+  );
+  const result = ready(
+    await loader.list({
+      page: '2',
+      beds: '0',
+      location: 'Synthetic',
+      tenantId: 'foreign',
+      API_ORIGIN: 'https://foreign.invalid',
+    }),
+  );
+  const browse = browseCatalogue(result, { page: '2' });
+  assert.equal(browse.items.length, 12);
+  assert.equal(browse.scope, 'catalogue');
+  assert.equal(browse.start, 13);
+  assert.equal(browse.end, 24);
+  assert.equal(browse.pageCount, 3);
+  assert.equal(browse.matchingLoadedCount, 30);
+  assert.equal(browse.outOfRange, false);
+  const url = new URL(calls[0].url);
+  assert.equal(url.pathname, '/v2/properties/search');
+  assert.equal(url.searchParams.get('offset'), '12');
+  assert.equal(url.searchParams.get('limit'), '12');
+  assert.equal(url.searchParams.get('beds'), '0');
+  assert.equal(url.searchParams.get('tenantId'), null);
+  assert.equal(calls[0].init.credentials, 'omit');
+  assert.equal(calls[0].init.cache, 'no-store');
+  assert.equal(calls[0].init.headers.Authorization, undefined);
+  const html = renderToStaticMarkup(
+    React.createElement(
+      (await import('../dist/tests/components/LoadedCataloguePager.js')).default,
+      { browse, filters: result.filters },
+    ),
+  );
+  assert.ok(html.includes('Next search page'));
+  assert.ok(!html.includes('matching loaded properties'));
+  assert.ok(html.includes('13–24 of 30'));
+});
+test('global web original detail is addressed by ID beyond the original loaded page without fallback', async () => {
+  const target = property({ id: id(999) }),
+    calls = [];
+  const loader = connected([], { WEB_CATALOGUE_SEARCH: 'public-search-v1' }, async (url) => {
+    calls.push(url);
+    return json(searchPayload([target], 1, 0, 1));
+  });
+  const result = await loader.detail(target.id);
+  assert.equal(result.status, 'found');
+  assert.equal(result.property.id, target.id);
+  assert.equal(new URL(calls[0]).searchParams.get('id'), target.id);
+  assert.equal(calls.length, 1);
+  const bad = connected([], { WEB_CATALOGUE_SEARCH: 'public-search-v1' }, async () =>
+    json(searchPayload([target], 1, 0, 1)),
+  );
+  assert.equal((await bad.detail(id(998))).mode, 'error');
+});
+test('global web search keeps exact out-of-range totals and refuses unsupported pages before transport', async () => {
+  let calls = 0;
+  const loader = connected([], { WEB_CATALOGUE_SEARCH: 'public-search-v1' }, async () => {
+    calls++;
+    return json(searchPayload([], 30, 48));
+  });
+  const result = ready(await loader.list({ page: '5' }));
+  const browse = browseCatalogue(result, { page: '5' });
+  assert.equal(browse.outOfRange, true);
+  assert.equal(browse.matchingLoadedCount, 30);
+  assert.equal(browse.pageCount, 3);
+  assert.deepEqual(browse.items, []);
+  const invalid = ready(await loader.list({ page: '835' }));
+  assert.ok(invalid.filters.error);
+  assert.equal(calls, 1);
+  assert.equal(
+    resolveCatalogueConfig({ WEB_CATALOGUE_MODE: 'demo', WEB_CATALOGUE_SEARCH: 'public-search-v1' })
+      .status,
+    'error',
+  );
+});
+test('global reference web search sends saved IDs and ordinary search refuses them without broadening', async () => {
+  const source = referenceProperty();
+  let calls = 0;
+  const loader = connected(
+    [source],
+    { ...referenceEnvironment, WEB_CATALOGUE_SEARCH: 'public-search-v1' },
+    async (url) => {
+      calls++;
+      const q = new URL(url);
+      assert.equal(q.pathname, '/v3/properties/search');
+      assert.equal(q.searchParams.get('countyId'), id(200));
+      assert.equal(q.searchParams.get('amenityId'), id(300));
+      return json(searchPayload([source], 1, 0, 12, 'catalogue', true));
+    },
+  );
+  const result = ready(await loader.list({ countyId: id(200), amenityId: id(300) }));
+  assert.equal(result.items[0].reference.attributes.location.county.id, id(200));
+  assert.equal(result.searchPage.total, 1);
+  const ordinary = connected([], { WEB_CATALOGUE_SEARCH: 'public-search-v1' }, async () => {
+    throw Error('must not broaden');
+  });
+  assert.ok(ready(await ordinary.list({ countyId: id(200) })).filters.error);
+  assert.equal(calls, 1);
+});
 
 test('public ID filtering uses saved identities rather than identical labels or legacy text', async () => {
   const first = referenceProperty(),

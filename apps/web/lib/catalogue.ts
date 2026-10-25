@@ -30,6 +30,7 @@ import {
   type ReferenceFilters,
   type ReferenceOptions,
 } from './catalogue-reference-filters.ts';
+import { browseLoadedCatalogue, LOADED_PAGE_SIZE } from './catalogue-browse.ts';
 export { resolveCatalogueConfig } from './catalogue-config.ts';
 export type {
   CatalogueConfig,
@@ -83,6 +84,12 @@ interface CatalogueSource {
   readonly sourceLabel: string;
 }
 export interface CatalogueSuccess extends CatalogueSource {
+  readonly searchPage?: Readonly<{
+    total: number;
+    offset: number;
+    hasMore: boolean;
+    maxOffset: number;
+  }>;
   readonly referenceOptions: ReferenceOptions;
   readonly filters: CatalogueFilters;
   readonly items: readonly CatalogueProperty[];
@@ -320,6 +327,56 @@ export function createCatalogueLoader(
         allowLoopbackHttp: config.allowLoopbackHttp,
         ...(dependencies.fetch ? { fetch: dependencies.fetch } : {}),
       });
+      if (config.searchMode) {
+        const browse = browseLoadedCatalogue([], filters, query);
+        const offset = (browse.page - 1) * LOADED_PAGE_SIZE;
+        const problem =
+          filters.error ??
+          browse.error ??
+          (offset > 10000 ? 'Choose a page within the supported search range.' : null) ??
+          (!config.referenceMode && Object.values(filters.reference).some(Boolean)
+            ? 'Reference filters require a reference catalogue.'
+            : null);
+        const input = {
+          location: filters.location,
+          purpose: filters.purpose as 'rent' | 'sale',
+          type: filters.type as PropertyType,
+          period: filters.period as RentalPeriod,
+          max: filters.maxText,
+          beds: filters.bedsText,
+          privateBaths: filters.privateBathsText,
+          sharedBaths: filters.sharedBathsText,
+          sort: browse.sort as 'catalogue' | 'title' | 'price_low' | 'price_high',
+          limit: LOADED_PAGE_SIZE,
+          offset,
+          ...(config.referenceMode ? filters.reference : {}),
+        };
+        const page = problem
+          ? { items: [], total: 0, offset: 0, hasMore: false, maxOffset: 10000 }
+          : config.referenceMode
+            ? await api.searchSyntheticReferencePropertiesV3(input)
+            : await api.searchPropertiesV2(input);
+        const source = page.items.map(fromConnected);
+        return Object.freeze({
+          mode: 'connected',
+          dataKind: config.dataKind,
+          sourceLabel: config.referenceMode
+            ? 'API connected · Synthetic reference search'
+            : 'API connected · Catalogue search',
+          filters: problem ? Object.freeze({ ...filters, error: problem }) : filters,
+          items: Object.freeze(source),
+          referenceOptions: referenceOptions(source),
+          sourceCount: source.length,
+          limit: LOADED_PAGE_SIZE,
+          mayBeTruncated: false,
+          searchPage: Object.freeze({
+            total: page.total,
+            offset: page.offset,
+            hasMore: page.hasMore,
+            maxOffset: page.maxOffset,
+          }),
+        });
+      }
       const page = config.referenceMode
         ? await api.getSyntheticReferencePropertiesV3({ limit: config.limit })
         : await api.listPropertiesV2({ limit: config.limit });
@@ -342,6 +399,38 @@ export function createCatalogueLoader(
     }
   }
   async function detail(id: string): Promise<CatalogueDetailResult> {
+    if (
+      resolution.status === 'ready' &&
+      resolution.config.mode === 'connected' &&
+      resolution.config.searchMode
+    ) {
+      const config = resolution.config;
+      try {
+        const api = new RealtorApiClient({
+          baseUrl: config.apiOrigin,
+          privacyNoticeVersion: CATALOGUE_READ_ONLY_NOTICE,
+          allowLoopbackHttp: config.allowLoopbackHttp,
+          ...(dependencies.fetch ? { fetch: dependencies.fetch } : {}),
+        });
+        const page = config.referenceMode
+          ? await api.searchSyntheticReferencePropertiesV3({ id, limit: 1 })
+          : await api.searchPropertiesV2({ id, limit: 1 });
+        const source = {
+          mode: 'connected' as const,
+          dataKind: config.dataKind,
+          sourceLabel: config.referenceMode
+            ? 'API connected · Synthetic reference search'
+            : 'API connected · Catalogue search',
+        };
+        if (page.total > 1 || page.items.some((item) => item.id !== id))
+          throw Error('Invalid property lookup');
+        return page.items[0]
+          ? Object.freeze({ ...source, status: 'found', property: fromConnected(page.items[0]) })
+          : Object.freeze({ ...source, status: 'not_found' });
+      } catch {
+        return failure('connected', parseCatalogueFilters({}));
+      }
+    }
     const result = await list();
     if (result.mode === 'error') return result;
     const source = {

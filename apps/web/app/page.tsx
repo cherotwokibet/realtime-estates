@@ -13,7 +13,7 @@ import RoomFilters from '../components/RoomFilters';
 import ReferenceFilters from '../components/ReferenceFilters';
 import { parseReferenceFilters, referenceOptions } from '../lib/catalogue-reference-filters';
 import LoadedCataloguePager from '../components/LoadedCataloguePager';
-import { browseLoadedCatalogue } from '../lib/catalogue-browse';
+import { browseCatalogue } from '../lib/catalogue-browse';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,11 +79,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
     reference,
     error: filterError,
   } = catalogue.filters;
-  const browse = browseLoadedCatalogue(
-    catalogue.mode === 'error' ? [] : catalogue.items,
-    catalogue.filters,
-    q,
-  );
+  const browse = browseCatalogue(catalogue, q);
   const error = filterError ?? browse.error;
   const properties = browse.items;
   const mode = catalogue.mode === 'error' ? 'unavailable' : catalogue.mode;
@@ -293,7 +289,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               invalid={parseReferenceFilters(q).invalid}
             />
             <label className="search-field browse-sort">
-              <span>Order loaded results</span>
+              <span>
+                {browse.scope === 'catalogue' ? 'Order search results' : 'Order loaded results'}
+              </span>
               <select name="sort" defaultValue={browse.sort} {...validation('sort')}>
                 <option value="catalogue">Catalogue order</option>
                 <option value="title">Title</option>
@@ -337,8 +335,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
                     ' ' +
                     (synthetic ? 'sample ' : '') +
                     (browse.matchingLoadedCount === 1
-                      ? 'matching loaded property'
-                      : 'matching loaded properties')}
+                      ? browse.scope === 'catalogue'
+                        ? 'matching property'
+                        : 'matching loaded property'
+                      : browse.scope === 'catalogue'
+                        ? 'matching properties'
+                        : 'matching loaded properties')}
               </span>
               {filtered && <Link href="/">Clear filters</Link>}
             </div>
@@ -347,6 +349,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
             <p className="catalogue-source">
               {catalogue.sourceLabel}
               {synthetic ? ' · Synthetic listings for testing; no real availability.' : ''}
+              {browse.scope === 'catalogue'
+                ? ' · Search covers matching public properties. Results may change between pages; traversal is limited to offset 10,000.'
+                : ''}
               {catalogue.mayBeTruncated
                 ? ' · Showing a limited selection of up to ' +
                   catalogue.limit +
@@ -384,8 +389,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
             </div>
           ) : browse.outOfRange ? (
             <div className="empty">
-              <h3>Choose an available loaded page.</h3>
-              <p>This page is outside the current loaded selection. Return to its first page.</p>
+              <h3>
+                Choose an available {browse.scope === 'catalogue' ? 'search' : 'loaded'} page.
+              </h3>
+              <p>
+                This page is outside the current{' '}
+                {browse.scope === 'catalogue' ? 'search results' : 'loaded selection'}. Return to
+                its first page.
+              </p>
             </div>
           ) : properties.length ? (
             <div className="property-grid">

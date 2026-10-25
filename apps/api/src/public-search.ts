@@ -19,13 +19,21 @@ const keys = [
   'sort',
   'limit',
   'offset',
+  'id',
 ];
 /** Caller text is always a bind value. Identifiers and ordering are fixed application constants. */
-export function publicSearchQuery(params: URLSearchParams) {
+export function publicSearchQuery(params: URLSearchParams, reference = false) {
   if (new TextEncoder().encode(params.toString()).byteLength > 8192) fail();
   const q: Record<string, string> = {};
   for (const [key, value] of params) {
-    if (!keys.includes(key) || Object.hasOwn(q, key)) fail();
+    if (
+      !(
+        keys.includes(key) ||
+        (reference && ['countyId', 'localityId', 'neighbourhoodId', 'amenityId'].includes(key))
+      ) ||
+      Object.hasOwn(q, key)
+    )
+      fail();
     q[key] = value;
   }
   const integer = (key: string, fallback: number, max: number, min = 0) => {
@@ -51,6 +59,24 @@ export function publicSearchQuery(params: URLSearchParams) {
     values.push(value);
     return '$' + values.length;
   };
+  for (const key of [
+    'id',
+    ...(reference ? ['countyId', 'localityId', 'neighbourhoodId', 'amenityId'] : []),
+  ]) {
+    if (!q[key]) continue;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(q[key]!))
+      fail();
+    const value = bind(q[key]);
+    if (key === 'id') predicates.push('listing_id = ' + value + '::uuid');
+    else if (key === 'amenityId')
+      predicates.push(
+        `EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE(reference_attributes->'amenities','[]'::jsonb)) a WHERE a->>'id' = ${value})`,
+      );
+    else
+      predicates.push(
+        `reference_attributes#>>'{location,${key === 'countyId' ? 'county' : key === 'localityId' ? 'locality' : 'neighbourhood'},id}' = ${value}`,
+      );
+  }
   if (q.location) {
     const value = q.location.trim();
     if (!value || [...value].length > 160 || /[\u0000-\u001f\u007f-\u009f]/u.test(value)) fail();
@@ -91,7 +117,8 @@ export function publicSearchQuery(params: URLSearchParams) {
       property_type AS "propertyType",currency,amount_minor::text AS "amountMinor",rent_period AS "rentPeriod",bedrooms,
       private_bathrooms AS "privateBathrooms",shared_bathrooms AS "sharedBathrooms",country,locality,public_precision AS "publicPrecision",
       latitude::text AS latitude,longitude::text AS longitude,photo_refs AS photos,pricing,location,approved_at AS "approvedAt"
-    FROM app_api.public_listings_v2 ${predicates.length ? 'WHERE ' + predicates.join(' AND ') : ''}
+      ${reference ? ',reference_attributes AS "referenceAttributes",reference_revision_version AS "referenceRevisionVersion",reference_catalogue AS "referenceCatalogue"' : ''}
+    FROM app_api.${reference ? 'public_listings_reference_v3' : 'public_listings_v2'} ${predicates.length ? 'WHERE ' + predicates.join(' AND ') : ''}
   ), paged AS (SELECT * FROM filtered ORDER BY ${order} LIMIT ${bind(limit)} OFFSET ${bind(offset)})
   SELECT (SELECT count(*)::text FROM filtered) AS total,
     COALESCE((SELECT jsonb_agg(to_jsonb(p) - 'approvedAt' ORDER BY ${order}) FROM paged p),'[]'::jsonb) AS items`;

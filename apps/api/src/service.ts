@@ -1555,10 +1555,23 @@ export function createApiService(
           correlationId,
         );
       }
-      if (path === '/v2/properties/search' && method === 'GET') {
+      if (path === '/v2/properties/search' || path === '/v3/properties/search') {
+        const reference = path === '/v3/properties/search';
+        if (reference && !referenceModerationEnabled)
+          throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+        if (method !== 'GET')
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method is not allowed.', {
+            Allow: 'GET',
+          });
+        if (request.body !== null || request.url.includes('#'))
+          throw new HttpError(
+            400,
+            'INVALID_INPUT',
+            'Use a public search without a body or fragment.',
+          );
         let search;
         try {
-          search = publicSearchQuery(url.searchParams);
+          search = publicSearchQuery(url.searchParams, reference);
         } catch (error) {
           if (error instanceof PublicSearchInputError)
             throw new HttpError(400, 'INVALID_INPUT', error.message);
@@ -1584,11 +1597,11 @@ export function createApiService(
         )
           throw Error('Invalid public search projection.');
         const total = Number(row.total),
-          items = row.items.map(publicRowV2);
+          items = row.items.map(reference ? publicReferenceRow : publicRowV2);
         if (items.length !== Math.min(search.limit, Math.max(0, total - search.offset)))
           throw Error('Inconsistent public search page.');
         const body = {
-          policy: 'public-search-v1',
+          policy: reference ? 'synthetic-reference-search-v1' : 'public-search-v1',
           items,
           total,
           limit: search.limit,

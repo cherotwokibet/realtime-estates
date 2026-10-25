@@ -1,3 +1,4 @@
+import { PROPERTY_TYPES, kesFromMajor, type RentalPeriod } from '@realtor/domain';
 import {
   validateRevisionProtocol,
   validateRevisionProtocolTarget,
@@ -300,6 +301,34 @@ export interface SyntheticReferencePropertyPageV3 {
 export interface PropertyPageV2 {
   readonly items: readonly PublicPropertyV2[];
   readonly limit: number;
+}
+export interface PublicSearchInput {
+  readonly location?: string;
+  readonly purpose?: 'rent' | 'sale';
+  readonly type?: PropertyType;
+  readonly period?: RentalPeriod;
+  readonly max?: string;
+  readonly beds?: string;
+  readonly privateBaths?: string;
+  readonly sharedBaths?: string;
+  readonly sort?: 'catalogue' | 'title' | 'price_low' | 'price_high';
+  readonly limit?: number;
+  readonly offset?: number;
+  readonly id?: string;
+  readonly countyId?: string;
+  readonly localityId?: string;
+  readonly neighbourhoodId?: string;
+  readonly amenityId?: string;
+}
+export interface PublicSearchPage<T> {
+  readonly policy: 'public-search-v1' | 'synthetic-reference-search-v1';
+  readonly items: readonly T[];
+  readonly total: number;
+  readonly limit: number;
+  readonly offset: number;
+  readonly sort: string;
+  readonly hasMore: boolean;
+  readonly maxOffset: 10000;
 }
 export type {
   PricingDisclosure,
@@ -2485,6 +2514,126 @@ export class RealtorApiClient {
     if (data.limit !== limit || !Array.isArray(data.items) || data.items.length > limit)
       return invalid('INVALID_RESPONSE', 'Invalid property page.');
     return Object.freeze({ items: Object.freeze(data.items.map(publicPropertyV2)), limit });
+  }
+  async searchPropertiesV2(
+    input: PublicSearchInput = {},
+    options: RequestOptions = {},
+  ): Promise<PublicSearchPage<PublicPropertyV2>> {
+    return this.publicSearch(input, options, false) as Promise<PublicSearchPage<PublicPropertyV2>>;
+  }
+  async searchSyntheticReferencePropertiesV3(
+    input: PublicSearchInput = {},
+    options: RequestOptions = {},
+  ): Promise<PublicSearchPage<SyntheticReferencePublicPropertyV3>> {
+    return this.publicSearch(input, options, true) as Promise<
+      PublicSearchPage<SyntheticReferencePublicPropertyV3>
+    >;
+  }
+  private async publicSearch(
+    input: PublicSearchInput,
+    options: RequestOptions,
+    reference: boolean,
+  ): Promise<PublicSearchPage<PublicPropertyV2 | SyntheticReferencePublicPropertyV3>> {
+    requestOptions(options);
+    if (!input || typeof input !== 'object')
+      return invalid('VALIDATION', 'Use public search fields.');
+    if (options.bearerToken !== undefined) invalid('VALIDATION', 'Public search is anonymous.');
+    const q = attachRecord(input, Object.keys(input), 'VALIDATION');
+    const allowed = [
+      'location',
+      'purpose',
+      'type',
+      'period',
+      'max',
+      'beds',
+      'privateBaths',
+      'sharedBaths',
+      'sort',
+      'limit',
+      'offset',
+      'id',
+      ...(reference ? ['countyId', 'localityId', 'neighbourhoodId', 'amenityId'] : []),
+    ];
+    if (Object.keys(q).some((key) => !allowed.includes(key)))
+      invalid('VALIDATION', 'Unsupported search field.');
+    const limit = integer(q.limit ?? 24, 1, 100, 'VALIDATION', 'Limit'),
+      offset = integer(q.offset ?? 0, 0, 10000, 'VALIDATION', 'Offset'),
+      sort = q.sort ?? 'catalogue';
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(q)) {
+      if (key === 'limit' || key === 'offset') continue;
+      if (typeof value !== 'string') return invalid('VALIDATION', 'Search values must be text.');
+      if (value === '') continue;
+      if (key === 'id' || key.endsWith('Id')) uuid(value, 'VALIDATION', 'Reference ID');
+      if (
+        key === 'location' &&
+        ([...value].length > 160 || !value.trim() || /[\u0000-\u001f\u007f-\u009f]/u.test(value))
+      )
+        invalid('VALIDATION', 'Invalid location search.');
+      if (key === 'purpose' && !['rent', 'sale'].includes(value))
+        invalid('VALIDATION', 'Invalid purpose.');
+      if (key === 'type' && !PROPERTY_TYPES.includes(value as PropertyType))
+        invalid('VALIDATION', 'Invalid property type.');
+      if (key === 'period' && !['day', 'week', 'month', 'year'].includes(value))
+        invalid('VALIDATION', 'Invalid period.');
+      if (
+        ['beds', 'privateBaths', 'sharedBaths'].includes(key) &&
+        (!/^(0|[1-9]\d{0,2})$/.test(value) || Number(value) > 100)
+      )
+        invalid('VALIDATION', 'Invalid room count.');
+      if (key === 'max') {
+        try {
+          if (kesFromMajor(value).minorUnits <= 0) throw Error();
+        } catch {
+          invalid('VALIDATION', 'Invalid price maximum.');
+        }
+      }
+      params.set(key, value);
+    }
+    if (!['catalogue', 'title', 'price_low', 'price_high'].includes(sort as string))
+      invalid('VALIDATION', 'Invalid order.');
+    if (
+      (q.max || String(sort).startsWith('price_')) &&
+      !(q.purpose === 'sale' || (q.purpose === 'rent' && q.period))
+    )
+      invalid('VALIDATION', 'Choose a price basis.');
+    params.set('limit', String(limit));
+    params.set('offset', String(offset));
+    if (new TextEncoder().encode(params.toString()).byteLength > 8192)
+      invalid('VALIDATION', 'Search query too large.');
+    const data = attachRecord(
+      await this.request(`/v${reference ? 3 : 2}/properties/search?${params}`, 'GET', options),
+      ['policy', 'items', 'total', 'limit', 'offset', 'sort', 'hasMore', 'maxOffset'],
+      'INVALID_RESPONSE',
+    );
+    const total = integer(data.total, 0, Number.MAX_SAFE_INTEGER, 'INVALID_RESPONSE', 'Total');
+    const policy = reference ? 'synthetic-reference-search-v1' : 'public-search-v1';
+    if (
+      data.policy !== policy ||
+      data.limit !== limit ||
+      data.offset !== offset ||
+      data.sort !== sort ||
+      data.maxOffset !== 10000 ||
+      !Array.isArray(data.items) ||
+      data.items.length !== Math.min(limit, Math.max(0, total - offset)) ||
+      data.hasMore !== offset + data.items.length < total
+    )
+      return invalid('INVALID_RESPONSE', 'Inconsistent public search page.');
+    const items = data.items.map(reference ? publicReferenceProperty : publicPropertyV2);
+    if (q.id && (total > 1 || items.some((item) => item.id !== q.id)))
+      return invalid('INVALID_RESPONSE', 'Wrong property lookup.');
+    if (new Set(items.map((item) => item.id)).size !== items.length)
+      invalid('INVALID_RESPONSE', 'Duplicate search results.');
+    return Object.freeze({
+      policy,
+      items: Object.freeze(items),
+      total,
+      limit,
+      offset,
+      sort: sort as string,
+      hasMore: data.hasMore as boolean,
+      maxOffset: 10000,
+    });
   }
   async getStaffDraftV2(
     listingId: string,
@@ -4881,6 +5030,7 @@ export class RealtorApiClient {
   ): Promise<unknown> {
     const importPreview = path === '/v2/staff/listing-import-preview' && method === 'POST';
     const publicReference = /^\/v3\/properties\?limit=(?:[1-9]\d?|100)$/.test(path);
+    const publicSearch = /^\/v[23]\/properties\/search\?/.test(path);
     const referenceCatalogue =
       /^\/v3\/staff\/reference-catalogues\/(?:current|[1-9]\d{0,15})$/.test(path);
     const referenceDraft =
@@ -4919,6 +5069,7 @@ export class RealtorApiClient {
         path,
       );
     const boundedRead =
+      publicSearch ||
       importPreview ||
       (method === 'GET' &&
         /^\/v2\/staff\/listings\/[0-9a-f-]+\/duplicate-candidates\?/.test(path)) ||
@@ -5014,7 +5165,7 @@ export class RealtorApiClient {
           const maximum =
               staffSession || revisionProtocol
                 ? 8192
-                : publicReference
+                : publicReference || publicSearch
                   ? 3 * 1024 * 1024
                   : referenceCreation || referenceSuccessor
                     ? result.ok

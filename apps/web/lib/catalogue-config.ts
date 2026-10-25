@@ -7,6 +7,7 @@ export interface CatalogueEnvironment {
   readonly ALLOW_LOOPBACK_API?: string;
   readonly WEB_CATALOGUE_DATA?: string;
   readonly WEB_CATALOGUE_REFERENCE?: string;
+  readonly WEB_CATALOGUE_SEARCH?: string;
   readonly TENANT_SLUG?: string;
   readonly NODE_ENV?: string;
 }
@@ -20,6 +21,7 @@ export type CatalogueConfig =
       readonly apiOrigin: string;
       readonly allowLoopbackHttp: boolean;
       readonly limit: 100;
+      readonly searchMode?: 'public-search-v1';
       readonly referenceMode?: 'synthetic-reference-public-v1';
     };
 export type CatalogueConfigResolution =
@@ -42,6 +44,9 @@ export function resolveCatalogueConfig(
     if (dataKind !== 'synthetic' && dataKind !== 'unspecified')
       throw new Error('Unsupported data declaration');
     const referenceMode = environment.WEB_CATALOGUE_REFERENCE;
+    const searchMode = environment.WEB_CATALOGUE_SEARCH;
+    if (searchMode !== undefined && (searchMode !== 'public-search-v1' || mode !== 'connected'))
+      throw Error('Unsupported search configuration');
     if (
       referenceMode !== undefined &&
       (referenceMode !== 'synthetic-reference-public-v1' ||
@@ -81,6 +86,7 @@ export function resolveCatalogueConfig(
         apiOrigin: new URL(environment.API_ORIGIN).origin,
         allowLoopbackHttp,
         limit: 100,
+        ...(searchMode ? { searchMode } : {}),
         ...(referenceMode ? { referenceMode } : {}),
       }),
     });

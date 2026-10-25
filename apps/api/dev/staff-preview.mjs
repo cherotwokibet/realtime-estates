@@ -7,6 +7,7 @@ import { seedHistoricalConfirmedViewing } from '../../../database/test-helpers/h
  */
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { publicSearchQuery } from '../dist/public-search.js';
 import {
   validateListingReferenceCatalogue,
   normalizeStaffDraftContentV2,
@@ -1086,8 +1087,19 @@ export async function startStaffPreview(options = {}) {
           url.pathname === '/v2/staff/enquiries' ||
           url.pathname === '/v2/staff/enquiry-assignees' ||
           (enquiryCatalogue && url.pathname === '/v2/properties'));
+      const catalogueSearch =
+        (referencePublicMode && url.pathname === '/v3/properties/search') ||
+        (enquiryCatalogue && url.pathname === '/v2/properties/search');
+      if (catalogueSearch) {
+        try {
+          publicSearchQuery(url.searchParams, url.pathname.startsWith('/v3/'));
+        } catch {
+          return failure(400, 'INVALID_INPUT', 'Use supported public search filters.');
+        }
+      }
       if (
         url.search &&
+        !catalogueSearch &&
         !(
           /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/verification-history$/.test(url.pathname) &&
           /^\?limit=[1-9]\d?(?:&beforeVersion=[1-9]\d{0,15})?$/.test(url.search)
@@ -1142,7 +1154,10 @@ export async function startStaffPreview(options = {}) {
             retainedSyntheticMedia: !!nativeMedia,
             tokenExpiresAt: expiresAt,
           });
-        if (referencePublicMode && url.pathname === '/v3/properties') {
+        if (
+          referencePublicMode &&
+          (url.pathname === '/v3/properties' || url.pathname === '/v3/properties/search')
+        ) {
           const response = await service(request);
           response.headers.set('X-Synthetic-Staff-Preview', 'true');
           return response;
@@ -1337,7 +1352,10 @@ export async function startStaffPreview(options = {}) {
           return response;
         }
         if (enquiryPreview) {
-          if (enquiryCatalogue && url.pathname === '/v2/properties') {
+          if (
+            enquiryCatalogue &&
+            (url.pathname === '/v2/properties' || url.pathname === '/v2/properties/search')
+          ) {
             if (request.method !== 'GET' || request.headers.has('authorization'))
               return failure(403, 'FORBIDDEN', 'Synthetic public catalogue is guest read-only.');
             const response = await service(request);

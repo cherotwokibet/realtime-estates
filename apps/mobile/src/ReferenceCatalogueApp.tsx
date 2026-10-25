@@ -12,7 +12,6 @@ import { getDemoBrand } from '@realtor/demo';
 import { formatKes } from '@realtor/domain';
 import {
   loadMobileReferenceCatalogue,
-  searchMobileReferenceItems,
   type MobileReferenceConfig,
   type MobileReferenceItem,
   type MobileReferenceResult,
@@ -27,21 +26,25 @@ export function ReferenceCatalogueApp({
   const [result, setResult] = useState<MobileReferenceResult | null>(null);
   const [request, setRequest] = useState(0);
   const [query, setQuery] = useState('');
+  const [search, setSearch] = useState({ location: '', offset: 0 });
   const [selected, setSelected] = useState<MobileReferenceItem | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     let active = true;
     setResult(null);
     setSelected(null);
-    void loadMobileReferenceCatalogue(config, { signal: controller.signal }).then((value) => {
+    void loadMobileReferenceCatalogue(config, {
+      signal: controller.signal,
+      search: { ...search, limit: 24 },
+    }).then((value) => {
       if (active) setResult(value);
     });
     return () => {
       active = false;
       controller.abort();
     };
-  }, [config, request]);
-  const shown = result?.status === 'ready' ? searchMobileReferenceItems(result.items, query) : [];
+  }, [config, request, search]);
+  const shown = result?.status === 'ready' ? result.items : [];
   return (
     <SafeAreaView style={s.root}>
       <View style={s.header}>
@@ -52,6 +55,28 @@ export function ReferenceCatalogueApp({
         <Text style={s.copy}>Enquiries, contact and viewing requests are disabled.</Text>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
+        {!selected && (
+          <View>
+            <TextInput
+              accessibilityLabel="Search public location"
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Town, county or area"
+              style={s.input}
+            />
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setSearch({ location: query, offset: 0 })}
+              style={s.button}
+            >
+              <Text>Search all approved properties</Text>
+            </Pressable>
+            <Text style={s.notice}>
+              Search covers matching public properties. Results may change between pages; traversal
+              is limited to offset 10,000.
+            </Text>
+          </View>
+        )}
         {result === null && (
           <Text accessibilityLiveRegion="polite">Loading approved property details…</Text>
         )}
@@ -155,16 +180,44 @@ export function ReferenceCatalogueApp({
               <Text accessibilityRole="header" style={s.title}>
                 Explore approved listings
               </Text>
-              <TextInput
-                accessibilityLabel="Search public location"
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Town, county or area"
-                style={s.input}
-              />
               <Text accessibilityLiveRegion="polite" style={s.copy}>
-                {shown.length} synthetic {shown.length === 1 ? 'result' : 'results'}
+                {result.searchPage?.total ?? shown.length} matching synthetic properties
               </Text>
+              {result.searchPage && (
+                <View>
+                  <Text>
+                    {shown.length ? result.searchPage.offset + 1 : 0}–
+                    {result.searchPage.offset + shown.length} of {result.searchPage.total}
+                  </Text>
+                  {result.searchPage.offset > 0 && (
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() =>
+                        setSearch({ ...search, offset: Math.max(0, search.offset - 24) })
+                      }
+                      style={s.button}
+                    >
+                      <Text>Previous search page</Text>
+                    </Pressable>
+                  )}
+                  {result.searchPage.hasMore &&
+                    result.searchPage.offset + 24 <= result.searchPage.maxOffset && (
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setSearch({ ...search, offset: search.offset + 24 })}
+                        style={s.button}
+                      >
+                        <Text>Next search page</Text>
+                      </Pressable>
+                    )}
+                  {result.searchPage.hasMore &&
+                    result.searchPage.offset + 24 > result.searchPage.maxOffset && (
+                      <Text>
+                        Narrow your search to see more matching properties within the paging limit.
+                      </Text>
+                    )}
+                </View>
+              )}
               {result.mayBeTruncated && (
                 <Text style={s.notice}>
                   This is a bounded page. Additional properties may exist; search covers only the

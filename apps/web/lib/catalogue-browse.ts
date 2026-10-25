@@ -1,7 +1,13 @@
-import type { CatalogueFilters, CatalogueProperty, CatalogueQuery } from './catalogue.ts';
+import type {
+  CatalogueFilters,
+  CatalogueProperty,
+  CatalogueQuery,
+  CatalogueResult,
+} from './catalogue.ts';
 export const LOADED_PAGE_SIZE = 12;
 export type LoadedSort = 'catalogue' | 'title' | 'price_low' | 'price_high';
 export interface LoadedBrowse {
+  readonly scope?: 'catalogue';
   readonly sort: string;
   readonly page: number;
   readonly pageCount: number;
@@ -12,6 +18,29 @@ export interface LoadedBrowse {
   readonly error: string | null;
   readonly errorField: 'sort' | 'page' | null;
   readonly items: readonly CatalogueProperty[];
+}
+export function browseCatalogue(result: CatalogueResult, query: CatalogueQuery): LoadedBrowse {
+  const local = browseLoadedCatalogue(
+    result.mode === 'error' ? [] : result.items,
+    result.filters,
+    query,
+  );
+  if (result.mode === 'error' || !result.searchPage) return local;
+  const { total, offset, maxOffset } = result.searchPage;
+  const pageCount = Math.min(
+    Math.max(1, Math.ceil(total / LOADED_PAGE_SIZE)),
+    Math.floor(maxOffset / LOADED_PAGE_SIZE) + 1,
+  );
+  return Object.freeze({
+    ...local,
+    scope: 'catalogue',
+    items: local.error ? Object.freeze([]) : result.items,
+    matchingLoadedCount: total,
+    pageCount,
+    outOfRange: !local.error && local.page > pageCount,
+    start: result.items.length ? offset + 1 : 0,
+    end: result.items.length ? offset + result.items.length : 0,
+  });
 }
 /** Presentation paging over the already loaded selection; never a global API count/cursor. */
 export function browseLoadedCatalogue(
