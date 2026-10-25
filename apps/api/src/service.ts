@@ -1,3 +1,4 @@
+import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
 import {
   validateRevisionProtocol,
   validateRevisionProtocolTarget,
@@ -1553,6 +1554,54 @@ export function createApiService(
           { policy: 'synthetic-reference-public-v1', items, limit: pageLimit },
           correlationId,
         );
+      }
+      if (path === '/v2/properties/search' && method === 'GET') {
+        let search;
+        try {
+          search = publicSearchQuery(url.searchParams);
+        } catch (error) {
+          if (error instanceof PublicSearchInputError)
+            throw new HttpError(400, 'INVALID_INPUT', error.message);
+          throw error;
+        }
+        if (request.signal.aborted)
+          throw new HttpError(400, 'REQUEST_ABORTED', 'Request was cancelled.');
+        const result = await options.database.transaction(
+          { tenantId, actorId: null, correlationId },
+          async (query) => {
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            return query.query(search.sql, search.values);
+          },
+        );
+        const row = result.rows[0];
+        if (
+          result.rows.length !== 1 ||
+          typeof row?.total !== 'string' ||
+          !/^(0|[1-9]\d{0,15})$/.test(row.total) ||
+          !Number.isSafeInteger(Number(row.total)) ||
+          !Array.isArray(row.items) ||
+          row.items.length > search.limit
+        )
+          throw Error('Invalid public search projection.');
+        const total = Number(row.total),
+          items = row.items.map(publicRowV2);
+        if (items.length !== Math.min(search.limit, Math.max(0, total - search.offset)))
+          throw Error('Inconsistent public search page.');
+        const body = {
+          policy: 'public-search-v1',
+          items,
+          total,
+          limit: search.limit,
+          offset: search.offset,
+          sort: search.sort,
+          hasMore: search.offset + items.length < total,
+          maxOffset: 10000,
+        };
+        if (new TextEncoder().encode(JSON.stringify(body)).byteLength > 3 * 1024 * 1024)
+          throw Error('Public search page too large.');
+        if (request.signal.aborted)
+          throw new HttpError(400, 'REQUEST_ABORTED', 'Request was cancelled.');
+        return response(200, body, correlationId);
       }
       if ((path === '/v1/properties' || path === '/v2/properties') && method === 'GET') {
         const pageLimit = limit(request);
@@ -4265,6 +4314,7 @@ export function createApiService(
       const allowedMethods: Record<string, string> = {
         '/v1/properties': 'GET',
         '/v2/properties': 'GET',
+        '/v2/properties/search': 'GET',
         '/v1/enquiries': 'POST',
         '/v1/staff/listings': 'GET, POST',
         '/v1/staff/enquiries': 'GET',

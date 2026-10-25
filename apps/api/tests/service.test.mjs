@@ -57,7 +57,7 @@ async function bootstrapAs(db, tenant, actor, operation) {
     throw error;
   }
 }
-async function fixture() {
+async function fixture(extraSearch = 0) {
   const db = new PGlite();
   await applyTestMigrations(db);
   // Allocation restriction is part of the normal reviewed migration order.
@@ -80,15 +80,29 @@ async function fixture() {
   for (const [tenant, listing, agent, admin] of [
     [T, PUBLIC, AGENT, ADMIN],
     [OTHER, OTHER_PUBLIC, OTHER_ADMIN, OTHER_ADMIN],
+    ...Array.from({ length: extraSearch }, (_, i) => [T, id(5000 + i), AGENT, ADMIN]),
   ]) {
+    const searchIndex = Number(listing.slice(-12)) - 5000;
     await bootstrapAs(db, tenant, agent, async (query) => {
       await seedGuardedListingDraft(query, {
         listingId: listing,
-        slug: `synthetic-${listing.slice(-3)}`,
+        slug: `synthetic-${listing.slice(searchIndex >= 0 ? -12 : -3)}`,
         content: {
           ...content,
           pricing: { declaration: 'not_declared', charges: [] },
           location: { county: null, town: null, area: null },
+          ...(searchIndex >= 0
+            ? {
+                title: 'Synthetic extra',
+                amountMinor: 2000001 + searchIndex,
+                pricing: { declaration: 'complete', charges: [] },
+                location: {
+                  county: 'Synthetic County',
+                  town: 'Synthetic Town',
+                  area: 'Synthetic Area',
+                },
+              }
+            : {}),
         },
         actorId: agent,
       });
@@ -99,7 +113,7 @@ async function fixture() {
       await seedSyntheticSealedMedia(db, {
         tenantId: tenant,
         listingId: listing,
-        mediaId: id(Number(listing.slice(-3)) * 10 + position),
+        mediaId: id(Number(listing.slice(-12)) * 10 + position),
         position,
       });
     await bootstrapAs(db, tenant, agent, (query) =>
@@ -191,6 +205,93 @@ const enquiry = {
   noticeVersion: 'synthetic-notice-v1',
   noticeAcknowledged: true,
 };
+
+test('tenant-wide public search pages beyond 100 approved records with exact count, filters and privacy', async () => {
+  const { db, service, other } = await fixture(101);
+  try {
+    const read = async (query, handler = service) => {
+      const res = await handler(request('/v2/properties/search?' + query));
+      assert.equal(res.status, 200, await res.clone().text());
+      return res.json();
+    };
+    const ids = [];
+    for (const offset of [0, 40, 80]) {
+      const body = await read('sort=title&limit=40&offset=' + offset);
+      assert.equal(body.total, 102);
+      assert.equal(body.policy, 'public-search-v1');
+      assert.equal(body.offset, offset);
+      assert.equal(body.limit, 40);
+      assert.equal(body.maxOffset, 10000);
+      assert.equal(body.hasMore, offset !== 80);
+      ids.push(...body.items.map((row) => row.id));
+      for (const row of body.items)
+        for (const field of [
+          'tenant_id',
+          'privateAddress',
+          'private_address',
+          'approvedAt',
+          'approved_at',
+          'createdById',
+          'assignedAgentId',
+          'phone',
+          'email',
+        ])
+          assert.equal(field in row, false, field);
+    }
+    assert.equal(ids.length, 102);
+    assert.equal(new Set(ids).size, 102);
+    assert.ok(!ids.includes(OTHER_PUBLIC));
+    assert.deepEqual(
+      ids.slice(1),
+      Array.from({ length: 101 }, (_, i) => id(5000 + i)),
+    );
+    const empty = await read('offset=500&limit=10');
+    assert.equal(empty.total, 102);
+    assert.deepEqual(empty.items, []);
+    assert.equal(empty.hasMore, false);
+    assert.equal((await read('limit=100')).items.length, 100);
+    const low = await read('purpose=rent&period=month&sort=price_low&limit=2');
+    assert.deepEqual(
+      low.items.map((row) => row.id),
+      [PUBLIC, id(5000)],
+    );
+    assert.deepEqual(
+      (await read('purpose=rent&period=month&sort=price_high&limit=2')).items.map((row) => row.id),
+      [id(5100), id(5099)],
+    );
+    assert.equal((await read('purpose=rent&period=month&max=20000.00')).total, 1);
+    assert.equal((await read('purpose=rent&period=month&max=20000.01')).total, 2);
+    assert.equal((await read('beds=0&privateBaths=1&location=Synthetic%20Town')).total, 101);
+    for (const query of [
+      'sharedBaths=0',
+      'location=PRIVATE',
+      'location=%25',
+      'location=%5F',
+      'location=%27%20OR%20true%20--',
+      'purpose=sale',
+      'type=villa',
+      'beds=1',
+      'period=day',
+    ])
+      assert.equal((await read(query)).total, 0, query);
+    const foreign = await read('', other);
+    assert.equal(foreign.total, 1);
+    assert.equal(foreign.items[0].id, OTHER_PUBLIC);
+    for (const query of [
+      'tenantId=' + OTHER,
+      'limit=1&limit=2',
+      'sort=price_low',
+      'offset=10001',
+      'countyId=' + T,
+    ])
+      assert.equal((await service(request('/v2/properties/search?' + query))).status, 400);
+    const wrong = await service(request('/v2/properties/search', { method: 'POST', body: {} }));
+    assert.equal(wrong.status, 405);
+    assert.equal(wrong.headers.get('Allow'), 'GET');
+  } finally {
+    await db.close();
+  }
+});
 
 test('API service with actual PostgreSQL migration enforces identity, tenant isolation and persisted workflows', async (t) => {
   const fixtureData = await fixture();
