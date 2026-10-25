@@ -2,9 +2,12 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { startStaffPreview } from '../apps/api/dev/staff-preview.mjs';
+import {
+  assertEnquiryLaunchAvailable,
+  enquiryLaunchConfiguration,
+} from '../apps/api/dev/enquiry-launch-config.mjs';
 
-if (process.env.NODE_ENV === 'production') throw new Error('Enquiry preview refuses production.');
+const launch = enquiryLaunchConfiguration(process.env, process.argv.slice(2));
 if (
   [
     '--invalid-first-viewing-reply',
@@ -45,7 +48,10 @@ async function stop() {
   })());
 }
 try {
+  await assertEnquiryLaunchAvailable(launch, root);
+  const { startStaffPreview } = await import('../apps/api/dev/staff-preview.mjs');
   preview = await startStaffPreview({
+    port: Number(launch.apiPort),
     tenantSlug: process.env.TENANT_SLUG ?? 'realtime-estates',
     enquiryPreview: 'synthetic-v1',
     ...(process.argv.includes('--reminder-capture')
@@ -82,31 +88,35 @@ try {
       'Fictional historical confirmed viewings enabled for outcome testing. No past HTTP execution or real attendance is implied. Requires --web.',
     );
   const { admin, agent } = preview.enquiryStaff;
-  child = spawn(process.execPath, [next, 'dev', 'apps/admin', '-p', '3001', '-H', '127.0.0.1'], {
-    cwd: root,
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      NODE_ENV: 'development',
-      TENANT_SLUG: preview.tenantSlug,
-      // Disable unrelated staff/media launch contexts inherited from a prior shell.
-      STAFF_PREVIEW_MODE: '',
-      STAFF_PREVIEW_TOKEN: '',
-      STAFF_PREVIEW_INSTANCE: '',
-      STAFF_PREVIEW_MEDIA: '',
-      STAFF_ENQUIRY_PREVIEW_MODE: 'synthetic-v1',
-      STAFF_REMINDER_CAPTURE_MODE: process.argv.includes('--reminder-capture')
-        ? 'capture-only-v1'
-        : '',
-      STAFF_PREVIEW_API_ORIGIN: preview.origin,
-      STAFF_ENQUIRY_ADMIN_TOKEN: admin.bearerToken,
-      STAFF_ENQUIRY_ADMIN_ID: admin.actorId,
-      STAFF_ENQUIRY_ADMIN_INSTANCE: randomUUID(),
-      STAFF_ENQUIRY_AGENT_TOKEN: agent.bearerToken,
-      STAFF_ENQUIRY_AGENT_ID: agent.actorId,
-      STAFF_ENQUIRY_AGENT_INSTANCE: randomUUID(),
+  child = spawn(
+    process.execPath,
+    [next, 'dev', 'apps/admin', '-p', launch.uiPort, '-H', '127.0.0.1'],
+    {
+      cwd: root,
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        NODE_ENV: 'development',
+        TENANT_SLUG: preview.tenantSlug,
+        // Disable unrelated staff/media launch contexts inherited from a prior shell.
+        STAFF_PREVIEW_MODE: '',
+        STAFF_PREVIEW_TOKEN: '',
+        STAFF_PREVIEW_INSTANCE: '',
+        STAFF_PREVIEW_MEDIA: '',
+        STAFF_ENQUIRY_PREVIEW_MODE: 'synthetic-v1',
+        STAFF_REMINDER_CAPTURE_MODE: process.argv.includes('--reminder-capture')
+          ? 'capture-only-v1'
+          : '',
+        STAFF_PREVIEW_API_ORIGIN: preview.origin,
+        STAFF_ENQUIRY_ADMIN_TOKEN: admin.bearerToken,
+        STAFF_ENQUIRY_ADMIN_ID: admin.actorId,
+        STAFF_ENQUIRY_ADMIN_INSTANCE: randomUUID(),
+        STAFF_ENQUIRY_AGENT_TOKEN: agent.bearerToken,
+        STAFF_ENQUIRY_AGENT_ID: agent.actorId,
+        STAFF_ENQUIRY_AGENT_INSTANCE: randomUUID(),
+      },
     },
-  });
+  );
   child.once('error', () => {
     process.exitCode = 1;
     console.error('The synthetic enquiry UI could not start.');
@@ -121,23 +131,27 @@ try {
     const publicEnv = Object.fromEntries(
       Object.entries(process.env).filter(([key]) => !key.startsWith('STAFF_')),
     );
-    webChild = spawn(process.execPath, [next, 'dev', 'apps/web', '-p', '3002', '-H', '127.0.0.1'], {
-      cwd: root,
-      stdio: 'inherit',
-      env: {
-        ...publicEnv,
-        NODE_ENV: 'development',
-        TENANT_SLUG: preview.tenantSlug,
-        WEB_CATALOGUE_MODE: 'connected',
-        WEB_CATALOGUE_DATA: 'synthetic',
-        API_ORIGIN: preview.origin,
-        ALLOW_LOOPBACK_API: 'true',
-        WEB_ENQUIRY_PROPERTY_MODE: 'synthetic-v1',
-        WEB_ENQUIRY_PREVIEW_MODE: 'synthetic-v1',
-        WEB_ENQUIRY_API_ORIGIN: preview.origin,
-        WEB_ENQUIRY_INSTANCE: randomUUID(),
+    webChild = spawn(
+      process.execPath,
+      [next, 'dev', 'apps/web', '-p', launch.webPort, '-H', '127.0.0.1'],
+      {
+        cwd: root,
+        stdio: 'inherit',
+        env: {
+          ...publicEnv,
+          NODE_ENV: 'development',
+          TENANT_SLUG: preview.tenantSlug,
+          WEB_CATALOGUE_MODE: 'connected',
+          WEB_CATALOGUE_DATA: 'synthetic',
+          API_ORIGIN: preview.origin,
+          ALLOW_LOOPBACK_API: 'true',
+          WEB_ENQUIRY_PROPERTY_MODE: 'synthetic-v1',
+          WEB_ENQUIRY_PREVIEW_MODE: 'synthetic-v1',
+          WEB_ENQUIRY_API_ORIGIN: preview.origin,
+          WEB_ENQUIRY_INSTANCE: randomUUID(),
+        },
       },
-    });
+    );
     webChild.once('error', () => {
       process.exitCode = 1;
       console.error('The public enquiry preview could not start.');
@@ -147,16 +161,18 @@ try {
       if (!closing) process.exitCode = code ?? 1;
       void stop();
     });
-    console.log('Synthetic public website enquiry: http://127.0.0.1:3002/enquire');
+    console.log(`Synthetic public website enquiry: http://127.0.0.1:${launch.webPort}/enquire`);
   }
   for (const signal of ['SIGINT', 'SIGTERM'])
     process.once(signal, () => {
       process.exitCode = 0;
       void stop();
     });
-  console.log('Synthetic guest intake: http://127.0.0.1:3001/enquiry-intake');
-  console.log('Synthetic admin enquiries: http://127.0.0.1:3001/enquiries/admin');
-  console.log('Synthetic assigned-agent enquiries: http://127.0.0.1:3001/enquiries/agent');
+  console.log(`Synthetic guest intake: http://127.0.0.1:${launch.uiPort}/enquiry-intake`);
+  console.log(`Synthetic admin enquiries: http://127.0.0.1:${launch.uiPort}/enquiries/admin`);
+  console.log(
+    `Synthetic assigned-agent enquiries: http://127.0.0.1:${launch.uiPort}/enquiries/agent`,
+  );
   console.log(
     'Shared disposable synthetic database; identity expires in 30 minutes. Changes disappear on stop.',
   );

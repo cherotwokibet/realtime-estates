@@ -13,3 +13,19 @@ Actual browser followed public catalogue navigation, entered synthetic contact d
 Responsive verification limit: the viewport capability accepted390×844, but the tested tab still reported innerWidth1280/documentWidth1265 on both attempts. The form fields were within that actual width. Therefore390px is NOT passed; public-enquiry-layout-1280.jpg labels the actual tested layout. The old temporary filename containing390 is not proof and is not published. Temporary viewport overrides were reset, owned QA tabs closed and preview stopped. A Next development warning about smooth-scroll route transitions remains a nonblocking follow-up.
 
 Next: add a published synthetic listing fixture and explicit public catalogue allowlist in the same development API; server-check eligible listing/company/current publication and bind property enquiry context without accepting browser tenant selection. Then attributable protected staff capture and contact history. Also verify narrow layout with a control that actually changes the target tab. Production identity/persistence, rights/account evidence, off-device recovery and all launch gates remain open. This general-only slice does not close the broad lead-capture task. Checklist16/97, accepted gates0/14; KES10,000 monthly service price, original vendor resources and old live systems preserved. No dependency, paid provider or service provisioned.
+
+## Separate enquiry preview ports — 25 October 2026
+
+The maintained launcher now accepts `ENQUIRY_UI_PORT` (default `3001`) and `ENQUIRY_API_PORT` (default `4101`). Explicit API port `0` requests an owned ephemeral listener; its actual loopback origin propagates to the admin and optional web children. `--web` still requests public port `3002`. Ports use canonical decimal strings, with explicit nonzero ports in `1024`–`65535`; API, admin and requested public web ports must differ.
+
+For an independent checkout whose admin development directory is free:
+
+```powershell
+$env:ENQUIRY_UI_PORT = '3005'
+$env:ENQUIRY_API_PORT = '0'
+node scripts/enquiry-preview.mjs
+```
+
+Before importing or seeding the API, the launcher refuses an existing admin `.next/dev/lock`, and a web lock when `--web` is requested. It binds and closes probes for every requested fixed loopback port before starting API or Next. A refusal leaves existing listeners, lock files, caches and data untouched. These checks do not reserve ports across the later Next startup, so a competing launch can still win that race and cause startup to fail. No automatic process termination, lock removal, alternate port or fallback identity is introduced.
+
+The existing synthetic modes, trusted tenant, server-only identities, public child credential stripping and child/API shutdown behavior are unchanged. Port configuration does not grant API authority or enable production. Six focused Node checks cover defaults, validation/collisions, both dev-lock guards, occupied UI/public/API listeners, released probe sockets and an unrelated web lock during admin-only startup. This launch configuration verification is not a fresh Next browser, process-tree termination, device or deployment acceptance check.

@@ -2,6 +2,8 @@
 
 Boniface maintains one private TypeScript monorepo for configurable realtor companies. The current gross recurring baseline is KES 10,000 per realtor/month; service-budget.md separates operating allowances from verified supplier costs. Production hosting and identity remain unprovisioned gates. The static delivery dashboard is a separate repository and is not the platform API host.
 
+[Deployment and client exit arrangements](deployment-and-exit-arrangements.md) define the proposed shared and dedicated options, account and credential control, company data export specification, offboarding and continuity. The document distinguishes existing source recovery from export/restore capabilities still to be implemented and accepted.
+
 | Workspace           | Responsibility                                                                                  |
 | ------------------- | ----------------------------------------------------------------------------------------------- |
 | apps/web            | Public catalogue, discovery and enquiry experience; explicit demo/connected configuration       |

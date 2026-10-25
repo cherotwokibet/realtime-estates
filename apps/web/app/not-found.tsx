@@ -5,9 +5,9 @@ export default function NotFound() {
     <>
       <PublicHeader />
       <main id="main" className="container catalogue-problem">
-        <span className="eyebrow">PROPERTY NOT FOUND</span>
-        <h1>This property isn’t available here.</h1>
-        <p>It may no longer be published, or the link may be incorrect.</p>
+        <span className="eyebrow">PAGE NOT FOUND</span>
+        <h1>This page isn’t available here.</h1>
+        <p>The link may be incorrect, or this property or profile may no longer be published.</p>
         <Link className="primary" href="/">
           Explore properties
         </Link>

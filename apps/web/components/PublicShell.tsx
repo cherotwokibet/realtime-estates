@@ -10,7 +10,13 @@ function intakeEnabled() {
   }
 }
 
-export function PublicHeader({ purpose }: { purpose?: string }) {
+export function PublicHeader({
+  purpose,
+  current,
+}: {
+  purpose?: string;
+  current?: 'company' | 'contact';
+}) {
   const brand = tenantBrand;
   return (
     <header className="site-header container">
@@ -28,7 +34,12 @@ export function PublicHeader({ purpose }: { purpose?: string }) {
         <Link href="/?purpose=sale" aria-current={purpose === 'sale' ? 'page' : undefined}>
           Buy
         </Link>
-        <Link href="/#how">Our approach</Link>
+        <Link href="/company" aria-current={current === 'company' ? 'page' : undefined}>
+          Company
+        </Link>
+        <Link href="/contact" aria-current={current === 'contact' ? 'page' : undefined}>
+          Contact
+        </Link>
       </nav>
       <Link href={intakeEnabled() ? '/enquire' : '/'} className="header-link">
         {intakeEnabled() ? 'Test a general enquiry →' : 'Explore properties →'}
@@ -66,6 +77,8 @@ export function PublicFooter({ mode }: { mode: 'demo' | 'connected' | 'unavailab
           <Link href="/?purpose=rent">Homes to rent</Link>
           <Link href="/?purpose=sale">Homes to buy</Link>
           <Link href="/#how">Our approach</Link>
+          <Link href="/company">Company</Link>
+          <Link href="/contact">Contact</Link>
         </nav>
       </div>
       <div className="container footer-bottom">
