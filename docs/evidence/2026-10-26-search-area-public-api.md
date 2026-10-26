@@ -11,8 +11,8 @@
 - `npm run build --workspace=@realtor/domain` — passed.
 - `npm run build --workspace=@realtor/api` — passed.
 - `npm run build --workspace=@realtor/api-client` — passed.
-- `node --test apps/api/tests/public-search.test.mjs` — 8 passed, 0 failed. A PGlite execution fixture returned the inside and boundary points and excluded the outside and coordinate-null rows.
-- `node --test packages/api-client/tests/public-search.test.mjs` — 13 passed, 0 failed.
+- `node --test apps/api/tests/public-search.test.mjs` — 8 passed, 0 failed. PGlite exercised both v2 and v3 public views and returned the inside and boundary points while excluding the outside and coordinate-null rows.
+- `node --test packages/api-client/tests/public-search.test.mjs` — 13 passed, 0 failed, including URL serialization and rejection checks for v2 and v3.
 - Prettier checks for changed source/tests and `git diff --check` — passed.
 
 ## Scope still open

@@ -80,11 +80,23 @@ test('public search bounds draw-area results using the approved public coordinat
         ('00000000-0000-4000-8000-000000000001','inside',1,'Inside','', 'rent','apartment','KES',100000,'Kenya','Nairobi','area',-1.25,36.85,'[]','{}','{}','2026-01-01T00:00:00Z'),
         ('00000000-0000-4000-8000-000000000002','outside',1,'Outside','', 'rent','apartment','KES',100000,'Kenya','Nairobi','area',-1.25,36.95,'[]','{}','{}','2026-01-01T00:00:00Z'),
         ('00000000-0000-4000-8000-000000000003','boundary',1,'Boundary','', 'rent','apartment','KES',100000,'Kenya','Nairobi','area',-1.25,36.8,'[]','{}','{}','2026-01-01T00:00:00Z'),
-        ('00000000-0000-4000-8000-000000000004','unknown',1,'Unknown','', 'rent','apartment','KES',100000,'Kenya','Nairobi','area',NULL,NULL,'[]','{}','{}','2026-01-01T00:00:00Z');
+      ('00000000-0000-4000-8000-000000000004','unknown',1,'Unknown','', 'rent','apartment','KES',100000,'Kenya','Nairobi','area',NULL,NULL,'[]','{}','{}','2026-01-01T00:00:00Z');
+      CREATE VIEW app_api.public_listings_reference_v3 AS
+        SELECT p.*, '{}'::jsonb AS reference_attributes, '1'::text AS reference_revision_version,
+          '{}'::jsonb AS reference_catalogue FROM app_api.public_listings_v2 p;
     `);
-    const result = await db.query(query.sql, query.values);
-    assert.deepEqual(result.rows[0].items.map((item) => item.slug).sort(), ['boundary', 'inside']);
-    assert.equal(result.rows[0].total, '2');
+    for (const reference of [false, true]) {
+      const search = publicSearchQuery(
+        new URLSearchParams(`area=${encodeURIComponent(JSON.stringify(polygon))}&limit=10`),
+        reference,
+      );
+      const result = await db.query(search.sql, search.values);
+      assert.deepEqual(result.rows[0].items.map((item) => item.slug).sort(), [
+        'boundary',
+        'inside',
+      ]);
+      assert.equal(result.rows[0].total, '2');
+    }
   } finally {
     await db.close();
   }

@@ -148,15 +148,23 @@ test('public search serializes only a validated bounded draw-area polygon', asyn
   const api = client(async (url) => {
     calls += 1;
     observed = new URL(url);
-    return json(page());
+    const reference = observed.pathname.startsWith('/v3/');
+    return json(
+      page([], { policy: reference ? 'synthetic-reference-search-v1' : 'public-search-v1' }),
+    );
   });
-  await api.searchPropertiesV2({ area: polygon });
-  assert.deepEqual(JSON.parse(observed.searchParams.get('area')), polygon);
+  for (const search of [
+    api.searchPropertiesV2.bind(api),
+    api.searchSyntheticReferencePropertiesV3.bind(api),
+  ]) {
+    await search({ area: polygon });
+    assert.deepEqual(JSON.parse(observed.searchParams.get('area')), polygon);
+  }
   await assert.rejects(
     () => api.searchPropertiesV2({ area: { type: 'Polygon', coordinates: [] } }),
     (error) => error.kind === 'VALIDATION',
   );
-  assert.equal(calls, 1);
+  assert.equal(calls, 2);
 });
 
 test('reference search validates minimum ranges before I/O and preserves the exact decimal bound', async () => {
