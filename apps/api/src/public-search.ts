@@ -1,4 +1,9 @@
-import { PROPERTY_TYPES, kesFromMajor } from '@realtor/domain';
+import {
+  PROPERTY_TYPES,
+  kesFromMajor,
+  parseSearchAreaPolygon,
+  type SearchAreaPolygon,
+} from '@realtor/domain';
 export class PublicSearchInputError extends Error {
   constructor() {
     super('Use supported public search filters and pagination values.');
@@ -23,6 +28,7 @@ const keys = [
   'limit',
   'offset',
   'id',
+  'area',
 ];
 /** Caller text is always a bind value. Identifiers and ordering are fixed application constants. */
 export function publicSearchQuery(params: URLSearchParams, reference = false) {
@@ -89,6 +95,42 @@ export function publicSearchQuery(params: URLSearchParams, reference = false) {
     const pattern = '%' + value.replace(/[!%_]/g, '!$&') + '%';
     predicates.push(
       `(COALESCE(locality,'') || ' ' || COALESCE(location->>'county','') || ' ' || COALESCE(location->>'town','') || ' ' || COALESCE(location->>'area','')) ILIKE ${bind(pattern)} ESCAPE '!'`,
+    );
+  }
+  if (q.area !== undefined) {
+    let area: SearchAreaPolygon;
+    try {
+      const parsed = parseSearchAreaPolygon(JSON.parse(q.area));
+      if (parsed === null) return fail();
+      area = parsed;
+    } catch {
+      return fail();
+    }
+    const ring = area.coordinates[0]!;
+    const longitudes = ring.slice(0, -1).map(([longitude]) => longitude);
+    const latitudes = ring.slice(0, -1).map(([, latitude]) => latitude);
+    const minLongitude = Math.min(...longitudes);
+    const maxLongitude = Math.max(...longitudes);
+    const minLatitude = Math.min(...latitudes);
+    const maxLatitude = Math.max(...latitudes);
+    predicates.push(
+      `longitude BETWEEN ${bind(String(minLongitude))}::numeric AND ${bind(String(maxLongitude))}::numeric`,
+    );
+    predicates.push(
+      `latitude BETWEEN ${bind(String(minLatitude))}::numeric AND ${bind(String(maxLatitude))}::numeric`,
+    );
+    const rows = ring
+      .slice(0, -1)
+      .map((start, index) => {
+        const end = ring[index + 1]!;
+        return `(${bind(String(start[0]))}::numeric,${bind(String(start[1]))}::numeric,${bind(String(end[0]))}::numeric,${bind(String(end[1]))}::numeric)`;
+      })
+      .join(',');
+    const edges = `(VALUES ${rows}) AS edge(x1,y1,x2,y2)`;
+    const boundary = `EXISTS (SELECT 1 FROM ${edges} WHERE ABS((longitude-x1)*(y2-y1)-(latitude-y1)*(x2-x1))<=0.0000000001 AND longitude BETWEEN LEAST(x1,x2)-0.0000000001 AND GREATEST(x1,x2)+0.0000000001 AND latitude BETWEEN LEAST(y1,y2)-0.0000000001 AND GREATEST(y1,y2)+0.0000000001)`;
+    const crossings = `(SELECT count(*) FROM ${edges} WHERE (y1>latitude)<>(y2>latitude) AND longitude < x1+(latitude-y1)*(x2-x1)/NULLIF(y2-y1,0))%2=1`;
+    predicates.push(
+      `latitude IS NOT NULL AND longitude IS NOT NULL AND (${boundary} OR ${crossings})`,
     );
   }
   if (q.purpose) predicates.push('purpose = ' + bind(q.purpose));

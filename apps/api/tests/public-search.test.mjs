@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { PGlite } from '@electric-sql/pglite';
 import { publicSearchQuery } from '../dist/public-search.js';
 const build = (text) => publicSearchQuery(new URLSearchParams(text));
 test('public search refuses ambiguous, unknown, costly and incompatible query shapes', () => {
@@ -35,8 +36,58 @@ test('public search refuses ambiguous, unknown, costly and incompatible query sh
     'location=%00',
     'location=' + 'a'.repeat(161),
     'location=' + 'a'.repeat(8200),
+    'area=%7B%22type%22%3A%22LineString%22%2C%22coordinates%22%3A%5B%5D%7D',
+    'area=%7Bnot-json',
+    'area=%7B%22type%22%3A%22Polygon%22%2C%22coordinates%22%3A%5B%5D%7D&area=%7B%7D',
   ])
     assert.throws(() => build(query), /supported public search/);
+});
+
+test('public search bounds draw-area results using the approved public coordinates', async () => {
+  const polygon = {
+    type: 'Polygon',
+    coordinates: [
+      [
+        [36.8, -1.3],
+        [36.9, -1.3],
+        [36.9, -1.2],
+        [36.8, -1.2],
+        [36.8, -1.3],
+      ],
+    ],
+  };
+  const query = build(`area=${encodeURIComponent(JSON.stringify(polygon))}&limit=10`);
+  assert.match(query.sql, /longitude BETWEEN \$\d+::numeric AND \$\d+::numeric/);
+  assert.match(query.sql, /latitude IS NOT NULL AND longitude IS NOT NULL/);
+  assert.equal(query.values.length, 22);
+
+  const db = new PGlite();
+  try {
+    await db.exec(`
+      CREATE SCHEMA app_api;
+      CREATE TABLE app_api.public_listings_v2 (
+        listing_id uuid, slug text, revision_no integer, title text, description text,
+        purpose text, property_type text, currency text, amount_minor bigint,
+        rent_period text, bedrooms integer, private_bathrooms integer, shared_bathrooms integer,
+        country text, locality text, public_precision text, latitude numeric, longitude numeric,
+        photo_refs jsonb, pricing jsonb, location jsonb, approved_at timestamptz
+      );
+      INSERT INTO app_api.public_listings_v2 (
+        listing_id, slug, revision_no, title, description, purpose, property_type,
+        currency, amount_minor, country, locality, public_precision, latitude, longitude,
+        photo_refs, pricing, location, approved_at
+      ) VALUES
+        ('00000000-0000-4000-8000-000000000001','inside',1,'Inside','', 'rent','apartment','KES',100000,'Kenya','Nairobi','area',-1.25,36.85,'[]','{}','{}','2026-01-01T00:00:00Z'),
+        ('00000000-0000-4000-8000-000000000002','outside',1,'Outside','', 'rent','apartment','KES',100000,'Kenya','Nairobi','area',-1.25,36.95,'[]','{}','{}','2026-01-01T00:00:00Z'),
+        ('00000000-0000-4000-8000-000000000003','boundary',1,'Boundary','', 'rent','apartment','KES',100000,'Kenya','Nairobi','area',-1.25,36.8,'[]','{}','{}','2026-01-01T00:00:00Z'),
+        ('00000000-0000-4000-8000-000000000004','unknown',1,'Unknown','', 'rent','apartment','KES',100000,'Kenya','Nairobi','area',NULL,NULL,'[]','{}','{}','2026-01-01T00:00:00Z');
+    `);
+    const result = await db.query(query.sql, query.values);
+    assert.deepEqual(result.rows[0].items.map((item) => item.slug).sort(), ['boundary', 'inside']);
+    assert.equal(result.rows[0].total, '2');
+  } finally {
+    await db.close();
+  }
 });
 test('all caller text is bound and SQL ordering remains a fixed whitelist', () => {
   const attack = "%' OR true --_!";

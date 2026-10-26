@@ -1,4 +1,10 @@
-import { PROPERTY_TYPES, kesFromMajor, type RentalPeriod } from '@realtor/domain';
+import {
+  PROPERTY_TYPES,
+  kesFromMajor,
+  parseSearchAreaPolygon,
+  type RentalPeriod,
+  type SearchAreaPolygon,
+} from '@realtor/domain';
 import {
   validateRevisionProtocol,
   validateRevisionProtocolTarget,
@@ -322,6 +328,7 @@ export interface PublicSearchInput {
   readonly localityId?: string;
   readonly neighbourhoodId?: string;
   readonly amenityId?: string;
+  readonly area?: SearchAreaPolygon;
 }
 export interface PublicSearchPage<T> {
   readonly policy: 'public-search-v1' | 'synthetic-reference-search-v1';
@@ -2696,6 +2703,7 @@ export class RealtorApiClient {
       'limit',
       'offset',
       'id',
+      'area',
       ...(reference ? ['countyId', 'localityId', 'neighbourhoodId', 'amenityId'] : []),
     ];
     if (Object.keys(q).some((key) => !allowed.includes(key)))
@@ -2707,6 +2715,12 @@ export class RealtorApiClient {
     const prices: Partial<Record<'min' | 'max', number>> = {};
     for (const [key, value] of Object.entries(q)) {
       if (key === 'limit' || key === 'offset') continue;
+      if (key === 'area') {
+        const area = parseSearchAreaPolygon(value);
+        if (!area) invalid('VALIDATION', 'Invalid search area.');
+        params.set(key, JSON.stringify(area));
+        continue;
+      }
       if (typeof value !== 'string') return invalid('VALIDATION', 'Search values must be text.');
       if (value === '') continue;
       if (key === 'id' || key.endsWith('Id')) uuid(value, 'VALIDATION', 'Reference ID');

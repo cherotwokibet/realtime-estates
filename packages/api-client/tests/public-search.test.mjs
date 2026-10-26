@@ -130,6 +130,35 @@ test('public search keeps exact facts, snapshots query and uses fixed anonymous 
   assert.ok(Object.isFrozen(result.items));
 });
 
+test('public search serializes only a validated bounded draw-area polygon', async () => {
+  const polygon = {
+    type: 'Polygon',
+    coordinates: [
+      [
+        [36.8, -1.3],
+        [36.9, -1.3],
+        [36.9, -1.2],
+        [36.8, -1.2],
+        [36.8, -1.3],
+      ],
+    ],
+  };
+  let observed;
+  let calls = 0;
+  const api = client(async (url) => {
+    calls += 1;
+    observed = new URL(url);
+    return json(page());
+  });
+  await api.searchPropertiesV2({ area: polygon });
+  assert.deepEqual(JSON.parse(observed.searchParams.get('area')), polygon);
+  await assert.rejects(
+    () => api.searchPropertiesV2({ area: { type: 'Polygon', coordinates: [] } }),
+    (error) => error.kind === 'VALIDATION',
+  );
+  assert.equal(calls, 1);
+});
+
 test('reference search validates minimum ranges before I/O and preserves the exact decimal bound', async () => {
   const calls = [];
   const api = client(async (url) => {
