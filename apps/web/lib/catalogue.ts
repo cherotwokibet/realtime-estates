@@ -13,10 +13,12 @@ import {
   kesFromMajor,
   kesFromMinor,
   matchesNumericRange,
+  parseSearchAreaPolygon,
   validatePublicLocationV2,
   type PricingDisclosure,
   type PublicLocationV2,
   type RentalPeriod,
+  type SearchAreaPolygon,
 } from '@realtor/domain';
 import {
   CATALOGUE_READ_ONLY_NOTICE,
@@ -40,6 +42,7 @@ export type {
 } from './catalogue-config.ts';
 export type CatalogueQuery = SearchQuery;
 export interface CatalogueFilters {
+  readonly area: SearchAreaPolygon | null;
   readonly reference: ReferenceFilters;
   readonly location: string;
   readonly purpose: string;
@@ -140,6 +143,20 @@ export function parseCatalogueFilters(query: CatalogueQuery): CatalogueFilters {
   // This pure shared helper supplies only validation state here; none of its demo items are returned.
   const parsed = searchCatalogue('realtime-estates', validationQuery);
   let error = parsed.error;
+  const rawArea = query.area;
+  let area: SearchAreaPolygon | null = null;
+  if (rawArea !== undefined && rawArea !== '') {
+    if (typeof rawArea !== 'string' || rawArea.length > 8192) {
+      error = 'Choose one valid search area.';
+    } else {
+      try {
+        area = parseSearchAreaPolygon(JSON.parse(rawArea));
+      } catch {
+        area = null;
+      }
+      if (!area) error = 'Choose one valid search area.';
+    }
+  }
   if (query.period !== undefined && typeof query.period !== 'string')
     error = 'Use one value for each search filter.';
   if (period && !RENTAL_PERIODS.has(period)) error = 'Choose a supported rental period.';
@@ -170,6 +187,7 @@ export function parseCatalogueFilters(query: CatalogueQuery): CatalogueFilters {
     error = 'Choose one supported location or amenity option per field.';
   // An absent/empty period includes all rents; either price bound requires an explicit rent period.
   return Object.freeze({
+    area,
     reference: reference.values,
     location: parsed.location,
     purpose: parsed.purpose,
@@ -321,6 +339,14 @@ export function createCatalogueLoader(
     if (resolution.status === 'error')
       return failure('configuration', filters, resolution.code, resolution.message);
     const config = resolution.config;
+    const unsupportedAreaMessage = 'Drawn-area search requires connected catalogue search support.';
+    if (filters.area && (config.mode !== 'connected' || !config.searchMode))
+      return failure(
+        'configuration',
+        Object.freeze({ ...filters, error: unsupportedAreaMessage }),
+        'CONFIGURATION',
+        unsupportedAreaMessage,
+      );
     try {
       if (config.mode === 'demo') {
         const source = propertiesForCompany(config.tenantSlug).map(fromDemo);
@@ -365,6 +391,7 @@ export function createCatalogueLoader(
           ...(filters.bedsMode === 'at_least' ? { bedsMode: 'at_least' as const } : {}),
           privateBaths: filters.privateBathsText,
           sharedBaths: filters.sharedBathsText,
+          ...(filters.area ? { area: filters.area } : {}),
           sort: browse.sort as 'catalogue' | 'title' | 'price_low' | 'price_high',
           limit: LOADED_PAGE_SIZE,
           offset,

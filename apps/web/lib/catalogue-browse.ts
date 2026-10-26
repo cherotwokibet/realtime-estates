@@ -132,6 +132,7 @@ export function loadedPageHref(filters: CatalogueFilters, sort: string, page: nu
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries({
     location: filters.location,
+    area: filters.area ? JSON.stringify(filters.area) : '',
     purpose: filters.purpose,
     type: filters.type,
     period: filters.period,

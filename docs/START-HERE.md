@@ -1,4 +1,4 @@
-Latest verified implementation checkpoint195: PGlite now executes draw-area queries against both public v2 and synthetic-reference v3 views; API-client URL validation/serialization is tested for both. The API suite passed8/8 and client suite13/13. The area API remains partial: task07-2 is open pending accessible draw/edit/clear UI, URL persistence and browser acceptance. Checklist remains29/97 (30% rounded),0/14 gates. Changes/evidence remain local. See docs/evidence/2026-10-26-search-area-public-api.md.
+Latest implementation checkpoint196: web catalogue now validates bounded area polygons from URL state and forwards them to public v2/synthetic-reference v3 search; form submission and next-page links preserve them. Unsupported demo/loaded-list modes fail closed. Web suite passed87/87 including test compilation. Task07-2 remains open pending interactive accessible draw/edit/clear controls and browser acceptance. Checklist remains29/97 (30% rounded),0/14 gates. Changes/evidence remain local; no full app build/browser run. See docs/evidence/2026-10-26-search-area-web-query.md.
 
 ## Private allocation candidate checkpoint88 published — 16 October 2026
 

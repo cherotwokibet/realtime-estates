@@ -70,6 +70,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
   const catalogue = await loadCatalogue(q);
   const {
     location,
+    area,
     purpose,
     type,
     period,
@@ -92,6 +93,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
   const filtered =
     Boolean(
       location ||
+      area ||
       purpose ||
       type ||
       period ||
@@ -202,6 +204,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
           <form
             key={JSON.stringify([
               location,
+              area,
               purpose,
               type,
               period,
@@ -220,6 +223,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
             className="search-panel"
             aria-describedby={error && !errorFields.length ? 'search-error' : undefined}
           >
+            {area && <input type="hidden" name="area" value={JSON.stringify(area)} />}
             <div className="search-top">
               <h2 id="search-title">What are you looking for?</h2>
               <fieldset className="purpose-tabs" {...validation('purpose')}>

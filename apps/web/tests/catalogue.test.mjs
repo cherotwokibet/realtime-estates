@@ -17,6 +17,18 @@ import {
 } from '../dist/tests/lib/catalogue.js';
 
 const id = (number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
+const searchArea = {
+  type: 'Polygon',
+  coordinates: [
+    [
+      [36.8, -1.3],
+      [36.9, -1.3],
+      [36.9, -1.2],
+      [36.8, -1.2],
+      [36.8, -1.3],
+    ],
+  ],
+};
 const property = (patch = {}) => ({
   id: id(100),
   slug: 'synthetic-web-studio',
@@ -181,6 +193,36 @@ test('global web search uses trusted SDK transport and never slices a server pag
   assert.ok(html.includes('13–24 of 30'));
   assert.ok(html.includes('min=20000.01'));
   assert.ok(html.includes('max=20000.02'));
+});
+
+test('drawn-area query parsing is bounded, rejects repeated or malformed geometry, and fails closed without search support', async () => {
+  const encoded = JSON.stringify(searchArea);
+  assert.deepEqual(parseCatalogueFilters({ area: encoded }).area, searchArea);
+  for (const area of [
+    ['{}', '{}'],
+    '{bad json',
+    JSON.stringify({ type: 'Polygon', coordinates: [] }),
+    'x'.repeat(8193),
+  ]) {
+    const filters = parseCatalogueFilters({ area });
+    assert.equal(filters.area, null);
+    assert.equal(filters.error, 'Choose one valid search area.');
+  }
+
+  const demoResult = await createCatalogueLoader(
+    resolveCatalogueConfig({ TENANT_SLUG: 'realtime-estates' }),
+  ).list({ area: encoded });
+  assert.equal(demoResult.mode, 'error');
+  assert.equal(demoResult.code, 'CONFIGURATION');
+  assert.equal(demoResult.items, undefined);
+  assert.match(demoResult.message, /connected catalogue search support/);
+
+  const loadedOnly = connected([], {}, async () => {
+    throw Error('area search must not silently fall back to loaded rows');
+  });
+  const loadedResult = await loadedOnly.list({ area: encoded });
+  assert.equal(loadedResult.mode, 'error');
+  assert.equal(loadedResult.code, 'CONFIGURATION');
 });
 test('global web original detail is addressed by ID beyond the original loaded page without fallback', async () => {
   const target = property({ id: id(999) }),
@@ -1317,6 +1359,7 @@ test('global v2 and v3 searches retain Over and exact bounds through SDK transpo
         min: '20000.01',
         minMode: 'over',
         max: '20000.01',
+        area: JSON.stringify(searchArea),
         sort: 'price_low',
         page: '2',
       }),
@@ -1328,6 +1371,7 @@ test('global v2 and v3 searches retain Over and exact bounds through SDK transpo
     assert.equal(search.searchParams.get('minMode'), 'over');
     assert.equal(search.searchParams.get('min'), '20000.01');
     assert.equal(search.searchParams.get('max'), '20000.01');
+    assert.deepEqual(JSON.parse(search.searchParams.get('area')), searchArea);
     assert.equal(search.searchParams.get('offset'), '12');
     const next = new URL(
       loadedPageHref(result.filters, 'price_low', 3),
@@ -1336,6 +1380,7 @@ test('global v2 and v3 searches retain Over and exact bounds through SDK transpo
     assert.equal(next.searchParams.get('minMode'), 'over');
     assert.equal(next.searchParams.get('min'), '20000.01');
     assert.equal(next.searchParams.get('max'), '20000.01');
+    assert.deepEqual(JSON.parse(next.searchParams.get('area')), searchArea);
     assert.equal(next.searchParams.get('page'), '3');
   }
 });
