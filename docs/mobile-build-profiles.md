@@ -1,0 +1,9 @@
+# Synthetic mobile build profiles
+
+Expo development and internal preview profiles are defined in `apps/mobile/eas.json`. The `preview` profile selects the existing synthetic Realtime brand; `sample-preview` inherits the same internal distribution and remote-credentials policy but selects the isolated Sample Homes synthetic brand. `apps/mobile/app.config.ts` derives a Preview-only display name, URL scheme, launcher icon, adaptive-icon background and native IDs from the selected allowlisted demo slug. Hyphens become dotted native identifier segments, preserving uniqueness without inserting arbitrary environment text into a package name. The profile fields follow the [Expo `eas.json` reference](https://docs.expo.dev/eas/json/).
+
+The generated PNG launcher/adaptive foreground assets are generic house glyphs in the two synthetic demo palette colors. They are not customer-provided logos or approved production brand assets. The app IDs are under the existing `com.boniface.realtor.preview` namespace and are preview-only; actual bundle identifiers, store ownership, Apple/Google account access, production assets and release approval remain unresolved.
+
+EAS profiles declare `credentialsSource: "remote"`; no signing key, service credential, EAS project ID, or remote account secret is included in source. Remote credential provisioning/builds are not claimed. The profiles contain no production distribution profile until an authorized deployment identity and production app identifiers/assets are supplied and reviewed.
+
+Local verification checks both resolved Expo configurations, their distinct IDs and icon paths, the profile inheritance, the internal-only branding and the absence of credential-like profile values. It does not prove an EAS cloud build, signing, physical-device installation, app-store ownership, or tenant data isolation.

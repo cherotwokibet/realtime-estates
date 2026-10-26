@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getConfig } from '@expo/config';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 test('actual Expo config exposes only explicit public development settings and refuses production or orphan flags', () => {
   const keys = [
@@ -37,6 +38,49 @@ test('actual Expo config exposes only explicit public development settings and r
       { MOBILE_API_ORIGIN: 'https://synthetic.invalid' },
     ])
       assert.throws(() => read(patch));
+
+    const realtime = read({ TENANT_SLUG: 'realtime-estates' });
+    const sample = read({ TENANT_SLUG: 'sample-homes' });
+    assert.equal(realtime.android.package, 'com.boniface.realtor.preview.realtime.estates');
+    assert.equal(realtime.ios.bundleIdentifier, realtime.android.package);
+    assert.equal(sample.android.package, 'com.boniface.realtor.preview.sample.homes');
+    assert.notEqual(sample.android.package, realtime.android.package);
+    for (const [tenant, color] of [
+      ['realtime-estates', '#5e0202'],
+      ['sample-homes', '#10465b'],
+    ]) {
+      const built = read({ TENANT_SLUG: tenant });
+      assert.match(built.name, /Preview$/);
+      assert.match(built.slug, /-preview$/);
+      assert.equal(built.scheme, `${tenant}-preview`);
+      for (const iconName of [`${tenant}.png`, `${tenant}-foreground.png`]) {
+        const iconPath = new URL(`../assets/icons/${iconName}`, import.meta.url);
+        assert.ok(existsSync(iconPath));
+        const icon = readFileSync(iconPath);
+        assert.deepEqual(
+          [...icon.subarray(0, 8)],
+          [137, 80, 78, 71, 13, 10, 26, 10],
+          `${iconName} must be a PNG`,
+        );
+        assert.equal(icon.readUInt32BE(16), 1024);
+        assert.equal(icon.readUInt32BE(20), 1024);
+      }
+      assert.ok(existsSync(new URL(`../assets/icons/${tenant}.svg`, import.meta.url)));
+      assert.ok(existsSync(new URL(`../assets/icons/${tenant}-foreground.svg`, import.meta.url)));
+      assert.equal(built.android.adaptiveIcon.backgroundColor, color);
+    }
+
+    const eas = JSON.parse(readFileSync(new URL('../eas.json', import.meta.url), 'utf8'));
+    assert.equal(eas.build.development.credentialsSource, 'remote');
+    assert.equal(eas.build.preview.credentialsSource, 'remote');
+    assert.equal(eas.build['sample-preview'].extends, 'preview');
+    assert.equal(eas.build['sample-preview'].env.TENANT_SLUG, 'sample-homes');
+    assert.equal(
+      Object.values(eas.build).some((profile) =>
+        /(?:TOKEN|SECRET|PASSWORD|KEY)/i.test(JSON.stringify(profile)),
+      ),
+      false,
+    );
   } finally {
     for (const key of keys) {
       if (original[key] === undefined) delete process.env[key];

@@ -6,7 +6,12 @@ import { resolveMobileReferenceConfig } from './src/reference-catalogue.ts';
 export default ({ config }: ConfigContext): ExpoConfig => {
   const tenantSlug = resolveDemoTenantSlug(process.env.TENANT_SLUG);
   const brand = getDemoBrand(tenantSlug);
-  const applicationId = `com.boniface.realtor.preview.${tenantSlug.replaceAll('-', '')}`;
+  // Preview identifiers remain tenant-specific and collision-free: each tenant slug segment
+  // becomes its own valid Java/iOS reverse-DNS segment instead of deleting separators.
+  const tenantIdentifier = tenantSlug.split('-').join('.');
+  const applicationId = `com.boniface.realtor.preview.${tenantIdentifier}`;
+  const icon = `./assets/icons/${tenantSlug}.png`;
+  const adaptiveIcon = `./assets/icons/${tenantSlug}-foreground.png`;
   const mode = process.env.MOBILE_CATALOGUE_MODE;
   const extra: Record<string, unknown> = { ...config.extra, tenantSlug };
   delete extra.mobileReference;
@@ -40,7 +45,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: `${brand.name} Preview`,
     slug: `${tenantSlug}-preview`,
     scheme: `${tenantSlug}-preview`,
-    android: { ...config.android, package: applicationId },
+    icon,
+    android: {
+      ...config.android,
+      package: applicationId,
+      adaptiveIcon: {
+        ...config.android?.adaptiveIcon,
+        foregroundImage: adaptiveIcon,
+        backgroundColor: brand.primary,
+      },
+    },
     ios: { ...config.ios, bundleIdentifier: applicationId },
     extra,
   };
