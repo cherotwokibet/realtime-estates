@@ -5,6 +5,7 @@ import {
   resolvePublicCompanyContent,
   type PublicCompanyContent,
 } from './public-company-content.ts';
+import { resolveTenantManifest } from './tenant-manifest.ts';
 
 export type PublicAdvisor = Readonly<{
   id: string;
@@ -37,14 +38,43 @@ export function publicCompanyInfo(
   const slug = resolveDemoTenantSlug(environment.TENANT_SLUG);
   const catalogue = resolveCatalogueConfig(environment);
   const synthetic = catalogue.status === 'ready' && catalogue.config.dataKind === 'synthetic';
-  const resolution = resolvePublicCompanyContent(environment.WEB_PUBLIC_COMPANY_CONTENT, slug);
-  const content = resolution.status === 'configured' ? resolution.content : null;
+  const manifest = resolveTenantManifest(environment.TENANT_MANIFEST_JSON, slug);
+  const resolution =
+    manifest.status === 'invalid'
+      ? manifest
+      : manifest.status === 'configured'
+        ? manifest.manifest.companyContent
+          ? { status: 'configured' as const, content: manifest.manifest.companyContent }
+          : { status: 'absent' as const }
+        : resolvePublicCompanyContent(environment.WEB_PUBLIC_COMPANY_CONTENT, slug);
+  const features = manifest.status === 'configured' ? manifest.manifest.features : null;
+  const resolvedContent = resolution.status === 'configured' ? resolution.content : null;
+  const content = resolvedContent
+    ? Object.freeze({
+        policy: resolvedContent.policy,
+        companySlug: resolvedContent.companySlug,
+        company: resolvedContent.company,
+        advisors: resolvedContent.advisors,
+        ...(features?.contactActions === false
+          ? {}
+          : resolvedContent.contact
+            ? { contact: resolvedContent.contact }
+            : manifest.status === 'configured'
+              ? {
+                  contact: Object.freeze({
+                    email: manifest.manifest.brand.contact.email,
+                    phone: manifest.manifest.brand.contact.phone,
+                  }),
+                }
+              : {}),
+      })
+    : null;
   const advisors: readonly PublicAdvisor[] = Object.freeze(
-    content
+    content && features?.advisorProfiles !== false
       ? content.advisors.map((advisor) =>
           Object.freeze({ ...advisor, source: 'configuration' as const }),
         )
-      : resolution.status === 'absent' && synthetic
+      : resolution.status === 'absent' && synthetic && manifest.status === 'absent'
         ? [
             Object.freeze({
               id: advisorIds[slug],
@@ -63,7 +93,10 @@ export function publicCompanyInfo(
   } catch {}
   return Object.freeze({
     slug,
-    name: getDemoBrand(slug).name,
+    name:
+      manifest.status === 'configured'
+        ? manifest.manifest.brand.companyName
+        : getDemoBrand(slug).name,
     mode: catalogue.status === 'ready' ? catalogue.config.mode : 'unavailable',
     synthetic,
     contentStatus: resolution.status,

@@ -158,7 +158,8 @@ export function validatePublicCompanyContent(
 }
 
 /** Reject duplicate decoded JSON keys and excessive nesting before shape validation. */
-function parseContentJson(source: string): unknown {
+/** Parse a bounded deployment JSON document without accepting duplicate keys. */
+export function parseDeploymentJson(source: string): unknown {
   withinByteLimit(source);
   const token =
     /"(?:\\[\s\S]|[^"\\])*"|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\]:,]/y;
@@ -204,7 +205,7 @@ export function resolvePublicCompanyContent(
   if (source === undefined) return Object.freeze({ status: 'absent' });
   try {
     if (typeof source !== 'string' || !source) return invalid();
-    const content = validatePublicCompanyContent(parseContentJson(source), companySlug);
+    const content = validatePublicCompanyContent(parseDeploymentJson(source), companySlug);
     return Object.freeze({ status: 'configured', content });
   } catch {
     return Object.freeze({ status: 'invalid' });
