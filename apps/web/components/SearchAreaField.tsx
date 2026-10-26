@@ -1,0 +1,48 @@
+import type { CatalogueFilters } from '../lib/catalogue.ts';
+import { loadedPageHref } from '../lib/catalogue-browse.ts';
+
+/** Accessible keyboard path for supplying the same bounded polygon contract used by area search. */
+export default function SearchAreaField({
+  supported,
+  invalid,
+  value,
+  filters,
+  sort,
+}: {
+  supported: boolean;
+  invalid: boolean;
+  value: string;
+  filters: CatalogueFilters;
+  sort: string;
+}) {
+  if (!supported) return null;
+  return (
+    <fieldset className="reference-filters search-area-field">
+      <legend>Search within a polygon area</legend>
+      <p id="search-area-help" className="search-help">
+        Paste or edit a GeoJSON Polygon with one closed WGS84 longitude, latitude ring and no holes.
+        The search accepts up to 100 edges and matches only listings with approved public
+        coordinates. This keyboard-accessible editor does not load a map service.
+      </p>
+      <label className="search-field" htmlFor="search-area-polygon">
+        <span>Area polygon (GeoJSON)</span>
+        <textarea
+          id="search-area-polygon"
+          name="area"
+          rows={5}
+          maxLength={8192}
+          defaultValue={value}
+          aria-invalid={invalid || undefined}
+          aria-describedby={invalid ? 'search-area-help search-error' : 'search-area-help'}
+          placeholder='{"type":"Polygon","coordinates":[[[36.8,-1.3],[36.9,-1.3],[36.9,-1.2],[36.8,-1.2],[36.8,-1.3]]]}'
+          spellCheck={false}
+        />
+      </label>
+      {filters.area && (
+        <a href={loadedPageHref({ ...filters, area: null }, sort, 1)}>
+          Clear area and keep other filters
+        </a>
+      )}
+    </fieldset>
+  );
+}

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ReferenceFilters from '../dist/tests/components/ReferenceFilters.js';
+import SearchAreaField from '../dist/tests/components/SearchAreaField.js';
 import { loadedPageHref, browseCatalogue } from '../dist/tests/lib/catalogue-browse.js';
 import {
   parseReferenceFilters,
@@ -223,6 +224,40 @@ test('drawn-area query parsing is bounded, rejects repeated or malformed geometr
   const loadedResult = await loadedOnly.list({ area: encoded });
   assert.equal(loadedResult.mode, 'error');
   assert.equal(loadedResult.code, 'CONFIGURATION');
+});
+
+test('search area editor offers an accessible keyboard field and can clear only the area filter', () => {
+  const filters = parseCatalogueFilters({ area: JSON.stringify(searchArea), purpose: 'sale' });
+  const html = renderToStaticMarkup(
+    React.createElement(SearchAreaField, {
+      supported: true,
+      invalid: false,
+      value: JSON.stringify(searchArea),
+      filters,
+      sort: 'catalogue',
+    }),
+  );
+  assert.match(html, /legend[^>]*>Search within a polygon area/);
+  assert.match(html, /aria-describedby="search-area-help"/);
+  assert.match(html, /name="area"/);
+  assert.match(html, /maxlength="8192"/i);
+  const clearHref = html.match(/href="([^"]+)"/)[1];
+  const clear = new URL(clearHref, 'https://web.example.invalid');
+  assert.equal(clear.searchParams.get('area'), null);
+  assert.equal(clear.searchParams.get('purpose'), 'sale');
+  assert.equal(clear.hash, '#properties');
+  assert.equal(
+    renderToStaticMarkup(
+      React.createElement(SearchAreaField, {
+        supported: false,
+        invalid: false,
+        value: '',
+        filters,
+        sort: 'catalogue',
+      }),
+    ),
+    '',
+  );
 });
 test('global web original detail is addressed by ID beyond the original loaded page without fallback', async () => {
   const target = property({ id: id(999) }),

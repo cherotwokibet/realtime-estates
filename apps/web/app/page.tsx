@@ -12,6 +12,7 @@ import { PricingDisclosureSummary } from '../components/PricingDisclosure';
 import RoomFilters from '../components/RoomFilters';
 import PriceFilters from '../components/PriceFilters';
 import ReferenceFilters from '../components/ReferenceFilters';
+import SearchAreaField from '../components/SearchAreaField';
 import { parseReferenceFilters, referenceOptions } from '../lib/catalogue-reference-filters';
 import LoadedCataloguePager from '../components/LoadedCataloguePager';
 import { browseCatalogue } from '../lib/catalogue-browse';
@@ -204,7 +205,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
           <form
             key={JSON.stringify([
               location,
-              area,
+              q.area,
               purpose,
               type,
               period,
@@ -223,7 +224,6 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
             className="search-panel"
             aria-describedby={error && !errorFields.length ? 'search-error' : undefined}
           >
-            {area && <input type="hidden" name="area" value={JSON.stringify(area)} />}
             <div className="search-top">
               <h2 id="search-title">What are you looking for?</h2>
               <fieldset className="purpose-tabs" {...validation('purpose')}>
@@ -308,6 +308,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               privateBathsText={privateBathsText}
               sharedBathsText={sharedBathsText}
               errorFields={errorFields}
+            />
+            <SearchAreaField
+              supported={catalogue.mode === 'connected' && catalogue.searchPage !== undefined}
+              invalid={filterError === 'Choose one valid search area.'}
+              value={typeof q.area === 'string' ? q.area : area ? JSON.stringify(area) : ''}
+              filters={catalogue.filters}
+              sort={browse.sort}
             />
             <ReferenceFilters
               scope={catalogue.mode === 'error' ? undefined : catalogue.referenceOptionsScope}
