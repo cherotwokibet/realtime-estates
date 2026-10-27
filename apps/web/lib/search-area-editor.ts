@@ -27,3 +27,22 @@ export function searchAreaPolygonFromText(value: string): SearchAreaPolygon | nu
     return null;
   }
 }
+
+/** Return editable vertices for a validated URL/text boundary, excluding its closing duplicate. */
+export function searchAreaPolygonVerticesFromText(value: string): [number, number][] | null {
+  const polygon = searchAreaPolygonFromText(value);
+  if (!polygon) return null;
+  return polygon.coordinates[0]!.slice(0, -1).map(([longitude, latitude]) => [longitude, latitude]);
+}
+
+/** Validate a point drag before changing editor state; invalid edits leave the caller's points intact. */
+export function moveSearchAreaPolygonVertex(
+  points: readonly SearchAreaMapPoint[],
+  index: number,
+  position: SearchAreaMapPoint,
+): [number, number][] | null {
+  if (!Number.isInteger(index) || index < 0 || index >= points.length) return null;
+  const moved = points.map(([longitude, latitude]) => [longitude, latitude] as [number, number]);
+  moved[index] = [position[0], position[1]];
+  return searchAreaPolygonText(moved) ? moved : null;
+}

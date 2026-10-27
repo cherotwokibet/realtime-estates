@@ -7,8 +7,10 @@ import SearchAreaField from '../dist/tests/components/SearchAreaField.js';
 import SearchAreaMapEditor from '../dist/tests/components/SearchAreaMapEditor.js';
 import {
   OSM_STANDARD_TILE_URL,
+  moveSearchAreaPolygonVertex,
   searchAreaPolygonFromText,
   searchAreaPolygonText,
+  searchAreaPolygonVerticesFromText,
   supportedSearchAreaTileUrl,
 } from '../dist/tests/lib/search-area-editor.js';
 import { loadedPageHref, browseCatalogue } from '../dist/tests/lib/catalogue-browse.js';
@@ -305,8 +307,40 @@ test('map-vertex serializer shares the bounded, closed, non-self-intersecting Ge
     [36.8, -1.3],
   ]);
   assert.deepEqual(searchAreaPolygonFromText(text), polygon);
+  assert.deepEqual(searchAreaPolygonVerticesFromText(text), [
+    [36.8, -1.3],
+    [36.9, -1.3],
+    [36.9, -1.2],
+    [36.8, -1.2],
+  ]);
+  assert.equal(searchAreaPolygonVerticesFromText('{'), null);
   assert.equal(searchAreaPolygonFromText('{'), null);
   assert.equal(searchAreaPolygonFromText('x'.repeat(8193)), null);
+});
+
+test('map vertex dragging validates a copy and preserves the previous boundary when a move is invalid', () => {
+  const original = [
+    [36.8, -1.3],
+    [36.9, -1.3],
+    [36.9, -1.2],
+    [36.8, -1.2],
+  ];
+  const valid = moveSearchAreaPolygonVertex(original, 1, [36.95, -1.31]);
+  assert.deepEqual(valid, [
+    [36.8, -1.3],
+    [36.95, -1.31],
+    [36.9, -1.2],
+    [36.8, -1.2],
+  ]);
+  assert.ok(searchAreaPolygonText(valid));
+  assert.deepEqual(original, [
+    [36.8, -1.3],
+    [36.9, -1.3],
+    [36.9, -1.2],
+    [36.8, -1.2],
+  ]);
+  assert.equal(moveSearchAreaPolygonVertex(original, 1, [36.9, -1.2]), null);
+  assert.equal(moveSearchAreaPolygonVertex(original, 9, [36.91, -1.31]), null);
 });
 
 test('map-vertex serializer refuses insufficient, duplicate, self-crossing, and oversized boundaries', () => {

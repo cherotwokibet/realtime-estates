@@ -1,7 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { searchAreaPolygonFromText, searchAreaPolygonText } from '../lib/search-area-editor.ts';
+import {
+  moveSearchAreaPolygonVertex,
+  searchAreaPolygonText,
+  searchAreaPolygonVerticesFromText,
+} from '../lib/search-area-editor.ts';
 
 const OSM_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors';
@@ -70,14 +74,13 @@ export default function SearchAreaMapEditor({
               }),
             })
             .on('dragend', (event: import('leaflet').DragEndEvent) => {
-              const previous = vertices[index]!;
               const point = event.target.getLatLng();
-              vertices[index] = [point.lng, point.lat];
-              const value = searchAreaPolygonText(vertices);
-              if (value) {
+              const moved = moveSearchAreaPolygonVertex(vertices, index, [point.lng, point.lat]);
+              const value = moved ? searchAreaPolygonText(moved) : null;
+              if (moved && value) {
+                vertices = moved;
                 setAreaText(value);
               } else {
-                vertices[index] = [...previous];
                 redraw(leaflet);
                 setStatus(
                   'That move would make the area invalid, so the previous boundary was restored.',
@@ -90,8 +93,8 @@ export default function SearchAreaMapEditor({
     };
 
     const restoreTextArea = (leaflet: typeof import('leaflet')) => {
-      const polygon = textArea ? searchAreaPolygonFromText(textArea.value) : null;
-      if (!polygon) {
+      const restored = textArea ? searchAreaPolygonVerticesFromText(textArea.value) : null;
+      if (!restored) {
         vertices = [];
         layers?.clearLayers();
         setHasPolygon(false);
@@ -99,10 +102,7 @@ export default function SearchAreaMapEditor({
           setStatus('The text is not a valid search polygon. Correct it in the GeoJSON field.');
         return;
       }
-      vertices = polygon.coordinates[0]!.slice(0, -1).map(([longitude, latitude]) => [
-        longitude,
-        latitude,
-      ]);
+      vertices = restored;
       setHasPolygon(true);
       redraw(leaflet);
     };
