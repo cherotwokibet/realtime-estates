@@ -246,6 +246,24 @@ test('search area editor offers an accessible keyboard field and can clear only 
   assert.equal(clear.searchParams.get('area'), null);
   assert.equal(clear.searchParams.get('purpose'), 'sale');
   assert.equal(clear.hash, '#properties');
+
+  const malformedArea = '{"type":"MultiPolygon"}';
+  const malformedFilters = parseCatalogueFilters({ area: malformedArea, purpose: 'sale' });
+  assert.equal(malformedFilters.error, 'Choose one valid search area.');
+  const malformedHtml = renderToStaticMarkup(
+    React.createElement(SearchAreaField, {
+      supported: true,
+      invalid: true,
+      value: malformedArea,
+      filters: malformedFilters,
+      sort: 'catalogue',
+    }),
+  );
+  const malformedClearHref = malformedHtml.match(/href="([^"]+)"/)[1];
+  const malformedClear = new URL(malformedClearHref, 'https://web.example.invalid');
+  assert.equal(malformedClear.searchParams.get('area'), null);
+  assert.equal(malformedClear.searchParams.get('purpose'), 'sale');
+  assert.equal(malformedClear.hash, '#properties');
   assert.equal(
     renderToStaticMarkup(
       React.createElement(SearchAreaField, {

@@ -16,6 +16,10 @@ export default function SearchAreaField({
   sort: string;
 }) {
   if (!supported) return null;
+  // When the area itself is the validation error, clear just that value while
+  // keeping the already-validated filters. Other validation errors stay closed.
+  const canClearArea = value.length > 0 && (!filters.error || invalid);
+  const clearFilters = { ...filters, area: null, error: null };
   return (
     <fieldset className="reference-filters search-area-field">
       <legend>Search within a polygon area</legend>
@@ -38,10 +42,8 @@ export default function SearchAreaField({
           spellCheck={false}
         />
       </label>
-      {filters.area && (
-        <a href={loadedPageHref({ ...filters, area: null }, sort, 1)}>
-          Clear area and keep other filters
-        </a>
+      {canClearArea && (
+        <a href={loadedPageHref(clearFilters, sort, 1)}>Clear area and keep other filters</a>
       )}
     </fieldset>
   );
