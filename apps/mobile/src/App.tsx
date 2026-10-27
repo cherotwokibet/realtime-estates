@@ -35,8 +35,33 @@ const photos = {
 const tabs = ['Home', 'Search', 'Saved', 'Profile'] as const;
 type Tab = (typeof tabs)[number];
 type Purpose = '' | 'rent' | 'sale';
-type Filters = { location: string; max: string; purpose: Purpose };
-const emptyFilters: Filters = { location: '', max: '', purpose: '' };
+type PropertyKind = DemoProperty['type'] | '';
+type Filters = {
+  location: string;
+  min: string;
+  max: string;
+  purpose: Purpose;
+  type: PropertyKind;
+  beds: string;
+  bedsMode: '' | 'at_least';
+};
+const emptyFilters: Filters = {
+  location: '',
+  min: '',
+  max: '',
+  purpose: '',
+  type: '',
+  beds: '',
+  bedsMode: '',
+};
+const propertyTypes: readonly [PropertyKind, string][] = [
+  ['', 'Any type'],
+  ['apartment', 'Apartment'],
+  ['bedsitter', 'Bedsitter'],
+  ['studio', 'Studio'],
+  ['maisonette', 'Maisonette'],
+  ['land', 'Land'],
+];
 const money = (property: DemoProperty) => formatKes(kesFromMinor(property.priceMinor));
 const roomLabel = (property: DemoProperty) =>
   property.bedrooms === null
@@ -112,6 +137,33 @@ function PurposeChips({
           ]}
         >
           <Text style={[s.chipText, value === purpose && s.onPrimary]}>{label}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function TypeChips({
+  value,
+  onChange,
+}: {
+  value: PropertyKind;
+  onChange: (type: PropertyKind) => void;
+}) {
+  return (
+    <View style={s.chips} accessibilityRole="radiogroup" accessibilityLabel="Property type">
+      {propertyTypes.map(([type, label]) => (
+        <Pressable
+          key={type || 'any'}
+          accessibilityRole="radio"
+          accessibilityState={{ checked: value === type }}
+          onPress={() => onChange(type)}
+          style={[
+            s.chip,
+            value === type && { backgroundColor: brand.primary, borderColor: brand.primary },
+          ]}
+        >
+          <Text style={[s.chipText, value === type && s.onPrimary]}>{label}</Text>
         </Pressable>
       ))}
     </View>
@@ -289,6 +341,11 @@ function DemoApp() {
                 value={draftFilters.purpose}
                 onChange={(purpose) => setDraftFilters((current) => ({ ...current, purpose }))}
               />
+              <Text style={s.inputLabel}>Property type</Text>
+              <TypeChips
+                value={draftFilters.type}
+                onChange={(type) => setDraftFilters((current) => ({ ...current, type }))}
+              />
               <Text style={s.inputLabel} nativeID="location-label">
                 Location
               </Text>
@@ -305,6 +362,19 @@ function DemoApp() {
                 style={s.input}
                 returnKeyType="next"
               />
+              <Text style={s.inputLabel} nativeID="minimum-budget-label">
+                Minimum base price (KES)
+              </Text>
+              <TextInput
+                accessibilityLabel="Minimum base price in Kenyan shillings"
+                accessibilityLabelledBy="minimum-budget-label"
+                value={draftFilters.min}
+                onChangeText={(min) => setDraftFilters((current) => ({ ...current, min }))}
+                placeholder="Any minimum"
+                placeholderTextColor="#667085"
+                keyboardType="decimal-pad"
+                style={s.input}
+              />
               <Text style={s.inputLabel} nativeID="budget-label">
                 Maximum base price (KES)
               </Text>
@@ -318,6 +388,50 @@ function DemoApp() {
                 keyboardType="decimal-pad"
                 style={s.input}
               />
+              <Text style={s.inputLabel} nativeID="beds-label">
+                Bedrooms
+              </Text>
+              <TextInput
+                accessibilityLabel="Bedroom count"
+                accessibilityLabelledBy="beds-label"
+                value={draftFilters.beds}
+                onChangeText={(beds) => setDraftFilters((current) => ({ ...current, beds }))}
+                placeholder="Any bedroom count"
+                placeholderTextColor="#667085"
+                keyboardType="number-pad"
+                style={s.input}
+              />
+              <View
+                style={s.chips}
+                accessibilityRole="radiogroup"
+                accessibilityLabel="Bedroom comparison"
+              >
+                {(
+                  [
+                    ['', 'Exactly'],
+                    ['at_least', 'At least'],
+                  ] as const
+                ).map(([mode, label]) => (
+                  <Pressable
+                    key={mode || 'exact'}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: draftFilters.bedsMode === mode }}
+                    disabled={!draftFilters.beds}
+                    onPress={() => setDraftFilters((current) => ({ ...current, bedsMode: mode }))}
+                    style={[
+                      s.chip,
+                      draftFilters.bedsMode === mode && {
+                        backgroundColor: brand.primary,
+                        borderColor: brand.primary,
+                      },
+                    ]}
+                  >
+                    <Text style={[s.chipText, draftFilters.bedsMode === mode && s.onPrimary]}>
+                      {label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
               <Pressable
                 accessibilityRole="button"
                 onPress={() => {
@@ -347,7 +461,12 @@ function DemoApp() {
                     ? 'Monthly rentals'
                     : 'Rent and sale'}
                 {filters.location ? ` · ${filters.location}` : ''}
+                {filters.type ? ` · ${filters.type}` : ''}
+                {filters.min ? ` · minimum KES ${filters.min}` : ''}
                 {filters.max ? ` · maximum KES ${filters.max}` : ''}
+                {filters.beds
+                  ? ` · ${filters.bedsMode === 'at_least' ? 'at least ' : 'exactly '}${filters.beds} bedrooms`
+                  : ''}
               </Text>
             )}
           </>

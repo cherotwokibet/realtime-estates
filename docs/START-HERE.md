@@ -1,3 +1,7 @@
+## Latest checkpoint 204 — 27 October 2026
+
+Extended synthetic mobile search with type, min/max KES price and exact/at-least bedrooms. Mobile typecheck and formatting passed, but the suite stopped with a Node out-of-memory failure after 8 tests passed; no build/device/export ran. Task09-2 remains open because the connected mobile flow and Android verification are not complete. Checklist stays 30/97 (31% rounded), 0/14 gates. See [`CONTINUATION.md`](CONTINUATION.md) and [`evidence/2026-10-27-mobile-search-filter-slice.md`](evidence/2026-10-27-mobile-search-filter-slice.md).
+
 ## Latest checkpoint 203 — 27 October 2026
 
 Added missing active-search summary labels for bathroom minima, custom polygon, and saved reference facets; unavailable choices are described without exposing their IDs. Web suite 94/94, typecheck, focused formatting and diff checks passed. No build, browser or device check ran; free memory was about 724 MB. Private dashboard version190 deployed successfully, owner-only policy and browser notes retained. Checklist remains 30/97 (31% rounded), 0/14 gates, and task07-2 remains open. Details and next action: [`CONTINUATION.md`](CONTINUATION.md) and [`evidence/2026-10-27-active-search-filter-summary.md`](evidence/2026-10-27-active-search-filter-summary.md).
