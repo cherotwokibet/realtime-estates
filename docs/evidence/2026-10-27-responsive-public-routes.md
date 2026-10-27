@@ -17,3 +17,5 @@ Completed checklist item 07-1: responsive public home/results, property detail, 
 Task 07-1 is complete based on the built page routes, repeatable server-render smoke and responsive layout implementation. Task 07-7 remains open for actual mobile/browser layouts, keyboard interaction and loading budgets. Task 07-2 remains open for filter coverage and interactive map acceptance; the public production domain/provider is not configured. The smoke suite uses only synthetic fixtures and deliberately verifies preview `noindex`.
 
 Canonical checklist is now 30/97 tasks (31% rounded), 0/14 gates. The product is not deployment-ready and no cutover is authorized. Browser notes, vendor resources and the old live system were not changed.
+
+The owner-only delivery dashboard was published as Site version 189 from source commit `62aa38c73872391e284aac707010bbb0d97e7c26`; deployment `appgdep_6ae0c4f0a0548191b2a57b6e56b3e8ae` succeeded. The custom access policy remains one owner with zero external visitors or allowed workspace/tenant groups. Browser notes were preserved.

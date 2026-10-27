@@ -18,3 +18,5 @@ Added an “Undo last point” control while a new boundary is being drawn. It i
 Partial task 07-2 progress only. The checklist remains 29/97 tasks (30% rounded), 0/14 gates. Keep the task open until browser verification covers drawing, undo, finish, invalid-drag rollback, cancel/clear, URL restoration and preservation of the other filters. Keyboard area entry is available through the textarea; map-control accessibility and mobile layouts still need real-browser checks. Owner: Boniface + Codex.
 
 The owner-private delivery dashboard update is recorded after checkpoint 201 publication. Browser notes, vendor resources and the old live system were not changed. Source code remains in the independent repository; do not push the source repo or trigger CI while Actions minutes are exhausted.
+
+Private delivery dashboard Site version 188 deployed successfully from dashboard source commit `6451060d7e7996b289adb94e4c1bae7b2e8d98f9`; deployment `appgdep_6ae0c394ab6481919ac07448a8909089` succeeded. The custom access policy remains owner-only (one owner, no external users or workspace/tenant groups). Browser notes were preserved.
