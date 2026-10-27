@@ -4,8 +4,36 @@ import type {
   CatalogueQuery,
   CatalogueResult,
 } from './catalogue.ts';
+import { REFERENCE_FILTER_KEYS, type ReferenceOptions } from './catalogue-reference-filters.ts';
 export const LOADED_PAGE_SIZE = 12;
 export type LoadedSort = 'catalogue' | 'title' | 'price_low' | 'price_high';
+
+/** Describe the selected filters that are not otherwise summarized by the search page. */
+export function additionalActiveFilterLabels(
+  filters: CatalogueFilters,
+  options: ReferenceOptions,
+): readonly string[] {
+  const labels: string[] = [];
+  if (filters.privateBathsText)
+    labels.push(`Private bathrooms: at least ${filters.privateBathsText}`);
+  if (filters.sharedBathsText) labels.push(`Shared bathrooms: at least ${filters.sharedBathsText}`);
+  if (filters.area) labels.push('Custom search area');
+
+  const names = {
+    countyId: 'County',
+    localityId: 'Town / locality',
+    neighbourhoodId: 'Neighbourhood',
+    amenityId: 'Amenity',
+  } as const;
+  for (const key of REFERENCE_FILTER_KEYS) {
+    const selected = filters.reference[key];
+    if (!selected) continue;
+    const option = options[key].find((row) => row.id === selected);
+    labels.push(option?.label ?? `${names[key]} selection unavailable`);
+  }
+  return Object.freeze(labels);
+}
+
 export interface LoadedBrowse {
   readonly scope?: 'catalogue';
   readonly sort: string;

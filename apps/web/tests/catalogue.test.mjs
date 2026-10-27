@@ -14,7 +14,11 @@ import {
   supportedSearchAreaTileUrl,
   undoSearchAreaMapPoint,
 } from '../dist/tests/lib/search-area-editor.js';
-import { loadedPageHref, browseCatalogue } from '../dist/tests/lib/catalogue-browse.js';
+import {
+  additionalActiveFilterLabels,
+  loadedPageHref,
+  browseCatalogue,
+} from '../dist/tests/lib/catalogue-browse.js';
 import {
   parseReferenceFilters,
   referenceOptions,
@@ -234,6 +238,36 @@ test('drawn-area query parsing is bounded, rejects repeated or malformed geometr
   const loadedResult = await loadedOnly.list({ area: encoded });
   assert.equal(loadedResult.mode, 'error');
   assert.equal(loadedResult.code, 'CONFIGURATION');
+});
+
+test('active filter summary includes bathroom, polygon, and saved-reference criteria without leaking unavailable IDs', () => {
+  const countyId = id(1);
+  const amenityId = id(2);
+  const filters = parseCatalogueFilters({
+    privateBaths: '2',
+    sharedBaths: '1',
+    area: JSON.stringify(searchArea),
+    countyId,
+    amenityId,
+  });
+  const options = {
+    countyId: [{ id: countyId, label: 'Synthetic County' }],
+    localityId: [],
+    neighbourhoodId: [],
+    amenityId: [],
+  };
+  assert.deepEqual(additionalActiveFilterLabels(filters, options), [
+    'Private bathrooms: at least 2',
+    'Shared bathrooms: at least 1',
+    'Custom search area',
+    'Synthetic County',
+    'Amenity selection unavailable',
+  ]);
+  assert.ok(
+    additionalActiveFilterLabels(filters, options).every(
+      (label) => !label.includes(countyId) && !label.includes(amenityId),
+    ),
+  );
 });
 
 test('search area editor offers an accessible keyboard field and can clear only the area filter', () => {

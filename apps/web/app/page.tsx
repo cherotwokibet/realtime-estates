@@ -15,7 +15,7 @@ import ReferenceFilters from '../components/ReferenceFilters';
 import SearchAreaField from '../components/SearchAreaField';
 import { parseReferenceFilters, referenceOptions } from '../lib/catalogue-reference-filters';
 import LoadedCataloguePager from '../components/LoadedCataloguePager';
-import { browseCatalogue } from '../lib/catalogue-browse';
+import { additionalActiveFilterLabels, browseCatalogue } from '../lib/catalogue-browse';
 import { supportedSearchAreaTileUrl } from '../lib/search-area-editor';
 
 export const dynamic = 'force-dynamic';
@@ -414,6 +414,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
                   Bedrooms: {bedsMode === 'at_least' ? bedsText + '+' : 'exactly ' + bedsText}
                 </span>
               )}
+              {additionalActiveFilterLabels(
+                catalogue.filters,
+                catalogue.mode === 'error' ? referenceOptions([]) : catalogue.referenceOptions,
+              ).map((label) => (
+                <span key={label}>{label}</span>
+              ))}
               {minText && (
                 <span>
                   Base price {minMode === 'over' ? 'over' : 'from'}{' '}
