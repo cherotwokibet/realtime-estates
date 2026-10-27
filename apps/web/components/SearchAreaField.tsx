@@ -1,5 +1,6 @@
 import type { CatalogueFilters } from '../lib/catalogue.ts';
 import { loadedPageHref } from '../lib/catalogue-browse.ts';
+import SearchAreaMapEditor from './SearchAreaMapEditor.tsx';
 
 /** Accessible keyboard path for supplying the same bounded polygon contract used by area search. */
 export default function SearchAreaField({
@@ -8,12 +9,14 @@ export default function SearchAreaField({
   value,
   filters,
   sort,
+  tileUrl,
 }: {
   supported: boolean;
   invalid: boolean;
   value: string;
   filters: CatalogueFilters;
   sort: string;
+  tileUrl: string | null;
 }) {
   if (!supported) return null;
   // When the area itself is the validation error, clear just that value while
@@ -26,7 +29,8 @@ export default function SearchAreaField({
       <p id="search-area-help" className="search-help">
         Paste or edit a GeoJSON Polygon with one closed WGS84 longitude, latitude ring and no holes.
         The search accepts up to 100 edges and matches only listings with approved public
-        coordinates. This keyboard-accessible editor does not load a map service.
+        coordinates. Enter or edit GeoJSON by keyboard, or draw an approximate boundary on the map
+        when an approved map source is configured.
       </p>
       <label className="search-field" htmlFor="search-area-polygon">
         <span>Area polygon (GeoJSON)</span>
@@ -42,6 +46,13 @@ export default function SearchAreaField({
           spellCheck={false}
         />
       </label>
+      {tileUrl ? (
+        <SearchAreaMapEditor tileUrl={tileUrl} textareaId="search-area-polygon" />
+      ) : (
+        <p className="search-help">
+          Interactive map drawing is not configured here. You can still enter a GeoJSON polygon.
+        </p>
+      )}
       {canClearArea && (
         <a href={loadedPageHref(clearFilters, sort, 1)}>Clear area and keep other filters</a>
       )}

@@ -16,6 +16,7 @@ import SearchAreaField from '../components/SearchAreaField';
 import { parseReferenceFilters, referenceOptions } from '../lib/catalogue-reference-filters';
 import LoadedCataloguePager from '../components/LoadedCataloguePager';
 import { browseCatalogue } from '../lib/catalogue-browse';
+import { supportedSearchAreaTileUrl } from '../lib/search-area-editor';
 
 export const dynamic = 'force-dynamic';
 
@@ -315,6 +316,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               value={typeof q.area === 'string' ? q.area : area ? JSON.stringify(area) : ''}
               filters={catalogue.filters}
               sort={browse.sort}
+              tileUrl={supportedSearchAreaTileUrl(process.env.NEXT_PUBLIC_AREA_MAP_TILE_URL)}
             />
             <ReferenceFilters
               scope={catalogue.mode === 'error' ? undefined : catalogue.referenceOptionsScope}

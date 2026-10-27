@@ -4,6 +4,13 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import ReferenceFilters from '../dist/tests/components/ReferenceFilters.js';
 import SearchAreaField from '../dist/tests/components/SearchAreaField.js';
+import SearchAreaMapEditor from '../dist/tests/components/SearchAreaMapEditor.js';
+import {
+  OSM_STANDARD_TILE_URL,
+  searchAreaPolygonFromText,
+  searchAreaPolygonText,
+  supportedSearchAreaTileUrl,
+} from '../dist/tests/lib/search-area-editor.js';
 import { loadedPageHref, browseCatalogue } from '../dist/tests/lib/catalogue-browse.js';
 import {
   parseReferenceFilters,
@@ -235,6 +242,7 @@ test('search area editor offers an accessible keyboard field and can clear only 
       value: JSON.stringify(searchArea),
       filters,
       sort: 'catalogue',
+      tileUrl: null,
     }),
   );
   assert.match(html, /legend[^>]*>Search within a polygon area/);
@@ -257,6 +265,7 @@ test('search area editor offers an accessible keyboard field and can clear only 
       value: malformedArea,
       filters: malformedFilters,
       sort: 'catalogue',
+      tileUrl: null,
     }),
   );
   const malformedClearHref = malformedHtml.match(/href="([^"]+)"/)[1];
@@ -272,10 +281,95 @@ test('search area editor offers an accessible keyboard field and can clear only 
         value: '',
         filters,
         sort: 'catalogue',
+        tileUrl: null,
       }),
     ),
     '',
   );
+});
+
+test('map-vertex serializer shares the bounded, closed, non-self-intersecting GeoJSON contract', () => {
+  const text = searchAreaPolygonText([
+    [36.8, -1.3],
+    [36.9, -1.3],
+    [36.9, -1.2],
+    [36.8, -1.2],
+  ]);
+  assert.ok(text);
+  const polygon = JSON.parse(text);
+  assert.deepEqual(polygon.coordinates[0], [
+    [36.8, -1.3],
+    [36.9, -1.3],
+    [36.9, -1.2],
+    [36.8, -1.2],
+    [36.8, -1.3],
+  ]);
+  assert.deepEqual(searchAreaPolygonFromText(text), polygon);
+  assert.equal(searchAreaPolygonFromText('{'), null);
+  assert.equal(searchAreaPolygonFromText('x'.repeat(8193)), null);
+});
+
+test('map-vertex serializer refuses insufficient, duplicate, self-crossing, and oversized boundaries', () => {
+  assert.equal(
+    searchAreaPolygonText([
+      [36.8, -1.3],
+      [36.9, -1.3],
+    ]),
+    null,
+  );
+  assert.equal(
+    searchAreaPolygonText([
+      [36.8, -1.3],
+      [36.9, -1.3],
+      [36.9, -1.2],
+      [36.8, -1.3],
+    ]),
+    null,
+  );
+  assert.equal(
+    searchAreaPolygonText([
+      [36.8, -1.3],
+      [36.9, -1.2],
+      [36.9, -1.3],
+      [36.8, -1.2],
+    ]),
+    null,
+  );
+  const circle = Array.from({ length: 101 }, (_, index) => {
+    const angle = (index * 2 * Math.PI) / 101;
+    return [36.8 + 0.1 * Math.cos(angle), -1.3 + 0.1 * Math.sin(angle)];
+  });
+  assert.equal(searchAreaPolygonText(circle), null);
+});
+
+test('interactive map stays explicit opt-in and keeps the GeoJSON field when no supported tiles are configured', () => {
+  assert.equal(supportedSearchAreaTileUrl(undefined), null);
+  assert.equal(supportedSearchAreaTileUrl('http://tile.openstreetmap.org/{z}/{x}/{y}.png'), null);
+  assert.equal(supportedSearchAreaTileUrl('https://tiles.example.invalid/{z}/{x}/{y}.png'), null);
+  assert.equal(supportedSearchAreaTileUrl(OSM_STANDARD_TILE_URL), OSM_STANDARD_TILE_URL);
+  const filters = parseCatalogueFilters({ purpose: 'sale' });
+  const html = renderToStaticMarkup(
+    React.createElement(SearchAreaField, {
+      supported: true,
+      invalid: false,
+      value: '',
+      filters,
+      sort: 'catalogue',
+      tileUrl: null,
+    }),
+  );
+  assert.match(html, /Interactive map drawing is not configured here/);
+  assert.match(html, /name="area"/);
+  assert.doesNotMatch(html, /class="search-area-map-editor__map"/);
+  const configured = renderToStaticMarkup(
+    React.createElement(SearchAreaMapEditor, {
+      tileUrl: OSM_STANDARD_TILE_URL,
+      textareaId: 'search-area-polygon',
+    }),
+  );
+  assert.match(configured, /Start a new boundary/);
+  assert.match(configured, /aria-label="Map for drawing a search boundary"/);
+  assert.match(configured, /Map data/);
 });
 test('global web original detail is addressed by ID beyond the original loaded page without fallback', async () => {
   const target = property({ id: id(999) }),
