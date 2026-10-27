@@ -14,6 +14,7 @@ Extended the session-only synthetic mobile Search tab with property type, minimu
 - `git diff --check`: passed.
 - `npm run test --workspace=@realtor/mobile`: **failed** under resource pressure. Eight tests passed; `tests/reference-preview.test.mjs` terminated with a Node fatal out-of-memory error (`Zone`); aggregate was 8 passed, 1 failed. This is not a product test failure diagnosis and is not counted as a pass. No retry was run because free physical memory was about 726 MB.
 - No Android export, native-device, visual or operator test ran.
+- Private delivery dashboard version191 deployed successfully from commit `ac784d89af50f6267a1712517b28109f4c38db9c`; owner-only policy was rechecked (one owner, zero external visitors, zero groups) and browser notes were not edited.
 
 ## Checklist and risks
 

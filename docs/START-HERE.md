@@ -1,6 +1,6 @@
 ## Latest checkpoint 204 — 27 October 2026
 
-Extended synthetic mobile search with type, min/max KES price and exact/at-least bedrooms. Mobile typecheck and formatting passed, but the suite stopped with a Node out-of-memory failure after 8 tests passed; no build/device/export ran. Task09-2 remains open because the connected mobile flow and Android verification are not complete. Checklist stays 30/97 (31% rounded), 0/14 gates. See [`CONTINUATION.md`](CONTINUATION.md) and [`evidence/2026-10-27-mobile-search-filter-slice.md`](evidence/2026-10-27-mobile-search-filter-slice.md).
+Extended synthetic mobile search with type, min/max KES price and exact/at-least bedrooms. Mobile typecheck and formatting passed, but the suite stopped with a Node out-of-memory failure after 8 tests passed; no build/device/export ran. Private dashboard version191 deployed owner-only and browser notes were retained. Task09-2 remains open because the connected mobile flow and Android verification are not complete. Checklist stays 30/97 (31% rounded), 0/14 gates. See [`CONTINUATION.md`](CONTINUATION.md) and [`evidence/2026-10-27-mobile-search-filter-slice.md`](evidence/2026-10-27-mobile-search-filter-slice.md).
 
 ## Latest checkpoint 203 — 27 October 2026
 
