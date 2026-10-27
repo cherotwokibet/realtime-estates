@@ -5,6 +5,7 @@ import {
   moveSearchAreaPolygonVertex,
   searchAreaPolygonText,
   searchAreaPolygonVerticesFromText,
+  undoSearchAreaMapPoint,
 } from '../lib/search-area-editor.ts';
 
 const OSM_ATTRIBUTION =
@@ -21,6 +22,7 @@ export default function SearchAreaMapEditor({
   const actions = useRef<{
     start: () => void;
     finish: () => void;
+    undo: () => void;
     cancel: () => void;
     clear: () => void;
   } | null>(null);
@@ -167,6 +169,16 @@ export default function SearchAreaMapEditor({
               'Search area set. Drag a point to adjust the boundary, or edit GeoJSON by keyboard.',
             );
           },
+          undo: () => {
+            vertices = undoSearchAreaMapPoint(vertices);
+            setVertexCount(vertices.length);
+            redraw(leaflet);
+            setStatus(
+              vertices.length
+                ? `Last point removed. ${vertices.length} point${vertices.length === 1 ? '' : 's'} remain.`
+                : 'Last point removed. Add at least three points to finish the boundary.',
+            );
+          },
           cancel: () => {
             drawingPolygon = false;
             setDrawing(false);
@@ -228,6 +240,13 @@ export default function SearchAreaMapEditor({
               disabled={vertexCount < 3}
             >
               Finish boundary
+            </button>
+            <button
+              type="button"
+              onClick={() => actions.current?.undo()}
+              disabled={vertexCount === 0}
+            >
+              Undo last point
             </button>
             <button type="button" onClick={() => actions.current?.cancel()}>
               Cancel drawing

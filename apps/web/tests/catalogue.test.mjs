@@ -12,6 +12,7 @@ import {
   searchAreaPolygonText,
   searchAreaPolygonVerticesFromText,
   supportedSearchAreaTileUrl,
+  undoSearchAreaMapPoint,
 } from '../dist/tests/lib/search-area-editor.js';
 import { loadedPageHref, browseCatalogue } from '../dist/tests/lib/catalogue-browse.js';
 import {
@@ -341,6 +342,24 @@ test('map vertex dragging validates a copy and preserves the previous boundary w
   ]);
   assert.equal(moveSearchAreaPolygonVertex(original, 1, [36.9, -1.2]), null);
   assert.equal(moveSearchAreaPolygonVertex(original, 9, [36.91, -1.31]), null);
+});
+
+test('drawing can undo the last point without mutating the current list', () => {
+  const original = [
+    [36.8, -1.3],
+    [36.9, -1.3],
+    [36.9, -1.2],
+  ];
+  assert.deepEqual(undoSearchAreaMapPoint(original), [
+    [36.8, -1.3],
+    [36.9, -1.3],
+  ]);
+  assert.deepEqual(undoSearchAreaMapPoint([]), []);
+  assert.deepEqual(original, [
+    [36.8, -1.3],
+    [36.9, -1.3],
+    [36.9, -1.2],
+  ]);
 });
 
 test('map-vertex serializer refuses insufficient, duplicate, self-crossing, and oversized boundaries', () => {

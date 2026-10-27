@@ -46,3 +46,8 @@ export function moveSearchAreaPolygonVertex(
   moved[index] = [position[0], position[1]];
   return searchAreaPolygonText(moved) ? moved : null;
 }
+
+/** Undo the most recently added point while sketching; never mutate the caller's vertex list. */
+export function undoSearchAreaMapPoint(points: readonly SearchAreaMapPoint[]): [number, number][] {
+  return points.slice(0, -1).map(([longitude, latitude]) => [longitude, latitude]);
+}
