@@ -1,13 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Pressable,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { PublicSearchInput } from '@realtor/api-client';
 import { getDemoBrand, getDemoTheme } from '@realtor/demo';
 import { formatKes } from '@realtor/domain';
 import {
@@ -17,6 +10,13 @@ import {
   type MobileReferenceResult,
 } from './reference-catalogue';
 import { createReferenceCatalogueStyles } from './reference-theme';
+import { ReferenceSearchForm } from './ReferenceSearchForm';
+import {
+  emptyMobileReferenceFilters,
+  prepareMobileReferenceSearch,
+  mobileReferenceSearchSummary,
+  type MobileReferenceFilters,
+} from './reference-search';
 
 type CatalogueStyles = ReturnType<typeof createReferenceCatalogueStyles>;
 function CatalogueButton({
@@ -110,11 +110,13 @@ export function ReferenceCatalogueApp({
   const brand = getDemoBrand(config.tenantSlug);
   const theme = useMemo(() => getDemoTheme(config.tenantSlug), [config.tenantSlug]);
   const s = useMemo(() => StyleSheet.create(createReferenceCatalogueStyles(theme)), [theme]);
-  const [queryFocused, setQueryFocused] = useState(false);
   const [result, setResult] = useState<MobileReferenceResult | null>(null);
   const [request, setRequest] = useState(0);
-  const [query, setQuery] = useState('');
-  const [search, setSearch] = useState({ location: '', offset: 0 });
+  const [filters, setFilters] = useState<MobileReferenceFilters>({
+    ...emptyMobileReferenceFilters,
+  });
+  const [filterError, setFilterError] = useState('');
+  const [search, setSearch] = useState<PublicSearchInput>({ offset: 0 });
   const [selected, setSelected] = useState<MobileReferenceItem | null>(null);
   useEffect(() => {
     const controller = new AbortController();
@@ -145,20 +147,32 @@ export function ReferenceCatalogueApp({
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
         {!selected && (
           <View>
-            <TextInput
-              accessibilityLabel="Search public location"
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Town, county or area"
-              onFocus={() => setQueryFocused(true)}
-              onBlur={() => setQueryFocused(false)}
-              selectionColor={theme.components.focus.color}
-              placeholderTextColor={theme.components.feedback.help.foreground}
-              style={[s.input, queryFocused && s.inputFocused, queryFocused && s.focused]}
-            />
+            <ReferenceSearchForm filters={filters} onChange={setFilters} styles={s} />
+            {filterError !== '' && (
+              <Text accessibilityRole="alert" style={s.error}>
+                {filterError}
+              </Text>
+            )}
             <CatalogueButton
               label="Search all approved properties"
-              onPress={() => setSearch({ location: query, offset: 0 })}
+              onPress={() => {
+                const prepared = prepareMobileReferenceSearch(filters);
+                if (prepared.status === 'invalid') {
+                  setFilterError(prepared.message);
+                  return;
+                }
+                setFilterError('');
+                setSearch(prepared.input);
+              }}
+              styles={s}
+            />
+            <CatalogueButton
+              label="Clear all search filters"
+              onPress={() => {
+                setFilters({ ...emptyMobileReferenceFilters });
+                setFilterError('');
+                setSearch({ offset: 0 });
+              }}
               styles={s}
             />
             <Text style={s.notice}>
@@ -273,6 +287,7 @@ export function ReferenceCatalogueApp({
               <Text accessibilityLiveRegion="polite" style={s.copy}>
                 {result.searchPage?.total ?? shown.length} matching synthetic properties
               </Text>
+              <Text style={s.notice}>Applied filters: {mobileReferenceSearchSummary(search)}</Text>
               {result.searchPage && (
                 <View>
                   <Text style={s.copy}>
@@ -283,7 +298,7 @@ export function ReferenceCatalogueApp({
                     <CatalogueButton
                       label="Previous search page"
                       onPress={() =>
-                        setSearch({ ...search, offset: Math.max(0, search.offset - 24) })
+                        setSearch({ ...search, offset: Math.max(0, (search.offset ?? 0) - 24) })
                       }
                       styles={s}
                     />
@@ -292,7 +307,7 @@ export function ReferenceCatalogueApp({
                     result.searchPage.offset + 24 <= result.searchPage.maxOffset && (
                       <CatalogueButton
                         label="Next search page"
-                        onPress={() => setSearch({ ...search, offset: search.offset + 24 })}
+                        onPress={() => setSearch({ ...search, offset: (search.offset ?? 0) + 24 })}
                         styles={s}
                       />
                     )}

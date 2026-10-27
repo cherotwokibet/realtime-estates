@@ -1,0 +1,48 @@
+
+> @realtor/mobile@0.1.0 test
+> npm run test:compile --workspace=@realtor/web && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 tests/*.test.mjs
+
+
+> @realtor/web@0.1.0 test:compile
+> tsc -p tsconfig.tests.json
+
+✔ actual Expo config exposes only explicit public development settings and refuses production or orphan flags (391.085ms)
+✔ mobile configuration defaults to demo only when absent and refuses malformed, production, credential or private configuration (1.7013ms)
+✔ mobile read crosses the real SDK once anonymously, preserves exact cents and original references, and searches only public location (103.3028ms)
+✔ mobile distinguishes legacy unknown, approved empty amenities, sale no recurring period and unresolved quote (2.7566ms)
+✔ mobile errors, private additions and cancellation never substitute demo stock or retry (2.1241ms)
+✔ mobile keeps empty success distinct from failure and warns when its bounded page may be incomplete (20.4879ms)
+✖ mobile adapter reads the real anonymous HTTP/SQL approved historical projection for two fixed companies (3347.1643ms)
+✔ reference native controls share both configured company themes and accessible component states (2.4624ms)
+✔ reference native focus preserves pressed colors with a shared outer ring and contrasting gap (0.2318ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 8
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4571.847
+
+✖ failing tests:
+
+test at tests\reference-preview.test.mjs:13:1
+✖ mobile adapter reads the real anonymous HTTP/SQL approved historical projection for two fixed companies (3347.1643ms)
+  RangeError: Array buffer allocation failed
+      at new ArrayBuffer (<anonymous>)
+      at Uint8Array.slice (<anonymous>)
+      at Yr (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-DDJLRBDX.js:2:64441)
+      at At (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-DDJLRBDX.js:2:66014)
+      at N.Ye (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:3:292654)
+      at async N._checkReady (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:3:286252)
+      at async N.exec (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-JDT7TZ73.js:8:463)
+      at async applyTestMigrations (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/database/test-helpers/migrations.mjs:46:5)
+      at async seed (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/dev/staff-preview.mjs:546:3)
+      at async startStaffPreview (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/dev/staff-preview.mjs:865:5)
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\apps\mobile
+npm error workspace @realtor/mobile@0.1.0
+npm error location C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\apps\mobile
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c npm run test:compile --workspace=@realtor/web && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 tests/*.test.mjs

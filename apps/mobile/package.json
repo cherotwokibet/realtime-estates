@@ -7,7 +7,7 @@
   "scripts": {
     "start": "expo start",
     "typecheck": "tsc --noEmit",
-    "test": "npm run test:compile --workspace=@realtor/web && tsc -p tsconfig.tests.json && node --test tests/*.test.mjs",
+    "test": "npm run test:compile --workspace=@realtor/web && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 tests/*.test.mjs",
     "export:android": "expo export --platform android --output-dir dist/android"
   },
   "dependencies": {
