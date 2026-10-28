@@ -11,3 +11,7 @@
 Raw final logs: `2026-10-28-api-foundation/api-tests.txt` and `signed-http-sql.txt`. No bearer tokens or real client data are included.
 
 Status:33/97 tasks (34%rounded),0/14 gates.16 more complete tasks are needed to cross50%. Production routing/identity/distributed limits and complete security/session/device/UAT/cutover gates remain open. Next: dedicated synthetic public-search and admin follow-up browser acceptance. Owner: Boniface + Codex.
+
+## Publication checkpoint
+
+Checkpoint209 publication: owner-private dashboard version196 deployed successfully fromc5acd357fc48efc8c8701dd52d743cb41c4a1028 (deployment appgdep_6ae190e2848481919d05c2145837ef0c). Access rechecked:one owner,zero external visitors/groups.33/97tasks(34%rounded),0/14gates;677notes preserved/appended. Source API feature4b3db5e remains local; no GitHub push/hosted CI. Current API293/293 and signed HTTP/default SQL30/30 passed. Generated admin next-env.d.ts preserved. Next: dedicated synthetic public map/filter and admin due-queue browser verification.16more whole tasks required to cross50%. Owner:Boniface+Codex.
