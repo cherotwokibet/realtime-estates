@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { PublicSearchInput } from '@realtor/api-client';
 import { getDemoBrand, getDemoTheme } from '@realtor/demo';
@@ -12,6 +13,7 @@ import {
 import { createReferenceCatalogueStyles } from './reference-theme';
 import { ReferenceSearchForm } from './ReferenceSearchForm';
 import {
+  createMobileReferenceSearchStore,
   emptyMobileReferenceFilters,
   prepareMobileReferenceSearch,
   mobileReferenceSearchSummary,
@@ -107,6 +109,15 @@ export function ReferenceCatalogueApp({
 }: {
   config: Extract<MobileReferenceConfig, { mode: 'synthetic-reference-public-v1' }>;
 }) {
+  return (
+    <ReferenceCatalogueSession key={`${config.tenantSlug}:${config.apiOrigin}`} config={config} />
+  );
+}
+function ReferenceCatalogueSession({
+  config,
+}: {
+  config: Extract<MobileReferenceConfig, { mode: 'synthetic-reference-public-v1' }>;
+}) {
   const brand = getDemoBrand(config.tenantSlug);
   const theme = useMemo(() => getDemoTheme(config.tenantSlug), [config.tenantSlug]);
   const s = useMemo(() => StyleSheet.create(createReferenceCatalogueStyles(theme)), [theme]);
@@ -118,7 +129,36 @@ export function ReferenceCatalogueApp({
   const [filterError, setFilterError] = useState('');
   const [search, setSearch] = useState<PublicSearchInput>({ offset: 0 });
   const [selected, setSelected] = useState<MobileReferenceItem | null>(null);
+  const [restored, setRestored] = useState(false);
+  const [storageNotice, setStorageNotice] = useState('');
+  const mounted = useRef(true);
+  const [searchStore] = useState(() => createMobileReferenceSearchStore(AsyncStorage, config));
   useEffect(() => {
+    let active = true;
+    mounted.current = true;
+    void searchStore.load().then((saved) => {
+      if (!active) return;
+      if (saved.status === 'ready') {
+        const prepared = prepareMobileReferenceSearch(saved.filters);
+        if (prepared.status === 'ready') {
+          setFilters(saved.filters);
+          setSearch(prepared.input);
+          setStorageNotice('Saved search filters restored from this device.');
+        }
+      } else if (saved.status === 'discarded') {
+        setStorageNotice('Incompatible saved filters were cleared. Start a new search.');
+      } else if (saved.status === 'unavailable') {
+        setStorageNotice('Saved filters could not be read. You can search for this session.');
+      }
+      setRestored(true);
+    });
+    return () => {
+      active = false;
+      mounted.current = false;
+    };
+  }, [searchStore]);
+  useEffect(() => {
+    if (!restored) return;
     const controller = new AbortController();
     let active = true;
     setResult(null);
@@ -133,7 +173,7 @@ export function ReferenceCatalogueApp({
       active = false;
       controller.abort();
     };
-  }, [config, request, search]);
+  }, [config, request, search, restored]);
   const shown = result?.status === 'ready' ? result.items : [];
   return (
     <SafeAreaView style={s.root}>
@@ -145,7 +185,12 @@ export function ReferenceCatalogueApp({
         <Text style={s.copy}>Enquiries, contact and viewing requests are disabled.</Text>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
-        {!selected && (
+        {storageNotice !== '' && (
+          <Text accessibilityLiveRegion="polite" style={s.notice}>
+            {storageNotice}
+          </Text>
+        )}
+        {!selected && restored && (
           <View>
             <ReferenceSearchForm filters={filters} onChange={setFilters} styles={s} />
             {filterError !== '' && (
@@ -163,6 +208,14 @@ export function ReferenceCatalogueApp({
                 }
                 setFilterError('');
                 setSearch(prepared.input);
+                void searchStore.save(filters).then((saved) => {
+                  if (mounted.current)
+                    setStorageNotice(
+                      saved
+                        ? 'Search filters saved on this device.'
+                        : 'Search applied for this session. Filters could not be saved on this device.',
+                    );
+                });
               }}
               styles={s}
             />
@@ -172,6 +225,14 @@ export function ReferenceCatalogueApp({
                 setFilters({ ...emptyMobileReferenceFilters });
                 setFilterError('');
                 setSearch({ offset: 0 });
+                void searchStore.clear().then((cleared) => {
+                  if (mounted.current)
+                    setStorageNotice(
+                      cleared
+                        ? 'Saved search filters cleared from this device.'
+                        : 'Search cleared for this session. Saved filters could not be removed; try Clear again.',
+                    );
+                });
               }}
               styles={s}
             />
@@ -183,7 +244,7 @@ export function ReferenceCatalogueApp({
         )}
         {result === null && (
           <Text accessibilityLiveRegion="polite" style={s.copy}>
-            Loading approved property details…
+            {restored ? 'Loading approved property details…' : 'Restoring saved search filters…'}
           </Text>
         )}
         {result?.status === 'error' && (

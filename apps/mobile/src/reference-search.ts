@@ -1,5 +1,6 @@
 import type { PublicSearchInput } from '@realtor/api-client';
-import { kesFromMajor } from '@realtor/domain';
+import { kesFromMajor, PROPERTY_TYPES, RENTAL_PERIODS } from '@realtor/domain';
+import type { MobileReferenceConfig } from './reference-catalogue.js';
 
 export type MobileReferenceFilters = {
   location: string;
@@ -102,4 +103,117 @@ export function mobileReferenceSearchSummary(input: PublicSearchInput): string {
   };
   parts.push(sortLabels[input.sort ?? 'catalogue']);
   return parts.filter(Boolean).join(' · ');
+}
+
+export interface MobileSearchStorage {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<unknown>;
+  removeItem(key: string): Promise<unknown>;
+}
+type Scope = Extract<MobileReferenceConfig, { mode: 'synthetic-reference-public-v1' }>;
+type RestoredSearch =
+  | { status: 'ready'; filters: MobileReferenceFilters }
+  | { status: 'empty' | 'discarded' | 'unavailable' };
+const keys = Object.keys(emptyMobileReferenceFilters);
+const storageQueues = new WeakMap<MobileSearchStorage, Map<string, Promise<void>>>();
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value);
+function validFilters(value: unknown): value is MobileReferenceFilters {
+  if (
+    !isRecord(value) ||
+    Object.keys(value).length !== keys.length ||
+    keys.some((key) => typeof value[key] !== 'string')
+  )
+    return false;
+  if (
+    !['', 'rent', 'sale'].includes(value.purpose as string) ||
+    !['', ...PROPERTY_TYPES].includes(value.type as string) ||
+    !['', ...RENTAL_PERIODS].includes(value.period as string) ||
+    !['', 'over'].includes(value.minMode as string) ||
+    !['', 'at_least'].includes(value.bedsMode as string) ||
+    !['catalogue', 'title', 'price_low', 'price_high'].includes(value.sort as string)
+  )
+    return false;
+  return prepareMobileReferenceSearch(value as MobileReferenceFilters).status === 'ready';
+}
+
+/** Public search preferences only. Never use this store for accounts, tokens or catalogue responses. */
+export function createMobileReferenceSearchStore(storage: MobileSearchStorage, scope: Scope) {
+  const key = `realtor:reference-search:v1:${scope.tenantSlug}:${encodeURIComponent(scope.apiOrigin)}`;
+  let queues = storageQueues.get(storage);
+  if (!queues) {
+    queues = new Map();
+    storageQueues.set(storage, queues);
+  }
+  const sharedQueues = queues;
+  const enqueue = <T>(operation: () => Promise<T>): Promise<T> => {
+    const result = (sharedQueues.get(key) ?? Promise.resolve()).then(operation);
+    const settled = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    sharedQueues.set(key, settled);
+    void settled.then(() => {
+      if (sharedQueues.get(key) === settled) sharedQueues.delete(key);
+    });
+    return result;
+  };
+  return Object.freeze({
+    load: (): Promise<RestoredSearch> =>
+      enqueue(async () => {
+        try {
+          const raw = await storage.getItem(key);
+          if (raw === null) return { status: 'empty' };
+          let value: unknown;
+          try {
+            value = raw.length <= 4096 ? JSON.parse(raw) : null;
+          } catch {
+            value = null;
+          }
+          if (
+            !isRecord(value) ||
+            Object.keys(value).length !== 5 ||
+            value.version !== 1 ||
+            value.mode !== scope.mode ||
+            value.tenantSlug !== scope.tenantSlug ||
+            value.apiOrigin !== scope.apiOrigin ||
+            !validFilters(value.filters)
+          ) {
+            await storage.removeItem(key);
+            return { status: 'discarded' };
+          }
+          return { status: 'ready', filters: { ...value.filters } };
+        } catch {
+          return { status: 'unavailable' };
+        }
+      }),
+    save: (filters: MobileReferenceFilters): Promise<boolean> => {
+      if (!validFilters(filters)) return Promise.resolve(false);
+      const raw = JSON.stringify({
+        version: 1,
+        mode: scope.mode,
+        tenantSlug: scope.tenantSlug,
+        apiOrigin: scope.apiOrigin,
+        filters: { ...filters },
+      });
+      if (raw.length > 4096) return Promise.resolve(false);
+      return enqueue(async () => {
+        try {
+          await storage.setItem(key, raw);
+          return true;
+        } catch {
+          return false;
+        }
+      });
+    },
+    clear: (): Promise<boolean> =>
+      enqueue(async () => {
+        try {
+          await storage.removeItem(key);
+          return true;
+        } catch {
+          return false;
+        }
+      }),
+  });
 }
