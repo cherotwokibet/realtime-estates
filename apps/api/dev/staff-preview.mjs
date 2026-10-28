@@ -1148,6 +1148,7 @@ export async function startStaffPreview(options = {}) {
       if (request.headers.has('cookie'))
         return failure(400, 'INVALID_INPUT', 'Staff preview does not accept cookie credentials.');
       const reviewQueue = url.pathname === '/v2/staff/reviews';
+      const nativeCatalogue = !!nativeMedia && url.pathname === '/v2/properties';
       const enquiryQueue =
         enquiryPreview &&
         (/^\/v2\/staff\/enquiries\/[0-9a-f-]{36}\/contacts$/i.test(url.pathname) ||
@@ -1187,6 +1188,7 @@ export async function startStaffPreview(options = {}) {
       }
       if (
         url.search &&
+        !nativeCatalogue &&
         !catalogueSearch &&
         !enquirySearch &&
         !calendarRead &&
@@ -1222,6 +1224,13 @@ export async function startStaffPreview(options = {}) {
         if (denied) return denied;
         const url = new URL(request.url),
           reviewQueue = url.pathname === '/v2/staff/reviews';
+        if (nativeMedia && url.pathname === '/v2/properties') {
+          if (request.method !== 'GET' || request.headers.has('authorization'))
+            return failure(403, 'FORBIDDEN', 'Synthetic public catalogue is guest read-only.');
+          const response = await service(request);
+          response.headers.set('X-Synthetic-Staff-Preview', 'true');
+          return response;
+        }
         if (url.pathname === '/health' && request.method === 'GET')
           return json(200, {
             status: 'synthetic-staff-preview',

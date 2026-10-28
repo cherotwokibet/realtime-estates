@@ -1,5 +1,7 @@
 import Image from 'next/image';
 import { publicIntakeConfig } from '../../../lib/intake-config';
+import { publicPhotoPath, publicPhotosEnabled } from '../../../lib/public-photos';
+import { PublicPhotoGallery } from '../../../components/PublicPhotoGallery';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatKes, kesFromMinor } from '@realtor/domain';
@@ -59,6 +61,13 @@ export default async function Property({ params }: { params: Promise<{ id: strin
       publicIntakeConfig(process.env).allowProperty && mode === 'connected' && synthetic;
   } catch {}
   const price = formatKes(kesFromMinor(p.priceMinor));
+  const publicPhotos =
+    mode === 'connected' && publicPhotosEnabled(process.env)
+      ? p.photos.flatMap((photo) => {
+          const src = publicPhotoPath(p.id, p.revision, photo.key);
+          return src ? [{ src, alt: photo.alt }] : [];
+        })
+      : [];
   const location =
     [p.location.area, p.location.town, p.location.county].filter(Boolean).join(', ') || p.locality;
   const family = p.type === 'bedsitter' || p.id === 'demo-kitengela-1' ? 'bedsitter' : 'studio';
@@ -164,6 +173,8 @@ export default async function Property({ params }: { params: Promise<{ id: strin
               </div>
             </details>
           </section>
+        ) : publicPhotos.length > 0 ? (
+          <PublicPhotoGallery key={p.id + ':' + p.revision} photos={publicPhotos} />
         ) : (
           <section className="detail-photo-placeholder" aria-label="Property photos">
             <div className="placeholder-building" aria-hidden="true">
@@ -178,6 +189,13 @@ export default async function Property({ params }: { params: Promise<{ id: strin
         <div className="detail-columns">
           <section className="detail-content" aria-labelledby="about-title">
             <h2 id="about-title">A space to make your own.</h2>
+            {mode === 'connected' && (
+              <p className="public-stock-status">
+                Public catalogue status: available when this page was read, with agency confirmation
+                within the last30days. Availability can change; confirm with the agency before
+                travelling.{synthetic ? ' This is fictional test stock.' : ''}
+              </p>
+            )}
             <p>{p.description}</p>
             <div className="detail-specs">
               <div>

@@ -35,7 +35,10 @@ const MAX_BYTES = 10485760,
 const REVIEW_ROUTE = new RegExp(
   `^/v2/staff/reviews/(${UUID})/([1-9][0-9]*)/media/(${UUID})/preview$`,
 );
-type PreviewPolicy = 'draft' | 'review';
+const PUBLIC_ROUTE = new RegExp(
+  `^/v2/public/listings/(${UUID})/revisions/([1-9][0-9]*)/photos/(${UUID})/(${UUID})\\.webp$`,
+);
+type PreviewPolicy = 'draft' | 'review' | 'public';
 type OutputAdmission = <T>(work: () => Promise<T>) => Promise<T>;
 function outputAdmission(): OutputAdmission {
   let admitted = 0;
@@ -95,6 +98,7 @@ interface Resource {
   readonly revision: number;
   readonly mediaId: string;
   readonly version: string;
+  readonly publicJobId?: string;
 }
 interface PreviewProvenance extends Resource {
   readonly operationId: string;
@@ -108,6 +112,7 @@ type AuthorizedPreview = PreviewProvenance &
   (
     | Readonly<{ kind: 'private_media_preview'; state: 'draft'; actorRole: 'admin' | 'agent' }>
     | Readonly<{ kind: 'review_media_preview'; state: 'pending'; actorRole: 'admin' }>
+    | Readonly<{ kind: 'public_media_preview'; state: 'approved'; actorRole: 'guest' }>
   );
 export interface DevelopmentMediaPreviewOptions {
   readonly tenant: TenantConfiguration;
@@ -237,7 +242,7 @@ function manifest(value: unknown): MediaVerifiedReceipt['manifest'] {
 function authorized(
   value: unknown,
   resource: Resource,
-  actorId: string,
+  actorId: string | null,
   policy: PreviewPolicy,
 ): AuthorizedPreview {
   const row = record(value, [
@@ -257,16 +262,23 @@ function authorized(
     'verified',
   ]);
   if (
-    row.kind !== (policy === 'review' ? 'review_media_preview' : 'private_media_preview') ||
-    row.state !== (policy === 'review' ? 'pending' : 'draft') ||
+    row.kind !==
+      (policy === 'public'
+        ? 'public_media_preview'
+        : policy === 'review'
+          ? 'review_media_preview'
+          : 'private_media_preview') ||
+    row.state !== (policy === 'public' ? 'approved' : policy === 'review' ? 'pending' : 'draft') ||
     uuid(row.tenantId) !== resource.tenantId ||
     uuid(row.listingId) !== resource.listingId ||
     positive(row.revision, 2147483647) !== resource.revision ||
-    version(row.version) !== resource.version ||
-    uuid(row.mediaId) !== resource.mediaId ||
-    !(policy === 'review'
-      ? row.actorRole === 'admin'
-      : ['admin', 'agent'].includes(row.actorRole as string))
+    (policy !== 'public' && version(row.version) !== resource.version) ||
+    (policy !== 'public' && uuid(row.mediaId) !== resource.mediaId) ||
+    !(policy === 'public'
+      ? row.actorRole === 'guest' && row.assignedAgentId === null
+      : policy === 'review'
+        ? row.actorRole === 'admin'
+        : ['admin', 'agent'].includes(row.actorRole as string))
   )
     invalid();
   const operationId = uuid(row.operationId),
@@ -274,6 +286,21 @@ function authorized(
     scope = context(row.context),
     rawCapture = record(row.capture, CAPTURE),
     processing = lease(row.lease);
+  const canonicalResource =
+    policy === 'public'
+      ? {
+          tenantId: resource.tenantId,
+          listingId: resource.listingId,
+          revision: resource.revision,
+          mediaId: uuid(row.mediaId),
+          version: version(row.version),
+        }
+      : resource;
+  if (
+    policy === 'public' &&
+    (scope.outputId !== resource.mediaId || scope.jobId !== resource.publicJobId)
+  )
+    invalid();
   if (row.actorRole === 'agent' && assignedAgentId !== actorId) invalid();
   const capture = Object.freeze({
     jobId: uuid(rawCapture.jobId),
@@ -320,12 +347,12 @@ function authorized(
     verified.manifest.inputBytes !== capture.inputBytes ||
     verified.manifest.inputSha256 !== capture.inputSha256 ||
     operationId === scope.jobId ||
-    resource.mediaId === operationId ||
-    resource.mediaId === scope.jobId
+    canonicalResource.mediaId === operationId ||
+    canonicalResource.mediaId === scope.jobId
   )
     invalid();
   const provenance = {
-    ...resource,
+    ...canonicalResource,
     operationId,
     assignedAgentId,
     context: scope,
@@ -333,19 +360,26 @@ function authorized(
     lease: processing,
     verified,
   };
-  return policy === 'review'
+  return policy === 'public'
     ? Object.freeze({
         ...provenance,
-        kind: 'review_media_preview',
-        state: 'pending',
-        actorRole: 'admin',
+        kind: 'public_media_preview',
+        state: 'approved',
+        actorRole: 'guest',
       })
-    : Object.freeze({
-        ...provenance,
-        kind: 'private_media_preview',
-        state: 'draft',
-        actorRole: row.actorRole as 'admin' | 'agent',
-      });
+    : policy === 'review'
+      ? Object.freeze({
+          ...provenance,
+          kind: 'review_media_preview',
+          state: 'pending',
+          actorRole: 'admin',
+        })
+      : Object.freeze({
+          ...provenance,
+          kind: 'private_media_preview',
+          state: 'draft',
+          actorRole: row.actorRole as 'admin' | 'agent',
+        });
 }
 function snapshotBytes(value: unknown): Buffer {
   if (!Buffer.isBuffer(value) || isProxy(value) || !ArrayBuffer.isView(value)) invalid();
@@ -387,6 +421,12 @@ export function createDevelopmentReviewMediaPreviewApi(
 ): DevelopmentMediaPreviewApi {
   return createMediaPreviewApi(options, 'review');
 }
+/** Anonymous synthetic bytes require current-public SQL facts and native seals before/after I/O. */
+export function createDevelopmentPublicMediaPreviewApi(
+  options: DevelopmentMediaPreviewOptions,
+): DevelopmentMediaPreviewApi {
+  return createMediaPreviewApi(options, 'public');
+}
 /** Fixed native composition with one shared storage admission and joint drain. */
 export function createDevelopmentMediaPreviewPair(
   options: DevelopmentMediaPreviewOptions,
@@ -394,14 +434,19 @@ export function createDevelopmentMediaPreviewPair(
   const admission = outputAdmission();
   const draft = createMediaPreviewApi(options, 'draft', admission);
   const review = createMediaPreviewApi(options, 'review', admission);
+  const publicImages = createMediaPreviewApi(options, 'public', admission);
   return Object.freeze({
     handle(request: Request) {
       return (
-        new URL(request.url).pathname.startsWith('/v2/staff/reviews/') ? review : draft
+        new URL(request.url).pathname.startsWith('/v2/public/')
+          ? publicImages
+          : new URL(request.url).pathname.startsWith('/v2/staff/reviews/')
+            ? review
+            : draft
       ).handle(request);
     },
     async close() {
-      await Promise.all([draft.close(), review.close()]);
+      await Promise.all([draft.close(), review.close(), publicImages.close()]);
     },
   });
 }
@@ -458,7 +503,7 @@ function createMediaPreviewApi(
   }
   async function read(
     resource: Resource,
-    actorId: string,
+    actorId: string | null,
     requestId: string,
   ): Promise<AuthorizedPreview> {
     let value: unknown;
@@ -467,10 +512,18 @@ function createMediaPreviewApi(
         { tenantId, actorId, correlationId: requestId },
         async (query) => {
           const result = await query.query(
-            policy === 'review'
-              ? 'SELECT app_api.read_review_media_preview($1::uuid,$2::integer,$3::uuid,$4::bigint) AS receipt'
-              : 'SELECT app_api.read_private_media_preview($1::uuid,$2::integer,$3::uuid,$4::bigint) AS receipt',
-            [resource.listingId, resource.revision, resource.mediaId, resource.version],
+            policy === 'public'
+              ? 'SELECT app_api.read_public_media_preview($1::uuid,$2::integer,$3::text) AS receipt'
+              : policy === 'review'
+                ? 'SELECT app_api.read_review_media_preview($1::uuid,$2::integer,$3::uuid,$4::bigint) AS receipt'
+                : 'SELECT app_api.read_private_media_preview($1::uuid,$2::integer,$3::uuid,$4::bigint) AS receipt',
+            policy === 'public'
+              ? [
+                  resource.listingId,
+                  resource.revision,
+                  `synthetic/${tenantId}/${resource.publicJobId}/${resource.mediaId}.webp`,
+                ]
+              : [resource.listingId, resource.revision, resource.mediaId, resource.version],
           );
           if (result.rows.length !== 1) invalid();
           return result.rows[0]?.receipt;
@@ -595,7 +648,9 @@ function createMediaPreviewApi(
     const requestId = randomUUID();
     try {
       const url = new URL(request.url),
-        match = (policy === 'review' ? REVIEW_ROUTE : ROUTE).exec(url.pathname);
+        match = (
+          policy === 'public' ? PUBLIC_ROUTE : policy === 'review' ? REVIEW_ROUTE : ROUTE
+        ).exec(url.pathname);
       if (!match || url.search || url.hash) throw new PreviewError(404, 'NOT_FOUND');
       if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname))
         throw new PreviewError(404, 'NOT_FOUND');
@@ -611,7 +666,11 @@ function createMediaPreviewApi(
       if (!Number.isSafeInteger(revision) || revision > 2147483647)
         throw new PreviewError(400, 'INVALID_INPUT');
       const expected = request.headers.get('x-revision-version');
-      if (expected === null || !/^[1-9]\d{0,15}$/.test(expected) || BigInt(expected) > MAX_VERSION)
+      if (
+        policy === 'public'
+          ? expected !== null
+          : expected === null || !/^[1-9]\d{0,15}$/.test(expected) || BigInt(expected) > MAX_VERSION
+      )
         throw new PreviewError(400, 'INVALID_INPUT');
       let unsupported = false;
       request.headers.forEach((_, key) => {
@@ -630,28 +689,34 @@ function createMediaPreviewApi(
           unsupported = true;
       });
       if (request.body !== null || unsupported) throw new PreviewError(400, 'INVALID_INPUT');
+      if (policy === 'public' && request.headers.has('authorization'))
+        throw new PreviewError(400, 'INVALID_INPUT');
       if (request.headers.has('origin') && request.headers.get('origin') !== url.origin)
         throw new PreviewError(403, 'FORBIDDEN');
       cancelled(request);
-      let actorId: string;
-      try {
-        const identity = record(
-          await verify(parseBearerHeader(request.headers.get('authorization') ?? undefined)),
-          ['actorId'],
-        );
-        actorId = uuid(
-          typeof identity.actorId === 'string' ? identity.actorId.toLowerCase() : identity.actorId,
-        );
-      } catch {
-        throw new PreviewError(401, 'UNAUTHENTICATED');
-      }
+      let actorId: string | null = null;
+      if (policy !== 'public')
+        try {
+          const identity = record(
+            await verify(parseBearerHeader(request.headers.get('authorization') ?? undefined)),
+            ['actorId'],
+          );
+          actorId = uuid(
+            typeof identity.actorId === 'string'
+              ? identity.actorId.toLowerCase()
+              : identity.actorId,
+          );
+        } catch {
+          throw new PreviewError(401, 'UNAUTHENTICATED');
+        }
       cancelled(request);
       const resource = Object.freeze({
         tenantId,
         listingId: match[1]!.toLowerCase(),
         revision,
-        mediaId: match[3]!.toLowerCase(),
-        version: expected,
+        mediaId: match[policy === 'public' ? 4 : 3]!.toLowerCase(),
+        version: expected ?? '1',
+        ...(policy === 'public' ? { publicJobId: match[3]!.toLowerCase() } : {}),
       });
       const before = await read(resource, actorId, requestId);
       cancelled(request);

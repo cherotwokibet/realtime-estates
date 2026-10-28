@@ -31,9 +31,14 @@ const V2_PREVIEW_PATH = new RegExp(
 const V2_REVIEW_PREVIEW_PATH = new RegExp(
   `^/v2/staff/reviews/${UUID}/([1-9][0-9]*)/media/${UUID}/preview$`,
 );
+const V2_PUBLIC_PHOTO_PATH = new RegExp(
+  `^/v2/public/listings/${UUID}/revisions/([1-9][0-9]*)/photos/${UUID}/${UUID}\\.webp$`,
+);
 function previewPath(incoming: IncomingMessage): boolean {
   const match =
-    V2_PREVIEW_PATH.exec(incoming.url ?? '') ?? V2_REVIEW_PREVIEW_PATH.exec(incoming.url ?? '');
+    V2_PREVIEW_PATH.exec(incoming.url ?? '') ??
+    V2_REVIEW_PREVIEW_PATH.exec(incoming.url ?? '') ??
+    V2_PUBLIC_PHOTO_PATH.exec(incoming.url ?? '');
   return !!match && Number(match[1]) <= 2147483647;
 }
 function uploadPath(incoming: IncomingMessage): boolean {

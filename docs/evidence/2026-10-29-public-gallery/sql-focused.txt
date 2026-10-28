@@ -1,0 +1,48 @@
+✔ current anonymous public image metadata binds approved snapshot and full sealed association without disclosure or mutation (2892.3091ms)
+✖ paused,archived,unavailable,stale,disabled or changed publication cannot authorize even valid sealed image metadata (1814.5407ms)
+✔ changed snapshot reference or metadata-only/unsealed media fails closed and public SQL function stays narrow (1684.0256ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6602.8106
+
+✖ failing tests:
+
+test at database\tests\public-media-preview.test.mjs:61:1
+✖ paused,archived,unavailable,stale,disabled or changed publication cannot authorize even valid sealed image metadata (1814.5407ms)
+  error: current transaction is aborted, commands ignored until end of transaction block
+      at pe.Ue (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959)
+      at pe.tt (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347)
+      at pe.parse (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021)
+      at N.qe (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1762)
+      at file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+      at wasm://wasm/0267bb86:wasm-function[10930]:0x5a5ccf
+      at wasm://wasm/0267bb86:wasm-function[3585]:0x27eaeb
+      at wasm://wasm/0267bb86:wasm-function[3627]:0x2869d1
+      at wasm://wasm/0267bb86:wasm-function[3637]:0x286c2d
+      at wasm://wasm/0267bb86:wasm-function[9914]:0x54fd4d {
+    length: 145,
+    severity: 'ERROR',
+    code: '25P02',
+    detail: undefined,
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'postgres.c',
+    line: '1603',
+    routine: 'exec_parse_message',
+    query: "UPDATE app_private.listings SET publication_status='published',availability='available',last_availability_confirmed_at=now(),published_revision_no=1 WHERE tenant_id=$1 AND id=$2",
+    params: [ '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000100' ],
+    queryOptions: undefined
+  }

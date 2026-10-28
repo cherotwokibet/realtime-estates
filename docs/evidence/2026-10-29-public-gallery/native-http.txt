@@ -1,0 +1,31 @@
+✖ actual anonymous published gallery returns independently decoded sealed images and stops immediately on publication pause (10345.138ms)
+ℹ Owned synthetic public gallery root retained: C:\Users\BONIFACE\AppData\Local\Temp\realtor-public-gallery-mkaHmH
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10901.4269
+
+✖ failing tests:
+
+test at apps\api\dev\public-gallery.test.mjs:11:1
+✖ actual anonymous published gallery returns independently decoded sealed images and stops immediately on publication pause (10345.138ms)
+  Error [ApiClientError]: API request could not be completed.
+      at file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:3575:27
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async RealtorApiClient.request (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:3590:20)
+      at async RealtorApiClient.decideReviewV2 (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:1778:36)
+      at async publishNativeGallery (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/dev/public-gallery-fixture.mjs:64:3)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/dev/public-gallery.test.mjs:36:42)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    kind: 'HTTP',
+    status: 422,
+    serverCode: 'INVALID_STATE',
+    requestId: '4d5d9ca0-f11c-44aa-aa2e-412131427e15',
+    retryAfterSeconds: undefined,
+    submissionUncertain: false
+  }
