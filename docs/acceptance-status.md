@@ -8,6 +8,8 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| media215 | [evidence/2026-10-28-expired-media-cleanup/media-full-current.txt](evidence/2026-10-28-expired-media-cleanup/media-full-current.txt) · 0595a6f | 205 passed; Windows / full media suite, actual native codec/supervisor, restricted SQL and owned-filesystem expiry plus contract doubles; offline foundation, not a running sweeper |
+| database215 | [evidence/2026-10-28-expired-media-cleanup/database-full-corrected.txt](evidence/2026-10-28-expired-media-cleanup/database-full-corrected.txt) · 0595a6f | 350 passed; Windows / complete corrected default-schema restricted PGlite regression including forced-RLS and separate exact processing/maintenance grants; no hosted PostgreSQL race claim |
 | calendar214 | [evidence/2026-10-28-viewing-calendar.md](evidence/2026-10-28-viewing-calendar.md) · 842f493 | Windows / actual synthetic browser request/calendar/confirmation/cancellation/history/reassignment and capture-only uncertainty recovery; no external delivery or device acceptance |
 | signed214 | [evidence/2026-10-28-viewing-calendar/signed-http-full-current.txt](evidence/2026-10-28-viewing-calendar/signed-http-full-current.txt) · 842f493 | 90 passed; Windows / actual loopback signed HTTP and restricted PGlite, two synthetic companies; full current dev suite |
 | admin214 | [evidence/2026-10-28-viewing-calendar/admin-tests.txt](evidence/2026-10-28-viewing-calendar/admin-tests.txt) · 842f493 | 437 + 33 passed; Windows / compiled admin boundaries and SSR UI checks including calendar/date/navigation semantics |
@@ -69,10 +71,10 @@ Next: Implement provider-backed logout/expiry and verify two tabs plus native st
 **R-005 · partial · GAP-AC-005**
 Original finding: Uploads stall without recovery.
 Expected: Per-file error/retry, draft retained, accepted files reused, one listing result, no public partial revision; expired objects cleaned and audited
-Observed: Blocked-body cancellation/deadlines, interrupted socket propagation, single-attempt processing and lost-result reconciliation are tested.
-Evidence: [media213](evidence/2026-10-28-upload-acceptance/media-full.txt), [api212](evidence/2026-10-28-operations-overview/api-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt)
-Still open: Expired/incomplete batch retention cleanup and the complete interrupted multi-file browser/device journey remain open.
-Next: Implement auditable retention/cleanup without deleting referenced outputs; verify interrupted file3/4 and original-operation recovery. Owner: Boniface + Codex.
+Observed: Upload cancellation/deadlines, interrupted sockets and single-attempt recovery are tested. Expired-unverified SQL admission and offline owned-byte fences preserve verified media/receipts; lost committed admission does not trigger deletion.
+Evidence: [media213](evidence/2026-10-28-upload-acceptance/media-full.txt), [media215](evidence/2026-10-28-expired-media-cleanup/media-full-current.txt), [database215](evidence/2026-10-28-expired-media-cleanup/database-full-corrected.txt), [api212](evidence/2026-10-28-operations-overview/api-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt)
+Still open: Whole-pipeline live quiescence and incomplete attempt workspace cleanup, controlled maintenance entry point/schedule and complete interrupted multi-file browser/device journey remain open.
+Next: Complete live process-safe cleanup and verify interrupted file3/4 recovery; never treat historical journal readback as deletion authority. Owner: Boniface + Codex.
 
 ### AC-006 — authentication UI
 

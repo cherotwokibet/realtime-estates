@@ -19,6 +19,30 @@
     "caseCount": 35
   },
   "executions": {
+    "media215": {
+      "path": "docs/evidence/2026-10-28-expired-media-cleanup/media-full-current.txt",
+      "counts": [
+        205
+      ],
+      "commit": "0595a6f129950fb29ee4eba2a07389346c61a075",
+      "environment": "Windows / full media suite, actual native codec/supervisor, restricted SQL and owned-filesystem expiry plus contract doubles; offline foundation, not a running sweeper",
+      "sha256": "901426228445dcb9f053d5eda3a0587acf81f9139bf9d90f00d2e843cbf83061",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "observedDate": "2026-10-28",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
+    "database215": {
+      "path": "docs/evidence/2026-10-28-expired-media-cleanup/database-full-corrected.txt",
+      "counts": [
+        350
+      ],
+      "commit": "0595a6f129950fb29ee4eba2a07389346c61a075",
+      "environment": "Windows / complete corrected default-schema restricted PGlite regression including forced-RLS and separate exact processing/maintenance grants; no hosted PostgreSQL race claim",
+      "sha256": "211322743ec920984a894b2453a186f8f4d9b3c2c163d71994bfd17f22ba5c0c",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "observedDate": "2026-10-28",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
     "calendar214": {
       "path": "docs/evidence/2026-10-28-viewing-calendar.md",
       "counts": null,
@@ -272,13 +296,15 @@
       "releaseCasePassed": false,
       "evidence": [
         "media213",
+        "media215",
+        "database215",
         "api212",
         "sdk212",
         "admin212"
       ],
-      "observed": "Blocked-body cancellation/deadlines, interrupted socket propagation, single-attempt processing and lost-result reconciliation are tested.",
-      "remaining": "Expired/incomplete batch retention cleanup and the complete interrupted multi-file browser/device journey remain open.",
-      "nextAction": "Implement auditable retention/cleanup without deleting referenced outputs; verify interrupted file3/4 and original-operation recovery.",
+      "observed": "Upload cancellation/deadlines, interrupted sockets and single-attempt recovery are tested. Expired-unverified SQL admission and offline owned-byte fences preserve verified media/receipts; lost committed admission does not trigger deletion.",
+      "remaining": "Whole-pipeline live quiescence and incomplete attempt workspace cleanup, controlled maintenance entry point/schedule and complete interrupted multi-file browser/device journey remain open.",
+      "nextAction": "Complete live process-safe cleanup and verify interrupted file3/4 recovery; never treat historical journal readback as deletion authority.",
       "owner": "Boniface + Codex",
       "gapId": "GAP-AC-005"
     },

@@ -63,6 +63,7 @@ const commits = {
   mobile211: '9aedc88558b9168173697716adb804ceef877be6',
   foundation212: '86cf7ed329d804197de8c891f5647cde48f03406',
   calendar214: '842f4931e91061c5279819fa215ddf66267e32a3',
+  media215: '0595a6f129950fb29ee4eba2a07389346c61a075',
 };
 for (const commit of Object.values(commits))
   execFileSync('git', ['merge-base', '--is-ancestor', commit, 'HEAD'], {
@@ -70,6 +71,20 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  media215: {
+    path: 'docs/evidence/2026-10-28-expired-media-cleanup/media-full-current.txt',
+    counts: [205],
+    commit: commits.media215,
+    environment:
+      'Windows / full media suite, actual native codec/supervisor, restricted SQL and owned-filesystem expiry plus contract doubles; offline foundation, not a running sweeper',
+  },
+  database215: {
+    path: 'docs/evidence/2026-10-28-expired-media-cleanup/database-full-corrected.txt',
+    counts: [350],
+    commit: commits.media215,
+    environment:
+      'Windows / complete corrected default-schema restricted PGlite regression including forced-RLS and separate exact processing/maintenance grants; no hosted PostgreSQL race claim',
+  },
   calendar214: {
     path: 'docs/evidence/2026-10-28-viewing-calendar.md',
     counts: null,
@@ -216,10 +231,10 @@ const reviewed = [
   [
     5,
     'partial',
-    ['media213', 'api212', 'sdk212', 'admin212'],
-    'Blocked-body cancellation/deadlines, interrupted socket propagation, single-attempt processing and lost-result reconciliation are tested.',
-    'Expired/incomplete batch retention cleanup and the complete interrupted multi-file browser/device journey remain open.',
-    'Implement auditable retention/cleanup without deleting referenced outputs; verify interrupted file3/4 and original-operation recovery.',
+    ['media213', 'media215', 'database215', 'api212', 'sdk212', 'admin212'],
+    'Upload cancellation/deadlines, interrupted sockets and single-attempt recovery are tested. Expired-unverified SQL admission and offline owned-byte fences preserve verified media/receipts; lost committed admission does not trigger deletion.',
+    'Whole-pipeline live quiescence and incomplete attempt workspace cleanup, controlled maintenance entry point/schedule and complete interrupted multi-file browser/device journey remain open.',
+    'Complete live process-safe cleanup and verify interrupted file3/4 recovery; never treat historical journal readback as deletion authority.',
   ],
   [
     6,
