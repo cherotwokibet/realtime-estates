@@ -47,6 +47,24 @@ const client = (fetch) =>
     privacyNoticeVersion: 'search-read-only',
     fetch,
   });
+
+test('both public searches reject an own __proto__ query key before any network request', async () => {
+  let calls = 0;
+  const api = client(async () => {
+    calls++;
+    return json(page());
+  });
+  for (const value of ['"unsupported"', 'null', '{"location":"unexpected"}']) {
+    const input = JSON.parse(`{"__proto__":${value}}`);
+    for (const method of ['searchPropertiesV2', 'searchSyntheticReferencePropertiesV3'])
+      await assert.rejects(
+        () => api[method](input),
+        (error) => error.kind === 'VALIDATION',
+      );
+    assert.equal(Object.hasOwn(input, '__proto__'), true);
+  }
+  assert.equal(calls, 0);
+});
 test('public search validates inputs and anonymous scope before transport, without invoking getters', async () => {
   let calls = 0,
     reads = 0;

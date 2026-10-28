@@ -1,0 +1,37 @@
+
+> realtor-platform@0.1.0 test:mobile
+> npm run test --workspace=@realtor/mobile
+
+
+> @realtor/mobile@0.1.0 test
+> npm run test:compile --workspace=@realtor/web && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 tests/*.test.mjs
+
+
+> @realtor/web@0.1.0 test:compile
+> tsc -p tsconfig.tests.json
+
+✔ actual Expo config exposes only explicit public development settings and refuses production or orphan flags (1337.4189ms)
+✔ mobile configuration defaults to demo only when absent and refuses malformed, production, credential or private configuration (1.7391ms)
+✔ mobile read crosses the real SDK once anonymously, preserves exact cents and original references, and searches only public location (44.2064ms)
+✔ mobile distinguishes legacy unknown, approved empty amenities, sale no recurring period and unresolved quote (2.8818ms)
+✔ mobile errors, private additions and cancellation never substitute demo stock or retry (2.3832ms)
+✔ mobile keeps empty success distinct from failure and warns when its bounded page may be incomplete (24.7249ms)
+✔ mobile adapter reads the real anonymous HTTP/SQL approved historical projection for two fixed companies (4902.7814ms)
+✔ saved filters survive a fresh controller while companies and API origins remain separate (3.3046ms)
+✔ corrupt, oversized, mismatched and future or private fields are discarded before reuse (2.0226ms)
+✔ a late save cannot overwrite a later clear across controller remounts (0.3938ms)
+✔ storage failures stay contained and do not poison later operations (0.4778ms)
+✔ a stalled restore returns unavailable without applying late saved filters (11.8454ms)
+✔ timed-out writes remain ordered before clear even after both UI waits end (31.5996ms)
+✔ connected mobile filters cross the anonymous SDK with exact cents, open-plan and bathroom criteria (30.8033ms)
+✔ mobile rejects incomparable prices and malformed boundaries before replacing applied filters (0.9121ms)
+✔ reference native controls share both configured company themes and accessible component states (2.8515ms)
+✔ reference native focus preserves pressed colors with a shared outer ring and contrasting gap (0.3452ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7463.1227

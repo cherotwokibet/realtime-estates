@@ -1563,7 +1563,14 @@ function attachRecord(
     const field = Object.getOwnPropertyDescriptor(input, key);
     if (!field?.enumerable || !Object.hasOwn(field, 'value'))
       return invalid(kind, 'Malformed attachment fields.');
-    value[key] = field.value;
+    // Keep every captured key as data. Assignment to __proto__ would silently
+    // drop or reinterpret it before the caller's exact allowlist validation.
+    Object.defineProperty(value, key, {
+      value: field.value,
+      enumerable: true,
+      writable: true,
+      configurable: true,
+    });
   }
   return value;
 }

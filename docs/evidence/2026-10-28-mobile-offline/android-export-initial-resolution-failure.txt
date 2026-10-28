@@ -1,0 +1,46 @@
+
+> @realtor/mobile@0.1.0 export:android
+> expo export --platform android --output-dir dist/android --max-workers 1
+
+Expo Autolinking module resolution enabled
+Starting Metro Bundler
+
+Android Bundling failed 9367ms apps\mobile\index.ts (631 modules)
+
+Error: Unable to resolve module ./reference-catalogue.js from C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\apps\mobile\src\reference-read-session.ts: 
+
+None of these files exist:
+  * src\reference-catalogue.js(.android.ts|.native.ts|.ts|.android.tsx|.native.tsx|.tsx|.android.mjs|.native.mjs|.mjs|.android.js|.native.js|.js|.android.jsx|.native.jsx|.jsx|.android.json|.native.json|.json|.android.cjs|.native.cjs|.cjs|.android.scss|.native.scss|.scss|.android.sass|.native.sass|.sass|.android.css|.native.css|.css)
+  * src\reference-catalogue.js
+  4 |   type MobileReferenceConfig,
+  5 |   type MobileReferenceResult,
+> 6 | } from './reference-catalogue.js';
+    |         ^
+  7 |
+  8 | type Ready = Extract<MobileReferenceResult, { status: 'ready' }>;
+  9 | export type MobileReferenceReadResult =
+
+Import stack:
+
+ apps\mobile\src\reference-read-session.ts
+ | import "./reference-catalogue.js"
+
+ apps\mobile\src\ReferenceCatalogueApp.tsx
+ | import "./reference-read-session"
+
+ apps\mobile\src\App.tsx
+ | import "./ReferenceCatalogueApp"
+
+ apps\mobile\index.ts
+ | import "./src/App"
+
+ 
+ | import "./apps/mobile/index.ts"
+
+npm error Lifecycle script `export:android` failed with error:
+npm error code 1
+npm error path C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\apps\mobile
+npm error workspace @realtor/mobile@0.1.0
+npm error location C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\apps\mobile
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c expo export --platform android --output-dir dist/android --max-workers 1

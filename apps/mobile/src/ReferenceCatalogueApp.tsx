@@ -4,12 +4,11 @@ import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'rea
 import type { PublicSearchInput } from '@realtor/api-client';
 import { getDemoBrand, getDemoTheme } from '@realtor/demo';
 import { formatKes } from '@realtor/domain';
+import { type MobileReferenceConfig, type MobileReferenceItem } from './reference-catalogue';
 import {
-  loadMobileReferenceCatalogue,
-  type MobileReferenceConfig,
-  type MobileReferenceItem,
-  type MobileReferenceResult,
-} from './reference-catalogue';
+  createMobileReferenceReadSession,
+  type MobileReferenceReadResult,
+} from './reference-read-session';
 import { createReferenceCatalogueStyles } from './reference-theme';
 import { ReferenceSearchForm } from './ReferenceSearchForm';
 import {
@@ -121,7 +120,9 @@ function ReferenceCatalogueSession({
   const brand = getDemoBrand(config.tenantSlug);
   const theme = useMemo(() => getDemoTheme(config.tenantSlug), [config.tenantSlug]);
   const s = useMemo(() => StyleSheet.create(createReferenceCatalogueStyles(theme)), [theme]);
-  const [result, setResult] = useState<MobileReferenceResult | null>(null);
+  const [result, setResult] = useState<MobileReferenceReadResult | null>(null);
+  const [readSession] = useState(() => createMobileReferenceReadSession(config));
+  const activeRead = useRef<AbortController | null>(null);
   const [request, setRequest] = useState(0);
   const [filters, setFilters] = useState<MobileReferenceFilters>({
     ...emptyMobileReferenceFilters,
@@ -160,20 +161,19 @@ function ReferenceCatalogueSession({
   useEffect(() => {
     if (!restored) return;
     const controller = new AbortController();
+    activeRead.current = controller;
     let active = true;
     setResult(null);
     setSelected(null);
-    void loadMobileReferenceCatalogue(config, {
-      signal: controller.signal,
-      search: { ...search, limit: 24 },
-    }).then((value) => {
-      if (active) setResult(value);
+    void readSession.read({ ...search, limit: 24 }, controller.signal).then((value) => {
+      if (active && !controller.signal.aborted) setResult(value);
     });
     return () => {
       active = false;
       controller.abort();
     };
-  }, [config, request, search, restored]);
+  }, [readSession, request, search, restored]);
+  useEffect(() => () => readSession.clear(), [readSession]);
   const shown = result?.status === 'ready' ? result.items : [];
   return (
     <SafeAreaView style={s.root}>
@@ -207,6 +207,8 @@ function ReferenceCatalogueSession({
                   return;
                 }
                 setFilterError('');
+                activeRead.current?.abort();
+                setResult(null);
                 setSearch(prepared.input);
                 void searchStore.save(filters).then((saved) => {
                   if (mounted.current)
@@ -224,6 +226,9 @@ function ReferenceCatalogueSession({
               onPress={() => {
                 setFilters({ ...emptyMobileReferenceFilters });
                 setFilterError('');
+                activeRead.current?.abort();
+                readSession.clear();
+                setResult(null);
                 setSearch({ offset: 0 });
                 void searchStore.clear().then((cleared) => {
                   if (mounted.current)
@@ -246,6 +251,41 @@ function ReferenceCatalogueSession({
           <Text accessibilityLiveRegion="polite" style={s.copy}>
             {restored ? 'Loading approved property details…' : 'Restoring saved search filters…'}
           </Text>
+        )}
+        {result === null && restored && (
+          <CatalogueButton
+            label="Cancel loading"
+            onPress={() => {
+              activeRead.current?.abort();
+              setResult({ status: 'error' });
+            }}
+            styles={s}
+          />
+        )}
+        {result?.status === 'ready' && result.freshness === 'previous' && (
+          <View>
+            <Text accessibilityRole="alert" style={s.error}>
+              Could not refresh. Showing the previous public response loaded at{' '}
+              {new Date(result.loadedAt).toISOString()}. Counts, prices and availability have not
+              been rechecked. This response is kept only in this app session. Reconnect and retry
+              before changing result pages.
+            </Text>
+            <CatalogueButton
+              label="Retry current search"
+              onPress={() => setRequest((value) => value + 1)}
+              styles={s}
+            />
+            <CatalogueButton
+              label="Clear previous response"
+              onPress={() => {
+                activeRead.current?.abort();
+                readSession.clear();
+                setSelected(null);
+                setResult({ status: 'error' });
+              }}
+              styles={s}
+            />
+          </View>
         )}
         {result?.status === 'error' && (
           <View>
@@ -346,6 +386,7 @@ function ReferenceCatalogueSession({
                 Explore approved listings
               </Text>
               <Text accessibilityLiveRegion="polite" style={s.copy}>
+                {result.freshness === 'previous' ? 'Previously loaded: ' : ''}
                 {result.searchPage?.total ?? shown.length} matching synthetic properties
               </Text>
               <Text style={s.notice}>Applied filters: {mobileReferenceSearchSummary(search)}</Text>
@@ -358,9 +399,11 @@ function ReferenceCatalogueSession({
                   {result.searchPage.offset > 0 && (
                     <CatalogueButton
                       label="Previous search page"
-                      onPress={() =>
-                        setSearch({ ...search, offset: Math.max(0, (search.offset ?? 0) - 24) })
-                      }
+                      disabled={result.freshness === 'previous'}
+                      onPress={() => {
+                        setResult(null);
+                        setSearch({ ...search, offset: Math.max(0, (search.offset ?? 0) - 24) });
+                      }}
                       styles={s}
                     />
                   )}
@@ -368,7 +411,11 @@ function ReferenceCatalogueSession({
                     result.searchPage.offset + 24 <= result.searchPage.maxOffset && (
                       <CatalogueButton
                         label="Next search page"
-                        onPress={() => setSearch({ ...search, offset: (search.offset ?? 0) + 24 })}
+                        disabled={result.freshness === 'previous'}
+                        onPress={() => {
+                          setResult(null);
+                          setSearch({ ...search, offset: (search.offset ?? 0) + 24 });
+                        }}
                         styles={s}
                       />
                     )}
