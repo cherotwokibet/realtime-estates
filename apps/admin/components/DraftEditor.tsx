@@ -914,11 +914,13 @@ export default function DraftEditor({
                   onLock={setUploadLock}
                   begin={acquire}
                   end={release}
-                  onCompare={async () => {
+                  onCompare={async (reason) => {
                     const saved = await readWorkspace();
                     compareSnapshot(saved);
                     setMessage(
-                      'Original photo result checked. Compare the current saved photos and text before continuing.',
+                      reason === 'unattached'
+                        ? 'Image left unattached. Verification may still finish, but it cannot add the photo automatically. Compare and use the saved gallery before continuing.'
+                        : 'Original photo result checked. Compare the current saved photos and text before continuing.',
                     );
                   }}
                 />

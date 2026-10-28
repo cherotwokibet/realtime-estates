@@ -45,6 +45,7 @@ export type WindowsSupervisorErrorCode =
   | 'INVALID_CONFIGURATION'
   | 'BUSY'
   | 'REUSED_ATTEMPT'
+  | 'RETIRED'
   | 'CONTAINMENT_BLOCKED';
 export class WindowsSupervisorError extends Error {
   override readonly name = 'WindowsSupervisorError';
@@ -54,6 +55,37 @@ export class WindowsSupervisorError extends Error {
   ) {
     super(message);
   }
+}
+declare const retirementBrand: unique symbol;
+export interface WindowsSyntheticRetirement {
+  readonly kind: 'retired_windows_synthetic_supervisor';
+  readonly [retirementBrand]: true;
+}
+const retirements = new WeakMap<
+  WindowsSyntheticSupervisor,
+  () => Promise<WindowsSyntheticRetirement | null>
+>();
+const retirementOwners = new WeakMap<object, WindowsSyntheticSupervisor>();
+/** Irreversibly fence this live instance, wait for its admitted job and refuse
+ * authority after any unconfirmed containment. Historical receipts cannot call it. */
+export function retireWindowsSyntheticSupervisor(
+  supervisor: WindowsSyntheticSupervisor,
+): Promise<WindowsSyntheticRetirement | null> {
+  const retire = retirements.get(supervisor);
+  if (!retire)
+    return Promise.reject(
+      new WindowsSupervisorError(
+        'INVALID_CONFIGURATION',
+        'An original live supervisor capability is required.',
+      ),
+    );
+  return retire();
+}
+export function ownsWindowsSyntheticRetirement(
+  supervisor: WindowsSyntheticSupervisor,
+  permit: unknown,
+): boolean {
+  return !!permit && typeof permit === 'object' && retirementOwners.get(permit) === supervisor;
 }
 
 const MAX_CONFIG_BYTES = 16 * 1024;
@@ -221,12 +253,21 @@ export async function createWindowsSyntheticSupervisor(
   }
   let active = false;
   let blocked = false;
+  let retiring = false,
+    drained: Promise<void> = Promise.resolve(),
+    finishActive: () => void = () => {};
+  let retirement: Promise<WindowsSyntheticRetirement | null> | undefined;
   const usedAttempts = new Set<string>();
 
   async function run(
     request: WindowsSyntheticProcessRequest,
     runOptions: { readonly signal?: AbortSignal } = {},
   ): Promise<WindowsSyntheticOutcome> {
+    if (retiring)
+      throw new WindowsSupervisorError(
+        'RETIRED',
+        'This supervisor is permanently fenced for maintenance.',
+      );
     if (blocked)
       throw new WindowsSupervisorError(
         'CONTAINMENT_BLOCKED',
@@ -238,6 +279,9 @@ export async function createWindowsSyntheticSupervisor(
         'Only one local synthetic process job may run at a time.',
       );
     active = true;
+    drained = new Promise<void>((resolve) => {
+      finishActive = resolve;
+    });
     try {
       let signal: AbortSignal | undefined;
       try {
@@ -445,8 +489,22 @@ export async function createWindowsSyntheticSupervisor(
       return result;
     } finally {
       active = false;
+      finishActive();
     }
   }
 
-  return Object.freeze({ run });
+  const result = Object.freeze({ run });
+  retirements.set(result, () => {
+    retiring = true;
+    retirement ??= drained.then(() => {
+      if (blocked) return null;
+      const permit = Object.freeze({
+        kind: 'retired_windows_synthetic_supervisor' as const,
+      }) as WindowsSyntheticRetirement;
+      retirementOwners.set(permit, result);
+      return permit;
+    });
+    return retirement;
+  });
+  return result;
 }

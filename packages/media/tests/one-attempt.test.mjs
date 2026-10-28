@@ -637,6 +637,17 @@ test('simulated failed, timed_out and cancelled empty outcomes release capacity 
       await exists(path.join(f.inputStore.rootDirectory, 'objects', f.binding.jobId, 'output')),
       null,
     );
+    const recovered = await processor.reconcile(f.binding);
+    assert.equal(recovered.state, 'native_failed');
+    assert.deepEqual(recovered.outcome, outcome);
+    assert.equal(f.nativeCalls.length, 1);
+    assert.equal(f.counts().seal, 0);
+    const reopened = await f.reopen(),
+      history = await reopened.reconcile(f.binding);
+    assert.equal(history.state, 'native_failed');
+    assert.deepEqual(history.outcome, outcome);
+    assert.equal(f.nativeCalls.length, 1);
+    assert.equal(f.counts().seal, 0);
   }
 });
 
@@ -666,6 +677,7 @@ test('simulated unknown, thrown and malformed native outcomes retain the global 
     await processor.close();
     const reopened = await f.reopen();
     assert.equal((await f.worker.inspect()).state, 'blocked');
+    assert.equal((await reopened.reconcile(f.binding)).state, 'blocked');
     await assert.rejects(reopened.run({ ...f.binding, input: f.source }), code('BLOCKED'));
     assert.equal(f.nativeCalls.length, 1);
     assert.equal(f.counts().capture, 1);

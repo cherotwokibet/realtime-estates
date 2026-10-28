@@ -284,8 +284,11 @@ function processingResult(
     if (row.request !== null) processingRequest(row.request, original);
     return 'blocked';
   }
-  if (state.value === 'native_failed' && !recovery) {
-    const row = data(value, ['state', 'outcome']),
+  if (state.value === 'native_failed') {
+    const row = data(
+        value,
+        recovery ? ['state', 'outcome', 'request', 'lease'] : ['state', 'outcome'],
+      ),
       outcome = data(row.outcome, [
         'state',
         'termination',
@@ -307,6 +310,11 @@ function processingResult(
       (outcome.state === 'exited' && (outcome.exitCode === null || outcome.exitCode === 0))
     )
       fail();
+    if (recovery) {
+      const persisted = processingRequest(row.request, original),
+        lease = processingLease(row.lease, 'INTEGRITY');
+      if (!processingLeaseMatches(persisted, lease)) fail();
+    }
     return 'native_failed';
   }
   if (state.value !== 'verified' && !(state.value === 'processing' && recovery)) fail();

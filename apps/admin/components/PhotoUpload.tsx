@@ -1,5 +1,6 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { photoRequest, type PhotoRequestFailure as Failure } from '../lib/photo-request.ts';
 import type {
   MediaRegistrationReceiptV2,
   MediaAttachIntentV2,
@@ -40,68 +41,35 @@ interface Props {
   onLock: (locked: boolean) => void;
   begin: () => boolean;
   end: () => void;
-  onCompare: () => Promise<void>;
-}
-type Failure = { status: number; uncertain: boolean };
-async function photoRequest(
-  path: string,
-  instance: string,
-  method = 'GET',
-  body?: unknown,
-  binary?: File,
-): Promise<unknown> {
-  const controller = new AbortController(),
-    timer = setTimeout(() => controller.abort(), 35000);
-  try {
-    let response: Response;
-    try {
-      response = await fetch(path, {
-        method,
-        cache: 'no-store',
-        credentials: 'same-origin',
-        redirect: 'error',
-        signal: controller.signal,
-        headers: {
-          'X-Preview-Instance': instance,
-          ...(binary
-            ? { 'Content-Type': 'application/octet-stream' }
-            : body
-              ? { 'Content-Type': 'application/json' }
-              : {}),
-        },
-        ...(binary ? { body: binary } : body ? { body: JSON.stringify(body) } : {}),
-      });
-    } catch {
-      throw { status: 0, uncertain: method !== 'GET' } satisfies Failure;
-    }
-    let data: unknown;
-    try {
-      data = await response.json();
-    } catch {
-      throw { status: response.status, uncertain: method !== 'GET' } satisfies Failure;
-    }
-    if (!response.ok)
-      throw {
-        status: response.status,
-        uncertain:
-          (data as { submissionUncertain?: boolean })?.submissionUncertain === true ||
-          response.status >= 500,
-      } satisfies Failure;
-    return data;
-  } finally {
-    clearTimeout(timer);
-  }
+  onCompare: (reason?: 'unattached') => Promise<void>;
 }
 export default function PhotoUpload(props: Props) {
   const [file, setFile] = useState<File | null>(null),
     [alt, setAlt] = useState(''),
     [work, setWork] = useState<Work | null>(null),
-    [message, setMessage] = useState('');
+    [message, setMessage] = useState(''),
+    [uploadRunning, setUploadRunning] = useState(false),
+    [cancelRequested, setCancelRequested] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null),
-    workRef = useRef<Work | null>(null);
+    workRef = useRef<Work | null>(null),
+    uploadController = useRef<AbortController | null>(null),
+    originalResultButton = useRef<HTMLButtonElement>(null),
+    mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      uploadController.current?.abort();
+    };
+  }, []);
   const path = `/api/staff/drafts/${props.workspace.listingId}/${props.workspace.draft.revision}`;
-  const call = (target: string, method = 'GET', body?: unknown, binary?: File) =>
-    photoRequest(path + target, props.instanceId, method, body, binary);
+  const call = (
+    target: string,
+    method = 'GET',
+    body?: unknown,
+    binary?: File,
+    signal?: AbortSignal,
+  ) => photoRequest(path + target, props.instanceId, method, body, binary, signal);
   const put = (next: Work) => {
     workRef.current = next;
     setWork(next);
@@ -182,6 +150,10 @@ export default function PhotoUpload(props: Props) {
     )
       return;
     const pending = { ...original, phase: 'upload_unknown' as const };
+    const controller = new AbortController();
+    uploadController.current = controller;
+    setUploadRunning(true);
+    setCancelRequested(false);
     put(pending);
     setMessage('Uploading and verifying this photo once…');
     try {
@@ -193,8 +165,10 @@ export default function PhotoUpload(props: Props) {
           'PUT',
           undefined,
           file,
+          controller.signal,
         ),
       );
+      if (!mounted.current) return;
       put({
         ...pending,
         imageVerified: status.state === 'verified',
@@ -213,8 +187,55 @@ export default function PhotoUpload(props: Props) {
             : 'Verification is unresolved. Check the original upload status; another conversion will not be started.',
       );
     } catch {
+      if (mounted.current)
+        setMessage(
+          controller.signal.aborted
+            ? 'Upload stopped waiting. The server may have saved a result. Check the original photo result before starting another image.'
+            : 'The upload result is uncertain. Check the original upload; do not send the image again.',
+        );
+    } finally {
+      if (uploadController.current === controller) uploadController.current = null;
+      if (mounted.current) {
+        setUploadRunning(false);
+        setCancelRequested(false);
+        if (controller.signal.aborted)
+          requestAnimationFrame(() => {
+            if (mounted.current) originalResultButton.current?.focus();
+          });
+      }
+      props.end();
+    }
+  }
+  function cancelUpload() {
+    const controller = uploadController.current;
+    if (!controller || !uploadRunning || controller.signal.aborted) return;
+    setCancelRequested(true);
+    setMessage(
+      'Cancel requested. A saved server result is still possible; the original request stays locked until checked.',
+    );
+    controller.abort();
+  }
+  async function leaveUnattached() {
+    const original = workRef.current;
+    if (
+      !original ||
+      props.busy ||
+      uploadRunning ||
+      original.attachment ||
+      !['verified', 'upload_unknown', 'blocked'].includes(original.phase) ||
+      !props.begin()
+    )
+      return;
+    try {
+      // Uploads never create attachment intents. Abandoning this local selection
+      // cannot add it later; no server result, bytes or receipt is deleted/retried.
+      await props.onCompare('unattached');
       setMessage(
-        'The upload result is uncertain. Check the original upload; do not send the image again.',
+        'This image stays unattached, even if verification finishes later. Compare and use the saved gallery before choosing another photo.',
+      );
+    } catch {
+      setMessage(
+        'The current gallery could not be checked. Keep this tab open and try again when access returns.',
       );
     } finally {
       props.end();
@@ -322,8 +343,8 @@ export default function PhotoUpload(props: Props) {
           status.state === 'verified'
             ? 'Original image verification recovered. It can now be attached.'
             : status.state === 'native_failed'
-              ? 'Original conversion failed with a confirmed stopped worker. Read the current gallery before choosing another photo.'
-              : 'Original upload remains unresolved. Keep this request; no replacement conversion will be started.',
+              ? 'Original conversion failure and worker stop were recorded. Read the current gallery before choosing another photo.'
+              : 'Original upload remains unresolved. Check it again, or leave this image unattached. No photo is added automatically.',
         );
       } else if (
         ['intent_unknown', 'finalize_unknown'].includes(original.phase) &&
@@ -448,6 +469,23 @@ export default function PhotoUpload(props: Props) {
               Upload and verify image
             </button>
           )}
+          {uploadRunning && (
+            <div>
+              <button
+                type="button"
+                className="draft-secondary"
+                disabled={cancelRequested}
+                onClick={cancelUpload}
+                aria-describedby="photo-cancel-help"
+              >
+                {cancelRequested ? 'Cancelling…' : 'Cancel upload'}
+              </button>
+              <p id="photo-cancel-help" className="draft-help">
+                Cancel stops this browser request. It cannot undo a result already saved by the
+                server.
+              </p>
+            </div>
+          )}
           {(stage === 'verified' || stage === 'ready') && (
             <button
               type="button"
@@ -458,8 +496,27 @@ export default function PhotoUpload(props: Props) {
               {stage === 'ready' ? 'Finish adding this photo' : 'Add verified photo to draft'}
             </button>
           )}
+          {!uploadRunning &&
+            !work.attachment &&
+            ['verified', 'upload_unknown', 'blocked'].includes(stage!) && (
+              <div>
+                <button
+                  type="button"
+                  className="draft-secondary"
+                  disabled={props.busy}
+                  onClick={() => void leaveUnattached()}
+                >
+                  Leave image unattached
+                </button>
+                <p className="draft-help">
+                  This does not add, delete or resend the image. Verification may still finish on
+                  the server. Read and use the saved gallery before choosing another photo.
+                </p>
+              </div>
+            )}
           {!['registered', 'verified', 'ready'].includes(stage!) && (
             <button
+              ref={originalResultButton}
               type="button"
               className="draft-secondary"
               disabled={props.busy}

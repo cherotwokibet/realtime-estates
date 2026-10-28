@@ -8,6 +8,8 @@ import {
   createWindowsSyntheticSupervisor,
   parseWindowsSyntheticTerminal,
   WindowsSupervisorError,
+  retireWindowsSyntheticSupervisor,
+  ownsWindowsSyntheticRetirement,
 } from '../dist/windows-supervisor.js';
 
 // Only these authored synthetic scripts are launched. The adapter/native helper own
@@ -415,6 +417,53 @@ test(
 );
 
 test(
+  'live retirement fences new launches, waits for the actual owned-job barrier and issues only a same-instance opaque permit',
+  WINDOWS_ONLY,
+  async (t) => {
+    const e = await environment(t),
+      directory = await e.attempt();
+    await assert.rejects(
+      retireWindowsSyntheticSupervisor({ ...e.supervisor }),
+      hasCode('INVALID_CONFIGURATION'),
+    );
+    const running = e.run(directory, 'normal');
+    const retiring = retireWindowsSyntheticSupervisor(e.supervisor);
+    let settled = false;
+    void retiring.then(() => {
+      settled = true;
+    });
+    await delay(25);
+    assert.equal(settled, false);
+    const result = await running;
+    assert.equal(result.termination, 'job_empty');
+    const permit = await retiring;
+    assert.ok(permit);
+    assert.ok(Object.isFrozen(permit));
+    assert.equal(ownsWindowsSyntheticRetirement(e.supervisor, permit), true);
+    for (const forged of [
+      { ...permit },
+      Object.create(permit),
+      result,
+      { kind: 'retired_windows_synthetic_supervisor' },
+      null,
+    ])
+      assert.equal(ownsWindowsSyntheticRetirement(e.supervisor, forged), false);
+    assert.strictEqual(await retireWindowsSyntheticSupervisor(e.supervisor), permit);
+    const fresh = await e.attempt();
+    await assert.rejects(
+      e.supervisor.run({
+        executablePath: process.execPath,
+        arguments: [fixturePath('normal')],
+        workingDirectory: fresh,
+        timeoutMs: 1000,
+      }),
+      hasCode('RETIRED'),
+    );
+    assert.deepEqual(await readdir(fresh), []);
+  },
+);
+
+test(
   'misconfigured owned supervisor close without a native receipt remains unknown and blocks the instance',
   WINDOWS_ONLY,
   async (t) => {
@@ -449,6 +498,9 @@ test(
       hasCode('CONTAINMENT_BLOCKED'),
     );
     assert.deepEqual(await readdir(fresh), []);
+    assert.equal(await retireWindowsSyntheticSupervisor(supervisor), null);
+    assert.equal(await retireWindowsSyntheticSupervisor(supervisor), null);
+    assert.equal(ownsWindowsSyntheticRetirement(supervisor, result), false);
     // No automatic deletion under an unknown outcome. Retain the owned attempt and
     // copied tooling for explicit inspection/recovery; no arbitrary process is killed.
     t.diagnostic(`Missing-receipt fixture tooling retained: ${tooling}`);

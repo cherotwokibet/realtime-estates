@@ -1,0 +1,39 @@
+✖ actual image-backed 0/3/4/12/13 boundaries retain duplicate receipts, reject corrupt input and never attach the thirteenth photo (4053.6679ms)
+ℹ Owned synthetic image boundary root retained: C:\Users\BONIFACE\AppData\Local\Temp\realtor native boundaries 6P6a1U
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4391.771
+
+✖ failing tests:
+
+test at apps\api\dev\native-photo-boundaries.test.mjs:10:1
+✖ actual image-backed 0/3/4/12/13 boundaries retain duplicate receipts, reject corrupt input and never attach the thirteenth photo (4053.6679ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      jobId: '2939aaf7-65e2-4c52-93d9-55387274790d',
+      listingId: '00000000-0000-4000-8000-000000000400',
+      revision: 1,
+  +   state: 'processing',
+  -   state: 'native_failed',
+      uploadId: '6705db58-7e92-4140-a04d-48b6cea6006d'
+    }
+  
+      at upload (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/dev/native-photo-boundaries.test.mjs:90:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/dev/native-photo-boundaries.test.mjs:94:15)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { uploadId: '6705db58-7e92-4140-a04d-48b6cea6006d', jobId: '2939aaf7-65e2-4c52-93d9-55387274790d', listingId: '00000000-0000-4000-8000-000000000400', revision: 1, state: 'processing' },
+    expected: { uploadId: '6705db58-7e92-4140-a04d-48b6cea6006d', jobId: '2939aaf7-65e2-4c52-93d9-55387274790d', listingId: '00000000-0000-4000-8000-000000000400', revision: 1, state: 'native_failed' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

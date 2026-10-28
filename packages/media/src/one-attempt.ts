@@ -69,6 +69,12 @@ export type SyntheticOneAttemptResult =
   | Readonly<{ state: 'native_failed'; outcome: WindowsSyntheticOutcome }>;
 export type SyntheticOneAttemptReconciliation =
   | Readonly<{
+      state: 'native_failed';
+      request: SyntheticProcessingRequest;
+      lease: MediaProcessingLease;
+      outcome: WindowsSyntheticOutcome;
+    }>
+  | Readonly<{
       state: 'blocked';
       reason: 'UNCONFIRMED';
       request: SyntheticProcessingRequest | null;
@@ -998,6 +1004,62 @@ export async function createSyntheticOneAttemptProcessor(
           });
         }
         if (seal) return blocked();
+        // Read a retained termination fact only. It never revives a launch,
+        // cleanup permit or lease and does not claim current worker capacity.
+        let inspection;
+        try {
+          inspection = await journal.inspect({
+            jobId: request.jobId,
+            claimId: request.claimId,
+            attempt: current.lease.attempt,
+            leaseNonce: current.lease.leaseNonce,
+          });
+        } catch {
+          /* Missing/unreadable history supplies no failure proof. */
+        }
+        if (inspection) {
+          const observed = processingData(inspection, ['state', 'reason', 'intent', 'terminal']);
+          if (observed.state === 'blocked' && observed.reason === 'CONTAINMENT_UNKNOWN')
+            return blocked();
+          if (observed.state === 'termination_recorded' && observed.reason === null) {
+            const keys = [
+              'version',
+              'journalId',
+              'jobId',
+              'claimId',
+              'attempt',
+              'leaseNonce',
+              'attemptDirectory',
+            ] as const;
+            const intent = processingData(observed.intent, keys),
+              terminal = processingData(observed.terminal, [...keys, 'outcome']);
+            for (const key of keys) if (intent[key] !== terminal[key]) return blocked();
+            if (
+              intent.version !== 1 ||
+              intent.journalId !== journal.journalId ||
+              intent.jobId !== request.jobId ||
+              intent.claimId !== request.claimId ||
+              intent.attempt !== current.lease.attempt ||
+              intent.leaseNonce !== current.lease.leaseNonce ||
+              intent.attemptDirectory !== path.join(journal.attemptParent, request.jobId)
+            )
+              return blocked();
+            const recorded = outcome(terminal.outcome);
+            if (recorded.termination !== 'job_empty') return blocked();
+            if (recorded.state !== 'exited' || recorded.exitCode !== 0)
+              return Object.freeze({
+                state: 'native_failed',
+                request,
+                lease: current.lease,
+                outcome: recorded,
+              });
+          } else if (
+            observed.state !== 'blocked' ||
+            observed.reason !== 'UNCONFIRMED' ||
+            observed.terminal !== null
+          )
+            return blocked();
+        }
         if (
           current.state !== 'processing' ||
           Date.parse(current.lease.leaseExpiresAt) <= now() ||

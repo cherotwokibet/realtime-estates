@@ -655,6 +655,55 @@ test('native failure projection requires confirmed empty work and cannot hide co
   }
 });
 
+test('historical native failure readback binds the original request and lease without issuing a launch or accepting unknown containment', async () => {
+  const mismatch = id(99999);
+  const outcome = {
+    state: 'cancelled',
+    termination: 'job_empty',
+    exitCode: null,
+    activeProcesses: 0,
+    safeCode: 'CANCELLED',
+  };
+  let mutate = (value) => value;
+  const f = fixture({
+    run: async () => ({ state: 'native_failed', outcome }),
+    reconcile: async (binding) => {
+      const proof = f.processing(f.saved.get(binding.jobId));
+      return mutate(
+        structuredClone({
+          state: 'native_failed',
+          request: proof.request,
+          lease: proof.lease,
+          outcome,
+        }),
+      );
+    },
+  });
+  assert.equal((await f.api.upload(resource(), chunks())).state, 'native_failed');
+  assert.equal((await f.api.read(resource())).state, 'native_failed');
+  for (const change of [
+    (value) => ({ ...value, request: { ...value.request, jobId: mismatch } }),
+    (value) => ({ ...value, lease: { ...value.lease, claimId: mismatch } }),
+    (value) => ({ ...value, outcome: { ...value.outcome, activeProcesses: 1 } }),
+    (value) => ({
+      ...value,
+      outcome: {
+        state: 'containment_unknown',
+        termination: 'unconfirmed',
+        cleanupAllowed: false,
+        safeCode: 'UNKNOWN',
+      },
+    }),
+    (value) => ({ ...value, outcome: { ...value.outcome, state: 'exited', exitCode: 0 } }),
+    (value) => ({ ...value, permit: 'forged' }),
+  ]) {
+    mutate = change;
+    await assert.rejects(f.api.read(resource()), code('BLOCKED'));
+  }
+  assert.equal(f.calls.filter((value) => value === 'run').length, 1);
+  assert.equal(f.calls.filter((value) => value === 'reserve').length, 1);
+});
+
 test('adapter close drains admitted work, blocks new calls and leaves caller-owned requests open', async () => {
   const hold = deferred(),
     entered = deferred(),
