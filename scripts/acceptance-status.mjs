@@ -66,6 +66,7 @@ const commits = {
   media215: '0595a6f129950fb29ee4eba2a07389346c61a075',
   media216: '1a2e18e714f2593284fe9511e39feed375263ff7',
   gallery217: '0951abc2ce40f0390b16c7c856e46addc628ed45',
+  design218: '8d3fa7fa9de2d3073ea20016bf474dab0b6225c7',
 };
 for (const commit of Object.values(commits))
   execFileSync('git', ['merge-base', '--is-ancestor', commit, 'HEAD'], {
@@ -73,6 +74,13 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  design218: {
+    path: 'docs/evidence/2026-10-29-connected-design.md',
+    counts: null,
+    commit: commits.design218,
+    environment:
+      'Windows / in-app browser /16 prototype screens at1280/320px,390px public and critical in-memory recovery/decision flows; design-only, no backend/device/operator acceptance',
+  },
   api217: {
     path: 'docs/evidence/2026-10-29-public-gallery/api-full.txt',
     counts: [307],
