@@ -40,6 +40,11 @@ export default async function OperationsPage() {
           Refresh overview
         </a>
         {data && enquiriesEnabled && <a href="/enquiries/admin">Open enquiry workspace</a>}
+        {data && enquiriesEnabled && (
+          <a className="ops-refresh" href="/viewings/admin">
+            Viewing calendar
+          </a>
+        )}
       </section>
       {data ? (
         <OperationsOverview data={data} />

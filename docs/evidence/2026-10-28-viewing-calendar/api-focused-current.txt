@@ -1,0 +1,65 @@
+✔ restricted calendar SQL bounds both queues, denies nonstaff/revoked/raw tables and leaves audit unchanged (2801.3617ms)
+✖ calendar API binds verified actor and configured company to one parameterized bounded read (48.5191ms)
+✖ calendar API refuses caller authority, ambiguous windows and writes before calendar SQL (2.0838ms)
+✖ calendar API sanitizes invalid private projections rather than returning extra stored fields (0.5655ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 1
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3188.318
+
+✖ failing tests:
+
+test at apps\api\tests\viewing-calendar.test.mjs:12:1
+✖ calendar API binds verified actor and configured company to one parameterized bounded read (48.5191ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  401 !== 200
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/tests/viewing-calendar.test.mjs:13:127)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 401,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps\api\tests\viewing-calendar.test.mjs:15:1
+✖ calendar API refuses caller authority, ambiguous windows and writes before calendar SQL (2.0838ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  401 !== 400
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/tests/viewing-calendar.test.mjs:16:562)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 401,
+    expected: 400,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps\api\tests\viewing-calendar.test.mjs:19:1
+✖ calendar API sanitizes invalid private projections rather than returning extra stored fields (0.5655ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  401 !== 503
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/tests/viewing-calendar.test.mjs:20:85)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 401,
+    expected: 503,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

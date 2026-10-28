@@ -23,7 +23,8 @@
     "dev:mobile": "npm run build:packages && npm run start --workspace=@realtor/mobile",
     "test:mobile": "npm run test --workspace=@realtor/mobile",
     "test:database": "node --test --test-concurrency=1 database/tests/*.test.mjs",
-    "test:media": "npm run test --workspace=@realtor/media"
+    "test:media": "npm run test --workspace=@realtor/media",
+    "dev:operations-preview": "npm run build:packages && npm run build --workspace=@realtor/api && node scripts/operations-preview.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",

@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { publicSearchQuery } from '../dist/public-search.js';
 import { staffEnquiryQueueQuery } from '../dist/enquiry-queue.js';
+import { viewingCalendarRequest } from '../dist/viewing-calendar.js';
 import {
   journeyFixtureSelection,
   freezeJourneyManifest,
@@ -1162,6 +1163,14 @@ export async function startStaffPreview(options = {}) {
         (referencePublicMode && url.pathname === '/v3/properties/search') ||
         (enquiryCatalogue && url.pathname === '/v2/properties/search');
       const enquirySearch = enquiryPreview && url.pathname === '/v3/staff/enquiries';
+      const calendarRead = url.pathname === '/v2/staff/viewings/calendar';
+      if (calendarRead) {
+        try {
+          viewingCalendarRequest(request);
+        } catch {
+          return failure(400, 'INVALID_INPUT', 'Use one supported calendar date window.');
+        }
+      }
       if (enquirySearch) {
         try {
           staffEnquiryQueueQuery(url.searchParams);
@@ -1180,6 +1189,7 @@ export async function startStaffPreview(options = {}) {
         url.search &&
         !catalogueSearch &&
         !enquirySearch &&
+        !calendarRead &&
         !(
           /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/verification-history$/.test(url.pathname) &&
           /^\?limit=[1-9]\d?(?:&beforeVersion=[1-9]\d{0,15})?$/.test(url.search)
@@ -1312,6 +1322,7 @@ export async function startStaffPreview(options = {}) {
         }
         if (
           url.pathname === '/v2/staff/operations/overview' ||
+          url.pathname === '/v2/staff/viewings/calendar' ||
           url.pathname === '/v2/staff/listings' ||
           /^\/v2\/staff\/listings\/[0-9a-f-]{36}$/i.test(url.pathname)
         ) {
@@ -1474,6 +1485,7 @@ export async function startStaffPreview(options = {}) {
             );
           const queue =
             url.pathname === '/v2/staff/operations/overview' ||
+            url.pathname === '/v2/staff/viewings/calendar' ||
             url.pathname === '/v3/staff/enquiries' ||
             url.pathname === '/v2/staff/enquiries' ||
             url.pathname === '/v2/staff/enquiry-assignees';

@@ -179,6 +179,23 @@ export async function loadOperationsPreview(env: Environment = process.env) {
   });
   return client.getStaffOperationsOverview({ bearerToken: config.bearerToken, timeoutMs: 5000 });
 }
+/** Current fixed development scope only; no credential or company selector reaches the browser. */
+export async function loadViewingCalendarPreview(
+  actor: unknown,
+  window: import('@realtor/api-client').ViewingCalendarWindow,
+  env: Environment = process.env,
+) {
+  const config = configuration(actor, env);
+  const client = new RealtorApiClient({
+    baseUrl: config.origin,
+    privacyNoticeVersion: 'synthetic-calendar-preview-v1',
+    allowLoopbackHttp: true,
+  });
+  return client.getStaffViewingCalendar(window, {
+    bearerToken: config.bearerToken,
+    timeoutMs: 5000,
+  });
+}
 
 function failure(error: unknown, writeDispatched: boolean): Response {
   if (error instanceof BoundaryError) return reply(error.status, error.code);

@@ -31,6 +31,7 @@ import type { ViewingPropertyChoice, ViewingPropertyPage } from '../lib/viewing-
 
 type Props = {
   initialViewingId?: string;
+  initialViewingMode?: 'inspect';
   reminderCaptureEnabled?: boolean;
   actor: 'admin' | 'agent';
   instanceId: string;
@@ -84,10 +85,14 @@ export default function EnquiryViewings({
   readGuard,
   reminderCaptureEnabled = false,
   initialViewingId,
+  initialViewingMode,
 }: Props) {
   const [linkedBusy, setLinkedBusy] = useState(Boolean(initialViewingId));
   const linkedHandled = useRef(false);
   const linkedHeading = useRef<HTMLHeadingElement | null>(null);
+  const linkedRecordHeading = useRef<HTMLHeadingElement | null>(null);
+  const [linkedDetail, setLinkedDetail] = useState<ViewingDetail | null>(null);
+  const [linkedRead, setLinkedRead] = useState(0);
   const client = useMemo(
     () => createEnquiryPreviewClient({ basePath: `/api/enquiry-preview/${actor}`, instanceId }),
     [actor, instanceId],
@@ -138,6 +143,7 @@ export default function EnquiryViewings({
       generation.current++;
       reader.current?.abort();
       setPage(null);
+      setLinkedDetail(null);
       setReading(false);
       setReadError(true);
       historyGeneration.current++;
@@ -188,6 +194,11 @@ export default function EnquiryViewings({
       .then((value) => {
         if (!active || !alive.current || !mayApply()) return;
         linkedHandled.current = true;
+        if (initialViewingMode === 'inspect') {
+          setLinkedDetail(value);
+          requestAnimationFrame(() => linkedRecordHeading.current?.focus());
+          return;
+        }
         if (
           value.schedule.status === 'confirmed' &&
           Date.parse(value.schedule.proposedSlot?.endAt ?? '') <= Date.now()
@@ -215,7 +226,7 @@ export default function EnquiryViewings({
       active = false;
       controller.abort();
     };
-  }, [client, enquiryId, initialViewingId, version]);
+  }, [client, enquiryId, initialViewingId, initialViewingMode, version, linkedRead]);
   async function loadHistory(target: string) {
     const turn = ++historyGeneration.current;
     historyReader.current?.abort();
@@ -516,6 +527,111 @@ export default function EnquiryViewings({
       </p>
       {linkedBusy && <p role="status">Loading the linked viewing…</p>}
       <div inert={linkedBusy}>
+        {version && linkedDetail && (
+          <section aria-label="Linked viewing record" className="enq-current">
+            <h4 ref={linkedRecordHeading} tabIndex={-1}>
+              Linked viewing snapshot
+            </h4>
+            <p>
+              Viewing {linkedDetail.schedule.viewingId} · {linkedDetail.schedule.status} · saved
+              version {linkedDetail.schedule.version}. Read again through current enquiry access;
+              calendar versions are not adopted for writes.
+            </p>
+            {linkedDetail.schedule.proposedSlot && (
+              <p>
+                Saved slot: {formatEnquiryTime(linkedDetail.schedule.proposedSlot.startAt)} –{' '}
+                {formatEnquiryTime(linkedDetail.schedule.proposedSlot.endAt)}.
+              </p>
+            )}
+            <p>
+              Opening this record has saved no change and sent no invitation. Choose an action,
+              inspect its current facts and explicitly save.
+            </p>
+            <button
+              type="button"
+              className="enq-secondary"
+              disabled={
+                busy ||
+                !!attempt ||
+                !!selected ||
+                !!property ||
+                !!notes ||
+                !!start ||
+                !!end ||
+                !!occurred ||
+                !!agreed ||
+                phoneAccepted ||
+                reminderGuard
+              }
+              onClick={() => {
+                linkedHandled.current = false;
+                setLinkedDetail(null);
+                setLinkedBusy(true);
+                setLinkedRead((value) => value + 1);
+              }}
+            >
+              Refresh linked viewing
+            </button>
+            <button
+              type="button"
+              className="enq-secondary"
+              disabled={historyBusy}
+              onClick={() => void loadHistory(linkedDetail.schedule.viewingId)}
+            >
+              Read linked viewing history
+            </button>
+            {(['requested', 'proposed', 'confirmed'].includes(linkedDetail.schedule.status)
+              ? [
+                  ...(linkedDetail.schedule.status === 'requested'
+                    ? [['propose', 'Prepare a proposed time'] as const]
+                    : []),
+                  ...(linkedDetail.schedule.status === 'proposed'
+                    ? [['confirm', 'Prepare phone agreement'] as const]
+                    : []),
+                  ...(['proposed', 'confirmed'].includes(linkedDetail.schedule.status)
+                    ? [['reschedule', 'Prepare a new slot'] as const]
+                    : []),
+                  ['cancel', 'Prepare cancellation'] as const,
+                  ...(['requested', 'proposed'].includes(linkedDetail.schedule.status)
+                    ? [['decline', 'Prepare decline'] as const]
+                    : []),
+                  ...(linkedDetail.schedule.status === 'confirmed' &&
+                  Date.parse(linkedDetail.schedule.proposedSlot?.endAt ?? '') <= Date.now()
+                    ? [
+                        ['complete', 'Prepare staff-reported completion'] as const,
+                        ['no_show', 'Prepare staff-reported no-show'] as const,
+                      ]
+                    : []),
+                  ...(linkedDetail.schedule.status === 'confirmed' && reminderCaptureEnabled
+                    ? [['reminder', 'Prepare synthetic reminder capture'] as const]
+                    : []),
+                ]
+              : []
+            ).map(([action, label]) => (
+              <button
+                key={action}
+                type="button"
+                className="enq-secondary"
+                disabled={
+                  busy ||
+                  !!attempt ||
+                  !!selected ||
+                  !!property ||
+                  !!notes ||
+                  !!start ||
+                  !!end ||
+                  !!occurred ||
+                  !!agreed ||
+                  phoneAccepted ||
+                  reminderGuard
+                }
+                onClick={() => choose(linkedDetail, action)}
+              >
+                {label}
+              </button>
+            ))}
+          </section>
+        )}
         {version && !listingId && !selected && (
           <div>
             <label>

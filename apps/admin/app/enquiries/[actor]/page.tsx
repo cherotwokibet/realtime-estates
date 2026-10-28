@@ -42,9 +42,10 @@ export default async function EnquiryPage({
       </header>
       {scope && (actor === 'admin' || actor === 'agent') ? (
         <EnquiryWorkspace
-          key={`${scope.instanceId}:${target?.enquiryId ?? ''}:${target?.viewingId ?? ''}`}
+          key={`${scope.instanceId}:${target?.enquiryId ?? ''}:${target?.viewingId ?? ''}:${target?.viewingMode ?? ''}`}
           initialEnquiryId={target?.enquiryId}
           initialViewingId={target?.viewingId}
+          initialViewingMode={target?.viewingMode}
           actor={actor}
           actorId={scope.actorId}
           instanceId={scope.instanceId}

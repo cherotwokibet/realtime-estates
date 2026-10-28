@@ -6,9 +6,16 @@ import { fileURLToPath } from 'node:url';
 import { startStaffPreview } from '../apps/api/dev/staff-preview.mjs';
 if (process.env.NODE_ENV === 'production') throw Error('Operations preview refuses production.');
 const args = process.argv.slice(2);
-if (args.length > 1 || (args.length === 1 && args[0] !== '--reviews'))
-  throw Error('Use --reviews or omit it.');
+if (
+  new Set(args).size !== args.length ||
+  args.some((arg) => !['--reviews', '--reminders', '--lost-reminder-result'].includes(arg))
+)
+  throw Error('Use --reviews, or optional --reminders and --lost-reminder-result for enquiry QA.');
 const reviews = args.includes('--reviews');
+const reminders = args.includes('--reminders'),
+  lostReminder = args.includes('--lost-reminder-result');
+if ((reviews && (reminders || lostReminder)) || (lostReminder && !reminders))
+  throw Error('Reminder QA requires enquiry mode and explicit --reminders.');
 const port = process.env.OPERATIONS_UI_PORT ?? '3116';
 if (!/^[1-9]\d{3,4}$/.test(port) || Number(port) > 65535)
   throw Error('Invalid operations UI port.');
@@ -24,6 +31,8 @@ const preview = await startStaffPreview({
         enquiryPreview: 'synthetic-v1',
         enquiryCatalogue: 'synthetic-v1',
         historicalViewings: 'synthetic-v1',
+        ...(reminders ? { reminderCaptureMode: 'capture-only-v1' } : {}),
+        ...(lostReminder ? { reminderReplyFault: 'invalid-first-captured-v1' } : {}),
       }),
 });
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -50,7 +59,7 @@ const child = spawn(
       STAFF_PREVIEW_INSTANCE: randomUUID(),
       STAFF_PREVIEW_API_ORIGIN: preview.origin,
       STAFF_PREVIEW_MEDIA: '',
-      STAFF_REMINDER_CAPTURE_MODE: '',
+      STAFF_REMINDER_CAPTURE_MODE: reminders ? 'capture-only-v1' : '',
       STAFF_ENQUIRY_PREVIEW_MODE: reviews ? '' : 'synthetic-v1',
       STAFF_ENQUIRY_ADMIN_TOKEN: preview.enquiryStaff?.admin.bearerToken ?? '',
       STAFF_ENQUIRY_ADMIN_ID: preview.enquiryStaff?.admin.actorId ?? '',
@@ -64,6 +73,11 @@ const child = spawn(
 console.log(
   `Synthetic operations overview (${reviews ? 'reviews' : 'enquiries and outcomes'}): http://127.0.0.1:${port}/operations`,
 );
+if (!reviews) console.log(`Synthetic viewing calendar: http://127.0.0.1:${port}/viewings/admin`);
+if (reminders)
+  console.log(
+    `Reminder QA captures test records only; no outbound provider. First captured reply fault: ${lostReminder}.`,
+  );
 console.log(
   'Disposable synthetic data; no messages, production identity, provider or live-system changes.',
 );

@@ -2,6 +2,11 @@ import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
 import { staffEnquiryQueueQuery, EnquiryQueueInputError } from './enquiry-queue.js';
 import { readStaffOperationsOverview } from './operations-overview.js';
 import {
+  readStaffViewingCalendar,
+  viewingCalendarRequest,
+  ViewingCalendarInputError,
+} from './viewing-calendar.js';
+import {
   PUBLIC_REFERENCE_OPTIONS_SQL,
   publicReferenceOptions,
 } from './public-reference-options.js';
@@ -2352,6 +2357,29 @@ export function createApiService(
       if (path.startsWith('/v1/staff/') || v2Draft || enquiryQueueV3) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        if (path === '/v2/staff/viewings/calendar') {
+          if (method !== 'GET')
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Viewing calendar is read-only.', {
+              Allow: 'GET',
+            });
+          let window;
+          try {
+            window = viewingCalendarRequest(request);
+          } catch (error) {
+            if (error instanceof ViewingCalendarInputError)
+              throw new HttpError(
+                400,
+                'INVALID_INPUT',
+                'Provide one canonical UTC calendar window of at most31 days, without caller authority.',
+              );
+            throw error;
+          }
+          const result = await options.database.transaction(context, async (query) => {
+            await assertStaff(query);
+            return readStaffViewingCalendar(query, window);
+          });
+          return response(200, result, correlationId);
+        }
         if (path === '/v2/staff/operations/overview') {
           if (method !== 'GET')
             throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Operations overview is read-only.', {

@@ -2,12 +2,22 @@ import {
   PROPERTY_TYPES,
   validateStaffOperationsOverview,
   type StaffOperationsOverview,
+  validateStaffViewingCalendar,
+  validateViewingCalendarWindow,
+  type StaffViewingCalendar,
+  type ViewingCalendarWindow,
   kesFromMajor,
   parseSearchAreaPolygon,
   type RentalPeriod,
   type SearchAreaPolygon,
 } from '@realtor/domain';
 export { validateStaffOperationsOverview, type StaffOperationsOverview } from '@realtor/domain';
+export {
+  validateStaffViewingCalendar,
+  validateViewingCalendarWindow,
+  type StaffViewingCalendar,
+  type ViewingCalendarWindow,
+} from '@realtor/domain';
 import {
   validateRevisionProtocol,
   validateRevisionProtocolTarget,
@@ -3420,6 +3430,28 @@ export class RealtorApiClient {
       return validateStaffOperationsOverview(data);
     } catch {
       return invalid('INVALID_RESPONSE', 'Invalid operations overview.');
+    }
+  }
+  async getStaffViewingCalendar(
+    window: ViewingCalendarWindow,
+    options: StaffRequestOptions,
+  ): Promise<StaffViewingCalendar> {
+    const captured = uploadOptions(options);
+    let range: ViewingCalendarWindow;
+    try {
+      range = validateViewingCalendarWindow(window);
+    } catch {
+      return invalid('VALIDATION', 'Invalid calendar window.');
+    }
+    const data = await this.request(
+      `/v2/staff/viewings/calendar?fromAt=${encodeURIComponent(range.fromAt)}&untilAt=${encodeURIComponent(range.untilAt)}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateStaffViewingCalendar(data, range);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid viewing calendar.');
     }
   }
   async listStaffListingsV2(

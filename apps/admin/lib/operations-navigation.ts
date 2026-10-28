@@ -6,14 +6,16 @@ export function enquiryEntryTarget(query: EntryQuery) {
   const keys = Object.keys(query);
   if (!keys.length) return null;
   if (
-    keys.some((key) => !['enquiryId', 'viewingId'].includes(key)) ||
+    keys.some((key) => !['enquiryId', 'viewingId', 'viewingMode'].includes(key)) ||
     !uuid(query.enquiryId) ||
-    (query.viewingId !== undefined && !uuid(query.viewingId))
+    (query.viewingId !== undefined && !uuid(query.viewingId)) ||
+    (query.viewingMode !== undefined && (query.viewingMode !== 'inspect' || !uuid(query.viewingId)))
   )
     throw Error('Invalid enquiry target.');
   return Object.freeze({
     enquiryId: query.enquiryId,
     viewingId: query.viewingId as string | undefined,
+    ...(query.viewingMode === 'inspect' ? { viewingMode: 'inspect' as const } : {}),
   });
 }
 export function reviewEntryTarget(query: EntryQuery) {

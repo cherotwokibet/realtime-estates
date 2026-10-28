@@ -34,6 +34,7 @@ type Props = {
   reminderCaptureEnabled?: boolean;
   initialEnquiryId?: string;
   initialViewingId?: string;
+  initialViewingMode?: 'inspect';
 };
 type Attempt = {
   id: string;
@@ -78,6 +79,7 @@ export default function EnquiryWorkspace({
   reminderCaptureEnabled = false,
   initialEnquiryId,
   initialViewingId,
+  initialViewingMode,
 }: Props) {
   const client = useMemo(
     () => createEnquiryPreviewClient({ basePath: `/api/enquiry-preview/${actor}`, instanceId }),
@@ -451,9 +453,12 @@ export default function EnquiryWorkspace({
         {dirty || attempt || contactWork || viewingWork ? (
           <span>Finish or explicitly discard this work before switching roles.</span>
         ) : (
-          <a href={`/enquiries/${actor === 'admin' ? 'agent' : 'admin'}`}>
-            Open synthetic {actor === 'admin' ? 'agent' : 'admin'} workspace ↗
-          </a>
+          <>
+            <a href={`/viewings/${actor}`}>Viewing calendar</a>
+            <a href={`/enquiries/${actor === 'admin' ? 'agent' : 'admin'}`}>
+              Open synthetic {actor === 'admin' ? 'agent' : 'admin'} workspace ↗
+            </a>
+          </>
         )}
       </nav>
       <div className="enq-layout">
@@ -946,6 +951,7 @@ export default function EnquiryWorkspace({
           {selected && (
             <EnquiryViewings
               initialViewingId={selected === initialEnquiryId ? initialViewingId : undefined}
+              initialViewingMode={selected === initialEnquiryId ? initialViewingMode : undefined}
               reminderCaptureEnabled={reminderCaptureEnabled}
               key={`viewing:${actor}:${instanceId}:${selected}`}
               actor={actor}
