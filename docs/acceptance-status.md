@@ -8,6 +8,10 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| media216 | [evidence/2026-10-28-live-media-retirement/media-full-final.txt](evidence/2026-10-28-live-media-retirement/media-full-final.txt) · 1a2e18e | 207 passed; Windows / actual supervisor, codec, restricted SQL and filesystem plus contract doubles; live same-instance retirement, synthetic historical expiry fixtures, not production retention |
+| signed216 | [evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt](evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt) · 1a2e18e | 95 passed; Windows / complete current signed loopback HTTP, restricted SQL and actual native image boundaries; synthetic tenants only |
+| admin216 | [evidence/2026-10-28-live-media-retirement/admin-tests-final.txt](evidence/2026-10-28-live-media-retirement/admin-tests-final.txt) · 1a2e18e | 441 + 33 passed; Windows / compiled admin boundaries and SSR plus actual held-loopback transport cancellation; no device acceptance |
+| browser216 | [evidence/2026-10-28-live-media-retirement.md](evidence/2026-10-28-live-media-retirement.md) · 1a2e18e | Windows / actual synthetic native-backed admin browser cancellation, corrupt input, 0/3 refusal, 4/12 decoded gallery, 12 submission and narrow keyboard checks; thirteenth API refusal separate, no physical device |
 | media215 | [evidence/2026-10-28-expired-media-cleanup/media-full-current.txt](evidence/2026-10-28-expired-media-cleanup/media-full-current.txt) · 0595a6f | 205 passed; Windows / full media suite, actual native codec/supervisor, restricted SQL and owned-filesystem expiry plus contract doubles; offline foundation, not a running sweeper |
 | database215 | [evidence/2026-10-28-expired-media-cleanup/database-full-corrected.txt](evidence/2026-10-28-expired-media-cleanup/database-full-corrected.txt) · 0595a6f | 350 passed; Windows / complete corrected default-schema restricted PGlite regression including forced-RLS and separate exact processing/maintenance grants; no hosted PostgreSQL race claim |
 | calendar214 | [evidence/2026-10-28-viewing-calendar.md](evidence/2026-10-28-viewing-calendar.md) · 842f493 | Windows / actual synthetic browser request/calendar/confirmation/cancellation/history/reassignment and capture-only uncertainty recovery; no external delivery or device acceptance |
@@ -71,10 +75,10 @@ Next: Implement provider-backed logout/expiry and verify two tabs plus native st
 **R-005 · partial · GAP-AC-005**
 Original finding: Uploads stall without recovery.
 Expected: Per-file error/retry, draft retained, accepted files reused, one listing result, no public partial revision; expired objects cleaned and audited
-Observed: Upload cancellation/deadlines, interrupted sockets and single-attempt recovery are tested. Expired-unverified SQL admission and offline owned-byte fences preserve verified media/receipts; lost committed admission does not trigger deletion.
-Evidence: [media213](evidence/2026-10-28-upload-acceptance/media-full.txt), [media215](evidence/2026-10-28-expired-media-cleanup/media-full-current.txt), [database215](evidence/2026-10-28-expired-media-cleanup/database-full-corrected.txt), [api212](evidence/2026-10-28-operations-overview/api-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt)
-Still open: Whole-pipeline live quiescence and incomplete attempt workspace cleanup, controlled maintenance entry point/schedule and complete interrupted multi-file browser/device journey remain open.
-Next: Complete live process-safe cleanup and verify interrupted file3/4 recovery; never treat historical journal readback as deletion authority. Owner: Boniface + Codex.
+Observed: Actual browser Cancel at third upload preserved two photos and recovered the original confirmed stop. Live original-instance retirement/drain, exact authorized incomplete workspace cleanup, verified/reference protection and uncertainty guards passed locally.
+Evidence: [media216](evidence/2026-10-28-live-media-retirement/media-full-final.txt), [signed216](evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt), [admin216](evidence/2026-10-28-live-media-retirement/admin-tests-final.txt), [browser216](evidence/2026-10-28-live-media-retirement.md), [database215](evidence/2026-10-28-expired-media-cleanup/database-full-corrected.txt)
+Still open: Production provider retention/schedule/alerts, hosted process isolation and actual Android/iOS/operator interruption journeys remain open.
+Next: Verify staged provider lifecycle and actual devices; historical journals never grant new cleanup authority. Owner: Boniface + Codex.
 
 ### AC-006 — authentication UI
 
@@ -201,20 +205,20 @@ Next: Integrate the controlled notification provider and verify failed/delayed/s
 **R-018 · partial · GAP-AC-018**
 Original finding: Minimum photo rule inconsistent.
 Expected: Draft may save incomplete; submit4/12 succeeds,3/13 fails everywhere with matching text; cover/order preserved
-Observed: Photo contract and guarded attachment/submission boundaries execute in the current suites.
-Evidence: [domain212](evidence/2026-10-28-operations-overview/domain-full.txt), [api212](evidence/2026-10-28-operations-overview/api-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [media213](evidence/2026-10-28-upload-acceptance/media-full.txt)
-Still open: Current complete UI0/3/4/12/13 matrix with image-backed galleries has not been reaccepted.
-Next: Run the complete photo-count cases through actual upload, gallery ordering and submission controls. Owner: Boniface + Codex.
+Observed: Actual signed/native0/3/4/12/13 and duplicate-finalize checks passed. Browser0/3 submission refusal, four and twelve decoded images, disabled thirteenth selection and twelve-image pending confirmation observed.
+Evidence: [media216](evidence/2026-10-28-live-media-retirement/media-full-final.txt), [signed216](evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt), [admin216](evidence/2026-10-28-live-media-retirement/admin-tests-final.txt), [browser216](evidence/2026-10-28-live-media-retirement.md)
+Still open: Actual native devices, hosted concurrent catalogue/gallery changes and operator acceptance remain open; no browser4-image submit in this run is claimed.
+Next: Repeat the photo boundary/recovery matrix on release devices and staging; retain independent API thirteenth refusal. Owner: Boniface + Codex.
 
 ### AC-019 — hostile media
 
 **R-019 · partial · GAP-AC-019**
 Original finding: Invalid-image selection accepted.
 Expected: Invalid rejected before publication with per-file error; safe derivatives re-encoded/metadata stripped; private media inaccessible cross-tenant
-Observed: Actual JPEG/progressive JPEG/PNG/static WebP, metadata stripping, corrupt decode, dimension/byte caps and unsafe containers tested.
-Evidence: [media213](evidence/2026-10-28-upload-acceptance/media-full.txt), [api212](evidence/2026-10-28-operations-overview/api-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt)
-Still open: Complete per-file browser errors, production object access and device interruption matrix remain open.
-Next: Verify invalid selections and corrupt/oversized bytes in the actual editor and deployed object boundary. Owner: Boniface + Codex.
+Observed: Actual codec format/metadata/corrupt/dimension/byte caps plus browser corrupt input refusal and interrupted third-image recovery passed. Original failed native conversion readback now matches confirmed stop.
+Evidence: [media216](evidence/2026-10-28-live-media-retirement/media-full-final.txt), [signed216](evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt), [admin216](evidence/2026-10-28-live-media-retirement/admin-tests-final.txt), [browser216](evidence/2026-10-28-live-media-retirement.md)
+Still open: Production object access and actual device interruption/oversized-selection matrix remain open.
+Next: Verify deployed object isolation and complete invalid/oversized device selections with approved test bytes. Owner: Boniface + Codex.
 
 ### AC-020 — feedback author/content
 
@@ -378,6 +382,8 @@ Next: Run independent pooled-session races and rollback/delivery integrity cases
 
 ## Fixed defects and bounded retests
 
+- **FIX-216-01** (AC-005, AC-030): Retired byte handler parsed route/identity before refusing new admission. Retest: [signed216](evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt); retested_in_stated_environment. [Initial failure](evidence/2026-10-28-live-media-retirement/pipeline-focused.txt). Outer fence now refuses before body/identity/SQL; production hosting/retention remains open.
+- **FIX-216-02** (AC-005, AC-019): Failed native conversion PUT described confirmed failure while original GET described processing. Retest: [signed216](evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt); retested_in_stated_environment. [Initial failure](evidence/2026-10-28-live-media-retirement/native-photo-boundaries.txt). Matching retained failure facts are descriptive only; no new launch/deletion authority and no unknown-containment success.
 - **FIX-210-01** (AC-010, AC-024): Invalid GeoJSON disabled the interactive Clear area control. Retest: [search210](evidence/2026-10-28-search-and-enquiry-acceptance.md); retested_in_stated_environment. Full device/assistive-technology acceptance remains open.
 - **FIX-211-01** (AC-003, AC-009, AC-030): Ordinary property assignment dropped or reinterpreted an own __proto__ query key before validation. Retest: [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt); retested_in_stated_environment. No privilege compromise is asserted; production security matrix remains open.
 - **FIX-212-01** (AC-002, AC-003): Initial overview implementation queried a viewing table denied to the runtime role. Retest: [api212](evidence/2026-10-28-operations-overview/api-full.txt); retested_in_stated_environment. [Initial failure](evidence/2026-10-28-operations-overview/initial-direct-read-denied.txt). Fixed through a narrow SQL function; raw-table denial retained. No wider grants added.

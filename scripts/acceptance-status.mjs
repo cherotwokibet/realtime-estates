@@ -64,6 +64,7 @@ const commits = {
   foundation212: '86cf7ed329d804197de8c891f5647cde48f03406',
   calendar214: '842f4931e91061c5279819fa215ddf66267e32a3',
   media215: '0595a6f129950fb29ee4eba2a07389346c61a075',
+  media216: '1a2e18e714f2593284fe9511e39feed375263ff7',
 };
 for (const commit of Object.values(commits))
   execFileSync('git', ['merge-base', '--is-ancestor', commit, 'HEAD'], {
@@ -71,6 +72,34 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  media216: {
+    path: 'docs/evidence/2026-10-28-live-media-retirement/media-full-final.txt',
+    counts: [207],
+    commit: commits.media216,
+    environment:
+      'Windows / actual supervisor, codec, restricted SQL and filesystem plus contract doubles; live same-instance retirement, synthetic historical expiry fixtures, not production retention',
+  },
+  signed216: {
+    path: 'docs/evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt',
+    counts: [95],
+    commit: commits.media216,
+    environment:
+      'Windows / complete current signed loopback HTTP, restricted SQL and actual native image boundaries; synthetic tenants only',
+  },
+  admin216: {
+    path: 'docs/evidence/2026-10-28-live-media-retirement/admin-tests-final.txt',
+    counts: [441, 33],
+    commit: commits.media216,
+    environment:
+      'Windows / compiled admin boundaries and SSR plus actual held-loopback transport cancellation; no device acceptance',
+  },
+  browser216: {
+    path: 'docs/evidence/2026-10-28-live-media-retirement.md',
+    counts: null,
+    commit: commits.media216,
+    environment:
+      'Windows / actual synthetic native-backed admin browser cancellation, corrupt input, 0/3 refusal, 4/12 decoded gallery, 12 submission and narrow keyboard checks; thirteenth API refusal separate, no physical device',
+  },
   media215: {
     path: 'docs/evidence/2026-10-28-expired-media-cleanup/media-full-current.txt',
     counts: [205],
@@ -231,10 +260,10 @@ const reviewed = [
   [
     5,
     'partial',
-    ['media213', 'media215', 'database215', 'api212', 'sdk212', 'admin212'],
-    'Upload cancellation/deadlines, interrupted sockets and single-attempt recovery are tested. Expired-unverified SQL admission and offline owned-byte fences preserve verified media/receipts; lost committed admission does not trigger deletion.',
-    'Whole-pipeline live quiescence and incomplete attempt workspace cleanup, controlled maintenance entry point/schedule and complete interrupted multi-file browser/device journey remain open.',
-    'Complete live process-safe cleanup and verify interrupted file3/4 recovery; never treat historical journal readback as deletion authority.',
+    ['media216', 'signed216', 'admin216', 'browser216', 'database215'],
+    'Actual browser Cancel at third upload preserved two photos and recovered the original confirmed stop. Live original-instance retirement/drain, exact authorized incomplete workspace cleanup, verified/reference protection and uncertainty guards passed locally.',
+    'Production provider retention/schedule/alerts, hosted process isolation and actual Android/iOS/operator interruption journeys remain open.',
+    'Verify staged provider lifecycle and actual devices; historical journals never grant new cleanup authority.',
   ],
   [
     6,
@@ -335,18 +364,18 @@ const reviewed = [
   [
     18,
     'partial',
-    ['domain212', 'api212', 'admin212', 'media213'],
-    'Photo contract and guarded attachment/submission boundaries execute in the current suites.',
-    'Current complete UI0/3/4/12/13 matrix with image-backed galleries has not been reaccepted.',
-    'Run the complete photo-count cases through actual upload, gallery ordering and submission controls.',
+    ['media216', 'signed216', 'admin216', 'browser216'],
+    'Actual signed/native0/3/4/12/13 and duplicate-finalize checks passed. Browser0/3 submission refusal, four and twelve decoded images, disabled thirteenth selection and twelve-image pending confirmation observed.',
+    'Actual native devices, hosted concurrent catalogue/gallery changes and operator acceptance remain open; no browser4-image submit in this run is claimed.',
+    'Repeat the photo boundary/recovery matrix on release devices and staging; retain independent API thirteenth refusal.',
   ],
   [
     19,
     'partial',
-    ['media213', 'api212', 'sdk212', 'admin212'],
-    'Actual JPEG/progressive JPEG/PNG/static WebP, metadata stripping, corrupt decode, dimension/byte caps and unsafe containers tested.',
-    'Complete per-file browser errors, production object access and device interruption matrix remain open.',
-    'Verify invalid selections and corrupt/oversized bytes in the actual editor and deployed object boundary.',
+    ['media216', 'signed216', 'admin216', 'browser216'],
+    'Actual codec format/metadata/corrupt/dimension/byte caps plus browser corrupt input refusal and interrupted third-image recovery passed. Original failed native conversion readback now matches confirmed stop.',
+    'Production object access and actual device interruption/oversized-selection matrix remain open.',
+    'Verify deployed object isolation and complete invalid/oversized device selections with approved test bytes.',
   ],
   [
     20,
@@ -500,6 +529,27 @@ const entries = cases.map((item, index) => {
   };
 });
 const fixes = [
+  {
+    id: 'FIX-216-01',
+    cases: ['AC-005', 'AC-030'],
+    problem: 'Retired byte handler parsed route/identity before refusing new admission.',
+    status: 'retested_in_stated_environment',
+    evidence: 'signed216',
+    before: 'docs/evidence/2026-10-28-live-media-retirement/pipeline-focused.txt',
+    remaining:
+      'Outer fence now refuses before body/identity/SQL; production hosting/retention remains open.',
+  },
+  {
+    id: 'FIX-216-02',
+    cases: ['AC-005', 'AC-019'],
+    problem:
+      'Failed native conversion PUT described confirmed failure while original GET described processing.',
+    status: 'retested_in_stated_environment',
+    evidence: 'signed216',
+    before: 'docs/evidence/2026-10-28-live-media-retirement/native-photo-boundaries.txt',
+    remaining:
+      'Matching retained failure facts are descriptive only; no new launch/deletion authority and no unknown-containment success.',
+  },
   {
     id: 'FIX-210-01',
     cases: ['AC-010', 'AC-024'],
