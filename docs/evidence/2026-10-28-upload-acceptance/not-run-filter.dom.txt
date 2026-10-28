@@ -1,0 +1,177 @@
+- main:
+  - link "← Delivery checklist":
+    - /url: index.html
+  - paragraph: INDEPENDENT REBUILD / ACCEPTANCE EVIDENCE / 28 OCTOBER 2026
+  - heading "What was checked. What still needs work." [level=1]
+  - paragraph: Each original finding now leads to a replacement case, bounded execution evidence and an explicit next action. Old vendor results are historical evidence.
+  - paragraph:
+    - strong: No release acceptance is implied.
+    - text: Partial checks, not-run cases and deferred modules stay explicit. Suite totals overlap. Actual devices, provider/account facts, operator UAT and cutover gates remain open.
+  - strong: "24"
+  - text: original findings
+  - strong: "35"
+  - text: replacement cases linked
+  - strong: "4"
+  - text: bounded defect retests
+  - strong: 0 / 14
+  - text: accepted release gates
+  - region "Cases and next actions":
+    - heading "Cases and next actions" [level=2]
+    - text: Find a case, requirement or gap
+    - searchbox "Find a case, requirement or gap" [active]
+    - text: Evidence state
+    - combobox "Evidence state":
+      - option "All cases"
+      - option "Partial evidence"
+      - option "Not run" [selected]
+      - option "Deferred"
+      - option "Reserved correction"
+    - status: 7 cases shown
+    - article:
+      - heading "AC-006 · authentication UI" [level=3]
+      - generic: R-006 · GAP-AC-006
+      - generic: not run
+      - paragraph:
+        - strong: "Observed:"
+        - text: No replacement production password UI has been accepted.
+      - paragraph:
+        - strong: "Still open:"
+        - text: Provider login/reset/reveal UI and keyboard/screen-reader checks remain open.
+      - paragraph:
+        - strong: "Next:"
+        - text: Choose the controlled identity integration and test only dummy passwords.
+      - generic: "Owner: Boniface + Codex"
+      - generic "Expected result and evidence"
+    - article:
+      - heading "AC-020 · feedback author/content" [level=3]
+      - generic: R-020 · GAP-AC-020
+      - generic: not run
+      - paragraph:
+        - strong: "Observed:"
+        - text: Guest enquiry validation is a separate implemented feature and is not signed-in feedback acceptance.
+      - paragraph:
+        - strong: "Still open:"
+        - text: Signed-in feedback author binding, blank refusal and counter behavior remain unimplemented or unverified.
+      - paragraph:
+        - strong: "Next:"
+        - text: Implement scoped feedback if retained in launch scope and execute the separate acceptance case.
+      - generic: "Owner: Boniface + Codex"
+      - generic "Expected result and evidence"
+    - article:
+      - heading "AC-021 · contact and triage" [level=3]
+      - generic: R-021 · GAP-AC-021
+      - generic: not run
+      - paragraph:
+        - strong: "Observed:"
+        - text: No claim of verified call/WhatsApp ownership or an implemented fake-listing report/triage loop.
+      - paragraph:
+        - strong: "Still open:"
+        - text: Business contact handoff, durable report receipt and admin resolution remain open.
+      - paragraph:
+        - strong: "Next:"
+        - text: Build and test a private rate-limited report/triage loop plus approved contact destinations.
+      - generic: "Owner: Boniface + Codex"
+      - generic "Expected result and evidence"
+    - article:
+      - heading "AC-025 · finished policies" [level=3]
+      - generic: R-025 · GAP-AC-025
+      - generic: not run
+      - paragraph:
+        - strong: "Observed:"
+        - text: Company policy approval is not inferred from a configured text or notice-version field.
+      - paragraph:
+        - strong: "Still open:"
+        - text: Reviewed finished company-specific policies, contacts and accountable reviewer remain open.
+      - paragraph:
+        - strong: "Next:"
+        - text: Obtain approved policy content and verify every page/link/form notice version.
+      - generic: "Owner: Boniface + Codex"
+      - generic "Expected result and evidence"
+    - article:
+      - heading "AC-031 · migration reconciliation" [level=3]
+      - generic: Additional replacement gate · GAP-AC-031
+      - generic: not run
+      - paragraph:
+        - strong: "Observed:"
+        - text: A read-only synthetic import preview does not establish a staged migration.
+      - paragraph:
+        - strong: "Still open:"
+        - text: Authorized source export, durable idempotent import, checksum/count reconciliation and rollback remain open.
+      - paragraph:
+        - strong: "Next:"
+        - text: Resolve source rights/account access and perform an isolated approved staging rehearsal.
+      - generic: "Owner: Boniface + Codex"
+      - generic "Expected result and evidence"
+    - article:
+      - heading "AC-033 · budget and operations" [level=3]
+      - generic: Additional replacement gate · GAP-AC-033
+      - generic: not run
+      - paragraph:
+        - strong: "Observed:"
+        - text: KES10,000 remains a planning/client price baseline, not measured cost or profit.
+      - paragraph:
+        - strong: "Still open:"
+        - text: Per-company metering,70/85/100% alerting and throttles remain unimplemented or unverified.
+      - paragraph:
+        - strong: "Next:"
+        - text: Implement measured usage and test budget alerts without purchasing services.
+      - generic: "Owner: Boniface + Codex"
+      - generic "Expected result and evidence"
+    - article:
+      - heading "AC-034 · public/private performance" [level=3]
+      - generic: Additional replacement gate · GAP-AC-034
+      - generic: not run
+      - paragraph:
+        - strong: "Observed:"
+        - text: No current cold/warm representative-inventory load or field performance result is claimed.
+      - paragraph:
+        - strong: "Still open:"
+        - text: Public/private lab profiling, slow-network budgets and eventual field traffic metrics remain open.
+      - paragraph:
+        - strong: "Next:"
+        - text: Measure representative synthetic inventory in the selected deployment and record lab/field scope separately.
+      - generic: "Owner: Boniface + Codex"
+      - generic "Expected result and evidence"
+  - region "Fixed defects and bounded retests":
+    - heading "Fixed defects and bounded retests" [level=2]
+    - article:
+      - heading "FIX-210-01" [level=3]
+      - paragraph: Invalid GeoJSON disabled the interactive Clear area control.
+      - paragraph:
+        - text: AC-010, AC-024 ·
+        - link "search210":
+          - /url: evidence/2026-10-28-search-and-enquiry-acceptance.md
+      - paragraph: Full device/assistive-technology acceptance remains open.
+    - article:
+      - heading "FIX-211-01" [level=3]
+      - paragraph: Ordinary property assignment dropped or reinterpreted an own __proto__ query key before validation.
+      - paragraph:
+        - text: AC-003, AC-009, AC-030 ·
+        - link "sdk212":
+          - /url: evidence/2026-10-28-operations-overview/sdk-full.txt
+      - paragraph: No privilege compromise is asserted; production security matrix remains open.
+    - article:
+      - heading "FIX-212-01" [level=3]
+      - paragraph: Initial overview implementation queried a viewing table denied to the runtime role.
+      - paragraph:
+        - text: AC-002, AC-003 ·
+        - link "api212":
+          - /url: evidence/2026-10-28-operations-overview/api-full.txt
+      - paragraph: Fixed through a narrow SQL function; raw-table denial retained. No wider grants added.
+    - article:
+      - heading "FIX-212-02" [level=3]
+      - paragraph: New admin imports lacked extensions required by the test compiler.
+      - paragraph:
+        - text: AC-007 ·
+        - link "admin212":
+          - /url: evidence/2026-10-28-operations-overview/admin-tests-fixed.txt
+      - paragraph: Full native/startup/device acceptance remains open.
+  - link "Download structured case ledger":
+    - /url: acceptance-status.json
+  - text: ·
+  - link "Download detailed notes":
+    - /url: acceptance-status.md
+  - paragraph:
+    - text: Source report preserved byte-for-byte. Other text evidence hashes normalize CRLF to LF for portable checks. Run
+    - code: node scripts/acceptance-status.mjs
+    - text: in the canonical repository to verify the index. Maintenance does not close product defects automatically.

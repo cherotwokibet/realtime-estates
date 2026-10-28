@@ -1,0 +1,78 @@
+# Realtor System UAT — current assessment, 9 October 2026
+
+**Release recommendation: HOLD. Testing does not provide release acceptance.** Confirmed authorization, upload, pricing and workflow defects require fixes and retests. Registration negative cases, mailbox verification and platform-dependent gates remain open.
+
+260 registered checks: **129 PASS**, **72 FAIL**, **43 OBSERVATION**, **16 BLOCKED**. These are checks across baseline/continuations, not unique defects. OBSERVATION includes bounded/partial coverage. Blocked and unrun checks have not passed.
+
+## Scope and evidence
+
+Public app: https://property-rental-eccaf.web.app/#/home. Admin: https://propertyrentaladmin.web.app/. Existing authorized Adams/Peter/admin accounts used. User created/converted Adams; agent did not witness onboarding. Credentials are excluded from artifacts. Only the in-app browser was available; current public viewport1240×668. Actual mobile, cross-browser, backend code/rules and field analytics were unavailable. Gaps and user handoffs are detailed in [remaining gates](REMAINING-GATES.md).
+
+Inventoried18 source property concepts/72 variants in C:\Users\BONIFACE\Documents\ChatGPT\RealEstate. Source prices were absent: every test price is synthetic. 24 new source-backed variants approved, plus original Adams approved and Peter rejected probes. All nine property types and all eleven bedroom choices have positive rental evidence. This is risk-based coverage, not execution of all72 variants. Source media unchanged; selected288 JPEGs validated; nine-image control also validated. No fixture was marked verified.
+
+Authoritative outcomes: [test register](test-register.csv), [round2 evidence and findings](CONTINUATION-ROUND2.md), [current fixture manifest](evidence/seeded-fixtures.json), [boundary cases](price-boundary-cases.csv). Historical baseline is retained separately and superseded by this assessment.
+
+## Confirmed findings requiring triage
+
+Priority is proposed: P1 security/core reliability, P2 correctness/workflow/accessibility, P3 copy. No P0 or unproven exploit is asserted.
+
+| Priority | Finding | Reproduction / actual | Acceptance after fix | Evidence |
+|---|---|---|---|---|
+| P1 | Regular role can create listings | Sign in as Peter, open known addlisting route, submit source-backed fixture. Admin receives Peter listing despite hidden Add navigation. | Enforce listing-role authorization on writes and routes. | [Evidence](evidence/regular-role-probe-pending.jpg) |
+| P1 | Cross-account owner edit accepted | Peter opens Adams known listing editor and submits price20002; admin attributes request to Adams. Request rejected; approved20001 retained. | Enforce authenticated owner on read/edit/write and derive actor from authenticated session. | [Evidence](evidence/round2-cross-account-edit.jpg) |
+| P1 | Logout leaves private owner view in another tab | Logout in one public tab; another owner tab changes header to Log In but retains cards, Edit/Delete controls and private rejection notes until reload. No unauthenticated mutation asserted. | Clear private state and subscriptions in every tab on sign-out; recheck server permissions. | [Evidence](evidence/round2-logout-stale-owner.jpg) |
+| P1 | Uploads stall without recovery | Valid four-JPEG uploads intermittently stall25–75%; identical retry can save. Nine valid images stall7/9 then8/9. ThreeJPEG+MP4 stalls2/4. Generic Error, no useful per-file retry/cancel; reload loses draft. | Instrument failures; provide bounded timeout, retry/cancel and recoverable drafts; verify no partial/duplicate records. | [Evidence](evidence/round2-large-gallery-retry-stall.jpg) |
+| P1 | Admin password visible by default | Dummy password displayed unmasked without choosing visibility toggle. Real secrets excluded from evidence. | Mask by default and label optional visibility toggle. | [Evidence](evidence/admin-password-unmasked-test.jpg) |
+| P1 | Startup module failures | Both origins log Firebase import/module syntax errors and initially render blank before recovering. Exact causality of delay unproven. | Fix script/module bundling and add bounded loading/error recovery. | [Evidence](evidence/public-console.json) |
+| P2 | Edit bypasses minimum sale price | Creation rejects99999/min100000; owner edit0 reaches admin moderation. Invalid request rejected. | Use consistent server and client create/edit validation. | [Evidence](evidence/round2-zero-sale-edit.jpg) |
+| P2 | Strict Over bands include threshold | Rent Over50000 includes50000; Sale Over10M includes10000000. Neighbours below excluded, above included. | Use strict > or rename to and above; document endpoint policy. | [Evidence](evidence/round2-sale-over-ten-million.jpg) |
+| P2 | Selected filters disagree with results after navigation | Retained type/price chips appear selected while all cards render until Search is pressed. | Reapply retained filter state or reset chips when navigating. | [Evidence](evidence/round2-UAT-081.txt) |
+| P2 | Exact prices hidden by card rounding | 49999/50000/50001 all50K;9999999/10000000/10000001 all10M. Exact detail price remains available. | Display exact/localized KES price or useful precision, with rental period. | [Evidence](evidence/round2-R2-038.txt) |
+| P2 | Extra charges and totals are unclear | Sale999999 plus named fee1500: admin list999999, detail Total Price1500 and Extra Pay1500. Buyer shows base and named fee but no clear all-in total; bare KSH line remains. | Separate base/each fee/total and recurrence; reject empty extra rows; show fee names in admin. | [Evidence](evidence/round2-extra-charge-admin.jpg) |
+| P2 | Type/purpose columns use wrong values | Admin user listings Type shows Bedsitter; detail Property Type shows Rent/For Sale. | Use canonical purpose and property-type fields with correct labels. | [Evidence](evidence/round2-R2-011.txt) |
+| P2 | Bedroom and bathroom model loses detail | 8,9,10 represented only7+;7+ excludes exact7. No structured bathroom/shared-sanitation field. | Keep numeric bedroom counts, document grouped search meaning, model private/shared bathrooms. | [Evidence](evidence/round2-bedroom-matrix.json) |
+| P2 | Phone normalization fails | 070/010 or full254 number accepted unchanged beside+254 prefix. One-digit rejected. Canonical profile restored700000000. | Normalize E.164 and accept consistent Kenyan local/international formats. | [Evidence](evidence/round2-phone-trunk-prefix.jpg) |
+| P2 | Moderation states mislead owners | Success says live before approval; rejected Peter fixture still Active/Available; paused owner card still Available. Admin rejection once caused blank screen and recovered on reload. | Show pending/rejected/paused states and reasons consistently; handle moderation errors. | [Evidence](evidence/regular-role-probe-pending.jpg) |
+| P2 | Viewing/booking unavailable | Rent Book Now and Sale Book a Tour display Coming Soon while FAQ describes a viewing workflow. | Implement lifecycle or publish accurate availability; test cancellations/owner response/notifications/ledger end to end. | [Evidence](evidence/booking-coming-soon.jpg) |
+| P2 | Minimum photo rule inconsistent | Advertised minimum4; three-photo listing accepted. | Align UI/business rule/server validation. | [Evidence](evidence/photo-only-success.jpg) |
+| P2 | Invalid-image selection accepted | Plaintext .jpg renders broken Unable to play media preview; no submission performed. | Validate actual file content and show useful media errors. | [Evidence](evidence/round2-invalid-image-preview.jpg) |
+| P2 | Blank signed-in feedback persisted | Empty Post succeeds and increments counter. Guest Post correctly requires sign-in. | Trim and reject empty feedback; maintain auth checks. | [Evidence](evidence/empty-feedback-count.jpg) |
+| P2 | Contact/reporting gaps | WhatsApp reports Web do not support whatsapp calls. Report fake listing promised in FAQ but no control found. Call launch requires manual platform check. | Provide working contact links and report/triage loop with accessible feedback. | [Evidence](evidence/round2-UAT-099.txt) |
+| P2 | Commission taxonomy and currency differ | Commission options omit public types and include unrelated types; Payment Total Earnings uses$. Commission units/range/precision unclear; no rates saved and calculations not certified. | Canonical Kenyan types/KES, explicit units and validated rates; verify nonzero booking ledger. | [Evidence](evidence/commission-types.jpg) |
+| P2 | Admin modules blank | Ads Management and Support/Feedback show heading and blank body. | Implement queue/actions or useful empty/unavailable/error states. | [Evidence](evidence/support-management.jpg) |
+| P2 | Keyboard and accessible controls incomplete | Tab skips facility/bedroom chips; unnamed gallery/close/password controls; errors poorly associated. | Support keyboard, semantic names/focus/error announcements; complete WCAG2.2AA audit. | [Evidence](evidence/round2-login-controls.jpg) |
+| P3 | Terms contain unfinished copy | Editorial tail and literal Privacy Policy placeholder. | Publish reviewed finished text and working links. | [Evidence](evidence/terms.txt) |
+
+## Positive coverage and corrections
+
+- All nine public types return their known positive fixtures; all eleven bedroom choices return matching fixtures. Apartment1–7 and grouped8/9/10 tested. Combined Gachororo+Apartment+6beds+Over50000 returns only the intended fixture. Stable rental pagination20 distinct across10+10; admin pagination10.
+- All six rent and all five sale bands exercised with populated fixtures. Closed bands include both endpoints. Main-result cards were assessed separately from recommended/latest widgets. See [rental matrix](evidence/round2-price-matrix.json), [sale roundA](evidence/sale-boundary-round-a.json), [sale roundB](evidence/sale-boundary-round-b.json). Sale499999/500001/999999 were persisted but not separately searched before subsequent controlled edits; full39-input membership matrix is incomplete.
+- Create/pending/approve, approved-value preservation during edit review, approved edits and rejection retaining approved price were exercised. FAQ publication survived public reload. Admin search by name/email/phone and negative results worked.
+- Regular-user favourites add/reload/remove worked. Earlier global Save-failure diagnosis is withdrawn; owner-self Save remains a separate observation. Regular users see approved fixtures; owner exclusion from discovery is not a publication failure.
+- Edit values/photos load asynchronously. Original-media loss was not established; a later delayed gallery recovered all four photos after reload. Delayed publish acknowledgement was observed; a saved record with a delayed modal is not classified as permanent publishing failure.
+- Long Unicode title369characters and description4660characters persisted with four JPEGs. Harmless markup remained literal text; this smoke check is not an XSS audit. Guest feedback requires sign-in. Cold protected routes withheld owner data, but cross-tab stale private state fails logout acceptance.
+
+## Price rules that need product decisions
+
+Rent creation minimum5000; Sale creation minimum100000 observed. Decide whether these are Kenyan business requirements and what low-budget listings should do. Search intervals currently overlap at shared endpoints; either retain intentional inclusive overlap with clear labels or specify half-open partitions. Over bands must match their wording. Rental periods, fees, commissions and total amounts need explicit units throughout the journey. No real transaction occurred.
+
+## Test data and retained state
+
+Current new fixture IDs/prices/moderation are in the manifest. Sale fixtures3/4/7/11/12 moved through several approved synthetic boundaries; earlier evidence deliberately reflects earlier prices. Original Adams remains20001. Peter role probe rejected. Cross-account, zero-price, concurrent and ineffective-input controls rejected. A public FAQ explains UAT listings are synthetic/unavailable. One blank signed-in feedback persists as defect evidence. Adams profile phone restored to canonical700000000; no commission rates changed. Test fixtures remain identifiable for developer review/retest; no permanent deletion attempted.
+
+## Research-informed acceptance criteria
+
+These are proposed standards for this Kenyan product, not claims that Bayut or Property Finder uses the identical internal test suite.
+
+- **Discovery:** location, purpose, property type, beds/baths and price are central search dimensions on [Bayut](https://www.bayut.com/). [Property Finder](https://www.propertyfinder.ae/) also exposes amenities, saved/tracked property experiences and price-change notifications. Reproduce trustworthy matching and useful details before prioritizing decorative parity.
+- **Listing trust:** [Bayut TruCheck](https://www.bayut.com/agentportal/heres-your-guide-to-the-trucheck-badge/) focuses on availability/authenticity. [Property Finder listing verification](https://support.propertyfinder.ae/hc/en-us/articles/12069688916114-Listing-Verification) uses verification and eligibility rules. For Kenya, require agent/owner identity, authority to advertise, accurate location/media/price, availability freshness, moderation and a report-fake-listing loop. Do not transplant UAE document requirements without a Kenyan business/legal review.
+- **Test design:** use equivalence partitions, boundary values, state transitions and decision tables following the [ISTQB Foundation test techniques](https://astqb.org/4-2-black-box-test-techniques/). Trace requirements → fixtures → cases → evidence → defects → retests; pairwise combinations supplement exhaustive critical price/type/bedroom checks.
+- **Access control:** separate anonymous, regular, listing and admin actors, ownership and allowed actions. Follow [OWASP Authorization guidance](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html) and the [Web Security Testing Guide](https://owasp.org/www-project-web-security-testing-guide/). Verify backend denial with two dedicated accounts; hiding a button is insufficient.
+- **Accessibility:** target [WCAG 2.2 AA](https://www.w3.org/TR/WCAG22/), including keyboard operation, meaningful labels/error announcements, contrast, reflow and accessible authentication. Semantic activation alone is not a conformance audit.
+- **Performance:** proposed targets from [Google Web Vitals](https://web.dev/articles/vitals): LCP ≤2.5s, INP ≤200ms, CLS ≤0.1 at the 75th percentile, with mobile and desktop assessed separately. Agree practical search/detail/upload budgets and test Kenyan mobile-network conditions. No measured CWV verdict is available here.
+- **Kenyan context:** use KES, explicit rental periods, +254/07/01 phone handling, Nairobi time and accurate county/neighbourhood hierarchies. Review privacy operations and notices against [ODPC guidance](https://www.odpc.go.ke/guidelines-2/); this UAT is not legal certification.
+
+
+## Release exit criteria
+
+Fix and independently retest P1/P2, enforce server ownership/roles, make media uploads recoverable, reconcile exact prices/fees and moderation states, complete the real registration/viewing lifecycle, then close remaining device/accessibility/performance/backend gates. Obtain product decisions for endpoint inclusivity,7+ meaning, minimum prices and commission units. This report is a test record and remediation basis, not a claim of Bayut/Property Finder equivalence, security certification, legal clearance or exhaustive system testing.

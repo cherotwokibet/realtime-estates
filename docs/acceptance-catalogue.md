@@ -1,5 +1,7 @@
 # Replacement acceptance catalogue
 
+Current execution scope, source commits, evidence, open gaps and bounded defect retests are maintained in [acceptance-status.md](acceptance-status.md), with structured [JSON](acceptance-status.json) and a searchable [HTML index](acceptance-status.html). The original case specification below remains historical; suite totals never automatically close a complete acceptance case.
+
 Version 0.1 — 9 October 2026. Implements [business-rules.md](business-rules.md). This is a test specification, **not an executed test report**. Every case starts NOT RUN. Add test ID, build/commit, environment, actor/device, input, expected/actual result and evidence when executing; failed and blocked cases remain open until a verified retest. Existing vendor UAT passes never count as replacement passes.
 
 ## Evidence correction

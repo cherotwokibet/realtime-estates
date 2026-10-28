@@ -1,0 +1,102 @@
+- main:
+  - link "← Delivery checklist":
+    - /url: index.html
+  - paragraph: INDEPENDENT REBUILD / ACCEPTANCE EVIDENCE / 28 OCTOBER 2026
+  - heading "What was checked. What still needs work." [level=1]
+  - paragraph: Each original finding now leads to a replacement case, bounded execution evidence and an explicit next action. Old vendor results are historical evidence.
+  - paragraph:
+    - strong: No release acceptance is implied.
+    - text: Partial checks, not-run cases and deferred modules stay explicit. Suite totals overlap. Actual devices, provider/account facts, operator UAT and cutover gates remain open.
+  - strong: "24"
+  - text: original findings
+  - strong: "35"
+  - text: replacement cases linked
+  - strong: "4"
+  - text: bounded defect retests
+  - strong: 0 / 14
+  - text: accepted release gates
+  - region "Cases and next actions":
+    - heading "Cases and next actions" [level=2]
+    - text: Find a case, requirement or gap
+    - searchbox "Find a case, requirement or gap": AC-005
+    - text: Evidence state
+    - combobox "Evidence state" [active]:
+      - option "All cases" [selected]
+      - option "Partial evidence"
+      - option "Not run"
+      - option "Deferred"
+      - option "Reserved correction"
+    - status: 1 cases shown
+    - article:
+      - heading "AC-005 · interruption/idempotency" [level=3]
+      - generic: R-005 · GAP-AC-005
+      - generic: partial
+      - paragraph:
+        - strong: "Observed:"
+        - text: Blocked-body cancellation/deadlines, interrupted socket propagation, single-attempt processing and lost-result reconciliation are tested.
+      - paragraph:
+        - strong: "Still open:"
+        - text: Expired/incomplete batch retention cleanup and the complete interrupted multi-file browser/device journey remain open.
+      - paragraph:
+        - strong: "Next:"
+        - text: Implement auditable retention/cleanup without deleting referenced outputs; verify interrupted file3/4 and original-operation recovery.
+      - generic: "Owner: Boniface + Codex"
+      - generic "Expected result and evidence"
+      - paragraph: "Original finding: Uploads stall without recovery"
+      - paragraph: Per-file error/retry, draft retained, accepted files reused, one listing result, no public partial revision; expired objects cleaned and audited
+      - paragraph:
+        - link "media213":
+          - /url: evidence/2026-10-28-upload-acceptance/media-full.txt
+        - text: ·
+        - link "api212":
+          - /url: evidence/2026-10-28-operations-overview/api-full.txt
+        - text: ·
+        - link "sdk212":
+          - /url: evidence/2026-10-28-operations-overview/sdk-full.txt
+        - text: ·
+        - link "admin212":
+          - /url: evidence/2026-10-28-operations-overview/admin-tests-fixed.txt
+      - paragraph: No complete release-case pass recorded.
+  - region "Fixed defects and bounded retests":
+    - heading "Fixed defects and bounded retests" [level=2]
+    - article:
+      - heading "FIX-210-01" [level=3]
+      - paragraph: Invalid GeoJSON disabled the interactive Clear area control.
+      - paragraph:
+        - text: AC-010, AC-024 ·
+        - link "search210":
+          - /url: evidence/2026-10-28-search-and-enquiry-acceptance.md
+      - paragraph: Full device/assistive-technology acceptance remains open.
+    - article:
+      - heading "FIX-211-01" [level=3]
+      - paragraph: Ordinary property assignment dropped or reinterpreted an own __proto__ query key before validation.
+      - paragraph:
+        - text: AC-003, AC-009, AC-030 ·
+        - link "sdk212":
+          - /url: evidence/2026-10-28-operations-overview/sdk-full.txt
+      - paragraph: No privilege compromise is asserted; production security matrix remains open.
+    - article:
+      - heading "FIX-212-01" [level=3]
+      - paragraph: Initial overview implementation queried a viewing table denied to the runtime role.
+      - paragraph:
+        - text: AC-002, AC-003 ·
+        - link "api212":
+          - /url: evidence/2026-10-28-operations-overview/api-full.txt
+      - paragraph: Fixed through a narrow SQL function; raw-table denial retained. No wider grants added.
+    - article:
+      - heading "FIX-212-02" [level=3]
+      - paragraph: New admin imports lacked extensions required by the test compiler.
+      - paragraph:
+        - text: AC-007 ·
+        - link "admin212":
+          - /url: evidence/2026-10-28-operations-overview/admin-tests-fixed.txt
+      - paragraph: Full native/startup/device acceptance remains open.
+  - link "Download structured case ledger":
+    - /url: acceptance-status.json
+  - text: ·
+  - link "Download detailed notes":
+    - /url: acceptance-status.md
+  - paragraph:
+    - text: Source report preserved byte-for-byte. Other text evidence hashes normalize CRLF to LF for portable checks. Run
+    - code: node scripts/acceptance-status.mjs
+    - text: in the canonical repository to verify the index. Maintenance does not close product defects automatically.

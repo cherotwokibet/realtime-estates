@@ -1,5 +1,7 @@
 # UAT to replacement requirements
 
+Current replacement execution and unresolved work: [maintained case/evidence/defect index](acceptance-status.md). All 24 substantive findings are reconciled against a byte-identical report snapshot; R-001 remains reserved. This linkage does not import any vendor PASS or establish a complete replacement release-case pass.
+
 Source: UAT-2026-10-09/UAT-REPORT.md, 9 October 2026. Existing results are evidence about the vendor product, never replacement passes. Every requirement below is proposed and must be independently retested.
 
 | ID    | Priority | Existing finding                                        | Decision                                             | Replacement acceptance                                                                                                   |
