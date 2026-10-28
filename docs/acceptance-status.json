@@ -19,6 +19,64 @@
     "caseCount": 35
   },
   "executions": {
+    "api217": {
+      "path": "docs/evidence/2026-10-29-public-gallery/api-full.txt",
+      "counts": [
+        307
+      ],
+      "commit": "0951abc2ce40f0390b16c7c856e46addc628ed45",
+      "environment": "Windows / full current API, public anonymous sealed-image boundary and retained draft/reviewer authorization; SQL/adapters plus doubles",
+      "sha256": "a0edfaa295d55094918b9185cf341ce4c8781acd20870e3b2c7570ea8a46a0d4",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "observedDate": "2026-10-28",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
+    "database217": {
+      "path": "docs/evidence/2026-10-29-public-gallery/database-full.txt",
+      "counts": [
+        353
+      ],
+      "commit": "0951abc2ce40f0390b16c7c856e46addc628ed45",
+      "environment": "Windows / full default-schema restricted PGlite including public-current publication/freshness/provenance and role checks; no hosted concurrent sessions",
+      "sha256": "8ce4840842f7dc2f0da9a6d85cf157b78c8ec68332903f8676c9ba45f084b26f",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "observedDate": "2026-10-28",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
+    "web217": {
+      "path": "docs/evidence/2026-10-29-public-gallery/web-full-final.txt",
+      "counts": [
+        107
+      ],
+      "commit": "0951abc2ce40f0390b16c7c856e46addc628ed45",
+      "environment": "Windows / compiled web models, SSR markup and bounded anonymous proxy transport tests; physical devices not exercised",
+      "sha256": "9c4a5262d537d73734e20aa7f7d85fc89f6e1967eca2afae2180d8b812f781d5",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "observedDate": "2026-10-28",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
+    "signed217": {
+      "path": "docs/evidence/2026-10-29-public-gallery/signed-http-full.txt",
+      "counts": [
+        96
+      ],
+      "commit": "0951abc2ce40f0390b16c7c856e46addc628ed45",
+      "environment": "Windows / complete signed loopback HTTP and restricted SQL; actual four-image native upload/codec/approval/anonymous decode/pause journey included",
+      "sha256": "324fab7561a3be475c4389809d611111dbbed0d80922756c16969db9282b1ab0",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "observedDate": "2026-10-28",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
+    "browser217": {
+      "path": "docs/evidence/2026-10-29-public-gallery.md",
+      "counts": null,
+      "commit": "0951abc2ce40f0390b16c7c856e46addc628ed45",
+      "environment": "Windows / actual public Next/native browser gallery, keyboard pause/error/refresh/resume, four decoded images, exact fees and320/390px layout/area privacy; no real device/operator/full accessibility audit",
+      "sha256": "2cb4396f9041787f0eac278cbe20d8851f1f1637b4b7d1854b0b8d605e97d5ed",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "observedDate": "2026-10-28",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
     "media216": {
       "path": "docs/evidence/2026-10-28-live-media-retirement/media-full-final.txt",
       "counts": [
@@ -487,9 +545,11 @@
       "evidence": [
         "search210",
         "operations212",
-        "domain212"
+        "domain212",
+        "browser217",
+        "web217"
       ],
-      "observed": "Exact web/admin KES and period presentation observed; domain money rules tested.",
+      "observed": "Exact web/admin KES and period presentation observed, including connected public base/recurring/deposit/initial figures at320px; domain money rules tested.",
       "remaining": "Favourites and actual mobile exact-price presentation are incomplete or unverified.",
       "nextAction": "Build favourites and verify the neighbouring prices in every listed surface.",
       "owner": "Boniface + Codex",
@@ -510,14 +570,16 @@
       "releaseCasePassed": false,
       "evidence": [
         "domain212",
-        "api212",
+        "api217",
         "sdk212",
         "admin212",
-        "operations212"
+        "operations212",
+        "browser217",
+        "web217"
       ],
-      "observed": "Exact fee/period/quote-required contract and rendered submitted review costs are verified locally.",
-      "remaining": "Public/native full fee disclosure and normalized authoring/import acceptance remain open.",
-      "nextAction": "Verify base, named recurring fees, deposits and unknown quotes end to end across applications.",
+      "observed": "Exact fee/period/quote-required contract, submitted review and connected public named fees/deposit/initial subtotals are verified locally, including320px disclosure.",
+      "remaining": "Native full fee disclosure and normalized authoring/import acceptance remain open.",
+      "nextAction": "Repeat all known/unknown fee cases through normalized authoring and actual native devices.",
       "owner": "Boniface + Codex",
       "gapId": "GAP-AC-012"
     },
@@ -659,9 +721,11 @@
       "releaseCasePassed": false,
       "evidence": [
         "media216",
-        "signed216",
+        "signed217",
         "admin216",
-        "browser216"
+        "browser216",
+        "api217",
+        "browser217"
       ],
       "observed": "Actual signed/native0/3/4/12/13 and duplicate-finalize checks passed. Browser0/3 submission refusal, four and twelve decoded images, disabled thirteenth selection and twelve-image pending confirmation observed.",
       "remaining": "Actual native devices, hosted concurrent catalogue/gallery changes and operator acceptance remain open; no browser4-image submit in this run is claimed.",
@@ -684,12 +748,15 @@
       "releaseCasePassed": false,
       "evidence": [
         "media216",
-        "signed216",
+        "signed217",
         "admin216",
-        "browser216"
+        "browser216",
+        "api217",
+        "database217",
+        "browser217"
       ],
-      "observed": "Actual codec format/metadata/corrupt/dimension/byte caps plus browser corrupt input refusal and interrupted third-image recovery passed. Original failed native conversion readback now matches confirmed stop.",
-      "remaining": "Production object access and actual device interruption/oversized-selection matrix remain open.",
+      "observed": "Actual codec format/metadata/corrupt/dimension/byte caps and upload recovery passed. Public bytes now require current approved/fresh publication and matching native seals before/after I/O; four actual anonymous WebPs decoded and pause denied later access.",
+      "remaining": "Production object provider access and actual device interruption/oversized-selection matrix remain open.",
       "nextAction": "Verify deployed object isolation and complete invalid/oversized device selections with approved test bytes.",
       "owner": "Boniface + Codex",
       "gapId": "GAP-AC-019"
@@ -794,9 +861,11 @@
         "search210",
         "operations212",
         "admin212",
-        "mobile211"
+        "mobile211",
+        "browser217",
+        "web217"
       ],
-      "observed": "Specific keyboard focus, narrow browser layout and labelled SSR/native component checks executed.",
+      "observed": "Specific keyboard focus and labelled component checks executed; public gallery Enter collapse/reopen plus320/390px costs/gallery showed no horizontal overflow.",
       "remaining": "No complete WCAG2.2AA, assistive-technology, 320px/200% text or Android/iOS process audit has passed.",
       "nextAction": "Run and remediate the complete accessibility/browser/device matrix.",
       "owner": "Boniface + Codex",
@@ -894,11 +963,13 @@
       "releaseCasePassed": false,
       "evidence": [
         "domain212",
-        "api212",
-        "signed212",
-        "operations212"
+        "api217",
+        "signed217",
+        "operations212",
+        "database217",
+        "browser217"
       ],
-      "observed": "Availability guards and new720-hour stale queue selection distinguish fresh/paused/foreign stock in restricted SQL.",
+      "observed": "Availability guards,720-hour stale queue and public image SQL eligibility distinguish fresh/paused/stale/foreign stock. Actual browser pause removes newly requested bytes/public page; resume restores four decoded images.",
       "remaining": "The complete21/30-day prompt/public exclusion/reconfirmation matrix on deployed applications remains open.",
       "nextAction": "Verify exact cutoff neighbours and restoration/pause/archive precedence in current UI and staging.",
       "owner": "Boniface + Codex",

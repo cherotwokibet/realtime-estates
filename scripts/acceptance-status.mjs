@@ -65,6 +65,7 @@ const commits = {
   calendar214: '842f4931e91061c5279819fa215ddf66267e32a3',
   media215: '0595a6f129950fb29ee4eba2a07389346c61a075',
   media216: '1a2e18e714f2593284fe9511e39feed375263ff7',
+  gallery217: '0951abc2ce40f0390b16c7c856e46addc628ed45',
 };
 for (const commit of Object.values(commits))
   execFileSync('git', ['merge-base', '--is-ancestor', commit, 'HEAD'], {
@@ -72,6 +73,41 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  api217: {
+    path: 'docs/evidence/2026-10-29-public-gallery/api-full.txt',
+    counts: [307],
+    commit: commits.gallery217,
+    environment:
+      'Windows / full current API, public anonymous sealed-image boundary and retained draft/reviewer authorization; SQL/adapters plus doubles',
+  },
+  database217: {
+    path: 'docs/evidence/2026-10-29-public-gallery/database-full.txt',
+    counts: [353],
+    commit: commits.gallery217,
+    environment:
+      'Windows / full default-schema restricted PGlite including public-current publication/freshness/provenance and role checks; no hosted concurrent sessions',
+  },
+  web217: {
+    path: 'docs/evidence/2026-10-29-public-gallery/web-full-final.txt',
+    counts: [107],
+    commit: commits.gallery217,
+    environment:
+      'Windows / compiled web models, SSR markup and bounded anonymous proxy transport tests; physical devices not exercised',
+  },
+  signed217: {
+    path: 'docs/evidence/2026-10-29-public-gallery/signed-http-full.txt',
+    counts: [96],
+    commit: commits.gallery217,
+    environment:
+      'Windows / complete signed loopback HTTP and restricted SQL; actual four-image native upload/codec/approval/anonymous decode/pause journey included',
+  },
+  browser217: {
+    path: 'docs/evidence/2026-10-29-public-gallery.md',
+    counts: null,
+    commit: commits.gallery217,
+    environment:
+      'Windows / actual public Next/native browser gallery, keyboard pause/error/refresh/resume, four decoded images, exact fees and320/390px layout/area privacy; no real device/operator/full accessibility audit',
+  },
   media216: {
     path: 'docs/evidence/2026-10-28-live-media-retirement/media-full-final.txt',
     counts: [207],
@@ -308,18 +344,18 @@ const reviewed = [
   [
     11,
     'partial',
-    ['search210', 'operations212', 'domain212'],
-    'Exact web/admin KES and period presentation observed; domain money rules tested.',
+    ['search210', 'operations212', 'domain212', 'browser217', 'web217'],
+    'Exact web/admin KES and period presentation observed, including connected public base/recurring/deposit/initial figures at320px; domain money rules tested.',
     'Favourites and actual mobile exact-price presentation are incomplete or unverified.',
     'Build favourites and verify the neighbouring prices in every listed surface.',
   ],
   [
     12,
     'partial',
-    ['domain212', 'api212', 'sdk212', 'admin212', 'operations212'],
-    'Exact fee/period/quote-required contract and rendered submitted review costs are verified locally.',
-    'Public/native full fee disclosure and normalized authoring/import acceptance remain open.',
-    'Verify base, named recurring fees, deposits and unknown quotes end to end across applications.',
+    ['domain212', 'api217', 'sdk212', 'admin212', 'operations212', 'browser217', 'web217'],
+    'Exact fee/period/quote-required contract, submitted review and connected public named fees/deposit/initial subtotals are verified locally, including320px disclosure.',
+    'Native full fee disclosure and normalized authoring/import acceptance remain open.',
+    'Repeat all known/unknown fee cases through normalized authoring and actual native devices.',
   ],
   [
     13,
@@ -364,7 +400,7 @@ const reviewed = [
   [
     18,
     'partial',
-    ['media216', 'signed216', 'admin216', 'browser216'],
+    ['media216', 'signed217', 'admin216', 'browser216', 'api217', 'browser217'],
     'Actual signed/native0/3/4/12/13 and duplicate-finalize checks passed. Browser0/3 submission refusal, four and twelve decoded images, disabled thirteenth selection and twelve-image pending confirmation observed.',
     'Actual native devices, hosted concurrent catalogue/gallery changes and operator acceptance remain open; no browser4-image submit in this run is claimed.',
     'Repeat the photo boundary/recovery matrix on release devices and staging; retain independent API thirteenth refusal.',
@@ -372,9 +408,9 @@ const reviewed = [
   [
     19,
     'partial',
-    ['media216', 'signed216', 'admin216', 'browser216'],
-    'Actual codec format/metadata/corrupt/dimension/byte caps plus browser corrupt input refusal and interrupted third-image recovery passed. Original failed native conversion readback now matches confirmed stop.',
-    'Production object access and actual device interruption/oversized-selection matrix remain open.',
+    ['media216', 'signed217', 'admin216', 'browser216', 'api217', 'database217', 'browser217'],
+    'Actual codec format/metadata/corrupt/dimension/byte caps and upload recovery passed. Public bytes now require current approved/fresh publication and matching native seals before/after I/O; four actual anonymous WebPs decoded and pause denied later access.',
+    'Production object provider access and actual device interruption/oversized-selection matrix remain open.',
     'Verify deployed object isolation and complete invalid/oversized device selections with approved test bytes.',
   ],
   [
@@ -412,8 +448,8 @@ const reviewed = [
   [
     24,
     'partial',
-    ['search210', 'operations212', 'admin212', 'mobile211'],
-    'Specific keyboard focus, narrow browser layout and labelled SSR/native component checks executed.',
+    ['search210', 'operations212', 'admin212', 'mobile211', 'browser217', 'web217'],
+    'Specific keyboard focus and labelled component checks executed; public gallery Enter collapse/reopen plus320/390px costs/gallery showed no horizontal overflow.',
     'No complete WCAG2.2AA, assistive-technology, 320px/200% text or Android/iOS process audit has passed.',
     'Run and remediate the complete accessibility/browser/device matrix.',
   ],
@@ -452,8 +488,8 @@ const reviewed = [
   [
     29,
     'partial',
-    ['domain212', 'api212', 'signed212', 'operations212'],
-    'Availability guards and new720-hour stale queue selection distinguish fresh/paused/foreign stock in restricted SQL.',
+    ['domain212', 'api217', 'signed217', 'operations212', 'database217', 'browser217'],
+    'Availability guards,720-hour stale queue and public image SQL eligibility distinguish fresh/paused/stale/foreign stock. Actual browser pause removes newly requested bytes/public page; resume restores four decoded images.',
     'The complete21/30-day prompt/public exclusion/reconfirmation matrix on deployed applications remains open.',
     'Verify exact cutoff neighbours and restoration/pause/archive precedence in current UI and staging.',
   ],

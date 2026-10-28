@@ -8,6 +8,11 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| api217 | [evidence/2026-10-29-public-gallery/api-full.txt](evidence/2026-10-29-public-gallery/api-full.txt) · 0951abc | 307 passed; Windows / full current API, public anonymous sealed-image boundary and retained draft/reviewer authorization; SQL/adapters plus doubles |
+| database217 | [evidence/2026-10-29-public-gallery/database-full.txt](evidence/2026-10-29-public-gallery/database-full.txt) · 0951abc | 353 passed; Windows / full default-schema restricted PGlite including public-current publication/freshness/provenance and role checks; no hosted concurrent sessions |
+| web217 | [evidence/2026-10-29-public-gallery/web-full-final.txt](evidence/2026-10-29-public-gallery/web-full-final.txt) · 0951abc | 107 passed; Windows / compiled web models, SSR markup and bounded anonymous proxy transport tests; physical devices not exercised |
+| signed217 | [evidence/2026-10-29-public-gallery/signed-http-full.txt](evidence/2026-10-29-public-gallery/signed-http-full.txt) · 0951abc | 96 passed; Windows / complete signed loopback HTTP and restricted SQL; actual four-image native upload/codec/approval/anonymous decode/pause journey included |
+| browser217 | [evidence/2026-10-29-public-gallery.md](evidence/2026-10-29-public-gallery.md) · 0951abc | Windows / actual public Next/native browser gallery, keyboard pause/error/refresh/resume, four decoded images, exact fees and320/390px layout/area privacy; no real device/operator/full accessibility audit |
 | media216 | [evidence/2026-10-28-live-media-retirement/media-full-final.txt](evidence/2026-10-28-live-media-retirement/media-full-final.txt) · 1a2e18e | 207 passed; Windows / actual supervisor, codec, restricted SQL and filesystem plus contract doubles; live same-instance retirement, synthetic historical expiry fixtures, not production retention |
 | signed216 | [evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt](evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt) · 1a2e18e | 95 passed; Windows / complete current signed loopback HTTP, restricted SQL and actual native image boundaries; synthetic tenants only |
 | admin216 | [evidence/2026-10-28-live-media-retirement/admin-tests-final.txt](evidence/2026-10-28-live-media-retirement/admin-tests-final.txt) · 1a2e18e | 441 + 33 passed; Windows / compiled admin boundaries and SSR plus actual held-loopback transport cancellation; no device acceptance |
@@ -135,8 +140,8 @@ Next: Run persisted native filter restart/clear/back checks on an available devi
 **R-011 · partial · GAP-AC-011**
 Original finding: Exact prices hidden by card rounding.
 Expected: Distinct exact localized prices and currency/period; abbreviated price never sole comparison label
-Observed: Exact web/admin KES and period presentation observed; domain money rules tested.
-Evidence: [search210](evidence/2026-10-28-search-and-enquiry-acceptance.md), [operations212](evidence/2026-10-28-operations-overview.md), [domain212](evidence/2026-10-28-operations-overview/domain-full.txt)
+Observed: Exact web/admin KES and period presentation observed, including connected public base/recurring/deposit/initial figures at320px; domain money rules tested.
+Evidence: [search210](evidence/2026-10-28-search-and-enquiry-acceptance.md), [operations212](evidence/2026-10-28-operations-overview.md), [domain212](evidence/2026-10-28-operations-overview/domain-full.txt), [browser217](evidence/2026-10-29-public-gallery.md), [web217](evidence/2026-10-29-public-gallery/web-full-final.txt)
 Still open: Favourites and actual mobile exact-price presentation are incomplete or unverified.
 Next: Build favourites and verify the neighbouring prices in every listed surface. Owner: Boniface + Codex.
 
@@ -145,10 +150,10 @@ Next: Build favourites and verify the neighbouring prices in every listed surfac
 **R-012 · partial · GAP-AC-012**
 Original finding: Extra charges and totals are unclear.
 Expected: Sale known1,001,499; rent recurring21,000 and initial41,500 with deposit separated. Blank rows rejected; unknown mandatory fee prevents all-in claim. V2 preserves explicit quote-required null amounts and undeclared/incomplete coverage through shared rules, SQL snapshots and API/client; verify the rendered journey separately
-Observed: Exact fee/period/quote-required contract and rendered submitted review costs are verified locally.
-Evidence: [domain212](evidence/2026-10-28-operations-overview/domain-full.txt), [api212](evidence/2026-10-28-operations-overview/api-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [operations212](evidence/2026-10-28-operations-overview.md)
-Still open: Public/native full fee disclosure and normalized authoring/import acceptance remain open.
-Next: Verify base, named recurring fees, deposits and unknown quotes end to end across applications. Owner: Boniface + Codex.
+Observed: Exact fee/period/quote-required contract, submitted review and connected public named fees/deposit/initial subtotals are verified locally, including320px disclosure.
+Evidence: [domain212](evidence/2026-10-28-operations-overview/domain-full.txt), [api217](evidence/2026-10-29-public-gallery/api-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [operations212](evidence/2026-10-28-operations-overview.md), [browser217](evidence/2026-10-29-public-gallery.md), [web217](evidence/2026-10-29-public-gallery/web-full-final.txt)
+Still open: Native full fee disclosure and normalized authoring/import acceptance remain open.
+Next: Repeat all known/unknown fee cases through normalized authoring and actual native devices. Owner: Boniface + Codex.
 
 ### AC-013 — canonical labels
 
@@ -206,7 +211,7 @@ Next: Integrate the controlled notification provider and verify failed/delayed/s
 Original finding: Minimum photo rule inconsistent.
 Expected: Draft may save incomplete; submit4/12 succeeds,3/13 fails everywhere with matching text; cover/order preserved
 Observed: Actual signed/native0/3/4/12/13 and duplicate-finalize checks passed. Browser0/3 submission refusal, four and twelve decoded images, disabled thirteenth selection and twelve-image pending confirmation observed.
-Evidence: [media216](evidence/2026-10-28-live-media-retirement/media-full-final.txt), [signed216](evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt), [admin216](evidence/2026-10-28-live-media-retirement/admin-tests-final.txt), [browser216](evidence/2026-10-28-live-media-retirement.md)
+Evidence: [media216](evidence/2026-10-28-live-media-retirement/media-full-final.txt), [signed217](evidence/2026-10-29-public-gallery/signed-http-full.txt), [admin216](evidence/2026-10-28-live-media-retirement/admin-tests-final.txt), [browser216](evidence/2026-10-28-live-media-retirement.md), [api217](evidence/2026-10-29-public-gallery/api-full.txt), [browser217](evidence/2026-10-29-public-gallery.md)
 Still open: Actual native devices, hosted concurrent catalogue/gallery changes and operator acceptance remain open; no browser4-image submit in this run is claimed.
 Next: Repeat the photo boundary/recovery matrix on release devices and staging; retain independent API thirteenth refusal. Owner: Boniface + Codex.
 
@@ -215,9 +220,9 @@ Next: Repeat the photo boundary/recovery matrix on release devices and staging; 
 **R-019 · partial · GAP-AC-019**
 Original finding: Invalid-image selection accepted.
 Expected: Invalid rejected before publication with per-file error; safe derivatives re-encoded/metadata stripped; private media inaccessible cross-tenant
-Observed: Actual codec format/metadata/corrupt/dimension/byte caps plus browser corrupt input refusal and interrupted third-image recovery passed. Original failed native conversion readback now matches confirmed stop.
-Evidence: [media216](evidence/2026-10-28-live-media-retirement/media-full-final.txt), [signed216](evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt), [admin216](evidence/2026-10-28-live-media-retirement/admin-tests-final.txt), [browser216](evidence/2026-10-28-live-media-retirement.md)
-Still open: Production object access and actual device interruption/oversized-selection matrix remain open.
+Observed: Actual codec format/metadata/corrupt/dimension/byte caps and upload recovery passed. Public bytes now require current approved/fresh publication and matching native seals before/after I/O; four actual anonymous WebPs decoded and pause denied later access.
+Evidence: [media216](evidence/2026-10-28-live-media-retirement/media-full-final.txt), [signed217](evidence/2026-10-29-public-gallery/signed-http-full.txt), [admin216](evidence/2026-10-28-live-media-retirement/admin-tests-final.txt), [browser216](evidence/2026-10-28-live-media-retirement.md), [api217](evidence/2026-10-29-public-gallery/api-full.txt), [database217](evidence/2026-10-29-public-gallery/database-full.txt), [browser217](evidence/2026-10-29-public-gallery.md)
+Still open: Production object provider access and actual device interruption/oversized-selection matrix remain open.
 Next: Verify deployed object isolation and complete invalid/oversized device selections with approved test bytes. Owner: Boniface + Codex.
 
 ### AC-020 — feedback author/content
@@ -265,8 +270,8 @@ Next: Build retained support/report workflows and verify their empty/loading/err
 **R-024 · partial · GAP-AC-024**
 Original finding: Keyboard and accessible controls incomplete.
 Expected: Named controls, logical visible focus, operable chips/dialogs, labels and announced errors/progress; record WCAG2.2AA audit gaps and device evidence
-Observed: Specific keyboard focus, narrow browser layout and labelled SSR/native component checks executed.
-Evidence: [search210](evidence/2026-10-28-search-and-enquiry-acceptance.md), [operations212](evidence/2026-10-28-operations-overview.md), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [mobile211](evidence/2026-10-28-mobile-offline.md)
+Observed: Specific keyboard focus and labelled component checks executed; public gallery Enter collapse/reopen plus320/390px costs/gallery showed no horizontal overflow.
+Evidence: [search210](evidence/2026-10-28-search-and-enquiry-acceptance.md), [operations212](evidence/2026-10-28-operations-overview.md), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [mobile211](evidence/2026-10-28-mobile-offline.md), [browser217](evidence/2026-10-29-public-gallery.md), [web217](evidence/2026-10-29-public-gallery/web-full-final.txt)
 Still open: No complete WCAG2.2AA, assistive-technology, 320px/200% text or Android/iOS process audit has passed.
 Next: Run and remediate the complete accessibility/browser/device matrix. Owner: Boniface + Codex.
 
@@ -315,8 +320,8 @@ Next: Run the entire configured second-brand flow including notifications and de
 **Additional replacement gate · partial · GAP-AC-029**
 
 Expected: Advance clock around21/30days; prompt correctly, exclude stale at cutoff, reconfirm restores only eligible approved available stock. Pause/unavailable/archive precedence preserved
-Observed: Availability guards and new720-hour stale queue selection distinguish fresh/paused/foreign stock in restricted SQL.
-Evidence: [domain212](evidence/2026-10-28-operations-overview/domain-full.txt), [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [operations212](evidence/2026-10-28-operations-overview.md)
+Observed: Availability guards,720-hour stale queue and public image SQL eligibility distinguish fresh/paused/stale/foreign stock. Actual browser pause removes newly requested bytes/public page; resume restores four decoded images.
+Evidence: [domain212](evidence/2026-10-28-operations-overview/domain-full.txt), [api217](evidence/2026-10-29-public-gallery/api-full.txt), [signed217](evidence/2026-10-29-public-gallery/signed-http-full.txt), [operations212](evidence/2026-10-28-operations-overview.md), [database217](evidence/2026-10-29-public-gallery/database-full.txt), [browser217](evidence/2026-10-29-public-gallery.md)
 Still open: The complete21/30-day prompt/public exclusion/reconfirmation matrix on deployed applications remains open.
 Next: Verify exact cutoff neighbours and restoration/pause/archive precedence in current UI and staging. Owner: Boniface + Codex.
 
