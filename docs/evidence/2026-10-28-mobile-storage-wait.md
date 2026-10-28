@@ -17,3 +17,7 @@ The native operation is not cancelled. It stays in the shared queue until it act
 Tasks09-2 and09-5 remain partial. No offline catalogue cache is implemented by this change. Checklist stays **30/97 (31% rounded), 0/14 gates**. Source stays local while GitHub Actions quota is exhausted. KES10,000 total per realtor/month remains the baseline; vendor assets and the old live system were untouched.
 
 At >=2 GB free, rerun the full mobile suite and verify Android normal restore/restart/clear, actual storage failure/stall fallback, company/origin isolation and network interruption. Continue the remaining native account/gallery/favourites/enquiry/viewing journeys. Owner: Boniface + Codex.
+
+## Publication checkpoint
+
+Checkpoint207 publication: private dashboard version194 deployed successfully from898f30f7714a2a9474f7107d788d1c5c35431b99 (deployment appgdep_6ae179c4f808819193a523c9c2089698). Access rechecked owner-only:one owner,zero external visitors,zero groups. Dashboard baseline/browser-state checks2/2passed;675stage notes retained/appended. Feature source42ff01c remains local; no GitHub push/hosted CI rerun. Generated admin next-env.d.ts preserved unstaged.13focused mobile checks passed; no actual native timeout/device/build/full-database pass.30/97tasks(31%rounded),0/14gates. Exactnext:full mobile suite and Android storage/restart/clear/network checks at>=2GBfree; continue dependency-ready local work meanwhile. Owner:Boniface+Codex.
