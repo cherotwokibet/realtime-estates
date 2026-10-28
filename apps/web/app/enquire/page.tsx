@@ -55,3 +55,4 @@ export default async function Enquire({
     </main>
   );
 }
+export const metadata = { robots: { index: false, follow: false } };

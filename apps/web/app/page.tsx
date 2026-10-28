@@ -17,10 +17,26 @@ import { parseReferenceFilters, referenceOptions } from '../lib/catalogue-refere
 import LoadedCataloguePager from '../components/LoadedCataloguePager';
 import { additionalActiveFilterLabels, browseCatalogue } from '../lib/catalogue-browse';
 import { supportedSearchAreaTileUrl } from '../lib/search-area-editor';
+import { publicPageMetadata } from '../lib/public-seo';
+import { publicSeoPolicy } from '../lib/public-seo-server';
+import { tenantBrand } from '../lib/tenant';
 
 export const dynamic = 'force-dynamic';
 
 type Query = Record<string, string | string[] | undefined>;
+export async function generateMetadata({ searchParams }: { searchParams: Promise<Query> }) {
+  const query = await searchParams;
+  return publicPageMetadata(
+    publicSeoPolicy,
+    tenantBrand.name,
+    '/',
+    'Find your next place',
+    publicSeoPolicy.index
+      ? 'Browse property details and itemized prices.'
+      : 'Synthetic development preview. No real availability.',
+    Object.keys(query).length === 0,
+  );
+}
 function Icon({ kind }: { kind: 'pin' | 'search' | 'bed' | 'bath' | 'area' | 'arrow' }) {
   const paths = {
     pin: (

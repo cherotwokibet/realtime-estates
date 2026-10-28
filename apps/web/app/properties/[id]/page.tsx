@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { formatKes, kesFromMinor } from '@realtor/domain';
 import { loadProperty } from '../../../lib/catalogue-server';
+import { propertyPageMetadata } from '../../../lib/public-seo';
+import { publicSeoPolicy } from '../../../lib/public-seo-server';
+import { tenantBrand } from '../../../lib/tenant';
 import {
   CatalogueBanner,
   CatalogueProblem,
@@ -16,6 +19,11 @@ import {
 } from '../../../components/PricingDisclosure';
 
 export const dynamic = 'force-dynamic';
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const result = await loadProperty((await params).id);
+  if (result.mode !== 'error' && result.status === 'not_found') notFound();
+  return propertyPageMetadata(publicSeoPolicy, tenantBrand.name, result);
+}
 export default async function Property({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const result = await loadProperty(id);
