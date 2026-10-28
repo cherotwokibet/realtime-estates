@@ -1,0 +1,1225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Realtor platform · connected journey design</title>
+    <style>
+      :root {
+        --brand: #5e0202;
+        --ink: #19212b;
+        --muted: #5c6570;
+        --paper: #fff;
+        --wash: #f5f3ef;
+        --line: #d8dce0;
+        --focus: #176b92;
+        --good: #216247;
+        --danger: #9b2525;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--wash);
+        color: var(--ink);
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+      button,
+      a,
+      input,
+      select,
+      textarea,
+      summary {
+        outline-offset: 4px;
+      }
+      :focus-visible {
+        outline: 3px solid var(--focus);
+      }
+      button,
+      a {
+        touch-action: manipulation;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+      .skip {
+        position: absolute;
+        left: 16px;
+        top: -90px;
+        background: white;
+        padding: 12px;
+        z-index: 8;
+      }
+      .skip:focus {
+        top: 12px;
+      }
+      .prototype {
+        padding: 12px 24px;
+        background: #272d35;
+        color: white;
+        font-size: 14px;
+      }
+      .prototype strong {
+        letter-spacing: 0.04em;
+      }
+      .shell {
+        max-width: 1440px;
+        margin: auto;
+        display: grid;
+        grid-template-columns: 260px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .rail {
+        padding: 28px 20px;
+        background: #fff;
+        border-right: 1px solid var(--line);
+      }
+      .identity {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 25px;
+      }
+      .mark {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        border-radius: 10px;
+        background: var(--brand);
+        color: white;
+        font-weight: 800;
+      }
+      .identity small {
+        display: block;
+        color: var(--muted);
+      }
+      .rail h2 {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--muted);
+        margin: 24px 10px 8px;
+      }
+      .rail nav {
+        display: grid;
+        gap: 4px;
+      }
+      .nav {
+        padding: 10px 12px;
+        text-align: left;
+        border: 0;
+        border-radius: 7px;
+        color: var(--ink);
+        background: transparent;
+        min-height: 44px;
+      }
+      .nav[aria-current='page'] {
+        color: var(--brand);
+        background: #f7eaea;
+        font-weight: 700;
+      }
+      .rail-note {
+        font-size: 13px;
+        color: var(--muted);
+        padding: 20px 10px;
+      }
+      .workspace {
+        min-width: 0;
+      }
+      .reviewbar {
+        padding: 16px 30px;
+        background: #fff;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+      }
+      .reviewbar label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+      }
+      .reviewbar select {
+        padding: 8px;
+        max-width: 220px;
+      }
+      .meta {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      main {
+        padding: 32px;
+        max-width: 1120px;
+        margin: auto;
+      }
+      .eyebrow {
+        font-size: 12px;
+        color: var(--brand);
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      h1 {
+        font-size: clamp(28px, 3vw, 40px);
+        letter-spacing: -0.04em;
+        line-height: 1.15;
+        margin: 10px 0;
+      }
+      h2 {
+        font-size: 22px;
+        line-height: 1.25;
+      }
+      h3 {
+        font-size: 17px;
+      }
+      .intro {
+        max-width: 730px;
+        color: var(--muted);
+        margin: 12px 0 28px;
+      }
+      .panel {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 24px;
+        margin: 18px 0;
+      }
+      .panel > :first-child {
+        margin-top: 0;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+      }
+      .three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .split {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(240px, 1fr);
+        gap: 22px;
+      }
+      .stack {
+        display: grid;
+        gap: 16px;
+      }
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        min-width: 0;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        min-height: 44px;
+        border: 1px solid #adb5bd;
+        border-radius: 7px;
+        background: white;
+        padding: 10px;
+        color: var(--ink);
+      }
+      textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+      input[type='checkbox'],
+      input[type='radio'] {
+        width: 20px;
+        min-height: 20px;
+      }
+      .check {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-weight: 400;
+        margin: 12px 0;
+      }
+      .check input {
+        flex-shrink: 0;
+        margin-top: 3px;
+      }
+      small,
+      .hint {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      fieldset {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        min-width: 0;
+        padding: 18px;
+        margin: 20px 0;
+      }
+      legend {
+        font-weight: 700;
+        padding: 0 6px;
+      }
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin: 20px 0 0;
+      }
+      .btn {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 10px 16px;
+        border: 1px solid #b3b8bd;
+        border-radius: 7px;
+        background: #fff;
+        color: var(--ink);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .primary {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: white;
+      }
+      .danger {
+        color: var(--danger);
+        border-color: #d6a4a4;
+      }
+      .badge {
+        display: inline-flex;
+        padding: 4px 9px;
+        border-radius: 5px;
+        background: #edf0f2;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .badge.good {
+        background: #e8f2ec;
+        color: var(--good);
+      }
+      .badge.warn {
+        background: #fff1da;
+        color: #795000;
+      }
+      .badge.private {
+        background: #f4e7eb;
+        color: var(--brand);
+      }
+      .notice {
+        padding: 14px 18px;
+        border-left: 4px solid var(--good);
+        background: #edf5f0;
+        border-radius: 6px;
+        margin: 18px 0;
+        overflow-wrap: anywhere;
+      }
+      .error {
+        border-color: var(--danger);
+        background: #fff0ef;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .metric {
+        font-size: 32px;
+        line-height: 1.1;
+        font-weight: 750;
+        margin: 10px 0;
+      }
+      .money {
+        font-size: 27px;
+        font-weight: 750;
+        letter-spacing: -0.03em;
+      }
+      .money small {
+        font-size: 14px;
+        font-weight: 400;
+      }
+      .list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .row {
+        padding: 16px 0;
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        gap: 16px;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+      .row:last-child {
+        border: 0;
+      }
+      .row p {
+        margin: 5px 0;
+      }
+      .row .btn {
+        flex-shrink: 0;
+      }
+      .card {
+        margin: 0;
+        min-width: 0;
+      }
+      .photo {
+        aspect-ratio: 4/3;
+        background: repeating-linear-gradient(
+          135deg,
+          #ece7df 0,
+          #ece7df 18px,
+          #f4f0e9 18px,
+          #f4f0e9 36px
+        );
+        display: grid;
+        place-items: center;
+        border: 1px dashed #9f9b94;
+        color: #595951;
+        border-radius: 8px;
+        text-align: center;
+        padding: 16px;
+        font-size: 14px;
+      }
+      .cover {
+        aspect-ratio: 16/9;
+      }
+      .chips {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+        margin: 12px 0;
+      }
+      .chip {
+        padding: 5px 9px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        font-size: 13px;
+      }
+      .facts {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        margin: 15px 0;
+      }
+      .facts dt {
+        color: var(--muted);
+      }
+      .facts dd {
+        margin: 0;
+        text-align: right;
+        font-weight: 600;
+      }
+      .divider {
+        border-top: 1px solid var(--line);
+        margin: 22px 0;
+      }
+      .empty {
+        padding: 42px 24px;
+        text-align: center;
+      }
+      .empty p {
+        max-width: 520px;
+        margin: 12px auto 22px;
+      }
+      .loading {
+        height: 14px;
+        background: #e6e9eb;
+        border-radius: 6px;
+        margin: 18px 0;
+        max-width: 90%;
+      }
+      .timeline {
+        padding-left: 24px;
+        border-left: 2px solid var(--line);
+      }
+      .timeline li {
+        margin: 16px 0;
+        padding-left: 5px;
+      }
+      summary {
+        cursor: pointer;
+        min-height: 44px;
+        padding: 10px 0;
+        font-weight: 650;
+        color: var(--brand);
+      }
+      .calendar {
+        display: grid;
+        grid-template-columns: 90px minmax(0, 1fr);
+        gap: 12px;
+      }
+      .slot {
+        background: #edf3f7;
+        border-left: 4px solid var(--focus);
+        border-radius: 5px;
+        padding: 14px;
+      }
+      .slot p {
+        margin: 6px 0;
+      }
+      footer {
+        padding: 24px 32px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14px;
+      }
+      td,
+      th {
+        text-align: left;
+        vertical-align: top;
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+        overflow-wrap: anywhere;
+      }
+      th {
+        background: #f6f7f7;
+      }
+      .table-wrap {
+        overflow: auto;
+      }
+      caption {
+        text-align: left;
+        font-weight: 700;
+        margin-bottom: 12px;
+      }
+      progress {
+        width: 100%;
+        height: 18px;
+      }
+      .step {
+        font-size: 13px;
+        color: var(--muted);
+        margin: 15px 0;
+      }
+      .required {
+        color: var(--danger);
+      }
+      @media (max-width: 1050px) {
+        .shell {
+          grid-template-columns: 220px minmax(0, 1fr);
+        }
+        .split {
+          grid-template-columns: 1fr;
+        }
+        .three {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 760px) {
+        .shell {
+          display: block;
+        }
+        .rail {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          padding: 18px;
+        }
+        .identity {
+          margin: 0;
+        }
+        .rail h2 {
+          margin: 15px 0 5px;
+        }
+        .rail nav {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+        }
+        .nav {
+          padding: 9px;
+          font-size: 14px;
+        }
+        .rail-note {
+          display: none;
+        }
+        main {
+          padding: 22px 16px;
+        }
+        .reviewbar {
+          padding: 14px 16px;
+        }
+        .grid,
+        .three,
+        .split {
+          grid-template-columns: 1fr;
+        }
+        .panel {
+          padding: 18px;
+        }
+        .row {
+          flex-wrap: wrap;
+        }
+        .row .btn {
+          width: 100%;
+        }
+        .facts {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+        .calendar {
+          grid-template-columns: 60px minmax(0, 1fr);
+        }
+        .prototype {
+          padding: 12px 16px;
+        }
+        .btn {
+          width: auto;
+          max-width: 100%;
+        }
+        footer {
+          padding: 18px 16px;
+        }
+        .actions {
+          align-items: stretch;
+        }
+        .actions .btn {
+          flex: 1 1 150px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to design screen</a>
+    <div class="prototype">
+      <strong>DESIGN PROTOTYPE</strong> · Fictional data, in-memory interactions only. No messages,
+      invitations, uploads or publication are sent. This is a design handoff, not operator approval.
+    </div>
+    <div class="shell">
+      <aside class="rail">
+        <div class="identity">
+          <span class="mark">RE</span>
+          <div>
+            <strong id="brand-label">Realtime Estates</strong
+            ><small>One configurable platform</small>
+          </div>
+        </div>
+        <h2>Visitor journeys</h2>
+        <nav aria-label="Visitor design screens" id="public-nav"></nav>
+        <h2>Agency workspace</h2>
+        <nav aria-label="Staff design screens" id="staff-nav"></nav>
+        <p class="rail-note">
+          Use the state inspector to examine loading, empty, error and expired-access designs.
+          Product permissions remain server owned; this review tool previews roles without granting
+          access.
+        </p>
+      </aside>
+      <div class="workspace">
+        <div class="reviewbar">
+          <span class="meta" id="scope">Visitor view · no signup required</span
+          ><label
+            >State inspector<select id="variant">
+              <option value="normal">Normal</option>
+              <option value="empty">Empty</option>
+              <option value="loading">Loading</option>
+              <option value="error">Unavailable</option>
+              <option value="denied">Access ended</option>
+            </select></label
+          >
+        </div>
+        <main id="main" tabindex="-1"></main>
+        <footer>
+          29 October 2026 · Independently authored design. Existing implementation and planned
+          screens are distinguished in the handoff document. Actual device, screen-reader and
+          Realtime operator review remain separate work.
+        </footer>
+      </div>
+    </div>
+    <script>
+      'use strict';
+      const screens = [
+        ['search', 'Find a home', 'public'],
+        ['results', 'Search results', 'public'],
+        ['property', 'Property details', 'public'],
+        ['contact', 'Contact the agency', 'public'],
+        ['enquiry', 'Send an enquiry', 'public'],
+        ['viewing', 'Request a viewing', 'public'],
+        ['overview', 'Daily overview', 'staff'],
+        ['listings', 'Listing queue', 'staff'],
+        ['draft', 'Property draft', 'staff'],
+        ['photos', 'Photo recovery', 'staff'],
+        ['moderation', 'Review a revision', 'staff'],
+        ['leads', 'Enquiry pipeline', 'staff'],
+        ['calendar', 'Viewing calendar', 'staff'],
+        ['staff', 'Staff & branches', 'staff'],
+        ['reports', 'Operational reports', 'staff'],
+        ['settings', 'Branding & settings', 'staff'],
+      ];
+      const state = {
+        screen: 'search',
+        selected: 0,
+        variant: 'normal',
+        notice: '',
+        error: '',
+        photo: 'four',
+        viewing: 'proposed',
+        phone: false,
+        ended: false,
+        invitation: 'none',
+        review: 'pending',
+        rejectionReason: '',
+        listingFilter: 'all',
+        brand: 'realtime',
+        company: 'Realtime Estates Ltd',
+        query: { purpose: 'rent', min: '', max: '', bedrooms: '' },
+        draftTitle: 'Synthetic monthly studio',
+        draftAmount: '20000.00',
+        enquiryName: 'Demo prospect',
+        message: 'Please confirm the full costs and viewing options for this fictional property.',
+      };
+      const stock = [
+        { title: 'Synthetic monthly studio', amount: 2000000, beds: 0 },
+        { title: 'Synthetic seven-bedroom home', amount: 4999999, beds: 7 },
+        { title: 'Synthetic eight-bedroom home', amount: 5000000, beds: 8 },
+        { title: 'Synthetic ten-bedroom home', amount: 5000001, beds: 10 },
+      ];
+      const esc = (v) =>
+        String(v ?? '').replace(
+          /[&<>"']/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+        );
+      const kes = (n) =>
+        'KES ' +
+        new Intl.NumberFormat('en-KE', {
+          minimumFractionDigits: n % 100 ? 2 : 0,
+          maximumFractionDigits: 2,
+        }).format(n / 100);
+      const go = (to, label, primary = false) =>
+        `<button class="btn ${primary ? 'primary' : ''}" data-go="${to}">${label}</button>`;
+      const action = (key, label, extra = '') =>
+        `<button class="btn" data-action="${key}" ${extra}>${label}</button>`;
+      const costs = (base = 2000000) =>
+        `<h2>Price & costs</h2><div class="money">${kes(base)} <small>/ month</small></div><p class="badge good">Declared mandatory amounts supplied</p><dl class="facts"><dt>Monthly service fee</dt><dd>KES 1,000 / month</dd><dt>Refundable deposit</dt><dd>KES 20,000</dd><dt>One-off preparation</dt><dd>KES 500</dd><dt>Known recurring subtotal</dt><dd>${kes(base + 100000)} / month</dd><dt>Known initial subtotal</dt><dd>${kes(base + 2150000)}</dd></dl><p class="hint">One first month plus known mandatory charges and refundable deposits. Unknown quotes, taxes and undeclared costs are excluded; confirm before committing.</p>`;
+      const choice = (name, label, options, current) =>
+        `<label>${label}<select name="${name}">${options.map(([v, t]) => `<option value="${v}" ${current === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`;
+      const input = (name, label, value, type = 'text', required = false) =>
+        `<label>${label}${required ? ' <span class="required">*</span>' : ''}<input type="${type}" name="${name}" value="${esc(value)}" ${required ? 'required' : ''}></label>`;
+      function resultCards() {
+        let rows = state.query.purpose === 'sale' ? [] : stock;
+        if (state.query.min)
+          rows = rows.filter((p) => p.amount >= Math.round(Number(state.query.min) * 100));
+        if (state.query.max)
+          rows = rows.filter((p) => p.amount <= Math.round(Number(state.query.max) * 100));
+        if (state.query.bedrooms !== '')
+          rows = rows.filter((p) =>
+            state.query.bedrooms === '7+' ? p.beds >= 7 : p.beds === Number(state.query.bedrooms),
+          );
+        return `<div class="actions">${go('search', 'Change filters')}<span class="badge">${rows.length} results · synthetic dataset</span></div><div class="grid">${rows.map((p) => `<article class="panel card"><div class="photo">Property photo area<br>Design placeholder</div><div class="chips"><span class="chip">For rent</span><span class="chip">${p.beds === 0 ? 'Studio' : p.beds + ' bedrooms'}</span></div><h2>${p.title}</h2><p>Synthetic Nairobi area · area-only location</p><div class="money">${kes(p.amount)} <small>/ month</small></div><p class="hint">Base rent · named charges shown on details.</p><button class="btn primary" data-go="property" data-stock="${stock.indexOf(p)}">View property</button></article>`).join('')}</div>${rows.length ? '' : `<div class="panel empty"><h2>No matches</h2><p>Keep the current filters visible. Widen the range or clear a filter; do not silently change the search.</p>${go('search', 'Review filters', true)}</div>`}`;
+      }
+      function screenBody() {
+        switch (state.screen) {
+          case 'search':
+            return `<form class="panel" data-form="search"><div class="grid">${choice(
+              'purpose',
+              'Purpose',
+              [
+                ['rent', 'Rent'],
+                ['sale', 'Buy'],
+              ],
+              state.query.purpose,
+            )}${input('location', 'Location (public area)', 'Synthetic Nairobi area')}${input('min', 'Minimum base price in KES', state.query.min)}${input('max', 'Maximum base price in KES', state.query.max)}${choice(
+              'bedrooms',
+              'Bedrooms',
+              [
+                ['', 'Any'],
+                ['0', 'Studio / bedsitter · 0'],
+                ['7', 'Exactly 7'],
+                ['7+', '7 or more'],
+                ['8', 'Exactly 8'],
+                ['10', 'Exactly 10'],
+              ],
+              state.query.bedrooms,
+            )}${choice(
+              'period',
+              'Rent period',
+              [
+                ['month', 'Per month'],
+                ['day', 'Per day'],
+                ['week', 'Per week'],
+                ['year', 'Per year'],
+              ],
+              'month',
+            )}</div><details><summary>More filters</summary><div class="grid">${choice(
+              'type',
+              'Property type',
+              [
+                ['', 'Any'],
+                ['studio', 'Studio'],
+                ['apartment', 'Apartment'],
+                ['land', 'Land'],
+              ],
+              '',
+            )}${input('privateBaths', 'Minimum private bathrooms', '')}${input('sharedBaths', 'Minimum shared bathrooms', '')}</div><p class="hint">Amenities use explicit catalogue choices; unknown differs from none. Map area is optional and has a keyboard text alternative in the implemented search.</p></details><p class="hint">Use KES numbers with at most two decimal places. Search uses the chosen price basis; fees appear separately.</p><div class="actions"><button class="btn primary">Search fictional homes</button></div></form>`;
+          case 'results':
+            return resultCards();
+          case 'property': {
+            const selected = stock[state.selected] || stock[0];
+            return `<span class="badge good">Available when read · agency confirmation within30days</span><p class="muted">Synthetic Nairobi area. No exact address or map pin is shown.</p><div class="photo cover">Cover photo area · independently sourced property image in the product</div><details class="panel"><summary>View all4 property photos</summary><div class="grid">${[1, 2, 3, 4].map((n) => `<figure class="card"><div class="photo">Photo ${n}</div><figcaption>Descriptive alternative text · photo ${n}</figcaption></figure>`).join('')}</div><p class="hint">Per-file failure keeps the caption and explains how to read current details. No automatic image retry.</p></details><div class="split"><section class="panel"><h2>${esc(selected.title)}</h2><p>Fictional property · ${selected.beds} bedrooms · 1 private bathroom · shared bathrooms not supplied.</p><p>Amenities: not supplied. Exact floor area: not supplied. Availability may change; confirm before travelling.</p><h3>Choose your next step</h3><div class="actions">${go('enquiry', 'Ask about this property', true)}${go('viewing', 'Request a viewing')}${go('contact', 'Agency contacts')}</div></section><aside class="panel" aria-label="Full property costs">${costs(selected.amount)}</aside></div>`;
+          }
+          case 'contact':
+            return `<div class="split"><section class="panel"><h2>Talk to the agency</h2><p>Show only configured, verified business contact destinations. Keep a visible copyable fallback when an external app is unavailable.</p><p class="badge warn">This design uses fictional contacts · no call/message is placed</p><div class="actions">${action('call', 'Preview call handoff')}${action('whatsapp', 'Preview WhatsApp handoff')}${go('enquiry', 'Use the enquiry form', true)}</div><p class="hint">In the product: encoded tel: / HTTPS links, no signup gate. Contact verification remains required before release.</p></section><section class="panel"><h2>Office & privacy</h2><p>Synthetic Nairobi office · business hours to confirm.</p><p>Show approved company policies and the accountable agency. Never display a private property-owner address.</p></section></div>`;
+          case 'enquiry':
+            return `<div class="split"><form class="panel" data-form="enquiry"><span class="badge">Regarding: ${esc(stock[state.selected].title)}</span><h2>Ask the agency</h2><p>Use fictional information in this prototype.</p>${input('name', 'Fictional contact name', state.enquiryName, 'text', true)}${input('email', 'Fictional email', 'prospect@example.invalid', 'email', true)}<label>Your question<textarea name="message" required>${esc(state.message)}</textarea></label><label class="check"><input name="notice" type="checkbox" required> I have read the agency privacy notice shown beside this form (design acknowledgement).</label><p class="hint">Submitting an enquiry does not book a viewing or authorize marketing.</p><div class="actions"><button class="btn primary">Preview enquiry confirmation</button>${go('property', 'Back to property')}</div></form><aside class="panel"><h2>What happens next?</h2><ol><li>The product saves one durable enquiry and returns its receipt.</li><li>The agency assigns a staff member and follows up.</li><li>If a reply is lost, recover the original result before sending again.</li></ol><p class="hint">This prototype sends nothing and creates no real receipt.</p></aside></div>`;
+          case 'receipt':
+            return `<section class="panel"><span class="badge warn">Prototype confirmation · no message sent</span><h2>Your enquiry reference</h2><p class="money">DESIGN-001</p><p>The real product confirms receipt only after the server saves it. Acknowledgement does not mean an email or notification was delivered.</p><div class="actions">${go('viewing', 'Preview viewing request', true)}${go('enquiry', 'Review enquiry')}${go('leads', 'Inspect agency follow-up design')}</div></section>`;
+          case 'viewing':
+            return `<div class="split"><form class="panel" data-form="viewing"><h2>Tell the agency your preferred time</h2><p>Request a viewing; a slot is confirmed only after agency/customer agreement.</p>${input('name', 'Fictional requester name', state.enquiryName, 'text', true)}${choice(
+              'day',
+              'Preferred day',
+              [
+                ['next', 'Next working day (example)'],
+                ['later', 'Another working day'],
+              ],
+              'next',
+            )}${choice(
+              'slot',
+              'Preferred time · Africa/Nairobi',
+              [
+                ['morning', 'Morning'],
+                ['afternoon', 'Afternoon'],
+              ],
+              'morning',
+            )}<label>Notes<textarea name="note">Fictional viewing request for design review.</textarea></label><div class="actions"><button class="btn primary">Preview request state</button></div><p class="hint">No payment, transaction booking or attendance guarantee.</p></form><aside class="panel"><h2>Viewing state</h2><span class="badge">${esc(state.viewing)}</span><p>Requested → proposed → phone agreement → confirmed. Rescheduling requires renewed agreement; cancellation and outcome history remain visible.</p><p class="badge warn">External notification delivery unavailable in the current local composition</p>${go('calendar', 'Inspect agency calendar')}</aside></div>`;
+          case 'overview':
+            return `<div class="grid three">${[
+              ['Pending reviews', '1', 'moderation'],
+              ['Overdue follow-up', '1', 'leads'],
+              ['Stale stock', '2', 'listings'],
+            ]
+              .map(
+                ([t, n, s]) =>
+                  `<section class="panel"><h2>${t}</h2><p class="metric">${n}</p>${go(s, 'Open actionable queue')}</section>`,
+              )
+              .join(
+                '',
+              )}</div><section class="panel"><h2>Today needs a decision</h2><ul class="list"><li class="row"><div><strong>Demo prospect · viewing follow-up</strong><p>Assigned to Agent A · overdue in Nairobi time</p></div>${go('leads', 'Inspect enquiry')}</li><li class="row"><div><strong>Ended confirmed viewing</strong><p>Outcome not yet recorded</p></div>${go('calendar', 'Record outcome')}</li></ul></section>`;
+          case 'listings': {
+            const rows = [
+              ['draft', 'Synthetic monthly studio', '2 accepted photos · incomplete'],
+              ['pending', 'Synthetic apartment revision2', 'Approved revision1 stays public'],
+              ['stale', 'Synthetic townhouse', 'Reconfirm availability before republishing'],
+            ].filter((r) => state.listingFilter === 'all' || r[0] === state.listingFilter);
+            return `<div class="panel">${choice(
+              'listingFilter',
+              'Queue state',
+              [
+                ['all', 'All'],
+                ['draft', 'Drafts'],
+                ['pending', 'Pending review'],
+                ['stale', 'Stale stock'],
+              ],
+              state.listingFilter,
+            )}<div class="actions">${go('draft', 'New property draft', true)}</div><ul class="list">${rows.map(([s, t, h]) => `<li class="row"><div><span class="badge">${s}</span><h2>${t}</h2><p>${h}</p></div>${go(s === 'pending' ? 'moderation' : 'draft', s === 'pending' ? 'Review revision' : 'Open draft')}</li>`).join('')}</ul><p class="hint">Show assigned/authorized rows only. Import preview has row errors and creates no stock until separately implemented/approved.</p></div>`;
+          }
+          case 'draft':
+            return `<form data-form="draft"><div class="step">Details → costs & location → photos → review</div><div class="split"><section class="panel"><h2>The property</h2>${input('title', 'Title', state.draftTitle, 'text', true)}<label>Description<textarea name="description">Synthetic property description for design review.</textarea></label><div class="grid">${choice(
+              'type',
+              'Property type',
+              [
+                ['studio', 'Studio'],
+                ['apartment', 'Apartment'],
+                ['land', 'Land'],
+              ],
+              'studio',
+            )}${choice(
+              'purpose',
+              'Purpose',
+              [
+                ['rent', 'Rent'],
+                ['sale', 'Sale'],
+              ],
+              'rent',
+            )}${input('beds', 'Bedrooms · zero is a studio', '0')}${input('private', 'Private bathrooms', '1')}${input('shared', 'Shared bathrooms · blank unknown', '')}</div><h2>Exact price & mandatory costs</h2>${input('amount', 'Base amount in KES', state.draftAmount, 'text', true)}${choice(
+              'period',
+              'Rent period',
+              [
+                ['month', 'Month'],
+                ['week', 'Week'],
+                ['day', 'Day'],
+                ['year', 'Year'],
+              ],
+              'month',
+            )}<fieldset><legend>Additional charge</legend>${input('fee', 'Charge name', 'Monthly service fee')}${choice(
+              'feeKind',
+              'Amount status',
+              [
+                ['known', 'Known amount'],
+                ['quote', 'Amount to confirm'],
+              ],
+              'known',
+            )}${input('feeAmount', 'Amount in KES', '1000.00')}<label class="check"><input type="checkbox" checked> Mandatory recurring fee</label></fieldset><h2>Location & privacy</h2><div class="grid">${choice('county', 'County · saved catalogue ID', [['nairobi', 'Synthetic Nairobi']], 'nairobi')}${choice('town', 'Town · saved catalogue ID', [['town', 'Synthetic town']], 'town')}</div><label>Private address · staff only<textarea name="address">PRIVATE FICTIONAL ADDRESS — never included in public projection.</textarea></label>${choice(
+              'precision',
+              'Public precision',
+              [
+                ['area', 'Area only'],
+                ['exact', 'Exact coordinates only with authority'],
+              ],
+              'area',
+            )}<p class="hint">IDs are explicit; free-text labels never become taxonomy identities. Incomplete fields can be saved.</p></section><aside class="panel">${costs()}<div class="divider"></div><h2>Working copy</h2><p>Keep edits when a request fails. A stale version requires explicit comparison, never an automatic overwrite.</p><button class="btn primary">Preview saved draft</button><div class="actions">${go('photos', 'Continue to photos')}</div></aside></div></form>`;
+          case 'photos': {
+            const mode = state.photo,
+              n = mode === 'three' ? 3 : mode === 'twelve' ? 12 : mode === 'four' ? 4 : 2;
+            return `<section class="panel">${choice(
+              'photoMode',
+              'Inspect upload state',
+              [
+                ['two', '2 saved photos'],
+                ['compare', 'Compare current gallery'],
+                ['four', '4 accepted photos'],
+                ['three', '3 photos · below minimum'],
+                ['twelve', '12 photos · maximum'],
+                ['uploading', 'Third image uploading'],
+                ['uncertain', 'Cancel / unknown original'],
+                ['failed', 'Per-file conversion failure'],
+              ],
+              mode,
+            )}<h2>${n} of12 photos</h2><p>4–12 accepted images required for review. The first is the cover; order changes are saved together.</p><div class="grid three">${Array.from({ length: n }, (_, i) => `<figure class="card"><div class="photo">${i ? 'Photo ' + (i + 1) : 'Cover photo'}</div><figcaption>Descriptive alt text · verified saved image</figcaption></figure>`).join('')}</div>${mode === 'compare' ? `<div class="notice"><h3>Compare before continuing</h3><p>Current saved gallery:2 photos. No new image was attached. Keep local text separately and choose the saved gallery explicitly.</p>${action('adoptGallery', 'Use current saved text and photos')}${action('adoptGallery', 'Keep my text and use current photos')}</div>` : mode === 'uploading' ? `<h3>Fictional third image · uploading</h3><progress max="100" value="65" aria-label="Example third-image upload progress">65%</progress><p>This is a design-state progress example.</p>${action('cancelPhoto', 'Cancel upload')}` : mode === 'uncertain' ? `<div class="notice error"><h3>Upload stopped waiting</h3><p>The server may have saved a result. Keep the original request and read it before another upload. Cancellation is not rollback.</p>${action('checkPhoto', 'Check original result')}${action('leavePhoto', 'Leave image unattached')}</div>` : mode === 'failed' ? `<div class="notice error"><h3>Image conversion failed</h3><p>Show the safe per-file reason. Read the saved gallery; do not duplicate a successful attachment or retry automatically.</p>${action('leavePhoto', 'Read current gallery')}</div>` : `<p>${n < 4 ? 'Add ' + (4 - n) + ' more accepted images before submission.' : n === 12 ? 'Capacity reached. A thirteenth attachment is refused.' : 'Minimum photo count met. Check the saved order before review.'}</p>`}<div class="actions">${go('draft', 'Back to property')}${n >= 4 && mode !== 'uncertain' ? go('moderation', 'Preview submitted review', true) : '<button class="btn primary" disabled>Submit for review</button>'}</div><p class="hint">Current saved gallery adoption is explicit. Unknown attachment writes stay locked for original-result recovery.</p></section>`;
+          }
+          case 'moderation':
+            return `<span class="badge warn">${state.review === 'approved' ? 'Approved revision2 · public snapshot updated in this design state' : state.review === 'rejected' ? 'Rejected revision2 · approved revision1 stays public' : 'Pending revision2 · approved revision1 stays public'}</span><div class="grid"><section class="panel"><h2>Current approved snapshot</h2><p>${state.review === 'approved' ? 'Synthetic updated monthly studio' : 'Synthetic monthly studio'}</p><p class="money">${state.review === 'approved' ? 'KES 20,000.01' : 'KES 20,000'} / month</p><p>4 approved photos · agency confirmation within30days</p></section><section class="panel"><h2>Proposed revision</h2><p>Synthetic updated monthly studio</p><p class="money">KES 20,000.01 / month</p><p>One-cent price change · full itemized charges retained</p><span class="badge private">Private review · address visible only to authorized staff</span><p class="hint">Image inspection requires current pending revision, exact version and current admin permission.</p></section></div><form class="panel" data-form="decision"><h2>Record a deliberate decision</h2><label>Rejection reason<textarea name="reason" placeholder="Required only when rejecting" ${state.review !== 'pending' ? 'disabled' : ''}>${esc(state.rejectionReason)}</textarea></label><div class="actions"><button name="decision" value="approve" class="btn primary" ${state.review !== 'pending' ? 'disabled' : ''}>Preview approval</button><button name="decision" value="reject" class="btn danger" ${state.review !== 'pending' ? 'disabled' : ''}>Preview rejection</button></div><p class="hint">The actual API rechecks company, admin role, current version, photos, content and availability. A lost result is recovered from the original request.</p>${state.review !== 'pending' ? action('pendingReview', 'Inspect another pending example') : ''}</form>`;
+          case 'leads':
+            return `<div class="chips"><span class="chip">New1</span><span class="chip">Assigned1</span><span class="chip">Overdue1</span></div><div class="split"><section class="panel"><h2>Demo prospect · synthetic property enquiry</h2><span class="badge warn">Follow-up overdue · Africa/Nairobi</span><form data-form="followup">${choice(
+              'assignee',
+              'Assigned staff',
+              [
+                ['a', 'Agent A · current company'],
+                ['b', 'Agent B · current company'],
+              ],
+              'a',
+            )}${choice(
+              'outcome',
+              'Contact outcome',
+              [
+                ['attempted', 'Attempted contact'],
+                ['reached', 'Reached prospect'],
+                ['unavailable', 'Could not reach'],
+              ],
+              'attempted',
+            )}<label>Contact/follow-up note<textarea name="note">Fictional contact history for design review. No message is sent.</textarea></label>${choice(
+              'next',
+              'Next action',
+              [
+                ['call', 'Call back'],
+                ['viewing', 'Propose a viewing'],
+                ['close', 'Close follow-up'],
+              ],
+              'call',
+            )}<div class="actions"><button class="btn primary">Preview contact history entry</button>${go('calendar', 'Open viewing record')}</div></form></section><aside class="panel"><h2>Private history</h2><ol class="timeline"><li>Enquiry received · saved receipt</li><li>Assigned to Agent A · administrator</li><li>Contact attempted · follow-up due</li></ol><p class="hint">Access loss removes private details. A reassigned agent cannot retain the old private feed by changing URL parameters.</p></aside></div>`;
+          case 'calendar':
+            return `<div class="split"><section class="panel"><h2>Agency agenda · Africa/Nairobi</h2><div class="calendar"><time>10:00</time><article class="slot"><span class="badge">${esc(state.viewing)}</span><h3>Demo prospect · synthetic studio</h3><p>30-minute viewing · ${state.ended ? 'earlier ended example' : 'fictional next working day'}</p><p>Only current assigned staff/admin can inspect this record.</p></article></div><p class="badge warn">External delivery unavailable · capture is not a delivered notification</p></section><section class="panel"><h2>Agreement & outcome</h2><label class="check"><input id="phone-agreed" type="checkbox" ${state.phone ? 'checked' : ''}> Record that customer/agency phone agreement occurred (design state only)</label><div class="actions">${action('confirmViewing', 'Preview confirmation')}${action('reschedule', 'Propose new time')}${action('cancelViewing', 'Cancel viewing')}${action('completeViewing', 'Record completed outcome')}${action('endedExample', 'Inspect an ended confirmed viewing')}</div><p class="hint">A reschedule clears the old agreement. Declined/cancelled/completed/no-show history is retained; a proposed slot is never presented as confirmed.</p>${go('viewing', 'Inspect visitor request design')}</section></div>`;
+          case 'staff':
+            return `<span class="badge private">Agency administrator design · no platform-owner permission</span><div class="split"><form class="panel" data-form="invite"><h2>Invite staff to this agency</h2>${input('email', 'Fictional staff email', 'agent@example.invalid', 'email', true)}${choice(
+              'role',
+              'Role',
+              [
+                ['agent', 'Listing agent'],
+                ['admin', 'Agency administrator'],
+              ],
+              'agent',
+            )}${choice(
+              'branch',
+              'Branch',
+              [
+                ['main', 'Main office · current agency'],
+                ['north', 'Synthetic north branch · current agency'],
+              ],
+              'main',
+            )}<p class="hint">The server supplies company identity and checks inviter permission. No posted company or self-selected platform role grants access.</p><button class="btn primary">Preview invitation</button></form><section class="panel"><h2>Invitations & current access</h2><span class="badge">${esc(state.invitation)}</span><p>Accept/redeem once after verified identity. Show expiry, used/revoked states and safe resend; never expose an invite token in audit logs.</p><div class="actions">${action('expireInvite', 'Inspect expired state')}${action('revokeInvite', 'Revoke invitation')}</div><p class="hint">Protect the last agency administrator. Revocation takes effect on subsequent reads/writes and clears private session views.</p></section></div>`;
+          case 'reports':
+            return `<div class="grid three"><section class="panel"><h2>Pending review</h2><p class="metric">1</p>${go('moderation', 'Resolve review')}</section><section class="panel"><h2>Overdue leads</h2><p class="metric">1</p>${go('leads', 'Open follow-up')}</section><section class="panel"><h2>Viewing outcomes due</h2><p class="metric">1</p>${go('calendar', 'Inspect outcomes')}</section></div><section class="panel"><h2>Company-scoped operational report</h2><p>Illustrative period: last7days. Make every metric's definition and time basis visible. Unknown values are not zero.</p><div class="table-wrap"><table><caption>Sample report · fictional aggregates</caption><thead><tr><th>Measure</th><th>Count</th><th>Definition</th></tr></thead><tbody><tr><td>New enquiries</td><td>4</td><td>Saved receipts received in the selected interval</td></tr><tr><td>Confirmed viewings</td><td>2</td><td>Latest cycles with recorded agreement</td></tr><tr><td>Completed viewings</td><td>1</td><td>Saved completion outcome; not a sale</td></tr></tbody></table></div><div class="actions">${action('exportReport', 'Inspect export columns')}</div><p class="hint">Exports require their own current authorization and audit. Never export private contact/address fields by default; no export is created in this design.</p></section>`;
+          case 'settings':
+            return `<div class="split"><form class="panel" data-form="settings"><h2>Approved agency content</h2>${input('company', 'Company name', state.company, 'text', true)}${choice(
+              'brand',
+              'Preview semantic brand',
+              [
+                ['realtime', 'Realtime · burgundy'],
+                ['sample', 'Sample Homes · second synthetic brand'],
+              ],
+              state.brand,
+            )}<label>Public introduction<textarea name="intro">Clear costs, current property information and helpful agency follow-up.</textarea></label><label class="check"><input type="checkbox" checked> Show company and contact pages</label><label class="check"><input type="checkbox" disabled> Payments · deferred, unavailable in navigation</label><button class="btn primary">Apply design preview</button><p class="hint">The product requires schema validation, approved content/version and current administrator access. A preview never establishes asset rights or reviewed policy approval.</p></form><section class="panel"><h2>Branding preview</h2><span class="mark">RE</span><h3>Recognizable company identity</h3><p>Semantic colour, type, spacing and state tokens remain shared across web, mobile and admin. Company configuration changes content; it does not create another code fork.</p>${go('property', 'Inspect visitor appearance')}</section></div>`;
+          default:
+            return '<p>Choose a design screen.</p>';
+        }
+      }
+      function render() {
+        const entry = screens.find((s) => s[0] === state.screen) || [
+          'receipt',
+          'Enquiry confirmation',
+          'public',
+        ];
+        document.querySelector('#scope').textContent =
+          entry[2] === 'staff'
+            ? 'Agency staff design · current role/company required'
+            : 'Visitor design · no signup required';
+        document.querySelector('#variant').value = state.variant;
+        for (const group of ['public', 'staff'])
+          document.querySelector('#' + group + '-nav').innerHTML = screens
+            .filter((s) => s[2] === group)
+            .map(
+              ([id, label]) =>
+                `<button class="nav" data-go="${id}" ${id === state.screen ? 'aria-current="page"' : ''}>${label}</button>`,
+            )
+            .join('');
+        let body = screenBody();
+        if (state.variant === 'loading')
+          body =
+            '<section class="panel" aria-busy="true"><h2>Loading current information…</h2><div class="loading"></div><div class="loading"></div><p role="status">Read current authorized data before displaying private records.</p></section>';
+        if (state.variant === 'empty')
+          body = `<section class="panel empty"><h2>${entry[2] === 'staff' ? 'Nothing in this queue' : 'No information to show yet'}</h2><p>Keep useful next steps visible. Do not invent totals, unavailable contacts or successful writes.</p>${action('normal', 'Return to normal example')}</section>`;
+        if (state.variant === 'error')
+          body = `<section class="panel empty"><h2>Current information unavailable</h2><p role="alert">Keep unsent edits and the original request. A timeout is not proof of failure or permission to send a duplicate.</p>${action('normal', 'Inspect explicit recovery')}</section>`;
+        if (state.variant === 'denied')
+          body = `<section class="panel empty"><h2>${entry[2] === 'staff' ? 'Fresh staff access required' : 'This page is not available'}</h2><p>Remove previously loaded private details. Recheck current identity, company and ownership before any read/write. Do not fall back to a stale private record.</p>${action('normal', 'Return to authorized design state')}</section>`;
+        document.querySelector('#main').innerHTML =
+          `<span class="eyebrow">${entry[2] === 'staff' ? 'Agency workspace' : 'Property discovery'}</span><h1 tabindex="-1">${entry[1]}</h1><p class="intro">${entry[2] === 'staff' ? 'A current, company-scoped workspace with deliberate decisions, retained originals and visible recovery.' : 'Clear property information, honest costs and a useful next step without an unnecessary account gate.'}</p>${state.error ? `<div class="notice error" role="alert">${esc(state.error)}</div>` : ''}${state.notice ? `<div class="notice" role="status">${esc(state.notice)}</div>` : ''}${body}`;
+        document.querySelector('main h1').focus({ preventScroll: true });
+      }
+      function navigate(to) {
+        state.screen = to;
+        state.variant = 'normal';
+        state.error = '';
+        state.notice = '';
+        render();
+        document.querySelector('#main').scrollIntoView({ block: 'start' });
+      }
+      document.addEventListener('click', (event) => {
+        const target = event.target.closest('[data-go],[data-action]');
+        if (!target) return;
+        if (target.dataset.go) {
+          if (target.dataset.stock !== undefined) state.selected = Number(target.dataset.stock);
+          navigate(target.dataset.go);
+          return;
+        }
+        state.error = '';
+        state.notice = '';
+        switch (target.dataset.action) {
+          case 'pendingReview':
+            state.review = 'pending';
+            state.rejectionReason = '';
+            break;
+          case 'normal':
+            state.variant = 'normal';
+            break;
+          case 'call':
+            state.notice =
+              'Design preview only: tel:+254700000000 (fictional). No call placed. Show this same number as a copyable fallback in the product.';
+            break;
+          case 'whatsapp':
+            state.notice =
+              'Design preview only: https://wa.me/254700000000?text=Property%20enquiry (fictional). No WhatsApp message sent.';
+            break;
+          case 'cancelPhoto':
+            state.photo = 'uncertain';
+            break;
+          case 'adoptGallery':
+            state.photo = 'two';
+            state.notice =
+              'Design state: explicitly adopted the two saved photos. Original upload was not resent or attached.';
+            break;
+          case 'checkPhoto':
+            state.photo = 'failed';
+            state.notice =
+              'Design branch: original conversion failure and confirmed worker stop recorded. The saved gallery remains unchanged.';
+            break;
+          case 'leavePhoto':
+            state.photo = 'compare';
+            state.notice =
+              'Design comparison: explicitly use the current saved text/photos before continuing. This action never attaches, deletes or resends an image.';
+            break;
+          case 'confirmViewing':
+            if (!state.viewing.startsWith('proposed'))
+              state.error =
+                'Propose a specific slot before confirming it. A request alone is not an agreed appointment.';
+            else if (!state.phone)
+              state.error =
+                'Record the actual phone agreement before confirming. A proposed slot is not a confirmed viewing.';
+            else {
+              state.viewing = 'confirmed';
+              state.notice =
+                'Design state: viewing confirmed after recorded agreement. External delivery remains unavailable.';
+            }
+            break;
+          case 'reschedule':
+            if (state.ended || ['cancelled', 'completed'].includes(state.viewing)) {
+              state.error =
+                'This cycle has ended. Preserve its history and create a new request instead.';
+              break;
+            }
+            state.viewing = 'proposed new time';
+            state.phone = false;
+            state.ended = false;
+            state.notice =
+              'The previous agreement is historical. Renew phone agreement for this new cycle.';
+            break;
+          case 'cancelViewing':
+            state.viewing = 'cancelled';
+            state.phone = false;
+            state.notice =
+              'Design state: cancelled; retain the previous schedule and original cancellation receipt.';
+            break;
+          case 'completeViewing':
+            if (state.viewing !== 'confirmed' || !state.ended)
+              state.error =
+                'An outcome requires the current confirmed viewing and a valid occurrence time in the product.';
+            else {
+              state.viewing = 'completed';
+              state.notice =
+                'Design state: completion saved. This does not establish a sale or commission.';
+            }
+            break;
+          case 'endedExample':
+            state.viewing = 'confirmed';
+            state.phone = true;
+            state.ended = true;
+            state.notice =
+              'Design inspector: an earlier confirmed viewing has ended. This is a different illustrative cycle; no real event occurred.';
+            break;
+          case 'expireInvite':
+            state.invitation = 'expired';
+            break;
+          case 'revokeInvite':
+            state.invitation = 'revoked';
+            state.notice =
+              'Design state only: revoke the original invitation; current private access must be rechecked separately.';
+            break;
+          case 'exportReport':
+            state.notice =
+              'Planned authorized export columns: listing reference, public title, workflow state, aggregate count, interval/timezone. Prospect contacts and private addresses are excluded by default. No file generated.';
+            break;
+        }
+        render();
+      });
+      document.addEventListener('change', (event) => {
+        if (event.target.id === 'variant') {
+          state.variant = event.target.value;
+          state.error = '';
+          state.notice = '';
+          render();
+        } else if (event.target.name === 'photoMode') {
+          state.photo = event.target.value;
+          render();
+        } else if (event.target.name === 'listingFilter') {
+          state.listingFilter = event.target.value;
+          render();
+        } else if (event.target.id === 'phone-agreed') state.phone = event.target.checked;
+      });
+      document.addEventListener('submit', (event) => {
+        const form = event.target.closest('[data-form]');
+        if (!form) return;
+        event.preventDefault();
+        const data = new FormData(form);
+        state.notice = '';
+        state.error = '';
+        switch (form.dataset.form) {
+          case 'search': {
+            const min = String(data.get('min') || ''),
+              max = String(data.get('max') || '');
+            state.query = {
+              purpose: String(data.get('purpose')),
+              min,
+              max,
+              bedrooms: String(data.get('bedrooms') || ''),
+            };
+            if (
+              [min, max].some((v) => v && !/^\d+(?:\.\d{1,2})?$/.test(v)) ||
+              (min && max && Number(min) > Number(max))
+            ) {
+              state.error =
+                'Enter a valid KES range with at most two decimal places; minimum cannot exceed maximum.';
+              break;
+            }
+            state.screen = 'results';
+            if (state.query.purpose === 'sale')
+              state.notice =
+                'This prototype dataset contains rental examples only. The product keeps rental and sale price bases separate.';
+            break;
+          }
+          case 'enquiry':
+            state.enquiryName = String(data.get('name'));
+            state.message = String(data.get('message'));
+            state.screen = 'receipt';
+            break;
+          case 'viewing':
+            state.viewing = 'requested';
+            state.notice =
+              'Prototype request state only. No booking or notification was sent; the agency must propose and agree a slot.';
+            break;
+          case 'draft':
+            state.draftTitle = String(data.get('title'));
+            state.draftAmount = String(data.get('amount'));
+            if (
+              !/^\d+(?:\.\d{1,2})?$/.test(state.draftAmount) ||
+              Number(state.draftAmount) <= 0 ||
+              !Number.isSafeInteger(Math.round(Number(state.draftAmount) * 100))
+            ) {
+              state.error =
+                'Use an exact positive KES amount with no more than two decimal places.';
+              break;
+            }
+            state.notice =
+              'Design state: draft saved in this page memory only. The real product uses shared client/server validation and exact revision recovery.';
+            break;
+          case 'decision': {
+            const decision = event.submitter?.value;
+            if (state.review !== 'pending') {
+              state.error = 'Read the original decision before any further action.';
+              break;
+            }
+            state.rejectionReason = String(data.get('reason') || '');
+            if (decision === 'reject' && !String(data.get('reason') || '').trim()) {
+              state.error =
+                'Give a meaningful rejection reason. Keep the pending revision and approved public snapshot unchanged.';
+              break;
+            }
+            state.review = decision === 'reject' ? 'rejected' : 'approved';
+            state.notice = `Design state: ${decision === 'reject' ? 'rejected with the supplied reason' : 'approved after current checks'}. No real revision or public stock was changed.`;
+            break;
+          }
+          case 'followup':
+            state.notice =
+              'Design state: attributable contact attempt and follow-up retained. No phone call, message or notification was sent.';
+            break;
+          case 'invite':
+            state.invitation = 'pending · ' + String(data.get('role'));
+            state.notice =
+              'Invitation design preview only. No email, token or membership was created.';
+            break;
+          case 'settings':
+            state.brand = String(data.get('brand'));
+            document.documentElement.style.setProperty(
+              '--brand',
+              state.brand === 'sample' ? '#164f4a' : '#5e0202',
+            );
+            state.company = String(data.get('company')).trim();
+            document.querySelector('#brand-label').textContent = state.company;
+            state.notice =
+              'Brand preview applied to this design only. Product content requires a validated approved version; permissions and company context do not change.';
+            break;
+        }
+        render();
+      });
+      render();
+    </script>
+  </body>
+</html>

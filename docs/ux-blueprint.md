@@ -1,5 +1,7 @@
 # Realtime UI/UX blueprint and acceptance path
 
+29October2026 update: the independently authored [connected interactive design](design/connected-journeys.html) and [screen/permission/recovery handoff](design/connected-journeys.md) now complete03-4/03-5. [Executed browser evidence](evidence/2026-10-29-connected-design.md) covers16 screens at desktop/320px and critical in-memory transitions. Operator review03-7 and planned backend/device features remain open. The original0.1 brief below is retained as design history.
+
 Version 0.1 — 9 October 2026. Owner: Boniface with Codex. Status: actionable design brief; **not approved final artwork, completed implementation or a usability test report**.
 
 Boniface has asked for proper UI/UX informed by the supplied Figma work, or a better result. The current synthetic web/admin/mobile preview is an engineering foundation. Its illustrated hero, small display text and provisional layouts are not the visual standard for the finished product. Keep the working domain/API/database evidence while improving the experience; changing the presentation does not discard that work.

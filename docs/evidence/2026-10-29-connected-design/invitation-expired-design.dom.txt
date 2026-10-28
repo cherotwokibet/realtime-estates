@@ -1,0 +1,63 @@
+- link "Skip to design screen":
+  - /url: "#main"
+- strong: DESIGN PROTOTYPE
+- text: · Fictional data, in-memory interactions only. No messages, invitations, uploads or publication are sent. This is a design handoff, not operator approval.
+- complementary:
+  - generic: RE
+  - strong: Realtime Estates
+  - generic: One configurable platform
+  - heading "Visitor journeys" [level=2]
+  - navigation "Visitor design screens":
+    - button "Find a home"
+    - button "Search results"
+    - button "Property details"
+    - button "Contact the agency"
+    - button "Send an enquiry"
+    - button "Request a viewing"
+  - heading "Agency workspace" [level=2]
+  - navigation "Staff design screens":
+    - button "Daily overview"
+    - button "Listing queue"
+    - button "Property draft"
+    - button "Photo recovery"
+    - button "Review a revision"
+    - button "Enquiry pipeline"
+    - button "Viewing calendar"
+    - button "Staff & branches"
+    - button "Operational reports"
+    - button "Branding & settings"
+  - paragraph: Use the state inspector to examine loading, empty, error and expired-access designs. Product permissions remain server owned; this review tool previews roles without granting access.
+- generic: Agency staff design · current role/company required
+- text: State inspector
+- combobox "State inspector":
+  - option "Normal" [selected]
+  - option "Empty"
+  - option "Loading"
+  - option "Unavailable"
+  - option "Access ended"
+- main:
+  - text: Agency workspace
+  - heading "Staff & branches" [active] [level=1]
+  - paragraph: A current, company-scoped workspace with deliberate decisions, retained originals and visible recovery.
+  - generic: Agency administrator design · no platform-owner permission
+  - heading "Invite staff to this agency" [level=2]
+  - text: Fictional staff email
+  - generic: "*"
+  - textbox "Fictional staff email *": <redacted>
+  - text: Role
+  - combobox "Role":
+    - option "Listing agent" [selected]
+    - option "Agency administrator"
+  - text: Branch
+  - combobox "Branch":
+    - option "Main office · current agency" [selected]
+    - option "Synthetic north branch · current agency"
+  - paragraph: The server supplies company identity and checks inviter permission. No posted company or self-selected platform role grants access.
+  - button "Preview invitation"
+  - heading "Invitations & current access" [level=2]
+  - generic: expired
+  - paragraph: Accept/redeem once after verified identity. Show expiry, used/revoked states and safe resend; never expose an invite token in audit logs.
+  - button "Inspect expired state"
+  - button "Revoke invitation"
+  - paragraph: Protect the last agency administrator. Revocation takes effect on subsequent reads/writes and clears private session views.
+- contentinfo: 29 October 2026 · Independently authored design. Existing implementation and planned screens are distinguished in the handoff document. Actual device, screen-reader and Realtime operator review remain separate work.
