@@ -124,6 +124,8 @@ export interface ApiServiceOptions {
   readonly privacyNoticeVersion: string;
   readonly verifyAuthorization: (request: Request) => Promise<VerifiedIdentity>;
   readonly limiter?: EnquiryLimiter;
+  /** General trusted-peer budget, in addition to the stricter enquiry budget. Inject distributed storage before public deployment. */
+  readonly requestLimiter?: EnquiryLimiter;
   /** Derive from a trusted socket/proxy configuration. Do not trust arbitrary forwarded headers. */
   readonly clientKey?: (request: Request) => string;
   readonly uuid?: () => string;
@@ -1484,6 +1486,7 @@ export function createApiService(
   );
   const newId = options.uuid ?? randomUUID;
   const limiter = options.limiter ?? createLocalEnquiryLimiter();
+  const requestLimiter = options.requestLimiter ?? createLocalEnquiryLimiter({ limit: 240 });
   async function identity(request: Request, required: boolean): Promise<string | null> {
     if (!request.headers.has('authorization')) {
       if (required)
@@ -1499,6 +1502,30 @@ export function createApiService(
   return async (request) => {
     const correlationId = newId();
     try {
+      const clientKey = options.clientKey?.(request) ?? 'shared-local';
+      if (
+        typeof clientKey !== 'string' ||
+        !clientKey ||
+        clientKey.length > 200 ||
+        /[\u0000-\u001f\u007f-\u009f]/u.test(clientKey)
+      )
+        throw Error('Invalid trusted peer key.');
+      const requestQuota = await requestLimiter.consume(`http:${tenantId}:${clientKey}`);
+      if (
+        !requestQuota ||
+        typeof requestQuota.allowed !== 'boolean' ||
+        !Number.isSafeInteger(requestQuota.retryAfterSeconds) ||
+        requestQuota.retryAfterSeconds < 0 ||
+        requestQuota.retryAfterSeconds > 3600 ||
+        (requestQuota.allowed
+          ? requestQuota.retryAfterSeconds !== 0
+          : requestQuota.retryAfterSeconds < 1)
+      )
+        throw Error('Invalid request-budget result.');
+      if (!requestQuota.allowed)
+        throw new HttpError(429, 'RATE_LIMITED', 'Please wait before trying again.', {
+          'Retry-After': String(requestQuota.retryAfterSeconds),
+        });
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method.toUpperCase();
@@ -1676,7 +1703,7 @@ export function createApiService(
         const captureActor = staffCapture ? await identity(request, true) : undefined;
         if (staffCapture) enquiryQuery(url, false);
         const quota = await limiter.consume(
-          `${tenantId}:${staffCapture ? `staff:${captureActor}` : 'public'}:${options.clientKey?.(request) ?? 'shared-local'}`,
+          `${tenantId}:${staffCapture ? `staff:${captureActor}` : 'public'}:${clientKey}`,
         );
         if (!quota.allowed)
           throw new HttpError(429, 'RATE_LIMITED', 'Please wait before trying again.', {
