@@ -138,7 +138,13 @@ function validFilters(value: unknown): value is MobileReferenceFilters {
 }
 
 /** Public search preferences only. Never use this store for accounts, tokens or catalogue responses. */
-export function createMobileReferenceSearchStore(storage: MobileSearchStorage, scope: Scope) {
+export function createMobileReferenceSearchStore(
+  storage: MobileSearchStorage,
+  scope: Scope,
+  waitMs = 3000,
+) {
+  if (!Number.isFinite(waitMs) || waitMs < 1 || waitMs > 30000)
+    throw Error('Invalid storage wait.');
   const key = `realtor:reference-search:v1:${scope.tenantSlug}:${encodeURIComponent(scope.apiOrigin)}`;
   let queues = storageQueues.get(storage);
   if (!queues) {
@@ -158,35 +164,47 @@ export function createMobileReferenceSearchStore(storage: MobileSearchStorage, s
     });
     return result;
   };
+  // Bound the UI wait, but leave native operations serialized until they actually settle.
+  // Releasing the queue on timeout could let an older write finish after a later clear.
+  const within = <T>(operation: Promise<T>, fallback: T): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout>;
+    const deadline = new Promise<T>((resolve) => {
+      timer = setTimeout(() => resolve(fallback), waitMs);
+    });
+    return Promise.race([operation, deadline]).finally(() => clearTimeout(timer));
+  };
   return Object.freeze({
     load: (): Promise<RestoredSearch> =>
-      enqueue(async () => {
-        try {
-          const raw = await storage.getItem(key);
-          if (raw === null) return { status: 'empty' };
-          let value: unknown;
+      within(
+        enqueue<RestoredSearch>(async () => {
           try {
-            value = raw.length <= 4096 ? JSON.parse(raw) : null;
+            const raw = await storage.getItem(key);
+            if (raw === null) return { status: 'empty' };
+            let value: unknown;
+            try {
+              value = raw.length <= 4096 ? JSON.parse(raw) : null;
+            } catch {
+              value = null;
+            }
+            if (
+              !isRecord(value) ||
+              Object.keys(value).length !== 5 ||
+              value.version !== 1 ||
+              value.mode !== scope.mode ||
+              value.tenantSlug !== scope.tenantSlug ||
+              value.apiOrigin !== scope.apiOrigin ||
+              !validFilters(value.filters)
+            ) {
+              await storage.removeItem(key);
+              return { status: 'discarded' };
+            }
+            return { status: 'ready', filters: { ...value.filters } };
           } catch {
-            value = null;
+            return { status: 'unavailable' };
           }
-          if (
-            !isRecord(value) ||
-            Object.keys(value).length !== 5 ||
-            value.version !== 1 ||
-            value.mode !== scope.mode ||
-            value.tenantSlug !== scope.tenantSlug ||
-            value.apiOrigin !== scope.apiOrigin ||
-            !validFilters(value.filters)
-          ) {
-            await storage.removeItem(key);
-            return { status: 'discarded' };
-          }
-          return { status: 'ready', filters: { ...value.filters } };
-        } catch {
-          return { status: 'unavailable' };
-        }
-      }),
+        }),
+        { status: 'unavailable' },
+      ),
     save: (filters: MobileReferenceFilters): Promise<boolean> => {
       if (!validFilters(filters)) return Promise.resolve(false);
       const raw = JSON.stringify({
@@ -197,23 +215,29 @@ export function createMobileReferenceSearchStore(storage: MobileSearchStorage, s
         filters: { ...filters },
       });
       if (raw.length > 4096) return Promise.resolve(false);
-      return enqueue(async () => {
-        try {
-          await storage.setItem(key, raw);
-          return true;
-        } catch {
-          return false;
-        }
-      });
+      return within(
+        enqueue(async () => {
+          try {
+            await storage.setItem(key, raw);
+            return true;
+          } catch {
+            return false;
+          }
+        }),
+        false,
+      );
     },
     clear: (): Promise<boolean> =>
-      enqueue(async () => {
-        try {
-          await storage.removeItem(key);
-          return true;
-        } catch {
-          return false;
-        }
-      }),
+      within(
+        enqueue(async () => {
+          try {
+            await storage.removeItem(key);
+            return true;
+          } catch {
+            return false;
+          }
+        }),
+        false,
+      ),
   });
 }

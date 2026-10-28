@@ -154,3 +154,56 @@ test('storage failures stay contained and do not poison later operations', async
   assert.equal(await store.clear(), true);
   assert.deepEqual(await store.load(), { status: 'empty' });
 });
+
+test(
+  'a stalled restore returns unavailable without applying late saved filters',
+  { timeout: 2000 },
+  async () => {
+    const storage = memoryStorage();
+    const store = createMobileReferenceSearchStore(storage, scope, 5);
+    await store.save(filters);
+    const getItem = storage.getItem;
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    storage.getItem = async (key) => {
+      await gate;
+      return getItem(key);
+    };
+    let deliveries = 0;
+    const restored = await store.load().then((value) => {
+      deliveries++;
+      return value;
+    });
+    assert.deepEqual(restored, { status: 'unavailable' });
+    release();
+    storage.getItem = getItem;
+    assert.deepEqual(await store.load(), { status: 'ready', filters });
+    assert.equal(deliveries, 1);
+  },
+);
+
+test(
+  'timed-out writes remain ordered before clear even after both UI waits end',
+  { timeout: 2000 },
+  async () => {
+    const storage = memoryStorage();
+    let release;
+    const gate = new Promise((resolve) => {
+      release = resolve;
+    });
+    const setItem = storage.setItem;
+    storage.setItem = async (...args) => {
+      await gate;
+      return setItem(...args);
+    };
+    const first = createMobileReferenceSearchStore(storage, scope, 5);
+    assert.equal(await first.save(filters), false);
+    const next = createMobileReferenceSearchStore(storage, scope, 5);
+    assert.equal(await next.clear(), false);
+    release();
+    assert.deepEqual(await next.load(), { status: 'empty' });
+    assert.equal(storage.items.size, 0);
+  },
+);
