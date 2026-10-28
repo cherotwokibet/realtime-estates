@@ -1,0 +1,154 @@
+.ops-page {
+  max-width: 1180px;
+  margin: auto;
+  padding: 28px;
+  overflow-wrap: anywhere;
+}
+.ops-masthead {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #ddd;
+}
+.ops-masthead a {
+  font-weight: 700;
+  color: var(--brand);
+}
+.ops-masthead span {
+  font-size: 13px;
+  color: #615e5a;
+}
+.ops-intro {
+  padding: 40px 0 24px;
+  max-width: 800px;
+}
+.ops-intro > p:first-child {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--brand);
+}
+.ops-intro h1 {
+  font-size: clamp(30px, 5vw, 52px);
+  line-height: 1.1;
+  margin: 14px 0;
+}
+.ops-intro p,
+.ops-clock,
+.ops-queue p {
+  line-height: 1.6;
+  color: #57534e;
+}
+.ops-intro .ops-notice {
+  padding: 14px;
+  background: #f5eee3;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.ops-refresh {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  margin-right: 24px;
+  font-weight: 700;
+  color: var(--brand);
+}
+.ops-queues {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.ops-queue {
+  background: #fff;
+  border: 1px solid #ddd7d0;
+  border-radius: 16px;
+  padding: 24px;
+  min-width: 0;
+}
+.ops-queue-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 14px;
+}
+.ops-queue h2 {
+  font-size: 21px;
+  line-height: 1.25;
+  margin: 0;
+}
+.ops-queue-heading span {
+  font-size: 12px;
+  white-space: nowrap;
+  color: #615e5a;
+}
+.ops-queue ul {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+}
+.ops-queue li {
+  padding: 14px 0;
+  border-top: 1px solid #e5e0da;
+}
+.ops-queue li a {
+  color: var(--brand);
+  font-weight: 650;
+  line-height: 1.5;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+}
+.ops-queue li span {
+  display: block;
+  font-size: 13px;
+  color: #615e5a;
+  line-height: 1.5;
+}
+.ops-empty {
+  padding: 18px;
+  background: #f6f5f1;
+  border-radius: 8px;
+}
+.ops-more {
+  font-size: 13px;
+}
+.ops-unavailable {
+  padding: 24px;
+  background: #fff4e5;
+  border: 1px solid #d2a768;
+  border-radius: 12px;
+}
+.ops-page a:focus-visible {
+  outline: 3px solid #286078;
+  outline-offset: 4px;
+}
+@media (max-width: 700px) {
+  .ops-page {
+    padding: 20px;
+  }
+  .ops-masthead {
+    display: block;
+  }
+  .ops-masthead span {
+    display: block;
+    margin-top: 10px;
+  }
+  .ops-queues {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ops-queue {
+    padding: 20px;
+  }
+  .ops-queue-heading {
+    display: block;
+  }
+  .ops-queue-heading span {
+    display: block;
+    margin-top: 8px;
+  }
+  .ops-intro {
+    padding-top: 26px;
+  }
+}

@@ -1,9 +1,26 @@
 import type { CSSProperties } from 'react';
 import { getDemoBrand, resolveDemoTenantSlug } from '@realtor/demo';
 import ReviewWorkspace from '../../components/ReviewWorkspace';
+import { reviewEntryTarget, type EntryQuery } from '../../lib/operations-navigation';
 export const dynamic = 'force-dynamic';
-export default function ReviewsPage() {
+export default async function ReviewsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<EntryQuery>;
+}) {
   const brand = getDemoBrand(resolveDemoTenantSlug(process.env.TENANT_SLUG));
+  let target: ReturnType<typeof reviewEntryTarget> = null;
+  try {
+    target = reviewEntryTarget((await searchParams) ?? {});
+  } catch {
+    return (
+      <main>
+        <h1>Review target unavailable</h1>
+        <p>Use a valid company review link.</p>
+        <a href="/reviews">Open review queue</a>
+      </main>
+    );
+  }
   return (
     <div className="draft-workspace" style={{ '--brand': brand.primary } as CSSProperties}>
       <a className="skip" href="#review-main">
@@ -28,7 +45,8 @@ export default function ReviewsPage() {
           <span>Revision review</span>
         </nav>
         <ReviewWorkspace
-          key={process.env.STAFF_PREVIEW_INSTANCE ?? ''}
+          key={`${process.env.STAFF_PREVIEW_INSTANCE ?? ''}:${target?.listingId ?? ''}:${target?.revision ?? ''}`}
+          initialReview={target ?? undefined}
           previewInstanceId={process.env.STAFF_PREVIEW_INSTANCE ?? ''}
         />
       </main>

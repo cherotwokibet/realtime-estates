@@ -1,10 +1,13 @@
 import {
   PROPERTY_TYPES,
+  validateStaffOperationsOverview,
+  type StaffOperationsOverview,
   kesFromMajor,
   parseSearchAreaPolygon,
   type RentalPeriod,
   type SearchAreaPolygon,
 } from '@realtor/domain';
+export { validateStaffOperationsOverview, type StaffOperationsOverview } from '@realtor/domain';
 import {
   validateRevisionProtocol,
   validateRevisionProtocolTarget,
@@ -3408,6 +3411,15 @@ export class RealtorApiClient {
       return validateStaffListingSummary(data, listing);
     } catch {
       return invalid('INVALID_RESPONSE', 'Invalid current listing detail.');
+    }
+  }
+  async getStaffOperationsOverview(options: StaffRequestOptions): Promise<StaffOperationsOverview> {
+    const captured = uploadOptions(options);
+    const data = await this.request('/v2/staff/operations/overview', 'GET', captured);
+    try {
+      return validateStaffOperationsOverview(data);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid operations overview.');
     }
   }
   async listStaffListingsV2(

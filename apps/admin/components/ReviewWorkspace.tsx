@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import ReviewImages from './ReviewImages';
 import type { ReviewDetailV2, ReviewSummaryV2, ReviewPageV2 } from '@realtor/api-client';
 import { calculateWirePricingV2, formatKes, kesFromMinor } from '@realtor/domain';
@@ -75,7 +75,14 @@ const when = (value: string | null) =>
       }) + ' EAT'
     : 'Not recorded';
 
-export default function ReviewWorkspace({ previewInstanceId }: { previewInstanceId: string }) {
+export default function ReviewWorkspace({
+  previewInstanceId,
+  initialReview,
+}: {
+  previewInstanceId: string;
+  initialReview?: Readonly<{ listingId: string; revision: number }>;
+}) {
+  const initialHandled = useRef(false);
   const [queue, setQueue] = useState<readonly ReviewSummaryV2[] | null>(null),
     [queueMessage, setQueueMessage] = useState('Loading pending revisions…');
   const [review, setReview] = useState<ReviewDetailV2 | null>(null),
@@ -145,7 +152,7 @@ export default function ReviewWorkspace({ previewInstanceId }: { previewInstance
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
   }, [hasNotes]);
-  async function openReview(item: ReviewSummaryV2) {
+  async function openReview(item: Pick<ReviewSummaryV2, 'listingId' | 'revision'>) {
     if (busy || hasNotes) return;
     setBusy(true);
     setError(false);
@@ -164,6 +171,11 @@ export default function ReviewWorkspace({ previewInstanceId }: { previewInstance
       setBusy(false);
     }
   }
+  useEffect(() => {
+    if (!initialReview || initialHandled.current || review || busy || queue === null) return;
+    initialHandled.current = true;
+    void openReview(initialReview);
+  }, [initialReview, queue, review, busy]);
   async function checkLatest() {
     if (!review) return;
     setBusy(true);

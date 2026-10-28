@@ -1,0 +1,105 @@
+- main:
+  - link "Skip to inbox":
+    - /url: "#inbox-title"
+  - link "Realtime Estates Ltd workspace overview":
+    - /url: /
+    - generic: RE/
+    - strong:
+      - text: Realtime Estates Ltd
+      - generic: STAFF WORKSPACE
+  - generic: Independent platform preview
+  - region "Every enquiry. A clear next step.":
+    - generic: DAILY OPERATIONS / ADMIN
+    - heading "Every enquiry. A clear next step." [level=1]:
+      - text: Every enquiry.
+      - emphasis: A clear next step.
+    - paragraph: Assign an owner, record contact and keep the next follow-up visible.
+    - link "Record a staff enquiry →":
+      - /url: /enquiries/admin/new
+    - text: Synthetic admin workspace
+    - generic: Staff ID 00000000-0000-4000-8000-000000000010
+    - paragraph:
+      - text: Local role simulation · expires with the preview.
+      - text: No messages or reminders are sent.
+  - strong: Development preview
+  - generic: Fictional enquiries in a disposable database. Saving contact records work already done; it does not contact a prospect or confirm a viewing.
+  - navigation "Preview workspaces":
+    - link "Workspace overview":
+      - /url: /
+    - link "Open synthetic agent workspace ↗":
+      - /url: /enquiries/agent
+  - region "Enquiry inbox":
+    - text: VISIBLE TO THIS ROLE
+    - heading "Enquiry inbox" [level=2]
+    - button "Refresh"
+    - paragraph: Queue unavailable. No company total is inferred. Refresh returns to the first page; records and access can change between pages. The selected enquiry stays open while browsing pages.
+    - text: Search the authorized queue
+    - combobox "Search the authorized queue":
+      - option "All enquiries" [selected]
+      - option "Open enquiries"
+      - option "Overdue follow-ups"
+      - option "Follow-ups still due today"
+    - text: Show within this page
+    - combobox "Show within this page":
+      - option "All on this page" [selected]
+      - option "Unassigned"
+      - option "Assigned to this staff ID"
+  - region "Selected enquiry":
+    - status: Private saved details have been hidden. Local input and any original command are retained in this tab.
+    - alert: The enquiry service could not complete this request.
+    - heading "Saved details unavailable" [level=2]
+    - paragraph: Private details are shown only after an authorized read. Any retained local input is below.
+    - button "Check current enquiry"
+    - region "Contact log":
+      - heading "Record completed contact" [level=3]
+      - paragraph: Log work already done using fictional details. Saving sends no call, WhatsApp or email and changes no enquiry status or working version.
+      - paragraph: Input and the original save are kept only in this tab. Reloading or closing loses recovery details. Finish this record before switching enquiries or roles.
+      - group "Completed contact details":
+        - generic: Completed contact details
+        - text: Contact channel
+        - combobox "Contact channel" [disabled]:
+          - option "Call" [disabled] [selected]
+          - option "WhatsApp" [disabled]
+          - option "Email" [disabled]
+          - option "In person" [disabled]
+          - option "Other" [disabled]
+        - text: Contact outcome
+        - combobox "Contact outcome" [disabled]:
+          - option "Connected" [disabled] [selected]
+          - option "No response" [disabled]
+          - option "Left a message" [disabled]
+          - option "Wrong contact" [disabled]
+          - option "Other" [disabled]
+        - text: Contact time · Nairobi (EAT, UTC+03:00)
+        - textbox "Contact time · Nairobi (EAT, UTC+03:00)" [disabled]
+        - text: Contact notes
+        - textbox "Contact notes 0 / 2,000 characters. Original spacing is retained." [disabled]
+        - generic: 0 / 2,000 characters. Original spacing is retained.
+        - button "Save completed contact" [disabled]
+      - paragraph: "Working enquiry version: unavailable. Refreshing the contact feed does not adopt a workflow version."
+      - button "Discard local contact input"
+      - heading "Recorded contacts" [level=3]
+      - button "Refresh contact feed"
+      - alert: Contact feed unavailable for current access. Refresh to try a new read.
+    - region "Viewing scheduling":
+      - heading "Request a viewing" [level=3]
+      - paragraph: Synthetic scheduling preview. A proposal awaits customer agreement. Confirmation requires completed phone agreement to the exact proposed time. Saving sends no invitation or reminder and does not reserve staff time.
+      - paragraph: Input and original operations stay only in this tab. Closing or reloading loses recovery details. Finish or clear this work before switching enquiries or roles.
+      - group "Viewing details":
+        - generic: Viewing details
+        - text: Viewing request notes
+        - textbox "Viewing request notes 0 / 2,000 characters. Original spacing is retained." [disabled]
+        - generic: 0 / 2,000 characters. Original spacing is retained.
+        - paragraph: Optional preferred time · Nairobi (EAT, UTC+03:00), 15 minutes to 4 hours.
+        - text: Viewing start · Nairobi
+        - textbox "Viewing start · Nairobi" [disabled]
+        - text: Viewing end · Nairobi
+        - textbox "Viewing end · Nairobi" [disabled]
+        - button "Save viewing request" [disabled]
+      - button "Discard local viewing input"
+      - heading "Viewing history" [level=3]
+      - button "Refresh viewing feed"
+      - alert: Viewing feed unavailable for current access. Refresh to try a new read.
+  - generic: Independently rebuilt · Synthetic development data · Follow-up times shown in Nairobi
+- button "Open Next.js Dev Tools":
+- alert

@@ -1,0 +1,14 @@
+
+> @realtor/admin@0.1.0 test
+> tsc -p tsconfig.tests.json && node --conditions=react-server --test tests/*.test.mjs && node --test ui-tests/*.test.mjs
+
+app/operations/page.tsx(3,39): error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean '../../lib/enquiry-preview-server.js'?
+app/operations/page.tsx(4,32): error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean '../../components/OperationsOverview.js'?
+components/OperationsOverview.tsx(2,35): error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean '../lib/enquiry-model.js'?
+npm error Lifecycle script `test` failed with error:
+npm error code 2
+npm error path C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\apps\admin
+npm error workspace @realtor/admin@0.1.0
+npm error location C:\Users\BONIFACE\OneDrive\Documentos\ChatGPT\RealEstate\realtor-platform\apps\admin
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c tsc -p tsconfig.tests.json && node --conditions=react-server --test tests/*.test.mjs && node --test ui-tests/*.test.mjs

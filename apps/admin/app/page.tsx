@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react';
 import { getDemoBrand, propertiesForCompany, resolveDemoTenantSlug } from '@realtor/demo';
 import { formatKes, kesFromMinor } from '@realtor/domain';
+import { previewConfiguration } from '../lib/staff-preview-policy';
+import { getEnquiryPreviewScope } from '../lib/enquiry-preview-server';
 
 const slug = resolveDemoTenantSlug(process.env.TENANT_SLUG);
 const brand = getDemoBrand(slug);
@@ -42,6 +44,12 @@ function label(value: string): string {
 }
 
 export default function Admin() {
+  let operationsEnabled = false;
+  try {
+    if (process.env.STAFF_ENQUIRY_PREVIEW_MODE === 'synthetic-v1') getEnquiryPreviewScope('admin');
+    else previewConfiguration(process.env);
+    operationsEnabled = true;
+  } catch {}
   const properties = propertiesForCompany(slug);
   // Deliberately generated scenarios, scoped to this preview company; no customer activity is read.
   const enquiries = properties.slice(0, 3).map((property, index) => ({
@@ -118,6 +126,12 @@ export default function Admin() {
           </a>
           <p className="nav-label">YOUR WORKSPACE</p>
           <nav className="workspace-nav" aria-label="Jump to workspace section">
+            {operationsEnabled && (
+              <a href="/operations">
+                <Icon name="actions" />
+                Daily work
+              </a>
+            )}
             <a href="#overview">
               <Icon name="overview" />
               Overview

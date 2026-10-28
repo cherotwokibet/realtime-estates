@@ -33,6 +33,7 @@ const files = [
   '0029_listing_duplicate_candidates.sql',
   '0030_listing_verification.sql',
   '0031_listing_verification_history.sql',
+  '0032_operations_overview.sql',
 ];
 export async function applyTestMigrations(database, { after, through } = {}) {
   // Historical migration fixtures can continue through the reviewed current order.

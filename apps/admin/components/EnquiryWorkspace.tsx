@@ -32,6 +32,8 @@ type Props = {
   actorId: string;
   instanceId: string;
   reminderCaptureEnabled?: boolean;
+  initialEnquiryId?: string;
+  initialViewingId?: string;
 };
 type Attempt = {
   id: string;
@@ -74,6 +76,8 @@ export default function EnquiryWorkspace({
   actorId,
   instanceId,
   reminderCaptureEnabled = false,
+  initialEnquiryId,
+  initialViewingId,
 }: Props) {
   const client = useMemo(
     () => createEnquiryPreviewClient({ basePath: `/api/enquiry-preview/${actor}`, instanceId }),
@@ -200,6 +204,7 @@ export default function EnquiryWorkspace({
     alive.current = true;
     void refreshQueue();
     void refreshDirectory();
+    if (initialEnquiryId) void selectEnquiry(initialEnquiryId);
     return () => {
       alive.current = false;
       readGuard.current.invalidate();
@@ -940,6 +945,7 @@ export default function EnquiryWorkspace({
           )}
           {selected && (
             <EnquiryViewings
+              initialViewingId={selected === initialEnquiryId ? initialViewingId : undefined}
               reminderCaptureEnabled={reminderCaptureEnabled}
               key={`viewing:${actor}:${instanceId}:${selected}`}
               actor={actor}

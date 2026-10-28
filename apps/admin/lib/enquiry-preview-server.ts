@@ -34,7 +34,7 @@ import {
   RealtorApiClient,
   type EnquiryOperationInputV2,
 } from '@realtor/api-client';
-import { assertPreviewRequest } from './staff-preview-policy.ts';
+import { assertPreviewRequest, previewConfiguration } from './staff-preview-policy.ts';
 import { parseEnquiryQueueSearch } from './enquiry-queue.ts';
 
 type Actor = 'admin' | 'agent';
@@ -164,6 +164,20 @@ function configuration(actor: unknown, env: Environment) {
 export function getEnquiryPreviewScope(actor: unknown, env: Environment = process.env): Scope {
   const { actorId, role, instanceId } = configuration(actor, env);
   return Object.freeze({ actorId, role, instanceId });
+}
+
+/** Local synthetic server read only; no bearer token is returned to the page. */
+export async function loadOperationsPreview(env: Environment = process.env) {
+  const config =
+    env.STAFF_ENQUIRY_PREVIEW_MODE === 'synthetic-v1'
+      ? configuration('admin', env)
+      : previewConfiguration(env);
+  const client = new RealtorApiClient({
+    baseUrl: config.origin,
+    privacyNoticeVersion: 'synthetic-operations-preview-v1',
+    allowLoopbackHttp: true,
+  });
+  return client.getStaffOperationsOverview({ bearerToken: config.bearerToken, timeoutMs: 5000 });
 }
 
 function failure(error: unknown, writeDispatched: boolean): Response {

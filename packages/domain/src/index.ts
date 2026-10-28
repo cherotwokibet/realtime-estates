@@ -17,6 +17,7 @@ export * from './listing-reference-successor.js';
 export * from './listing-reference-moderation.js';
 export * from './revision-protocol.js';
 export * from './search-area.js';
+export * from './operations-overview.js';
 
 export * from './enquiry-activity.js';
 

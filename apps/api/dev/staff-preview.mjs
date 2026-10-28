@@ -1311,6 +1311,7 @@ export async function startStaffPreview(options = {}) {
           return response;
         }
         if (
+          url.pathname === '/v2/staff/operations/overview' ||
           url.pathname === '/v2/staff/listings' ||
           /^\/v2\/staff\/listings\/[0-9a-f-]{36}$/i.test(url.pathname)
         ) {
@@ -1472,6 +1473,7 @@ export async function startStaffPreview(options = {}) {
               url.pathname,
             );
           const queue =
+            url.pathname === '/v2/staff/operations/overview' ||
             url.pathname === '/v3/staff/enquiries' ||
             url.pathname === '/v2/staff/enquiries' ||
             url.pathname === '/v2/staff/enquiry-assignees';

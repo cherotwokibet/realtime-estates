@@ -1,5 +1,6 @@
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
 import { staffEnquiryQueueQuery, EnquiryQueueInputError } from './enquiry-queue.js';
+import { readStaffOperationsOverview } from './operations-overview.js';
 import {
   PUBLIC_REFERENCE_OPTIONS_SQL,
   publicReferenceOptions,
@@ -2351,6 +2352,49 @@ export function createApiService(
       if (path.startsWith('/v1/staff/') || v2Draft || enquiryQueueV3) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        if (path === '/v2/staff/operations/overview') {
+          if (method !== 'GET')
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Operations overview is read-only.', {
+              Allow: 'GET',
+            });
+          let forbidden =
+            request.body !== null || request.url.includes('?') || request.url.includes('#');
+          request.headers.forEach((_, name) => {
+            if (
+              [
+                'cookie',
+                'content-type',
+                'content-length',
+                'content-encoding',
+                'transfer-encoding',
+                'expect',
+                'range',
+                'idempotency-key',
+                'x-actor-id',
+                'x-tenant-id',
+                'x-role',
+                'x-actor',
+                'x-tenant',
+                'x-company-id',
+                'x-assigned-agent-id',
+                'x-revision-version',
+              ].includes(name) ||
+              name.startsWith('if-')
+            )
+              forbidden = true;
+          });
+          if (forbidden)
+            throw new HttpError(
+              400,
+              'INVALID_INPUT',
+              'Operations overview accepts no caller context or filters.',
+            );
+          const result = await options.database.transaction(context, async (query) => {
+            await assertAdmin(query);
+            return readStaffOperationsOverview(query);
+          });
+          return response(200, result, correlationId);
+        }
         if (enquiryQueueV3) {
           if (method !== 'GET')
             throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Enquiry queue is read-only.', {
