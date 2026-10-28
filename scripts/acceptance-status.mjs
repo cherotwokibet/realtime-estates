@@ -62,6 +62,7 @@ const commits = {
   search210: '45c9621b6669c7ed8cd6a062ca6f16f389db3806',
   mobile211: '9aedc88558b9168173697716adb804ceef877be6',
   foundation212: '86cf7ed329d804197de8c891f5647cde48f03406',
+  calendar214: '842f4931e91061c5279819fa215ddf66267e32a3',
 };
 for (const commit of Object.values(commits))
   execFileSync('git', ['merge-base', '--is-ancestor', commit, 'HEAD'], {
@@ -69,6 +70,27 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  calendar214: {
+    path: 'docs/evidence/2026-10-28-viewing-calendar.md',
+    counts: null,
+    commit: commits.calendar214,
+    environment:
+      'Windows / actual synthetic browser request/calendar/confirmation/cancellation/history/reassignment and capture-only uncertainty recovery; no external delivery or device acceptance',
+  },
+  signed214: {
+    path: 'docs/evidence/2026-10-28-viewing-calendar/signed-http-full-current.txt',
+    counts: [90],
+    commit: commits.calendar214,
+    environment:
+      'Windows / actual loopback signed HTTP and restricted PGlite, two synthetic companies; full current dev suite',
+  },
+  admin214: {
+    path: 'docs/evidence/2026-10-28-viewing-calendar/admin-tests.txt',
+    counts: [437, 33],
+    commit: commits.calendar214,
+    environment:
+      'Windows / compiled admin boundaries and SSR UI checks including calendar/date/navigation semantics',
+  },
   api212: {
     path: 'docs/evidence/2026-10-28-operations-overview/api-full.txt',
     counts: [297],
@@ -290,10 +312,10 @@ const reviewed = [
   [
     17,
     'partial',
-    ['api212', 'signed212', 'admin212', 'operations212'],
-    'Local request/proposal/confirmation/terminal cycles and synthetic reminder boundaries are covered; actual outcome action verified.',
-    'Calendar presentation, outbound provider/consent/failure retry visibility and native/operator acceptance remain open.',
-    'Build the calendar and selected notification adapter; verify failed/delayed/suppressed delivery with an approved test destination.',
+    ['api212', 'signed214', 'admin214', 'calendar214', 'operations212'],
+    'Current authorized Nairobi calendar and fresh inspection links verified through reschedule, renewed phone agreement, cancellation, six retained states, unscheduled request/proposal and reassignment. Capture-only uncertainty recovers the original record without sending; external delivery is explicitly unavailable.',
+    'Outbound provider/consent/cadence/failure reconciliation and native/operator acceptance remain open; capture records are not delivered notifications.',
+    'Integrate the controlled notification provider and verify failed/delayed/suppressed delivery with an approved test destination, then complete native/operator journeys.',
   ],
   [
     18,

@@ -8,6 +8,9 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| calendar214 | [evidence/2026-10-28-viewing-calendar.md](evidence/2026-10-28-viewing-calendar.md) · 842f493 | Windows / actual synthetic browser request/calendar/confirmation/cancellation/history/reassignment and capture-only uncertainty recovery; no external delivery or device acceptance |
+| signed214 | [evidence/2026-10-28-viewing-calendar/signed-http-full-current.txt](evidence/2026-10-28-viewing-calendar/signed-http-full-current.txt) · 842f493 | 90 passed; Windows / actual loopback signed HTTP and restricted PGlite, two synthetic companies; full current dev suite |
+| admin214 | [evidence/2026-10-28-viewing-calendar/admin-tests.txt](evidence/2026-10-28-viewing-calendar/admin-tests.txt) · 842f493 | 437 + 33 passed; Windows / compiled admin boundaries and SSR UI checks including calendar/date/navigation semantics |
 | api212 | [evidence/2026-10-28-operations-overview/api-full.txt](evidence/2026-10-28-operations-overview/api-full.txt) · 86cf7ed | 297 passed; Windows / Node24 / restricted PGlite and API boundary tests; synthetic actors |
 | sdk212 | [evidence/2026-10-28-operations-overview/sdk-full.txt](evidence/2026-10-28-operations-overview/sdk-full.txt) · 86cf7ed | 300 passed; Windows / Node24 / client transport and validation tests; synthetic actors |
 | domain212 | [evidence/2026-10-28-operations-overview/domain-full.txt](evidence/2026-10-28-operations-overview/domain-full.txt) · 86cf7ed | 296 passed; Windows / Node24 / pure domain contract tests |
@@ -186,10 +189,10 @@ Next: Repeat approved-snapshot/edit/rejection/pause/conflict journeys with verif
 **R-017 · partial · GAP-AC-017**
 Original finding: Viewing/booking unavailable.
 Expected: Durable ordered transitions, requested≠confirmed, cancelled reminders suppressed, old token invalid, delivery retry visible; no payment/booking ledger claim
-Observed: Local request/proposal/confirmation/terminal cycles and synthetic reminder boundaries are covered; actual outcome action verified.
-Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [operations212](evidence/2026-10-28-operations-overview.md)
-Still open: Calendar presentation, outbound provider/consent/failure retry visibility and native/operator acceptance remain open.
-Next: Build the calendar and selected notification adapter; verify failed/delayed/suppressed delivery with an approved test destination. Owner: Boniface + Codex.
+Observed: Current authorized Nairobi calendar and fresh inspection links verified through reschedule, renewed phone agreement, cancellation, six retained states, unscheduled request/proposal and reassignment. Capture-only uncertainty recovers the original record without sending; external delivery is explicitly unavailable.
+Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed214](evidence/2026-10-28-viewing-calendar/signed-http-full-current.txt), [admin214](evidence/2026-10-28-viewing-calendar/admin-tests.txt), [calendar214](evidence/2026-10-28-viewing-calendar.md), [operations212](evidence/2026-10-28-operations-overview.md)
+Still open: Outbound provider/consent/cadence/failure reconciliation and native/operator acceptance remain open; capture records are not delivered notifications.
+Next: Integrate the controlled notification provider and verify failed/delayed/suppressed delivery with an approved test destination, then complete native/operator journeys. Owner: Boniface + Codex.
 
 ### AC-018 — image-count boundary
 
