@@ -12,6 +12,7 @@ import {
   searchAreaPolygonText,
   searchAreaPolygonVerticesFromText,
   supportedSearchAreaTileUrl,
+  resolveSearchAreaMapPreview,
   undoSearchAreaMapPoint,
 } from '../dist/tests/lib/search-area-editor.js';
 import {
@@ -457,6 +458,53 @@ test('interactive map stays explicit opt-in and keeps the GeoJSON field when no 
   assert.match(configured, /Start a new boundary/);
   assert.match(configured, /aria-label="Map for drawing a search boundary"/);
   assert.match(configured, /Map data/);
+});
+test('area preview modes require explicit synthetic development context and never enable an unapproved production provider', () => {
+  const grid = {
+    NODE_ENV: 'development',
+    WEB_CATALOGUE_DATA: 'synthetic',
+    NEXT_PUBLIC_AREA_MAP_MODE: 'synthetic-grid-v1',
+    NEXT_PUBLIC_AREA_MAP_TILE_URL: OSM_STANDARD_TILE_URL,
+  };
+  assert.deepEqual(resolveSearchAreaMapPreview(grid), { tileUrl: null, syntheticGrid: true });
+  for (const env of [
+    { ...grid, NODE_ENV: 'production' },
+    { ...grid, WEB_CATALOGUE_DATA: undefined },
+    { ...grid, NEXT_PUBLIC_AREA_MAP_MODE: 'unknown' },
+    {},
+  ])
+    assert.deepEqual(resolveSearchAreaMapPreview(env), { tileUrl: null, syntheticGrid: false });
+  assert.deepEqual(
+    resolveSearchAreaMapPreview({
+      NODE_ENV: 'development',
+      NEXT_PUBLIC_AREA_MAP_TILE_URL: OSM_STANDARD_TILE_URL,
+    }),
+    { tileUrl: OSM_STANDARD_TILE_URL, syntheticGrid: false },
+  );
+  assert.deepEqual(
+    resolveSearchAreaMapPreview({
+      NODE_ENV: 'production',
+      NEXT_PUBLIC_AREA_MAP_TILE_URL: OSM_STANDARD_TILE_URL,
+    }),
+    { tileUrl: null, syntheticGrid: false },
+  );
+});
+test('synthetic area grid is labelled without claiming geographic imagery or external map attribution', () => {
+  const html = renderToStaticMarkup(
+    React.createElement(SearchAreaField, {
+      supported: true,
+      invalid: false,
+      value: '',
+      filters: parseCatalogueFilters({}),
+      sort: 'catalogue',
+      tileUrl: null,
+      syntheticGrid: true,
+    }),
+  );
+  assert.match(html, /Synthetic interaction-test grid/);
+  assert.match(html, /no geographic basemap or external tile requests/);
+  assert.match(html, /Synthetic grid for drawing a search boundary/);
+  assert.doesNotMatch(html, /openstreetmap\.org/);
 });
 test('global web original detail is addressed by ID beyond the original loaded page without fallback', async () => {
   const target = property({ id: id(999) }),

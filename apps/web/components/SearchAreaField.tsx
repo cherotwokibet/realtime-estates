@@ -10,6 +10,7 @@ export default function SearchAreaField({
   filters,
   sort,
   tileUrl,
+  syntheticGrid = false,
 }: {
   supported: boolean;
   invalid: boolean;
@@ -17,6 +18,7 @@ export default function SearchAreaField({
   filters: CatalogueFilters;
   sort: string;
   tileUrl: string | null;
+  syntheticGrid?: boolean;
 }) {
   if (!supported) return null;
   // When the area itself is the validation error, clear just that value while
@@ -46,8 +48,12 @@ export default function SearchAreaField({
           spellCheck={false}
         />
       </label>
-      {tileUrl ? (
-        <SearchAreaMapEditor tileUrl={tileUrl} textareaId="search-area-polygon" />
+      {tileUrl || syntheticGrid ? (
+        <SearchAreaMapEditor
+          tileUrl={tileUrl ?? undefined}
+          syntheticGrid={syntheticGrid}
+          textareaId="search-area-polygon"
+        />
       ) : (
         <p className="search-help">
           Interactive map drawing is not configured here. You can still enter a GeoJSON polygon.

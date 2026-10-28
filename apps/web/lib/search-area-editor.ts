@@ -8,6 +8,29 @@ export function supportedSearchAreaTileUrl(value: string | undefined): string | 
   return value === OSM_STANDARD_TILE_URL ? value : null;
 }
 
+/** Explicit synthetic development fixtures; no request data or production map-provider approval. */
+export function resolveSearchAreaMapPreview(
+  env: Readonly<{
+    NODE_ENV?: string;
+    WEB_CATALOGUE_DATA?: string;
+    NEXT_PUBLIC_AREA_MAP_MODE?: string;
+    NEXT_PUBLIC_AREA_MAP_TILE_URL?: string;
+  }>,
+): Readonly<{ tileUrl: string | null; syntheticGrid: boolean }> {
+  if (!['development', 'test'].includes(env.NODE_ENV ?? ''))
+    return { tileUrl: null, syntheticGrid: false };
+  if (
+    env.NEXT_PUBLIC_AREA_MAP_MODE === 'synthetic-grid-v1' &&
+    env.WEB_CATALOGUE_DATA === 'synthetic'
+  )
+    return { tileUrl: null, syntheticGrid: true };
+  if (env.NEXT_PUBLIC_AREA_MAP_MODE !== undefined) return { tileUrl: null, syntheticGrid: false };
+  return {
+    tileUrl: supportedSearchAreaTileUrl(env.NEXT_PUBLIC_AREA_MAP_TILE_URL),
+    syntheticGrid: false,
+  };
+}
+
 /** Convert editable map vertices into the same strict bounded search polygon accepted by the API. */
 export function searchAreaPolygonText(points: readonly SearchAreaMapPoint[]): string | null {
   if (points.length < 3 || points.length > 100) return null;

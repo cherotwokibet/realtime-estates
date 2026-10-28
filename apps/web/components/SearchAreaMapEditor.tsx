@@ -14,9 +14,11 @@ const OSM_ATTRIBUTION =
 export default function SearchAreaMapEditor({
   tileUrl,
   textareaId,
+  syntheticGrid = false,
 }: {
-  tileUrl: string;
+  tileUrl?: string;
   textareaId: string;
+  syntheticGrid?: boolean;
 }) {
   const mapElement = useRef<HTMLDivElement>(null);
   const actions = useRef<{
@@ -28,11 +30,13 @@ export default function SearchAreaMapEditor({
   } | null>(null);
   const [drawing, setDrawing] = useState(false);
   const [vertexCount, setVertexCount] = useState(0);
-  const [hasPolygon, setHasPolygon] = useState(false);
+  const [hasAreaText, setHasAreaText] = useState(false);
   const [status, setStatus] = useState('');
   const [tileError, setTileError] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    setReady(false);
     let disposed = false;
     let map: import('leaflet').Map | undefined;
     let layers: import('leaflet').LayerGroup | undefined;
@@ -95,17 +99,16 @@ export default function SearchAreaMapEditor({
     };
 
     const restoreTextArea = (leaflet: typeof import('leaflet')) => {
+      setHasAreaText(Boolean(textArea?.value));
       const restored = textArea ? searchAreaPolygonVerticesFromText(textArea.value) : null;
       if (!restored) {
         vertices = [];
         layers?.clearLayers();
-        setHasPolygon(false);
         if (textArea?.value)
           setStatus('The text is not a valid search polygon. Correct it in the GeoJSON field.');
         return;
       }
       vertices = restored;
-      setHasPolygon(true);
       redraw(leaflet);
     };
 
@@ -121,15 +124,30 @@ export default function SearchAreaMapEditor({
           keyboard: true,
         });
         map.setView([-0.5, 37.8], 6);
-        leaflet
-          .tileLayer(tileUrl, {
-            attribution: OSM_ATTRIBUTION,
-            maxZoom: 19,
-            updateWhenIdle: true,
-            keepBuffer: 0,
-          })
-          .on('tileerror', () => setTileError(true))
-          .addTo(map);
+        if (syntheticGrid) {
+          class SyntheticGrid extends leaflet.GridLayer {
+            createTile(coordinates: import('leaflet').Coords) {
+              const tile = document.createElement('div');
+              tile.style.cssText =
+                'display:flex;align-items:center;justify-content:center;box-sizing:border-box;border:1px solid #b4bec5;background:#eef2f5;color:#46515c;font:12px sans-serif;';
+              tile.textContent = `Synthetic grid ${coordinates.z}/${coordinates.x}/${coordinates.y}`;
+              return tile;
+            }
+          }
+          new SyntheticGrid({
+            tileSize: 256,
+            attribution: 'Local synthetic grid — no geographic imagery',
+          }).addTo(map);
+        } else if (tileUrl)
+          leaflet
+            .tileLayer(tileUrl, {
+              attribution: OSM_ATTRIBUTION,
+              maxZoom: 19,
+              updateWhenIdle: true,
+              keepBuffer: 0,
+            })
+            .on('tileerror', () => setTileError(true))
+            .addTo(map);
         layers = leaflet.layerGroup().addTo(map);
         map.on('click', (event: import('leaflet').LeafletMouseEvent) => {
           if (!drawingPolygon) return;
@@ -191,12 +209,13 @@ export default function SearchAreaMapEditor({
             setDrawing(false);
             vertices = [];
             setVertexCount(0);
-            setHasPolygon(false);
+            setHasAreaText(false);
             layers?.clearLayers();
             setAreaText('');
             setStatus('Search area cleared. Other search filters were not changed.');
           },
         };
+        setReady(true);
       } catch {
         if (!disposed)
           setStatus(
@@ -212,15 +231,17 @@ export default function SearchAreaMapEditor({
       actions.current = null;
       map?.remove();
     };
-  }, [textareaId, tileUrl]);
+  }, [textareaId, tileUrl, syntheticGrid]);
 
   return (
     <section className="search-area-map-editor" aria-labelledby="search-area-map-title">
       <h3 id="search-area-map-title">Draw or adjust the search area</h3>
       <p>
-        Map tiles load only for the visible area. You can use the GeoJSON field by keyboard if you
-        prefer. Moving the map shows only approximate search boundaries, not exact property
-        locations.
+        {syntheticGrid
+          ? 'Synthetic interaction-test grid; no geographic basemap or external tile requests. '
+          : 'Map tiles load only for the visible area. '}
+        You can use the GeoJSON field by keyboard if you prefer. Moving the map shows only
+        approximate search boundaries, not exact property locations.
       </p>
       {tileError && (
         <p className="search-area-map-editor__warning" role="status">
@@ -229,7 +250,7 @@ export default function SearchAreaMapEditor({
       )}
       <div className="search-area-map-editor__controls">
         {!drawing ? (
-          <button type="button" onClick={() => actions.current?.start()}>
+          <button type="button" disabled={!ready} onClick={() => actions.current?.start()}>
             Start a new boundary
           </button>
         ) : (
@@ -256,7 +277,7 @@ export default function SearchAreaMapEditor({
         <button
           type="button"
           onClick={() => actions.current?.clear()}
-          disabled={!hasPolygon && !drawing}
+          disabled={!ready || (!hasAreaText && !drawing)}
         >
           Clear area
         </button>
@@ -265,10 +286,21 @@ export default function SearchAreaMapEditor({
         ref={mapElement}
         className="search-area-map-editor__map"
         role="region"
-        aria-label="Map for drawing a search boundary"
+        aria-label={
+          syntheticGrid
+            ? 'Synthetic grid for drawing a search boundary'
+            : 'Map for drawing a search boundary'
+        }
       />
       <p className="search-area-map-editor__attribution">
-        Map data © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>.
+        {syntheticGrid ? (
+          'Local synthetic coordinate grid. No map imagery is represented.'
+        ) : (
+          <>
+            Map data ©{' '}
+            <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>.
+          </>
+        )}
       </p>
       <p className="search-area-map-editor__status" role="status" aria-live="polite">
         {status}

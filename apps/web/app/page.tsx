@@ -16,7 +16,7 @@ import SearchAreaField from '../components/SearchAreaField';
 import { parseReferenceFilters, referenceOptions } from '../lib/catalogue-reference-filters';
 import LoadedCataloguePager from '../components/LoadedCataloguePager';
 import { additionalActiveFilterLabels, browseCatalogue } from '../lib/catalogue-browse';
-import { supportedSearchAreaTileUrl } from '../lib/search-area-editor';
+import { resolveSearchAreaMapPreview } from '../lib/search-area-editor';
 import { publicPageMetadata } from '../lib/public-seo';
 import { publicSeoPolicy } from '../lib/public-seo-server';
 import { tenantBrand } from '../lib/tenant';
@@ -86,6 +86,7 @@ const bathCount = (value: number | null, kind: string) =>
 export default async function Home({ searchParams }: { searchParams: Promise<Query> }) {
   const q = await searchParams;
   const catalogue = await loadCatalogue(q);
+  const mapPreview = resolveSearchAreaMapPreview(process.env);
   const {
     location,
     area,
@@ -332,7 +333,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
               value={typeof q.area === 'string' ? q.area : area ? JSON.stringify(area) : ''}
               filters={catalogue.filters}
               sort={browse.sort}
-              tileUrl={supportedSearchAreaTileUrl(process.env.NEXT_PUBLIC_AREA_MAP_TILE_URL)}
+              tileUrl={mapPreview.tileUrl}
+              syntheticGrid={mapPreview.syntheticGrid}
             />
             <ReferenceFilters
               scope={catalogue.mode === 'error' ? undefined : catalogue.referenceOptionsScope}
