@@ -1,0 +1,41 @@
+✔ dedicated guard accepts only complete safe role metadata and queries the seven exact reviewed signatures (2.6636ms)
+✔ every unsafe privilege/ownership/membership flag and malformed guard row fails closed (11.8408ms)
+✔ unsafe checkout is destroyed before BEGIN, role selection, job work or actor context (1.925ms)
+✔ guard is rechecked on every checkout rather than trusting a previous successful connection (0.5481ms)
+✔ five fixed commands use parameterized SQL in short transactions with no caller SQL or actor GUC surface (3.4895ms)
+✔ invalid command identities, bounds and unsupported grant/manifest fields fail before a checkout (1.5392ms)
+✔ private upload context is exact, frozen and rejects crossed identities, fields, pipeline or impossible dates (1.3337ms)
+✔ capture and manifest snapshots precede checkout awaits and returned receipts are deeply immutable (0.4977ms)
+✔ response job, capture, claim, fencing and submitted-manifest mismatches roll back without committing (2.1468ms)
+✔ processing readback distinguishes historical leases and verified output while enforcing their captured input relationships (1.7582ms)
+✔ receipt timestamps preserve UTC microseconds and past historical receipts without accepting impossible calendar dates (1.0706ms)
+✔ definite SQL rejection rolls back once, exposes bounded SQLSTATE and suppresses diagnostic text without retry (0.2769ms)
+✔ failed rollback destroys the checkout instead of returning contaminated transaction state (0.1906ms)
+✔ unconfirmed COMMIT is uncertain even when a later rollback responds and the checkout is destroyed (0.2042ms)
+✔ BEGIN failure destroys checkout without pretending a transaction rollback was confirmed (0.1705ms)
+✔ connection and pool shutdown errors are bounded; close releases only the injected trusted pool (0.2907ms)
+✔ response envelope requires exactly one receipt row rather than silently choosing a malformed result (0.3511ms)
+✔ attachment finalize and historical read expose only persisted intent UUID commands and immutable results (1.1639ms)
+✔ invalid attachment operation arguments fail before checkout and finalization refuses a ready acknowledgement (0.8207ms)
+✔ attachment receipts reject crossed immutable tuples, malformed versions and unknown fields before commit (3.0228ms)
+✔ attachment terminal conflicts and failures preserve exact historical versions and typed outcomes (5.0349ms)
+✔ lost attachment COMMIT acknowledgement destroys checkout without retrying or pretending the result failed (0.5446ms)
+✔ restricted SQL expiry admission enforces exact company, grace, immutable original operation and denies API/coordinator/raw access (2221.4337ms)
+✔ expired verified output remains protected even without an attachment or current gallery entry (1669.2348ms)
+✔ actual restricted SQL authorization drives owned-store byte cleanup while registration and receipt history survive (1986.6025ms)
+✔ candidate pages are bounded, company-specific, sorted and resume original admissions without editing business audit (2339.2904ms)
+✔ maintenance adapter rechecks actual isolated role and refuses privilege widening before business SQL (2223.6476ms)
+✔ expired authorization rejects private/getter/proxy fields, invalid dates and microsecond-short grace without executing accessors (2.4691ms)
+✔ approved offline expiry deletes only both byte payloads, retains exact receipts and fences reinstall across reopen/replay (210.6978ms)
+✔ incomplete payload with no receipt is fenced and removed; missing job is fenced without a directory sweep (68.9012ms)
+✔ preflight rejects unknown siblings and hardlinks before deleting any payload or writing the fence (167.4843ms)
+✔ nonquiescent, invalid authority and copied store capability never mutate filesystem (87.4113ms)
+✔ retained fence resumes a crash-state fixture after one payload was removed and preserves remaining receipt (106.9533ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11514.1648

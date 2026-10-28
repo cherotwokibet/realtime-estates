@@ -35,6 +35,7 @@ const files = [
   '0031_listing_verification_history.sql',
   '0032_operations_overview.sql',
   '0033_staff_viewing_calendar.sql',
+  '0034_expired_media_cleanup.sql',
 ];
 export async function applyTestMigrations(database, { after, through } = {}) {
   // Historical migration fixtures can continue through the reviewed current order.

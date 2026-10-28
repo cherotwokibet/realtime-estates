@@ -1,0 +1,28 @@
+✔ expired authorization rejects private/getter/proxy fields, invalid dates and microsecond-short grace without executing accessors (3.4314ms)
+✔ approved offline expiry deletes only both byte payloads, retains exact receipts and fences reinstall across reopen/replay (257.1385ms)
+✔ incomplete payload with no receipt is fenced and removed; missing job is fenced without a directory sweep (64.1922ms)
+✖ preflight rejects unknown siblings and hardlinks before deleting any payload or writing the fence (90.2184ms)
+✔ nonquiescent, invalid authority and copied store capability never mutate filesystem (108.0336ms)
+✔ retained fence resumes a crash-state fixture after one payload was removed and preserves remaining receipt (93.0306ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 5
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 705.7962
+
+✖ failing tests:
+
+test at packages\media\tests\expired-cleanup.test.mjs:83:1
+✖ preflight rejects unknown siblings and hardlinks before deleting any payload or writing the fence (90.2184ms)
+  Error [DurableStoreError]: Durable synthetic store: INTEGRITY.
+      at fail (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/media/dist/durable-store.js:21:11)
+      at entries (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/media/dist/durable-store.js:138:17)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async target (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/media/dist/durable-store.js:349:26)
+      at async file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/media/dist/durable-store.js:448:46
+      at async file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/media/dist/durable-store.js:325:24 {
+    code: 'INTEGRITY'
+  }

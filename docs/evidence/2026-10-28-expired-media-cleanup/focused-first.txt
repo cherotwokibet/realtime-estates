@@ -1,0 +1,135 @@
+✖ restricted SQL expiry admission enforces exact company, grace, immutable original operation and denies API/coordinator/raw access (2101.3328ms)
+✖ expired verified output remains protected even without an attachment or current gallery entry (1534.2809ms)
+✖ actual restricted SQL authorization drives owned-store byte cleanup while registration and receipt history survive (1783.8934ms)
+✔ expired authorization rejects private/getter/proxy fields, invalid dates and microsecond-short grace without executing accessors (2.708ms)
+✔ approved offline expiry deletes only both byte payloads, retains exact receipts and fences reinstall across reopen/replay (205.8433ms)
+✔ incomplete payload with no receipt is fenced and removed; missing job is fenced without a directory sweep (66.004ms)
+✖ preflight rejects unknown siblings and hardlinks before deleting any payload or writing the fence (138.2282ms)
+✔ nonquiescent, invalid authority and copied store capability never mutate filesystem (50.9607ms)
+✔ retained fence resumes a crash-state fixture after one payload was removed and preserves remaining receipt (132.2178ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 5
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6278.7276
+
+✖ failing tests:
+
+test at packages\media\tests\expired-cleanup-sql.test.mjs:47:1
+✖ restricted SQL expiry admission enforces exact company, grace, immutable original operation and denies API/coordinator/raw access (2101.3328ms)
+  error: could not determine data type of parameter $6
+      at pe.Ue (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959)
+      at pe.tt (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347)
+      at pe.parse (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021)
+      at N.qe (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1762)
+      at file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+      at wasm://wasm/0267bb86:wasm-function[10930]:0x5a5ccf
+      at wasm://wasm/0267bb86:wasm-function[3585]:0x27eaeb
+      at wasm://wasm/0267bb86:wasm-function[3627]:0x2869d1
+      at wasm://wasm/0267bb86:wasm-function[3637]:0x286c2d
+      at wasm://wasm/0267bb86:wasm-function[9914]:0x54fd4d {
+    length: 124,
+    severity: 'ERROR',
+    code: '42P18',
+    detail: undefined,
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'postgres.c',
+    line: '842',
+    routine: 'pg_analyze_and_rewrite_varparams',
+    query: "WITH facts AS(SELECT clock_timestamp()-$7::double precision*interval '1 hour' AS created),payload AS(\n SELECT created,jsonb_build_object('kind','register_media_upload','tenantId',$1::uuid,'actorId',$2::uuid,'listingId',$3::uuid,\n 'revision',1,'expectedVersion','2','jobId',$5::uuid,'altText','Synthetic expiry bytes') AS body FROM facts)\n INSERT INTO app_private.media_operations(tenant_id,operation_id,kind,listing_id,revision_no,requester_id,expected_version,resource_id,request_payload,request_sha256,receipt,created_at)\n SELECT $1,$4,'register_media_upload',$3,1,$2,2,$5,body,encode(sha256(convert_to(body::text,'UTF8')),'hex'),\n jsonb_build_object('kind','register_media_upload','operationId',$4::uuid,'jobId',$5::uuid,'listingId',$3::uuid,'revision',1,'expectedVersion','2',\n 'altText','Synthetic expiry bytes','outcome','registered','registeredAt',app_private.media_utc(created),'expiresAt',app_private.media_utc(created+interval '24 hours')),created FROM payload",
+    params: [ '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000100', '634b414d-e698-46c4-9034-6466722181ef', '144c40c4-06ac-4075-942a-5e13e2ce21c3', null, 26 ],
+    queryOptions: undefined
+  }
+
+test at packages\media\tests\expired-cleanup-sql.test.mjs:67:1
+✖ expired verified output remains protected even without an attachment or current gallery entry (1534.2809ms)
+  error: could not determine data type of parameter $6
+      at pe.Ue (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959)
+      at pe.tt (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347)
+      at pe.parse (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021)
+      at N.qe (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1762)
+      at file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+      at wasm://wasm/0267bb86:wasm-function[10930]:0x5a5ccf
+      at wasm://wasm/0267bb86:wasm-function[3585]:0x27eaeb
+      at wasm://wasm/0267bb86:wasm-function[3627]:0x2869d1
+      at wasm://wasm/0267bb86:wasm-function[3637]:0x286c2d
+      at wasm://wasm/0267bb86:wasm-function[9914]:0x54fd4d {
+    length: 124,
+    severity: 'ERROR',
+    code: '42P18',
+    detail: undefined,
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'postgres.c',
+    line: '842',
+    routine: 'pg_analyze_and_rewrite_varparams',
+    query: "WITH facts AS(SELECT clock_timestamp()-$7::double precision*interval '1 hour' AS created),payload AS(\n SELECT created,jsonb_build_object('kind','register_media_upload','tenantId',$1::uuid,'actorId',$2::uuid,'listingId',$3::uuid,\n 'revision',1,'expectedVersion','2','jobId',$5::uuid,'altText','Synthetic expiry bytes') AS body FROM facts)\n INSERT INTO app_private.media_operations(tenant_id,operation_id,kind,listing_id,revision_no,requester_id,expected_version,resource_id,request_payload,request_sha256,receipt,created_at)\n SELECT $1,$4,'register_media_upload',$3,1,$2,2,$5,body,encode(sha256(convert_to(body::text,'UTF8')),'hex'),\n jsonb_build_object('kind','register_media_upload','operationId',$4::uuid,'jobId',$5::uuid,'listingId',$3::uuid,'revision',1,'expectedVersion','2',\n 'altText','Synthetic expiry bytes','outcome','registered','registeredAt',app_private.media_utc(created),'expiresAt',app_private.media_utc(created+interval '24 hours')),created FROM payload",
+    params: [ '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000100', '7f3a9614-865d-40c4-a5ef-9ceeb691bd74', 'a1af1875-09e4-41dc-ad21-48a2ece3d62a', null, 26 ],
+    queryOptions: undefined
+  }
+
+test at packages\media\tests\expired-cleanup-sql.test.mjs:81:1
+✖ actual restricted SQL authorization drives owned-store byte cleanup while registration and receipt history survive (1783.8934ms)
+  error: could not determine data type of parameter $6
+      at pe.Ue (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959)
+      at pe.tt (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347)
+      at pe.parse (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021)
+      at N.qe (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1762)
+      at file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+      at wasm://wasm/0267bb86:wasm-function[10930]:0x5a5ccf
+      at wasm://wasm/0267bb86:wasm-function[3585]:0x27eaeb
+      at wasm://wasm/0267bb86:wasm-function[3627]:0x2869d1
+      at wasm://wasm/0267bb86:wasm-function[3637]:0x286c2d
+      at wasm://wasm/0267bb86:wasm-function[9914]:0x54fd4d {
+    length: 124,
+    severity: 'ERROR',
+    code: '42P18',
+    detail: undefined,
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'postgres.c',
+    line: '842',
+    routine: 'pg_analyze_and_rewrite_varparams',
+    query: "WITH facts AS(SELECT clock_timestamp()-$7::double precision*interval '1 hour' AS created),payload AS(\n SELECT created,jsonb_build_object('kind','register_media_upload','tenantId',$1::uuid,'actorId',$2::uuid,'listingId',$3::uuid,\n 'revision',1,'expectedVersion','2','jobId',$5::uuid,'altText','Synthetic expiry bytes') AS body FROM facts)\n INSERT INTO app_private.media_operations(tenant_id,operation_id,kind,listing_id,revision_no,requester_id,expected_version,resource_id,request_payload,request_sha256,receipt,created_at)\n SELECT $1,$4,'register_media_upload',$3,1,$2,2,$5,body,encode(sha256(convert_to(body::text,'UTF8')),'hex'),\n jsonb_build_object('kind','register_media_upload','operationId',$4::uuid,'jobId',$5::uuid,'listingId',$3::uuid,'revision',1,'expectedVersion','2',\n 'altText','Synthetic expiry bytes','outcome','registered','registeredAt',app_private.media_utc(created),'expiresAt',app_private.media_utc(created+interval '24 hours')),created FROM payload",
+    params: [ '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000100', '94a94140-a5a4-4663-a15c-dd17f4c1efe6', 'ed1e0c2f-35a4-4994-bd5c-1fb57092be70', null, 26 ],
+    queryOptions: undefined
+  }
+
+test at packages\media\tests\expired-cleanup.test.mjs:83:1
+✖ preflight rejects unknown siblings and hardlinks before deleting any payload or writing the fence (138.2282ms)
+  Error [DurableStoreError]: Durable synthetic store: INTEGRITY.
+      at fail (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/media/dist/durable-store.js:21:11)
+      at entries (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/media/dist/durable-store.js:138:17)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async guard (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/media/dist/durable-store.js:305:9)
+      at async file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/media/dist/durable-store.js:324:17 {
+    code: 'INTEGRITY'
+  }

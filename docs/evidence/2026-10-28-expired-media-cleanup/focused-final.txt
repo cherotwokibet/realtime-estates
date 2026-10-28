@@ -1,0 +1,70 @@
+✖ restricted SQL expiry admission enforces exact company, grace, immutable original operation and denies API/coordinator/raw access (2245.2197ms)
+✖ expired verified output remains protected even without an attachment or current gallery entry (1757.1381ms)
+✖ actual restricted SQL authorization drives owned-store byte cleanup while registration and receipt history survive (1965.0883ms)
+✔ expired authorization rejects private/getter/proxy fields, invalid dates and microsecond-short grace without executing accessors (3.4196ms)
+✔ approved offline expiry deletes only both byte payloads, retains exact receipts and fences reinstall across reopen/replay (223.6679ms)
+✔ incomplete payload with no receipt is fenced and removed; missing job is fenced without a directory sweep (63.7423ms)
+✔ preflight rejects unknown siblings and hardlinks before deleting any payload or writing the fence (101.6608ms)
+✔ nonquiescent, invalid authority and copied store capability never mutate filesystem (49.9736ms)
+✔ retained fence resumes a crash-state fixture after one payload was removed and preserves remaining receipt (89.9851ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 6
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6777.291
+
+✖ failing tests:
+
+test at packages\media\tests\expired-cleanup-sql.test.mjs:47:1
+✖ restricted SQL expiry admission enforces exact company, grace, immutable original operation and denies API/coordinator/raw access (2245.2197ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== '1'
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/media/tests/expired-cleanup-sql.test.mjs:60:9)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: '1',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at packages\media\tests\expired-cleanup-sql.test.mjs:67:1
+✖ expired verified output remains protected even without an attachment or current gallery entry (1757.1381ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== '0'
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/media/tests/expired-cleanup-sql.test.mjs:78:9)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: '0',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at packages\media\tests\expired-cleanup-sql.test.mjs:81:1
+✖ actual restricted SQL authorization drives owned-store byte cleanup while registration and receipt history survive (1965.0883ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== '1'
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/media/tests/expired-cleanup-sql.test.mjs:96:9)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: '1',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

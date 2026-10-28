@@ -1,0 +1,40 @@
+✔ migration forces RLS and API role has neither owner membership nor direct writes (2032.8761ms)
+✔ missing context and customer cannot create; agents cannot choose another assignee (1516.0023ms)
+✔ runtime private reads, edits, and reassignments respect company and assignment (2005.7413ms)
+✔ revoked membership and disabled tenant fail the next protected request (1824.6411ms)
+✔ composite foreign keys reject cross-company listing and revision relationships (1701.4396ms)
+✔ money, periods, canonical types, rooms and unknown privileged fields fail closed (1482.5285ms)
+✔ omitted concurrency versions cannot bypass protected updates (1471.9581ms)
+✔ accepted photos cannot make an incomplete draft publishable (1488.2508ms)
+✔ legacy accepted metadata remains unverified and cannot submit a complete draft (1423.7883ms)
+✔ submission requires accepted photos and complete content; agent cannot approve (1541.3834ms)
+✔ approved snapshot excludes private address and precise area coordinates (1525.0023ms)
+✔ draft editing and rejection preserve published revision; stale review conflicts (1589.1095ms)
+✔ withdraw and resubmit preserve history; admin self-approval atomically replaces exact snapshot (1561.199ms)
+✔ agent can pause/unavailable but only administrator resumes; stale stock excluded (1559.658ms)
+✔ approval cannot resurrect a listing paused or archived while its revision was pending (3089.2582ms)
+✔ an older rejected review cannot overwrite a newer approved guarded successor snapshot (1633.8707ms)
+✔ enquiry receipt is durable/idempotent and never grants guest/customer private reads (1537.5965ms)
+✔ paused property denies fresh capture while original enquiry replay retains contacted revision (1572.4049ms)
+✔ enquiry assignment, next actions, closure and version restrictions (1442.4493ms)
+✔ transaction-local actor context is cleared on connection reuse (1475.1404ms)
+▶ synthetic coordinator processing preserves captured input and fenced immutable attestations
+  ✔ capture, stable claim and seal derive the stored company, requester and generated output (104.7084ms)
+  ✔ changed capture facts, malformed bounds and a claim reused for another job conflict (49.0079ms)
+  ✔ full fixed manifest validation rejects extra fields, altered encoder/policy and input mismatch (58.5426ms)
+  ✔ expired lease acknowledgement never renews and a replaced lease fences late output (52.7973ms)
+  ✔ current stored authorization ignores forged GUCs but denies revocation, disabled tenant and reassigned agent (31.1753ms)
+  ✔ processing does not adopt an edited draft token and exact committed seal replays after submit (97.5109ms)
+  ✔ fixed lease is bounded by job expiry and historical verified output remains recoverable after expiry (37.6627ms)
+  ✔ original admin historical recovery survives reassignment, while new work requires original assignment snapshot (29.6393ms)
+  ✔ append-only records, composite context and global resource IDs fail closed (22.9222ms)
+  ✔ seven processing and two maintenance commands have separate exact roles with no API or public execution (34.0981ms)
+✔ synthetic coordinator processing preserves captured input and fenced immutable attestations (2355.4688ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 36170.3972

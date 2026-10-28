@@ -1,0 +1,113 @@
+✔ dedicated guard accepts only complete safe role metadata and queries the seven exact reviewed signatures (1.4491ms)
+✔ every unsafe privilege/ownership/membership flag and malformed guard row fails closed (5.7631ms)
+✔ unsafe checkout is destroyed before BEGIN, role selection, job work or actor context (1.0622ms)
+✔ guard is rechecked on every checkout rather than trusting a previous successful connection (0.3307ms)
+✔ five fixed commands use parameterized SQL in short transactions with no caller SQL or actor GUC surface (3.2185ms)
+✔ invalid command identities, bounds and unsupported grant/manifest fields fail before a checkout (1.148ms)
+✔ private upload context is exact, frozen and rejects crossed identities, fields, pipeline or impossible dates (1.1608ms)
+✔ capture and manifest snapshots precede checkout awaits and returned receipts are deeply immutable (0.4033ms)
+✔ response job, capture, claim, fencing and submitted-manifest mismatches roll back without committing (1.202ms)
+✔ processing readback distinguishes historical leases and verified output while enforcing their captured input relationships (1.4362ms)
+✔ receipt timestamps preserve UTC microseconds and past historical receipts without accepting impossible calendar dates (0.8553ms)
+✔ definite SQL rejection rolls back once, exposes bounded SQLSTATE and suppresses diagnostic text without retry (0.2086ms)
+✔ failed rollback destroys the checkout instead of returning contaminated transaction state (0.15ms)
+✔ unconfirmed COMMIT is uncertain even when a later rollback responds and the checkout is destroyed (0.1662ms)
+✔ BEGIN failure destroys checkout without pretending a transaction rollback was confirmed (0.1318ms)
+✔ connection and pool shutdown errors are bounded; close releases only the injected trusted pool (0.208ms)
+✔ response envelope requires exactly one receipt row rather than silently choosing a malformed result (0.2871ms)
+✔ attachment finalize and historical read expose only persisted intent UUID commands and immutable results (0.7069ms)
+✔ invalid attachment operation arguments fail before checkout and finalization refuses a ready acknowledgement (0.304ms)
+✔ attachment receipts reject crossed immutable tuples, malformed versions and unknown fields before commit (2.4639ms)
+✔ attachment terminal conflicts and failures preserve exact historical versions and typed outcomes (3.8996ms)
+✔ lost attachment COMMIT acknowledgement destroys checkout without retrying or pretending the result failed (0.292ms)
+✔ restricted SQL expiry admission enforces exact company, grace, immutable original operation and denies API/coordinator/raw access (2099.4753ms)
+✔ expired verified output remains protected even without an attachment or current gallery entry (1602.6117ms)
+✖ actual restricted SQL authorization drives owned-store byte cleanup while registration and receipt history survive (2015.2056ms)
+✔ candidate pages are bounded, company-specific, sorted and resume original admissions without editing business audit (2009.7424ms)
+✖ maintenance adapter rechecks actual isolated role and refuses privilege widening before business SQL (1670.1538ms)
+✔ expired authorization rejects private/getter/proxy fields, invalid dates and microsecond-short grace without executing accessors (3.7607ms)
+✔ approved offline expiry deletes only both byte payloads, retains exact receipts and fences reinstall across reopen/replay (213.678ms)
+✔ incomplete payload with no receipt is fenced and removed; missing job is fenced without a directory sweep (63.0122ms)
+✔ preflight rejects unknown siblings and hardlinks before deleting any payload or writing the fence (95.0626ms)
+✔ nonquiescent, invalid authority and copied store capability never mutate filesystem (55.3382ms)
+✔ retained fence resumes a crash-state fixture after one payload was removed and preserves remaining receipt (97.5595ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 31
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10307.9665
+
+✖ failing tests:
+
+test at packages\media\tests\expired-cleanup-sql.test.mjs:84:1
+✖ actual restricted SQL authorization drives owned-store byte cleanup while registration and receipt history survive (2015.2056ms)
+  error: permission denied for schema app_private
+      at pe.Ue (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959)
+      at pe.tt (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347)
+      at pe.parse (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021)
+      at N.qe (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1762)
+      at file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+      at wasm://wasm/0267bb86:wasm-function[10930]:0x5a5ccf
+      at wasm://wasm/0267bb86:wasm-function[3585]:0x27eaeb
+      at wasm://wasm/0267bb86:wasm-function[3627]:0x2869d1
+      at wasm://wasm/0267bb86:wasm-function[3637]:0x286c2d
+      at wasm://wasm/0267bb86:wasm-function[9914]:0x54fd4d {
+    length: 104,
+    severity: 'ERROR',
+    code: '42501',
+    detail: undefined,
+    hint: undefined,
+    position: '22',
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'aclchk.c',
+    line: '2795',
+    routine: 'aclcheck_error',
+    query: 'SELECT count(*) FROM app_private.media_operations',
+    params: [],
+    queryOptions: undefined
+  }
+
+test at packages\media\tests\expired-cleanup-sql.test.mjs:125:1
+✖ maintenance adapter rechecks actual isolated role and refuses privilege widening before business SQL (1670.1538ms)
+  error: permission denied for schema app_media
+      at pe.Ue (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959)
+      at pe.tt (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347)
+      at pe.parse (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021)
+      at N.qe (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1762)
+      at file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+      at wasm://wasm/0267bb86:wasm-function[10930]:0x5a5ccf
+      at wasm://wasm/0267bb86:wasm-function[3585]:0x27eaeb
+      at wasm://wasm/0267bb86:wasm-function[3627]:0x2869d1
+      at wasm://wasm/0267bb86:wasm-function[3637]:0x286c2d
+      at wasm://wasm/0267bb86:wasm-function[9914]:0x54fd4d {
+    length: 98,
+    severity: 'ERROR',
+    code: '42501',
+    detail: undefined,
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'aclchk.c',
+    line: '2795',
+    routine: 'aclcheck_error',
+    query: 'RESET SESSION AUTHORIZATION;GRANT EXECUTE ON FUNCTION app_media.read_processing(uuid) TO media_maintenance;SET SESSION AUTHORIZATION expiry_guard_login;',
+    params: undefined,
+    queryOptions: undefined
+  }

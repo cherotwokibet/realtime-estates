@@ -223,8 +223,39 @@ const FALSE_FLAGS = [
 export async function assertSafeMediaCoordinatorConnection(
   client: MediaCoordinatorQuery,
 ): Promise<void> {
+  return assertSafeCommandConnection(client, GUARD_SQL, 'media_coordinator');
+}
+// Reuse the same denied-privilege matrix, replacing only fixed command identities
+// and the fixed non-login role. Neither role nor SQL can come from a caller.
+const MAINTENANCE_OIDS_SQL = `SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='app_media' AND ((p.proname='authorize_expired_cleanup' AND p.pronargs=3 AND p.proargtypes[0]='pg_catalog.uuid'::pg_catalog.regtype AND p.proargtypes[1]='pg_catalog.uuid'::pg_catalog.regtype AND p.proargtypes[2]='pg_catalog.uuid'::pg_catalog.regtype) OR (p.proname='expired_cleanup_candidates' AND p.pronargs=3 AND p.proargtypes[0]='pg_catalog.uuid'::pg_catalog.regtype AND p.proargtypes[1]='pg_catalog.uuid'::pg_catalog.regtype AND p.proargtypes[2]='pg_catalog.int4'::pg_catalog.regtype))`;
+const MAINTENANCE_GUARD_SQL = GUARD_SQL.replaceAll(EXPECTED_OIDS_SQL, MAINTENANCE_OIDS_SQL)
+  .replaceAll("'media_coordinator'", "'media_maintenance'")
+  .replace(`expected)<>${FUNCTIONS.length} OR EXISTS`, 'expected)<>2 OR EXISTS');
+export class MediaMaintenanceSafetyError extends Error {
+  override readonly name = 'MediaMaintenanceSafetyError';
+  readonly code = 'UNSAFE_MEDIA_MAINTENANCE_ROLE';
+  constructor() {
+    super(
+      'Media maintenance requires an isolated login with only its reviewed command privileges.',
+    );
+  }
+}
+export async function assertSafeMediaMaintenanceConnection(
+  client: MediaCoordinatorQuery,
+): Promise<void> {
   try {
-    const result = await client.query(GUARD_SQL);
+    await assertSafeCommandConnection(client, MAINTENANCE_GUARD_SQL, 'media_maintenance');
+  } catch {
+    throw new MediaMaintenanceSafetyError();
+  }
+}
+async function assertSafeCommandConnection(
+  client: MediaCoordinatorQuery,
+  guardSql: string,
+  forbiddenRole: string,
+): Promise<void> {
+  try {
+    const result = await client.query(guardSql);
     if (!result || !Array.isArray(result.rows) || result.rows.length !== 1)
       throw new MediaCoordinatorSafetyError();
     const row = plain(
@@ -239,7 +270,7 @@ export async function assertSafeMediaCoordinatorConnection(
       row.sessionUser.length < 1 ||
       row.sessionUser.length > 63 ||
       row.currentUser !== row.sessionUser ||
-      row.sessionUser === 'media_coordinator' ||
+      row.sessionUser === forbiddenRole ||
       row.sessionUser === 'api_runtime' ||
       row.sessionUser === 'realtor_owner' ||
       TRUE_FLAGS.some((key) => row[key] !== true) ||

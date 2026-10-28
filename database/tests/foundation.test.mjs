@@ -149,6 +149,7 @@ test('migration forces RLS and API role has neither owner membership nor direct 
       'enquiries',
       'enquiry_contacts',
       'enquiry_operations',
+      'expired_media_cleanup',
       'listing_control_requests',
       'listing_control_results',
       'listing_creation_requests',

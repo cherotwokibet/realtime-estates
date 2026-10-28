@@ -1,9 +1,23 @@
 import { Buffer } from 'node:buffer';
 import { createHash, randomUUID } from 'node:crypto';
 import { constants, type BigIntStats } from 'node:fs';
-import { lstat, mkdir, mkdtemp, open, opendir, realpath, type FileHandle } from 'node:fs/promises';
+import {
+  lstat,
+  mkdir,
+  mkdtemp,
+  open,
+  opendir,
+  realpath,
+  unlink,
+  type FileHandle,
+} from 'node:fs/promises';
 import path from 'node:path';
 import { isSharedArrayBuffer } from 'node:util/types';
+import {
+  expiredMediaCleanupAuthorization,
+  ExpiredMediaCleanupError,
+  type ExpiredMediaCleanupAuthorization,
+} from './expired-cleanup.js';
 
 export interface DurableSyntheticReference {
   readonly jobId: string;
@@ -40,6 +54,7 @@ export type DurableStoreErrorCode =
   | 'INCOMPLETE'
   | 'CONFLICT'
   | 'INTEGRITY'
+  | 'RETIRED'
   | 'IO_FAILURE';
 export class DurableStoreError extends Error {
   override readonly name = 'DurableStoreError';
@@ -77,8 +92,27 @@ const WRITE_FLAGS =
 function fail(code: DurableStoreErrorCode): never {
   throw new DurableStoreError(code);
 }
-function normalized(error: unknown): DurableStoreError {
-  return error instanceof DurableStoreError ? error : new DurableStoreError('IO_FAILURE');
+function normalized(error: unknown): DurableStoreError | ExpiredMediaCleanupError {
+  return error instanceof DurableStoreError || error instanceof ExpiredMediaCleanupError
+    ? error
+    : new DurableStoreError('IO_FAILURE');
+}
+type RetireExpired = (
+  authorization: ExpiredMediaCleanupAuthorization,
+  confirmQuiescent: () => Promise<boolean>,
+) => Promise<{ readonly removedFiles: number; readonly removedBytes: number }>;
+const maintenance = new WeakMap<DurableSyntheticStore, RetireExpired>();
+/** Internal offline maintenance only. Receipts/metadata are retained. Requires an
+ * original store capability, committed restricted-SQL approval and drained writers.
+ * No copied read/install capability or browser input grants maintenance access. */
+export function retireExpiredDurableJob(
+  store: DurableSyntheticStore,
+  authorization: ExpiredMediaCleanupAuthorization,
+  confirmQuiescent: () => Promise<boolean>,
+) {
+  const retire = maintenance.get(store);
+  if (!retire) return Promise.reject(new DurableStoreError('INVALID_REFERENCE'));
+  return retire(authorization, confirmQuiescent);
 }
 function errorCode(error: unknown): unknown {
   return error && typeof error === 'object' && 'code' in error ? error.code : undefined;
@@ -378,7 +412,8 @@ function receipt(
 /**
  * Trusted stable local filesystem only. Sync and a receipt written last establish
  * restart-readable committed pairs, not directory/power-loss durability or hostile
- * same-user race resistance. No deletion, repair, worker recovery or accepted media.
+ * same-user race resistance. Offline expiry removes only unverified byte payloads
+ * under committed maintenance authorization. No accepted-media retention policy.
  */
 function store(
   root: string,
@@ -437,7 +472,16 @@ function store(
       }
     }
     const job = await directory(jobPath, undefined, 'INCOMPLETE');
-    await entries(jobPath, ['quarantine', 'output'], [], ['quarantine', 'output']);
+    const jobNames = await entries(
+      jobPath,
+      ['quarantine', 'output', 'expiry.json'],
+      [],
+      ['quarantine', 'output'],
+    );
+    if (jobNames.includes('expiry.json')) {
+      await readExpiry(job, ref.jobId);
+      fail('RETIRED');
+    }
     let created = false;
     if (create) {
       try {
@@ -478,7 +522,12 @@ function store(
       ['data.bin', 'receipt.json'],
       ['data.bin', 'receipt.json'],
     );
-    await entries(location.job.location, ['quarantine', 'output'], [], ['quarantine', 'output']);
+    await entries(
+      location.job.location,
+      ['quarantine', 'output', 'expiry.json'],
+      [],
+      ['quarantine', 'output'],
+    );
     await guard();
     return Object.freeze({ receipt: facts, data: stored.data });
   }
@@ -547,12 +596,146 @@ function store(
     }
     return enqueue(async () => pair(ref, await target(ref, false), true));
   }
+  async function readExpiry(
+    job: Directory,
+    jobId: string,
+  ): Promise<ExpiredMediaCleanupAuthorization> {
+    const stored = await scan(path.join(job.location, 'expiry.json'), 4096);
+    const envelope = plain(
+      parseJson(stored.data),
+      ['version', 'storeId', 'authorization'],
+      'INTEGRITY',
+    );
+    if (envelope.version !== 1 || envelope.storeId !== storeId) fail('INTEGRITY');
+    let authorization: ExpiredMediaCleanupAuthorization;
+    try {
+      authorization = expiredMediaCleanupAuthorization(envelope.authorization);
+    } catch {
+      return fail('INTEGRITY');
+    }
+    if (
+      authorization.jobId !== jobId ||
+      !stored.data.equals(canonical({ version: 1, storeId, authorization }))
+    )
+      fail('INTEGRITY');
+    await guardFile(path.join(job.location, 'expiry.json'), stored.snapshot);
+    await guardDirectories([job]);
+    return authorization;
+  }
+  function retireExpired(
+    value: ExpiredMediaCleanupAuthorization,
+    confirmQuiescent: () => Promise<boolean>,
+  ): Promise<{ readonly removedFiles: number; readonly removedBytes: number }> {
+    let authorization: ExpiredMediaCleanupAuthorization;
+    try {
+      authorization = expiredMediaCleanupAuthorization(value);
+      if (typeof confirmQuiescent !== 'function') fail('INVALID_REFERENCE');
+    } catch {
+      return Promise.reject(new DurableStoreError('INVALID_REFERENCE'));
+    }
+    return enqueue(async () => {
+      if ((await confirmQuiescent()) !== true) throw new ExpiredMediaCleanupError('NOT_QUIESCENT');
+      await guard();
+      const jobPath = path.join(objects.location, authorization.jobId);
+      try {
+        await mkdir(jobPath, { mode: 0o700 });
+      } catch (error) {
+        if (errorCode(error) !== 'EEXIST') throw error;
+      }
+      const job = await directory(jobPath);
+      const names = await entries(
+        jobPath,
+        ['quarantine', 'output', 'expiry.json'],
+        [],
+        ['quarantine', 'output'],
+      );
+      const retired = names.includes('expiry.json');
+      if (
+        retired &&
+        JSON.stringify(await readExpiry(job, authorization.jobId)) !== JSON.stringify(authorization)
+      )
+        fail('CONFLICT');
+      const pending: { location: string; snapshot: FileSnapshot }[] = [];
+      const checked: Directory[] = [job];
+      // Preflight both siblings before fencing or deleting either one. Unexpected
+      // files, links, swapped receipts and ambiguous provenance retain all bytes.
+      for (const kind of ['quarantine', 'output'] as const) {
+        if (!names.includes(kind)) continue;
+        const object = await directory(path.join(jobPath, kind));
+        checked.push(object);
+        const files = await entries(object.location, ['data.bin', 'receipt.json']);
+        let facts: DurableSyntheticReceipt | undefined;
+        if (files.includes('receipt.json')) {
+          const stored = await scan(path.join(object.location, 'receipt.json'), MAX_RECEIPT_BYTES);
+          const row = plain(
+            parseJson(stored.data),
+            ['version', 'storeId', 'jobId', 'objectId', 'generationId', 'kind', 'bytes', 'sha256'],
+            'INTEGRITY',
+          );
+          const ref = reference(
+            {
+              jobId: authorization.jobId,
+              objectId: kind === 'quarantine' ? authorization.quarantineId : authorization.outputId,
+              generationId: row.generationId,
+              kind,
+            },
+            'INTEGRITY',
+          );
+          facts = receipt(stored.data, storeId, ref);
+          if (!files.includes('data.bin') && !retired) fail('INTEGRITY');
+        }
+        if (files.includes('data.bin')) {
+          const location = path.join(object.location, 'data.bin');
+          let snapshot: FileSnapshot;
+          if (facts)
+            snapshot = (
+              await scan(location, MAX_BYTES, {
+                bytes: facts.bytes,
+                sha256: facts.sha256,
+                collect: false,
+              })
+            ).snapshot;
+          else {
+            const stat = await lstat(location, { bigint: true });
+            regular(stat);
+            if (stat.size < 0n || stat.size > BigInt(MAX_BYTES)) fail('INTEGRITY');
+            snapshot = { identity: identity(stat), size: stat.size, mtimeNs: stat.mtimeNs };
+          }
+          pending.push({ location, snapshot });
+        }
+      }
+      await guardDirectories(checked);
+      for (const file of pending) await guardFile(file.location, file.snapshot);
+      await guard();
+      if (!retired) {
+        await writeExclusive(
+          path.join(jobPath, 'expiry.json'),
+          canonical({ version: 1, storeId, authorization }),
+        );
+        await readExpiry(job, authorization.jobId);
+      }
+      let removedBytes = 0,
+        removedFiles = 0;
+      for (const file of pending) {
+        await guardDirectories(checked);
+        await guardFile(file.location, file.snapshot);
+        await guard();
+        // Explicit single owned regular file only; never recursive or a caller path.
+        await unlink(file.location);
+        removedBytes += Number(file.snapshot.size);
+        removedFiles++;
+      }
+      return Object.freeze({ removedFiles, removedBytes });
+    });
+  }
   function close(): Promise<void> {
     closing = true;
     closed ??= tail;
     return closed;
   }
-  return Object.freeze({ storeId, rootDirectory: root, install, read, close });
+  const result = Object.freeze({ storeId, rootDirectory: root, install, read, close });
+  maintenance.set(result, retireExpired);
+  return result;
 }
 
 export async function createDurableSyntheticStore(

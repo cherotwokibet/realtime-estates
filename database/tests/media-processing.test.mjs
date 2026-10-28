@@ -576,7 +576,7 @@ test('synthetic coordinator processing preserves captured input and fenced immut
     );
 
     await t.test(
-      'coordinator grants are separate from API and expose exactly four fixed security-definer commands',
+      'seven processing and two maintenance commands have separate exact roles with no API or public execution',
       async () => {
         assert.deepEqual(
           (
@@ -613,12 +613,15 @@ test('synthetic coordinator processing preserves captured input and fenced immut
         const functions =
           await db.query(`SELECT p.proname,p.prosecdef,p.proconfig,r.rolname AS owner,
         has_function_privilege('media_coordinator',p.oid,'EXECUTE') AS coordinator_execute,
+        has_function_privilege('media_maintenance',p.oid,'EXECUTE') AS maintenance_execute,
         has_function_privilege('api_runtime',p.oid,'EXECUTE') AS api_execute,
         EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a WHERE a.grantee=0 AND a.privilege_type='EXECUTE') AS public_execute
         FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles r ON r.oid=p.proowner WHERE n.nspname='app_media'`);
         assert.deepEqual(functions.rows.map((row) => row.proname).sort(), [
+          'authorize_expired_cleanup',
           'capture_input',
           'claim_processing',
+          'expired_cleanup_candidates',
           'finalize_media',
           'read_media_attach_intent',
           'read_processing',
@@ -632,6 +635,7 @@ test('synthetic coordinator processing preserves captured input and fenced immut
               security: row.prosecdef,
               config: row.proconfig,
               coordinator: row.coordinator_execute,
+              maintenance: row.maintenance_execute,
               api: row.api_execute,
               public: row.public_execute,
             },
@@ -639,7 +643,12 @@ test('synthetic coordinator processing preserves captured input and fenced immut
               owner: 'realtor_owner',
               security: true,
               config: ['search_path=pg_catalog'],
-              coordinator: true,
+              coordinator: !['authorize_expired_cleanup', 'expired_cleanup_candidates'].includes(
+                row.proname,
+              ),
+              maintenance: ['authorize_expired_cleanup', 'expired_cleanup_candidates'].includes(
+                row.proname,
+              ),
               api: false,
               public: false,
             },
@@ -650,15 +659,19 @@ test('synthetic coordinator processing preserves captured input and fenced immut
           'media_verified_outputs',
           'media_jobs',
           'memberships',
+          'expired_media_cleanup',
         ]) {
-          for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE'])
-            assert.equal(
-              await scalar(db, "SELECT has_table_privilege('media_coordinator',$1,$2)", [
-                `app_private.${table}`,
-                privilege,
-              ]),
-              false,
-            );
+          for (const role of ['media_coordinator', 'media_maintenance']) {
+            for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE'])
+              assert.equal(
+                await scalar(db, 'SELECT has_table_privilege($1::name,$2::text,$3::text)', [
+                  role,
+                  `app_private.${table}`,
+                  privilege,
+                ]),
+                false,
+              );
+          }
           await denied(() => coordinator(db, () => db.query(`SELECT * FROM app_private.${table}`)));
         }
         await denied(() =>
