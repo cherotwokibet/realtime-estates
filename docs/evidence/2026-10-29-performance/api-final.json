@@ -1,0 +1,571 @@
+{
+  "policy": "local-performance-lab-v1",
+  "mode": "api",
+  "startedAt": "2026-10-29T20:18:38.657Z",
+  "status": "passed",
+  "complete": true,
+  "source": {
+    "head": "232d79c0e61a3e45ea84976ecad5601364d2de08",
+    "implementation": {
+      "scripts/performance-lab.mjs": "28053ec5bec67c7c1df4e8831ba852e863d94b487621dd1053c95079a7a399c4",
+      "scripts/performance-budget.json": "ad84bf1034e4800b54104a7e30c4f36531f273bfe50083713e62f673411a0d8c",
+      "apps/api/dev/journey-fixtures.mjs": "5141565679a9df9472bdf913876b6d21bde30b9f192bbfaa7e4033abe2896ee9",
+      "apps/api/dev/staff-preview.mjs": "e73fed154d54bd8953ec98a4ddb51d209d4e1e42ab80ba6179743c170c9379b0"
+    }
+  },
+  "budgetSha256": "ad84bf1034e4800b54104a7e30c4f36531f273bfe50083713e62f673411a0d8c",
+  "budget": {
+    "policy": "local-performance-lab-v1",
+    "definedAt": "2026-10-29T20:12:00Z",
+    "inventory": {
+      "companies": 2,
+      "approvedPerCompany": 500,
+      "approvedTotal": 1000
+    },
+    "load": {
+      "concurrency": 4,
+      "rounds": 12,
+      "timeoutMs": 5000
+    },
+    "api": {
+      "p95Ms": 1000,
+      "p99Ms": 2000,
+      "maxMs": 5000,
+      "maxBodyBytes": 2097152,
+      "unexpectedStatusCount": 0,
+      "incorrectResponseCount": 0
+    },
+    "web": {
+      "warmRequestsPerRoute": 5,
+      "p95TtfbMs": 1000,
+      "maxHtmlBytes": 524288,
+      "maxInitialJsGzipBytes": 512000
+    },
+    "limits": "Local finite-burst regression budgets defined before measurement. Four concurrent clients; fewer than240 requests per preview, never bypassing the existing limiter. Not sustainable throughput, field vitals, hosted PostgreSQL concurrency, actual media, device or production capacity. Demo production web and real synthetic API are measured separately."
+  },
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "win32",
+    "release": "10.0.26200",
+    "cpu": "11th Gen Intel(R) Core(TM) i5-1155G7 @ 2.50GHz",
+    "logicalCpus": 8,
+    "totalMemoryBytes": 8215031808,
+    "freeMemoryBytes": 1468878848
+  },
+  "samples": [
+    {
+      "name": "0-0-first12",
+      "status": 200,
+      "headersMs": 369.47939999999653,
+      "ms": 369.8225999999995,
+      "bytes": 24478
+    },
+    {
+      "name": "1-0-late12",
+      "status": 200,
+      "headersMs": 371.40759999999136,
+      "ms": 371.7121999999945,
+      "bytes": 24464
+    },
+    {
+      "name": "2-0-bounded100",
+      "status": 200,
+      "headersMs": 373.3269,
+      "ms": 374.27760000000126,
+      "bytes": 202958
+    },
+    {
+      "name": "3-0-monthly-price",
+      "status": 200,
+      "headersMs": 376.8411999999953,
+      "ms": 377.17050000000745,
+      "bytes": 24461
+    },
+    {
+      "name": "0-1-late12",
+      "status": 200,
+      "headersMs": 299.3338999999978,
+      "ms": 299.52120000000286,
+      "bytes": 24464
+    },
+    {
+      "name": "1-1-bounded100",
+      "status": 200,
+      "headersMs": 297.91410000000906,
+      "ms": 298.6672000000108,
+      "bytes": 202958
+    },
+    {
+      "name": "2-1-monthly-price",
+      "status": 200,
+      "headersMs": 295.7981,
+      "ms": 295.9563000000053,
+      "bytes": 24461
+    },
+    {
+      "name": "3-1-sale-price",
+      "status": 200,
+      "headersMs": 295.75569999999425,
+      "ms": 296.41569999999774,
+      "bytes": 24469
+    },
+    {
+      "name": "0-2-bounded100",
+      "status": 200,
+      "headersMs": 227.21390000000247,
+      "ms": 228.51420000000508,
+      "bytes": 202958
+    },
+    {
+      "name": "1-2-monthly-price",
+      "status": 200,
+      "headersMs": 229.3116000000009,
+      "ms": 229.63730000000214,
+      "bytes": 24461
+    },
+    {
+      "name": "2-2-sale-price",
+      "status": 200,
+      "headersMs": 229.84369999999763,
+      "ms": 230.00590000000375,
+      "bytes": 24469
+    },
+    {
+      "name": "3-2-eight-plus",
+      "status": 200,
+      "headersMs": 228.21459999999206,
+      "ms": 228.3365999999951,
+      "bytes": 24481
+    },
+    {
+      "name": "0-3-monthly-price",
+      "status": 200,
+      "headersMs": 64.7722000000067,
+      "ms": 64.92089999999735,
+      "bytes": 24461
+    },
+    {
+      "name": "1-3-sale-price",
+      "status": 200,
+      "headersMs": 199.64419999999518,
+      "ms": 199.8411999999953,
+      "bytes": 24469
+    },
+    {
+      "name": "2-3-eight-plus",
+      "status": 200,
+      "headersMs": 199.62129999999888,
+      "ms": 199.8796999999904,
+      "bytes": 24481
+    },
+    {
+      "name": "3-3-county-amenity",
+      "status": 200,
+      "headersMs": 199.95729999999458,
+      "ms": 200.1310999999987,
+      "bytes": 24478
+    },
+    {
+      "name": "0-4-sale-price",
+      "status": 200,
+      "headersMs": 176.25289999999222,
+      "ms": 176.59100000000035,
+      "bytes": 24469
+    },
+    {
+      "name": "1-4-eight-plus",
+      "status": 200,
+      "headersMs": 234.27469999999448,
+      "ms": 234.64370000000054,
+      "bytes": 24481
+    },
+    {
+      "name": "2-4-county-amenity",
+      "status": 200,
+      "headersMs": 234.92760000001,
+      "ms": 235.1657000000123,
+      "bytes": 24478
+    },
+    {
+      "name": "3-4-empty",
+      "status": 200,
+      "headersMs": 235.13460000000487,
+      "ms": 235.27680000000692,
+      "bytes": 138
+    },
+    {
+      "name": "0-5-eight-plus",
+      "status": 200,
+      "headersMs": 224.52249999999185,
+      "ms": 224.82309999999416,
+      "bytes": 24481
+    },
+    {
+      "name": "1-5-county-amenity",
+      "status": 200,
+      "headersMs": 249.54839999999967,
+      "ms": 249.75509999999485,
+      "bytes": 24478
+    },
+    {
+      "name": "2-5-empty",
+      "status": 200,
+      "headersMs": 249.07730000000447,
+      "ms": 249.19289999999455,
+      "bytes": 138
+    },
+    {
+      "name": "3-5-first12",
+      "status": 200,
+      "headersMs": 251.96100000001024,
+      "ms": 252.16670000000158,
+      "bytes": 24478
+    },
+    {
+      "name": "0-6-county-amenity",
+      "status": 200,
+      "headersMs": 299.77969999999914,
+      "ms": 299.92810000000463,
+      "bytes": 24478
+    },
+    {
+      "name": "1-6-empty",
+      "status": 200,
+      "headersMs": 267.6570999999967,
+      "ms": 267.75569999999425,
+      "bytes": 138
+    },
+    {
+      "name": "2-6-first12",
+      "status": 200,
+      "headersMs": 267.5298000000039,
+      "ms": 267.6770000000106,
+      "bytes": 24478
+    },
+    {
+      "name": "3-6-late12",
+      "status": 200,
+      "headersMs": 264.24619999999413,
+      "ms": 264.424199999994,
+      "bytes": 24464
+    },
+    {
+      "name": "0-7-empty",
+      "status": 200,
+      "headersMs": 270.39890000000014,
+      "ms": 270.5095000000001,
+      "bytes": 138
+    },
+    {
+      "name": "1-7-first12",
+      "status": 200,
+      "headersMs": 314.8796999999904,
+      "ms": 315.04599999998754,
+      "bytes": 24478
+    },
+    {
+      "name": "2-7-late12",
+      "status": 200,
+      "headersMs": 315.2755000000034,
+      "ms": 315.4499999999971,
+      "bytes": 24464
+    },
+    {
+      "name": "3-7-bounded100",
+      "status": 200,
+      "headersMs": 315.3110000000015,
+      "ms": 315.7531000000017,
+      "bytes": 202958
+    },
+    {
+      "name": "0-8-first12",
+      "status": 200,
+      "headersMs": 301.01489999999467,
+      "ms": 301.23219999999856,
+      "bytes": 24478
+    },
+    {
+      "name": "1-8-late12",
+      "status": 200,
+      "headersMs": 323.4670000000042,
+      "ms": 323.68880000000354,
+      "bytes": 24464
+    },
+    {
+      "name": "2-8-bounded100",
+      "status": 200,
+      "headersMs": 323.57620000001043,
+      "ms": 324.1703000000125,
+      "bytes": 202958
+    },
+    {
+      "name": "3-8-monthly-price",
+      "status": 200,
+      "headersMs": 324.707699999999,
+      "ms": 324.9219000000012,
+      "bytes": 24461
+    },
+    {
+      "name": "0-9-late12",
+      "status": 200,
+      "headersMs": 435.21940000000177,
+      "ms": 435.49589999999444,
+      "bytes": 24464
+    },
+    {
+      "name": "1-9-bounded100",
+      "status": 200,
+      "headersMs": 535.2041999999929,
+      "ms": 536.0066999999981,
+      "bytes": 202958
+    },
+    {
+      "name": "2-9-monthly-price",
+      "status": 200,
+      "headersMs": 536.0752999999968,
+      "ms": 536.3410000000003,
+      "bytes": 24461
+    },
+    {
+      "name": "3-9-sale-price",
+      "status": 200,
+      "headersMs": 535.9615000000049,
+      "ms": 536.1050000000105,
+      "bytes": 24469
+    },
+    {
+      "name": "0-10-bounded100",
+      "status": 200,
+      "headersMs": 513.3901999999944,
+      "ms": 514.8249999999971,
+      "bytes": 202958
+    },
+    {
+      "name": "1-10-monthly-price",
+      "status": 200,
+      "headersMs": 328.54030000000785,
+      "ms": 328.7988000000041,
+      "bytes": 24461
+    },
+    {
+      "name": "2-10-sale-price",
+      "status": 200,
+      "headersMs": 328.5222999999969,
+      "ms": 328.7554999999993,
+      "bytes": 24469
+    },
+    {
+      "name": "3-10-eight-plus",
+      "status": 200,
+      "headersMs": 328.859300000011,
+      "ms": 329.07040000001143,
+      "bytes": 24481
+    },
+    {
+      "name": "0-11-monthly-price",
+      "status": 200,
+      "headersMs": 258.4546999999875,
+      "ms": 258.7092999999877,
+      "bytes": 24461
+    },
+    {
+      "name": "1-11-sale-price",
+      "status": 200,
+      "headersMs": 308.9334999999992,
+      "ms": 310.4631999999983,
+      "bytes": 24469
+    },
+    {
+      "name": "2-11-eight-plus",
+      "status": 200,
+      "headersMs": 310.1932000000088,
+      "ms": 310.4786000000022,
+      "bytes": 24481
+    },
+    {
+      "name": "3-11-county-amenity",
+      "status": 200,
+      "headersMs": 310.06299999999464,
+      "ms": 310.27039999999397,
+      "bytes": 24478
+    }
+  ],
+  "probes": [
+    {
+      "name": "cold-default",
+      "status": 200,
+      "headersMs": 104.1481000000058,
+      "ms": 104.92440000000352,
+      "bytes": 24478
+    },
+    {
+      "name": "warmup-first12",
+      "status": 200,
+      "headersMs": 99.78280000000086,
+      "ms": 100.28750000000582,
+      "bytes": 24478
+    },
+    {
+      "name": "warmup-late12",
+      "status": 200,
+      "headersMs": 86.15160000001197,
+      "ms": 86.56900000000314,
+      "bytes": 24464
+    },
+    {
+      "name": "warmup-bounded100",
+      "status": 200,
+      "headersMs": 144.07660000000033,
+      "ms": 146.70850000000792,
+      "bytes": 202958
+    },
+    {
+      "name": "warmup-monthly-price",
+      "status": 200,
+      "headersMs": 93.3061000000016,
+      "ms": 93.78770000000077,
+      "bytes": 24461
+    },
+    {
+      "name": "warmup-sale-price",
+      "status": 200,
+      "headersMs": 53.451600000000326,
+      "ms": 53.79279999999562,
+      "bytes": 24469
+    },
+    {
+      "name": "warmup-eight-plus",
+      "status": 200,
+      "headersMs": 38.40920000000915,
+      "ms": 38.67420000000857,
+      "bytes": 24481
+    },
+    {
+      "name": "warmup-county-amenity",
+      "status": 200,
+      "headersMs": 84.07250000000931,
+      "ms": 84.37910000000556,
+      "bytes": 24478
+    },
+    {
+      "name": "warmup-empty",
+      "status": 200,
+      "headersMs": 88.71719999999914,
+      "ms": 89.12279999999737,
+      "bytes": 138
+    },
+    {
+      "name": "foreign-id",
+      "status": 200,
+      "headersMs": 60.14130000000296,
+      "ms": 60.306400000001304,
+      "bytes": 137
+    },
+    {
+      "name": "reject-limit=101",
+      "status": 400,
+      "headersMs": 22.650700000012876,
+      "ms": 22.81480000000738,
+      "bytes": 134
+    },
+    {
+      "name": "reject-limit=12&tenantId=00000000-0000-4000-8000-000000000002",
+      "status": 400,
+      "headersMs": 23.648300000000745,
+      "ms": 23.831999999994878,
+      "bytes": 134
+    }
+  ],
+  "violations": [],
+  "cleanup": "Owned servers/database closed",
+  "limits": "Local finite-burst regression budgets defined before measurement. Four concurrent clients; fewer than240 requests per preview, never bypassing the existing limiter. Not sustainable throughput, field vitals, hosted PostgreSQL concurrency, actual media, device or production capacity. Demo production web and real synthetic API are measured separately.",
+  "seed": {
+    "ms": 82027.296,
+    "companies": 2,
+    "approvedPerCompany": 500,
+    "approvedTotal": 1000,
+    "media": "synthetic-metadata-only",
+    "seededThrough": "guarded-draft-submit-approval",
+    "observed": [
+      {
+        "tenantSlug": "realtime-estates",
+        "listings": 500,
+        "photoRefs": 2000
+      },
+      {
+        "tenantSlug": "sample-homes",
+        "listings": 500,
+        "photoRefs": 2000
+      }
+    ]
+  },
+  "cold": {
+    "name": "cold-default",
+    "status": 200,
+    "headersMs": 104.1481000000058,
+    "ms": 104.92440000000352,
+    "bytes": 24478
+  },
+  "requestMix": [
+    {
+      "name": "first12",
+      "q": "limit=12",
+      "total": 500,
+      "limit": 12
+    },
+    {
+      "name": "late12",
+      "q": "limit=12&offset=480",
+      "total": 500,
+      "limit": 12,
+      "offset": 480
+    },
+    {
+      "name": "bounded100",
+      "q": "limit=100",
+      "total": 500,
+      "limit": 100
+    },
+    {
+      "name": "monthly-price",
+      "q": "purpose=rent&period=month&sort=price_low&limit=12",
+      "total": 364,
+      "limit": 12
+    },
+    {
+      "name": "sale-price",
+      "q": "purpose=sale&sort=price_high&limit=12",
+      "total": 100,
+      "limit": 12
+    },
+    {
+      "name": "eight-plus",
+      "q": "beds=8&bedsMode=at_least&limit=12",
+      "total": 53,
+      "limit": 12
+    },
+    {
+      "name": "county-amenity",
+      "q": "countyId=00000000-0000-4000-8000-000000031001&amenityId=00000000-0000-4000-8000-000000031010&limit=12",
+      "total": 500,
+      "limit": 12
+    },
+    {
+      "name": "empty",
+      "q": "location=not-a-synthetic-location&limit=12",
+      "total": 0,
+      "limit": 12
+    }
+  ],
+  "finiteBurstDurationMs": 3676.5968999999895,
+  "summary": {
+    "requests": 48,
+    "p50Ms": 298.6672000000108,
+    "p95Ms": 536.0066999999981,
+    "p99Ms": 536.3410000000003,
+    "maxMs": 536.3410000000003,
+    "maxBodyBytes": 202958
+  },
+  "rateLimiter": "Unchanged;60 total reads including probes, below240/minute. No bypass/retry.",
+  "finishedAt": "2026-10-29T20:20:05.452Z"
+}

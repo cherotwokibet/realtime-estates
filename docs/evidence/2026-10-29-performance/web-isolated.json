@@ -1,0 +1,739 @@
+{
+  "policy": "local-performance-lab-v1",
+  "mode": "web",
+  "startedAt": "2026-10-29T20:16:34.896Z",
+  "status": "passed",
+  "complete": true,
+  "source": {
+    "head": "2c42fc688385ecbda40c2c435f1fe0c4bba12f6a",
+    "implementation": {
+      "scripts/performance-lab.mjs": "28053ec5bec67c7c1df4e8831ba852e863d94b487621dd1053c95079a7a399c4",
+      "scripts/performance-budget.json": "ad84bf1034e4800b54104a7e30c4f36531f273bfe50083713e62f673411a0d8c",
+      "apps/api/dev/journey-fixtures.mjs": "5141565679a9df9472bdf913876b6d21bde30b9f192bbfaa7e4033abe2896ee9",
+      "apps/api/dev/staff-preview.mjs": "397e9f494220291bf1ccbfe87ce276060c15d7c87249b3086f4b8d0ffc7045aa"
+    }
+  },
+  "budgetSha256": "ad84bf1034e4800b54104a7e30c4f36531f273bfe50083713e62f673411a0d8c",
+  "budget": {
+    "policy": "local-performance-lab-v1",
+    "definedAt": "2026-10-29T20:12:00Z",
+    "inventory": {
+      "companies": 2,
+      "approvedPerCompany": 500,
+      "approvedTotal": 1000
+    },
+    "load": {
+      "concurrency": 4,
+      "rounds": 12,
+      "timeoutMs": 5000
+    },
+    "api": {
+      "p95Ms": 1000,
+      "p99Ms": 2000,
+      "maxMs": 5000,
+      "maxBodyBytes": 2097152,
+      "unexpectedStatusCount": 0,
+      "incorrectResponseCount": 0
+    },
+    "web": {
+      "warmRequestsPerRoute": 5,
+      "p95TtfbMs": 1000,
+      "maxHtmlBytes": 524288,
+      "maxInitialJsGzipBytes": 512000
+    },
+    "limits": "Local finite-burst regression budgets defined before measurement. Four concurrent clients; fewer than240 requests per preview, never bypassing the existing limiter. Not sustainable throughput, field vitals, hosted PostgreSQL concurrency, actual media, device or production capacity. Demo production web and real synthetic API are measured separately."
+  },
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "win32",
+    "release": "10.0.26200",
+    "cpu": "11th Gen Intel(R) Core(TM) i5-1155G7 @ 2.50GHz",
+    "logicalCpus": 8,
+    "totalMemoryBytes": 8215031808,
+    "freeMemoryBytes": 1341792256
+  },
+  "samples": [
+    {
+      "name": "warm0/",
+      "status": 200,
+      "headersMs": 27.73069999999916,
+      "ms": 32.24829999999929,
+      "bytes": 75205
+    },
+    {
+      "name": "warm1/",
+      "status": 200,
+      "headersMs": 27.39260000000013,
+      "ms": 30.27059999999983,
+      "bytes": 75205
+    },
+    {
+      "name": "warm2/",
+      "status": 200,
+      "headersMs": 28.46939999999995,
+      "ms": 31.810099999999693,
+      "bytes": 75205
+    },
+    {
+      "name": "warm3/",
+      "status": 200,
+      "headersMs": 34.288400000000365,
+      "ms": 36.718300000000454,
+      "bytes": 75205
+    },
+    {
+      "name": "warm4/",
+      "status": 200,
+      "headersMs": 24.219199999999546,
+      "ms": 26.060699999999997,
+      "bytes": 75205
+    },
+    {
+      "name": "warm0/properties/demo-ruaka-1",
+      "status": 200,
+      "headersMs": 27.576000000000022,
+      "ms": 30.32049999999981,
+      "bytes": 54738
+    },
+    {
+      "name": "warm1/properties/demo-ruaka-1",
+      "status": 200,
+      "headersMs": 25.92320000000018,
+      "ms": 27.708799999999428,
+      "bytes": 54738
+    },
+    {
+      "name": "warm2/properties/demo-ruaka-1",
+      "status": 200,
+      "headersMs": 14.273999999999432,
+      "ms": 16.401699999999437,
+      "bytes": 54738
+    },
+    {
+      "name": "warm3/properties/demo-ruaka-1",
+      "status": 200,
+      "headersMs": 28.283400000000256,
+      "ms": 31.0609000000004,
+      "bytes": 54738
+    },
+    {
+      "name": "warm4/properties/demo-ruaka-1",
+      "status": 200,
+      "headersMs": 32.585799999999836,
+      "ms": 34.67169999999987,
+      "bytes": 54738
+    },
+    {
+      "name": "warm0/company",
+      "status": 200,
+      "headersMs": 26.55490000000009,
+      "ms": 27.720100000000457,
+      "bytes": 26119
+    },
+    {
+      "name": "warm1/company",
+      "status": 200,
+      "headersMs": 13.49120000000039,
+      "ms": 15.114300000000185,
+      "bytes": 26119
+    },
+    {
+      "name": "warm2/company",
+      "status": 200,
+      "headersMs": 13.732299999999668,
+      "ms": 14.966800000000148,
+      "bytes": 26119
+    },
+    {
+      "name": "warm3/company",
+      "status": 200,
+      "headersMs": 14.660499999999956,
+      "ms": 15.655999999999949,
+      "bytes": 26119
+    },
+    {
+      "name": "warm4/company",
+      "status": 200,
+      "headersMs": 16.42370000000028,
+      "ms": 17.2484000000004,
+      "bytes": 26119
+    },
+    {
+      "name": "warm0/contact",
+      "status": 200,
+      "headersMs": 21.635400000000118,
+      "ms": 22.922099999999773,
+      "bytes": 25952
+    },
+    {
+      "name": "warm1/contact",
+      "status": 200,
+      "headersMs": 14.562699999999495,
+      "ms": 18.45969999999943,
+      "bytes": 25952
+    },
+    {
+      "name": "warm2/contact",
+      "status": 200,
+      "headersMs": 13.108699999999772,
+      "ms": 14.123999999999796,
+      "bytes": 25952
+    },
+    {
+      "name": "warm3/contact",
+      "status": 200,
+      "headersMs": 13.392499999999927,
+      "ms": 14.244200000000092,
+      "bytes": 25952
+    },
+    {
+      "name": "warm4/contact",
+      "status": 200,
+      "headersMs": 16.731800000000476,
+      "ms": 18.11489999999958,
+      "bytes": 25952
+    },
+    {
+      "name": "warm0/enquire",
+      "status": 200,
+      "headersMs": 20.726300000000265,
+      "ms": 22.132900000000518,
+      "bytes": 19785
+    },
+    {
+      "name": "warm1/enquire",
+      "status": 200,
+      "headersMs": 15.238199999999779,
+      "ms": 16.313999999998487,
+      "bytes": 19785
+    },
+    {
+      "name": "warm2/enquire",
+      "status": 200,
+      "headersMs": 15.941500000000815,
+      "ms": 17.604299999999057,
+      "bytes": 19785
+    },
+    {
+      "name": "warm3/enquire",
+      "status": 200,
+      "headersMs": 19.87830000000031,
+      "ms": 21.52089999999953,
+      "bytes": 19785
+    },
+    {
+      "name": "warm4/enquire",
+      "status": 200,
+      "headersMs": 11.928600000001097,
+      "ms": 13.795900000000984,
+      "bytes": 19785
+    }
+  ],
+  "probes": [
+    {
+      "name": "cold/",
+      "status": 200,
+      "headersMs": 3324.6881999999996,
+      "ms": 3331.4237999999996,
+      "bytes": 75205
+    },
+    {
+      "name": "/_next/static/chunks/2r4s4h5xul1n-.js",
+      "status": 200,
+      "headersMs": 71.03249999999935,
+      "ms": 72.66339999999946,
+      "bytes": 28739
+    },
+    {
+      "name": "/_next/static/chunks/2gvu8dyrhibpa.js",
+      "status": 200,
+      "headersMs": 243.76299999999992,
+      "ms": 250.80249999999978,
+      "bytes": 229597
+    },
+    {
+      "name": "/_next/static/chunks/2e268anpfvdoc.js",
+      "status": 200,
+      "headersMs": 140.90939999999955,
+      "ms": 146.3739999999998,
+      "bytes": 168355
+    },
+    {
+      "name": "/_next/static/chunks/turbopack-2c3mg3r-05n1w.js",
+      "status": 200,
+      "headersMs": 64.42829999999958,
+      "ms": 65.22769999999946,
+      "bytes": 11255
+    },
+    {
+      "name": "/_next/static/chunks/0umf92h1sb77c.js",
+      "status": 200,
+      "headersMs": 45.686799999999494,
+      "ms": 46.40529999999944,
+      "bytes": 13822
+    },
+    {
+      "name": "/_next/static/chunks/34b0m2em1-rrt.js",
+      "status": 200,
+      "headersMs": 17.14350000000013,
+      "ms": 17.33259999999973,
+      "bytes": 215
+    },
+    {
+      "name": "/_next/static/chunks/05dd5l2psy4ex.js",
+      "status": 200,
+      "headersMs": 46.93469999999979,
+      "ms": 48.13879999999972,
+      "bytes": 47106
+    },
+    {
+      "name": "/_next/static/chunks/4217wr7qxe_v_.js",
+      "status": 200,
+      "headersMs": 73.84320000000025,
+      "ms": 74.96619999999984,
+      "bytes": 28365
+    },
+    {
+      "name": "/_next/static/chunks/1bvjjlm7380r6.js",
+      "status": 200,
+      "headersMs": 25.681899999999587,
+      "ms": 25.907399999999143,
+      "bytes": 606
+    },
+    {
+      "name": "/_next/static/chunks/2n5qeheznvl4u.js",
+      "status": 200,
+      "headersMs": 57.79320000000007,
+      "ms": 58.866799999999785,
+      "bytes": 7820
+    },
+    {
+      "name": "/_next/static/chunks/0cz1d0mv5g_q7.js",
+      "status": 200,
+      "headersMs": 819.3817000000008,
+      "ms": 821.8249000000005,
+      "bytes": 112594
+    },
+    {
+      "name": "/_next/static/chunks/1ckvzn7sfprko.js",
+      "status": 200,
+      "headersMs": 28.37710000000061,
+      "ms": 29.057800000000498,
+      "bytes": 5584
+    },
+    {
+      "name": "cold/properties/demo-ruaka-1",
+      "status": 200,
+      "headersMs": 50.79950000000008,
+      "ms": 52.67650000000049,
+      "bytes": 54738
+    },
+    {
+      "name": "/_next/static/chunks/2r4s4h5xul1n-.js",
+      "status": 200,
+      "headersMs": 14.254699999999502,
+      "ms": 14.848399999999856,
+      "bytes": 28739
+    },
+    {
+      "name": "/_next/static/chunks/2gvu8dyrhibpa.js",
+      "status": 200,
+      "headersMs": 20.649000000000342,
+      "ms": 27.38379999999961,
+      "bytes": 229597
+    },
+    {
+      "name": "/_next/static/chunks/2e268anpfvdoc.js",
+      "status": 200,
+      "headersMs": 7.382799999999406,
+      "ms": 9.832400000000234,
+      "bytes": 168355
+    },
+    {
+      "name": "/_next/static/chunks/turbopack-2c3mg3r-05n1w.js",
+      "status": 200,
+      "headersMs": 17.01050000000032,
+      "ms": 17.71140000000014,
+      "bytes": 11255
+    },
+    {
+      "name": "/_next/static/chunks/0umf92h1sb77c.js",
+      "status": 200,
+      "headersMs": 15.211900000000242,
+      "ms": 15.878899999999703,
+      "bytes": 13822
+    },
+    {
+      "name": "/_next/static/chunks/1-vvn751q1ue2.js",
+      "status": 200,
+      "headersMs": 46.18189999999959,
+      "ms": 46.8762999999999,
+      "bytes": 24623
+    },
+    {
+      "name": "/_next/static/chunks/1bvjjlm7380r6.js",
+      "status": 200,
+      "headersMs": 12.919200000000274,
+      "ms": 13.032799999999952,
+      "bytes": 606
+    },
+    {
+      "name": "/_next/static/chunks/2n5qeheznvl4u.js",
+      "status": 200,
+      "headersMs": 16.058400000000802,
+      "ms": 16.524600000000646,
+      "bytes": 7820
+    },
+    {
+      "name": "/_next/static/chunks/0cz1d0mv5g_q7.js",
+      "status": 200,
+      "headersMs": 17.655800000000454,
+      "ms": 19.75630000000001,
+      "bytes": 112594
+    },
+    {
+      "name": "/_next/static/chunks/1ckvzn7sfprko.js",
+      "status": 200,
+      "headersMs": 7.931000000000495,
+      "ms": 8.411600000000362,
+      "bytes": 5584
+    },
+    {
+      "name": "cold/company",
+      "status": 200,
+      "headersMs": 139.3658000000005,
+      "ms": 140.77160000000003,
+      "bytes": 26119
+    },
+    {
+      "name": "/_next/static/chunks/2r4s4h5xul1n-.js",
+      "status": 200,
+      "headersMs": 2.9155000000000655,
+      "ms": 4.018399999999929,
+      "bytes": 28739
+    },
+    {
+      "name": "/_next/static/chunks/2gvu8dyrhibpa.js",
+      "status": 200,
+      "headersMs": 5.264900000000125,
+      "ms": 14.873199999999997,
+      "bytes": 229597
+    },
+    {
+      "name": "/_next/static/chunks/2e268anpfvdoc.js",
+      "status": 200,
+      "headersMs": 11.042900000000373,
+      "ms": 16.546400000000176,
+      "bytes": 168355
+    },
+    {
+      "name": "/_next/static/chunks/turbopack-2c3mg3r-05n1w.js",
+      "status": 200,
+      "headersMs": 10.879699999999502,
+      "ms": 11.903399999999237,
+      "bytes": 11255
+    },
+    {
+      "name": "/_next/static/chunks/0umf92h1sb77c.js",
+      "status": 200,
+      "headersMs": 14.20929999999953,
+      "ms": 14.929999999999382,
+      "bytes": 13822
+    },
+    {
+      "name": "/_next/static/chunks/2n5qeheznvl4u.js",
+      "status": 200,
+      "headersMs": 15.108600000000479,
+      "ms": 15.992299999999886,
+      "bytes": 7820
+    },
+    {
+      "name": "/_next/static/chunks/1bvjjlm7380r6.js",
+      "status": 200,
+      "headersMs": 12.52980000000025,
+      "ms": 12.64600000000064,
+      "bytes": 606
+    },
+    {
+      "name": "/_next/static/chunks/0cz1d0mv5g_q7.js",
+      "status": 200,
+      "headersMs": 6.156599999999344,
+      "ms": 8.318999999999505,
+      "bytes": 112594
+    },
+    {
+      "name": "/_next/static/chunks/1ckvzn7sfprko.js",
+      "status": 200,
+      "headersMs": 4.543099999999868,
+      "ms": 5.0021999999999025,
+      "bytes": 5584
+    },
+    {
+      "name": "cold/contact",
+      "status": 200,
+      "headersMs": 32.040899999999965,
+      "ms": 32.96110000000044,
+      "bytes": 25952
+    },
+    {
+      "name": "/_next/static/chunks/2r4s4h5xul1n-.js",
+      "status": 200,
+      "headersMs": 4.363100000000486,
+      "ms": 5.116500000000087,
+      "bytes": 28739
+    },
+    {
+      "name": "/_next/static/chunks/2gvu8dyrhibpa.js",
+      "status": 200,
+      "headersMs": 7.398699999999735,
+      "ms": 14.705500000000029,
+      "bytes": 229597
+    },
+    {
+      "name": "/_next/static/chunks/2e268anpfvdoc.js",
+      "status": 200,
+      "headersMs": 17.46429999999964,
+      "ms": 23.510800000000017,
+      "bytes": 168355
+    },
+    {
+      "name": "/_next/static/chunks/turbopack-2c3mg3r-05n1w.js",
+      "status": 200,
+      "headersMs": 4.487099999999373,
+      "ms": 5.356799999999566,
+      "bytes": 11255
+    },
+    {
+      "name": "/_next/static/chunks/0umf92h1sb77c.js",
+      "status": 200,
+      "headersMs": 14.555899999999383,
+      "ms": 15.211599999999635,
+      "bytes": 13822
+    },
+    {
+      "name": "/_next/static/chunks/2n5qeheznvl4u.js",
+      "status": 200,
+      "headersMs": 16.450300000000425,
+      "ms": 17.111399999999776,
+      "bytes": 7820
+    },
+    {
+      "name": "/_next/static/chunks/1bvjjlm7380r6.js",
+      "status": 200,
+      "headersMs": 14.130799999999908,
+      "ms": 14.26010000000042,
+      "bytes": 606
+    },
+    {
+      "name": "/_next/static/chunks/0cz1d0mv5g_q7.js",
+      "status": 200,
+      "headersMs": 18.018299999999726,
+      "ms": 20.54240000000027,
+      "bytes": 112594
+    },
+    {
+      "name": "/_next/static/chunks/1ckvzn7sfprko.js",
+      "status": 200,
+      "headersMs": 8.262899999999718,
+      "ms": 8.930599999999686,
+      "bytes": 5584
+    },
+    {
+      "name": "cold/enquire",
+      "status": 200,
+      "headersMs": 36.623999999999796,
+      "ms": 38.212499999999636,
+      "bytes": 19785
+    },
+    {
+      "name": "/_next/static/chunks/2r4s4h5xul1n-.js",
+      "status": 200,
+      "headersMs": 7.7115000000012515,
+      "ms": 9.78530000000137,
+      "bytes": 28739
+    },
+    {
+      "name": "/_next/static/chunks/2gvu8dyrhibpa.js",
+      "status": 200,
+      "headersMs": 12.865999999999985,
+      "ms": 21.837100000000646,
+      "bytes": 229597
+    },
+    {
+      "name": "/_next/static/chunks/2e268anpfvdoc.js",
+      "status": 200,
+      "headersMs": 12.463699999998425,
+      "ms": 17.633499999999913,
+      "bytes": 168355
+    },
+    {
+      "name": "/_next/static/chunks/turbopack-2c3mg3r-05n1w.js",
+      "status": 200,
+      "headersMs": 10.321700000000419,
+      "ms": 11.0617000000002,
+      "bytes": 11255
+    },
+    {
+      "name": "/_next/static/chunks/0umf92h1sb77c.js",
+      "status": 200,
+      "headersMs": 15.086599999998725,
+      "ms": 15.751099999999497,
+      "bytes": 13822
+    },
+    {
+      "name": "/_next/static/chunks/2n5qeheznvl4u.js",
+      "status": 200,
+      "headersMs": 14.887800000000425,
+      "ms": 15.870300000000498,
+      "bytes": 7820
+    },
+    {
+      "name": "/_next/static/chunks/1bvjjlm7380r6.js",
+      "status": 200,
+      "headersMs": 13.14010000000053,
+      "ms": 13.364199999999983,
+      "bytes": 606
+    },
+    {
+      "name": "/_next/static/chunks/05dd5l2psy4ex.js",
+      "status": 200,
+      "headersMs": 16.537099999999555,
+      "ms": 17.764600000000428,
+      "bytes": 47106
+    },
+    {
+      "name": "/_next/static/chunks/22ju3x6tnpw3d.js",
+      "status": 200,
+      "headersMs": 104.4966000000004,
+      "ms": 107.84240000000136,
+      "bytes": 159099
+    },
+    {
+      "name": "/_next/static/chunks/0cz1d0mv5g_q7.js",
+      "status": 200,
+      "headersMs": 20.693100000000413,
+      "ms": 23.90400000000045,
+      "bytes": 112594
+    },
+    {
+      "name": "/_next/static/chunks/1ckvzn7sfprko.js",
+      "status": 200,
+      "headersMs": 4.709000000000742,
+      "ms": 5.6120000000009895,
+      "bytes": 5584
+    }
+  ],
+  "violations": [],
+  "cleanup": "Owned servers/database closed",
+  "limits": "Local finite-burst regression budgets defined before measurement. Four concurrent clients; fewer than240 requests per preview, never bypassing the existing limiter. Not sustainable throughput, field vitals, hosted PostgreSQL concurrency, actual media, device or production capacity. Demo production web and real synthetic API are measured separately.",
+  "productionDemoBuildId": "9hIOf4LkrrDhHiisrpp8c",
+  "routes": [
+    {
+      "path": "/",
+      "cold": {
+        "name": "cold/",
+        "status": 200,
+        "headersMs": 3324.6881999999996,
+        "ms": 3331.4237999999996,
+        "bytes": 75205
+      },
+      "summary": {
+        "requests": 5,
+        "p50Ms": 31.810099999999693,
+        "p95Ms": 36.718300000000454,
+        "p99Ms": 36.718300000000454,
+        "maxMs": 36.718300000000454,
+        "maxBodyBytes": 75205
+      },
+      "p95TtfbMs": 34.288400000000365,
+      "initialJsGzipBytes": 202898,
+      "initialChunks": 12
+    },
+    {
+      "path": "/properties/demo-ruaka-1",
+      "cold": {
+        "name": "cold/properties/demo-ruaka-1",
+        "status": 200,
+        "headersMs": 50.79950000000008,
+        "ms": 52.67650000000049,
+        "bytes": 54738
+      },
+      "summary": {
+        "requests": 5,
+        "p50Ms": 30.32049999999981,
+        "p95Ms": 34.67169999999987,
+        "p99Ms": 34.67169999999987,
+        "maxMs": 34.67169999999987,
+        "maxBodyBytes": 54738
+      },
+      "p95TtfbMs": 32.585799999999836,
+      "initialJsGzipBytes": 188220,
+      "initialChunks": 10
+    },
+    {
+      "path": "/company",
+      "cold": {
+        "name": "cold/company",
+        "status": 200,
+        "headersMs": 139.3658000000005,
+        "ms": 140.77160000000003,
+        "bytes": 26119
+      },
+      "summary": {
+        "requests": 5,
+        "p50Ms": 15.655999999999949,
+        "p95Ms": 27.720100000000457,
+        "p99Ms": 27.720100000000457,
+        "maxMs": 27.720100000000457,
+        "maxBodyBytes": 26119
+      },
+      "p95TtfbMs": 26.55490000000009,
+      "initialJsGzipBytes": 179155,
+      "initialChunks": 9
+    },
+    {
+      "path": "/contact",
+      "cold": {
+        "name": "cold/contact",
+        "status": 200,
+        "headersMs": 32.040899999999965,
+        "ms": 32.96110000000044,
+        "bytes": 25952
+      },
+      "summary": {
+        "requests": 5,
+        "p50Ms": 18.11489999999958,
+        "p95Ms": 22.922099999999773,
+        "p99Ms": 22.922099999999773,
+        "maxMs": 22.922099999999773,
+        "maxBodyBytes": 25952
+      },
+      "p95TtfbMs": 21.635400000000118,
+      "initialJsGzipBytes": 179155,
+      "initialChunks": 9
+    },
+    {
+      "path": "/enquire",
+      "cold": {
+        "name": "cold/enquire",
+        "status": 200,
+        "headersMs": 36.623999999999796,
+        "ms": 38.212499999999636,
+        "bytes": 19785
+      },
+      "summary": {
+        "requests": 5,
+        "p50Ms": 17.604299999999057,
+        "p95Ms": 22.132900000000518,
+        "p99Ms": 22.132900000000518,
+        "maxMs": 22.132900000000518,
+        "maxBodyBytes": 19785
+      },
+      "p95TtfbMs": 20.726300000000265,
+      "initialJsGzipBytes": 228829,
+      "initialChunks": 11
+    }
+  ],
+  "phase": "production-demo-route:/enquire",
+  "finishedAt": "2026-10-29T20:16:43.368Z"
+}

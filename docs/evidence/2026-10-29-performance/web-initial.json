@@ -1,0 +1,67 @@
+{
+  "policy": "local-performance-lab-v1",
+  "mode": "web",
+  "startedAt": "2026-10-29T20:15:27.849Z",
+  "status": "failed",
+  "complete": false,
+  "source": {
+    "head": "2c42fc688385ecbda40c2c435f1fe0c4bba12f6a",
+    "implementation": {
+      "scripts/performance-lab.mjs": "b94e1065a7051c3962050b713c59555823169971dc41f934eef4612bc87f30ad",
+      "scripts/performance-budget.json": "ad84bf1034e4800b54104a7e30c4f36531f273bfe50083713e62f673411a0d8c",
+      "apps/api/dev/journey-fixtures.mjs": "5141565679a9df9472bdf913876b6d21bde30b9f192bbfaa7e4033abe2896ee9",
+      "apps/api/dev/staff-preview.mjs": "397e9f494220291bf1ccbfe87ce276060c15d7c87249b3086f4b8d0ffc7045aa"
+    }
+  },
+  "budgetSha256": "ad84bf1034e4800b54104a7e30c4f36531f273bfe50083713e62f673411a0d8c",
+  "budget": {
+    "policy": "local-performance-lab-v1",
+    "definedAt": "2026-10-29T20:12:00Z",
+    "inventory": {
+      "companies": 2,
+      "approvedPerCompany": 500,
+      "approvedTotal": 1000
+    },
+    "load": {
+      "concurrency": 4,
+      "rounds": 12,
+      "timeoutMs": 5000
+    },
+    "api": {
+      "p95Ms": 1000,
+      "p99Ms": 2000,
+      "maxMs": 5000,
+      "maxBodyBytes": 2097152,
+      "unexpectedStatusCount": 0,
+      "incorrectResponseCount": 0
+    },
+    "web": {
+      "warmRequestsPerRoute": 5,
+      "p95TtfbMs": 1000,
+      "maxHtmlBytes": 524288,
+      "maxInitialJsGzipBytes": 512000
+    },
+    "limits": "Local finite-burst regression budgets defined before measurement. Four concurrent clients; fewer than240 requests per preview, never bypassing the existing limiter. Not sustainable throughput, field vitals, hosted PostgreSQL concurrency, actual media, device or production capacity. Demo production web and real synthetic API are measured separately."
+  },
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "win32",
+    "release": "10.0.26200",
+    "cpu": "11th Gen Intel(R) Core(TM) i5-1155G7 @ 2.50GHz",
+    "logicalCpus": 8,
+    "totalMemoryBytes": 8215031808,
+    "freeMemoryBytes": 1409814528
+  },
+  "samples": [],
+  "probes": [],
+  "violations": [],
+  "cleanup": "Owned servers/database closed",
+  "limits": "Local finite-burst regression budgets defined before measurement. Four concurrent clients; fewer than240 requests per preview, never bypassing the existing limiter. Not sustainable throughput, field vitals, hosted PostgreSQL concurrency, actual media, device or production capacity. Demo production web and real synthetic API are measured separately.",
+  "productionDemoBuildId": "9hIOf4LkrrDhHiisrpp8c",
+  "routes": [],
+  "error": {
+    "name": "TimeoutError",
+    "message": "The operation was aborted due to timeout"
+  },
+  "finishedAt": "2026-10-29T20:15:39.553Z"
+}
