@@ -82,7 +82,7 @@ export function PublicFooter({
         <nav aria-label="Footer navigation">
           <Link href="/?purpose=rent">Homes to rent</Link>
           <Link href="/?purpose=sale">Homes to buy</Link>
-          <Link href="/#how">Our approach</Link>
+          <a href="/#how">Our approach</a>
           <Link href="/company">Company</Link>
           <Link href="/contact">Contact</Link>
         </nav>
