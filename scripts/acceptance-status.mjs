@@ -68,6 +68,8 @@ const commits = {
   gallery217: '0951abc2ce40f0390b16c7c856e46addc628ed45',
   design218: '8d3fa7fa9de2d3073ea20016bf474dab0b6225c7',
   ci219: '84067fe074cad6b8df39108a57454753361b6c70',
+  settings220: 'd532848e2a49fb604d81c1a3edb0494af7be5da2',
+  settingsInitial: 'c17256f765d29ef063e267c2095ce9b5f368f7a3',
 };
 for (const commit of Object.values(commits))
   execFileSync('git', ['merge-base', '--is-ancestor', commit, 'HEAD'], {
@@ -75,6 +77,68 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  domain220: {
+    path: 'docs/evidence/2026-10-29-company-settings/domain-full-final.txt',
+    counts: [302],
+    commit: commits.settings220,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows / full shared domain contracts including exact company settings and duplicate-key JSON; no provider/device proof',
+  },
+  api220: {
+    path: 'docs/evidence/2026-10-29-company-settings/api-full.txt',
+    counts: [307],
+    commit: commits.settingsInitial,
+    environment:
+      'Windows / retained full current API run; settings service source unchanged by later admin-only reconciliation/status correction',
+  },
+  database220: {
+    path: 'docs/evidence/2026-10-29-company-settings/database-full.txt',
+    counts: [357],
+    commit: commits.settingsInitial,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows / full default restricted PGlite schema including immutable approved settings/current roles/tenant/original recovery; no hosted concurrent PostgreSQL proof',
+  },
+  admin220: {
+    path: 'docs/evidence/2026-10-29-company-settings/admin-full-final.txt',
+    counts: [445, 34],
+    commit: commits.settings220,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows / complete admin logic/BFF and SSR UI suites after final pending-state/status correction; no production identity or device pass',
+  },
+  web220: {
+    path: 'docs/evidence/2026-10-29-company-settings/web-full.txt',
+    counts: [109],
+    commit: commits.settingsInitial,
+    environment:
+      'Windows / full web contract/SSR/transport suite including configured-company anonymous settings read; web source unchanged afterward',
+  },
+  signed220: {
+    path: 'docs/evidence/2026-10-29-company-settings/signed-final.txt',
+    counts: [3],
+    commit: commits.settingsInitial,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows / real ephemeral RS256 HTTP and restricted SQL / approval, original replay after deliberately lost reply, public projection and agent denial',
+  },
+  browser220: {
+    path: 'docs/evidence/2026-10-29-company-settings.md',
+    counts: null,
+    commit: commits.settings220,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows / actual synthetic settings editor, four approvals, lost-result recovery, cross-tab version conflict/rebase/adoption, keyboard/320px and anonymous public readback; extra stale-instance browser check not run',
+  },
+  builds220: {
+    path: 'docs/evidence/2026-10-29-company-settings/verification-summary.json',
+    counts: null,
+    commit: commits.settings220,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows / all workspace typechecks, full current admin/web production builds with one worker, exact executed counts and teardown limits; no hosted Actions/device/release proof',
+  },
   ci219: {
     path: 'docs/evidence/2026-10-29-ci-efficiency/local-planner-final.txt',
     counts: [8],
