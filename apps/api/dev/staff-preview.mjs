@@ -14,6 +14,7 @@ import {
   journeyFixtureSelection,
   freezeJourneyManifest,
   publicJourneyStock,
+  publicLoadStock,
   seedEnquiryJourney,
 } from './journey-fixtures.mjs';
 import {
@@ -142,7 +143,7 @@ function configuration({
     throw new StaffPreviewConfigurationError('Unsupported synthetic settings reply fault.');
   journeyFixtureSelection(journeyFixture);
   if (
-    journeyFixture === 'public-search-v1' &&
+    ['public-search-v1', 'public-load-v1'].includes(journeyFixture) &&
     (referenceDraftMode !== 'synthetic-reference-draft-v1' ||
       referenceModerationMode !== 'synthetic-reference-transition-v1' ||
       referencePublicMode !== 'synthetic-reference-public-v1' ||
@@ -966,6 +967,27 @@ export async function startStaffPreview(options = {}) {
             tenantSlug,
             public: stock.manifest,
           });
+        }
+        if (journeyFixture === 'public-load-v1') {
+          for (const [slug, fixtureCompany] of Object.entries(COMPANIES)) {
+            const stock = publicLoadStock(slug);
+            for (const fixture of stock.rows)
+              await seedPublicReferenceListing(db, fixtureCompany, fixture);
+            if (slug === tenantSlug)
+              journeyManifest = freezeJourneyManifest({
+                policy: 'synthetic-journey-fixtures-v1',
+                kind: journeyFixture,
+                tenantSlug,
+                public: stock.manifest,
+                lab: {
+                  companies: 2,
+                  approvedPerCompany: 500,
+                  approvedTotal: 1000,
+                  media: 'synthetic-metadata-only',
+                  seededThrough: 'guarded-draft-submit-approval',
+                },
+              });
+          }
         }
         await db.query('SELECT app_private.install_synthetic_reference_catalogue(1,$1::jsonb)', [
           JSON.stringify({

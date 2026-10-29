@@ -6,7 +6,10 @@ const companyIndex = (slug) => {
 };
 export function journeyFixtureSelection(value, expected) {
   if (value === undefined) return undefined;
-  if (!['public-search-v1', 'enquiry-queue-v1'].includes(value) || (expected && value !== expected))
+  if (
+    !['public-search-v1', 'public-load-v1', 'enquiry-queue-v1'].includes(value) ||
+    (expected && value !== expected)
+  )
     throw Error('Choose the exact compatible synthetic journey fixture or omit it.');
   return value;
 }
@@ -16,6 +19,39 @@ export function freezeJourneyManifest(value) {
     Object.freeze(value);
   }
   return value;
+}
+/** Fixed disposable lab:500 approved listings per company including the ordinary seed.
+ * Four media metadata records per listing; no image bytes or configurable count.
+ */
+export function publicLoadStock(tenantSlug) {
+  const company = companyIndex(tenantSlug),
+    base = 100000 + company * 10000;
+  const rows = Array.from({ length: 499 }, (_, index) => {
+    const sale = index % 5 === 0;
+    return {
+      listingId: id(base + index),
+      operationBase: 2000000 + company * 10000 + index * 10,
+      slug: `synthetic-load-${tenantSlug}-${index + 1}`,
+      title: `Synthetic ${tenantSlug} inventory ${String(index + 1).padStart(3, '0')}`,
+      purpose: sale ? 'sale' : 'rent',
+      propertyType: index % 7 === 0 ? 'studio' : 'apartment',
+      amountMinor: sale ? 500000000 + index * 10000 : 1500000 + index * 100,
+      rentPeriod: sale ? null : index % 11 === 0 ? 'day' : 'month',
+      bedrooms: index % 7 === 0 ? 0 : (index % 8) + 1,
+      privateBathrooms: 1 + (index % 3),
+      sharedBathrooms: index % 3 === 0 ? 1 : null,
+    };
+  });
+  return {
+    rows,
+    manifest: freezeJourneyManifest({
+      total: 500,
+      generated: 499,
+      monthlyGenerated: rows.filter((r) => r.rentPeriod === 'month').length,
+      saleGenerated: rows.filter((r) => r.purpose === 'sale').length,
+      listingIds: rows.map((r) => r.listingId),
+    }),
+  };
 }
 export function publicJourneyStock(tenantSlug) {
   const company = companyIndex(tenantSlug),

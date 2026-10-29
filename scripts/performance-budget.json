@@ -1,0 +1,21 @@
+{
+  "policy": "local-performance-lab-v1",
+  "definedAt": "2026-10-29T20:12:00Z",
+  "inventory": { "companies": 2, "approvedPerCompany": 500, "approvedTotal": 1000 },
+  "load": { "concurrency": 4, "rounds": 12, "timeoutMs": 5000 },
+  "api": {
+    "p95Ms": 1000,
+    "p99Ms": 2000,
+    "maxMs": 5000,
+    "maxBodyBytes": 2097152,
+    "unexpectedStatusCount": 0,
+    "incorrectResponseCount": 0
+  },
+  "web": {
+    "warmRequestsPerRoute": 5,
+    "p95TtfbMs": 1000,
+    "maxHtmlBytes": 524288,
+    "maxInitialJsGzipBytes": 512000
+  },
+  "limits": "Local finite-burst regression budgets defined before measurement. Four concurrent clients; fewer than240 requests per preview, never bypassing the existing limiter. Not sustainable throughput, field vitals, hosted PostgreSQL concurrency, actual media, device or production capacity. Demo production web and real synthetic API are measured separately."
+}
