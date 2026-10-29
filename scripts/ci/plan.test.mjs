@@ -5,6 +5,20 @@ import { tmpdir } from 'node:os';
 import { join, dirname, basename } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { classifyChanges, planVerification } from './plan.mjs';
+test('formatting preserves immutable source evidence and deterministic generated indexes while keeping application code checked', () => {
+  const ignore = readFileSync(new URL('../../.prettierignore', import.meta.url), 'utf8').split(
+    /\r?\n/,
+  );
+  for (const path of [
+    'docs/source-evidence/',
+    'docs/acceptance-status.html',
+    'docs/acceptance-status.json',
+    'docs/acceptance-status.md',
+  ])
+    assert.ok(ignore.includes(path));
+  for (const path of ['apps/', 'apps/**', 'packages/', 'packages/**', 'scripts/', 'scripts/**'])
+    assert.ok(!ignore.includes(path));
+});
 const full = { verify: true, web: true, admin: true, mobile: true };
 const flags = (p) => Object.fromEntries(Object.keys(full).map((k) => [k, p[k]]));
 test('all documentation/evidence formats and one-shot tracker scripts avoid application runners', () => {
