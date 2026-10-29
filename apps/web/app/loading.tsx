@@ -4,7 +4,7 @@ export default function Loading() {
     <>
       <div className="preview">Development preview · Loading properties</div>
       <PublicHeader />
-      <main id="main" className="container catalogue-loading" aria-busy="true">
+      <main id="main" tabIndex={-1} className="container catalogue-loading" aria-busy="true">
         <div role="status" aria-live="polite">
           <span className="eyebrow">A MOMENT, PLEASE</span>
           <h1>Finding the details for you.</h1>

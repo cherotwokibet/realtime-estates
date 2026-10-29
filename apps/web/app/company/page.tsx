@@ -13,7 +13,7 @@ export default async function Company() {
     <>
       <CatalogueBanner mode={info.mode} />
       <PublicHeader current="company" />
-      <main id="main" className="container public-info-page">
+      <main id="main" tabIndex={-1} className="container public-info-page">
         <CompanyContent info={info} />
       </main>
       <PublicFooter mode={info.mode} />

@@ -187,7 +187,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
     <>
       <CatalogueBanner mode={mode} />
       <PublicHeader purpose={purpose} />
-      <main id="main">
+      <main id="main" tabIndex={-1}>
         <section className="hero" aria-labelledby="hero-title">
           <Image
             src="/demo/studio-exterior.jpg"
@@ -219,7 +219,12 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
           </div>
           <span className="hero-disclosure">AI concept image · illustrative</span>
         </section>
-        <section className="search-wrap container" id="search" aria-labelledby="search-title">
+        <section
+          className="search-wrap container"
+          id="search"
+          tabIndex={-1}
+          aria-labelledby="search-title"
+        >
           <form
             key={JSON.stringify([
               location,
@@ -596,7 +601,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Que
             <LoadedCataloguePager browse={browse} filters={catalogue.filters} />
           )}
         </section>
-        <section className="approach" id="how">
+        <section className="approach" id="how" tabIndex={-1}>
           <div className="container">
             <div className="approach-heading">
               <div>

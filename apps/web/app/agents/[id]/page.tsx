@@ -17,7 +17,7 @@ export default async function Advisor({ params }: { params: Promise<{ id: string
     <>
       <CatalogueBanner mode={info.mode} />
       <PublicHeader />
-      <main id="main" className="container public-info-page">
+      <main id="main" tabIndex={-1} className="container public-info-page">
         <nav className="breadcrumb" aria-label="Breadcrumb">
           <a href="/">Home</a>
           <span aria-hidden="true">/</span>

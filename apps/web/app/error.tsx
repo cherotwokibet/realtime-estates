@@ -1,7 +1,7 @@
 'use client';
 export default function ErrorPage({ retry }: { retry: () => void }) {
   return (
-    <main id="main" className="container catalogue-problem">
+    <main id="main" tabIndex={-1} className="container catalogue-problem">
       <h1>We couldn’t load this page.</h1>
       <p role="alert">Please try again. Property availability has not been verified.</p>
       <button className="primary" onClick={retry}>

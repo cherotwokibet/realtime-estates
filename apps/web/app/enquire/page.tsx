@@ -30,7 +30,7 @@ export default async function Enquire({
     }
   }
   return (
-    <main id="main" className="intake-shell">
+    <main id="main" tabIndex={-1} className="intake-shell">
       <header>
         <a href="/">{approvedPresentation(await readApprovedCompany()).brand.name}</a>
         <a href="/">Explore homes →</a>

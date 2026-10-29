@@ -38,7 +38,7 @@ export default async function Property({ params }: { params: Promise<{ id: strin
       <>
         <CatalogueBanner mode="unavailable" />
         <PublicHeader />
-        <main id="main" className="container detail-page">
+        <main id="main" tabIndex={-1} className="container detail-page">
           <CatalogueProblem message={result.message} />
         </main>
         <PublicFooter mode="unavailable" />
@@ -50,7 +50,7 @@ export default async function Property({ params }: { params: Promise<{ id: strin
       <>
         <CatalogueBanner mode={result.mode} />
         <PublicHeader />
-        <main id="main" className="container detail-page">
+        <main id="main" tabIndex={-1} className="container detail-page">
           <CatalogueProblem message={result.message} incomplete />
         </main>
         <PublicFooter mode={result.mode} />
@@ -96,7 +96,7 @@ export default async function Property({ params }: { params: Promise<{ id: strin
     <>
       <CatalogueBanner mode={mode} />
       <PublicHeader purpose={p.purpose} />
-      <main id="main" className="detail-page container">
+      <main id="main" tabIndex={-1} className="detail-page container">
         <nav className="breadcrumb" aria-label="Breadcrumb">
           <Link href="/">Home</Link>
           <span aria-hidden="true">/</span>
