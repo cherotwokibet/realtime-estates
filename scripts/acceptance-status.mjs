@@ -67,6 +67,7 @@ const commits = {
   media216: '1a2e18e714f2593284fe9511e39feed375263ff7',
   gallery217: '0951abc2ce40f0390b16c7c856e46addc628ed45',
   design218: '8d3fa7fa9de2d3073ea20016bf474dab0b6225c7',
+  ci219: '84067fe074cad6b8df39108a57454753361b6c70',
 };
 for (const commit of Object.values(commits))
   execFileSync('git', ['merge-base', '--is-ancestor', commit, 'HEAD'], {
@@ -74,6 +75,14 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  ci219: {
+    path: 'docs/evidence/2026-10-29-ci-efficiency/local-planner-final.txt',
+    counts: [8],
+    commit: commits.ci219,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows / local dependency-free CI planner with real disposable Git ranges; no hosted Actions run, account/budget change or application acceptance',
+  },
   design218: {
     path: 'docs/evidence/2026-10-29-connected-design.md',
     counts: null,
@@ -262,7 +271,7 @@ for (const [id, definition] of Object.entries(definitions)) {
     ...definition,
     sha256: textHash(bytes),
     hashScope: 'UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained',
-    observedDate: '2026-10-28',
+    observedDate: definition.observedDate ?? '2026-10-28',
     coverage:
       'Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass.',
   };

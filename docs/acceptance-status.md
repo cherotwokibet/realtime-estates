@@ -8,6 +8,7 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| ci219 | [evidence/2026-10-29-ci-efficiency/local-planner-final.txt](evidence/2026-10-29-ci-efficiency/local-planner-final.txt) · 84067fe | 8 passed; Windows / local dependency-free CI planner with real disposable Git ranges; no hosted Actions run, account/budget change or application acceptance |
 | design218 | [evidence/2026-10-29-connected-design.md](evidence/2026-10-29-connected-design.md) · 8d3fa7f | Windows / in-app browser /16 prototype screens at1280/320px,390px public and critical in-memory recovery/decision flows; design-only, no backend/device/operator acceptance |
 | api217 | [evidence/2026-10-29-public-gallery/api-full.txt](evidence/2026-10-29-public-gallery/api-full.txt) · 0951abc | 307 passed; Windows / full current API, public anonymous sealed-image boundary and retained draft/reviewer authorization; SQL/adapters plus doubles |
 | database217 | [evidence/2026-10-29-public-gallery/database-full.txt](evidence/2026-10-29-public-gallery/database-full.txt) · 0951abc | 353 passed; Windows / full default-schema restricted PGlite including public-current publication/freshness/provenance and role checks; no hosted concurrent sessions |

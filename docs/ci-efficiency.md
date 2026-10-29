@@ -22,7 +22,9 @@ Only the `cherotwokibet/realtime-estates` workflow present in this checkout was 
 
 ## Executed verification and limits
 
-`node --test scripts/ci/plan.test.mjs`: **7/7 passed**, including real temporary Git repositories, multi-commit ranges, deletion/rename protection, documentation formats, affected frontend selection, conservative fallback and the retained workflow contract. Prettier parsed/formatted the YAML and scripts; focused `git diff --check` passed. See [raw local proof](evidence/2026-10-29-ci-efficiency/local-planner-tests.txt).
+`node --test scripts/ci/plan.test.mjs`: **8/8 passed**, including real temporary Git repositories, multi-commit ranges, deletion/rename protection, documentation formats, affected frontend selection, conservative fallback, preservation of original/generated evidence and the retained workflow contract. Prettier parsed/formatted the YAML and scripts; focused `git diff --check` passed. See [final raw local proof](evidence/2026-10-29-ci-efficiency/local-planner-final.txt).
+
+The whole-repository format preflight initially found three deterministic generated indexes, the immutable original UAT report and one handwritten document. Generated indexes and immutable originals now have precise formatter exclusions; the handwritten document was formatted. No application source directory was excluded. The final whole-repository format check passed, and the original UAT SHA256 remains15e11faaebb8ed8acf3eb86a8b196bf07528ed00884dda0b4dafd72fff4f0dd8. Initial/final outputs are retained beside the planner proof.
 
 No hosted Actions run, actual dollar saving, remote workflow activation, runner timing or release gate is claimed. These changes do not complete another97-task checklist item. The canonical baseline remains43/97 (44% rounded),0/14 release gates.
 
