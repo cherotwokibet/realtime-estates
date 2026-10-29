@@ -1,0 +1,33 @@
+name: Foundation checks
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**/*.md'
+      - README.md
+  pull_request:
+    paths-ignore:
+      - 'docs/**/*.md'
+      - README.md
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, Node 24 runtime
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7, Node 24 runtime
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build:web
+      - run: npm run export:android --workspace=@realtor/mobile

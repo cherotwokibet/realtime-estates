@@ -2,13 +2,8 @@ name: Foundation checks
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - 'docs/**/*.md'
-      - README.md
   pull_request:
-    paths-ignore:
-      - 'docs/**/*.md'
-      - README.md
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -17,17 +12,34 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, Node 24 runtime
         with:
           persist-credentials: false
+          fetch-depth: 2
+      - name: Select verification from the complete available Git diff
+        id: scope
+        run: node scripts/ci/plan.mjs
+      - name: Check conservative verification planning
+        run: node --test scripts/ci/plan.test.mjs
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7, Node 24 runtime
+        if: steps.scope.outputs.verify == 'true'
         with:
           node-version: '24.19.0'
           cache: npm
-      - run: npm ci
+      - run: npm ci --no-audit --no-fund
+        if: steps.scope.outputs.verify == 'true'
       - run: npm run format:check
+        if: steps.scope.outputs.verify == 'true'
       - run: npm test
-      - run: npm run typecheck
-      - run: npm run build:web
+        if: steps.scope.outputs.verify == 'true'
+      # npm test already builds all shared packages. Do not repeat that wrapper.
+      - run: npm run typecheck --workspaces --if-present
+        if: steps.scope.outputs.verify == 'true'
+      - run: npm run build --workspace=@realtor/web
+        if: steps.scope.outputs.web == 'true'
+      - run: npm run build --workspace=@realtor/admin
+        if: steps.scope.outputs.admin == 'true'
       - run: npm run export:android --workspace=@realtor/mobile
+        if: steps.scope.outputs.mobile == 'true'
