@@ -989,6 +989,23 @@ export async function startStaffPreview(options = {}) {
               });
           }
         }
+        if (journeyFixture === 'public-load-v1') {
+          const observed = [];
+          for (const [slug, fixtureCompany] of Object.entries(COMPANIES)) {
+            const result = await bootstrapAs(db, fixtureCompany, fixtureCompany.admin, () =>
+              db.query(
+                'SELECT count(*)::int AS listings, sum(jsonb_array_length(photo_refs))::int AS "photoRefs" FROM app_api.public_listings_reference_v3',
+              ),
+            );
+            if (result.rows[0]?.listings !== 500 || result.rows[0]?.photoRefs !== 2000)
+              throw Error('Representative public inventory does not match the lab manifest.');
+            observed.push({ tenantSlug: slug, ...result.rows[0] });
+          }
+          journeyManifest = freezeJourneyManifest({
+            ...journeyManifest,
+            lab: { ...journeyManifest.lab, observed },
+          });
+        }
         await db.query('SELECT app_private.install_synthetic_reference_catalogue(1,$1::jsonb)', [
           JSON.stringify({
             ...REFERENCE_PREVIEW_CATALOGUE,

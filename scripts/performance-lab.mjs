@@ -91,6 +91,7 @@ function summary(samples) {
 let preview, child;
 async function measure(url, name, expectedStatus = 200, target = report.samples) {
   const start = performance.now();
+  let recorded = false;
   try {
     const response = await fetch(url, {
       redirect: 'error',
@@ -106,10 +107,11 @@ async function measure(url, name, expectedStatus = 200, target = report.samples)
       bytes: bytes.length,
     };
     target.push(sample);
+    recorded = true;
     assert.equal(response.status, expectedStatus, name + ' status');
     return { sample, bytes };
   } catch (e) {
-    if (!target.some((s) => s.name === name))
+    if (!recorded)
       target.push({ name, status: 'network-failure', ms: performance.now() - start, bytes: 0 });
     throw e;
   }
@@ -195,7 +197,7 @@ async function api() {
   report.requestMix = cases;
   await save();
   const started = performance.now();
-  await Promise.all(
+  const workers = await Promise.allSettled(
     Array.from({ length: budget.load.concurrency }, async (_, worker) => {
       for (let i = 0; i < budget.load.rounds; i++) {
         const c = cases[(worker + i) % cases.length];
@@ -212,6 +214,13 @@ async function api() {
       }
     }),
   );
+  const failedWorkers = workers.filter((w) => w.status === 'rejected');
+  if (failedWorkers.length)
+    throw new AggregateError(
+      failedWorkers.map((w) => w.reason),
+      'One or more finite lab clients failed: ' +
+        failedWorkers.map((w) => w.reason.message).join('; '),
+    );
   report.finiteBurstDurationMs = performance.now() - started;
   report.summary = summary(report.samples);
   for (const [metric, limit] of [
@@ -297,8 +306,9 @@ async function web() {
     await readFile(resolve(root, 'apps/web/.next/BUILD_ID'), 'utf8')
   ).trim();
   report.routes = [];
-  for (const path of ['/', '/properties/demo-ruaka-1', '/company', '/contact', '/enquiry']) {
-    const probes = [],
+  for (const path of ['/', '/properties/demo-ruaka-1', '/company', '/contact', '/enquire']) {
+    report.phase = 'production-demo-route:' + path;
+    const probes = report.probes,
       samples = [],
       cold = await measure('http://127.0.0.1:3130' + path, 'cold' + path, 200, probes);
     const html = cold.bytes.toString('utf8');
@@ -326,7 +336,6 @@ async function web() {
     };
     report.routes.push(result);
     report.samples.push(...samples);
-    report.probes.push(...probes);
     if (result.p95TtfbMs > budget.web.p95TtfbMs)
       report.violations.push(path + ' TTFB exceeds budget');
     if (Math.max(cold.sample.bytes, result.summary.maxBodyBytes) > budget.web.maxHtmlBytes)
