@@ -19,6 +19,68 @@
     "caseCount": 35
   },
   "executions": {
+    "apiLab222": {
+      "path": "docs/evidence/2026-10-29-performance/api-final.json",
+      "counts": null,
+      "commit": "aa414973efd01198e865a0cb29ec6c7edc96f7f3",
+      "observedDate": "2026-10-29",
+      "environment": "Windows /actual1000-listing two-company PGlite/HTTP lab,48 timed reads/4 clients plus12 probes; metadata only, no sustainable/hosted/device capacity claim",
+      "sha256": "e899932b66ec72439d053ac76f5c818983762398ca3b48a797400c5c351bdfaa",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
+    "webLabFailed222": {
+      "path": "docs/evidence/2026-10-29-performance/web-initial.json",
+      "counts": null,
+      "commit": "aa414973efd01198e865a0cb29ec6c7edc96f7f3",
+      "observedDate": "2026-10-29",
+      "environment": "Windows /retained FAILED first cold web deadline while another DB test ran; no pass inferred; incomplete local probe instrumentation corrected later",
+      "sha256": "55be9ad1ce209d7f23dc7f933e3c8000659ceea71b2e9ce4ad7fdacf671d03e3",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
+    "webLab222": {
+      "path": "docs/evidence/2026-10-29-performance/web-complete.json",
+      "counts": null,
+      "commit": "aa414973efd01198e865a0cb29ec6c7edc96f7f3",
+      "observedDate": "2026-10-29",
+      "environment": "Windows /current production DEMO web cold/warm headers, HTML and initial local JS gzip; no connected production DB/field vitals/CDN/device claim",
+      "sha256": "2be6528806f9c3731ed0fc4855529539163276903fd537079f11c39bb1d4a62c",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
+    "keyboard222": {
+      "path": "docs/evidence/2026-10-29-public-keyboard.md",
+      "counts": null,
+      "commit": "aa414973efd01198e865a0cb29ec6c7edc96f7f3",
+      "observedDate": "2026-10-29",
+      "environment": "Actual browser /320/390/1280 reflow, focus targets,13 Tab sequence, keyboard form/gallery/navigation; bounded browser work, not full assistive technology/device audit",
+      "sha256": "5e22bbd4a8c84c61c8f257a00a5c40668e73a630674e8e2bc56e1bb419cecad7",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
+    "web222": {
+      "path": "docs/evidence/2026-10-29-public-keyboard/web-tests-complete.txt",
+      "counts": [
+        109
+      ],
+      "commit": "aa414973efd01198e865a0cb29ec6c7edc96f7f3",
+      "observedDate": "2026-10-29",
+      "environment": "Windows /final complete109 web checks and test compilation after native fragment focus correction; earlier109 runs overlap",
+      "sha256": "4cb31f5efec2c8f52a7fbb3bb5e891387e831e7b0d70e5da55a278ba388fe81f",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
+    "webBuild222": {
+      "path": "docs/evidence/2026-10-29-public-keyboard/web-build-complete.txt",
+      "counts": null,
+      "commit": "aa414973efd01198e865a0cb29ec6c7edc96f7f3",
+      "observedDate": "2026-10-29",
+      "environment": "Windows /final one-worker complete Next16.4.2 production build including TypeScript; no hosted/actual device pass",
+      "sha256": "d853ed830cfba8d1d4b6ab7a939da07e8c407e3d6261f18dd5d891023459c82c",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
     "preservation221": {
       "path": "docs/evidence/2026-10-29-preservation/verification.json",
       "counts": null,
@@ -983,6 +1045,8 @@
       "status": "partial",
       "releaseCasePassed": false,
       "evidence": [
+        "keyboard222",
+        "web222",
         "search210",
         "operations212",
         "admin212",
@@ -990,7 +1054,7 @@
         "browser217",
         "web217"
       ],
-      "observed": "Specific keyboard focus and labelled component checks executed; public gallery Enter collapse/reopen plus320/390px costs/gallery showed no horizontal overflow.",
+      "observed": "Main/search/native approach focus corrected and observed;13-control keyboard sequence, form/gallery/navigation and320/390/1280 reflow complement connected boundary/gallery evidence.",
       "remaining": "No complete WCAG2.2AA, assistive-technology, 320px/200% text or Android/iOS process audit has passed.",
       "nextAction": "Run and remediate the complete accessibility/browser/device matrix.",
       "owner": "Boniface + Codex",
@@ -1177,12 +1241,16 @@
       "arrange": null,
       "expected": "Profile realistic cold/warm listing/search and slow network media recovery; record mobile/desktop separately. Field CWV requires real traffic; proposed p75 LCP≤2.5s,INP≤200ms,CLS≤0.1 is a target, not current result",
       "originalFinding": null,
-      "status": "not_run",
+      "status": "partial",
       "releaseCasePassed": false,
-      "evidence": [],
-      "observed": "No current cold/warm representative-inventory load or field performance result is claimed.",
-      "remaining": "Public/private lab profiling, slow-network budgets and eventual field traffic metrics remain open.",
-      "nextAction": "Measure representative synthetic inventory in the selected deployment and record lab/field scope separately.",
+      "evidence": [
+        "apiLab222",
+        "webLabFailed222",
+        "webLab222"
+      ],
+      "observed": "Actual1000-listing/two-company loopback lab measured48 reads/4 clients, p95=536.007ms; current production demo web warm p95 headers<=44.437ms. Original five-second cold failure retained; limits fixed before measurement.",
+      "remaining": "Actual media/slow-network, private workload, hosted PostgreSQL/provider capacity and field Web Vitals remain unmeasured.",
+      "nextAction": "Repeat the bounded lab in approved staging with actual media/private workloads and collect consented field metrics before a production capacity decision.",
       "owner": "Boniface + Codex",
       "gapId": "GAP-AC-034"
     },

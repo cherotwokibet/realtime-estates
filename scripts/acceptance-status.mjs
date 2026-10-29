@@ -71,6 +71,7 @@ const commits = {
   settings220: 'd532848e2a49fb604d81c1a3edb0494af7be5da2',
   settingsInitial: 'c17256f765d29ef063e267c2095ce9b5f368f7a3',
   preservation221: '895a95587932789f7249df2f741442b83695fd20',
+  performance222: 'aa414973efd01198e865a0cb29ec6c7edc96f7f3',
 };
 for (const commit of Object.values(commits))
   execFileSync('git', ['merge-base', '--is-ancestor', commit, 'HEAD'], {
@@ -78,6 +79,54 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  apiLab222: {
+    path: 'docs/evidence/2026-10-29-performance/api-final.json',
+    counts: null,
+    commit: commits.performance222,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows /actual1000-listing two-company PGlite/HTTP lab,48 timed reads/4 clients plus12 probes; metadata only, no sustainable/hosted/device capacity claim',
+  },
+  webLabFailed222: {
+    path: 'docs/evidence/2026-10-29-performance/web-initial.json',
+    counts: null,
+    commit: commits.performance222,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows /retained FAILED first cold web deadline while another DB test ran; no pass inferred; incomplete local probe instrumentation corrected later',
+  },
+  webLab222: {
+    path: 'docs/evidence/2026-10-29-performance/web-complete.json',
+    counts: null,
+    commit: commits.performance222,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows /current production DEMO web cold/warm headers, HTML and initial local JS gzip; no connected production DB/field vitals/CDN/device claim',
+  },
+  keyboard222: {
+    path: 'docs/evidence/2026-10-29-public-keyboard.md',
+    counts: null,
+    commit: commits.performance222,
+    observedDate: '2026-10-29',
+    environment:
+      'Actual browser /320/390/1280 reflow, focus targets,13 Tab sequence, keyboard form/gallery/navigation; bounded browser work, not full assistive technology/device audit',
+  },
+  web222: {
+    path: 'docs/evidence/2026-10-29-public-keyboard/web-tests-complete.txt',
+    counts: [109],
+    commit: commits.performance222,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows /final complete109 web checks and test compilation after native fragment focus correction; earlier109 runs overlap',
+  },
+  webBuild222: {
+    path: 'docs/evidence/2026-10-29-public-keyboard/web-build-complete.txt',
+    counts: null,
+    commit: commits.performance222,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows /final one-worker complete Next16.4.2 production build including TypeScript; no hosted/actual device pass',
+  },
   preservation221: {
     path: 'docs/evidence/2026-10-29-preservation/verification.json',
     counts: null,
@@ -538,8 +587,17 @@ const reviewed = [
   [
     24,
     'partial',
-    ['search210', 'operations212', 'admin212', 'mobile211', 'browser217', 'web217'],
-    'Specific keyboard focus and labelled component checks executed; public gallery Enter collapse/reopen plus320/390px costs/gallery showed no horizontal overflow.',
+    [
+      'keyboard222',
+      'web222',
+      'search210',
+      'operations212',
+      'admin212',
+      'mobile211',
+      'browser217',
+      'web217',
+    ],
+    'Main/search/native approach focus corrected and observed;13-control keyboard sequence, form/gallery/navigation and320/390/1280 reflow complement connected boundary/gallery evidence.',
     'No complete WCAG2.2AA, assistive-technology, 320px/200% text or Android/iOS process audit has passed.',
     'Run and remediate the complete accessibility/browser/device matrix.',
   ],
@@ -617,11 +675,11 @@ const reviewed = [
   ],
   [
     34,
-    'not_run',
-    [],
-    'No current cold/warm representative-inventory load or field performance result is claimed.',
-    'Public/private lab profiling, slow-network budgets and eventual field traffic metrics remain open.',
-    'Measure representative synthetic inventory in the selected deployment and record lab/field scope separately.',
+    'partial',
+    ['apiLab222', 'webLabFailed222', 'webLab222'],
+    'Actual1000-listing/two-company loopback lab measured48 reads/4 clients, p95=536.007ms; current production demo web warm p95 headers<=44.437ms. Original five-second cold failure retained; limits fixed before measurement.',
+    'Actual media/slow-network, private workload, hosted PostgreSQL/provider capacity and field Web Vitals remain unmeasured.',
+    'Repeat the bounded lab in approved staging with actual media/private workloads and collect consented field metrics before a production capacity decision.',
   ],
   [
     35,

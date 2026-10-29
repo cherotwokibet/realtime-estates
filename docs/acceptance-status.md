@@ -8,6 +8,12 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| apiLab222 | [evidence/2026-10-29-performance/api-final.json](evidence/2026-10-29-performance/api-final.json) · aa41497 | Windows /actual1000-listing two-company PGlite/HTTP lab,48 timed reads/4 clients plus12 probes; metadata only, no sustainable/hosted/device capacity claim |
+| webLabFailed222 | [evidence/2026-10-29-performance/web-initial.json](evidence/2026-10-29-performance/web-initial.json) · aa41497 | Windows /retained FAILED first cold web deadline while another DB test ran; no pass inferred; incomplete local probe instrumentation corrected later |
+| webLab222 | [evidence/2026-10-29-performance/web-complete.json](evidence/2026-10-29-performance/web-complete.json) · aa41497 | Windows /current production DEMO web cold/warm headers, HTML and initial local JS gzip; no connected production DB/field vitals/CDN/device claim |
+| keyboard222 | [evidence/2026-10-29-public-keyboard.md](evidence/2026-10-29-public-keyboard.md) · aa41497 | Actual browser /320/390/1280 reflow, focus targets,13 Tab sequence, keyboard form/gallery/navigation; bounded browser work, not full assistive technology/device audit |
+| web222 | [evidence/2026-10-29-public-keyboard/web-tests-complete.txt](evidence/2026-10-29-public-keyboard/web-tests-complete.txt) · aa41497 | 109 passed; Windows /final complete109 web checks and test compilation after native fragment focus correction; earlier109 runs overlap |
+| webBuild222 | [evidence/2026-10-29-public-keyboard/web-build-complete.txt](evidence/2026-10-29-public-keyboard/web-build-complete.txt) · aa41497 | Windows /final one-worker complete Next16.4.2 production build including TypeScript; no hosted/actual device pass |
 | preservation221 | [evidence/2026-10-29-preservation/verification.json](evidence/2026-10-29-preservation/verification.json) · 895a955 | Windows /2254 original file byte hashes and four read-only archive checksums/inventory reconciled; preservation only, no original/vendor UAT result imported as an application pass |
 | domain220 | [evidence/2026-10-29-company-settings/domain-full-final.txt](evidence/2026-10-29-company-settings/domain-full-final.txt) · d532848 | 302 passed; Windows / full shared domain contracts including exact company settings and duplicate-key JSON; no provider/device proof |
 | api220 | [evidence/2026-10-29-company-settings/api-full.txt](evidence/2026-10-29-company-settings/api-full.txt) · c17256f | 307 passed; Windows / retained full current API run; settings service source unchanged by later admin-only reconciliation/status correction |
@@ -281,8 +287,8 @@ Next: Build retained support/report workflows and verify their empty/loading/err
 **R-024 · partial · GAP-AC-024**
 Original finding: Keyboard and accessible controls incomplete.
 Expected: Named controls, logical visible focus, operable chips/dialogs, labels and announced errors/progress; record WCAG2.2AA audit gaps and device evidence
-Observed: Specific keyboard focus and labelled component checks executed; public gallery Enter collapse/reopen plus320/390px costs/gallery showed no horizontal overflow.
-Evidence: [search210](evidence/2026-10-28-search-and-enquiry-acceptance.md), [operations212](evidence/2026-10-28-operations-overview.md), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [mobile211](evidence/2026-10-28-mobile-offline.md), [browser217](evidence/2026-10-29-public-gallery.md), [web217](evidence/2026-10-29-public-gallery/web-full-final.txt)
+Observed: Main/search/native approach focus corrected and observed;13-control keyboard sequence, form/gallery/navigation and320/390/1280 reflow complement connected boundary/gallery evidence.
+Evidence: [keyboard222](evidence/2026-10-29-public-keyboard.md), [web222](evidence/2026-10-29-public-keyboard/web-tests-complete.txt), [search210](evidence/2026-10-28-search-and-enquiry-acceptance.md), [operations212](evidence/2026-10-28-operations-overview.md), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [mobile211](evidence/2026-10-28-mobile-offline.md), [browser217](evidence/2026-10-29-public-gallery.md), [web217](evidence/2026-10-29-public-gallery/web-full-final.txt)
 Still open: No complete WCAG2.2AA, assistive-technology, 320px/200% text or Android/iOS process audit has passed.
 Next: Run and remediate the complete accessibility/browser/device matrix. Owner: Boniface + Codex.
 
@@ -378,13 +384,13 @@ Next: Implement measured usage and test budget alerts without purchasing service
 
 ### AC-034 — public/private performance
 
-**Additional replacement gate · not_run · GAP-AC-034**
+**Additional replacement gate · partial · GAP-AC-034**
 
 Expected: Profile realistic cold/warm listing/search and slow network media recovery; record mobile/desktop separately. Field CWV requires real traffic; proposed p75 LCP≤2.5s,INP≤200ms,CLS≤0.1 is a target, not current result
-Observed: No current cold/warm representative-inventory load or field performance result is claimed.
-Evidence: No product execution pass attached.
-Still open: Public/private lab profiling, slow-network budgets and eventual field traffic metrics remain open.
-Next: Measure representative synthetic inventory in the selected deployment and record lab/field scope separately. Owner: Boniface + Codex.
+Observed: Actual1000-listing/two-company loopback lab measured48 reads/4 clients, p95=536.007ms; current production demo web warm p95 headers<=44.437ms. Original five-second cold failure retained; limits fixed before measurement.
+Evidence: [apiLab222](evidence/2026-10-29-performance/api-final.json), [webLabFailed222](evidence/2026-10-29-performance/web-initial.json), [webLab222](evidence/2026-10-29-performance/web-complete.json)
+Still open: Actual media/slow-network, private workload, hosted PostgreSQL/provider capacity and field Web Vitals remain unmeasured.
+Next: Repeat the bounded lab in approved staging with actual media/private workloads and collect consented field metrics before a production capacity decision. Owner: Boniface + Codex.
 
 ### AC-035 — concurrency and integrity
 
