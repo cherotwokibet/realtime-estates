@@ -1,4 +1,10 @@
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
+import {
+  validateCompanySettingsCommand,
+  validateCompanySettingsContent,
+  validateCompanySettingsRecord,
+  validateCompanySettingsState,
+} from '@realtor/domain';
 import { staffEnquiryQueueQuery, EnquiryQueueInputError } from './enquiry-queue.js';
 import { readStaffOperationsOverview } from './operations-overview.js';
 import {
@@ -407,6 +413,11 @@ function scalar(result: { readonly rows: Record<string, unknown>[] }, key: strin
   const value = result.rows[0]?.[key];
   if (value === undefined || value === null) throw new Error('Unexpected database response.');
   return value;
+}
+function headerNames(headers: Headers): string[] {
+  const names: string[] = [];
+  headers.forEach((_, name) => names.push(name));
+  return names;
 }
 
 const DRAFT_FIELDS = [
@@ -1535,6 +1546,53 @@ export function createApiService(
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method.toUpperCase();
+      if (path === '/v2/public/company-settings') {
+        if (method !== 'GET')
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Public company settings are read-only.', {
+            Allow: 'GET',
+          });
+        if (
+          request.body !== null ||
+          request.url.includes('?') ||
+          request.url.includes('#') ||
+          headerNames(request.headers).some(
+            (k) =>
+              [
+                'authorization',
+                'cookie',
+                'content-type',
+                'content-length',
+                'range',
+                'idempotency-key',
+              ].includes(k) ||
+              k.startsWith('x-') ||
+              k.startsWith('if-'),
+          )
+        )
+          throw new HttpError(
+            400,
+            'INVALID_INPUT',
+            'Anonymous settings read accepts no caller authority.',
+          );
+        const content = await options.database.transaction(
+          { tenantId, actorId: null, correlationId },
+          async (query) => {
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            const result = await query.query(
+              'SELECT app_api.read_public_company_settings() AS content',
+            );
+            if (result.rows.length !== 1) throw Error('Invalid settings projection.');
+            return result.rows[0]!.content === null
+              ? null
+              : validateCompanySettingsContent(result.rows[0]!.content);
+          },
+        );
+        return response(
+          200,
+          { policy: 'public-company-settings-v1', tenantId, content },
+          correlationId,
+        );
+      }
       if (path === '/v3/properties') {
         if (!referenceModerationEnabled)
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
@@ -2357,6 +2415,86 @@ export function createApiService(
       if (path.startsWith('/v1/staff/') || v2Draft || enquiryQueueV3) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const settingsRoute = /^\/v2\/staff\/company-settings(?:\/operations\/([^/]+))?$/.exec(
+          path,
+        );
+        if (settingsRoute) {
+          const op = settingsRoute[1] === undefined ? null : uuid(settingsRoute[1], 'operationId');
+          if (op !== null && op !== settingsRoute[1])
+            throw new HttpError(400, 'INVALID_INPUT', 'Canonical operation ID required.');
+          const allowed = op === null ? ['GET'] : ['GET', 'POST'];
+          if (!allowed.includes(method))
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Settings method unavailable.', {
+              Allow: allowed.join(', '),
+            });
+          if (
+            request.url.includes('?') ||
+            request.url.includes('#') ||
+            headerNames(request.headers).some(
+              (k) =>
+                [
+                  'cookie',
+                  'idempotency-key',
+                  'range',
+                  'x-actor-id',
+                  'x-tenant-id',
+                  'x-role',
+                  'x-actor',
+                  'x-tenant',
+                  'x-company-id',
+                  'x-assigned-agent-id',
+                  'x-revision-version',
+                ].includes(k) || k.startsWith('if-'),
+            ) ||
+            (method === 'GET' &&
+              (request.body !== null ||
+                request.headers.has('content-type') ||
+                request.headers.has('content-length')))
+          )
+            throw new HttpError(
+              400,
+              'INVALID_INPUT',
+              'Settings accepts no caller-selected company or permission.',
+            );
+          let command: ReturnType<typeof validateCompanySettingsCommand> | undefined;
+          if (method === 'POST') {
+            try {
+              command = validateCompanySettingsCommand(
+                await jsonBody(request, 32 * 1024, true, true, true, false, true, 10_000),
+              );
+            } catch (error) {
+              if (error instanceof HttpError) throw error;
+              throw new HttpError(400, 'INVALID_INPUT', 'Review settings, version and approval.');
+            }
+            if (command.operationId !== op)
+              throw new HttpError(400, 'INVALID_INPUT', 'Settings command changed route.');
+          }
+          const result = await options.database.transaction(context, async (query) => {
+            await assertAdmin(query);
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            if (op === null) {
+              const rows = await query.query('SELECT app_api.read_company_settings() AS settings');
+              return validateCompanySettingsState(scalar(rows, 'settings'));
+            }
+            const rows = command
+              ? await query.query('SELECT app_api.approve_company_settings($1::jsonb) AS receipt', [
+                  JSON.stringify(command),
+                ])
+              : await query.query(
+                  'SELECT app_api.read_company_settings_operation($1::uuid) AS receipt',
+                  [op],
+                );
+            const receipt = validateCompanySettingsRecord(scalar(rows, 'receipt'));
+            if (
+              receipt.operationId !== op ||
+              receipt.actorId !== actorId ||
+              (command && JSON.stringify(receipt.request) !== JSON.stringify(command))
+            )
+              throw Error('Settings receipt changed original request.');
+            return receipt;
+          });
+          return response(200, result, correlationId);
+        }
         if (path === '/v2/staff/viewings/calendar') {
           if (method !== 'GET')
             throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Viewing calendar is read-only.', {

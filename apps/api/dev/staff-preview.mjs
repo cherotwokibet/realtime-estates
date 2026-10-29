@@ -121,6 +121,7 @@ function configuration({
   creationReplyFault,
   successorReplyFault,
   controlReplyFault,
+  settingsReplyFault,
   successorTerminalFixture,
   referenceDraftMode,
   referenceReplyFault,
@@ -137,6 +138,8 @@ function configuration({
 } = {}) {
   if (process.env.NODE_ENV === 'production')
     throw new StaffPreviewConfigurationError('Staff preview refuses NODE_ENV=production.');
+  if (settingsReplyFault !== undefined && settingsReplyFault !== 'invalid-first-approved-v1')
+    throw new StaffPreviewConfigurationError('Unsupported synthetic settings reply fault.');
   journeyFixtureSelection(journeyFixture);
   if (
     journeyFixture === 'public-search-v1' &&
@@ -373,6 +376,7 @@ function configuration({
     creationReplyFault,
     successorReplyFault,
     controlReplyFault,
+    settingsReplyFault,
     successorTerminalFixture,
     referenceDraftMode,
     referenceReplyFault,
@@ -822,6 +826,7 @@ export async function startStaffPreview(options = {}) {
     creationReplyFault,
     successorReplyFault,
     controlReplyFault,
+    settingsReplyFault,
     successorTerminalFixture,
     referenceDraftMode,
     referenceReplyFault,
@@ -839,6 +844,7 @@ export async function startStaffPreview(options = {}) {
   let referenceSuccessorReplyFaultPending = !!referenceSuccessorReplyFault;
   let referenceCreationReplyFaultPending = !!referenceCreationReplyFault;
   let controlReplyFaultPending = !!controlReplyFault;
+  let settingsReplyFaultPending = !!settingsReplyFault;
   let successorReplyFaultPending = !!successorReplyFault;
   let creationReplyFaultPending = !!creationReplyFault;
   let reminderReplyFaultPending = !!reminderReplyFault;
@@ -1224,6 +1230,21 @@ export async function startStaffPreview(options = {}) {
         if (denied) return denied;
         const url = new URL(request.url),
           reviewQueue = url.pathname === '/v2/staff/reviews';
+        if (
+          url.pathname === '/v2/public/company-settings' ||
+          /^\/v2\/staff\/company-settings(?:\/operations\/[0-9a-f-]{36})?$/.test(url.pathname)
+        ) {
+          const response = await service(request);
+          response.headers.set('X-Synthetic-Staff-Preview', 'true');
+          if (settingsReplyFaultPending && request.method === 'POST' && response.status === 200) {
+            settingsReplyFaultPending = false;
+            return Response.json(
+              { syntheticReplyCorruption: true },
+              { headers: { 'Cache-Control': 'no-store', 'X-Synthetic-Staff-Preview': 'true' } },
+            );
+          }
+          return response;
+        }
         if (nativeMedia && url.pathname === '/v2/properties') {
           if (request.method !== 'GET' || request.headers.has('authorization'))
             return failure(403, 'FORBIDDEN', 'Synthetic public catalogue is guest read-only.');

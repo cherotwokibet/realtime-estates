@@ -13,11 +13,12 @@ function intakeEnabled() {
 export function PublicHeader({
   purpose,
   current,
+  brand = tenantBrand,
 }: {
   purpose?: string;
   current?: 'company' | 'contact';
+  brand?: typeof tenantBrand;
 }) {
-  const brand = tenantBrand;
   return (
     <header className="site-header container">
       <Link href="/" className="brand" aria-label={brand.name + ' home'}>
@@ -61,8 +62,13 @@ export function CatalogueBanner({ mode }: { mode: 'demo' | 'connected' | 'unavai
     </div>
   );
 }
-export function PublicFooter({ mode }: { mode: 'demo' | 'connected' | 'unavailable' }) {
-  const brand = tenantBrand;
+export function PublicFooter({
+  mode,
+  brand = tenantBrand,
+}: {
+  mode: 'demo' | 'connected' | 'unavailable';
+  brand?: typeof tenantBrand;
+}) {
   return (
     <footer className="site-footer">
       <div className="container footer-top">

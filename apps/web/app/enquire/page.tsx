@@ -1,7 +1,7 @@
 import IntakeWorkspace from '../../../shared/IntakeWorkspace';
 import { publicIntakeConfig } from '../../lib/intake-config';
 import { loadProperty } from '../../lib/catalogue-server';
-import { tenantBrand } from '../../lib/tenant';
+import { approvedPresentation, readApprovedCompany } from '../../lib/approved-company';
 import '../../../shared/intake.css';
 export const dynamic = 'force-dynamic';
 export default async function Enquire({
@@ -32,7 +32,7 @@ export default async function Enquire({
   return (
     <main id="main" className="intake-shell">
       <header>
-        <a href="/">{tenantBrand.name}</a>
+        <a href="/">{approvedPresentation(await readApprovedCompany()).brand.name}</a>
         <a href="/">Explore homes →</a>
       </header>
       {scope && !invalid ? (

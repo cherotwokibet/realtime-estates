@@ -5,9 +5,9 @@ import { loadCatalogue } from '../lib/catalogue-server';
 import {
   CatalogueBanner,
   CatalogueProblem,
-  PublicHeader,
-  PublicFooter,
-} from '../components/PublicShell';
+  ConnectedPublicHeader as PublicHeader,
+  ConnectedPublicFooter as PublicFooter,
+} from '../components/ConnectedPublicShell';
 import { PricingDisclosureSummary } from '../components/PricingDisclosure';
 import RoomFilters from '../components/RoomFilters';
 import PriceFilters from '../components/PriceFilters';
@@ -19,7 +19,7 @@ import { additionalActiveFilterLabels, browseCatalogue } from '../lib/catalogue-
 import { resolveSearchAreaMapPreview } from '../lib/search-area-editor';
 import { publicPageMetadata } from '../lib/public-seo';
 import { publicSeoPolicy } from '../lib/public-seo-server';
-import { tenantBrand } from '../lib/tenant';
+import { approvedPresentation, readApprovedCompany } from '../lib/approved-company';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +28,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const query = await searchParams;
   return publicPageMetadata(
     publicSeoPolicy,
-    tenantBrand.name,
+    approvedPresentation(await readApprovedCompany()).brand.name,
     '/',
     'Find your next place',
     publicSeoPolicy.index

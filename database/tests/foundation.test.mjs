@@ -146,6 +146,7 @@ test('migration forces RLS and API role has neither owner membership nor direct 
     );
     assert.deepEqual(tables.rows.map((row) => row.relname).sort(), [
       'audit_events',
+      'company_settings_records',
       'enquiries',
       'enquiry_contacts',
       'enquiry_operations',

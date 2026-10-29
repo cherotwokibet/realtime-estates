@@ -1,5 +1,9 @@
 import { notFound } from 'next/navigation';
-import { CatalogueBanner, PublicFooter, PublicHeader } from '../../../components/PublicShell';
+import {
+  CatalogueBanner,
+  ConnectedPublicFooter as PublicFooter,
+  ConnectedPublicHeader as PublicHeader,
+} from '../../../components/ConnectedPublicShell';
 import { AdvisorContent } from '../../../components/PublicCompanyContent';
 import { publicAdvisor, publicCompanyInfo } from '../../../lib/public-company';
 

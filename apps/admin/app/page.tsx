@@ -162,6 +162,13 @@ export default function Admin() {
                   Authorized listing work ↗
                 </a>
               )}
+            {process.env.NODE_ENV === 'development' &&
+              process.env.STAFF_PREVIEW_MODE === 'synthetic' && (
+                <a href="/settings">
+                  <Icon name="actions" />
+                  Company content and branding
+                </a>
+              )}
             <a href="#actions">
               <Icon name="actions" />
               Next actions

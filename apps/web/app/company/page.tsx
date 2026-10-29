@@ -1,10 +1,14 @@
-import { CatalogueBanner, PublicFooter, PublicHeader } from '../../components/PublicShell';
+import {
+  CatalogueBanner,
+  ConnectedPublicFooter as PublicFooter,
+  ConnectedPublicHeader as PublicHeader,
+} from '../../components/ConnectedPublicShell';
 import { CompanyContent } from '../../components/PublicCompanyContent';
-import { publicCompanyInfo } from '../../lib/public-company';
+import { approvedCompanyInfo, readApprovedCompany } from '../../lib/approved-company';
 
 export const dynamic = 'force-dynamic';
-export default function Company() {
-  const info = publicCompanyInfo(process.env);
+export default async function Company() {
+  const info = approvedCompanyInfo(await readApprovedCompany());
   return (
     <>
       <CatalogueBanner mode={info.mode} />

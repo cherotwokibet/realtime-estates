@@ -8,13 +8,13 @@ import { formatKes, kesFromMinor } from '@realtor/domain';
 import { loadProperty } from '../../../lib/catalogue-server';
 import { propertyPageMetadata } from '../../../lib/public-seo';
 import { publicSeoPolicy } from '../../../lib/public-seo-server';
-import { tenantBrand } from '../../../lib/tenant';
+import { approvedPresentation, readApprovedCompany } from '../../../lib/approved-company';
 import {
   CatalogueBanner,
   CatalogueProblem,
-  PublicHeader,
-  PublicFooter,
-} from '../../../components/PublicShell';
+  ConnectedPublicHeader as PublicHeader,
+  ConnectedPublicFooter as PublicFooter,
+} from '../../../components/ConnectedPublicShell';
 import {
   PricingDisclosureCard,
   PricingDisclosureSummary,
@@ -24,7 +24,11 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const result = await loadProperty((await params).id);
   if (result.mode !== 'error' && result.status === 'not_found') notFound();
-  return propertyPageMetadata(publicSeoPolicy, tenantBrand.name, result);
+  return propertyPageMetadata(
+    publicSeoPolicy,
+    approvedPresentation(await readApprovedCompany()).brand.name,
+    result,
+  );
 }
 export default async function Property({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

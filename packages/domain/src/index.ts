@@ -35,3 +35,4 @@ export * from './listing-import.js';
 export * from './listing-duplicates.js';
 export * from './listing-verification.js';
 export * from './listing-verification-results.js';
+export * from './company-settings.js';
