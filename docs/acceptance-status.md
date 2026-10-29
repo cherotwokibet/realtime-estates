@@ -8,6 +8,7 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| preservation221 | [evidence/2026-10-29-preservation/verification.json](evidence/2026-10-29-preservation/verification.json) · 895a955 | Windows /2254 original file byte hashes and four read-only archive checksums/inventory reconciled; preservation only, no original/vendor UAT result imported as an application pass |
 | domain220 | [evidence/2026-10-29-company-settings/domain-full-final.txt](evidence/2026-10-29-company-settings/domain-full-final.txt) · d532848 | 302 passed; Windows / full shared domain contracts including exact company settings and duplicate-key JSON; no provider/device proof |
 | api220 | [evidence/2026-10-29-company-settings/api-full.txt](evidence/2026-10-29-company-settings/api-full.txt) · c17256f | 307 passed; Windows / retained full current API run; settings service source unchanged by later admin-only reconciliation/status correction |
 | database220 | [evidence/2026-10-29-company-settings/database-full.txt](evidence/2026-10-29-company-settings/database-full.txt) · c17256f | 357 passed; Windows / full default restricted PGlite schema including immutable approved settings/current roles/tenant/original recovery; no hosted concurrent PostgreSQL proof |

@@ -70,6 +70,7 @@ const commits = {
   ci219: '84067fe074cad6b8df39108a57454753361b6c70',
   settings220: 'd532848e2a49fb604d81c1a3edb0494af7be5da2',
   settingsInitial: 'c17256f765d29ef063e267c2095ce9b5f368f7a3',
+  preservation221: '895a95587932789f7249df2f741442b83695fd20',
 };
 for (const commit of Object.values(commits))
   execFileSync('git', ['merge-base', '--is-ancestor', commit, 'HEAD'], {
@@ -77,6 +78,14 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  preservation221: {
+    path: 'docs/evidence/2026-10-29-preservation/verification.json',
+    counts: null,
+    commit: commits.preservation221,
+    observedDate: '2026-10-29',
+    environment:
+      'Windows /2254 original file byte hashes and four read-only archive checksums/inventory reconciled; preservation only, no original/vendor UAT result imported as an application pass',
+  },
   domain220: {
     path: 'docs/evidence/2026-10-29-company-settings/domain-full-final.txt',
     counts: [302],
