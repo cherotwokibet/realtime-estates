@@ -711,7 +711,7 @@ for (const fix of fixes) {
 }
 const data = {
   schemaVersion: 1,
-  updatedAt: '2026-10-28',
+  updatedAt: '2026-10-29',
   owner: 'Boniface + Codex',
   purpose: 'Execution traceability, not product or release acceptance',
   originalReport: {
