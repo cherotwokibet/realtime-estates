@@ -116,7 +116,6 @@ export default function CompanySettingsWorkspace({
       );
       if (JSON.stringify(receipt.request) !== JSON.stringify(command))
         throw Error('Original result does not match the retained request.');
-      setPending(null);
       setApproved(false);
       setMessage(
         'Approved content saved at version ' +
@@ -127,6 +126,14 @@ export default function CompanySettingsWorkspace({
       setState(current);
       setForm(current.current ?? initial);
       setComparison(null);
+      setPending(null);
+      setMessage(
+        'Approved content saved at version ' +
+          receipt.version +
+          '. Current saved version ' +
+          current.version +
+          ' loaded.',
+      );
     } catch (e) {
       if (e && typeof e === 'object' && 'definitiveRefusal' in e && e.definitiveRefusal === true) {
         setPending(null);

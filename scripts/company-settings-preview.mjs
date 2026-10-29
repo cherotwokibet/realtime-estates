@@ -1,5 +1,7 @@
 /** Disposable local-only settings journey. Ephemeral signed identity stays in child server environment. */
-import { spawn } from 'node:child_process';
+import { spawn, execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { createInterface } from 'node:readline';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -21,18 +23,44 @@ const preview = await startStaffPreview({
   seedAcceptedMedia: false,
   ...(args.includes('--lost-result') ? { settingsReplyFault: 'invalid-first-approved-v1' } : {}),
 });
-const children = [];
-let stopping = false;
+const execute = promisify(execFile);
+const input = createInterface({ input: process.stdin, terminal: false });
+let activeChild = null,
+  activeApp = null,
+  stopping = false,
+  queue = Promise.resolve();
+async function retire(child) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) return;
+  // Only the exact child process created below and its descendants are disposable.
+  if (process.platform === 'win32')
+    await execute('taskkill', ['/PID', String(child.pid), '/T', '/F'], { windowsHide: true });
+  else child.kill('SIGTERM');
+  if (child.exitCode === null && child.signalCode === null)
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(Error('Owned UI retirement not confirmed.')), 10_000);
+      child.once('exit', () => {
+        clearTimeout(timer);
+        resolve();
+      });
+    });
+}
 async function stop() {
   if (stopping) return;
   stopping = true;
-  for (const child of children) child.kill();
+  input.close();
+  const child = activeChild;
+  activeChild = null;
+  activeApp = null;
+  await retire(child);
   await preview.close();
 }
-for (const [app, port] of [
-  ['admin', '3120'],
-  ['web', '3121'],
-]) {
+async function activate(app) {
+  if (stopping || activeApp === app) return;
+  const old = activeChild;
+  activeChild = null;
+  activeApp = null;
+  await retire(old);
+  const port = app === 'admin' ? '3120' : '3121';
   const child = spawn(
     process.execPath,
     [
@@ -47,6 +75,7 @@ for (const [app, port] of [
     {
       cwd: fileURLToPath(new URL('../', import.meta.url)),
       stdio: 'inherit',
+      windowsHide: true,
       env: {
         ...process.env,
         NODE_ENV: 'development',
@@ -65,15 +94,49 @@ for (const [app, port] of [
       },
     },
   );
-  children.push(child);
+  activeChild = child;
+  activeApp = app;
   child.once('error', () => {
     process.exitCode = 1;
     void stop();
   });
-  child.once('exit', () => void stop());
+  child.once('exit', (code) => {
+    if (!stopping && activeChild === child) {
+      process.exitCode = code ?? 1;
+      void stop();
+    }
+  });
+  console.log(
+    'Owned ' +
+      app +
+      ' UI pid ' +
+      child.pid +
+      ' at http://127.0.0.1:' +
+      port +
+      '. Same synthetic API/database retained.',
+  );
 }
+input.on('line', (line) => {
+  const command = line.trim();
+  queue = queue
+    .then(() =>
+      command === 'public'
+        ? activate('web')
+        : command === 'admin'
+          ? activate('admin')
+          : command === 'quit'
+            ? stop()
+            : console.log('Use public, admin or quit.'),
+    )
+    .catch((error) => {
+      console.error(error.message);
+      process.exitCode = 1;
+      void stop();
+    });
+});
 for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => void stop());
+await activate('admin');
 console.log(
-  'Synthetic settings editor http://127.0.0.1:3120/settings; public company http://127.0.0.1:3121/company. Disposable data, no messages/provider or live-system changes. First approved reply corrupt: ' +
+  'Synthetic settings editor http://127.0.0.1:3120/settings. Type public to switch the same saved database to http://127.0.0.1:3121/company; admin to return; quit to stop. One UI runs at a time. Disposable data, no messages/provider or live-system changes. First approved reply corrupt: ' +
     args.includes('--lost-result'),
 );
