@@ -13,3 +13,5 @@ Implementation order: domain exact request/receipt/triage contracts; additive gu
 Previous checkpoint222 publication: Site209/sourcef15dca7f succeeded; one owner,zero external visitors/groups. Complete sourcead952bc same-device all-ref bundle/fresh clean clone/fsck/41-execution ledger verified. Journal is in evidence/2026-10-29-public-keyboard/publication.json. User dashboard browser notes retained. Owner:Boniface+Codex.
 
 30October2026 continuation: clean source63318c4 inspected. Complete shared domain suite306/306 passed (docs/evidence/2026-10-30-listing-reports/domain-full.txt); this includes focused contracts and is not additive. SDK-specific transport tests, signed HTTP and UI remain pending. Canonical47/97 and0gates unchanged; no hosted Actions or application push.
+
+30October2026 SDK regression: existing complete client suite303/303 passed after report SDK additions (sdk-full.txt). This suite contains no dedicated new report transport test yet and does not establish report SDK acceptance. Next remains new report-specific202/anonymous/strict-response/uncertain-write tests, signed HTTP and UI/browser integration.47/97 unchanged.
