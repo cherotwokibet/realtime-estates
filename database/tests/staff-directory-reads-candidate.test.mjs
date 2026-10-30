@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
-import { validateStaffInvitationState } from '../../packages/domain/dist/index.js';
+import {
+  validateStaffInvitationState,
+  validateStaffBranchPage,
+  validateStaffInvitationPage,
+} from '../../packages/domain/dist/index.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 async function fixture() {
   const db = new PGlite();
@@ -92,6 +96,7 @@ test('bounded private invitation pages use stable IDs, omit actor, and retain cu
     ).rows;
     const audits = (await db.query('SELECT count(*) AS n FROM app_private.audit_events')).rows[0].n;
     let p = await page(db, 'list_staff_invitation_requests');
+    validateStaffInvitationPage(p, { limit: 2, after: null });
     assert.deepEqual(await page(db, 'list_staff_invitation_requests', 2, null, 1, 11), p);
     assert.deepEqual(
       (await db.query('SELECT * FROM app_private.memberships ORDER BY tenant_id,user_id')).rows,
@@ -157,6 +162,7 @@ test('branch pages expose latest applied metadata once, including inactive branc
       );
     await branch(db, 700, 1, 'Renamed', false);
     const first = await page(db, 'list_staff_branches');
+    validateStaffBranchPage(first, { limit: 2, after: null });
     assert.deepEqual(
       first.items.map((x) => x.branchId),
       [id(100), id(101)],

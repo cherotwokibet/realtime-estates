@@ -276,3 +276,112 @@ export function parseStaffInvitationJson(source: string): unknown {
   }
   return parsed;
 }
+
+/** Private company-admin directory projections; no membership or invitation authority. */
+export interface StaffDirectoryQuery {
+  readonly limit: number;
+  readonly after: string | null;
+}
+export interface StaffBranchCurrent {
+  readonly policy: 'staff-branch-current-v1';
+  readonly branchId: string;
+  readonly version: string;
+  readonly name: string;
+  readonly active: boolean;
+  readonly recordedAt: string;
+}
+export interface StaffBranchPage {
+  readonly policy: 'staff-branch-page-v1';
+  readonly items: readonly StaffBranchCurrent[];
+  readonly nextAfter: string | null;
+}
+export interface StaffInvitationPage {
+  readonly policy: 'staff-invitation-page-v1';
+  readonly items: readonly StaffInvitationState[];
+  readonly nextAfter: string | null;
+}
+export function validateStaffDirectoryQuery(input: unknown): StaffDirectoryQuery {
+  const r = record(input, ['limit', 'after']);
+  if (typeof r.limit !== 'number' || !Number.isInteger(r.limit) || r.limit < 1 || r.limit > 20)
+    return invalid();
+  return Object.freeze({ limit: r.limit, after: r.after === null ? null : uuid(r.after) });
+}
+export function validateStaffBranchCurrent(input: unknown, branchId?: string): StaffBranchCurrent {
+  const r = record(input, ['policy', 'branchId', 'version', 'name', 'active', 'recordedAt']);
+  if (r.policy !== 'staff-branch-current-v1' || typeof r.active !== 'boolean') return invalid();
+  const value = Object.freeze({
+    policy: 'staff-branch-current-v1' as const,
+    branchId: uuid(r.branchId),
+    version: version(r.version),
+    name: plain(r.name, 160),
+    active: r.active,
+    recordedAt: instant(r.recordedAt),
+  });
+  if (branchId !== undefined && value.branchId !== uuid(branchId)) return invalid();
+  return value;
+}
+function directoryPage<T>(
+  input: unknown,
+  query: StaffDirectoryQuery,
+  policy: string,
+  item: (v: unknown) => T,
+  key: (v: T) => string,
+): Readonly<{ items: readonly T[]; nextAfter: string | null }> {
+  const q = validateStaffDirectoryQuery(query),
+    r = record(input, ['policy', 'items', 'nextAfter']);
+  if (
+    r.policy !== policy ||
+    !Array.isArray(r.items) ||
+    Object.getPrototypeOf(r.items) !== Array.prototype
+  )
+    return invalid();
+  const descriptors = Object.getOwnPropertyDescriptors(r.items);
+  const length = Object.getOwnPropertyDescriptor(r.items, 'length')?.value as number;
+  if (
+    !Number.isInteger(length) ||
+    length < 0 ||
+    length > q.limit ||
+    Reflect.ownKeys(r.items).length !== length + 1
+  )
+    return invalid();
+  const values: T[] = [];
+  let previous = q.after;
+  for (let i = 0; i < length; i++) {
+    const d = descriptors[String(i)];
+    if (!d?.enumerable || !Object.hasOwn(d, 'value')) return invalid();
+    const value = item(d.value),
+      id = key(value);
+    if (previous !== null && id <= previous) return invalid();
+    values.push(value);
+    previous = id;
+  }
+  const next = r.nextAfter === null ? null : uuid(r.nextAfter);
+  if (next !== null && (length !== q.limit || next !== previous)) return invalid();
+  return Object.freeze({ items: Object.freeze(values), nextAfter: next });
+}
+export function validateStaffBranchPage(
+  input: unknown,
+  query: StaffDirectoryQuery,
+): StaffBranchPage {
+  const page = directoryPage(
+    input,
+    query,
+    'staff-branch-page-v1',
+    (v) => validateStaffBranchCurrent(v),
+    (v) => v.branchId,
+  );
+  return Object.freeze({ policy: 'staff-branch-page-v1', ...page });
+}
+export function validateStaffInvitationPage(
+  input: unknown,
+  query: StaffDirectoryQuery,
+): StaffInvitationPage {
+  const page = directoryPage(
+    input,
+    query,
+    'staff-invitation-page-v1',
+    (v) => validateStaffInvitationState(v),
+    (v) => v.operationId,
+  );
+  return Object.freeze({ policy: 'staff-invitation-page-v1', ...page });
+}
