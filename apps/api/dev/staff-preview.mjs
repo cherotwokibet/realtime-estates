@@ -134,6 +134,7 @@ function configuration({
   referenceSuccessorReplyFault,
   referencePublicMode,
   journeyFixture,
+  publicReportMode,
   seedAcceptedMedia = nativeUploads === undefined && enquiryPreview === undefined,
   seedPendingReviews = false,
 } = {}) {
@@ -142,6 +143,8 @@ function configuration({
   if (settingsReplyFault !== undefined && settingsReplyFault !== 'invalid-first-approved-v1')
     throw new StaffPreviewConfigurationError('Unsupported synthetic settings reply fault.');
   journeyFixtureSelection(journeyFixture);
+  if (publicReportMode !== undefined && publicReportMode !== 'synthetic-listing-report-v1')
+    throw new StaffPreviewConfigurationError('Unsupported synthetic listing report mode.');
   if (
     ['public-search-v1', 'public-load-v1'].includes(journeyFixture) &&
     (referenceDraftMode !== 'synthetic-reference-draft-v1' ||
@@ -389,6 +392,7 @@ function configuration({
     referenceSuccessorReplyFault,
     referencePublicMode,
     journeyFixture,
+    publicReportMode,
   };
 }
 function syntheticContent(title = 'Synthetic staff monthly studio') {
@@ -839,6 +843,7 @@ export async function startStaffPreview(options = {}) {
     referenceSuccessorReplyFault,
     referencePublicMode,
     journeyFixture,
+    publicReportMode,
   } = configuration(options);
   let referenceReplyFaultPending = !!referenceReplyFault;
   let referenceModerationReplyFaultPending = !!referenceModerationReplyFault;
@@ -1163,6 +1168,7 @@ export async function startStaffPreview(options = {}) {
     const service = createApiService({
       database,
       verificationMode: 'synthetic-check-record-v1',
+      ...(publicReportMode ? { publicReportMode } : {}),
       ...(referenceDraftMode ? { referenceDraftMode } : {}),
       ...(referenceModerationMode ? { referenceModerationMode } : {}),
       ...(referenceCreationMode ? { referenceCreationMode } : {}),
@@ -1247,6 +1253,7 @@ export async function startStaffPreview(options = {}) {
             url.search,
           )
         ) &&
+        !(publicReportMode && url.pathname === '/v2/staff/listing-reports') &&
         (!(
           url.pathname === '/v2/staff/listings' ||
           reviewQueue ||
@@ -1313,6 +1320,14 @@ export async function startStaffPreview(options = {}) {
             retainedSyntheticMedia: !!nativeMedia,
             tokenExpiresAt: expiresAt,
           });
+        if (
+          publicReportMode &&
+          (/^\/v2\/public\/listings\/[0-9a-f-]+\/reports\/[0-9a-f-]+$/.test(url.pathname) ||
+            /^\/v2\/staff\/listing-reports(?:\/[0-9a-f-]+\/operations\/[0-9a-f-]+)?$/.test(
+              url.pathname,
+            ))
+        )
+          return service(request);
         if (
           referencePublicMode &&
           (url.pathname === '/v3/properties' ||
