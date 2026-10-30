@@ -1,6 +1,9 @@
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
 import {
   parseStaffInvitationJson,
+  validateStaffDirectoryQuery,
+  validateStaffBranchPage,
+  validateStaffInvitationPage,
   validateStaffInvitationIntent,
   validateStaffInvitationRequestRecord,
   validateStaffInvitationState,
@@ -1580,6 +1583,59 @@ export function createApiService(
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method.toUpperCase();
+      if (path === '/v2/staff/branches' || path === '/v2/staff/invitation-requests') {
+        if (!staffInvitationsEnabled)
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        if (
+          request.url.includes('#') ||
+          headerNames(request.headers).some(
+            (k) =>
+              ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(k) ||
+              k.startsWith('x-') ||
+              k.startsWith('if-'),
+          )
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Directory context is server-owned.');
+        if (method !== 'GET')
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Read only.', { Allow: 'GET' });
+        if (
+          request.body !== null ||
+          request.headers.has('content-type') ||
+          request.headers.has('content-length')
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Reads accept no body.');
+        const match = /^\?limit=([1-9]|1[0-9]|20)(?:&after=([0-9a-f-]{36}))?$/.exec(url.search);
+        if (!match)
+          throw new HttpError(400, 'INVALID_INPUT', 'Use an exact bounded directory query.');
+        let pageQuery: ReturnType<typeof validateStaffDirectoryQuery>;
+        try {
+          pageQuery = validateStaffDirectoryQuery({
+            limit: Number(match[1]),
+            after: match[2] ?? null,
+          });
+        } catch {
+          throw new HttpError(400, 'INVALID_INPUT', 'Invalid directory cursor.');
+        }
+        const actorId = await identity(request, true);
+        const branches = path === '/v2/staff/branches';
+        const value = await options.database.transaction(
+          { tenantId, actorId, correlationId },
+          async (query) => {
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            const result = await query.query(
+              branches
+                ? 'SELECT app_api.list_staff_branches($1,$2) AS page'
+                : 'SELECT app_api.list_staff_invitation_requests($1,$2) AS page',
+              [pageQuery.limit, pageQuery.after],
+            );
+            if (result.rows.length !== 1) throw Error('Invalid directory projection.');
+            return branches
+              ? validateStaffBranchPage(result.rows[0]!.page, pageQuery)
+              : validateStaffInvitationPage(result.rows[0]!.page, pageQuery);
+          },
+        );
+        return response(200, value, correlationId);
+      }
       if (path.startsWith('/v2/staff/invitation-requests')) {
         if (!staffInvitationsEnabled)
           throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');

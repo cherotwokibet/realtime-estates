@@ -195,3 +195,72 @@ test('signed invitation HTTP rejects query and caller-selected authority without
     await p.close();
   }
 });
+
+test('actual signed private directory pages retain current invitation states and enforce exact query bounds', async () => {
+  const p = await startStaffPreview({
+    port: 0,
+    actor: 'admin',
+    seedAcceptedMedia: false,
+    staffInvitationMode: 'synthetic-capture-only-v1',
+  });
+  try {
+    const api = client(p),
+      auth = { bearerToken: p.bearerToken };
+    const commands = [intent(), intent(), intent()].sort((a, b) =>
+      a.operationId.localeCompare(b.operationId),
+    );
+    for (const command of commands) await api.recordStaffInvitationRequest(command, auth);
+    const read = async (path) =>
+      fetch(p.origin + path, { headers: { Authorization: 'Bearer ' + p.bearerToken } });
+    let r = await read('/v2/staff/invitation-requests?limit=2');
+    assert.equal(r.status, 200);
+    const first = await r.json();
+    assert.deepEqual(
+      first.items.map((x) => x.operationId),
+      commands.slice(0, 2).map((x) => x.operationId),
+    );
+    assert.equal(first.nextAfter, commands[1].operationId);
+    r = await read('/v2/staff/invitation-requests?limit=2&after=' + first.nextAfter);
+    const last = await r.json();
+    assert.deepEqual(
+      last.items.map((x) => x.operationId),
+      [commands[2].operationId],
+    );
+    assert.equal(last.nextAfter, null);
+    r = await read('/v2/staff/branches?limit=20');
+    assert.equal(r.status, 200);
+    assert.deepEqual(await r.json(), {
+      policy: 'staff-branch-page-v1',
+      items: [],
+      nextAfter: null,
+    });
+    for (const path of [
+      '/v2/staff/branches?limit=21',
+      '/v2/staff/invitation-requests?limit=2&tenantId=bad',
+      '/v2/staff/branches?limit=2&limit=2',
+    ])
+      assert.equal((await read(path)).status, 400);
+  } finally {
+    await p.close();
+  }
+});
+test('actual signed agent and foreign-company actor cannot list either private directory', async () => {
+  for (const actor of ['agent', 'other-company-admin']) {
+    const p = await startStaffPreview({
+      port: 0,
+      actor,
+      seedAcceptedMedia: false,
+      staffInvitationMode: 'synthetic-capture-only-v1',
+    });
+    try {
+      for (const path of ['/v2/staff/branches?limit=2', '/v2/staff/invitation-requests?limit=2'])
+        assert.equal(
+          (await fetch(p.origin + path, { headers: { Authorization: 'Bearer ' + p.bearerToken } }))
+            .status,
+          403,
+        );
+    } finally {
+      await p.close();
+    }
+  }
+});

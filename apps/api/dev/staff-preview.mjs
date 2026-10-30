@@ -905,7 +905,11 @@ export async function startStaffPreview(options = {}) {
     await seed(db, seedAcceptedMedia, seedPendingReviews);
     if (staffInvitationMode) {
       // Explicit disposable fixture only; never normal migrations or deployed bootstrap.
-      for (const file of ['staff-branches.sql', 'staff-invitation-requests.sql'])
+      for (const file of [
+        'staff-branches.sql',
+        'staff-invitation-requests.sql',
+        'staff-directory-reads.sql',
+      ])
         await db.exec(
           await readFile(new URL('../../../database/proposals/' + file, import.meta.url), 'utf8'),
         );
@@ -1288,6 +1292,10 @@ export async function startStaffPreview(options = {}) {
             url.search,
           )
         ) &&
+        !(
+          staffInvitationMode &&
+          ['/v2/staff/branches', '/v2/staff/invitation-requests'].includes(url.pathname)
+        ) &&
         !(publicReportMode && url.pathname === '/v2/staff/listing-reports') &&
         (!(
           url.pathname === '/v2/staff/listings' ||
@@ -1355,7 +1363,11 @@ export async function startStaffPreview(options = {}) {
             retainedSyntheticMedia: !!nativeMedia,
             tokenExpiresAt: expiresAt,
           });
-        if (staffInvitationMode && /^\/v2\/staff\/invitation-requests(?:\/|$)/.test(url.pathname)) {
+        if (
+          staffInvitationMode &&
+          (url.pathname === '/v2/staff/branches' ||
+            /^\/v2\/staff\/invitation-requests(?:\/|$)/.test(url.pathname))
+        ) {
           const response = await service(request);
           const capture = url.pathname.includes('/operations/');
           if (
