@@ -1,0 +1,49 @@
+✔ report routes are explicitly disabled by default and malformed mode/notice is refused (54.0321ms)
+✔ anonymous exact POST captures in configured company only, returns minimal202 and reads original without identity (9.0644ms)
+✔ anonymous report rejects authority/body/query/route/duplicate-key smuggling before any database operation (7.0084ms)
+✖ report submission limit is separate from general budget; denied or malformed budget cannot write and oversized bodies are bounded (2.5587ms)
+✖ private bounded queue and exact review/original routes verify current identity and bind returned actor/version/operation (5.1492ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 3
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 309.8379
+
+✖ failing tests:
+
+test at apps\api\tests\listing-reports.test.mjs:166:1
+✖ report submission limit is separate from general budget; denied or malformed budget cannot write and oversized bodies are bounded (2.5587ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  503 !== 500
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/tests/listing-reports.test.mjs:184:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 503,
+    expected: 500,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps\api\tests\listing-reports.test.mjs:190:1
+✖ private bounded queue and exact review/original routes verify current identity and bind returned actor/version/operation (5.1492ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  200 !== 500
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/tests/listing-reports.test.mjs:208:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 200,
+    expected: 500,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

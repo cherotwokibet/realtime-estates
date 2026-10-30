@@ -1,4 +1,15 @@
 import {
+  validateListingReportCommand,
+  validateListingReportReceipt,
+  validateListingReportDecisionCommand,
+  validateListingReportDecisionReceipt,
+  validateListingReportQueue,
+  parseListingReportJson,
+  type ListingReportCommand,
+  type ListingReportReceipt,
+  type ListingReportDecisionCommand,
+  type ListingReportDecisionReceipt,
+  type ListingReportQueue,
   PROPERTY_TYPES,
   validateStaffOperationsOverview,
   type StaffOperationsOverview,
@@ -2449,6 +2460,20 @@ function uploadBytes(input: unknown): Uint8Array<ArrayBuffer> {
     return invalid('VALIDATION', 'Supply an ordinary byte array within the upload limit.');
   }
 }
+function anonymousReportOptions(input: Omit<RequestOptions, 'bearerToken'>): RequestOptions {
+  if (
+    !input ||
+    typeof input !== 'object' ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(input))
+  )
+    return invalid('VALIDATION', 'Exact anonymous report options required.');
+  const keys = Reflect.ownKeys(input);
+  if (keys.some((k) => typeof k !== 'string' || !['signal', 'timeoutMs'].includes(k)))
+    return invalid('VALIDATION', 'Anonymous report options accept no authority.');
+  const snapshot = attachRecord(input, keys as string[], 'VALIDATION') as RequestOptions;
+  requestOptions(snapshot);
+  return Object.freeze(snapshot);
+}
 function uploadOptions(input: StaffRequestOptions): StaffRequestOptions {
   if (
     !input ||
@@ -3421,6 +3446,135 @@ export class RealtorApiClient {
       return validateStaffListingSummary(data, listing);
     } catch {
       return invalid('INVALID_RESPONSE', 'Invalid current listing detail.');
+    }
+  }
+  async captureListingReport(
+    input: ListingReportCommand,
+    options: Omit<RequestOptions, 'bearerToken'> = {},
+  ): Promise<ListingReportReceipt> {
+    const captured = anonymousReportOptions(options);
+    let command: ListingReportCommand;
+    try {
+      command = validateListingReportCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid listing report.');
+    }
+    const data = await this.request(
+      `/v2/public/listings/${command.listingId}/reports/${command.operationId}`,
+      'POST',
+      captured,
+      { ...command },
+    );
+    try {
+      return validateListingReportReceipt(data, command);
+    } catch {
+      throw new ApiClientError(
+        'INVALID_RESPONSE',
+        'Original report acknowledgment could not be verified.',
+        { submissionUncertain: true },
+      );
+    }
+  }
+  async getListingReportReceipt(
+    listingId: string,
+    operationId: string,
+    options: Omit<RequestOptions, 'bearerToken'> = {},
+  ): Promise<ListingReportReceipt> {
+    const captured = anonymousReportOptions(options),
+      listing = uuid(listingId, 'VALIDATION', 'Listing ID'),
+      operation = uuid(operationId, 'VALIDATION', 'Operation ID');
+    if (listing !== listingId || operation !== operationId)
+      return invalid('VALIDATION', 'Canonical report IDs required.');
+    const data = await this.request(
+      `/v2/public/listings/${listing}/reports/${operation}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateListingReportReceipt(data, { listingId: listing, operationId: operation });
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid original report acknowledgment.');
+    }
+  }
+  async listListingReports(
+    input: {
+      readonly limit?: number;
+      readonly before?: string;
+      readonly status?: ListingReportQueue['status'];
+    },
+    options: StaffRequestOptions,
+  ): Promise<ListingReportQueue> {
+    const captured = uploadOptions(options),
+      q = attachRecord(input, ['limit', 'before', 'status'], 'VALIDATION'),
+      limit = integer(q.limit ?? 50, 1, 50, 'VALIDATION', 'Limit'),
+      status = q.status ?? 'new';
+    if (typeof status !== 'string' || !['all', 'new', 'reviewed', 'dismissed'].includes(status))
+      return invalid('VALIDATION', 'Invalid report queue status.');
+    const before = q.before === undefined ? null : uuid(q.before, 'VALIDATION', 'Report cursor');
+    if (before !== null && before !== q.before)
+      return invalid('VALIDATION', 'Canonical report cursor required.');
+    const data = await this.request(
+      `/v2/staff/listing-reports?limit=${limit}&status=${status}${before === null ? '' : '&before=' + before}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateListingReportQueue(data, {
+        limit,
+        status: status as ListingReportQueue['status'],
+      });
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid report queue.');
+    }
+  }
+  async decideListingReport(
+    input: ListingReportDecisionCommand,
+    options: StaffRequestOptions,
+  ): Promise<ListingReportDecisionReceipt> {
+    const captured = uploadOptions(options);
+    let command: ListingReportDecisionCommand;
+    try {
+      command = validateListingReportDecisionCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid report review.');
+    }
+    const data = await this.request(
+      `/v2/staff/listing-reports/${command.reportId}/operations/${command.operationId}`,
+      'POST',
+      captured,
+      { ...command },
+    );
+    try {
+      return validateListingReportDecisionReceipt(data, command);
+    } catch {
+      throw new ApiClientError(
+        'INVALID_RESPONSE',
+        'Original report review result could not be verified.',
+        { submissionUncertain: true },
+      );
+    }
+  }
+  async getListingReportDecision(
+    reportId: string,
+    operationId: string,
+    options: StaffRequestOptions,
+  ): Promise<ListingReportDecisionReceipt> {
+    const captured = uploadOptions(options),
+      report = uuid(reportId, 'VALIDATION', 'Report ID'),
+      operation = uuid(operationId, 'VALIDATION', 'Operation ID');
+    if (report !== reportId || operation !== operationId)
+      return invalid('VALIDATION', 'Canonical report IDs required.');
+    const data = await this.request(
+      `/v2/staff/listing-reports/${report}/operations/${operation}`,
+      'GET',
+      captured,
+    );
+    try {
+      const value = validateListingReportDecisionReceipt(data);
+      if (value.reportId !== report || value.operationId !== operation) throw Error();
+      return value;
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid original report review.');
     }
   }
   async getStaffOperationsOverview(options: StaffRequestOptions): Promise<StaffOperationsOverview> {
@@ -5266,6 +5420,14 @@ export class RealtorApiClient {
     binary?: Uint8Array<ArrayBuffer>,
     revisionVersion?: string,
   ): Promise<unknown> {
+    const anonymousReport = /^\/v2\/public\/listings\/[0-9a-f-]{36}\/reports\/[0-9a-f-]{36}$/.test(
+      path,
+    );
+    const reportQueue = /^\/v2\/staff\/listing-reports\?/.test(path);
+    const listingReport =
+      anonymousReport ||
+      reportQueue ||
+      /^\/v2\/staff\/listing-reports\/[0-9a-f-]{36}\/operations\/[0-9a-f-]{36}$/.test(path);
     const importPreview = path === '/v2/staff/listing-import-preview' && method === 'POST';
     const publicReference = /^\/v3\/properties\?limit=(?:[1-9]\d?|100)$/.test(path);
     const publicSearch = /^\/v[23]\/properties\/search\?/.test(path);
@@ -5313,8 +5475,9 @@ export class RealtorApiClient {
       /^\/v2\/staff\/listings\/[0-9a-f-]+\/verification-(?:operations\/[0-9a-f-]+|history\?limit=[1-9]\d?(?:&beforeVersion=[1-9]\d{0,15})?)$/.test(
         path,
       );
-    const strictRead = reference || enquiryQueue;
+    const strictRead = reference || enquiryQueue || listingReport;
     const boundedRead =
+      listingReport ||
       enquiryQueue ||
       publicSearch ||
       importPreview ||
@@ -5328,9 +5491,11 @@ export class RealtorApiClient {
       enquiry = STAFF_ENQUIRY_PATH.test(path) || enquiryQueue,
       listingQueue = /^\/v2\/staff\/listings\?limit=[1-9]\d?$/.test(path);
     const expectedStatus =
-      (path === '/v1/enquiries' || path === '/v2/staff/enquiry-captures') && method === 'POST'
-        ? 201
-        : 200;
+      anonymousReport && method === 'POST'
+        ? 202
+        : (path === '/v1/enquiries' || path === '/v2/staff/enquiry-captures') && method === 'POST'
+          ? 201
+          : 200;
     if (options.signal?.aborted) throw new ApiClientError('CANCELLED', 'Request was cancelled.');
     const controller = new AbortController();
     let interruption: 'CANCELLED' | 'TIMEOUT' | undefined;
@@ -5409,8 +5574,11 @@ export class RealtorApiClient {
         }
         let raw: string;
         if (boundedRead) {
-          const maximum =
-              staffSession || revisionProtocol
+          const maximum = listingReport
+              ? reportQueue
+                ? 524288
+                : 8192
+              : staffSession || revisionProtocol
                 ? 8192
                 : publicReference || publicSearch || publicReferenceOptions
                   ? 3 * 1024 * 1024
@@ -5428,7 +5596,7 @@ export class RealtorApiClient {
             declared = result.headers.get('content-length');
           if (
             result.headers.has('content-encoding') ||
-            (enquiryQueue && result.headers.has('content-range')) ||
+            ((enquiryQueue || listingReport) && result.headers.has('content-range')) ||
             (declared !== null &&
               (!/^(0|[1-9]\d*)$/.test(declared) || Number(declared) > maximum)) ||
             !result.body
@@ -5555,10 +5723,11 @@ export class RealtorApiClient {
             )
           )
             assertMediaJsonTokens(raw);
-          payload =
-            verification ||
-            reference ||
-            /^\/v2\/staff\/listings\/[^/]+(?:\/revision-operations\/[^/]+)?$/.test(path)
+          payload = listingReport
+            ? parseListingReportJson(raw)
+            : verification ||
+                reference ||
+                /^\/v2\/staff\/listings\/[^/]+(?:\/revision-operations\/[^/]+)?$/.test(path)
               ? parseListingSuccessorJsonV2(raw)
               : path.startsWith('/v2/')
                 ? parseListingJsonV2(raw)
@@ -5619,7 +5788,7 @@ export class RealtorApiClient {
               submissionUncertain: result.status >= 500 || envelope.submissionUncertain === true,
             });
           }
-          if (enquiry || listingQueue) {
+          if (enquiry || listingQueue || listingReport) {
             const envelope = attachRecord(payload, ['error', 'requestId'], 'INVALID_RESPONSE'),
               serverError = attachRecord(envelope.error, ['code', 'message'], 'INVALID_RESPONSE');
             const code = serverError.code,
@@ -5627,7 +5796,11 @@ export class RealtorApiClient {
               headerId = uuid(result.headers.get('x-request-id'), 'INVALID_RESPONSE', 'Request ID');
             if (
               typeof code !== 'string' ||
-              ENQUIRY_SERVER_STATUS.get(code) !== result.status ||
+              (listingReport && code === 'REQUEST_TIMEOUT'
+                ? 408
+                : listingReport && code === 'REQUEST_ABORTED'
+                  ? 400
+                  : ENQUIRY_SERVER_STATUS.get(code)) !== result.status ||
               typeof serverError.message !== 'string' ||
               serverError.message.length < 1 ||
               serverError.message.length > 1024 ||
@@ -5637,6 +5810,17 @@ export class RealtorApiClient {
             const retry = result.headers.get('retry-after'),
               retryAfterSeconds =
                 retry !== null && /^\d{1,8}$/.test(retry) ? Number(retry) : undefined;
+            if (
+              listingReport &&
+              (result.status === 429
+                ? retryAfterSeconds === undefined ||
+                  retryAfterSeconds < 1 ||
+                  retryAfterSeconds > 3600
+                : retry !== null)
+            )
+              throw new ApiClientError('INVALID_RESPONSE', 'Invalid report retry budget.', {
+                submissionUncertain: writes,
+              });
             throw new ApiClientError('HTTP', 'Staff enquiry request could not be completed.', {
               status: result.status,
               serverCode: code,
@@ -5679,7 +5863,14 @@ export class RealtorApiClient {
           interruption === 'TIMEOUT' ? 'Request timed out.' : 'Request was cancelled.',
           { submissionUncertain: writes && started },
         );
-      if (error instanceof ApiClientError) throw error;
+      if (error instanceof ApiClientError) {
+        if (listingReport && writes && started && error.kind === 'INVALID_RESPONSE')
+          throw new ApiClientError('INVALID_RESPONSE', 'Report result could not be verified.', {
+            status: error.status,
+            submissionUncertain: true,
+          });
+        throw error;
+      }
       throw new ApiClientError('NETWORK', 'API could not be reached.', {
         submissionUncertain: writes && started,
       });

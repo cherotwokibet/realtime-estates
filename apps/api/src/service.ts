@@ -1,5 +1,10 @@
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
 import {
+  validateListingReportCommand,
+  validateListingReportReceipt,
+  validateListingReportDecisionCommand,
+  validateListingReportDecisionReceipt,
+  validateListingReportQueue,
   validateCompanySettingsCommand,
   validateCompanySettingsContent,
   validateCompanySettingsRecord,
@@ -118,6 +123,9 @@ export interface EnquiryLimiter {
   consume(key: string): LimiterResult | Promise<LimiterResult>;
 }
 export interface ApiServiceOptions {
+  /** Local synthetic capture/review only; omission keeps every report route unavailable. */
+  readonly publicReportMode?: 'synthetic-listing-report-v1';
+  readonly reportLimiter?: EnquiryLimiter;
   /** Isolated synthetic reference candidates only; omitted keeps every v3 reference route unavailable. */
   readonly referenceDraftMode?: 'synthetic-reference-draft-v1';
   /** Separate isolated candidate. Requires reference draft mode; never installs schema. */
@@ -1455,6 +1463,15 @@ export function createApiService(
   options: ApiServiceOptions,
 ): (request: Request) => Promise<Response> {
   if (
+    options.publicReportMode !== undefined &&
+    options.publicReportMode !== 'synthetic-listing-report-v1'
+  )
+    throw Error('Unsupported public report mode.');
+  const publicReportsEnabled = options.publicReportMode === 'synthetic-listing-report-v1';
+  if (publicReportsEnabled && !/^[a-z0-9][a-z0-9.-]{0,119}$/.test(options.privacyNoticeVersion))
+    throw Error('A canonical report notice version is required.');
+  const reportLimiter = options.reportLimiter ?? createLocalEnquiryLimiter({ limit: 5 });
+  if (
     options.reminderCaptureMode !== undefined &&
     options.reminderCaptureMode !== 'capture-only-v1'
   )
@@ -1546,6 +1563,204 @@ export function createApiService(
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method.toUpperCase();
+      const publicReport = /^\/v2\/public\/listings\/([^/]+)\/reports\/([^/]+)$/.exec(path);
+      const staffReport = /^\/v2\/staff\/listing-reports(?:\/([^/]+)\/operations\/([^/]+))?$/.exec(
+        path,
+      );
+      if (publicReport || staffReport) {
+        if (!publicReportsEnabled)
+          throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+        if (
+          request.url.includes('#') ||
+          headerNames(request.headers).some(
+            (k) =>
+              ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(k) ||
+              k.startsWith('x-') ||
+              k.startsWith('if-'),
+          )
+        )
+          throw new HttpError(
+            400,
+            'INVALID_INPUT',
+            'Reports accept no caller-selected company or permission.',
+          );
+        const assertRead = () => {
+          if (
+            request.body !== null ||
+            request.headers.has('content-type') ||
+            request.headers.has('content-length')
+          )
+            throw new HttpError(400, 'INVALID_INPUT', 'Report reads accept no body.');
+        };
+        if (publicReport) {
+          if (!['GET', 'POST'].includes(method))
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Report method unavailable.', {
+              Allow: 'GET, POST',
+            });
+          if (request.url.includes('?') || request.headers.has('authorization'))
+            throw new HttpError(
+              400,
+              'INVALID_INPUT',
+              'Listing reports are anonymous and accept no query.',
+            );
+          const listingId = uuid(publicReport[1], 'listingId'),
+            operationId = uuid(publicReport[2], 'operationId');
+          if (listingId !== publicReport[1] || operationId !== publicReport[2])
+            throw new HttpError(400, 'INVALID_INPUT', 'Canonical report route required.');
+          let command: ReturnType<typeof validateListingReportCommand> | undefined;
+          if (method === 'GET') assertRead();
+          else {
+            const quota = await reportLimiter.consume(`report:${tenantId}:${clientKey}`);
+            if (
+              !quota ||
+              typeof quota.allowed !== 'boolean' ||
+              !Number.isSafeInteger(quota.retryAfterSeconds) ||
+              quota.retryAfterSeconds < 0 ||
+              quota.retryAfterSeconds > 3600 ||
+              (quota.allowed ? quota.retryAfterSeconds !== 0 : quota.retryAfterSeconds < 1)
+            )
+              throw Error('Invalid report-budget result.');
+            if (!quota.allowed)
+              throw new HttpError(
+                429,
+                'RATE_LIMITED',
+                'Please wait before sending another report.',
+                { 'Retry-After': String(quota.retryAfterSeconds) },
+              );
+            try {
+              command = validateListingReportCommand(
+                await jsonBody(request, 8192, true, true, true, false, true, 5000),
+              );
+            } catch (e) {
+              if (e instanceof HttpError) throw e;
+              throw new HttpError(
+                400,
+                'INVALID_INPUT',
+                'Review the report reason and plain details.',
+              );
+            }
+            if (command.operationId !== operationId || command.listingId !== listingId)
+              throw new HttpError(400, 'INVALID_INPUT', 'Report command changed route.');
+          }
+          const receipt = await options.database.transaction(
+            { tenantId, actorId: null, correlationId },
+            async (query) => {
+              await query.query("SET LOCAL statement_timeout = '2s'");
+              const result = command
+                ? await query.query(
+                    'SELECT app_api.capture_listing_report($1,$2::jsonb,$3) AS receipt',
+                    [newId(), JSON.stringify(command), privacyNoticeVersion],
+                  )
+                : await query.query(
+                    'SELECT app_api.read_listing_report_receipt($1,$2) AS receipt',
+                    [listingId, operationId],
+                  );
+              if (result.rows.length !== 1) throw Error('Invalid report projection.');
+              return validateListingReportReceipt(result.rows[0]!.receipt, {
+                listingId,
+                operationId,
+              });
+            },
+          );
+          return response(method === 'POST' ? 202 : 200, receipt, correlationId);
+        }
+        const actorId = await identity(request, true),
+          reportId = staffReport![1] === undefined ? null : uuid(staffReport![1], 'reportId'),
+          operationId = staffReport![2] === undefined ? null : uuid(staffReport![2], 'operationId');
+        if (
+          (reportId !== null && reportId !== staffReport![1]) ||
+          (operationId !== null && operationId !== staffReport![2])
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Canonical report route required.');
+        if (reportId === null) {
+          if (method !== 'GET')
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Report queue is read-only.', {
+              Allow: 'GET',
+            });
+          assertRead();
+          const q: Record<string, string> = Object.create(null);
+          for (const [k, v] of url.searchParams) {
+            if (!['limit', 'before', 'status'].includes(k) || Object.hasOwn(q, k))
+              throw new HttpError(400, 'INVALID_INPUT', 'Use bounded report queue filters.');
+            q[k] = v;
+          }
+          const limit =
+              q.limit === undefined ? 50 : /^[1-9]\d?$/.test(q.limit) ? Number(q.limit) : 0,
+            status = q.status ?? 'new',
+            before = q.before === undefined ? null : uuid(q.before, 'before');
+          if (
+            limit < 1 ||
+            limit > 50 ||
+            !['all', 'new', 'reviewed', 'dismissed'].includes(status) ||
+            (before !== null && before !== q.before)
+          )
+            throw new HttpError(400, 'INVALID_INPUT', 'Use bounded report queue filters.');
+          const queue = await options.database.transaction(
+            { tenantId, actorId, correlationId },
+            async (query) => {
+              await query.query("SET LOCAL statement_timeout = '2s'");
+              const result = await query.query(
+                'SELECT app_api.list_listing_reports($1,$2,$3) AS queue',
+                [limit, before, status],
+              );
+              if (result.rows.length !== 1) throw Error('Invalid report queue projection.');
+              return validateListingReportQueue(result.rows[0]!.queue, {
+                limit,
+                status: status as 'all' | 'new' | 'reviewed' | 'dismissed',
+              });
+            },
+          );
+          return response(200, queue, correlationId);
+        }
+        if (!['GET', 'POST'].includes(method))
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Report review method unavailable.', {
+            Allow: 'GET, POST',
+          });
+        if (request.url.includes('?'))
+          throw new HttpError(400, 'INVALID_INPUT', 'Report review accepts no query.');
+        let command: ReturnType<typeof validateListingReportDecisionCommand> | undefined;
+        if (method === 'GET') assertRead();
+        else {
+          try {
+            command = validateListingReportDecisionCommand(
+              await jsonBody(request, 8192, true, true, true, false, true, 5000),
+            );
+          } catch (e) {
+            if (e instanceof HttpError) throw e;
+            throw new HttpError(
+              400,
+              'INVALID_INPUT',
+              'Review the report version, decision and reason.',
+            );
+          }
+          if (command.reportId !== reportId || command.operationId !== operationId)
+            throw new HttpError(400, 'INVALID_INPUT', 'Report decision changed route.');
+        }
+        const receipt = await options.database.transaction(
+          { tenantId, actorId, correlationId },
+          async (query) => {
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            const result = command
+              ? await query.query('SELECT app_api.decide_listing_report($1::jsonb) AS receipt', [
+                  JSON.stringify(command),
+                ])
+              : await query.query('SELECT app_api.read_listing_report_decision($1,$2) AS receipt', [
+                  reportId,
+                  operationId,
+                ]);
+            if (result.rows.length !== 1) throw Error('Invalid report decision projection.');
+            const value = validateListingReportDecisionReceipt(result.rows[0]!.receipt, command);
+            if (
+              value.reportId !== reportId ||
+              value.operationId !== operationId ||
+              value.actorId !== actorId
+            )
+              throw Error('Report decision authority mismatch.');
+            return value;
+          },
+        );
+        return response(200, receipt, correlationId);
+      }
       if (path === '/v2/public/company-settings') {
         if (method !== 'GET')
           throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Public company settings are read-only.', {
