@@ -41,7 +41,9 @@ export function authorizeListingReport(request: Request, instanceId: string): vo
   // read with a matching referrer can use that alternative; writes still require Origin.
   let checked = request;
   if (request.method === 'GET' && !request.headers.has('origin')) {
-    const origin = new URL(request.url).origin;
+    // Next's internal Request URL may use localhost while the browser Host is
+    // 127.0.0.1. The shared boundary below validates the exact loopback Host.
+    const origin = `http://${request.headers.get('host')}`;
     if (
       request.headers.get('sec-fetch-site') !== 'same-origin' ||
       new URL(request.headers.get('referer') ?? '').origin !== origin

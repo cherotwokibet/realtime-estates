@@ -59,6 +59,7 @@ test('browser recovery GET accepts same-origin fetch metadata/referrer without O
     referer: 'http://127.0.0.1:3135/properties/synthetic',
   };
   authorizeListingReport(new Request(url, { headers }), instance);
+  authorizeListingReport(new Request(url.replace('127.0.0.1', 'localhost'), { headers }), instance);
   for (const patch of [
     { referer: 'https://external.invalid/' },
     { referer: '' },
