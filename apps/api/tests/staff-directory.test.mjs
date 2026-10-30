@@ -86,3 +86,50 @@ test('default-off and malformed directory authority/query are rejected before DB
     assert.equal(f.calls.length, 0);
   }
 });
+
+test('branch originals fail closed on SQL actor/operation mismatch and disabled routes touch no identity', async () => {
+  const path = '/v2/staff/branches/operations/' + id(1);
+  const off = fixture(undefined, false);
+  assert.equal((await off.service(request(path))).status, 404);
+  assert.equal(off.verified(), 0);
+  const saved = {
+    policy: 'staff-branch-record-v1',
+    operationId: id(1),
+    branchId: id(2),
+    expectedVersion: '0',
+    name: 'Synthetic',
+    active: true,
+    reason: 'Synthetic creation.',
+    actorId: id(10),
+    version: '1',
+    outcome: 'applied',
+    recordedAt: '2026-10-30T06:00:00.000Z',
+  };
+  const make = (raw) =>
+    createApiService({
+      tenantId: id(1),
+      privacyNoticeVersion: 'synthetic-staff-notice-v1',
+      staffInvitationMode: 'synthetic-capture-only-v1',
+      verifyAuthorization: async () => ({ actorId: id(10) }),
+      database: {
+        transaction: async (ctx, work) =>
+          work({
+            query: async (sql) => ({ rows: sql.startsWith('SET ') ? [] : [{ receipt: raw }] }),
+          }),
+      },
+    });
+  assert.equal((await make(saved)(request(path))).status, 200);
+  for (const patch of [
+    { actorId: id(11) },
+    { operationId: id(4) },
+    { version: '0' },
+    { membershipGranted: true },
+  ])
+    assert.equal((await make({ ...saved, ...patch })(request(path))).status, 503);
+  for (const extra of [
+    { 'x-tenant-id': id(2) },
+    { cookie: 'synthetic' },
+    { 'content-type': 'application/json' },
+  ])
+    assert.equal((await make(saved)(request(path, extra))).status, 400);
+});

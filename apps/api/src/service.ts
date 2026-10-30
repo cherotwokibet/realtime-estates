@@ -1,6 +1,9 @@
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
 import {
   parseStaffInvitationJson,
+  validateStaffBranchCommand,
+  validateStaffBranchRecord,
+  validateStaffBranchCurrent,
   validateStaffDirectoryQuery,
   validateStaffBranchPage,
   validateStaffInvitationPage,
@@ -1583,6 +1586,89 @@ export function createApiService(
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method.toUpperCase();
+      if (path.startsWith('/v2/staff/branches/')) {
+        if (!staffInvitationsEnabled)
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        const operationRoute = /^\/v2\/staff\/branches\/operations\/([0-9a-f-]{36})$/.exec(path);
+        const branchRoute = /^\/v2\/staff\/branches\/([0-9a-f-]{36})$/.exec(path);
+        if (!operationRoute && !branchRoute)
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        if (
+          request.url.includes('?') ||
+          request.url.includes('#') ||
+          headerNames(request.headers).some(
+            (k) =>
+              ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(k) ||
+              k.startsWith('x-') ||
+              k.startsWith('if-'),
+          )
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Branch context is server-owned.');
+        if (!['GET', 'POST'].includes(method) || (branchRoute && method !== 'GET'))
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method unavailable.', {
+            Allow: branchRoute ? 'GET' : 'GET, POST',
+          });
+        const target = uuid((operationRoute ?? branchRoute)![1], 'Branch target');
+        const actorId = await identity(request, true);
+        let command: ReturnType<typeof validateStaffBranchCommand> | undefined;
+        if (method === 'GET') {
+          if (
+            request.body !== null ||
+            request.headers.has('content-type') ||
+            request.headers.has('content-length')
+          )
+            throw new HttpError(400, 'INVALID_INPUT', 'Reads accept no body.');
+        } else {
+          try {
+            command = validateStaffBranchCommand(
+              await jsonBody(
+                request,
+                8192,
+                false,
+                false,
+                true,
+                false,
+                false,
+                5000,
+                parseStaffInvitationJson,
+              ),
+            );
+            if (command.operationId !== target) throw Error();
+          } catch (e) {
+            if (e instanceof HttpError) throw e;
+            throw new HttpError(400, 'INVALID_INPUT', 'Review the exact branch command.');
+          }
+        }
+        const value = await options.database.transaction(
+          { tenantId, actorId, correlationId },
+          async (query) => {
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            const result = command
+              ? await query.query(
+                  'SELECT app_api.save_staff_branch($1,$2,$3,$4,$5,$6) AS receipt',
+                  [
+                    command.operationId,
+                    command.branchId,
+                    command.expectedVersion,
+                    command.name,
+                    command.active,
+                    command.reason,
+                  ],
+                )
+              : operationRoute
+                ? await query.query('SELECT app_api.read_staff_branch_operation($1) AS receipt', [
+                    target,
+                  ])
+                : await query.query('SELECT app_api.read_staff_branch($1) AS receipt', [target]);
+            if (result.rows.length !== 1) throw Error('Invalid branch projection.');
+            if (branchRoute) return validateStaffBranchCurrent(result.rows[0]!.receipt, target);
+            const saved = validateStaffBranchRecord(result.rows[0]!.receipt, command, actorId!);
+            if (saved.operationId !== target) throw Error('Branch original mismatch.');
+            return saved;
+          },
+        );
+        return response(200, value, correlationId);
+      }
       if (path === '/v2/staff/branches' || path === '/v2/staff/invitation-requests') {
         if (!staffInvitationsEnabled)
           throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');

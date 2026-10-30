@@ -1366,6 +1366,7 @@ export async function startStaffPreview(options = {}) {
         if (
           staffInvitationMode &&
           (url.pathname === '/v2/staff/branches' ||
+            url.pathname.startsWith('/v2/staff/branches/') ||
             /^\/v2\/staff\/invitation-requests(?:\/|$)/.test(url.pathname))
         ) {
           const response = await service(request);
