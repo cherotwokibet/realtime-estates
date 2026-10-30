@@ -122,6 +122,45 @@ const definitions = {
     environment:
       'Isolated SQL candidate output bound to shared domain validators and C1 control refusal; first extended run passed',
   },
+  directoryDomain230: {
+    path: 'docs/evidence/staff-directory-domain230-full.txt',
+    counts: [321],
+    commit: '09e489e6eec15cfdabbc48f8cbd2b522cf8acb3b',
+    observedDate: '2026-10-30',
+    environment:
+      'Full domain regression including private branch and invitation page contracts; no UI/provider claim',
+  },
+  directorySql230: {
+    path: 'docs/evidence/staff-directory-sql230-final.txt',
+    counts: [3],
+    commit: '09e489e6eec15cfdabbc48f8cbd2b522cf8acb3b',
+    observedDate: '2026-10-30',
+    environment:
+      'Isolated restricted SQL directory projections bound to shared validators; no migration promotion',
+  },
+  directoryApi231: {
+    path: 'docs/evidence/staff-directory-api231-final.txt',
+    counts: [8],
+    commit: '09e489e6eec15cfdabbc48f8cbd2b522cf8acb3b',
+    observedDate: '2026-10-30',
+    environment:
+      'Focused invitation and directory API regression; configured company and verified subject with fail-closed projections',
+  },
+  directorySdk232: {
+    path: 'docs/evidence/staff-directory-sdk232-full.txt',
+    counts: [314],
+    commit: '09e489e6eec15cfdabbc48f8cbd2b522cf8acb3b',
+    observedDate: '2026-10-30',
+    environment: 'Full standard SDK regression including strict bounded private directory reads',
+  },
+  directoryHttp232: {
+    path: 'docs/evidence/staff-directory-http232-final.txt',
+    counts: [8],
+    commit: '09e489e6eec15cfdabbc48f8cbd2b522cf8acb3b',
+    observedDate: '2026-10-30',
+    environment:
+      'Actual SDK and signed JWT/JWKS HTTP/restricted SQL private directory pages and role/tenant denials; disposable synthetic fixture only',
+  },
   invitationHttp227: {
     path: 'docs/evidence/staff-invitation-http227-final.txt',
     counts: [6],
