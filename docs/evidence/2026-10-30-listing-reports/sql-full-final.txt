@@ -1,0 +1,469 @@
+
+> realtor-platform@0.1.0 test:database
+> node --test --test-concurrency=1 database/tests/*.test.mjs
+
+✔ settings approval, current public projection, immutable history and bounded original recovery (6192.1309ms)
+✔ settings current permission and tenant fences protect writes, reads and retained receipts (3916.7654ms)
+✔ settings reject stale, changed replay, empty/noop, caller authority and unsafe public values atomically (3549.8982ms)
+✔ settings history retains all records and advertises a bounded latest page (4033.0919ms)
+✔ ordered migration gives legacy rows unknown disclosure/location and keeps v1 projection and restricted grants (4681.207ms)
+✔ v2 saves exact charge/location inputs atomically with one actual optimistic increment and final-version audit (4244.8872ms)
+✔ pricing storage rejects malformed containers, unknown keys, invalid labels/types/amounts and duplicate IDs (4752.7983ms)
+✔ structured location rejects guessed/malformed shapes while nullable and Unicode code-point bounded inputs remain explicit (3792.976ms)
+✔ quotes stay null, deposits stay one-off and only rent permits recurring charges; a null-purpose draft permits no charges (4411.3548ms)
+✔ numeric aggregate checks allow exact safe limits, reject mandatory/optional overflow and protect incompatible v1 edits (3524.5574ms)
+✔ v2 commands enforce current tenant, assignment, membership and expected revision version without direct runtime writes (3265.4345ms)
+✔ approval copies exact reviewed pricing/location; drafts, rejected/stale reviews and decided-revision attacks preserve public snapshot (3639.072ms)
+✔ v2 snapshot replacement preserves operational pause/archive and only explicit admin restoration exposes new pricing (3654.2934ms)
+✔ v2 discovery inherits v1 enabled/fresh/available predicate and retains private/public location boundaries (3713.9443ms)
+✔ candidate SQL denies direct zero allocation and private helpers without weakening positive edits (4877.2085ms)
+✔ candidate guarded successor still allocates once, preserves predecessor and returns original after later edits (3984.2499ms)
+✔ candidate unknown allocation failure rolls back request,result,revision and audit together (4877.1359ms)
+✔ assignment has an exact narrow receipt and same assignment is a nonmutating noop (4490.2935ms)
+✔ contact, dated reschedule, qualification, closing and reopening use persisted lifecycle (5292.11ms)
+✔ exact original replay and read recover history after later writes without mutation (4741.7978ms)
+✔ conflict and valid business rejection are durable and never update the enquiry (5392.1008ms)
+✔ current role, assignment, tenant and original requester guard both writes and recovery (4302.5437ms)
+✔ assignment history is unavailable after admin downgrade and all history after revocation (4005.6622ms)
+✔ malformed or ambiguous request values fail before installing history (4571.8978ms)
+✔ assignment promotes legacy new rows but preserves existing workflow and dates (3829.8284ms)
+✔ forbidden transitions require explicit reschedule and preserve original state (3718.4779ms)
+✔ bounded admin picker is tenant-scoped active real roles without fabricated names (4181.9468ms)
+✔ receipt table is forced-RLS, runtime-inaccessible and immutable even to owner (3829.1741ms)
+✔ stored receipt constraints reject unknown projection, broken outcome versions, hash and tenancy (3443.2912ms)
+✔ maximum supported current version produces durable conflict without overflow (4175.4716ms)
+✔ original contacted revision survives later listing changes without public listing joins (4287.0531ms)
+✔ activity lists only applied minimal attributed changes in bounded version order without mutating records (3758.227ms)
+✔ activity enforces current tenant, membership and assignment independently of original requester (4191.2474ms)
+✔ activity declares bounded v2 coverage rather than inventing missing legacy changes (5023.2943ms)
+✔ explicit contact preserves raw facts and actor without changing enquiry state; original receipt replays after later work (4481.7155ms)
+✔ stale contact has durable conflict without an entry or audit and does not become applied on replay (4885.4511ms)
+✔ contact reads/writes enforce current assignment, tenant, membership and immutable runtime boundaries (3818.8151ms)
+✔ contact validation rejects invalid/future facts and bounded private feed does not include conflict attempts (3293.2943ms)
+✖ migration forces RLS and API role has neither owner membership nor direct writes (5188.3771ms)
+✔ missing context and customer cannot create; agents cannot choose another assignee (3501.2948ms)
+✔ runtime private reads, edits, and reassignments respect company and assignment (4647.9307ms)
+✔ revoked membership and disabled tenant fail the next protected request (3926.2977ms)
+✔ composite foreign keys reject cross-company listing and revision relationships (3013.4747ms)
+✔ money, periods, canonical types, rooms and unknown privileged fields fail closed (3009.3861ms)
+✔ omitted concurrency versions cannot bypass protected updates (3133.7393ms)
+✔ accepted photos cannot make an incomplete draft publishable (2985.5243ms)
+✔ legacy accepted metadata remains unverified and cannot submit a complete draft (2880.6645ms)
+✔ submission requires accepted photos and complete content; agent cannot approve (3596.9115ms)
+✔ approved snapshot excludes private address and precise area coordinates (3474.0228ms)
+✔ draft editing and rejection preserve published revision; stale review conflicts (4174.0525ms)
+✔ withdraw and resubmit preserve history; admin self-approval atomically replaces exact snapshot (3848.6929ms)
+✔ agent can pause/unavailable but only administrator resumes; stale stock excluded (3515.5535ms)
+✔ approval cannot resurrect a listing paused or archived while its revision was pending (8980.4762ms)
+✔ an older rejected review cannot overwrite a newer approved guarded successor snapshot (3028.0811ms)
+✔ enquiry receipt is durable/idempotent and never grants guest/customer private reads (3237.9669ms)
+✔ paused property denies fresh capture while original enquiry replay retains contacted revision (3445.21ms)
+✔ enquiry assignment, next actions, closure and version restrictions (3227.3613ms)
+✔ transaction-local actor context is cleared on connection reuse (3981.5231ms)
+✔ normal migration order supports authorized guarded preview creation (4144.7505ms)
+✔ original confirmation is immutable and exactly replayed after later publication changes (3717.6407ms)
+✔ pause recovery survives later archive but fresh agent work and demoted admin history are denied (3657.8023ms)
+✔ stale conflicts precede future clocks, confirmation refuses future clocks, safety archive remains possible (3087.7953ms)
+✔ publish requires an independently stored approved snapshot; nonavailable confirmation pauses without republishing (3137.4251ms)
+✔ unknown completion failure rolls back listing, audit and reservation; ledger tables deny runtime DML (3641.5352ms)
+✔ safe version exhaustion is durable without mutation and unauthorized malformed work never reserves (3225.5371ms)
+✔ admin publication selects existing approved snapshot without renewing confirmation; archive/reopen preserves it (3822.2472ms)
+✔ incomplete reservations and incompatible results cannot commit; disabled tenants cannot read history (2922.6782ms)
+✔ original receipt preserves six-digit UTC completion precision (3295.5661ms)
+▶ durable listing creation allocates atomically and recovers only exact current-authorized originals
+  ✔ created request and original agree with domain, initial versions and minimized audits (104.4212ms)
+  ✔ exact replay returns historical original without allocations or audits after a later edit (41.4774ms)
+  ✔ wrong route, requester, peer, admin and foreign tenant cannot read another original (33.0444ms)
+  ✔ assignment and membership loss hide successful originals until current access is restored (40.7263ms)
+  ✔ identity and slug collisions retain indistinguishable generic refusals without private inventory facts (28.686ms)
+  ✔ invalid facts cannot become durable collision refusals or partial allocations (41.0632ms)
+  ✔ outer rollback removes successful allocation, original and audits (25.787ms)
+  ✔ deferred completion linkage forbids committed orphan reservations (6.4492ms)
+  ✔ private ledgers force RLS, deny runtime access and are immutable even for owner (18.3215ms)
+  ✔ bounded canonical snapshots preserve Unicode, exact money and original private text (30.4042ms)
+  ✔ admin creation self-assigns and tenant-scoped identities do not expose another company (43.9734ms)
+✔ durable listing creation allocates atomically and recovers only exact current-authorized originals (3926.1626ms)
+▶ duplicate hints bind current admin, company and latest versions without mutation
+  ✔ returns only conservative same-company current-work hints with bounded lookahead and no private facts (33.4508ms)
+  ✔ missing comparison facts are explicit, not a claim that no duplicate exists (12.9465ms)
+  ✔ nonadmins/foreign target/revoked membership/disabled company denied before stale currency (61.565ms)
+  ✔ exact target currency and input bounds are required (45.5375ms)
+  ✔ latest guarded successor supersedes old matching content without erasing history (181.2575ms)
+  ✔ PUBLIC/media coordinator/runtime private helper privileges remain isolated (7.1559ms)
+✔ duplicate hints bind current admin, company and latest versions without mutation (3548.4323ms)
+▶ import stock intersection is bounded, current-admin, company-isolated and read-only
+  ✔ returns only requested current-company matches in deterministic order with no writes (29.7362ms)
+  ✔ agent/customer/missing member cannot compare even malformed candidates (15.0683ms)
+  ✔ revocation, disabled company and demotion apply to each new read (19.8691ms)
+  ✔ rejects empty, duplicate, malformed, multidimensional and oversized candidate arrays (41.9141ms)
+  ✔ PUBLIC and media coordinator have no execute grant; api runtime does (3.5181ms)
+✔ import stock intersection is bounded, current-admin, company-isolated and read-only (4238.7127ms)
+✔ candidate source plan freezes six explicit hashed files without changing default migration order (14.8161ms)
+▶ every simulated install failure rolls back candidate DDL/columns/ACLs and keeps existing ordinary history intact
+  ✔ failure before listing-reference-draft.sql (38.0994ms)
+  ✔ failure before listing-reference-catalogue-install.sql (83.1514ms)
+  ✔ failure before listing-reference-read.sql (89.1482ms)
+  ✔ failure before listing-reference-moderation.sql (111.5392ms)
+  ✔ failure before listing-reference-creation.sql (130.6998ms)
+  ✔ failure before listing-reference-successor.sql (126.9475ms)
+✔ every simulated install failure rolls back candidate DDL/columns/ACLs and keeps existing ordinary history intact (6059.2465ms)
+✔ populated ordinary and bare-record callers preserve receipts, permissions, positive versions and approved pointer after atomic candidate install (3386.2187ms)
+✔ explicit reference adoption never infers IDs from ordinary labels and cannot fall back to ordinary v2 writes (3320.1894ms)
+▶ authoritative mixed-row protocol read follows current assignment and persisted adoption without writing
+  ✔ ordinary draft and terminal approved row are distinct; reads preserve all history (26.0605ms)
+  ✔ unassigned, customer, foreign tenant, absent, bare and malformed targets are denied (34.5369ms)
+  ✔ explicit adoption changes protocol and version, while another ordinary row stays ordinary (43.3219ms)
+  ✔ reassignment and membership revocation invalidate earlier authorized reads (15.228ms)
+✔ authoritative mixed-row protocol read follows current assignment and persisted adoption without writing (3503.5941ms)
+▶ isolated catalogue installation validates facts and atomically activates explicit versions
+  ✔ empty catalogue can activate; unordered valid hierarchy is accepted by both domain and SQL (51.437ms)
+  ✔ same payload replay never reactivates an older installation; conflicts and stale CAS do not write (13.948ms)
+  ✔ domain and SQL reject malformed labels, IDs, sets, edges and metadata before activation (82.168ms)
+  ✔ catalogue and amenity cardinality bounds reject without retaining partial rows (45.7456ms)
+  ✔ runtime cannot ingest or change activation; owner transaction rollback restores old version (15.8602ms)
+✔ isolated catalogue installation validates facts and atomically activates explicit versions (3461.0441ms)
+▶ isolated reference creation composes allocation and selection without partial stock or synthetic publication
+  ✔ new stock starts as one assigned draft with an immutable composed receipt and exact saved references (88.3617ms)
+  ✔ unknown references, mismatched disclosure and incompatible amenities roll back allocation and every receipt (123.1547ms)
+  ✔ duplicate target ID or slug cannot leave a v2-only refusal or alter existing stock (28.3384ms)
+  ✔ runtime cannot forge, rewrite or delete private composed receipts (6.4814ms)
+  ✔ current requester role, assignment and company gate original reads and matching replay (57.1963ms)
+  ✔ legacy two-step originals cannot fabricate a composed recovery receipt (24.5793ms)
+  ✔ historical replay survives catalogue activation and later draft edits without re-saving or replacing the original (51.8971ms)
+  ✔ creation alone supplies no photos, availability confirmation or publication (12.6125ms)
+✔ isolated reference creation composes allocation and selection without partial stock or synthetic publication (3863.9382ms)
+▶ isolated reference candidate binds content, labels and receipt to one editorial version
+  ✔ owner catalogue rejects wrong-level and incomplete parent edges (12.4053ms)
+  ✔ unadopted v2 lifecycle remains available; pending drafts cannot adopt or bypass stale review (154.4167ms)
+  ✔ one update, exact original replay and authorized GET recovery (43.9543ms)
+  ✔ legacy edit and invisible submission fail closed after explicit adoption (15.9549ms)
+  ✔ stale core version, cross-parent selection, stale catalogue and incompatible amenities reject atomically (52.2319ms)
+  ✔ assignment, current role and tenant bind both write and receipt reads (27.5375ms)
+  ✔ runtime cannot edit catalogue, attributes or receipts directly; rollback retains no write (49.4577ms)
+  ✔ historical receipts retain labels after future owner catalogue installation (39.6967ms)
+✔ isolated reference candidate binds content, labels and receipt to one editorial version (4012.7509ms)
+▶ isolated reference moderation binds reviewed facts and immutable approved public attributes
+  ✔ proposal is separate and original adopted-submit guard stays closed before installation (30.9026ms)
+  ✔ read projection contains exact private content, original attributes and immutable media facts (29.2546ms)
+  ✔ current assignment/company/customer/admin-review guards refuse before exposing facts (30.5513ms)
+  ✔ tampered reviewed content, attributes, gallery, context and extra fields never create permits (62.1343ms)
+  ✔ submission retains sealed-media validation and rolls receipt/state back on failure (34.5209ms)
+  ✔ explicit submit and identical replay use one editorial version with original actor recovery (60.5039ms)
+  ✔ legacy review decision and withdraw cannot reuse a permit from another version (37.108ms)
+  ✔ catalogue activation does not rewrite original reviewed labels or permit stale snapshot approval (30.6932ms)
+  ✔ operational pause invalidates prior listing currency and approval preserves the pause (71.235ms)
+  ✔ explicit restore publishes only approved snapshot facts, original labels and no private address/area coordinates (56.3891ms)
+  ✔ approval still requires current availability and failed approval leaves no receipt/snapshot (65.742ms)
+  ✔ late approved-attribute failure rolls back revision, base snapshot, publication, receipt and audit together (78.3532ms)
+  ✔ withdraw/resubmit changes editorial currency; rejection requires exact reason and remains private (163.673ms)
+  ✔ runtime cannot forge receipts/approved facts/settings and immutable owner receipts refuse edits (26.6149ms)
+  ✔ unadopted legacy revisions retain submission/approval and public visibility with explicit absent references (240.4128ms)
+  ✔ revocation and reassignment prevent original recovery and historical receipt replay (21.4166ms)
+✔ isolated reference moderation binds reviewed facts and immutable approved public attributes (5861.9229ms)
+▶ isolated reference successor atomically adopts explicit references and preserves originals
+  ✔ version-limit refusal and a failure after reference adoption leave no partial completion (197.8376ms)
+  ✔ invalid references, disclosure and stale predecessor roll back revision, listing version, audits and all originals (140.3717ms)
+  ✔ rejected predecessor allocates exactly one reference-aware revision with an empty gallery (103.6275ms)
+  ✔ approved public pointer and predecessor remain unchanged by successor allocation (26.3804ms)
+  ✔ current role, original actor, tenant and assignment gate reads and exact replay (70.5214ms)
+  ✔ independent two-step originals cannot fabricate recovery; explicit matching composition may mark completion (53.9476ms)
+  ✔ private marker is FORCE RLS, immutable and inaccessible for runtime DML (13.7101ms)
+  ✔ historical original survives activation and later edits without saving or copying current state (35.1439ms)
+✔ isolated reference successor atomically adopts explicit references and preserves originals (5572.4131ms)
+✔ anonymous report is durable/idempotent, minimal and does not change publication or classify an accusation as true (3296.9812ms)
+✔ new capture requires enabled/current public stock; saved minimal original survives pause but not foreign company or disabled tenant (3117.6614ms)
+✔ anonymous capture rejects any signed actor; report queue is current admin/company only and excludes operation secrets (3150.2346ms)
+✔ reasoned triage is exact-version, once-only, original-actor/current-role bound and independent of publication (3203.4815ms)
+✔ bounded keyset queue traverses all reports exactly once, preserves filter semantics and rejects foreign/missing cursors (3789.568ms)
+✔ raw tables/private helpers are unavailable to API/media roles; preserved facts and decisions reject owner mutation (2905.1619ms)
+✔ malformed/forged reports and triage cannot write; stale availability refuses new capture (3287.1805ms)
+✔ successor SQL allocates once with empty gallery and preserves terminal predecessor and original receipt (4933.2277ms)
+✔ successor SQL retains stale conflict and rejects changed originals and unauthorized recovery (3047.7353ms)
+✔ successor failure after allocation rolls back revision, listing version, request and audit (3246.1644ms)
+✔ successor private ledgers are forced-RLS, immutable and require a completed reservation (3059.7004ms)
+✔ approved public snapshot and operational pause or archive survive successor allocation (9234.1158ms)
+✔ candidate zero-version allocation is denied without changing the predecessor or blocking guarded succession (2871.6901ms)
+✔ malformed successor facts and denied initial authority leave no private reservation (2995.3619ms)
+▶ private synthetic verification ledger is current-admin scoped, atomic and append-only
+  ✔ normal record matches shared planner and changes no listing/revision/public data (63.6111ms)
+  ✔ exact original replay/recovery survives later history without duplicate audit, changed facts/actor refuse (70.5908ms)
+  ✔ current admin/tenant/enabled company is required for writes, recovery and history (46.2116ms)
+  ✔ target/history conflicts and future observation store stable refusal receipts without history mutation (49.6119ms)
+  ✔ history is newest-first, bounded with honest lookahead and immutable record payloads (29.4008ms)
+  ✔ invalid facts fail before any ledger rows, and private tables/helpers are unavailable to runtime (56.4545ms)
+  ✔ forced audit insertion failure rolls back record, state and operation atomically (27.7538ms)
+  ✔ fixed owner functions grant runtime only and retain fixed search paths (12.0767ms)
+  ✔ defensive maximum history and regressing-clock boundaries refuse without a record (36.4785ms)
+  ✔ original recovery and replay remain historical after a normal later listing change (48.7389ms)
+  ✔ keyset older-history pages remain stable after new records and expose every retained version (62.5535ms)
+✔ private synthetic verification ledger is current-admin scoped, atomic and append-only (5449.6016ms)
+▶ single-photo attachment requires an authenticated exact intent and immutable sealed provenance
+  ✔ intent acknowledgement changes no draft/listing token, media, seal or success audit (1409.6887ms)
+  ✔ changed payload/principal/tuple/kind and cross-company operation reuse disclose no original intent (514.2255ms)
+  ✔ new creation requires a sealed same-requester draft, exact token and bounded version (315.788ms)
+  ✔ coordinator atomically attaches exact sealed facts, one revision token and one derived audit (270.486ms)
+  ✔ stale terminal conflict is durable and only a fresh authenticated UUID/version reuses verified bytes (283.3842ms)
+  ✔ two explicit intents at token N cannot both attach or adopt N+1 (149.0286ms)
+  ✔ failed state/expiry/registered assignment outcomes persist without media/version/audit changes (269.6764ms)
+  ✔ duplicate checksums/keys, all-row capacity and sparse positions return bounded failures (364.4282ms)
+  ✔ current original principal authorization applies before ready and terminal disclosure, independent of coordinator GUC (314.2156ms)
+  ✔ submission and approval exclude legacy metadata, mixed rows and preexisting pending legacy drafts (324.048ms)
+  ✔ four distinct provenanced outputs submit and approve exact immutable snapshots; historical receipts survive later state and association loss (347.9231ms)
+  ✔ exact provenance and immutable receipts reject metadata substitution; full transaction rollback leaves a ready intent (265.7662ms)
+  ✔ only exact narrow owner functions are granted; new private tables are forced RLS without runtime DML/read (53.4125ms)
+✔ single-photo attachment requires an authenticated exact intent and immutable sealed provenance (14344.0766ms)
+▶ draft gallery commands preserve exact consent, contiguous positions and immutable operation history
+  ✔ middle/first/last removal compacts all associations and increments only one revision token per change (347.7223ms)
+  ✔ range-safe swaps/arbitrary permutations include legacy unaccepted rows and explicit noop does not audit or touch tokens (152.4856ms)
+  ✔ valid full-set reordering repairs sparse positions while removal refuses an ambiguous sparse gallery (54.7863ms)
+  ✔ null, multidimensional, non-one-based, duplicate, NULL-element and oversized arrays fail before operation reservation (144.7334ms)
+  ✔ partial, extra, foreign and empty requested sets persist immutable typed rejection with requested order (158.0464ms)
+  ✔ same UUID changed version/target/order/principal/tuple/kind conflicts before historical disclosure (248.1773ms)
+  ✔ tenant namespace and current original principal authorization prevent guessed receipt leakage (204.7692ms)
+  ✔ typed stale/state failures preserve media/token and state takes precedence; exact replay survives later saves and association changes (178.1833ms)
+  ✔ provenance/job/seal histories survive removal; approved snapshot remains exact during later draft gallery edits (409.0628ms)
+  ✔ shared upload/attach namespace and known pipeline identities cannot be repurposed as gallery operations (213.2442ms)
+  ✔ safe upper boundary stays exact while unsupported current versions abort without reservation or adoption (149.7316ms)
+  ✔ audit failure and terminal receipt failure roll back associations, positions, token and audit atomically (291.2759ms)
+  ✔ position constraint is narrowly deferrable and exact operation records/functions remain private and immutable (84.464ms)
+✔ draft gallery commands preserve exact consent, contiguous positions and immutable operation history (9004.3019ms)
+▶ registered media jobs preserve private identity and authorized historical recovery
+  ✔ registration allocates one private job and receipt without changing content or accepting media (149.1078ms)
+  ✔ lost-response retry recovers the same receipt after save, submit and approval (283.9513ms)
+  ✔ changed version, alt text, principal, tuple or command kind cannot repurpose an operation (298.0405ms)
+  ✔ current tenant, membership and assignment guard receipt and job readback (127.2036ms)
+  ✔ new registrations require exact current draft and supported fields without partial writes (90.1953ms)
+  ✔ alt text uses Unicode code points, canonical ECMAScript trim and control-free text (254.29ms)
+  ✔ expired historical jobs reconcile without renewal or a fresh job identity (51.2923ms)
+  ✔ composite provenance and immutable job/receipt protections reject forged relationships and mutation (34.116ms)
+  ✔ API role has named functions only, no private job reads/DML or owner/coordinator membership (33.4588ms)
+✔ registered media jobs preserve private identity and authorized historical recovery (5831.9994ms)
+▶ private saved-photo SQL reads bind current staff to immutable applied provenance without mutation
+  ✔ restricted API returns exact internal envelope and authoritative SQL hash without paths or writes (1001.8072ms)
+  ✔ admin and reassigned agent retain viewing after uploader revocation while processing guard remains intact (1269.5886ms)
+  ✔ current role fingerprint changes even when the same viewer remains eligible (116.1948ms)
+  ✔ foreign, mixed tuples, customer, guest, unknown and unassigned viewers have identical unavailable errors (259.5132ms)
+  ✔ current membership revocation and company disablement deny every read without changing history (172.1793ms)
+  ✔ accepted and unaccepted legacy metadata cannot become preview provenance (134.9571ms)
+  ✔ only eligible saved associations disclose stale versions and malformed arguments do not reserve anything (182.769ms)
+  ✔ submitted photos remain unavailable through this draft-only boundary, including stale requests (130.4606ms)
+  ✔ removed association is denied while its applied history remains retained (159.6215ms)
+  ✔ missing or mismatched applied, capture, association and exact lease facts fail closed (2380.3983ms)
+  ✔ read versions preserve the exact safe-integer boundary as a decimal string (624.8627ms)
+  ✔ only isolated API execution is granted, with fixed search path and no new private-table or worker authority (59.2238ms)
+✔ private saved-photo SQL reads bind current staff to immutable applied provenance without mutation (10571.7953ms)
+▶ synthetic coordinator processing preserves captured input and fenced immutable attestations
+  ✔ capture, stable claim and seal derive the stored company, requester and generated output (474.2102ms)
+  ✔ changed capture facts, malformed bounds and a claim reused for another job conflict (335.8034ms)
+  ✔ full fixed manifest validation rejects extra fields, altered encoder/policy and input mismatch (276.8441ms)
+  ✔ expired lease acknowledgement never renews and a replaced lease fences late output (219.2173ms)
+  ✔ current stored authorization ignores forged GUCs but denies revocation, disabled tenant and reassigned agent (102.0912ms)
+  ✔ processing does not adopt an edited draft token and exact committed seal replays after submit (508.4286ms)
+  ✔ fixed lease is bounded by job expiry and historical verified output remains recoverable after expiry (171.7577ms)
+  ✔ original admin historical recovery survives reassignment, while new work requires original assignment snapshot (221.3759ms)
+  ✔ append-only records, composite context and global resource IDs fail closed (95.2315ms)
+  ✔ seven processing and two maintenance commands have separate exact roles with no API or public execution (161.0425ms)
+✔ synthetic coordinator processing preserves captured input and fenced immutable attestations (8437.6138ms)
+▶ coordinator upload context resolves generated identities under current new-work authorization
+  ✔ before capture the restricted coordinator resolves server identities without a private-table lookup (190.4298ms)
+  ✔ stored company and original requester determine authorization rather than forged GUC selectors (147.71ms)
+  ✔ current agent assignment and the original registered assignment snapshot both apply (147.7859ms)
+  ✔ expired, non-draft, missing and null jobs expose no upload context and mutate nothing (148.5869ms)
+  ✔ context lookup adopts no new draft token and creates no capture, lease, seal or audit receipt (103.8685ms)
+  ✔ one fixed owner function is executable only by the coordinator and adds no private-table privilege (66.2709ms)
+✔ coordinator upload context resolves generated identities under current new-work authorization (11852.8798ms)
+▶ fresh upload preflight requires current authenticated exact original-job authorization without mutation
+  ✔ exact agent and original admin jobs return only the fixed resource tuple (312.143ms)
+  ✔ wrong listing, revision and job cannot select another permitted resource (138.3086ms)
+  ✔ tenant and original actor binding reject peers and another authorized admin (123.8537ms)
+  ✔ visitors and missing verified identity/context fail before disclosing a tuple (110.4293ms)
+  ✔ revocation, role downgrade and disabled company are rechecked on every call (210.6149ms)
+  ✔ current agent access and original registered assignment apply independently (191.4621ms)
+  ✔ non-draft and expired jobs remain historically readable but cannot admit fresh bytes (142.9488ms)
+  ✔ malformed tuple arguments fail without reserving or changing any facts (100.7327ms)
+  ✔ later draft edits are not a refreshed version or new processing authority (93.0289ms)
+  ✔ one owner function grants only API execution without table or coordinator privileges (34.1972ms)
+✔ fresh upload preflight requires current authenticated exact original-job authorization without mutation (6802.3409ms)
+✔ current anonymous public image metadata binds approved snapshot and full sealed association without disclosure or mutation (6628.7541ms)
+✔ paused,archived,unavailable,stale,disabled or changed publication cannot authorize even valid sealed image metadata (6359.8408ms)
+✔ unknown public key is refused and public SQL function keeps exact owner/search path/role restrictions (3357.525ms)
+▶ owner admission refuses capability rollback after real synthetic adoption and preserves every original
+  ✔ each required reader/editor/original capability is mandatory and denial never activates (144.586ms)
+  ✔ compatible artifact callback runs inside held fence and yields no private rows (43.059ms)
+  ✔ activation failure rolls back/releases transaction without changing saved facts or receipt (57.7893ms)
+  ✔ runtime role cannot use owner admission even with all capabilities (7.6934ms)
+  ✔ capabilities snapshot rejects getters, unknown protocols and sparse/extra fields before SQL (2.0758ms)
+  ✔ missing schema or recovery execute grant refuses activation and preserves originals (82.6458ms)
+✔ owner admission refuses capability rollback after real synthetic adoption and preserves every original (4334.5616ms)
+✔ historical transition/approved/successor policy requires their recovery capabilities and snapshots config before awaits (1.3544ms)
+✔ review gallery projects only ordered current pending sealed media identities without mutation (8462.8208ms)
+✔ one unsealed historical association denies the entire gallery before stale currency (4715.5533ms)
+✔ review gallery checks present authority and isolated privilege on every read (4681.1647ms)
+✔ review image policy requires current admin and exact pending version without mutation or draft-authority reuse (7526.9076ms)
+✔ reviewer access loss denies bytes context while uploader revocation does not erase current-admin inspection (5405.1171ms)
+✔ review provenance function has isolated execute privilege and rejects malformed context before reads (3919.1992ms)
+✔ pending accepted legacy references cannot authorize reviewer image context (3618.0026ms)
+▶ capture-only reminder admission saves immutable originals under current authority without delivery or workflow mutation
+  ✔ one exact candidate and original replay preserve enquiry/viewing versions (44.5942ms)
+  ✔ same facts under a new operation cannot admit twice and originals bind requester/window (42.9829ms)
+  ✔ stale and policy-window refusals are durable and do not create candidates (50.0342ms)
+  ✔ stored receipts are forced-RLS and immutable even to owner (24.2076ms)
+  ✔ rolled-back admission leaves no receipt candidate or audit event (19.4605ms)
+  ✔ a different valid same-company listing cannot be substituted into admission evidence (13.1809ms)
+  ✔ unavailable listings,foreign companies and inactive current roles cannot admit work or expose originals (40.7132ms)
+  ✔ current assignment loss hides originals and restored access recovers unchanged admission (44.687ms)
+  ✔ replacement cycle needs a new agreement and keeps the first admission historical (57.2116ms)
+  ✔ explicit ending and closed/unavailable cleanup never rewrite the original candidate (76.5429ms)
+✔ capture-only reminder admission saves immutable originals under current authority without delivery or workflow mutation (4788.7889ms)
+▶ synthetic reminder captures recheck current facts and recover immutable atomic attempts without provider delivery
+  ✔ one atomic capture returns exact historical evidence without workflow version changes (125.5966ms)
+  ✔ new operations deduplicate capture while exact operation IDs bind their admission (103.668ms)
+  ✔ not-due decisions remain historical and a new operation can capture after real elapsed time (1057.5032ms)
+  ✔ a rolled-back capture leaves no attempt or audit and the same operation remains available (47.5447ms)
+  ✔ attempt evidence is forced-RLS immutable and cannot be backdated or invoked through private helpers (20.1849ms)
+  ✔ original capture recovery and new attempts require current company assignment and requester (78.5054ms)
+  ✔ stock withdrawal suppresses a fresh attempt and its original cannot upgrade after restoration (37.361ms)
+  ✔ rescheduling suppresses the old candidate before and after a separate new phone agreement (113.434ms)
+  ✔ closure and explicit cancellation suppress fresh captures without rewriting old results (100.9548ms)
+  ✔ normally seeded historical admissions cannot capture after recorded completion or no-show (132.4775ms)
+✔ synthetic reminder captures recheck current facts and recover immutable atomic attempts without provider delivery (6060.4635ms)
+▶ private SQL reminder suppression matches pure domain and grants no runtime dispatch surface
+  ✔ exact due expiry slot and saved-clock boundaries match (41.0932ms)
+  ✔ different targets versions cycles slots agreements and fresh eligibility suppress identically (28.9953ms)
+  ✔ later confirmed cycle needs its own exact candidate (12.1932ms)
+  ✔ malformed and null candidate facts fail closed (44.5055ms)
+  ✔ UUID and version facts with trailing line breaks remain invalid (23.2119ms)
+  ✔ persisted first and later outcomes suppress earlier candidates identically (61.2413ms)
+  ✔ runtime cannot invoke planning primitives or gain owner privileges (8.8459ms)
+✔ private SQL reminder suppression matches pure domain and grants no runtime dispatch surface (3755.3193ms)
+✔ stored completion preserves historical agreement and current detail clocks with exact immutable recovery (4269.1867ms)
+✔ stored no-show retains superseded and current cycle agreements and rejects later mutations (4396.9201ms)
+✔ attendance stale-first and unconfirmed or future-slot refusals are durable and do not infer attendance (3539.913ms)
+✔ attendance occurrence bounds and record clock refusals remain saved decisions without state changes (6841.0767ms)
+✔ attendance current role company assignment and requester-private receipt guards survive access restoration (3413.6647ms)
+✔ attendance exact operation identity binds kind target original version occurrence and raw reason (3242.8323ms)
+✔ attendance cleanup remains possible after closure and withdrawn stock and audit excludes private reason (3405.3097ms)
+✔ attendance evidence cannot be edited erased rewritten or directly read and changed by runtime (4844.8414ms)
+✔ malformed attendance commands reserve no operation and maximum raw Unicode evidence survives (3442.41ms)
+✔ attendance audit and receipt insertion failures roll back evidence state and operation identity together (3485.6013ms)
+✔ current staff history reads immutable applied snapshots through cancellation without original command IDs or writes (3487.634ms)
+✔ saved viewing history has canonical bounded newest versions and excludes refused or conflicted commands (3579.0648ms)
+✔ viewing history enforces current company role assignment and revocation independently of original requester (4353.769ms)
+✔ viewing history remains readable for closed or unavailable stock and never grants direct ledger privileges (4756.6854ms)
+✔ reasoned cancellation preserves confirmed phone evidence and all original receipts without enquiry mutation (5121.1317ms)
+✔ cancellation remains possible for closed enquiry and paused unavailable listing and exact terminal replay stays original (3685.4611ms)
+✔ decline is allowed before confirmation and cannot erase a recorded phone agreement (4166.0037ms)
+✔ stale terminal attempts and repeated new termination decisions are durable without another mutation (3294.758ms)
+✔ terminal receipts and reads enforce current assignment,company,active role and original requester (3518.2798ms)
+✔ terminal reason,state,ending metadata and original evidence cannot be edited,reverted or deleted (3401.9841ms)
+✔ invalid terminal commands reserve no ledger entry and existing operation kind cannot be replaced (3451.6562ms)
+✔ historical proposed slot can be explicitly cancelled after its start without changing its saved time (3623.8627ms)
+✔ requested cancellation and proposed decline retain distinct prior stages and exact original times (3642.07ms)
+✔ future saved-record clock refuses terminal mutation and retains its original refusal receipt (3542.3386ms)
+✔ phone agreement confirms only exact proposal and retains private attributable evidence and historical originals (3490.32ms)
+✔ phone confirmation original replay survives later closure and listing pause but changed facts/requester conflict (4703.1615ms)
+✔ stale and invalid-state confirmation decisions are durable and never create an agreement (3512.3906ms)
+✔ changed slot,agreement before proposal and future agreement are durable refusals with no viewing mutation (3368.2503ms)
+✔ phone confirmation enforces current staff assignment and requester-private recovery without consuming denied operations (3923.6766ms)
+✔ confirmation evidence and confirmed slot remain immutable and runtime cannot write tables (4023.2098ms)
+✔ malformed phone agreement arguments fail before ledger reservation and existing operation IDs cannot change kind (3569.6673ms)
+✔ new confirmations refuse unavailable listing and closed enquiry while retaining durable no-mutation decisions (4049.1175ms)
+✔ historical proposed slot cannot be newly confirmed after its start time (3288.6007ms)
+✔ request and first proposal are private,attributable and independent of enquiry version (3651.176ms)
+✔ original request and proposal replay recover historical results after later closure and listing pause (3767.4566ms)
+✔ stale request and proposal conflicts are durable and cannot be upgraded by replay (3404.0627ms)
+✔ new commands require current open enquiry,own bound listing and fresh available publication (3447.7869ms)
+✔ requester-private receipts,current assignment,revocation and company guards apply to reads and replay (3526.3858ms)
+✔ slot structure,bounds,original notes and future execution are independently enforced in SQL (3917.7967ms)
+✔ forced RLS,runtime privilege denial and immutable original records prevent direct bypass (4293.7146ms)
+✔ bounded viewing feed includes current assignment and only saved schedules,with truthful truncation (3593.7189ms)
+✔ stored repeated reschedules retain every old agreement and exact receipt while each new cycle starts unagreed (3463.7703ms)
+✔ proposed reschedules can repeat without fabricated agreement and the current cycle can be declined (3334.8062ms)
+✔ reschedule stale,unchanged,requested and already ended decisions remain durable without new states (4104.3833ms)
+✔ reschedule requires current eligible stock and open enquiry but original replay survives closure and pause (3553.2407ms)
+✔ reschedule checks current company role assignment and original requester without consuming denied IDs (3829.4886ms)
+✔ reschedule operation IDs bind exact kind,target,version,slot and raw reason across later cycles (3318.1959ms)
+✔ stored cycle and original first-cycle evidence cannot be edited,erased,rewritten or accessed by runtime tables (3712.1073ms)
+✔ malformed reschedule commands reserve no operation and maximum bounded raw Unicode reason survives (3800.4116ms)
+✔ reschedule audit or receipt failures roll back current cycle and operation atomically (3770.2836ms)
+✔ new cycle requires its own exact phone agreement and confirmed cleanup remains possible after closure (3593.6265ms)
+✔ reschedule refuses past new starts and a clock before the saved proposal without consuming later decisions (3276.8341ms)
+ℹ tests 364
+ℹ suites 0
+ℹ pass 363
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 728264.8338
+
+✖ failing tests:
+
+test at database\tests\foundation.test.mjs:141:1
+✖ migration forces RLS and API role has neither owner membership nor direct writes (5188.3771ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    [
+      'audit_events',
+      'company_settings_records',
+      'enquiries',
+      'enquiry_contacts',
+  ...
+      'listing_creation_results',
+  +   'listing_report_decisions',
+  +   'listing_reports',
+      'listing_revisions',
+      'listing_successor_requests',
+      'listing_successor_results',
+      'listing_verification_operations',
+      'listing_verification_records',
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/database/tests/foundation.test.mjs:147:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [
+      'audit_events',                 'company_settings_records',
+      'enquiries',                    'enquiry_contacts',
+      'enquiry_operations',           'expired_media_cleanup',
+      'listing_control_requests',     'listing_control_results',
+      'listing_creation_requests',    'listing_creation_results',
+      'listing_report_decisions',     'listing_reports',
+      'listing_revisions',            'listing_successor_requests',
+      'listing_successor_results',    'listing_verification_operations',
+      'listing_verification_records', 'listing_verification_state',
+      'listings',                     'media_attach_intents',
+      'media_attach_results',         'media_attachments',
+      'media_input_captures',         'media_jobs',
+      'media_operations',             'media_processing_leases',
+      'media_verified_outputs',       'memberships',
+      'public_snapshots',             'revision_media',
+      'tenants',                      'viewing_operations',
+      'viewing_reminder_admissions',  'viewing_reminder_attempts',
+      'viewings'
+    ],
+    expected: [
+      'audit_events',                 'company_settings_records',
+      'enquiries',                    'enquiry_contacts',
+      'enquiry_operations',           'expired_media_cleanup',
+      'listing_control_requests',     'listing_control_results',
+      'listing_creation_requests',    'listing_creation_results',
+      'listing_revisions',            'listing_successor_requests',
+      'listing_successor_results',    'listing_verification_operations',
+      'listing_verification_records', 'listing_verification_state',
+      'listings',                     'media_attach_intents',
+      'media_attach_results',         'media_attachments',
+      'media_input_captures',         'media_jobs',
+      'media_operations',             'media_processing_leases',
+      'media_verified_outputs',       'memberships',
+      'public_snapshots',             'revision_media',
+      'tenants',                      'viewing_operations',
+      'viewing_reminder_admissions',  'viewing_reminder_attempts',
+      'viewings'
+    ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,35 @@
+✔ tenant-wide public search pages beyond 100 approved records with exact count, filters and privacy (18380.4071ms)
+▶ API service with actual PostgreSQL migration enforces identity, tenant isolation and persisted workflows
+  ✔ public projection is tenant-scoped and excludes private address, actors and enquiry contacts (39.3901ms)
+  ✔ guest, invalid token and customer cannot create staff records or access staff lists (53.1979ms)
+  ✔ body tenant/role/actor fields cannot grant access or switch company (12.2026ms)
+  ✔ agent creates assigned-to-self and cannot assign another agent; admin may assign (68.6399ms)
+  ✔ persisted drafts require numeric versions, cannot cross assignment/company, and do not become public (74.7039ms)
+  ✔ HTTP submit cannot bypass four accepted images or expose database diagnostics (21.8748ms)
+  ✔ v2 public projection preserves explicit unknowns and v1 stays unchanged (29.4428ms)
+  ✔ v2 initialized private draft reads preserve fees and location while ordinary saves refuse allocation (57.0962ms)
+  ✔ v2 private draft reads enforce identity, assignment and company scope (101.1635ms)
+  ✔ v2 rejects ambiguous, noncanonical and unsafe disclosure before any write (34.1816ms)
+  ✔ v2 uses optimistic locking and cannot cross assignment or company on writes (116.5391ms)
+  ✔ v2 atomic rent-to-sale edit replaces incompatible fees without an intermediate state (34.6206ms)
+  ✔ v2 submit retains media gate and leaves a failed submission editable (35.4815ms)
+  ✔ bounded v2 body accepts valid Unicode field maxima and rejects oversized payloads (82.9472ms)
+  ✔ v2 rejects fractional money tokens before JSON rounding can turn them into safe integers (33.3749ms)
+  ✔ guest enquiry normalizes phone and retry creates exactly one durable record (102.4561ms)
+  ✔ same idempotency key with changed message conflicts and cannot overwrite original (26.2039ms)
+  ✔ invalid phone, blank fields, spoofed tenant and non-public listing references are rejected (25.1694ms)
+  ✔ an arbitrary notice version or missing/false acknowledgement cannot persist an enquiry (14.3774ms)
+  ✔ payload content type and streamed size are bounded (2.1257ms)
+  ✔ transaction-local identity and role are cleared after successes and failures (32.7782ms)
+  ✔ reassignment immediately revokes creator's access on the next API request (40.1182ms)
+✔ API service with actual PostgreSQL migration enforces identity, tenant isolation and persisted workflows (4769.9173ms)
+✔ bounded local limiter expires quotas without evicting live entries to admit attackers (0.4157ms)
+✔ failed rollback destroys pooled connection rather than returning contaminated state (0.7954ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 23582.1474
