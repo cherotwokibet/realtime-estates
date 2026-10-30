@@ -1,5 +1,7 @@
 import Image from 'next/image';
 import { publicIntakeConfig } from '../../../lib/intake-config';
+import { listingReportConfig } from '../../../lib/listing-report-config';
+import { ListingReportForm } from '../../../components/ListingReportForm';
 import { publicPhotoPath, publicPhotosEnabled } from '../../../lib/public-photos';
 import { PublicPhotoGallery } from '../../../components/PublicPhotoGallery';
 import Link from 'next/link';
@@ -315,6 +317,7 @@ export default async function Property({ params }: { params: Promise<{ id: strin
             </Link>
           </aside>
         </div>
+        <PublicListingReport listingId={p.id} />
         <p className="detail-bottom-note">
           {synthetic
             ? 'This is a synthetic listing for development review. Its price, location and features do not represent an available property.'
@@ -324,4 +327,18 @@ export default async function Property({ params }: { params: Promise<{ id: strin
       <PublicFooter mode={mode} />
     </>
   );
+}
+function PublicListingReport({ listingId }: { listingId: string }) {
+  try {
+    const scope = listingReportConfig(process.env);
+    return (
+      <ListingReportForm
+        key={scope.instanceId + ':' + listingId}
+        listingId={listingId}
+        instanceId={scope.instanceId}
+      />
+    );
+  } catch {
+    return null;
+  }
 }
