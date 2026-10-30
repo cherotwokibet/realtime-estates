@@ -71,6 +71,7 @@ const commits = {
   settings220: 'd532848e2a49fb604d81c1a3edb0494af7be5da2',
   settingsInitial: 'c17256f765d29ef063e267c2095ce9b5f368f7a3',
   preservation221: '895a95587932789f7249df2f741442b83695fd20',
+  reports223: '6b8569b1c49f101062c0cfa9a0c7c054d5f2d637',
   performance222: 'aa414973efd01198e865a0cb29ec6c7edc96f7f3',
 };
 for (const commit of Object.values(commits))
@@ -79,6 +80,144 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  domain223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/domain-full.txt',
+    counts: [306],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment: 'Windows / Full report-era domain regression',
+  },
+  api223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/api-full.txt',
+    counts: [312],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment:
+      'Windows / Full report-era API/restricted SQL regression; runtime unchanged since proof',
+  },
+  sdk223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/sdk-full-final.txt',
+    counts: [307],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment: 'Windows / Full SDK transport regression with report tests included',
+  },
+  web223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/web-full-final.txt',
+    counts: [114],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment: 'Windows / Full web boundary/config/render regression',
+  },
+  admin223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/admin-full-final.txt',
+    counts: [448, 34],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment: 'Windows / Full admin boundary and existing rendering regression',
+  },
+  signedReport223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/signed-http-lost-results.txt',
+    counts: [3],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment:
+      'Windows / Actual signed loopback HTTP/restricted SQL capture/review and committed-reply original recovery',
+  },
+  reportBff223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/admin-boundaries-final.txt',
+    counts: [3],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment:
+      'Windows / Admin BFF current server identity, malformed writes, uncertainty and original GET',
+  },
+  reportRender223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/admin-report-render.txt',
+    counts: [1],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment:
+      'Windows / Initial report SSR labels/disclosure; browser interaction verified separately',
+  },
+  webBuild223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/web-build-final.txt',
+    counts: null,
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment: 'Windows / Complete one-worker web production build including TypeScript',
+  },
+  adminBuild223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/admin-build-final.txt',
+    counts: null,
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment: 'Windows / Complete one-worker admin production build including TypeScript',
+  },
+  sqlFailed223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/sql-full-final.txt',
+    counts: null,
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment:
+      'Windows / RETAINED FAILED full run:363passed/1 stale expected-table inventory failed; no skip, corrected separately; not364/364',
+  },
+  sqlInventory223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/sql-inventory-corrected.txt',
+    counts: [1],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment: 'Windows / Corrected exact table/forced-RLS inventory; no runtime SQL change',
+  },
+  authInventory223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/authorization-inventory.txt',
+    counts: [1],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment:
+      'Windows / All installed default private tables/definers and three restricted role privilege fences',
+  },
+  authApi223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/authorization-api.txt',
+    counts: [20],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment:
+      'Windows / Actual ephemeral RS256/JWKS and HTTP boundary negatives; no provider integration',
+  },
+  authRoles223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/authorization-role-tenants.txt',
+    counts: [26],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment:
+      'Windows / Two synthetic companies actual API/restricted SQL role/ownership/projection and pool rollback checks',
+  },
+  authStorage223: {
+    path: 'docs/evidence/2026-10-30-listing-reports/authorization-storage.txt',
+    counts: [47],
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment:
+      'Windows / Owned filesystem local/durable storage, forged upload authority, links and cleanup refusal',
+  },
+  browserReport223: {
+    path: 'docs/evidence/2026-10-30-listing-reports.md',
+    counts: null,
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment:
+      'Actual synthetic public/admin browser capture/review,320px/public unchanged and both lost-reply GET recoveries; no external messages',
+  },
+  authorizationReview223: {
+    path: 'docs/evidence/2026-10-30-authorization-review.md',
+    counts: null,
+    commit: commits.reports223,
+    observedDate: '2026-10-30',
+    environment:
+      'Local API/storage authorization review with source fingerprints and explicit production/provider/device limits',
+  },
+
   apiLab222: {
     path: 'docs/evidence/2026-10-29-performance/api-final.json',
     counts: null,
@@ -694,6 +833,9 @@ assert.equal(reviewed.length, 35);
 const entries = cases.map((item, index) => {
   const [number, status, evidence, observed, remaining, nextAction] = reviewed[index];
   assert.equal(number, index + 1);
+  if ([2, 3, 19, 30, 35].includes(number))
+    evidence.push('authorizationReview223', 'authInventory223', 'authRoles223', 'authStorage223');
+  if ([19, 35].includes(number)) evidence.push('browserReport223', 'signedReport223');
   evidence.forEach((key) => assert.ok(executions[key], `Missing evidence ${key}`));
   const originalFinding =
     index > 0 && index < 25
@@ -778,7 +920,7 @@ for (const fix of fixes) {
 }
 const data = {
   schemaVersion: 1,
-  updatedAt: '2026-10-29',
+  updatedAt: '2026-10-30',
   owner: 'Boniface + Codex',
   purpose: 'Execution traceability, not product or release acceptance',
   originalReport: {

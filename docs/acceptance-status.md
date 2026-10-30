@@ -1,6 +1,6 @@
 # Replacement acceptance status and defect/retest index
 
-Updated 2026-10-29. All 24 substantive vendor findings plus reserved R-001 and all 35 replacement acceptance cases are linked below. This is maintained traceability, **not release acceptance**. No legacy PASS is imported as a replacement PASS.
+Updated 2026-10-30. All 24 substantive vendor findings plus reserved R-001 and all 35 replacement acceptance cases are linked below. This is maintained traceability, **not release acceptance**. No legacy PASS is imported as a replacement PASS.
 
 Case states deliberately distinguish partial evidence, not run, deferred and the reserved header. Every unresolved case has a named gap and next action. Test counts overlap and must not be added into a platform completion figure.
 
@@ -8,6 +8,24 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| domain223 | [evidence/2026-10-30-listing-reports/domain-full.txt](evidence/2026-10-30-listing-reports/domain-full.txt) · 6b8569b | 306 passed; Windows / Full report-era domain regression |
+| api223 | [evidence/2026-10-30-listing-reports/api-full.txt](evidence/2026-10-30-listing-reports/api-full.txt) · 6b8569b | 312 passed; Windows / Full report-era API/restricted SQL regression; runtime unchanged since proof |
+| sdk223 | [evidence/2026-10-30-listing-reports/sdk-full-final.txt](evidence/2026-10-30-listing-reports/sdk-full-final.txt) · 6b8569b | 307 passed; Windows / Full SDK transport regression with report tests included |
+| web223 | [evidence/2026-10-30-listing-reports/web-full-final.txt](evidence/2026-10-30-listing-reports/web-full-final.txt) · 6b8569b | 114 passed; Windows / Full web boundary/config/render regression |
+| admin223 | [evidence/2026-10-30-listing-reports/admin-full-final.txt](evidence/2026-10-30-listing-reports/admin-full-final.txt) · 6b8569b | 448 + 34 passed; Windows / Full admin boundary and existing rendering regression |
+| signedReport223 | [evidence/2026-10-30-listing-reports/signed-http-lost-results.txt](evidence/2026-10-30-listing-reports/signed-http-lost-results.txt) · 6b8569b | 3 passed; Windows / Actual signed loopback HTTP/restricted SQL capture/review and committed-reply original recovery |
+| reportBff223 | [evidence/2026-10-30-listing-reports/admin-boundaries-final.txt](evidence/2026-10-30-listing-reports/admin-boundaries-final.txt) · 6b8569b | 3 passed; Windows / Admin BFF current server identity, malformed writes, uncertainty and original GET |
+| reportRender223 | [evidence/2026-10-30-listing-reports/admin-report-render.txt](evidence/2026-10-30-listing-reports/admin-report-render.txt) · 6b8569b | 1 passed; Windows / Initial report SSR labels/disclosure; browser interaction verified separately |
+| webBuild223 | [evidence/2026-10-30-listing-reports/web-build-final.txt](evidence/2026-10-30-listing-reports/web-build-final.txt) · 6b8569b | Windows / Complete one-worker web production build including TypeScript |
+| adminBuild223 | [evidence/2026-10-30-listing-reports/admin-build-final.txt](evidence/2026-10-30-listing-reports/admin-build-final.txt) · 6b8569b | Windows / Complete one-worker admin production build including TypeScript |
+| sqlFailed223 | [evidence/2026-10-30-listing-reports/sql-full-final.txt](evidence/2026-10-30-listing-reports/sql-full-final.txt) · 6b8569b | Windows / RETAINED FAILED full run:363passed/1 stale expected-table inventory failed; no skip, corrected separately; not364/364 |
+| sqlInventory223 | [evidence/2026-10-30-listing-reports/sql-inventory-corrected.txt](evidence/2026-10-30-listing-reports/sql-inventory-corrected.txt) · 6b8569b | 1 passed; Windows / Corrected exact table/forced-RLS inventory; no runtime SQL change |
+| authInventory223 | [evidence/2026-10-30-listing-reports/authorization-inventory.txt](evidence/2026-10-30-listing-reports/authorization-inventory.txt) · 6b8569b | 1 passed; Windows / All installed default private tables/definers and three restricted role privilege fences |
+| authApi223 | [evidence/2026-10-30-listing-reports/authorization-api.txt](evidence/2026-10-30-listing-reports/authorization-api.txt) · 6b8569b | 20 passed; Windows / Actual ephemeral RS256/JWKS and HTTP boundary negatives; no provider integration |
+| authRoles223 | [evidence/2026-10-30-listing-reports/authorization-role-tenants.txt](evidence/2026-10-30-listing-reports/authorization-role-tenants.txt) · 6b8569b | 26 passed; Windows / Two synthetic companies actual API/restricted SQL role/ownership/projection and pool rollback checks |
+| authStorage223 | [evidence/2026-10-30-listing-reports/authorization-storage.txt](evidence/2026-10-30-listing-reports/authorization-storage.txt) · 6b8569b | 47 passed; Windows / Owned filesystem local/durable storage, forged upload authority, links and cleanup refusal |
+| browserReport223 | [evidence/2026-10-30-listing-reports.md](evidence/2026-10-30-listing-reports.md) · 6b8569b | Actual synthetic public/admin browser capture/review,320px/public unchanged and both lost-reply GET recoveries; no external messages |
+| authorizationReview223 | [evidence/2026-10-30-authorization-review.md](evidence/2026-10-30-authorization-review.md) · 6b8569b | Local API/storage authorization review with source fingerprints and explicit production/provider/device limits |
 | apiLab222 | [evidence/2026-10-29-performance/api-final.json](evidence/2026-10-29-performance/api-final.json) · aa41497 | Windows /actual1000-listing two-company PGlite/HTTP lab,48 timed reads/4 clients plus12 probes; metadata only, no sustainable/hosted/device capacity claim |
 | webLabFailed222 | [evidence/2026-10-29-performance/web-initial.json](evidence/2026-10-29-performance/web-initial.json) · aa41497 | Windows /retained FAILED first cold web deadline while another DB test ran; no pass inferred; incomplete local probe instrumentation corrected later |
 | webLab222 | [evidence/2026-10-29-performance/web-complete.json](evidence/2026-10-29-performance/web-complete.json) · aa41497 | Windows /current production DEMO web cold/warm headers, HTML and initial local JS gzip; no connected production DB/field vitals/CDN/device claim |
@@ -68,7 +86,7 @@ Next: Retain the correction and validate the original report when changing mappi
 Original finding: Regular role can create listings.
 Expected: Protected data withheld; 401/403 as appropriate; no listing/object/job created. Assigned agent/admin permitted
 Observed: Current signed customer, revoked and foreign actor denials; server-owned staff access and guarded listing commands.
-Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt)
+Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [authorizationReview223](evidence/2026-10-30-authorization-review.md), [authInventory223](evidence/2026-10-30-listing-reports/authorization-inventory.txt), [authRoles223](evidence/2026-10-30-listing-reports/authorization-role-tenants.txt), [authStorage223](evidence/2026-10-30-listing-reports/authorization-storage.txt)
 Still open: Production identity, native route bypass and deployed storage permissions still require verification.
 Next: Complete the real identity/browser/native denial matrix on the release candidate. Owner: Boniface + Codex.
 
@@ -78,7 +96,7 @@ Next: Complete the real identity/browser/native denial matrix on the release can
 Original finding: Cross-account owner edit accepted.
 Expected: Requests denied, unchanged records/media. Server derives actor; only authorized admin reassignment succeeds; all queries/exports/subscriptions scoped
 Observed: Current company/assignment checks, exact operation recovery and raw viewing-table denial.
-Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [media213](evidence/2026-10-28-upload-acceptance/media-full.txt)
+Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [media213](evidence/2026-10-28-upload-acceptance/media-full.txt), [authorizationReview223](evidence/2026-10-30-authorization-review.md), [authInventory223](evidence/2026-10-30-listing-reports/authorization-inventory.txt), [authRoles223](evidence/2026-10-30-listing-reports/authorization-role-tenants.txt), [authStorage223](evidence/2026-10-30-listing-reports/authorization-storage.txt)
 Still open: Exports, subscriptions and full production pooled/storage isolation are not accepted.
 Next: Implement and test scoped export/session/job paths, then rerun the complete two-company matrix. Owner: Boniface + Codex.
 
@@ -238,7 +256,7 @@ Next: Repeat the photo boundary/recovery matrix on release devices and staging; 
 Original finding: Invalid-image selection accepted.
 Expected: Invalid rejected before publication with per-file error; safe derivatives re-encoded/metadata stripped; private media inaccessible cross-tenant
 Observed: Actual codec format/metadata/corrupt/dimension/byte caps and upload recovery passed. Public bytes now require current approved/fresh publication and matching native seals before/after I/O; four actual anonymous WebPs decoded and pause denied later access.
-Evidence: [media216](evidence/2026-10-28-live-media-retirement/media-full-final.txt), [signed217](evidence/2026-10-29-public-gallery/signed-http-full.txt), [admin216](evidence/2026-10-28-live-media-retirement/admin-tests-final.txt), [browser216](evidence/2026-10-28-live-media-retirement.md), [api217](evidence/2026-10-29-public-gallery/api-full.txt), [database217](evidence/2026-10-29-public-gallery/database-full.txt), [browser217](evidence/2026-10-29-public-gallery.md)
+Evidence: [media216](evidence/2026-10-28-live-media-retirement/media-full-final.txt), [signed217](evidence/2026-10-29-public-gallery/signed-http-full.txt), [admin216](evidence/2026-10-28-live-media-retirement/admin-tests-final.txt), [browser216](evidence/2026-10-28-live-media-retirement.md), [api217](evidence/2026-10-29-public-gallery/api-full.txt), [database217](evidence/2026-10-29-public-gallery/database-full.txt), [browser217](evidence/2026-10-29-public-gallery.md), [authorizationReview223](evidence/2026-10-30-authorization-review.md), [authInventory223](evidence/2026-10-30-listing-reports/authorization-inventory.txt), [authRoles223](evidence/2026-10-30-listing-reports/authorization-role-tenants.txt), [authStorage223](evidence/2026-10-30-listing-reports/authorization-storage.txt), [browserReport223](evidence/2026-10-30-listing-reports.md), [signedReport223](evidence/2026-10-30-listing-reports/signed-http-lost-results.txt)
 Still open: Production object provider access and actual device interruption/oversized-selection matrix remain open.
 Next: Verify deployed object isolation and complete invalid/oversized device selections with approved test bytes. Owner: Boniface + Codex.
 
@@ -348,7 +366,7 @@ Next: Verify exact cutoff neighbours and restoration/pause/archive precedence in
 
 Expected: Only public projection exposed; admin-only audited export; retention dry-run reviewed; deletion covers active/derived data and restore re-deletion. Logs contain no passwords/tokens/message body; reviewed hold prevents accidental deletion
 Observed: Private/public projection and current role restrictions have bounded executed evidence.
-Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [media213](evidence/2026-10-28-upload-acceptance/media-full.txt)
+Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [media213](evidence/2026-10-28-upload-acceptance/media-full.txt), [authorizationReview223](evidence/2026-10-30-authorization-review.md), [authInventory223](evidence/2026-10-30-listing-reports/authorization-inventory.txt), [authRoles223](evidence/2026-10-30-listing-reports/authorization-role-tenants.txt), [authStorage223](evidence/2026-10-30-listing-reports/authorization-storage.txt)
 Still open: Audited export, retention dry-run/holds, deletion and restore re-deletion are incomplete.
 Next: Implement scoped lifecycle/export controls and execute reviewed dry-run plus restore re-deletion. Owner: Boniface + Codex.
 
@@ -398,7 +416,7 @@ Next: Repeat the bounded lab in approved staging with actual media/private workl
 
 Expected: Race revisions/approval/reassignment/viewing updates; only matching version succeeds. No lost update, conflicting published snapshot, duplicate lead, orphan publicly accessible image or notification sent for rolled-back transaction
 Observed: Exact-version commands, once-only attempts, stale/refusal/uncertainty and immutable-history guards execute locally.
-Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [media213](evidence/2026-10-28-upload-acceptance/media-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt)
+Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [media213](evidence/2026-10-28-upload-acceptance/media-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [authorizationReview223](evidence/2026-10-30-authorization-review.md), [authInventory223](evidence/2026-10-30-listing-reports/authorization-inventory.txt), [authRoles223](evidence/2026-10-30-listing-reports/authorization-role-tenants.txt), [authStorage223](evidence/2026-10-30-listing-reports/authorization-storage.txt), [browserReport223](evidence/2026-10-30-listing-reports.md), [signedReport223](evidence/2026-10-30-listing-reports/signed-http-lost-results.txt)
 Still open: True independent PostgreSQL connection races, crash recovery and production notification rollback remain open.
 Next: Run independent pooled-session races and rollback/delivery integrity cases on approved staging. Owner: Boniface + Codex.
 
