@@ -1,0 +1,28 @@
+✔ real RS256 signature yields only immutable verified subject identity, ignoring role/company claims (208.0603ms)
+✔ bearer header parser rejects missing, duplicate and malformed credentials (3.5542ms)
+✔ expired, future and overlong-lifetime claims fail closed (35.5304ms)
+✔ wrong issuer, audience and malformed subject are denied despite valid signature (25.5051ms)
+✔ issuer, audience, subject, expiry and issued-at are required (27.6184ms)
+✔ counterfeit signature, unknown key and absent key ID are denied (25.8732ms)
+✔ HS256 algorithm confusion and unsigned/malformed tokens are denied (3.5591ms)
+✔ token-supplied key URL does not change the trusted JWKS endpoint (7.8604ms)
+✔ unavailable/malformed/redirecting JWKS endpoints deny without following redirects (25.0353ms)
+✔ trusted configuration is captured, not mutable through caller object (16.2684ms)
+✔ missing/untrusted identity configuration is rejected before any key fetch (0.961ms)
+✔ explicit loopback HTTP exception is rejected in production mode (0.3139ms)
+✔ hostname resolves only configured company and does not grant membership (1.6062ms)
+✔ tenant configuration rejects host collisions, wildcards, duplicate IDs and invalid input (0.3856ms)
+✔ only canonical import preview POST receives 256KiB JSON allowance, independently of decoded CSV bounds (162.4631ms)
+✔ only exact creation, successor and reference creation/draft/transition/successor POST receive bounded 128KiB transport allowance (494.5642ms)
+✔ HTTP bridge derives client address from socket and preserves ambiguous authorization for rejection (8.4285ms)
+✔ HTTP bridge caps received bodies before application handler (7.8377ms)
+✔ only exact v2 draft PUTs receive the larger UTF-8 body allowance (145.9976ms)
+✔ v2 draft body limit also applies to chunked requests without Content-Length (16.0942ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1735.2371
