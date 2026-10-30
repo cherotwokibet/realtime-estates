@@ -10,9 +10,13 @@ const args = process.argv.slice(2);
 if (
   process.env.NODE_ENV === 'production' ||
   new Set(args).size !== args.length ||
-  args.some((x) => !['--lost-result', '--second-brand', '--reports'].includes(x))
+  args.some(
+    (x) => !['--lost-result', '--second-brand', '--reports', '--report-lost-results'].includes(x),
+  )
 )
   throw Error('Development only: optional --lost-result and --second-brand.');
+if (args.includes('--report-lost-results') && !args.includes('--reports'))
+  throw Error('--report-lost-results requires --reports.');
 for (const app of ['admin', 'web'])
   if (existsSync(new URL('../apps/' + app + '/.next/dev/lock', import.meta.url)))
     throw Error(app + ' development directory occupied.');
@@ -24,6 +28,9 @@ const preview = await startStaffPreview({
   ...(args.includes('--reports')
     ? {
         publicReportMode: 'synthetic-listing-report-v1',
+        ...(args.includes('--report-lost-results')
+          ? { reportReplyFault: 'invalid-first-report-results-v1' }
+          : {}),
         referenceDraftMode: 'synthetic-reference-draft-v1',
         referenceModerationMode: 'synthetic-reference-transition-v1',
         referencePublicMode: 'synthetic-reference-public-v1',

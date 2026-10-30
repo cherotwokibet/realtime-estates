@@ -123,6 +123,7 @@ function configuration({
   successorReplyFault,
   controlReplyFault,
   settingsReplyFault,
+  reportReplyFault,
   successorTerminalFixture,
   referenceDraftMode,
   referenceReplyFault,
@@ -142,6 +143,12 @@ function configuration({
     throw new StaffPreviewConfigurationError('Staff preview refuses NODE_ENV=production.');
   if (settingsReplyFault !== undefined && settingsReplyFault !== 'invalid-first-approved-v1')
     throw new StaffPreviewConfigurationError('Unsupported synthetic settings reply fault.');
+  if (
+    reportReplyFault !== undefined &&
+    (reportReplyFault !== 'invalid-first-report-results-v1' ||
+      publicReportMode !== 'synthetic-listing-report-v1')
+  )
+    throw new StaffPreviewConfigurationError('Unsupported synthetic report reply fault.');
   journeyFixtureSelection(journeyFixture);
   if (publicReportMode !== undefined && publicReportMode !== 'synthetic-listing-report-v1')
     throw new StaffPreviewConfigurationError('Unsupported synthetic listing report mode.');
@@ -381,6 +388,7 @@ function configuration({
     successorReplyFault,
     controlReplyFault,
     settingsReplyFault,
+    reportReplyFault,
     successorTerminalFixture,
     referenceDraftMode,
     referenceReplyFault,
@@ -832,6 +840,7 @@ export async function startStaffPreview(options = {}) {
     successorReplyFault,
     controlReplyFault,
     settingsReplyFault,
+    reportReplyFault,
     successorTerminalFixture,
     referenceDraftMode,
     referenceReplyFault,
@@ -851,6 +860,8 @@ export async function startStaffPreview(options = {}) {
   let referenceCreationReplyFaultPending = !!referenceCreationReplyFault;
   let controlReplyFaultPending = !!controlReplyFault;
   let settingsReplyFaultPending = !!settingsReplyFault;
+  let reportCaptureFaultPending = !!reportReplyFault,
+    reportDecisionFaultPending = !!reportReplyFault;
   let successorReplyFaultPending = !!successorReplyFault;
   let creationReplyFaultPending = !!creationReplyFault;
   let reminderReplyFaultPending = !!reminderReplyFault;
@@ -1326,8 +1337,26 @@ export async function startStaffPreview(options = {}) {
             /^\/v2\/staff\/listing-reports(?:\/[0-9a-f-]+\/operations\/[0-9a-f-]+)?$/.test(
               url.pathname,
             ))
-        )
-          return service(request);
+        ) {
+          const response = await service(request);
+          const capture = url.pathname.startsWith('/v2/public/listings/');
+          if (
+            request.method === 'POST' &&
+            ((capture && reportCaptureFaultPending && response.status === 202) ||
+              (!capture && reportDecisionFaultPending && response.status === 200))
+          ) {
+            if (capture) reportCaptureFaultPending = false;
+            else reportDecisionFaultPending = false;
+            return Response.json(
+              { syntheticReportReplyCorruption: true },
+              {
+                status: response.status,
+                headers: { 'Cache-Control': 'no-store', 'X-Synthetic-Staff-Preview': 'true' },
+              },
+            );
+          }
+          return response;
+        }
         if (
           referencePublicMode &&
           (url.pathname === '/v3/properties' ||

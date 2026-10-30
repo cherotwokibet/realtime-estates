@@ -108,3 +108,54 @@ test('actual signed agent cannot read/review reports; altered signature is refus
     await p.close();
   }
 });
+
+test('committed capture and review with corrupt replies recover originals without duplicate rows', async () => {
+  const p = await startStaffPreview({
+    ...modes,
+    actor: 'admin',
+    reportReplyFault: 'invalid-first-report-results-v1',
+  });
+  try {
+    const api = client(p),
+      auth = { bearerToken: p.bearerToken };
+    const command = {
+      policy: 'listing-report-command-v1',
+      operationId: randomUUID(),
+      listingId: p.referencePublicListingId,
+      reason: 'other',
+      details: 'Synthetic lost-reply verification only.',
+    };
+    await assert.rejects(
+      () => api.captureListingReport(command),
+      (e) => e.submissionUncertain === true,
+    );
+    const original = await api.getListingReportReceipt(command.listingId, command.operationId);
+    assert.equal(original.status, 'recorded');
+    assert.deepEqual(await api.captureListingReport(command), original);
+    const queue = await api.listListingReports({ status: 'new' }, auth);
+    assert.equal(queue.items.length, 1);
+    const decision = {
+      policy: 'listing-report-decision-command-v1',
+      operationId: randomUUID(),
+      reportId: queue.items[0].reportId,
+      expectedVersion: '1',
+      decision: 'reviewed',
+      reason: 'Synthetic original recovery review.',
+    };
+    await assert.rejects(
+      () => api.decideListingReport(decision, auth),
+      (e) => e.submissionUncertain === true,
+    );
+    const reviewed = await api.getListingReportDecision(
+      decision.reportId,
+      decision.operationId,
+      auth,
+    );
+    assert.equal(reviewed.version, '2');
+    assert.deepEqual(await api.decideListingReport(decision, auth), reviewed);
+    assert.equal((await api.listListingReports({ status: 'reviewed' }, auth)).items.length, 1);
+    assert.equal((await api.listListingReports({ status: 'new' }, auth)).items.length, 0);
+  } finally {
+    await p.close();
+  }
+});
