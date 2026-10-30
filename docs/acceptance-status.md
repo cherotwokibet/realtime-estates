@@ -8,6 +8,9 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| invitationDomain224 | [evidence/staff-invitation-domain224.txt](evidence/staff-invitation-domain224.txt) · dfe694b | 310 passed; Full domain regression including capture-only invitation intent; no invitation delivery or access grant |
+| branchCandidate224 | [evidence/staff-branch-sql224-final.txt](evidence/staff-branch-sql224-final.txt) · dfe694b | 3 passed; Explicit isolated branch SQL proposal in restricted PGlite; durable originals/conflict/noop and two-company/current-admin fences; not a normal migration or hosted locking proof |
+| invitationCandidate224 | [evidence/staff-invitation-sql224.txt](evidence/staff-invitation-sql224.txt) · dfe694b | 5 passed; Explicit isolated capture-only invitation/revocation SQL in restricted PGlite; historical expiry fixture, no mail/token/redemption/membership grant or UI/provider acceptance |
 | domain223 | [evidence/2026-10-30-listing-reports/domain-full.txt](evidence/2026-10-30-listing-reports/domain-full.txt) · 6b8569b | 306 passed; Windows / Full report-era domain regression |
 | api223 | [evidence/2026-10-30-listing-reports/api-full.txt](evidence/2026-10-30-listing-reports/api-full.txt) · 6b8569b | 312 passed; Windows / Full report-era API/restricted SQL regression; runtime unchanged since proof |
 | sdk223 | [evidence/2026-10-30-listing-reports/sdk-full-final.txt](evidence/2026-10-30-listing-reports/sdk-full-final.txt) · 6b8569b | 307 passed; Windows / Full SDK transport regression with report tests included |

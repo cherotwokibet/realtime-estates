@@ -71,6 +71,7 @@ const commits = {
   settings220: 'd532848e2a49fb604d81c1a3edb0494af7be5da2',
   settingsInitial: 'c17256f765d29ef063e267c2095ce9b5f368f7a3',
   preservation221: '895a95587932789f7249df2f741442b83695fd20',
+  invitations224: 'dfe694b78919e98d168133892ff11daee2ebeebf',
   reports223: '6b8569b1c49f101062c0cfa9a0c7c054d5f2d637',
   performance222: 'aa414973efd01198e865a0cb29ec6c7edc96f7f3',
 };
@@ -80,6 +81,31 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  invitationDomain224: {
+    path: 'docs/evidence/staff-invitation-domain224.txt',
+    counts: [310],
+    commit: commits.invitations224,
+    observedDate: '2026-10-30',
+    environment:
+      'Full domain regression including capture-only invitation intent; no invitation delivery or access grant',
+  },
+  branchCandidate224: {
+    path: 'docs/evidence/staff-branch-sql224-final.txt',
+    counts: [3],
+    commit: commits.invitations224,
+    observedDate: '2026-10-30',
+    environment:
+      'Explicit isolated branch SQL proposal in restricted PGlite; durable originals/conflict/noop and two-company/current-admin fences; not a normal migration or hosted locking proof',
+  },
+  invitationCandidate224: {
+    path: 'docs/evidence/staff-invitation-sql224.txt',
+    counts: [5],
+    commit: commits.invitations224,
+    observedDate: '2026-10-30',
+    environment:
+      'Explicit isolated capture-only invitation/revocation SQL in restricted PGlite; historical expiry fixture, no mail/token/redemption/membership grant or UI/provider acceptance',
+  },
+
   domain223: {
     path: 'docs/evidence/2026-10-30-listing-reports/domain-full.txt',
     counts: [306],
