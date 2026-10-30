@@ -138,6 +138,7 @@ function configuration({
   publicReportMode,
   staffInvitationMode,
   invitationReplyFault,
+  branchReplyFault,
   seedAcceptedMedia = nativeUploads === undefined && enquiryPreview === undefined,
   seedPendingReviews = false,
 } = {}) {
@@ -159,6 +160,12 @@ function configuration({
       staffInvitationMode !== 'synthetic-capture-only-v1')
   )
     throw new StaffPreviewConfigurationError('Unsupported synthetic invitation reply fault.');
+  if (
+    branchReplyFault !== undefined &&
+    (branchReplyFault !== 'invalid-first-branch-result-v1' ||
+      staffInvitationMode !== 'synthetic-capture-only-v1')
+  )
+    throw new StaffPreviewConfigurationError('Unsupported synthetic branch reply fault.');
   journeyFixtureSelection(journeyFixture);
   if (publicReportMode !== undefined && publicReportMode !== 'synthetic-listing-report-v1')
     throw new StaffPreviewConfigurationError('Unsupported synthetic listing report mode.');
@@ -413,6 +420,7 @@ function configuration({
     publicReportMode,
     staffInvitationMode,
     invitationReplyFault,
+    branchReplyFault,
   };
 }
 function syntheticContent(title = 'Synthetic staff monthly studio') {
@@ -867,6 +875,7 @@ export async function startStaffPreview(options = {}) {
     publicReportMode,
     staffInvitationMode,
     invitationReplyFault,
+    branchReplyFault,
   } = configuration(options);
   let referenceReplyFaultPending = !!referenceReplyFault;
   let referenceModerationReplyFaultPending = !!referenceModerationReplyFault;
@@ -874,6 +883,7 @@ export async function startStaffPreview(options = {}) {
   let referenceCreationReplyFaultPending = !!referenceCreationReplyFault;
   let controlReplyFaultPending = !!controlReplyFault;
   let settingsReplyFaultPending = !!settingsReplyFault;
+  let branchReplyFaultPending = !!branchReplyFault;
   let invitationCaptureFaultPending = !!invitationReplyFault,
     invitationRevokeFaultPending = !!invitationReplyFault;
   let reportCaptureFaultPending = !!reportReplyFault,
@@ -1370,6 +1380,21 @@ export async function startStaffPreview(options = {}) {
             /^\/v2\/staff\/invitation-requests(?:\/|$)/.test(url.pathname))
         ) {
           const response = await service(request);
+          if (
+            branchReplyFaultPending &&
+            request.method === 'POST' &&
+            url.pathname.startsWith('/v2/staff/branches/operations/') &&
+            response.status === 200
+          ) {
+            branchReplyFaultPending = false;
+            return Response.json(
+              { syntheticBranchReplyCorruption: true },
+              {
+                status: 200,
+                headers: { 'Cache-Control': 'no-store', 'X-Synthetic-Staff-Preview': 'true' },
+              },
+            );
+          }
           const capture = url.pathname.includes('/operations/');
           if (
             request.method === 'POST' &&

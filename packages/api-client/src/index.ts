@@ -1,5 +1,11 @@
 import {
   parseStaffInvitationJson,
+  validateStaffBranchCommand,
+  validateStaffBranchRecord,
+  validateStaffBranchCurrent,
+  type StaffBranchCommand,
+  type StaffBranchRecord,
+  type StaffBranchCurrent,
   validateStaffDirectoryQuery,
   validateStaffBranchPage,
   validateStaffInvitationPage,
@@ -3606,6 +3612,62 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid original report review.');
     }
   }
+  async saveStaffBranch(
+    input: StaffBranchCommand,
+    options: StaffRequestOptions,
+  ): Promise<StaffBranchRecord> {
+    const captured = uploadOptions(options);
+    let command: StaffBranchCommand;
+    try {
+      command = validateStaffBranchCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid branch command.');
+    }
+    const data = await this.request(
+      '/v2/staff/branches/operations/' + command.operationId,
+      'POST',
+      captured,
+      { ...command },
+    );
+    try {
+      return validateStaffBranchRecord(data, command);
+    } catch {
+      throw new ApiClientError('INVALID_RESPONSE', 'Branch result could not be verified.', {
+        submissionUncertain: true,
+      });
+    }
+  }
+  async getStaffBranchOperation(
+    operationId: string,
+    options: StaffRequestOptions,
+  ): Promise<StaffBranchRecord> {
+    const captured = uploadOptions(options),
+      operation = uuid(operationId, 'VALIDATION', 'Operation ID');
+    if (operation !== operationId)
+      return invalid('VALIDATION', 'Canonical branch operation required.');
+    const data = await this.request('/v2/staff/branches/operations/' + operation, 'GET', captured);
+    try {
+      const result = validateStaffBranchRecord(data);
+      if (result.operationId !== operation) throw Error();
+      return result;
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid branch original.');
+    }
+  }
+  async getStaffBranch(
+    branchId: string,
+    options: StaffRequestOptions,
+  ): Promise<StaffBranchCurrent> {
+    const captured = uploadOptions(options),
+      branch = uuid(branchId, 'VALIDATION', 'Branch ID');
+    if (branch !== branchId) return invalid('VALIDATION', 'Canonical branch required.');
+    const data = await this.request('/v2/staff/branches/' + branch, 'GET', captured);
+    try {
+      return validateStaffBranchCurrent(data, branch);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid current branch.');
+    }
+  }
   async listStaffBranches(
     input: StaffDirectoryQuery,
     options: StaffRequestOptions,
@@ -5615,7 +5677,9 @@ export class RealtorApiClient {
       /^\/v2\/staff\/(?:branches|invitation-requests)\?limit=(?:[1-9]|1[0-9]|20)(?:&after=[0-9a-f-]{36})?$/.test(
         path,
       );
+    const staffBranch = /^\/v2\/staff\/branches\/(?:operations\/)?[0-9a-f-]{36}$/.test(path);
     const staffInvitation =
+      staffBranch ||
       staffDirectory ||
       invitationCapture ||
       /^\/v2\/staff\/invitation-requests\/[0-9a-f-]{36}(?:\/revocations\/[0-9a-f-]{36})?$/.test(

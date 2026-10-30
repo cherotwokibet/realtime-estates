@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { RealtorApiClient } from '../dist/index.js';
 import { startStaffPreview } from '../../../apps/api/dev/staff-preview.mjs';
 const mode = {
   port: 0,
@@ -103,5 +104,54 @@ test('signed branch writes/current/original reads reject agent and foreign-compa
     } finally {
       await p.close();
     }
+  }
+});
+
+test('signed SDK branch committed corrupt reply recovers original by GET only and reflects current directory', async () => {
+  await assert.rejects(
+    () => startStaffPreview({ port: 0, branchReplyFault: 'invalid-first-branch-result-v1' }),
+    /Unsupported synthetic branch reply fault/,
+  );
+  const p = await startStaffPreview({
+    ...mode,
+    actor: 'admin',
+    branchReplyFault: 'invalid-first-branch-result-v1',
+  });
+  try {
+    const calls = [],
+      api = new RealtorApiClient({
+        baseUrl: p.origin,
+        allowLoopbackHttp: true,
+        privacyNoticeVersion: 'synthetic-staff-notice-v1',
+        fetch: async (input, init) => {
+          calls.push(init?.method ?? 'GET');
+          return fetch(input, init);
+        },
+      }),
+      auth = { bearerToken: p.bearerToken },
+      c = command();
+    await assert.rejects(
+      () => api.saveStaffBranch(c, auth),
+      (e) => e.submissionUncertain === true,
+    );
+    assert.deepEqual(calls, ['POST']);
+    const original = await api.getStaffBranchOperation(c.operationId, auth);
+    assert.equal(original.outcome, 'applied');
+    assert.equal(original.version, '1');
+    assert.deepEqual(calls, ['POST', 'GET']);
+    const current = await api.getStaffBranch(c.branchId, auth);
+    assert.equal(current.version, '1');
+    assert.equal(current.name, c.name);
+    assert.deepEqual((await api.listStaffBranches({ limit: 2, after: null }, auth)).items, [
+      current,
+    ]);
+    assert.deepEqual(calls, ['POST', 'GET', 'GET', 'GET']);
+    assert.deepEqual(await api.saveStaffBranch(c, auth), original);
+    const future = { ...c, operationId: randomUUID(), expectedVersion: '2' };
+    assert.equal((await api.saveStaffBranch(future, auth)).outcome, 'conflict');
+    const noop = { ...c, operationId: randomUUID(), expectedVersion: '1' };
+    assert.equal((await api.saveStaffBranch(noop, auth)).outcome, 'unchanged');
+  } finally {
+    await p.close();
   }
 });
