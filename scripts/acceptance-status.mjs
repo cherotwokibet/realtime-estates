@@ -122,6 +122,14 @@ const definitions = {
     environment:
       'Isolated SQL candidate output bound to shared domain validators and C1 control refusal; first extended run passed',
   },
+  invitationHttp227: {
+    path: 'docs/evidence/staff-invitation-http227-final.txt',
+    counts: [6],
+    commit: '83a5f73',
+    observedDate: '2026-10-30',
+    environment:
+      'Disposable signed JWT/JWKS HTTP and restricted SQL invitation capture/revocation original GET-only recovery, role/tenant/signature/authority denials; no provider identity, grants or UI',
+  },
   invitationRecords225: {
     path: 'docs/evidence/staff-invitation-records225.txt',
     counts: [7],
