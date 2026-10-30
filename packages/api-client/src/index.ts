@@ -1,5 +1,11 @@
 import {
   parseStaffInvitationJson,
+  validateStaffDirectoryQuery,
+  validateStaffBranchPage,
+  validateStaffInvitationPage,
+  type StaffDirectoryQuery,
+  type StaffBranchPage,
+  type StaffInvitationPage,
   validateStaffInvitationIntent,
   validateStaffInvitationRequestRecord,
   validateStaffInvitationState,
@@ -3600,6 +3606,50 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid original report review.');
     }
   }
+  async listStaffBranches(
+    input: StaffDirectoryQuery,
+    options: StaffRequestOptions,
+  ): Promise<StaffBranchPage> {
+    const captured = uploadOptions(options);
+    let query: StaffDirectoryQuery;
+    try {
+      query = validateStaffDirectoryQuery(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid directory query.');
+    }
+    const path =
+      '/v2/staff/branches?limit=' +
+      query.limit +
+      (query.after === null ? '' : '&after=' + query.after);
+    const data = await this.request(path, 'GET', captured);
+    try {
+      return validateStaffBranchPage(data, query);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid branch directory page.');
+    }
+  }
+  async listStaffInvitationRequests(
+    input: StaffDirectoryQuery,
+    options: StaffRequestOptions,
+  ): Promise<StaffInvitationPage> {
+    const captured = uploadOptions(options);
+    let query: StaffDirectoryQuery;
+    try {
+      query = validateStaffDirectoryQuery(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid directory query.');
+    }
+    const path =
+      '/v2/staff/invitation-requests?limit=' +
+      query.limit +
+      (query.after === null ? '' : '&after=' + query.after);
+    const data = await this.request(path, 'GET', captured);
+    try {
+      return validateStaffInvitationPage(data, query);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid invitation directory page.');
+    }
+  }
   async recordStaffInvitationRequest(
     input: StaffInvitationIntent,
     options: StaffRequestOptions,
@@ -5561,7 +5611,12 @@ export class RealtorApiClient {
     const invitationCapture = /^\/v2\/staff\/invitation-requests\/operations\/[0-9a-f-]{36}$/.test(
       path,
     );
+    const staffDirectory =
+      /^\/v2\/staff\/(?:branches|invitation-requests)\?limit=(?:[1-9]|1[0-9]|20)(?:&after=[0-9a-f-]{36})?$/.test(
+        path,
+      );
     const staffInvitation =
+      staffDirectory ||
       invitationCapture ||
       /^\/v2\/staff\/invitation-requests\/[0-9a-f-]{36}(?:\/revocations\/[0-9a-f-]{36})?$/.test(
         path,
@@ -5718,25 +5773,27 @@ export class RealtorApiClient {
         }
         let raw: string;
         if (boundedRead) {
-          const maximum = listingReport
-              ? reportQueue
-                ? 524288
-                : 8192
-              : staffSession || revisionProtocol
-                ? 8192
-                : publicReference || publicSearch || publicReferenceOptions
-                  ? 3 * 1024 * 1024
-                  : referenceCreation || referenceSuccessor
-                    ? result.ok
-                      ? referenceSuccessor
-                        ? SYNTHETIC_REFERENCE_SUCCESSOR_MAX_BYTES
-                        : SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
-                      : 131072
-                    : referenceContext && result.ok
-                      ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
-                      : referenceModeration
-                        ? 131072
-                        : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
+          const maximum = staffDirectory
+              ? 65536
+              : listingReport
+                ? reportQueue
+                  ? 524288
+                  : 8192
+                : staffSession || revisionProtocol
+                  ? 8192
+                  : publicReference || publicSearch || publicReferenceOptions
+                    ? 3 * 1024 * 1024
+                    : referenceCreation || referenceSuccessor
+                      ? result.ok
+                        ? referenceSuccessor
+                          ? SYNTHETIC_REFERENCE_SUCCESSOR_MAX_BYTES
+                          : SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
+                        : 131072
+                      : referenceContext && result.ok
+                        ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
+                        : referenceModeration
+                          ? 131072
+                          : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
             declared = result.headers.get('content-length');
           if (
             result.headers.has('content-encoding') ||

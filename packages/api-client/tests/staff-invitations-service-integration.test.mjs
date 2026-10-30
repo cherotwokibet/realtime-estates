@@ -215,6 +215,7 @@ test('actual signed private directory pages retain current invitation states and
     let r = await read('/v2/staff/invitation-requests?limit=2');
     assert.equal(r.status, 200);
     const first = await r.json();
+    assert.deepEqual(await api.listStaffInvitationRequests({ limit: 2, after: null }, auth), first);
     assert.deepEqual(
       first.items.map((x) => x.operationId),
       commands.slice(0, 2).map((x) => x.operationId),
@@ -222,6 +223,15 @@ test('actual signed private directory pages retain current invitation states and
     assert.equal(first.nextAfter, commands[1].operationId);
     r = await read('/v2/staff/invitation-requests?limit=2&after=' + first.nextAfter);
     const last = await r.json();
+    assert.deepEqual(
+      await api.listStaffInvitationRequests({ limit: 2, after: first.nextAfter }, auth),
+      last,
+    );
+    assert.deepEqual(await api.listStaffBranches({ limit: 20, after: null }, auth), {
+      policy: 'staff-branch-page-v1',
+      items: [],
+      nextAfter: null,
+    });
     assert.deepEqual(
       last.items.map((x) => x.operationId),
       [commands[2].operationId],
