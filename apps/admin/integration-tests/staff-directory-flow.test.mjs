@@ -1,3 +1,4 @@
+import { staffBranchBoundary } from '../dist/tests/lib/staff-branch-server.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -121,5 +122,68 @@ test('signed upstream agent/foreign authority is refused and BFF error stays san
     } finally {
       await p.close();
     }
+  }
+});
+
+test('branch BFF uncertain committed write recovers original with GET over signed HTTP without automatic replay', async () => {
+  const p = await startStaffPreview({
+    ...mode,
+    actor: 'admin',
+    branchReplyFault: 'invalid-first-branch-result-v1',
+  });
+  try {
+    const env = settings(p),
+      command = {
+        policy: 'staff-branch-command-v1',
+        operationId: randomUUID(),
+        branchId: randomUUID(),
+        expectedVersion: '0',
+        name: 'Synthetic recovery',
+        active: true,
+        reason: 'Synthetic BFF recovery.',
+      };
+    const path =
+      'http://localhost:3120/api/staff-directory/branches/operations/' + command.operationId;
+    const req = (body) =>
+      new Request(path, {
+        method: body ? 'POST' : 'GET',
+        headers: {
+          host: '127.0.0.1:3120',
+          'x-preview-instance': env.STAFF_PREVIEW_INSTANCE,
+          ...(body ? { origin: 'http://127.0.0.1:3120', 'content-type': 'application/json' } : {}),
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    const calls = [],
+      transport = async (input, init) => {
+        calls.push(init?.method ?? 'GET');
+        return fetch(input, init);
+      };
+    let r = await staffBranchBoundary(
+      req(command),
+      'operation',
+      command.operationId,
+      env,
+      transport,
+    );
+    assert.ok(r.status >= 400);
+    assert.equal((await r.json()).submissionUncertain, true);
+    assert.deepEqual(calls, ['POST']);
+    r = await staffBranchBoundary(req(), 'operation', command.operationId, env, transport);
+    assert.equal(r.status, 200);
+    const original = (await r.json()).receipt;
+    assert.equal(original.outcome, 'applied');
+    assert.equal(original.version, '1');
+    assert.deepEqual(calls, ['POST', 'GET']);
+    const currentReq = new Request(
+      'http://localhost:3120/api/staff-directory/branches/' + command.branchId,
+      { headers: { host: '127.0.0.1:3120', 'x-preview-instance': env.STAFF_PREVIEW_INSTANCE } },
+    );
+    r = await staffBranchBoundary(currentReq, 'current', command.branchId, env, transport);
+    assert.equal(r.status, 200);
+    assert.equal((await r.json()).branch.name, command.name);
+    assert.deepEqual(calls, ['POST', 'GET', 'GET']);
+  } finally {
+    await p.close();
   }
 });

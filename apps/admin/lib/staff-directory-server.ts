@@ -20,24 +20,8 @@ export async function staffDirectoryBoundary(
 ): Promise<Response> {
   let config: ReturnType<typeof previewConfiguration>;
   try {
-    config = previewConfiguration(env);
-    if (
-      env.STAFF_DIRECTORY_PREVIEW_MODE !== 'synthetic-v1' ||
-      !['branches', 'invitations'].includes(kind)
-    )
-      throw Error();
-    assertPreviewRequest(request, config.instanceId);
-    const headerNames: string[] = [];
-    request.headers.forEach((_, key) => headerNames.push(key));
-    for (const key of headerNames)
-      if (
-        ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(key) ||
-        key.startsWith('if-') ||
-        (key.startsWith('x-') && key !== 'x-preview-instance')
-      )
-        throw Error();
-    const origin = request.headers.get('origin');
-    if (origin !== null && origin !== 'http://' + request.headers.get('host')) throw Error();
+    if (!['branches', 'invitations'].includes(kind)) throw Error();
+    config = staffDirectoryPreviewContext(request, env);
   } catch {
     return reply(403, { error: 'STAFF_DIRECTORY_UNAVAILABLE' });
   }
@@ -79,4 +63,26 @@ export async function staffDirectoryBoundary(
       { error: 'STAFF_DIRECTORY_UNAVAILABLE' },
     );
   }
+}
+
+export function staffDirectoryPreviewContext(
+  request: Request,
+  env: Readonly<Record<string, string | undefined>>,
+) {
+  const config = previewConfiguration(env);
+  if (env.STAFF_DIRECTORY_PREVIEW_MODE !== 'synthetic-v1') throw Error();
+  assertPreviewRequest(request, config.instanceId);
+  const headerNames: string[] = [];
+  request.headers.forEach((_, key) => headerNames.push(key));
+  for (const key of headerNames)
+    if (
+      ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(key) ||
+      key.startsWith('if-') ||
+      (key.startsWith('x-') && key !== 'x-preview-instance')
+    )
+      throw Error();
+  const origin = request.headers.get('origin');
+  if (origin !== null && origin !== 'http://' + request.headers.get('host')) throw Error();
+
+  return config;
 }
