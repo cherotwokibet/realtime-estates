@@ -3,7 +3,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
-import { validateStaffInvitationEmail } from '../../packages/domain/dist/index.js';
+import {
+  validateStaffInvitationEmail,
+  validateStaffInvitationRequestRecord,
+  validateStaffInvitationState,
+  validateStaffInvitationRevocationRecord,
+  parseStaffInvitationJson,
+} from '../../packages/domain/dist/index.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 async function fixture() {
   const db = new PGlite();
@@ -291,6 +297,72 @@ test('SQL recipient validation agrees with shared intent and unsupported role/br
       ),
       0,
     );
+  } finally {
+    await db.close();
+  }
+});
+
+test('actual SQL request, state and revocation JSON satisfies exact shared wire contracts', async () => {
+  const db = await fixture();
+  try {
+    await branch(db, 1000, 0);
+    const intent = {
+      policy: 'staff-invitation-intent-v1',
+      operationId: id(200),
+      recipientEmail: 'synthetic+staff@example.invalid',
+      requestedRole: 'agent',
+      branchId: id(100),
+      expiresAfterHours: 72,
+    };
+    const saved = validateStaffInvitationRequestRecord(
+      parseStaffInvitationJson(JSON.stringify(await capture(db, 200, { branch: id(100) }))),
+      intent,
+      id(10),
+    );
+    assert.equal(saved.branch.name, 'Synthetic branch');
+    assert.equal(
+      validateStaffInvitationState(
+        parseStaffInvitationJson(JSON.stringify(await state(db))),
+        id(200),
+      ).state,
+      'pending',
+    );
+    const cmd = {
+      policy: 'staff-invitation-revocation-command-v1',
+      operationId: id(300),
+      invitationId: id(200),
+      expectedVersion: '1',
+      reason: 'Synthetic cancellation.',
+    };
+    const revoked = validateStaffInvitationRevocationRecord(
+      parseStaffInvitationJson(JSON.stringify(await revoke(db, 300))),
+      cmd,
+      id(10),
+    );
+    assert.equal(revoked.outcome, 'revoked');
+    assert.deepEqual(
+      validateStaffInvitationRequestRecord(await original(db), intent, id(10)),
+      saved,
+    );
+    assert.equal(validateStaffInvitationState(await state(db), id(200)).state, 'revoked');
+  } finally {
+    await db.close();
+  }
+});
+test('C1 control characters cannot be saved into branch snapshots or private revocation reasons', async () => {
+  const db = await fixture();
+  try {
+    for (const code of [0x80, 0x85, 0x9f])
+      await assert.rejects(
+        () => branch(db, 1000, 0, 'Synthetic' + String.fromCodePoint(code)),
+        (e) => e.code === '23514',
+      );
+    await capture(db);
+    for (const code of [0x80, 0x85, 0x9f])
+      await assert.rejects(
+        () => revoke(db, 300, 1, { reason: 'Synthetic' + String.fromCodePoint(code) }),
+        (e) => e.code === '23514',
+      );
   } finally {
     await db.close();
   }

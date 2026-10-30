@@ -1,4 +1,15 @@
 import {
+  parseStaffInvitationJson,
+  validateStaffInvitationIntent,
+  validateStaffInvitationRequestRecord,
+  validateStaffInvitationState,
+  validateStaffInvitationRevocationCommand,
+  validateStaffInvitationRevocationRecord,
+  type StaffInvitationIntent,
+  type StaffInvitationRequestRecord,
+  type StaffInvitationState,
+  type StaffInvitationRevocationCommand,
+  type StaffInvitationRevocationRecord,
   validateListingReportCommand,
   validateListingReportReceipt,
   validateListingReportDecisionCommand,
@@ -3589,6 +3600,118 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid original report review.');
     }
   }
+  async recordStaffInvitationRequest(
+    input: StaffInvitationIntent,
+    options: StaffRequestOptions,
+  ): Promise<StaffInvitationRequestRecord> {
+    const captured = uploadOptions(options);
+    let command: StaffInvitationIntent;
+    try {
+      command = validateStaffInvitationIntent(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid invitation intent.');
+    }
+    const data = await this.request(
+      `/v2/staff/invitation-requests/operations/${command.operationId}`,
+      'POST',
+      captured,
+      { ...command },
+    );
+    try {
+      return validateStaffInvitationRequestRecord(data, command);
+    } catch {
+      throw new ApiClientError(
+        'INVALID_RESPONSE',
+        'Invitation request result could not be verified.',
+        { submissionUncertain: true },
+      );
+    }
+  }
+  async getStaffInvitationRequest(
+    operationId: string,
+    options: StaffRequestOptions,
+  ): Promise<StaffInvitationRequestRecord> {
+    const captured = uploadOptions(options),
+      operation = uuid(operationId, 'VALIDATION', 'Operation ID');
+    if (operation !== operationId)
+      return invalid('VALIDATION', 'Canonical invitation operation required.');
+    const data = await this.request(
+      `/v2/staff/invitation-requests/operations/${operation}`,
+      'GET',
+      captured,
+    );
+    try {
+      const value = validateStaffInvitationRequestRecord(data);
+      if (value.operationId !== operation) throw Error();
+      return value;
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid original invitation request.');
+    }
+  }
+  async getStaffInvitationState(
+    invitationId: string,
+    options: StaffRequestOptions,
+  ): Promise<StaffInvitationState> {
+    const captured = uploadOptions(options),
+      invitation = uuid(invitationId, 'VALIDATION', 'Invitation ID');
+    if (invitation !== invitationId) return invalid('VALIDATION', 'Canonical invitation required.');
+    const data = await this.request(`/v2/staff/invitation-requests/${invitation}`, 'GET', captured);
+    try {
+      return validateStaffInvitationState(data, invitation);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid invitation state.');
+    }
+  }
+  async revokeStaffInvitationRequest(
+    input: StaffInvitationRevocationCommand,
+    options: StaffRequestOptions,
+  ): Promise<StaffInvitationRevocationRecord> {
+    const captured = uploadOptions(options);
+    let command: StaffInvitationRevocationCommand;
+    try {
+      command = validateStaffInvitationRevocationCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid invitation revocation.');
+    }
+    const data = await this.request(
+      `/v2/staff/invitation-requests/${command.invitationId}/revocations/${command.operationId}`,
+      'POST',
+      captured,
+      { ...command },
+    );
+    try {
+      return validateStaffInvitationRevocationRecord(data, command);
+    } catch {
+      throw new ApiClientError(
+        'INVALID_RESPONSE',
+        'Invitation revocation result could not be verified.',
+        { submissionUncertain: true },
+      );
+    }
+  }
+  async getStaffInvitationRevocation(
+    invitationId: string,
+    operationId: string,
+    options: StaffRequestOptions,
+  ): Promise<StaffInvitationRevocationRecord> {
+    const captured = uploadOptions(options),
+      invitation = uuid(invitationId, 'VALIDATION', 'Invitation ID'),
+      operation = uuid(operationId, 'VALIDATION', 'Operation ID');
+    if (invitation !== invitationId || operation !== operationId)
+      return invalid('VALIDATION', 'Canonical invitation operation required.');
+    const data = await this.request(
+      `/v2/staff/invitation-requests/${invitation}/revocations/${operation}`,
+      'GET',
+      captured,
+    );
+    try {
+      const value = validateStaffInvitationRevocationRecord(data);
+      if (value.operationId !== operation || value.invitationId !== invitation) throw Error();
+      return value;
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid original invitation revocation.');
+    }
+  }
   async getStaffOperationsOverview(options: StaffRequestOptions): Promise<StaffOperationsOverview> {
     const captured = uploadOptions(options);
     const data = await this.request('/v2/staff/operations/overview', 'GET', captured);
@@ -5435,8 +5558,17 @@ export class RealtorApiClient {
     const anonymousReport = /^\/v2\/public\/listings\/[0-9a-f-]{36}\/reports\/[0-9a-f-]{36}$/.test(
       path,
     );
+    const invitationCapture = /^\/v2\/staff\/invitation-requests\/operations\/[0-9a-f-]{36}$/.test(
+      path,
+    );
+    const staffInvitation =
+      invitationCapture ||
+      /^\/v2\/staff\/invitation-requests\/[0-9a-f-]{36}(?:\/revocations\/[0-9a-f-]{36})?$/.test(
+        path,
+      );
     const reportQueue = /^\/v2\/staff\/listing-reports\?/.test(path);
     const listingReport =
+      staffInvitation ||
       anonymousReport ||
       reportQueue ||
       /^\/v2\/staff\/listing-reports\/[0-9a-f-]{36}\/operations\/[0-9a-f-]{36}$/.test(path);
@@ -5503,7 +5635,7 @@ export class RealtorApiClient {
       enquiry = STAFF_ENQUIRY_PATH.test(path) || enquiryQueue,
       listingQueue = /^\/v2\/staff\/listings\?limit=[1-9]\d?$/.test(path);
     const expectedStatus =
-      anonymousReport && method === 'POST'
+      (anonymousReport || invitationCapture) && method === 'POST'
         ? 202
         : (path === '/v1/enquiries' || path === '/v2/staff/enquiry-captures') && method === 'POST'
           ? 201
@@ -5735,15 +5867,17 @@ export class RealtorApiClient {
             )
           )
             assertMediaJsonTokens(raw);
-          payload = listingReport
-            ? parseListingReportJson(raw)
-            : verification ||
-                reference ||
-                /^\/v2\/staff\/listings\/[^/]+(?:\/revision-operations\/[^/]+)?$/.test(path)
-              ? parseListingSuccessorJsonV2(raw)
-              : path.startsWith('/v2/')
-                ? parseListingJsonV2(raw)
-                : JSON.parse(raw);
+          payload = staffInvitation
+            ? parseStaffInvitationJson(raw)
+            : listingReport
+              ? parseListingReportJson(raw)
+              : verification ||
+                  reference ||
+                  /^\/v2\/staff\/listings\/[^/]+(?:\/revision-operations\/[^/]+)?$/.test(path)
+                ? parseListingSuccessorJsonV2(raw)
+                : path.startsWith('/v2/')
+                  ? parseListingJsonV2(raw)
+                  : JSON.parse(raw);
         } catch {
           throw new ApiClientError('INVALID_RESPONSE', 'Malformed API JSON.', {
             status: result.status,

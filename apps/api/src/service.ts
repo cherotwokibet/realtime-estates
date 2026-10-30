@@ -1,5 +1,11 @@
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
 import {
+  parseStaffInvitationJson,
+  validateStaffInvitationIntent,
+  validateStaffInvitationRequestRecord,
+  validateStaffInvitationState,
+  validateStaffInvitationRevocationCommand,
+  validateStaffInvitationRevocationRecord,
   validateListingReportCommand,
   validateListingReportReceipt,
   validateListingReportDecisionCommand,
@@ -123,6 +129,8 @@ export interface EnquiryLimiter {
   consume(key: string): LimiterResult | Promise<LimiterResult>;
 }
 export interface ApiServiceOptions {
+  /** Isolated capture/revoke candidate only; no mail, secret or membership acceptance. */
+  readonly staffInvitationMode?: 'synthetic-capture-only-v1';
   /** Local synthetic capture/review only; omission keeps every report route unavailable. */
   readonly publicReportMode?: 'synthetic-listing-report-v1';
   readonly reportLimiter?: EnquiryLimiter;
@@ -245,6 +253,7 @@ async function jsonBody(
   integerRevision = false,
   stringVersions = false,
   deadlineMs = 0,
+  parser?: (source: string) => unknown,
 ): Promise<unknown> {
   if (
     !/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(request.headers.get('content-type') ?? '')
@@ -314,6 +323,7 @@ async function jsonBody(
   }
   try {
     const source = new TextDecoder('utf-8', { fatal: true }).decode(body);
+    if (parser) return parser(source);
     if (strictDecision) assertDecisionJsonTokens(source, stringVersions);
     return integerMoney
       ? integerRevision
@@ -1463,6 +1473,13 @@ export function createApiService(
   options: ApiServiceOptions,
 ): (request: Request) => Promise<Response> {
   if (
+    options.staffInvitationMode !== undefined &&
+    (options.staffInvitationMode !== 'synthetic-capture-only-v1' ||
+      process.env.NODE_ENV === 'production')
+  )
+    throw Error('Staff invitation candidates require explicit non-production mode.');
+  const staffInvitationsEnabled = options.staffInvitationMode === 'synthetic-capture-only-v1';
+  if (
     options.publicReportMode !== undefined &&
     options.publicReportMode !== 'synthetic-listing-report-v1'
   )
@@ -1563,6 +1580,136 @@ export function createApiService(
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method.toUpperCase();
+      if (path.startsWith('/v2/staff/invitation-requests')) {
+        if (!staffInvitationsEnabled)
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        const captureRoute = /^\/v2\/staff\/invitation-requests\/operations\/([^/]+)$/.exec(path);
+        const revokeRoute =
+          /^\/v2\/staff\/invitation-requests\/([^/]+)\/revocations\/([^/]+)$/.exec(path);
+        const stateRoute = /^\/v2\/staff\/invitation-requests\/([^/]+)$/.exec(path);
+        if (!captureRoute && !revokeRoute && !stateRoute)
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        if (
+          request.url.includes('?') ||
+          request.url.includes('#') ||
+          headerNames(request.headers).some(
+            (k) =>
+              ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(k) ||
+              k.startsWith('x-') ||
+              k.startsWith('if-'),
+          )
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Invitation context is server-owned.');
+        if (!['GET', 'POST'].includes(method) || (stateRoute && method !== 'GET'))
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method unavailable.', {
+            Allow: stateRoute ? 'GET' : 'GET, POST',
+          });
+        const actorId = await identity(request, true);
+        const operationId = captureRoute
+          ? uuid(captureRoute[1], 'operationId')
+          : revokeRoute
+            ? uuid(revokeRoute[2], 'operationId')
+            : null;
+        const invitationId = revokeRoute
+          ? uuid(revokeRoute[1], 'invitationId')
+          : stateRoute
+            ? uuid(stateRoute[1], 'invitationId')
+            : null;
+        let intent: ReturnType<typeof validateStaffInvitationIntent> | undefined;
+        let revocation: ReturnType<typeof validateStaffInvitationRevocationCommand> | undefined;
+        if (method === 'GET') {
+          if (
+            request.body !== null ||
+            request.headers.has('content-type') ||
+            request.headers.has('content-length')
+          )
+            throw new HttpError(400, 'INVALID_INPUT', 'Reads accept no body.');
+        } else {
+          try {
+            const input = await jsonBody(
+              request,
+              8192,
+              false,
+              false,
+              true,
+              false,
+              false,
+              5000,
+              parseStaffInvitationJson,
+            );
+            if (captureRoute) {
+              intent = validateStaffInvitationIntent(input);
+              if (intent.operationId !== operationId) throw Error();
+            } else {
+              revocation = validateStaffInvitationRevocationCommand(input);
+              if (
+                revocation.operationId !== operationId ||
+                revocation.invitationId !== invitationId
+              )
+                throw Error();
+            }
+          } catch (e) {
+            if (e instanceof HttpError) throw e;
+            throw new HttpError(400, 'INVALID_INPUT', 'Review the exact invitation command.');
+          }
+        }
+        const value = await options.database.transaction(
+          { tenantId, actorId, correlationId },
+          async (query) => {
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            const result = intent
+              ? await query.query(
+                  'SELECT app_api.record_staff_invitation_request($1,$2,$3,$4,$5) AS receipt',
+                  [
+                    intent.operationId,
+                    intent.recipientEmail,
+                    intent.requestedRole,
+                    intent.branchId,
+                    intent.expiresAfterHours,
+                  ],
+                )
+              : revocation
+                ? await query.query(
+                    'SELECT app_api.revoke_staff_invitation_request($1,$2,$3,$4) AS receipt',
+                    [
+                      revocation.operationId,
+                      revocation.invitationId,
+                      revocation.expectedVersion,
+                      revocation.reason,
+                    ],
+                  )
+                : captureRoute
+                  ? await query.query(
+                      'SELECT app_api.read_staff_invitation_request($1) AS receipt',
+                      [operationId],
+                    )
+                  : revokeRoute
+                    ? await query.query(
+                        'SELECT app_api.read_staff_invitation_revocation($1) AS receipt',
+                        [operationId],
+                      )
+                    : await query.query(
+                        'SELECT app_api.read_staff_invitation_state($1) AS receipt',
+                        [invitationId],
+                      );
+            if (result.rows.length !== 1) throw Error('Invalid invitation projection.');
+            const raw = result.rows[0]!.receipt;
+            if (captureRoute) {
+              const saved = validateStaffInvitationRequestRecord(raw, intent, actorId!);
+              if (saved.operationId !== operationId) throw Error('Invitation original mismatch.');
+              return saved;
+            }
+            if (revokeRoute) {
+              const saved = validateStaffInvitationRevocationRecord(raw, revocation, actorId!);
+              if (saved.operationId !== operationId || saved.invitationId !== invitationId)
+                throw Error('Revocation original mismatch.');
+              return saved;
+            }
+            return validateStaffInvitationState(raw, invitationId!);
+          },
+        );
+        return response(intent ? 202 : 200, value, correlationId);
+      }
       const publicReport = /^\/v2\/public\/listings\/([^/]+)\/reports\/([^/]+)$/.exec(path);
       const staffReport = /^\/v2\/staff\/listing-reports(?:\/([^/]+)\/operations\/([^/]+))?$/.exec(
         path,
