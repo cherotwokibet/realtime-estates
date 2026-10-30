@@ -37,7 +37,21 @@ export function listingReportConfig(env: Readonly<Record<string, string | undefi
   });
 }
 export function authorizeListingReport(request: Request, instanceId: string): void {
-  authorizePublicIntake(request, instanceId);
+  // Browsers omit Origin on same-origin GET. Only a browser-declared same-origin
+  // read with a matching referrer can use that alternative; writes still require Origin.
+  let checked = request;
+  if (request.method === 'GET' && !request.headers.has('origin')) {
+    const origin = new URL(request.url).origin;
+    if (
+      request.headers.get('sec-fetch-site') !== 'same-origin' ||
+      new URL(request.headers.get('referer') ?? '').origin !== origin
+    )
+      throw Error('Same-origin report recovery required.');
+    const headers = new Headers(request.headers);
+    headers.set('origin', origin);
+    checked = new Request(request, { headers });
+  }
+  authorizePublicIntake(checked, instanceId);
   if (
     request.headers.has('cookie') ||
     request.headers.has('x-tenant-id') ||

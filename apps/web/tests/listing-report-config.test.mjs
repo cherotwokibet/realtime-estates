@@ -49,3 +49,26 @@ test('report browser requests require same origin and current instance and rejec
   ])
     assert.throws(() => authorizeListingReport(req(patch), instance));
 });
+
+test('browser recovery GET accepts same-origin fetch metadata/referrer without Origin; writes and foreign reads fail', () => {
+  const url = 'http://127.0.0.1:3135/api/listing-report';
+  const headers = {
+    host: '127.0.0.1:3135',
+    'x-preview-instance': instance,
+    'sec-fetch-site': 'same-origin',
+    referer: 'http://127.0.0.1:3135/properties/synthetic',
+  };
+  authorizeListingReport(new Request(url, { headers }), instance);
+  for (const patch of [
+    { referer: 'https://external.invalid/' },
+    { referer: '' },
+    { 'sec-fetch-site': 'cross-site' },
+    { 'x-preview-instance': 'old' },
+  ])
+    assert.throws(() =>
+      authorizeListingReport(new Request(url, { headers: { ...headers, ...patch } }), instance),
+    );
+  assert.throws(() =>
+    authorizeListingReport(new Request(url, { method: 'POST', headers }), instance),
+  );
+});
