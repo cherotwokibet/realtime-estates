@@ -122,6 +122,22 @@ const definitions = {
     environment:
       'Isolated SQL candidate output bound to shared domain validators and C1 control refusal; first extended run passed',
   },
+  directoryBff238: {
+    path: 'docs/evidence/staff-directory-bff238-full.txt',
+    counts: [452],
+    commit: 'f8593efe1633b157ea7cc3eb77aab8226fafef50',
+    observedDate: '2026-10-31',
+    environment:
+      'Full admin server regression including current-instance directory BFF; no UI/Next production build claim',
+  },
+  directoryBff239: {
+    path: 'docs/evidence/staff-directory-bff239-integration.txt',
+    counts: [2],
+    commit: 'f8593efe1633b157ea7cc3eb77aab8226fafef50',
+    observedDate: '2026-10-31',
+    environment:
+      'Actual directory BFF function to shared SDK over signed local JWT/JWKS HTTP and restricted SQL; synthetic actor/tenant denials, not browser/Next HTTP proof',
+  },
   branchDomain234: {
     path: 'docs/evidence/staff-branch-domain234-full.txt',
     counts: [325],
