@@ -136,6 +136,7 @@ function configuration({
   referencePublicMode,
   journeyFixture,
   publicReportMode,
+  staffInvitationMode,
   seedAcceptedMedia = nativeUploads === undefined && enquiryPreview === undefined,
   seedPendingReviews = false,
 } = {}) {
@@ -149,6 +150,8 @@ function configuration({
       publicReportMode !== 'synthetic-listing-report-v1')
   )
     throw new StaffPreviewConfigurationError('Unsupported synthetic report reply fault.');
+  if (staffInvitationMode !== undefined && staffInvitationMode !== 'synthetic-capture-only-v1')
+    throw new StaffPreviewConfigurationError('Unsupported synthetic staff invitation mode.');
   journeyFixtureSelection(journeyFixture);
   if (publicReportMode !== undefined && publicReportMode !== 'synthetic-listing-report-v1')
     throw new StaffPreviewConfigurationError('Unsupported synthetic listing report mode.');
@@ -401,6 +404,7 @@ function configuration({
     referencePublicMode,
     journeyFixture,
     publicReportMode,
+    staffInvitationMode,
   };
 }
 function syntheticContent(title = 'Synthetic staff monthly studio') {
@@ -853,6 +857,7 @@ export async function startStaffPreview(options = {}) {
     referencePublicMode,
     journeyFixture,
     publicReportMode,
+    staffInvitationMode,
   } = configuration(options);
   let referenceReplyFaultPending = !!referenceReplyFault;
   let referenceModerationReplyFaultPending = !!referenceModerationReplyFault;
@@ -887,6 +892,13 @@ export async function startStaffPreview(options = {}) {
   let jwksServer;
   try {
     await seed(db, seedAcceptedMedia, seedPendingReviews);
+    if (staffInvitationMode) {
+      // Explicit disposable fixture only; never normal migrations or deployed bootstrap.
+      for (const file of ['staff-branches.sql', 'staff-invitation-requests.sql'])
+        await db.exec(
+          await readFile(new URL('../../../database/proposals/' + file, import.meta.url), 'utf8'),
+        );
+    }
     if (referenceDraftMode) {
       // Explicit disposable owner fixture only. These are never default migrations.
       for (const file of [
@@ -1180,6 +1192,7 @@ export async function startStaffPreview(options = {}) {
       database,
       verificationMode: 'synthetic-check-record-v1',
       ...(publicReportMode ? { publicReportMode } : {}),
+      ...(staffInvitationMode ? { staffInvitationMode } : {}),
       ...(referenceDraftMode ? { referenceDraftMode } : {}),
       ...(referenceModerationMode ? { referenceModerationMode } : {}),
       ...(referenceCreationMode ? { referenceCreationMode } : {}),
@@ -1331,6 +1344,8 @@ export async function startStaffPreview(options = {}) {
             retainedSyntheticMedia: !!nativeMedia,
             tokenExpiresAt: expiresAt,
           });
+        if (staffInvitationMode && /^\/v2\/staff\/invitation-requests(?:\/|$)/.test(url.pathname))
+          return service(request);
         if (
           publicReportMode &&
           (/^\/v2\/public\/listings\/[0-9a-f-]+\/reports\/[0-9a-f-]+$/.test(url.pathname) ||
