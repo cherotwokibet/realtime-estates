@@ -122,6 +122,46 @@ const definitions = {
     environment:
       'Isolated SQL candidate output bound to shared domain validators and C1 control refusal; first extended run passed',
   },
+  branchDomain234: {
+    path: 'docs/evidence/staff-branch-domain234-full.txt',
+    counts: [325],
+    commit: '9f66380ba18fb5ce91b270bcf2efd1caf60cde83',
+    observedDate: '2026-10-30',
+    environment:
+      'Full domain regression including exact branch command and original receipt contracts',
+  },
+  branchSql234: {
+    path: 'docs/evidence/staff-branch-sql234-final.txt',
+    counts: [3],
+    commit: '9f66380ba18fb5ce91b270bcf2efd1caf60cde83',
+    observedDate: '2026-10-30',
+    environment:
+      'Restricted isolated branch SQL outputs bound to original command and actor; no migration promotion',
+  },
+  branchApi235: {
+    path: 'docs/evidence/staff-branch-api235-final.txt',
+    counts: [9],
+    commit: '9f66380ba18fb5ce91b270bcf2efd1caf60cde83',
+    observedDate: '2026-10-30',
+    environment:
+      'Focused branch/directory/invitation API projection and original authority checks; not full API suite',
+  },
+  branchSdk236: {
+    path: 'docs/evidence/staff-branch-sdk236-full.txt',
+    counts: [317],
+    commit: '9f66380ba18fb5ce91b270bcf2efd1caf60cde83',
+    observedDate: '2026-10-30',
+    environment:
+      'Full standard SDK regression including exact branch save and GET original/current',
+  },
+  branchHttp236: {
+    path: 'docs/evidence/staff-branch-http236-initial.txt',
+    counts: [3],
+    commit: '9f66380ba18fb5ce91b270bcf2efd1caf60cde83',
+    observedDate: '2026-10-30',
+    environment:
+      'Actual signed JWT/JWKS HTTP/restricted SQL and SDK committed corrupt branch reply recovery by GET only; synthetic fixture',
+  },
   directoryDomain230: {
     path: 'docs/evidence/staff-directory-domain230-full.txt',
     counts: [321],
