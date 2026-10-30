@@ -137,6 +137,7 @@ function configuration({
   journeyFixture,
   publicReportMode,
   staffInvitationMode,
+  invitationReplyFault,
   seedAcceptedMedia = nativeUploads === undefined && enquiryPreview === undefined,
   seedPendingReviews = false,
 } = {}) {
@@ -152,6 +153,12 @@ function configuration({
     throw new StaffPreviewConfigurationError('Unsupported synthetic report reply fault.');
   if (staffInvitationMode !== undefined && staffInvitationMode !== 'synthetic-capture-only-v1')
     throw new StaffPreviewConfigurationError('Unsupported synthetic staff invitation mode.');
+  if (
+    invitationReplyFault !== undefined &&
+    (invitationReplyFault !== 'invalid-first-invitation-results-v1' ||
+      staffInvitationMode !== 'synthetic-capture-only-v1')
+  )
+    throw new StaffPreviewConfigurationError('Unsupported synthetic invitation reply fault.');
   journeyFixtureSelection(journeyFixture);
   if (publicReportMode !== undefined && publicReportMode !== 'synthetic-listing-report-v1')
     throw new StaffPreviewConfigurationError('Unsupported synthetic listing report mode.');
@@ -405,6 +412,7 @@ function configuration({
     journeyFixture,
     publicReportMode,
     staffInvitationMode,
+    invitationReplyFault,
   };
 }
 function syntheticContent(title = 'Synthetic staff monthly studio') {
@@ -858,6 +866,7 @@ export async function startStaffPreview(options = {}) {
     journeyFixture,
     publicReportMode,
     staffInvitationMode,
+    invitationReplyFault,
   } = configuration(options);
   let referenceReplyFaultPending = !!referenceReplyFault;
   let referenceModerationReplyFaultPending = !!referenceModerationReplyFault;
@@ -865,6 +874,8 @@ export async function startStaffPreview(options = {}) {
   let referenceCreationReplyFaultPending = !!referenceCreationReplyFault;
   let controlReplyFaultPending = !!controlReplyFault;
   let settingsReplyFaultPending = !!settingsReplyFault;
+  let invitationCaptureFaultPending = !!invitationReplyFault,
+    invitationRevokeFaultPending = !!invitationReplyFault;
   let reportCaptureFaultPending = !!reportReplyFault,
     reportDecisionFaultPending = !!reportReplyFault;
   let successorReplyFaultPending = !!successorReplyFault;
@@ -1344,8 +1355,26 @@ export async function startStaffPreview(options = {}) {
             retainedSyntheticMedia: !!nativeMedia,
             tokenExpiresAt: expiresAt,
           });
-        if (staffInvitationMode && /^\/v2\/staff\/invitation-requests(?:\/|$)/.test(url.pathname))
-          return service(request);
+        if (staffInvitationMode && /^\/v2\/staff\/invitation-requests(?:\/|$)/.test(url.pathname)) {
+          const response = await service(request);
+          const capture = url.pathname.includes('/operations/');
+          if (
+            request.method === 'POST' &&
+            ((capture && invitationCaptureFaultPending && response.status === 202) ||
+              (!capture && invitationRevokeFaultPending && response.status === 200))
+          ) {
+            if (capture) invitationCaptureFaultPending = false;
+            else invitationRevokeFaultPending = false;
+            return Response.json(
+              { syntheticInvitationReplyCorruption: true },
+              {
+                status: response.status,
+                headers: { 'Cache-Control': 'no-store', 'X-Synthetic-Staff-Preview': 'true' },
+              },
+            );
+          }
+          return response;
+        }
         if (
           publicReportMode &&
           (/^\/v2\/public\/listings\/[0-9a-f-]+\/reports\/[0-9a-f-]+$/.test(url.pathname) ||
