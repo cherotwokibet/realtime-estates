@@ -385,3 +385,107 @@ export function validateStaffInvitationPage(
   );
   return Object.freeze({ policy: 'staff-invitation-page-v1', ...page });
 }
+
+export interface StaffBranchCommand {
+  readonly policy: 'staff-branch-command-v1';
+  readonly operationId: string;
+  readonly branchId: string;
+  readonly expectedVersion: string;
+  readonly name: string;
+  readonly active: boolean;
+  readonly reason: string;
+}
+export interface StaffBranchRecord extends Omit<StaffBranchCommand, 'policy'> {
+  readonly policy: 'staff-branch-record-v1';
+  readonly actorId: string;
+  readonly version: string;
+  readonly outcome: 'applied' | 'conflict' | 'unchanged';
+  readonly recordedAt: string;
+}
+const branchVersion = (v: unknown, max: bigint): string =>
+  typeof v === 'string' && /^(0|[1-9]\d{0,15})$/.test(v) && BigInt(v) <= max ? v : invalid();
+export function validateStaffBranchCommand(input: unknown): StaffBranchCommand {
+  const r = record(input, [
+    'policy',
+    'operationId',
+    'branchId',
+    'expectedVersion',
+    'name',
+    'active',
+    'reason',
+  ]);
+  if (r.policy !== 'staff-branch-command-v1' || typeof r.active !== 'boolean') return invalid();
+  return Object.freeze({
+    policy: 'staff-branch-command-v1',
+    operationId: uuid(r.operationId),
+    branchId: uuid(r.branchId),
+    expectedVersion: branchVersion(r.expectedVersion, 9007199254740990n),
+    name: plain(r.name, 160),
+    active: r.active,
+    reason: plain(r.reason, 500),
+  });
+}
+export function validateStaffBranchRecord(
+  input: unknown,
+  command?: StaffBranchCommand,
+  actorId?: string,
+): StaffBranchRecord {
+  const r = record(input, [
+    'policy',
+    'operationId',
+    'branchId',
+    'expectedVersion',
+    'name',
+    'active',
+    'reason',
+    'actorId',
+    'version',
+    'outcome',
+    'recordedAt',
+  ]);
+  if (
+    r.policy !== 'staff-branch-record-v1' ||
+    !['applied', 'conflict', 'unchanged'].includes(r.outcome as string)
+  )
+    return invalid();
+  const facts = validateStaffBranchCommand({
+    policy: 'staff-branch-command-v1',
+    operationId: r.operationId,
+    branchId: r.branchId,
+    expectedVersion: r.expectedVersion,
+    name: r.name,
+    active: r.active,
+    reason: r.reason,
+  });
+  const observed = branchVersion(r.version, 9007199254740991n),
+    expected = BigInt(facts.expectedVersion),
+    actual = BigInt(observed);
+  if (
+    (r.outcome === 'applied' && actual !== expected + 1n) ||
+    (r.outcome === 'unchanged' && (actual === 0n || actual !== expected)) ||
+    (r.outcome === 'conflict' && actual === expected)
+  )
+    return invalid();
+  if (command !== undefined) {
+    const wanted = validateStaffBranchCommand(command);
+    for (const key of [
+      'operationId',
+      'branchId',
+      'expectedVersion',
+      'name',
+      'active',
+      'reason',
+    ] as const)
+      if (facts[key] !== wanted[key]) return invalid();
+  }
+  const actor = uuid(r.actorId);
+  if (actorId !== undefined && actor !== uuid(actorId)) return invalid();
+  return Object.freeze({
+    ...facts,
+    policy: 'staff-branch-record-v1',
+    actorId: actor,
+    version: observed,
+    outcome: r.outcome as StaffBranchRecord['outcome'],
+    recordedAt: instant(r.recordedAt),
+  });
+}

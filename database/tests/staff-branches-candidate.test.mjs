@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
+import { validateStaffBranchRecord } from '../../packages/domain/dist/index.js';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 async function fixture() {
@@ -44,8 +45,8 @@ async function actor(db, t, u, fn) {
   }
 }
 const scalar = async (db, sql, args = []) => (await db.query(sql, args)).rows[0].result;
-const save = (db, op, expected, name = 'Synthetic branch', active = true, t = 1, u = 10) =>
-  actor(db, t, u, () =>
+const save = async (db, op, expected, name = 'Synthetic branch', active = true, t = 1, u = 10) => {
+  const value = await actor(db, t, u, () =>
     scalar(db, 'SELECT app_api.save_staff_branch($1,$2,$3,$4,$5,$6) AS result', [
       id(op),
       id(100),
@@ -55,6 +56,20 @@ const save = (db, op, expected, name = 'Synthetic branch', active = true, t = 1,
       'Synthetic branch change.',
     ]),
   );
+  return validateStaffBranchRecord(
+    value,
+    {
+      policy: 'staff-branch-command-v1',
+      operationId: id(op),
+      branchId: id(100),
+      expectedVersion: String(expected),
+      name,
+      active,
+      reason: 'Synthetic branch change.',
+    },
+    id(u),
+  );
+};
 const original = (db, op, t = 1, u = 10) =>
   actor(db, t, u, () =>
     scalar(db, 'SELECT app_api.read_staff_branch_operation($1) AS result', [id(op)]),
