@@ -71,6 +71,7 @@ const commits = {
   settings220: 'd532848e2a49fb604d81c1a3edb0494af7be5da2',
   settingsInitial: 'c17256f765d29ef063e267c2095ce9b5f368f7a3',
   preservation221: '895a95587932789f7249df2f741442b83695fd20',
+  invitations225: '3d67007ef2a43f78bda17642f93b4b9d4c94b2b5',
   invitations224: 'dfe694b78919e98d168133892ff11daee2ebeebf',
   reports223: '6b8569b1c49f101062c0cfa9a0c7c054d5f2d637',
   performance222: 'aa414973efd01198e865a0cb29ec6c7edc96f7f3',
@@ -81,6 +82,54 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  invitationDomain225: {
+    path: 'docs/evidence/staff-invitation-domain225.txt',
+    counts: [317],
+    commit: commits.invitations225,
+    observedDate: '2026-10-30',
+    environment:
+      'Full domain regression including exact capture/state/revocation records and bounded parsing',
+  },
+  invitationApi225: {
+    path: 'docs/evidence/staff-invitation-api225-full.txt',
+    counts: [318],
+    commit: commits.invitations225,
+    observedDate: '2026-10-30',
+    environment:
+      'Full API regression after default-off non-production invitation routes; no provider or UI claim',
+  },
+  invitationSdk225: {
+    path: 'docs/evidence/staff-invitation-sdk225-full.txt',
+    counts: [311],
+    commit: commits.invitations225,
+    observedDate: '2026-10-30',
+    environment:
+      'Full SDK regression including explicit invitation methods and lost/malformed-write uncertainty',
+  },
+  invitationApiWire225: {
+    path: 'docs/evidence/staff-invitation-api225-final.txt',
+    counts: [6],
+    commit: commits.invitations225,
+    observedDate: '2026-10-30',
+    environment:
+      'Focused API boundaries plus actual SDK-to-service Request and restricted SQL; synthetic identity mapping, not signed HTTP',
+  },
+  invitationSqlWire225: {
+    path: 'docs/evidence/staff-invitation-sql225-initial.txt',
+    counts: [7],
+    commit: commits.invitations225,
+    observedDate: '2026-10-30',
+    environment:
+      'Isolated SQL candidate output bound to shared domain validators and C1 control refusal; first extended run passed',
+  },
+  invitationRecords225: {
+    path: 'docs/evidence/staff-invitation-records225.txt',
+    counts: [7],
+    commit: commits.invitations225,
+    observedDate: '2026-10-30',
+    environment: 'Exact immutable receipt/state/outcome and duplicate/rounded JSON contract checks',
+  },
+
   invitationDomain224: {
     path: 'docs/evidence/staff-invitation-domain224.txt',
     counts: [310],

@@ -8,6 +8,12 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| invitationDomain225 | [evidence/staff-invitation-domain225.txt](evidence/staff-invitation-domain225.txt) · 3d67007 | 317 passed; Full domain regression including exact capture/state/revocation records and bounded parsing |
+| invitationApi225 | [evidence/staff-invitation-api225-full.txt](evidence/staff-invitation-api225-full.txt) · 3d67007 | 318 passed; Full API regression after default-off non-production invitation routes; no provider or UI claim |
+| invitationSdk225 | [evidence/staff-invitation-sdk225-full.txt](evidence/staff-invitation-sdk225-full.txt) · 3d67007 | 311 passed; Full SDK regression including explicit invitation methods and lost/malformed-write uncertainty |
+| invitationApiWire225 | [evidence/staff-invitation-api225-final.txt](evidence/staff-invitation-api225-final.txt) · 3d67007 | 6 passed; Focused API boundaries plus actual SDK-to-service Request and restricted SQL; synthetic identity mapping, not signed HTTP |
+| invitationSqlWire225 | [evidence/staff-invitation-sql225-initial.txt](evidence/staff-invitation-sql225-initial.txt) · 3d67007 | 7 passed; Isolated SQL candidate output bound to shared domain validators and C1 control refusal; first extended run passed |
+| invitationRecords225 | [evidence/staff-invitation-records225.txt](evidence/staff-invitation-records225.txt) · 3d67007 | 7 passed; Exact immutable receipt/state/outcome and duplicate/rounded JSON contract checks |
 | invitationDomain224 | [evidence/staff-invitation-domain224.txt](evidence/staff-invitation-domain224.txt) · dfe694b | 310 passed; Full domain regression including capture-only invitation intent; no invitation delivery or access grant |
 | branchCandidate224 | [evidence/staff-branch-sql224-final.txt](evidence/staff-branch-sql224-final.txt) · dfe694b | 3 passed; Explicit isolated branch SQL proposal in restricted PGlite; durable originals/conflict/noop and two-company/current-admin fences; not a normal migration or hosted locking proof |
 | invitationCandidate224 | [evidence/staff-invitation-sql224.txt](evidence/staff-invitation-sql224.txt) · dfe694b | 5 passed; Explicit isolated capture-only invitation/revocation SQL in restricted PGlite; historical expiry fixture, no mail/token/redemption/membership grant or UI/provider acceptance |
