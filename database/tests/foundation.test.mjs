@@ -155,6 +155,8 @@ test('migration forces RLS and API role has neither owner membership nor direct 
       'listing_control_results',
       'listing_creation_requests',
       'listing_creation_results',
+      'listing_report_decisions',
+      'listing_reports',
       'listing_revisions',
       'listing_successor_requests',
       'listing_successor_results',

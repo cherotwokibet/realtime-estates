@@ -1,0 +1,19 @@
+# Authorization review —30October2026 (in progress)
+
+This review targets canonical12-2: role/ownership/tenant negative tests and API/storage authorization review. It does not accept identity-provider integration, staging security, real-device/session UAT, export implementation, penetration certification or any launch gate. Task remains unchecked until review findings and actual verification are complete.
+
+## Reviewed trust boundaries
+
+- `apps/api/src/auth.ts`: trusted issuer/audience/JWKS origin, RS256-only verification, required iss/aud/sub/exp/iat, one-hour max age, no clock tolerance, bounded bearer/header/subject; loopback keys refused in production. Token claims do not establish company role; current SQL membership does.
+- `apps/api/src/database.ts`: before every transaction, reject owner, superuser, bypass-RLS, inherited/extra roles or schema/table ownership; SET LOCAL api_runtime and parameterized transaction-local company/actor/correlation; rollback and destroy unsafe/unrecoverable pooled connections. Client data cannot select DSN, database role or SQL.
+- `apps/api/src/service.ts`: configured tenant is fixed in the API closure; signed identity contributes actor only. Anonymous catalogue/image/intake/report paths use guest context and explicit bounded projections. Private routes independently check current company/membership/assignment through restricted SQL; synthetic v3/report features default off. Browser company/role/actor overrides are not authorization.
+- Default migrations0001–0037: owner role is non-login; forced RLS protects private tables; narrow security-definer functions pin pg_catalog search_path; API/worker/maintenance roles have distinct operations. Raw API SELECT grants in0001 are deliberate RLS-scoped reads, not an assertion that all raw SELECT is forbidden. New report tables are runtime-inaccessible except through functions.
+- `packages/media/src/local-store.ts`, durable-store and processing/upload/cleanup composition: opaque same-instance capabilities, exact company/listing/revision/job/attempt/output bindings, owned generated paths, link/hardlink rejection and positive finalization seals. Historical receipts do not issue new write/worker/deletion authority. Actual public images require current public metadata before and after I/O; private draft/review paths require current staff authorization.
+
+## Evidence being collected
+
+The current full SQL run (owned34429) exercises two synthetic tenants, guest/customer/agent/peer/admin, current role revocation/tenant disable, cross-company foreign keys, raw-write/receipt forgery, reassignment, moderated publication and private/public media read fences. One failure is a stale expected table inventory omitting listing_reports/listing_report_decisions; expected list corrected, forced-RLS assertion retained. Do not call that initial run a pass. A new installed-schema authorization-review.test.mjs checks every private table, all three restricted roles, public EXECUTE exposure, all security-definer owners/search paths and absence of direct table writes/schema CREATE; it is not yet run.
+
+Existing API312/312, signed report HTTP3/3, full SDK307/web114/admin448+34 and earlier actual native/media207/207 are scoped evidence, not new review execution. Final review must identify current-source hashes and distinguish current runs from unchanged prior evidence. Hosted PostgreSQL concurrency, real provider identity and external-object-store policy remain open.
+
+Exact next: finish existing SQL process, run corrected inventory/new least-privilege inventory and relevant signed role/storage checks, inspect failures rather than weaken assertions, complete report builds and canonical evidence before accepting12-2 or07-4. Preserve all failed logs and vendor/live resources; no GitHub Actions or purchases.
