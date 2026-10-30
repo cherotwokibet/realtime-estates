@@ -1,0 +1,33 @@
+✖ private report queue and review snapshot identity and recover originals without replay (3.7855ms)
+✔ anonymous report sends one credential-free202 capture and original recovery is GET only (94.8795ms)
+✔ anonymous authority/accessors and changed report commands fail before transport (2.487ms)
+✔ lost or counterfeit successful report replies remain uncertain and never retry automatically (4.1701ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 317.4634
+
+✖ failing tests:
+
+test at packages\api-client\tests\listing-reports.test.mjs:25:1
+✖ private report queue and review snapshot identity and recover originals without replay (3.7855ms)
+  Error [ApiClientError]: Malformed attachment fields.
+      at invalid (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:175:11)
+      at attachRecord (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:684:16)
+      at RealtorApiClient.listListingReports (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:1992:54)
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/tests/listing-reports.test.mjs:57:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    kind: 'VALIDATION',
+    status: undefined,
+    serverCode: undefined,
+    requestId: undefined,
+    retryAfterSeconds: undefined,
+    submissionUncertain: false
+  }

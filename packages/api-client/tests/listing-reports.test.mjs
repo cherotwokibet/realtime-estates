@@ -22,6 +22,79 @@ const api = (fetch) =>
     privacyNoticeVersion: 'synthetic-report-v1',
     fetch,
   });
+test('private report queue and review snapshot identity and recover originals without replay', async () => {
+  const decision = {
+    policy: 'listing-report-decision-command-v1',
+    operationId: id(3),
+    reportId: id(4),
+    expectedVersion: '1',
+    decision: 'reviewed',
+    reason: 'Synthetic review only.',
+  };
+  const saved = {
+    policy: 'listing-report-decision-receipt-v1',
+    operationId: id(3),
+    reportId: id(4),
+    version: '2',
+    decision: 'reviewed',
+    reason: decision.reason,
+    actorId: id(10),
+    recordedAt: receipt.recordedAt,
+  };
+  const queue = {
+    policy: 'listing-report-queue-v1',
+    items: [],
+    hasMore: false,
+    limit: 2,
+    status: 'all',
+  };
+  const calls = [];
+  const client = api(async (url, init) => {
+    calls.push({ url, init });
+    return Response.json(url.includes('?') ? queue : saved);
+  });
+  const options = { bearerToken: 'original-token' };
+  const work = client.listListingReports({ limit: 2, status: 'all' }, options);
+  options.bearerToken = 'changed-token';
+  assert.deepEqual(await work, queue);
+  assert.equal(new Headers(calls[0].init.headers).get('authorization'), 'Bearer original-token');
+  assert.deepEqual(await client.decideListingReport(decision, options), saved);
+  assert.deepEqual(await client.getListingReportDecision(id(4), id(3), options), saved);
+  assert.deepEqual(
+    calls.map((c) => c.init.method),
+    ['GET', 'POST', 'GET'],
+  );
+  assert.equal(calls[2].init.body, undefined);
+  assert.equal(
+    calls[0].url,
+    'https://synthetic.invalid/v2/staff/listing-reports?limit=2&status=all',
+  );
+  assert.deepEqual(JSON.parse(calls[1].init.body), decision);
+  const malformed = api(async () => Response.json({ ...saved, version: '3' }));
+  await assert.rejects(
+    () => malformed.decideListingReport(decision, options),
+    (e) => e.kind === 'INVALID_RESPONSE' && e.submissionUncertain,
+  );
+  const wrongOriginal = api(async () => Response.json({ ...saved, reportId: id(9) }));
+  await assert.rejects(
+    () => wrongOriginal.getListingReportDecision(id(4), id(3), options),
+    (e) => e.kind === 'INVALID_RESPONSE',
+  );
+  let dispatched = 0;
+  const denied = api(async () => {
+    dispatched++;
+    return Response.json(queue);
+  });
+  await assert.rejects(
+    () => denied.listListingReports({ limit: 51 }, options),
+    (e) => e.kind === 'VALIDATION',
+  );
+  await assert.rejects(
+    () => denied.decideListingReport(decision, {}),
+    (e) => e.kind === 'VALIDATION',
+  );
+  assert.equal(dispatched, 0);
+});
 test('anonymous report sends one credential-free202 capture and original recovery is GET only', async () => {
   const calls = [];
   const client = api(async (url, init) => {

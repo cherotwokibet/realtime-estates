@@ -2460,6 +2460,18 @@ function uploadBytes(input: unknown): Uint8Array<ArrayBuffer> {
     return invalid('VALIDATION', 'Supply an ordinary byte array within the upload limit.');
   }
 }
+function reportQueueInput(input: unknown): Record<string, unknown> {
+  if (
+    !input ||
+    typeof input !== 'object' ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(input))
+  )
+    return invalid('VALIDATION', 'Exact report queue fields required.');
+  const keys = Reflect.ownKeys(input);
+  if (keys.some((k) => typeof k !== 'string' || !['limit', 'before', 'status'].includes(k)))
+    return invalid('VALIDATION', 'Unsupported report queue field.');
+  return attachRecord(input, keys as string[], 'VALIDATION');
+}
 function anonymousReportOptions(input: Omit<RequestOptions, 'bearerToken'>): RequestOptions {
   if (
     !input ||
@@ -3505,7 +3517,7 @@ export class RealtorApiClient {
     options: StaffRequestOptions,
   ): Promise<ListingReportQueue> {
     const captured = uploadOptions(options),
-      q = attachRecord(input, ['limit', 'before', 'status'], 'VALIDATION'),
+      q = reportQueueInput(input),
       limit = integer(q.limit ?? 50, 1, 50, 'VALIDATION', 'Limit'),
       status = q.status ?? 'new';
     if (typeof status !== 'string' || !['all', 'new', 'reviewed', 'dismissed'].includes(status))
