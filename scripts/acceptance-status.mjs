@@ -122,6 +122,14 @@ const definitions = {
     environment:
       'Isolated SQL candidate output bound to shared domain validators and C1 control refusal; first extended run passed',
   },
+  staffController245: {
+    path: 'docs/evidence/staff-controller245-full.txt',
+    counts: [470],
+    commit: '85d084e7834dfccdbc8c787451028c0adf99e7e3',
+    observedDate: '2026-10-31',
+    environment:
+      'Full admin server/transport/model/controller regression; no mounted UI or actual browser proof',
+  },
   staffBrowser243: {
     path: 'docs/evidence/staff-browser243-full.txt',
     counts: [460],
