@@ -1,7 +1,10 @@
 import 'server-only';
 import { ApiClientError, RealtorApiClient } from '@realtor/api-client';
-import { parseStaffInvitationJson, validateStaffBranchCommand } from '@realtor/domain';
-import { staffDirectoryPreviewContext } from './staff-directory-server.ts';
+import { validateStaffBranchCommand } from '@realtor/domain';
+import {
+  readStaffDirectoryCommandBody,
+  staffDirectoryPreviewContext,
+} from './staff-directory-server.ts';
 import { upstreamFailureStatus } from './staff-preview-policy.ts';
 const reply = (status: number, body: unknown) =>
   Response.json(body, {
@@ -42,45 +45,11 @@ export async function staffBranchBoundary(
     )
       return reply(400, { error: 'INVALID_BRANCH_REQUEST' });
   } else {
-    const declared = request.headers.get('content-length');
-    if (
-      (declared !== null && (!/^(0|[1-9]\d*)$/.test(declared) || Number(declared) > 8192)) ||
-      !request.body
-    )
-      return reply(400, { error: 'INVALID_BRANCH_REQUEST' });
-    const reader = request.body.getReader(),
-      decoder = new TextDecoder('utf-8', { fatal: true });
-    let bytes = 0,
-      empty = 0,
-      text = '',
-      timer: ReturnType<typeof setTimeout> | undefined;
-    const deadline = new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(Error('Body deadline')), 5000);
-    });
     try {
-      for (;;) {
-        const chunk = await Promise.race([reader.read(), deadline]);
-        if (chunk.done) break;
-        if (!chunk.value.byteLength) {
-          if (++empty > 1024) throw Error();
-          if (empty % 64 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
-          continue;
-        }
-        empty = 0;
-        bytes += chunk.value.byteLength;
-        if (bytes > 8192 || request.signal.aborted) throw Error();
-        text += decoder.decode(chunk.value, { stream: true });
-      }
-      text += decoder.decode();
-      if (declared !== null && Number(declared) !== bytes) throw Error();
-      command = validateStaffBranchCommand(parseStaffInvitationJson(text));
+      command = validateStaffBranchCommand(await readStaffDirectoryCommandBody(request));
       if (command.operationId !== target) throw Error();
     } catch {
       return reply(400, { error: 'INVALID_BRANCH_REQUEST' });
-    } finally {
-      if (timer) clearTimeout(timer);
-      void reader.cancel().catch(() => {});
-      reader.releaseLock();
     }
   }
   const api = new RealtorApiClient({

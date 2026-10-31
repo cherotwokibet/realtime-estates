@@ -1,6 +1,6 @@
 import 'server-only';
 import { ApiClientError, RealtorApiClient } from '@realtor/api-client';
-import { validateStaffDirectoryQuery } from '@realtor/domain';
+import { parseStaffInvitationJson, validateStaffDirectoryQuery } from '@realtor/domain';
 import {
   previewConfiguration,
   assertPreviewRequest,
@@ -85,4 +85,45 @@ export function staffDirectoryPreviewContext(
   if (origin !== null && origin !== 'http://' + request.headers.get('host')) throw Error();
 
   return config;
+}
+
+/** Bounded exact JSON for private synthetic staff commands; no unbounded request.json(). */
+export async function readStaffDirectoryCommandBody(request: Request): Promise<unknown> {
+  const declared = request.headers.get('content-length');
+  if (
+    (declared !== null && (!/^(0|[1-9]\d*)$/.test(declared) || Number(declared) > 8192)) ||
+    !request.body
+  )
+    throw Error('Invalid body framing.');
+  const reader = request.body.getReader(),
+    decoder = new TextDecoder('utf-8', { fatal: true });
+  let bytes = 0,
+    empty = 0,
+    text = '',
+    timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(Error('Body deadline')), 5000);
+  });
+  try {
+    for (;;) {
+      const chunk = await Promise.race([reader.read(), deadline]);
+      if (chunk.done) break;
+      if (!chunk.value.byteLength) {
+        if (++empty > 1024) throw Error();
+        if (empty % 64 === 0) await new Promise((resolve) => setTimeout(resolve, 0));
+        continue;
+      }
+      empty = 0;
+      bytes += chunk.value.byteLength;
+      if (bytes > 8192 || request.signal.aborted) throw Error();
+      text += decoder.decode(chunk.value, { stream: true });
+    }
+    text += decoder.decode();
+    if (request.signal.aborted || (declared !== null && Number(declared) !== bytes)) throw Error();
+    return parseStaffInvitationJson(text);
+  } finally {
+    if (timer) clearTimeout(timer);
+    void reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
 }

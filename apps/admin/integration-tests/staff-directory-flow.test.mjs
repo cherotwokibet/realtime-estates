@@ -1,3 +1,4 @@
+import { staffInvitationBoundary } from '../dist/tests/lib/staff-invitation-server.js';
 import { staffBranchBoundary } from '../dist/tests/lib/staff-branch-server.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -183,6 +184,116 @@ test('branch BFF uncertain committed write recovers original with GET over signe
     assert.equal(r.status, 200);
     assert.equal((await r.json()).branch.name, command.name);
     assert.deepEqual(calls, ['POST', 'GET', 'GET']);
+  } finally {
+    await p.close();
+  }
+});
+
+test('invitation BFF committed capture/revocation replies stay uncertain and recover each original by GET only', async () => {
+  const p = await startStaffPreview({
+    ...mode,
+    actor: 'admin',
+    invitationReplyFault: 'invalid-first-invitation-results-v1',
+  });
+  try {
+    const env = settings(p),
+      intent = {
+        policy: 'staff-invitation-intent-v1',
+        operationId: randomUUID(),
+        recipientEmail: 'synthetic@example.invalid',
+        requestedRole: 'agent',
+        branchId: null,
+        expiresAfterHours: 24,
+      };
+    const make = (path, body) =>
+      new Request('http://localhost:3120/api/staff-directory/invitations/' + path, {
+        method: body ? 'POST' : 'GET',
+        headers: {
+          host: '127.0.0.1:3120',
+          'x-preview-instance': env.STAFF_PREVIEW_INSTANCE,
+          ...(body ? { origin: 'http://127.0.0.1:3120', 'content-type': 'application/json' } : {}),
+        },
+        ...(body ? { body: JSON.stringify(body) } : {}),
+      });
+    const calls = [],
+      transport = async (input, init) => {
+        calls.push(init?.method ?? 'GET');
+        return fetch(input, init);
+      },
+      path = 'operations/' + intent.operationId;
+    let r = await staffInvitationBoundary(
+      make(path, intent),
+      'capture',
+      intent.operationId,
+      undefined,
+      env,
+      transport,
+    );
+    assert.ok(r.status >= 400);
+    assert.equal((await r.json()).submissionUncertain, true);
+    assert.deepEqual(calls, ['POST']);
+    r = await staffInvitationBoundary(
+      make(path),
+      'capture',
+      intent.operationId,
+      undefined,
+      env,
+      transport,
+    );
+    assert.equal(r.status, 200);
+    const original = (await r.json()).receipt;
+    assert.equal(original.membershipGranted, false);
+    assert.equal(original.delivery, 'not_attempted');
+    assert.deepEqual(calls, ['POST', 'GET']);
+    const command = {
+        policy: 'staff-invitation-revocation-command-v1',
+        operationId: randomUUID(),
+        invitationId: intent.operationId,
+        expectedVersion: '1',
+        reason: 'Synthetic BFF revocation.',
+      },
+      revokePath = intent.operationId + '/revocations/' + command.operationId;
+    r = await staffInvitationBoundary(
+      make(revokePath, command),
+      'revocation',
+      intent.operationId,
+      command.operationId,
+      env,
+      transport,
+    );
+    assert.ok(r.status >= 400);
+    assert.equal((await r.json()).submissionUncertain, true);
+    assert.deepEqual(calls, ['POST', 'GET', 'POST']);
+    r = await staffInvitationBoundary(
+      make(revokePath),
+      'revocation',
+      intent.operationId,
+      command.operationId,
+      env,
+      transport,
+    );
+    assert.equal(r.status, 200);
+    assert.equal((await r.json()).receipt.outcome, 'revoked');
+    assert.deepEqual(calls, ['POST', 'GET', 'POST', 'GET']);
+    r = await staffInvitationBoundary(
+      make(intent.operationId),
+      'current',
+      intent.operationId,
+      undefined,
+      env,
+      transport,
+    );
+    assert.equal((await r.json()).state.state, 'revoked');
+    r = await staffInvitationBoundary(
+      make(path),
+      'capture',
+      intent.operationId,
+      undefined,
+      env,
+      transport,
+    );
+    assert.deepEqual((await r.json()).receipt, original);
+    assert.deepEqual(calls, ['POST', 'GET', 'POST', 'GET', 'GET', 'GET']);
   } finally {
     await p.close();
   }
