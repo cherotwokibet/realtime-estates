@@ -1,3 +1,4 @@
+import { createStaffDirectoryClient } from '../dist/tests/lib/staff-directory-client.js';
 import { staffInvitationBoundary } from '../dist/tests/lib/staff-invitation-server.js';
 import { staffBranchBoundary } from '../dist/tests/lib/staff-branch-server.js';
 import test from 'node:test';
@@ -294,6 +295,91 @@ test('invitation BFF committed capture/revocation replies stay uncertain and rec
     );
     assert.deepEqual((await r.json()).receipt, original);
     assert.deepEqual(calls, ['POST', 'GET', 'POST', 'GET', 'GET', 'GET']);
+  } finally {
+    await p.close();
+  }
+});
+
+test('current-instance browser adapter through BFF and signed API retains uncertain branch original and invitation states', async () => {
+  const p = await startStaffPreview({
+    ...mode,
+    actor: 'admin',
+    branchReplyFault: 'invalid-first-branch-result-v1',
+  });
+  try {
+    const env = settings(p),
+      calls = [];
+    const client = createStaffDirectoryClient(
+      { instanceId: env.STAFF_PREVIEW_INSTANCE },
+      async (path, init) => {
+        calls.push(init.method);
+        const headers = new Headers(init.headers);
+        headers.set('host', '127.0.0.1:3120');
+        if (init.method === 'POST') headers.set('origin', 'http://127.0.0.1:3120');
+        const req = new Request('http://localhost:3120' + path, { ...init, headers });
+        const branch = /^\/api\/staff-directory\/branches\/operations\/([^/]+)$/.exec(path);
+        if (branch) return staffBranchBoundary(req, 'operation', branch[1], env);
+        const current = /^\/api\/staff-directory\/branches\/([^/?]+)$/.exec(path);
+        if (current) return staffBranchBoundary(req, 'current', current[1], env);
+        if (path.startsWith('/api/staff-directory/branches?'))
+          return staffDirectoryBoundary(req, 'branches', env);
+        if (path.startsWith('/api/staff-directory/invitations?'))
+          return staffDirectoryBoundary(req, 'invitations', env);
+        const capture = /^\/api\/staff-directory\/invitations\/operations\/([^/]+)$/.exec(path);
+        if (capture) return staffInvitationBoundary(req, 'capture', capture[1], undefined, env);
+        const revoke = /^\/api\/staff-directory\/invitations\/([^/]+)\/revocations\/([^/]+)$/.exec(
+          path,
+        );
+        if (revoke) return staffInvitationBoundary(req, 'revocation', revoke[1], revoke[2], env);
+        const state = /^\/api\/staff-directory\/invitations\/([^/?]+)$/.exec(path);
+        if (state) return staffInvitationBoundary(req, 'current', state[1], undefined, env);
+        throw Error('Unexpected test route');
+      },
+    );
+    const branch = {
+      policy: 'staff-branch-command-v1',
+      operationId: randomUUID(),
+      branchId: randomUUID(),
+      expectedVersion: '0',
+      name: 'Synthetic browser adapter',
+      active: true,
+      reason: 'Synthetic transport integration.',
+    };
+    await assert.rejects(
+      () => client.saveBranch(branch),
+      (e) => e.submissionUncertain,
+    );
+    assert.deepEqual(calls, ['POST']);
+    const original = await client.getBranchOperation(branch.operationId);
+    assert.equal(original.outcome, 'applied');
+    assert.deepEqual(calls, ['POST', 'GET']);
+    assert.equal((await client.getBranch(branch.branchId)).name, branch.name);
+    assert.equal((await client.listBranches({ limit: 2, after: null })).items.length, 1);
+    const intent = {
+      policy: 'staff-invitation-intent-v1',
+      operationId: randomUUID(),
+      recipientEmail: 'synthetic@example.invalid',
+      requestedRole: 'agent',
+      branchId: branch.branchId,
+      expiresAfterHours: 24,
+    };
+    const receipt = await client.captureInvitation(intent);
+    assert.equal(receipt.membershipGranted, false);
+    assert.deepEqual(await client.getInvitationOperation(intent.operationId), receipt);
+    assert.equal((await client.listInvitations({ limit: 2, after: null })).items.length, 1);
+    const revoke = {
+      policy: 'staff-invitation-revocation-command-v1',
+      operationId: randomUUID(),
+      invitationId: intent.operationId,
+      expectedVersion: '1',
+      reason: 'Synthetic adapter revocation.',
+    };
+    const revoked = await client.revokeInvitation(revoke);
+    assert.deepEqual(
+      await client.getInvitationRevocation(intent.operationId, revoke.operationId),
+      revoked,
+    );
+    assert.equal((await client.getInvitation(intent.operationId)).state, 'revoked');
   } finally {
     await p.close();
   }
