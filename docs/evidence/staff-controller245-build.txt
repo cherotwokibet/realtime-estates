@@ -1,0 +1,9 @@
+apps/admin/lib/staff-write-controller.ts(86,46): error TS2345: Argument of type '() => Promise<StaffBranchRecord> | Promise<StaffInvitationRequestRecord> | Promise<StaffInvitationRevocationRecord>' is not assignable to parameter of type '(value: void) => StaffBranchRecord | PromiseLike<StaffBranchRecord>'.
+  Type 'Promise<StaffBranchRecord> | Promise<StaffInvitationRequestRecord> | Promise<StaffInvitationRevocationRecord>' is not assignable to type 'StaffBranchRecord | PromiseLike<StaffBranchRecord>'.
+    Type 'Promise<StaffInvitationRequestRecord>' is not assignable to type 'StaffBranchRecord | PromiseLike<StaffBranchRecord>'.
+      Type 'Promise<StaffInvitationRequestRecord>' is not assignable to type 'PromiseLike<StaffBranchRecord>'.
+        Types of property 'then' are incompatible.
+          Type '<TResult1 = StaffInvitationRequestRecord, TResult2 = never>(onfulfilled?: ((value: StaffInvitationRequestRecord) => TResult1 | PromiseLike<TResult1>) | null | undefined, onrejected?: ((reason: any) => TResult2 | PromiseLike<...>) | ... 1 more ... | undefined) => Promise<...>' is not assignable to type '<TResult1 = StaffBranchRecord, TResult2 = never>(onfulfilled?: ((value: StaffBranchRecord) => TResult1 | PromiseLike<TResult1>) | null | undefined, onrejected?: ((reason: any) => TResult2 | PromiseLike<...>) | ... 1 more ... | undefined) => PromiseLike<...>'.
+            Types of parameters 'onfulfilled' and 'onfulfilled' are incompatible.
+              Types of parameters 'value' and 'value' are incompatible.
+                Type 'StaffInvitationRequestRecord' is missing the following properties from type 'StaffBranchRecord': version, outcome, branchId, expectedVersion, and 3 more.

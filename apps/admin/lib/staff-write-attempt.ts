@@ -177,3 +177,5 @@ export function restoreStaffWrite(text: string, current: StaffWriteScope): Staff
   const attempt = prepareStaffWrite(scope(r.scope), r.kind as StaffWriteAttempt['kind'], r.command);
   return markStaffWriteUncertain(attempt, current);
 }
+
+export const validateStaffWriteScope = scope;
