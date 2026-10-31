@@ -6,7 +6,10 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { RealtorApiClient } from '@realtor/api-client';
 import { startStaffPreview } from '../../../apps/api/dev/staff-preview.mjs';
-import { staffDirectoryBoundary } from '../dist/tests/lib/staff-directory-server.js';
+import {
+  loadStaffDirectoryWorkspace,
+  staffDirectoryBoundary,
+} from '../dist/tests/lib/staff-directory-server.js';
 const mode = {
   port: 0,
   seedAcceptedMedia: false,
@@ -38,6 +41,14 @@ test('current-instance directory boundary uses SDK over signed HTTP/restricted S
         allowLoopbackHttp: true,
       }),
       auth = { bearerToken: p.bearerToken };
+    const loaded = await loadStaffDirectoryWorkspace(env);
+    const session = await api.getCurrentStaffSessionV2(auth);
+    assert.deepEqual(loaded.scope, {
+      instanceId: env.STAFF_PREVIEW_INSTANCE,
+      tenantId: session.tenantId,
+      actorId: session.actorId,
+    });
+    assert.equal(loaded.branches.items.length, 0);
     const branch = {
       policy: 'staff-branch-command-v1',
       operationId: randomUUID(),
@@ -116,6 +127,7 @@ test('signed upstream agent/foreign authority is refused and BFF error stays san
     const p = await startStaffPreview({ ...mode, actor });
     try {
       const env = settings(p);
+      await assert.rejects(() => loadStaffDirectoryWorkspace(env));
       for (const kind of ['branches', 'invitations']) {
         const r = await staffDirectoryBoundary(request(env, kind), kind, env);
         assert.equal(r.status, 403);

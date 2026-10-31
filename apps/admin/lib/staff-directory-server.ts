@@ -127,3 +127,30 @@ export async function readStaffDirectoryCommandBody(request: Request): Promise<u
     reader.releaseLock();
   }
 }
+
+export async function loadStaffDirectoryWorkspace(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  fetcher: typeof fetch = fetch,
+) {
+  const config = previewConfiguration(env);
+  if (env.STAFF_DIRECTORY_PREVIEW_MODE !== 'synthetic-v1')
+    throw Error('Staff workspace unavailable.');
+  const api = new RealtorApiClient({
+      baseUrl: config.origin,
+      privacyNoticeVersion: 'synthetic-staff-notice-v1',
+      allowLoopbackHttp: true,
+      fetch: fetcher,
+      timeoutMs: 10000,
+    }),
+    options = { bearerToken: config.bearerToken };
+  const session = await api.getCurrentStaffSessionV2(options);
+  const [branches, invitations] = await Promise.all([
+    api.listStaffBranches({ limit: 10, after: null }, options),
+    api.listStaffInvitationRequests({ limit: 10, after: null }, options),
+  ]);
+  return {
+    scope: { instanceId: config.instanceId, tenantId: session.tenantId, actorId: session.actorId },
+    branches,
+    invitations,
+  };
+}
