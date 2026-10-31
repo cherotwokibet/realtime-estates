@@ -122,6 +122,22 @@ const definitions = {
     environment:
       'Isolated SQL candidate output bound to shared domain validators and C1 control refusal; first extended run passed',
   },
+  staffWorkspaceUi246: {
+    path: 'docs/evidence/staff-workspace246-ui-full.txt',
+    counts: [36],
+    commit: 'e87a61284404095def2e1785670e15beef609f2f',
+    observedDate: '2026-10-31',
+    environment:
+      'Full admin SSR/model UI regression including staff workspace; not actual browser interaction',
+  },
+  staffWorkspaceWire246: {
+    path: 'docs/evidence/staff-workspace246-integration.txt',
+    counts: [5],
+    commit: 'e87a61284404095def2e1785670e15beef609f2f',
+    observedDate: '2026-10-31',
+    environment:
+      'Signed HTTP/restricted SQL BFF/browser adapter integration including fresh server loader session scope and agent/foreign refusal; no actual Next/browser HTTP claim',
+  },
   staffController245: {
     path: 'docs/evidence/staff-controller245-full.txt',
     counts: [470],
