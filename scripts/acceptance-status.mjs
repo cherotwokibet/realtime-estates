@@ -122,6 +122,30 @@ const definitions = {
     environment:
       'Isolated SQL candidate output bound to shared domain validators and C1 control refusal; first extended run passed',
   },
+  branchBff240: {
+    path: 'docs/evidence/staff-branch-bff240-full.txt',
+    counts: [454],
+    commit: '2182f01a43232c0e7cb10fdfa67478db35e378ae',
+    observedDate: '2026-10-31',
+    environment:
+      'Full admin server regression after current-instance branch BFF command and shared identity guard',
+  },
+  invitationBff241: {
+    path: 'docs/evidence/staff-invitation-bff241-full.txt',
+    counts: [456],
+    commit: '2182f01a43232c0e7cb10fdfa67478db35e378ae',
+    observedDate: '2026-10-31',
+    environment:
+      'Full admin server regression after invitation BFF and shared bounded command body parser',
+  },
+  staffBffHttp241: {
+    path: 'docs/evidence/staff-invitation-bff241-integration.txt',
+    counts: [4],
+    commit: '2182f01a43232c0e7cb10fdfa67478db35e378ae',
+    observedDate: '2026-10-31',
+    environment:
+      'BFF functions to SDK over signed JWT/JWKS HTTP and restricted SQL; branch/invitation committed corrupt replies recovered by GET only; no Next/browser HTTP proof',
+  },
   directoryBff238: {
     path: 'docs/evidence/staff-directory-bff238-full.txt',
     counts: [452],
