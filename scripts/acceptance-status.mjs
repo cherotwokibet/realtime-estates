@@ -122,6 +122,22 @@ const definitions = {
     environment:
       'Isolated SQL candidate output bound to shared domain validators and C1 control refusal; first extended run passed',
   },
+  staffBrowser243: {
+    path: 'docs/evidence/staff-browser243-full.txt',
+    counts: [460],
+    commit: '543a68144f26e64fc166b6af8d4adf3b490ecc7f',
+    observedDate: '2026-10-31',
+    environment:
+      'Full admin server/transport regression including current-instance staff browser client; no actual browser UI proof',
+  },
+  staffBrowserWire243: {
+    path: 'docs/evidence/staff-browser243-integration.txt',
+    counts: [5],
+    commit: '543a68144f26e64fc166b6af8d4adf3b490ecc7f',
+    observedDate: '2026-10-31',
+    environment:
+      'Browser adapter function to BFF functions and SDK over signed JWT/JWKS HTTP/restricted SQL; no actual browser or Next HTTP claim',
+  },
   branchBff240: {
     path: 'docs/evidence/staff-branch-bff240-full.txt',
     counts: [454],
