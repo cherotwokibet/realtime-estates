@@ -8,6 +8,7 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| staffMembershipBrowser258 | [evidence/2026-11-02-staff-membership-browser.md](evidence/2026-11-02-staff-membership-browser.md) · 9f1516a | Actual owned Next/in-app browser: fresh versioned membership revocation, committed corrupt-reply GET recovery, reload retention, explicit reactivation/promotion, self-change absence and390px keyboard/wrapping. No mid-request admin access-loss, cross-instance recovery, physical device/operator or invitation redemption claim. |
 | invitationSecurity254 | [evidence/staff-recipient254-final.txt](evidence/staff-recipient254-final.txt) · e5122c8 | 25 passed; Existing auth plus compiled one-reveal secret and signed synthetic verified-recipient primitives; no endpoint, SQL grant or provider activation. |
 | staffDirectoryDomain251 | [evidence/staff-directory251-domain-full.txt](evidence/staff-directory251-domain-full.txt) · 85a1689 | 336 passed; Local synthetic membership directory/workspace verification; named scope only, counts overlap. No new actual Next browser or production build proof. |
 | staffDirectorySql251 | [evidence/staff-directory251-sql.txt](evidence/staff-directory251-sql.txt) · 85a1689 | 7 passed; Local synthetic membership directory/workspace verification; named scope only, counts overlap. No new actual Next browser or production build proof. |

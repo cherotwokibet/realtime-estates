@@ -82,6 +82,14 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  staffMembershipBrowser258: {
+    path: 'docs/evidence/2026-11-02-staff-membership-browser.md',
+    counts: null,
+    commit: '9f1516a87182262d6c7383fa12c3970a6fcb3354',
+    observedDate: '2026-11-02',
+    environment:
+      'Actual owned Next/in-app browser: fresh versioned membership revocation, committed corrupt-reply GET recovery, reload retention, explicit reactivation/promotion, self-change absence and390px keyboard/wrapping. No mid-request admin access-loss, cross-instance recovery, physical device/operator or invitation redemption claim.',
+  },
   invitationSecurity254: {
     path: 'docs/evidence/staff-recipient254-final.txt',
     counts: [25],
