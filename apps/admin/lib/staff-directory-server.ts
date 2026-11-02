@@ -72,13 +72,33 @@ export function staffDirectoryPreviewContext(
   const config = previewConfiguration(env);
   if (env.STAFF_DIRECTORY_PREVIEW_MODE !== 'synthetic-v1') throw Error();
   assertPreviewRequest(request, config.instanceId);
+  // Next's Node adapter adds these transport facts. They never select identity or
+  // authority; accept only its complete, exact loopback shape after Host validation.
+  const forwarded = [
+    'x-forwarded-host',
+    'x-forwarded-port',
+    'x-forwarded-proto',
+    'x-forwarded-for',
+  ];
+  if (forwarded.some((key) => request.headers.has(key))) {
+    const url = new URL(request.url);
+    if (
+      request.headers.get('x-forwarded-host') !== request.headers.get('host') ||
+      request.headers.get('x-forwarded-port') !== (url.port || '80') ||
+      request.headers.get('x-forwarded-proto') !== 'http' ||
+      !['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(
+        request.headers.get('x-forwarded-for') ?? '',
+      )
+    )
+      throw Error();
+  }
   const headerNames: string[] = [];
   request.headers.forEach((_, key) => headerNames.push(key));
   for (const key of headerNames)
     if (
       ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(key) ||
       key.startsWith('if-') ||
-      (key.startsWith('x-') && key !== 'x-preview-instance')
+      (key.startsWith('x-') && key !== 'x-preview-instance' && !forwarded.includes(key))
     )
       throw Error();
   const origin = request.headers.get('origin');

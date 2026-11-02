@@ -1,0 +1,50 @@
+✔ active legacy membership projections omit historical revocation without mutating it (2732.2607ms)
+✔ existing staff changes retain exact originals, terminal version conflicts and no-ops with applied-only audits (2355.8608ms)
+✖ self changes are refused and serialized peer demotion/revocation always retains an active admin (2445.3766ms)
+✔ current admin/company and original actor fence reads/writes; no new/customer/foreign membership is modified (2204.667ms)
+✔ malformed commands reserve nothing and restricted roles cannot read, mutate or execute private storage functions (2223.5386ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 4
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12322.3366
+
+✖ failing tests:
+
+test at database\tests\staff-membership-candidate.test.mjs:216:1
+✖ self changes are refused and serialized peer demotion/revocation always retains an active admin (2445.3766ms)
+  error: Resource unavailable
+      at pe.Ue (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959)
+      at pe.tt (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347)
+      at pe.parse (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021)
+      at N.qe (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1762)
+      at file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+      at wasm://wasm/0267bb86:wasm-function[10930]:0x5a5ccf
+      at wasm://wasm/0267bb86:wasm-function[3585]:0x27eaeb
+      at wasm://wasm/0267bb86:wasm-function[3627]:0x2869d1
+      at wasm://wasm/0267bb86:wasm-function[3637]:0x286c2d
+      at wasm://wasm/0267bb86:wasm-function[9914]:0x54fd4d {
+    length: 159,
+    severity: 'ERROR',
+    code: 'P0002',
+    detail: undefined,
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: 'PL/pgSQL function app_api.read_listing_import_stock(text[]) line 5 at RAISE',
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'pl_exec.c',
+    line: '3923',
+    routine: 'exec_stmt_raise',
+    query: 'SELECT app_api.read_listing_import_stock($1::text[]) AS result',
+    params: [ [ 'synthetic-owned' ] ],
+    queryOptions: undefined
+  }

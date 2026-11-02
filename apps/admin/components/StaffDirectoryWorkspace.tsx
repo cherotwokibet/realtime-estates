@@ -10,6 +10,7 @@ import {
   type StaffWriteController,
 } from '../lib/staff-write-controller.ts';
 import type { StaffWriteScope, StaffWriteAttempt } from '../lib/staff-write-attempt.ts';
+import { staffInvitationIntentForPage } from '../lib/staff-invitation-selection.ts';
 export default function StaffDirectoryWorkspace({
   scope,
   branches: initialBranches,
@@ -151,14 +152,21 @@ export default function StaffDirectoryWorkspace({
   }
   function invitationForm(event: FormEvent) {
     event.preventDefault();
-    prepare('invitation', {
-      policy: 'staff-invitation-intent-v1',
-      operationId: crypto.randomUUID(),
-      recipientEmail: email,
-      requestedRole: role,
-      branchId: role === 'admin' ? null : branchId || null,
-      expiresAfterHours: hours,
-    });
+    try {
+      const command = staffInvitationIntentForPage(branches, {
+        policy: 'staff-invitation-intent-v1',
+        operationId: crypto.randomUUID(),
+        recipientEmail: email,
+        requestedRole: role,
+        branchId: role === 'admin' ? null : branchId || null,
+        expiresAfterHours: hours,
+      });
+      prepare('invitation', command);
+    } catch {
+      setMessage(
+        'Choose an active branch on this page or explicitly choose company-wide, then review the invitation fields.',
+      );
+    }
   }
   async function adopt(id: string) {
     if (locked || !client.current) return;
@@ -195,6 +203,10 @@ export default function StaffDirectoryWorkspace({
     }
   }
   const attempt = snapshot?.attempt;
+  const branchSelectionUnavailable =
+    role === 'agent' &&
+    branchId !== '' &&
+    !branches.items.some((b) => b.branchId === branchId && b.active);
   return (
     <div className="staff-workspace">
       <p role="status" aria-live="polite">
@@ -280,7 +292,23 @@ export default function StaffDirectoryWorkspace({
                     onClick={() => {
                       try {
                         controller.current?.clear();
-                        setMessage('Retained operation cleared explicitly.');
+                        if (attempt.phase === 'resolved' && attempt.kind === 'branch') {
+                          setBranch(null);
+                          setName('');
+                          setActive(true);
+                          setBranchReason('');
+                        }
+                        if (attempt.phase === 'resolved' && attempt.kind === 'invitation') {
+                          setEmail('');
+                          setRole('agent');
+                          setBranchId('');
+                          setHours(24);
+                        }
+                        if (attempt.phase === 'resolved' && attempt.kind === 'revocation')
+                          setRevokeReason('');
+                        setMessage(
+                          'Retained operation cleared explicitly. For further branch edits, adopt its current version.',
+                        );
                         sync();
                       } catch {
                         setMessage('Storage must be verified before clearing.');
@@ -378,6 +406,11 @@ export default function StaffDirectoryWorkspace({
                       onChange={(e) => setBranchId(e.target.value)}
                     >
                       <option value="">Company-wide</option>
+                      {branchSelectionUnavailable && (
+                        <option value={branchId} disabled>
+                          Previous branch unavailable on this page — choose a branch
+                        </option>
+                      )}
                       {branches.items
                         .filter((b) => b.active)
                         .map((b) => (
@@ -398,7 +431,12 @@ export default function StaffDirectoryWorkspace({
                       <option value={168}>7 days</option>
                     </select>
                   </label>
-                  <button>Prepare invitation request</button>
+                  {branchSelectionUnavailable && (
+                    <p role="alert">
+                      Choose an active branch from this page or explicitly choose company-wide.
+                    </p>
+                  )}
+                  <button disabled={branchSelectionUnavailable}>Prepare invitation request</button>
                 </fieldset>
               </form>
             </section>

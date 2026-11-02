@@ -1,11 +1,11 @@
 /** Owned disposable signed staff UI. Never production or a vendor/live-system adapter. */
-import { spawn, execFile } from 'node:child_process';
-import { promisify } from 'node:util';
+import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { startStaffPreview } from '../apps/api/dev/staff-preview.mjs';
+import { createStaffPreviewShutdown, retireOwnedStaffChild } from './staff-preview-lifecycle.mjs';
 const args = process.argv.slice(2),
   allowed = ['--lost-results', '--agent', '--foreign-admin', '--second-brand'];
 if (
@@ -34,31 +34,32 @@ const api = await startStaffPreview({
       }
     : {}),
 });
-const execute = promisify(execFile),
-  input = createInterface({ input: process.stdin, terminal: false });
+const input = createInterface({ input: process.stdin, terminal: false });
 let child = null,
-  stopping = false,
   queue = Promise.resolve();
-async function retire(owned) {
-  if (!owned || owned.exitCode !== null || owned.signalCode !== null) return;
-  if (process.platform === 'win32')
-    await execute('taskkill', ['/PID', String(owned.pid), '/T', '/F'], { windowsHide: true });
-  else owned.kill('SIGTERM');
-}
-async function stop() {
-  if (stopping) return;
-  stopping = true;
-  input.close();
-  const owned = child;
-  child = null;
-  await retire(owned);
-  await api.close();
+const shutdown = createStaffPreviewShutdown({
+  closeInput: () => input.close(),
+  takeChild: () => {
+    const owned = child;
+    child = null;
+    return owned;
+  },
+  retireChild: retireOwnedStaffChild,
+  closeApi: () => api.close(),
+});
+const stop = () => shutdown.stop();
+function requestStop() {
+  void stop().catch(() => {
+    process.exitCode = 1;
+    console.error('Owned staff preview cleanup could not be fully confirmed.');
+  });
 }
 async function launch() {
-  if (stopping) return;
+  if (shutdown.isStopping()) return;
   const old = child;
   child = null;
-  await retire(old);
+  await retireOwnedStaffChild(old);
+  if (shutdown.isStopping()) return;
   child = spawn(
     process.execPath,
     [
@@ -89,12 +90,12 @@ async function launch() {
   const owned = child;
   owned.once('error', () => {
     process.exitCode = 1;
-    void stop();
+    requestStop();
   });
   owned.once('exit', (code) => {
-    if (!stopping && child === owned) {
+    if (!shutdown.isStopping() && child === owned) {
       process.exitCode = code ?? 1;
-      void stop();
+      requestStop();
     }
   });
   console.log(
@@ -114,11 +115,16 @@ input.on('line', (line) => {
     )
     .catch(() => {
       process.exitCode = 1;
-      void stop();
+      requestStop();
     });
 });
-for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => void stop());
-await launch();
+for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, requestStop);
+try {
+  await launch();
+} catch {
+  process.exitCode = 1;
+  requestStop();
+}
 console.log(
   'Synthetic staff requests only: no email, secret/redemption or membership grant. --lost-results corrupts first committed branch/capture/revocation replies. Restart retains owned API/database with a fresh browser instance; quit stops only owned children and fixtures.',
 );

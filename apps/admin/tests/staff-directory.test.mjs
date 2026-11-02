@@ -112,3 +112,68 @@ test('directory BFF sanitizes malformed/upstream private failure and exposes no 
     assert.deepEqual(await r.json(), { error: 'STAFF_DIRECTORY_UNAVAILABLE' });
   }
 });
+
+test('directory BFF accepts Next Node loopback metadata without forwarding it as authority', async () => {
+  for (const address of ['127.0.0.1', '::1', '::ffff:127.0.0.1']) {
+    let calls = 0;
+    const response = await boundary(
+      req('branches', '?limit=2', {
+        headers: {
+          'x-forwarded-host': '127.0.0.1:3120',
+          'x-forwarded-port': '3120',
+          'x-forwarded-proto': 'http',
+          'x-forwarded-for': address,
+        },
+      }),
+      'branches',
+      env,
+      async (_url, init) => {
+        calls++;
+        const headers = new Headers(init.headers);
+        for (const key of [
+          'x-forwarded-host',
+          'x-forwarded-port',
+          'x-forwarded-proto',
+          'x-forwarded-for',
+        ])
+          assert.equal(headers.has(key), false);
+        assert.equal(headers.get('authorization'), 'Bearer synthetic.bearer.signature');
+        return Response.json({ policy: 'staff-branch-page-v1', items: [], nextAfter: null });
+      },
+    );
+    assert.equal(response.status, 200);
+    assert.equal(calls, 1);
+  }
+});
+
+test('directory BFF rejects incomplete, chained or foreign forwarded metadata before IO', async () => {
+  let calls = 0;
+  const good = {
+    'x-forwarded-host': '127.0.0.1:3120',
+    'x-forwarded-port': '3120',
+    'x-forwarded-proto': 'http',
+    'x-forwarded-for': '127.0.0.1',
+  };
+  for (const headers of [
+    { 'x-forwarded-host': good['x-forwarded-host'] },
+    { ...good, 'x-forwarded-host': 'foreign.invalid' },
+    { ...good, 'x-forwarded-port': '03120' },
+    { ...good, 'x-forwarded-proto': 'https' },
+    { ...good, 'x-forwarded-for': '198.51.100.1' },
+    { ...good, 'x-forwarded-for': '127.0.0.1, 127.0.0.1' },
+    { ...good, 'x-forwarded-user': id(2) },
+    { ...good, 'x-actor-id': id(2) },
+  ]) {
+    const response = await boundary(
+      req('branches', '?limit=2', { headers }),
+      'branches',
+      env,
+      async () => {
+        calls++;
+        throw Error();
+      },
+    );
+    assert.equal(response.status, 403);
+  }
+  assert.equal(calls, 0);
+});

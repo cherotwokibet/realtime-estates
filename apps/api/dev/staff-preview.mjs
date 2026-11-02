@@ -139,6 +139,8 @@ function configuration({
   staffInvitationMode,
   invitationReplyFault,
   branchReplyFault,
+  staffMembershipMode,
+  membershipReplyFault,
   seedAcceptedMedia = nativeUploads === undefined && enquiryPreview === undefined,
   seedPendingReviews = false,
 } = {}) {
@@ -154,6 +156,13 @@ function configuration({
     throw new StaffPreviewConfigurationError('Unsupported synthetic report reply fault.');
   if (staffInvitationMode !== undefined && staffInvitationMode !== 'synthetic-capture-only-v1')
     throw new StaffPreviewConfigurationError('Unsupported synthetic staff invitation mode.');
+  if (staffMembershipMode !== undefined && staffMembershipMode !== 'synthetic-existing-members-v1')
+    throw new StaffPreviewConfigurationError('Unsupported synthetic staff membership mode.');
+  if (
+    membershipReplyFault !== undefined &&
+    (membershipReplyFault !== 'invalid-first-membership-result-v1' || !staffMembershipMode)
+  )
+    throw new StaffPreviewConfigurationError('Unsupported synthetic membership reply fault.');
   if (
     invitationReplyFault !== undefined &&
     (invitationReplyFault !== 'invalid-first-invitation-results-v1' ||
@@ -421,6 +430,8 @@ function configuration({
     staffInvitationMode,
     invitationReplyFault,
     branchReplyFault,
+    staffMembershipMode,
+    membershipReplyFault,
   };
 }
 function syntheticContent(title = 'Synthetic staff monthly studio') {
@@ -876,6 +887,8 @@ export async function startStaffPreview(options = {}) {
     staffInvitationMode,
     invitationReplyFault,
     branchReplyFault,
+    staffMembershipMode,
+    membershipReplyFault,
   } = configuration(options);
   let referenceReplyFaultPending = !!referenceReplyFault;
   let referenceModerationReplyFaultPending = !!referenceModerationReplyFault;
@@ -884,6 +897,7 @@ export async function startStaffPreview(options = {}) {
   let controlReplyFaultPending = !!controlReplyFault;
   let settingsReplyFaultPending = !!settingsReplyFault;
   let branchReplyFaultPending = !!branchReplyFault;
+  let membershipReplyFaultPending = !!membershipReplyFault;
   let invitationCaptureFaultPending = !!invitationReplyFault,
     invitationRevokeFaultPending = !!invitationReplyFault;
   let reportCaptureFaultPending = !!reportReplyFault,
@@ -913,6 +927,13 @@ export async function startStaffPreview(options = {}) {
   let jwksServer;
   try {
     await seed(db, seedAcceptedMedia, seedPendingReviews);
+    if (staffMembershipMode)
+      await db.exec(
+        await readFile(
+          new URL('../../../database/proposals/staff-membership-changes.sql', import.meta.url),
+          'utf8',
+        ),
+      );
     if (staffInvitationMode) {
       // Explicit disposable fixture only; never normal migrations or deployed bootstrap.
       for (const file of [
@@ -1218,6 +1239,7 @@ export async function startStaffPreview(options = {}) {
       verificationMode: 'synthetic-check-record-v1',
       ...(publicReportMode ? { publicReportMode } : {}),
       ...(staffInvitationMode ? { staffInvitationMode } : {}),
+      ...(staffMembershipMode ? { staffMembershipMode } : {}),
       ...(referenceDraftMode ? { referenceDraftMode } : {}),
       ...(referenceModerationMode ? { referenceModerationMode } : {}),
       ...(referenceCreationMode ? { referenceCreationMode } : {}),
@@ -1373,6 +1395,20 @@ export async function startStaffPreview(options = {}) {
             retainedSyntheticMedia: !!nativeMedia,
             tokenExpiresAt: expiresAt,
           });
+        if (staffMembershipMode && /^\/v2\/staff\/memberships(?:\/|$)/.test(url.pathname)) {
+          const response = await service(request);
+          if (membershipReplyFaultPending && request.method === 'POST' && response.status === 200) {
+            membershipReplyFaultPending = false;
+            return Response.json(
+              { syntheticMembershipReplyCorruption: true },
+              {
+                status: 200,
+                headers: { 'Cache-Control': 'no-store', 'X-Synthetic-Staff-Preview': 'true' },
+              },
+            );
+          }
+          return response;
+        }
         if (
           staffInvitationMode &&
           (url.pathname === '/v2/staff/branches' ||

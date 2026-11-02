@@ -6,6 +6,12 @@ import {
   type StaffBranchCommand,
   type StaffBranchRecord,
   type StaffBranchCurrent,
+  validateStaffMembershipCommand,
+  validateStaffMembershipRecord,
+  validateStaffMembershipCurrent,
+  type StaffMembershipCommand,
+  type StaffMembershipRecord,
+  type StaffMembershipCurrent,
   validateStaffDirectoryQuery,
   validateStaffBranchPage,
   validateStaffInvitationPage,
@@ -3612,6 +3618,66 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid original report review.');
     }
   }
+  async saveStaffMembership(
+    input: StaffMembershipCommand,
+    options: StaffRequestOptions,
+  ): Promise<StaffMembershipRecord> {
+    const captured = uploadOptions(options);
+    let command: StaffMembershipCommand;
+    try {
+      command = validateStaffMembershipCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid membership command.');
+    }
+    const data = await this.request(
+      '/v2/staff/memberships/operations/' + command.operationId,
+      'POST',
+      captured,
+      { ...command },
+    );
+    try {
+      return validateStaffMembershipRecord(data, command);
+    } catch {
+      throw new ApiClientError('INVALID_RESPONSE', 'Membership result could not be verified.', {
+        submissionUncertain: true,
+      });
+    }
+  }
+  async getStaffMembershipOperation(
+    operationId: string,
+    options: StaffRequestOptions,
+  ): Promise<StaffMembershipRecord> {
+    const captured = uploadOptions(options),
+      operation = uuid(operationId, 'VALIDATION', 'Operation ID');
+    if (operation !== operationId)
+      return invalid('VALIDATION', 'Canonical membership operation required.');
+    const data = await this.request(
+      '/v2/staff/memberships/operations/' + operation,
+      'GET',
+      captured,
+    );
+    try {
+      const result = validateStaffMembershipRecord(data);
+      if (result.operationId !== operation) throw Error();
+      return result;
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid membership original.');
+    }
+  }
+  async getStaffMembership(
+    memberId: string,
+    options: StaffRequestOptions,
+  ): Promise<StaffMembershipCurrent> {
+    const captured = uploadOptions(options),
+      member = uuid(memberId, 'VALIDATION', 'Member ID');
+    if (member !== memberId) return invalid('VALIDATION', 'Canonical member required.');
+    const data = await this.request('/v2/staff/memberships/' + member, 'GET', captured);
+    try {
+      return validateStaffMembershipCurrent(data, member);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid current membership.');
+    }
+  }
   async saveStaffBranch(
     input: StaffBranchCommand,
     options: StaffRequestOptions,
@@ -5678,7 +5744,9 @@ export class RealtorApiClient {
         path,
       );
     const staffBranch = /^\/v2\/staff\/branches\/(?:operations\/)?[0-9a-f-]{36}$/.test(path);
+    const staffMembership = /^\/v2\/staff\/memberships\/(?:operations\/)?[0-9a-f-]{36}$/.test(path);
     const staffInvitation =
+      staffMembership ||
       staffBranch ||
       staffDirectory ||
       invitationCapture ||
