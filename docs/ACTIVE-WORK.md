@@ -1,3 +1,11 @@
+## Published checkpoint257 — 2 November 2026 EAT
+
+Private dashboard220 source d22d6b927d0bff3d4539195763a63610c09b9819, deployment appgdep_6ae86b7f4a848191b32bf91f8ae64514 succeeded; exact saved source/version and one owner/zero other users, visitors or groups independently verified.737canonical notes,49/97(51%),107execution records,0/14gates; preservation tests2/2 passed. Known exported browser notes retained; no fresh browser export/visual/import/reset claimed. Journal docs/evidence/staff-build-publication257.json.
+
+CURRENT full admin production build including new membership routes PASSED (staff-membership256-next-build.txt). API build and compiled ordinary auth/secret/synthetic verified-recipient25/25 passed. Helpers remain unwired to issuance/redemption/delivery/grants. No NEW membership actual-browser verification yet. Source a7b6c656e83c759a8f778ff2bdabfd82eead9b0c complete checkpoint256.bundle/fresh exact clean restore/fsck/index107 passed; SHA256422F230A80535A778D4791F19CF5FAE05EB2AF397866F4D0BDC578BFCA4943DC. Same-device source history only. No active owned preview, application GitHub push/Actions, purchase/credits/plan or vendor/live changes.
+
+Exact next: actual owned --memberships --lost-results browser self-change absence, fresh member/version adoption, revoke/promote/reactivate, corrupt-reply original GET, reload/scope/access-loss and narrow/keyboard checks when memory/browser control permits. Then atomic isolated invitation issue/redemption with trusted signed verified recipient, digest-only secret storage/explicit lost-secret recovery, existing-member policy, expiry after decision locks and aligned tenant-first lock order across all staff writers.08-4 remains open. Provider/device/operator/rights/account/hosted-race/cutover evidence remains separate. Owner Boniface + Codex.
+
 ## Verified build checkpoint256 — 2 November 2026 EAT
 
 The current full admin production build PASSED, including /staff and membership directory/current/original routes. Raw evidence docs/evidence/staff-membership256-next-build.txt. Memory recovered enough to run the build alone; no API preview/browser was started. This supersedes the prior unrun-build limitation for the NEW membership controls. Their actual browser self/role/recovery/reload/access-loss/narrow verification remains NOT RUN.
