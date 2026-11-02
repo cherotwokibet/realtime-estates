@@ -1,0 +1,100 @@
+✖ private video originals replay once, removal is explicit and stale/changed commands never overwrite (1908.77ms)
+✖ private video SQL rechecks assignment, role, tenant and revocation before originals or replay (1366.5751ms)
+✖ video transaction rollback and decided revision protection preserve published listing and defaults (1366.2023ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4837.1687
+
+✖ failing tests:
+
+test at database\tests\listing-video-candidate.test.mjs:65:1
+✖ private video originals replay once, removal is explicit and stale/changed commands never overwrite (1908.77ms)
+  error: Version conflict
+      at pe.Ue (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959)
+      at pe.tt (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347)
+      at pe.parse (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021)
+      at N.qe (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1762)
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+      at wasm://wasm/0267bb86:wasm-function[10930]:0x5a5ccf
+      at wasm://wasm/0267bb86:wasm-function[3585]:0x27eaeb
+      at wasm://wasm/0267bb86:wasm-function[3627]:0x2869d1
+      at wasm://wasm/0267bb86:wasm-function[3637]:0x286c2d
+      at wasm://wasm/0267bb86:wasm-function[9914]:0x54fd4d {
+    length: 158,
+    severity: 'ERROR',
+    code: '40001',
+    detail: undefined,
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: 'PL/pgSQL function app_api.save_synthetic_listing_video(jsonb) line 19 at RAISE',
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'pl_exec.c',
+    line: '3923',
+    routine: 'exec_stmt_raise',
+    query: 'SELECT app_api.save_synthetic_listing_video($1::jsonb)',
+    params: [ '{"policy":"synthetic-listing-video-command-v1","listingId":"00000000-0000-4000-8000-000000000111","revision":1,"expectedVersion":"1","operationId":"00000000-0000-4000-8000-000000000900","video":{"provider":"youtube","videoId":"abcdefghijk","title":"Synthetic tour"}}' ],
+    queryOptions: undefined
+  }
+
+test at database\tests\listing-video-candidate.test.mjs:102:1
+✖ private video SQL rechecks assignment, role, tenant and revocation before originals or replay (1366.5751ms)
+  error: Version conflict
+      at pe.Ue (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959)
+      at pe.tt (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347)
+      at pe.parse (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021)
+      at N.qe (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1762)
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+      at wasm://wasm/0267bb86:wasm-function[10930]:0x5a5ccf
+      at wasm://wasm/0267bb86:wasm-function[3585]:0x27eaeb
+      at wasm://wasm/0267bb86:wasm-function[3627]:0x2869d1
+      at wasm://wasm/0267bb86:wasm-function[3637]:0x286c2d
+      at wasm://wasm/0267bb86:wasm-function[9914]:0x54fd4d {
+    length: 158,
+    severity: 'ERROR',
+    code: '40001',
+    detail: undefined,
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: 'PL/pgSQL function app_api.save_synthetic_listing_video(jsonb) line 19 at RAISE',
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'pl_exec.c',
+    line: '3923',
+    routine: 'exec_stmt_raise',
+    query: 'SELECT app_api.save_synthetic_listing_video($1::jsonb)',
+    params: [ '{"policy":"synthetic-listing-video-command-v1","listingId":"00000000-0000-4000-8000-000000000111","revision":1,"expectedVersion":"1","operationId":"00000000-0000-4000-8000-000000000900","video":{"provider":"youtube","videoId":"abcdefghijk","title":"Synthetic tour"}}' ],
+    queryOptions: undefined
+  }
+
+test at database\tests\listing-video-candidate.test.mjs:146:1
+✖ video transaction rollback and decided revision protection preserve published listing and defaults (1366.2023ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  '2' !== '1'
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/listing-video-candidate.test.mjs:157:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '2',
+    expected: '1',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

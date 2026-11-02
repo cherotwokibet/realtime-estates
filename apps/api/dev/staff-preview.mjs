@@ -136,6 +136,7 @@ function configuration({
   referencePublicMode,
   journeyFixture,
   publicReportMode,
+  listingVideoMode,
   invitationRedemptionReplyFault,
   staffInvitationRedemptionMode,
   staffInvitationMode,
@@ -195,6 +196,8 @@ function configuration({
   )
     throw new StaffPreviewConfigurationError('Unsupported synthetic branch reply fault.');
   journeyFixtureSelection(journeyFixture);
+  if (listingVideoMode !== undefined && listingVideoMode !== 'synthetic-private-listing-video-v1')
+    throw new StaffPreviewConfigurationError('Unsupported private video candidate.');
   if (publicReportMode !== undefined && publicReportMode !== 'synthetic-listing-report-v1')
     throw new StaffPreviewConfigurationError('Unsupported synthetic listing report mode.');
   if (
@@ -446,6 +449,7 @@ function configuration({
     referencePublicMode,
     journeyFixture,
     publicReportMode,
+    listingVideoMode,
     invitationRedemptionReplyFault,
     staffInvitationRedemptionMode,
     staffInvitationMode,
@@ -905,6 +909,7 @@ export async function startStaffPreview(options = {}) {
     referencePublicMode,
     journeyFixture,
     publicReportMode,
+    listingVideoMode,
     invitationRedemptionReplyFault,
     staffInvitationRedemptionMode,
     staffInvitationMode,
@@ -974,6 +979,13 @@ export async function startStaffPreview(options = {}) {
       await db.exec(
         await readFile(
           new URL('../../../database/proposals/staff-invitation-redemption.sql', import.meta.url),
+          'utf8',
+        ),
+      );
+    if (listingVideoMode)
+      await db.exec(
+        await readFile(
+          new URL('../../../database/proposals/listing-video.sql', import.meta.url),
           'utf8',
         ),
       );
@@ -1291,6 +1303,7 @@ export async function startStaffPreview(options = {}) {
     }
     const service = createApiService({
       database,
+      ...(listingVideoMode ? { listingVideoMode } : {}),
       verificationMode: 'synthetic-check-record-v1',
       ...(publicReportMode ? { publicReportMode } : {}),
       ...(staffInvitationRedemptionMode
@@ -1418,6 +1431,11 @@ export async function startStaffPreview(options = {}) {
       async (request) => {
         const denied = guard(request);
         if (denied) return denied;
+        if (
+          listingVideoMode &&
+          /^\/v2\/staff\/listings\/[^/]+\/video-/.test(new URL(request.url).pathname)
+        )
+          return service(request);
         const url = new URL(request.url),
           reviewQueue = url.pathname === '/v2/staff/reviews';
         if (

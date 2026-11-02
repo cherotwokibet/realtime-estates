@@ -1,4 +1,10 @@
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
+import {
+  parseListingVideoJson,
+  validateListingVideoCommand,
+  validateListingVideoRecord,
+  validateListingVideoState,
+} from '@realtor/domain';
 import { createStaffInvitationHttpCandidate } from './staff-invitation-http.js';
 import type { IdentityVerifierConfig } from './auth.js';
 import {
@@ -141,6 +147,8 @@ export interface EnquiryLimiter {
   consume(key: string): LimiterResult | Promise<LimiterResult>;
 }
 export interface ApiServiceOptions {
+  /** Isolated private video metadata preparation; no provider/public delivery or schema installation. */
+  readonly listingVideoMode?: 'synthetic-private-listing-video-v1';
   /** Separate synthetic-only signed issuance/acceptance lane; absent keeps every route unavailable. */
   readonly staffInvitationRedemption?: Readonly<{
     mode: 'synthetic-single-use-invitations-v1';
@@ -1492,6 +1500,13 @@ export function createApiService(
   options: ApiServiceOptions,
 ): (request: Request) => Promise<Response> {
   if (
+    options.listingVideoMode !== undefined &&
+    (options.listingVideoMode !== 'synthetic-private-listing-video-v1' ||
+      process.env.NODE_ENV === 'production')
+  )
+    throw Error('Private video candidate requires explicit non-production mode.');
+  const listingVideoEnabled = options.listingVideoMode === 'synthetic-private-listing-video-v1';
+  if (
     options.staffMembershipMode !== undefined &&
     (options.staffMembershipMode !== 'synthetic-existing-members-v1' ||
       process.env.NODE_ENV === 'production')
@@ -1613,6 +1628,98 @@ export function createApiService(
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method.toUpperCase();
+      if (/^\/v2\/staff\/listings\/[^/]+\/video-/.test(path)) {
+        if (!listingVideoEnabled || process.env.NODE_ENV === 'production')
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        const route =
+          /^\/v2\/staff\/listings\/([0-9a-f-]{36})\/video-(operations|revisions)\/([0-9a-f-]{36}|[1-9][0-9]{0,9})$/.exec(
+            path,
+          );
+        if (!route) throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        if (
+          request.url.includes('?') ||
+          request.url.includes('#') ||
+          headerNames(request.headers).some(
+            (k) =>
+              ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(k) ||
+              k.startsWith('x-') ||
+              k.startsWith('if-'),
+          )
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Use only the explicit video command.');
+        const listing = uuid(route[1], 'Listing'),
+          isOperation = route[2] === 'operations';
+        const operation = isOperation ? uuid(route[3], 'Operation') : null;
+        const revision = isOperation ? null : Number(route[3]);
+        if (
+          !isOperation &&
+          (!Number.isInteger(revision) || revision! < 1 || revision! > 2147483647)
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Invalid revision.');
+        if (method !== 'GET' && !(isOperation && method === 'POST'))
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method unavailable.', {
+            Allow: isOperation ? 'GET, POST' : 'GET',
+          });
+        if (
+          method === 'GET' &&
+          (request.body !== null ||
+            request.headers.has('content-type') ||
+            request.headers.has('content-length'))
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Read accepts no body.');
+        const actorId = await identity(request, true);
+        let command: ReturnType<typeof validateListingVideoCommand> | undefined;
+        if (method === 'POST') {
+          const raw = await jsonBody(
+            request,
+            2048,
+            false,
+            false,
+            true,
+            true,
+            true,
+            5000,
+            parseListingVideoJson,
+          );
+          try {
+            command = validateListingVideoCommand(raw);
+          } catch {
+            throw new HttpError(400, 'INVALID_INPUT', 'Invalid private video command.');
+          }
+          if (command.listingId !== listing || command.operationId !== operation)
+            throw new HttpError(400, 'INVALID_INPUT', 'Video target differs.');
+        }
+        const value = await options.database.transaction(
+          { tenantId, actorId, correlationId },
+          async (query) => {
+            const result = command
+              ? await query.query(
+                  'SELECT app_api.save_synthetic_listing_video($1::jsonb) AS value',
+                  [JSON.stringify(command)],
+                )
+              : isOperation
+                ? await query.query(
+                    'SELECT app_api.read_synthetic_listing_video_original($1::uuid,$2::uuid) AS value',
+                    [listing, operation],
+                  )
+                : await query.query(
+                    'SELECT app_api.read_synthetic_listing_video($1::uuid,$2::integer) AS value',
+                    [listing, revision],
+                  );
+            const raw = scalar(result, 'value');
+            if (!isOperation) return validateListingVideoState(raw, listing, revision!);
+            const saved = validateListingVideoRecord(raw, command);
+            if (
+              saved.command.listingId !== listing ||
+              saved.command.operationId !== operation ||
+              saved.actorId !== actorId
+            )
+              throw Error('Video original mismatch.');
+            return saved;
+          },
+        );
+        return response(200, value, correlationId);
+      }
       if (
         path.startsWith('/v2/staff/invitation-recipient-session') ||
         path.startsWith('/v2/staff/invitation-issues') ||

@@ -1,0 +1,48 @@
+✔ private video originals replay once, removal is explicit and stale/changed commands never overwrite (1998.078ms)
+✖ private video SQL rechecks assignment, role, tenant and revocation before originals or replay (1388.334ms)
+✔ video transaction rollback and decided revision protection preserve published listing and defaults (1430.5677ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5005.4386
+
+✖ failing tests:
+
+test at database\tests\listing-video-candidate.test.mjs:102:1
+✖ private video SQL rechecks assignment, role, tenant and revocation before originals or replay (1388.334ms)
+  error: new row for relation "memberships" violates check constraint "memberships_check"
+      at pe.Ue (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959)
+      at pe.tt (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347)
+      at pe.parse (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021)
+      at N.qe (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1762)
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+      at wasm://wasm/0267bb86:wasm-function[10930]:0x5a5ccf
+      at wasm://wasm/0267bb86:wasm-function[3585]:0x27eaeb
+      at wasm://wasm/0267bb86:wasm-function[3627]:0x2869d1
+      at wasm://wasm/0267bb86:wasm-function[3637]:0x286c2d
+      at wasm://wasm/0267bb86:wasm-function[9914]:0x54fd4d {
+    length: 332,
+    severity: 'ERROR',
+    code: '23514',
+    detail: 'Failing row contains (00000000-0000-4000-8000-000000000001, 00000000-0000-4000-8000-000000000011, agent, f, 2026-11-03 02:32:36.452+03, null).',
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: 'app_private',
+    table: 'memberships',
+    column: undefined,
+    dataType: undefined,
+    constraint: 'memberships_check',
+    file: 'execMain.c',
+    line: '2081',
+    routine: 'ExecConstraints',
+    query: 'UPDATE app_private.memberships SET active=false WHERE tenant_id=$1 AND user_id=$2',
+    params: [ '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000011' ],
+    queryOptions: undefined
+  }

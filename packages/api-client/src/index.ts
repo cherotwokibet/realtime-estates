@@ -15,6 +15,15 @@ import {
   type StaffIssuedInvitationState,
   type StaffInvitationIssueResponse,
 } from '@realtor/domain';
+import {
+  listingVideoTarget,
+  validateListingVideoCommand,
+  validateListingVideoRecord,
+  validateListingVideoState,
+  type ListingVideoCommand,
+  type ListingVideoRecord,
+  type ListingVideoState,
+} from '@realtor/domain';
 export type {
   StaffInvitationRecipientSession,
   StaffInvitationIssueCommand,
@@ -2682,6 +2691,75 @@ export function validateStaffEnquiryInput(
 }
 
 export class RealtorApiClient {
+  async savePrivateListingVideo(
+    input: ListingVideoCommand,
+    options: StaffRequestOptions,
+  ): Promise<ListingVideoRecord> {
+    const captured = uploadOptions(options);
+    let command: ListingVideoCommand;
+    try {
+      command = validateListingVideoCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Review the private video command.');
+    }
+    const data = await this.request(
+      `/v2/staff/listings/${command.listingId}/video-operations/${command.operationId}`,
+      'POST',
+      captured,
+      { ...command },
+    );
+    try {
+      return validateListingVideoRecord(data, command);
+    } catch {
+      throw new ApiClientError('INVALID_RESPONSE', 'Video result could not be verified.', {
+        submissionUncertain: true,
+      });
+    }
+  }
+  async getPrivateListingVideoOriginal(
+    input: ListingVideoCommand,
+    options: StaffRequestOptions,
+  ): Promise<ListingVideoRecord> {
+    const captured = uploadOptions(options);
+    let command: ListingVideoCommand;
+    try {
+      command = validateListingVideoCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Keep the original video command.');
+    }
+    const data = await this.request(
+      `/v2/staff/listings/${command.listingId}/video-operations/${command.operationId}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateListingVideoRecord(data, command);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Video original differs.');
+    }
+  }
+  async getPrivateListingVideo(
+    listingId: string,
+    revision: number,
+    options: StaffRequestOptions,
+  ): Promise<ListingVideoState> {
+    const captured = uploadOptions(options);
+    try {
+      listingVideoTarget(listingId, revision);
+    } catch {
+      return invalid('VALIDATION', 'Invalid video revision.');
+    }
+    const data = await this.request(
+      `/v2/staff/listings/${listingId}/video-revisions/${revision}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateListingVideoState(data, listingId, revision);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Video state differs.');
+    }
+  }
   private readonly apiOrigin: string;
   private readonly currentNotice: string;
   private readonly defaultTimeout: number;
@@ -5962,7 +6040,12 @@ export class RealtorApiClient {
         path,
       );
     const reportQueue = /^\/v2\/staff\/listing-reports\?/.test(path);
+    const listingVideo =
+      /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/video-(?:operations\/[0-9a-f-]{36}|revisions\/[1-9][0-9]{0,9})$/.test(
+        path,
+      );
     const listingReport =
+      listingVideo ||
       staffInvitation ||
       anonymousReport ||
       reportQueue ||
@@ -6111,7 +6194,10 @@ export class RealtorApiClient {
             submissionUncertain: writes,
           });
         }
-        if (singleUseInvitation && result.headers.get('cache-control') !== 'no-store') {
+        if (
+          (singleUseInvitation || listingVideo) &&
+          result.headers.get('cache-control') !== 'no-store'
+        ) {
           void result.body?.cancel().catch(() => {});
           throw new ApiClientError(
             'INVALID_RESPONSE',

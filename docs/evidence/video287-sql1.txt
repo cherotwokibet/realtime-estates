@@ -1,0 +1,55 @@
+✖ private video originals replay once, removal is explicit and stale/changed commands never overwrite (2578.9055ms)
+✖ private video SQL rechecks assignment, role, tenant and revocation before originals or replay (1419.3458ms)
+✖ video transaction rollback and decided revision protection preserve published listing and defaults (1345.033ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5564.6623
+
+✖ failing tests:
+
+test at database\tests\listing-video-candidate.test.mjs:11:1
+✖ private video originals replay once, removal is explicit and stale/changed commands never overwrite (2578.9055ms)
+  Error [DomainError]: Invalid staff pricing or location disclosure.
+      at invalid (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/domain/dist/staff-draft-content.js:36:11)
+      at normalizeStaffDraftContentV2 (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/domain/dist/staff-draft-content.js:147:16)
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/listing-video-candidate.test.mjs:7:269
+      at asActor (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/public-media-fixtures.mjs:71:26)
+      at async setup (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/listing-video-candidate.test.mjs:7:149)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/listing-video-candidate.test.mjs:12:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    code: 'INVALID_STAFF_DRAFT_CONTENT_V2'
+  }
+
+test at database\tests\listing-video-candidate.test.mjs:19:1
+✖ private video SQL rechecks assignment, role, tenant and revocation before originals or replay (1419.3458ms)
+  Error [DomainError]: Invalid staff pricing or location disclosure.
+      at invalid (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/domain/dist/staff-draft-content.js:36:11)
+      at normalizeStaffDraftContentV2 (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/domain/dist/staff-draft-content.js:147:16)
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/listing-video-candidate.test.mjs:7:269
+      at asActor (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/public-media-fixtures.mjs:71:26)
+      at async setup (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/listing-video-candidate.test.mjs:7:149)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/listing-video-candidate.test.mjs:20:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'INVALID_STAFF_DRAFT_CONTENT_V2'
+  }
+
+test at database\tests\listing-video-candidate.test.mjs:26:1
+✖ video transaction rollback and decided revision protection preserve published listing and defaults (1345.033ms)
+  Error [DomainError]: Invalid staff pricing or location disclosure.
+      at invalid (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/domain/dist/staff-draft-content.js:36:11)
+      at normalizeStaffDraftContentV2 (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/domain/dist/staff-draft-content.js:147:16)
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/listing-video-candidate.test.mjs:7:269
+      at asActor (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/public-media-fixtures.mjs:71:26)
+      at async setup (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/listing-video-candidate.test.mjs:7:149)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/listing-video-candidate.test.mjs:27:11)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    code: 'INVALID_STAFF_DRAFT_CONTENT_V2'
+  }
