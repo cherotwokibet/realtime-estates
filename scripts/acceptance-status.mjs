@@ -82,6 +82,14 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  staffDecisionSql261: {
+    path: 'docs/evidence/staff-lock261-sql.txt',
+    counts: [23],
+    commit: '8e9355b9ab995131f7c7dfce97d671ffee39b7c4',
+    observedDate: '2026-11-02',
+    environment:
+      'Four isolated staff SQL suites including real delayed-statement expiry/lifetime and single-session authority-loss injection. No hosted multi-session lock/deadlock/race, new API/browser/build or recipient redemption proof.',
+  },
   staffMembershipBrowser258: {
     path: 'docs/evidence/2026-11-02-staff-membership-browser.md',
     counts: null,
@@ -1255,6 +1263,17 @@ const entries = cases.map((item, index) => {
   };
 });
 const fixes = [
+  {
+    id: 'FIX-261-01',
+    cases: ['AC-002', 'AC-030'],
+    problem:
+      'Staff invitation lifetime/expiry used statement start instead of the decision wall clock; branch/capture/revocation writers also lacked the coordinated post-company-lock authority check.',
+    status: 'retested_in_stated_environment',
+    evidence: 'staffDecisionSql261',
+    before: 'docs/evidence/staff-lock261-negative.txt',
+    remaining:
+      'Clock-only negative control reproduces both timing failures;23 focused SQL checks pass. Authority loss is a single-session injection. Hosted concurrent lock/role/expiry races and connected recipient redemption remain open.',
+  },
   {
     id: 'FIX-248-01',
     cases: ['AC-002', 'AC-007'],
