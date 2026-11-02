@@ -136,6 +136,7 @@ function configuration({
   referencePublicMode,
   journeyFixture,
   publicReportMode,
+  invitationRedemptionReplyFault,
   staffInvitationRedemptionMode,
   staffInvitationMode,
   invitationReplyFault,
@@ -163,6 +164,14 @@ function configuration({
   )
     throw new StaffPreviewConfigurationError(
       'Issuance preview requires explicit capture and membership candidates.',
+    );
+  if (
+    invitationRedemptionReplyFault !== undefined &&
+    (invitationRedemptionReplyFault !== 'invalid-first-redemption-result-v1' ||
+      staffInvitationRedemptionMode !== 'synthetic-single-use-invitations-v1')
+  )
+    throw new StaffPreviewConfigurationError(
+      'Redemption reply fault requires the explicit invitation candidate.',
     );
   if (staffInvitationMode !== undefined && staffInvitationMode !== 'synthetic-capture-only-v1')
     throw new StaffPreviewConfigurationError('Unsupported synthetic staff invitation mode.');
@@ -437,6 +446,7 @@ function configuration({
     referencePublicMode,
     journeyFixture,
     publicReportMode,
+    invitationRedemptionReplyFault,
     staffInvitationRedemptionMode,
     staffInvitationMode,
     invitationReplyFault,
@@ -895,6 +905,7 @@ export async function startStaffPreview(options = {}) {
     referencePublicMode,
     journeyFixture,
     publicReportMode,
+    invitationRedemptionReplyFault,
     staffInvitationRedemptionMode,
     staffInvitationMode,
     invitationReplyFault,
@@ -910,6 +921,7 @@ export async function startStaffPreview(options = {}) {
   let settingsReplyFaultPending = !!settingsReplyFault;
   let branchReplyFaultPending = !!branchReplyFault;
   let membershipReplyFaultPending = !!membershipReplyFault;
+  let invitationRedemptionFaultPending = !!invitationRedemptionReplyFault;
   let invitationIssueFaultPending = !!invitationReplyFault;
   let invitationCaptureFaultPending = !!invitationReplyFault,
     invitationRevokeFaultPending = !!invitationReplyFault;
@@ -1243,6 +1255,29 @@ export async function startStaffPreview(options = {}) {
         .sign(privateKey);
     const bearerToken = await issueToken(actorId);
     await verify(bearerToken); // Exercise the real loopback JWKS resolver before handing off.
+    let invitationRecipient;
+    if (staffInvitationRedemptionMode) {
+      const recipientId = id(tenantSlug === 'realtime-estates' ? 50 : 60),
+        recipientEmail = 'invitation-recipient@synthetic.example.invalid';
+      const token = await new SignJWT({
+        synthetic: true,
+        email: recipientEmail,
+        email_verified: true,
+      })
+        .setProtectedHeader({ alg: 'RS256', kid, typ: 'JWT' })
+        .setIssuer(issuer)
+        .setAudience(AUDIENCE)
+        .setSubject(recipientId)
+        .setIssuedAt(now)
+        .setExpirationTime(now + LIFETIME_SECONDS)
+        .sign(privateKey);
+      invitationRecipient = Object.freeze(
+        Object.defineProperty({ actorId: recipientId, recipientEmail }, 'bearerToken', {
+          value: token,
+          enumerable: false,
+        }),
+      );
+    }
     let enquiryStaff;
     if (enquiryPreview) {
       const adminToken = actorId === company.admin ? bearerToken : await issueToken(company.admin);
@@ -1439,6 +1474,30 @@ export async function startStaffPreview(options = {}) {
                 status: 200,
                 headers: { 'Cache-Control': 'no-store', 'X-Synthetic-Staff-Preview': 'true' },
               },
+            );
+          }
+          return response;
+        }
+        if (
+          staffInvitationRedemptionMode &&
+          url.pathname.startsWith('/v2/staff/invitation-recipient-session')
+        )
+          return service(request);
+        if (
+          staffInvitationRedemptionMode &&
+          url.pathname.startsWith('/v2/staff/invitation-redemptions/')
+        ) {
+          const response = await service(request);
+          if (
+            invitationRedemptionFaultPending &&
+            request.method === 'POST' &&
+            response.status === 200
+          ) {
+            invitationRedemptionFaultPending = false;
+            await response.body?.cancel();
+            return Response.json(
+              { syntheticRedemptionReplyCorruption: true },
+              { status: 200, headers: { 'Cache-Control': 'no-store' } },
             );
           }
           return response;
@@ -2059,6 +2118,11 @@ export async function startStaffPreview(options = {}) {
       writable: false,
       configurable: false,
     });
+    if (invitationRecipient)
+      Object.defineProperty(preview, 'invitationRecipient', {
+        value: invitationRecipient,
+        enumerable: false,
+      });
     if (enquiryStaff) {
       Object.defineProperty(preview, 'enquiryStaff', {
         value: enquiryStaff,

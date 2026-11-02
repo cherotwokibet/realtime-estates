@@ -1,0 +1,42 @@
+✖ separate signed recipient BFF/controller grants only the captured role and no admin bearer is available to staff proxies (2137.5127ms)
+✔ lost committed grant recovers the same retained original after reload and replay cannot reactivate revoked membership (1787.6813ms)
+✔ verified but wrong recipient cannot accept another address and a known refusal can be acknowledged safely (1503.9909ms)
+✔ acceptance commands never retain raw codes or receipt facts, including after resolution and reload (4.8658ms)
+✔ uncertain acceptance reload retains the exact operation and recovery never resubmits raw material (2.5554ms)
+✔ acceptance binds original member identity, blocks late responses after close and acknowledges known refusal without a hidden retry (1.2159ms)
+✔ recipient BFF refuses missing mode, missing recipient credential and admin-token fallback without upstream calls (27.1011ms)
+✔ recipient page context returns signed identity facts only and never serializes either server credential (4.8679ms)
+✔ recipient request rejects authority, secret URL/query, malformed commands, headers and session writes before upstream (3.9051ms)
+✔ recipient acceptance uses a fresh identity GET and body-only secret with no browser-selected bearer or identity (3.3468ms)
+✔ mismatched post-write member facts remain uncertain; malformed recipient identity prevents any redemption call (3.053ms)
+✔ lost acceptance response never retries; explicit original recovery performs only identity and original GET reads (3.8311ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5859.1672
+
+✖ failing tests:
+
+test at apps\admin\integration-tests\invitation-recipient-flow.test.mjs:93:1
+✖ separate signed recipient BFF/controller grants only the captured role and no admin bearer is available to staff proxies (2137.5127ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - 'agent'
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/integration-tests/invitation-recipient-flow.test.mjs:122:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'agent',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

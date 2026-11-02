@@ -1,0 +1,79 @@
+✖ separate signed recipient BFF/controller grants only the captured role and no admin bearer is available to staff proxies (2191.9466ms)
+✖ lost committed grant recovers the same retained original after reload and replay cannot reactivate revoked membership (1579.1419ms)
+✖ verified but wrong recipient cannot accept another address and a known refusal can be acknowledged safely (1477.1878ms)
+✔ acceptance commands never retain raw codes or receipt facts, including after resolution and reload (6.3398ms)
+✔ uncertain acceptance reload retains the exact operation and recovery never resubmits raw material (2.446ms)
+✔ acceptance binds original member identity, blocks late responses after close and acknowledges known refusal without a hidden retry (0.9963ms)
+✔ recipient BFF refuses missing mode, missing recipient credential and admin-token fallback without upstream calls (31.0666ms)
+✔ recipient page context returns signed identity facts only and never serializes either server credential (5.489ms)
+✔ recipient request rejects authority, secret URL/query, malformed commands, headers and session writes before upstream (5.8428ms)
+✔ recipient acceptance uses a fresh identity GET and body-only secret with no browser-selected bearer or identity (4.7721ms)
+✔ mismatched post-write member facts remain uncertain; malformed recipient identity prevents any redemption call (3.9013ms)
+✔ lost acceptance response never retries; explicit original recovery performs only identity and original GET reads (3.8052ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 9
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5702.3752
+
+✖ failing tests:
+
+test at apps\admin\integration-tests\invitation-recipient-flow.test.mjs:93:1
+✖ separate signed recipient BFF/controller grants only the captured role and no admin bearer is available to staff proxies (2191.9466ms)
+  Error [ApiClientError]: Staff enquiry request could not be completed.
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:4041:31
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async RealtorApiClient.request (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:4074:20)
+      at async RealtorApiClient.getStaffInvitationRecipientSession (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:2074:22)
+      at async loadInvitationRecipientContext (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/dist/tests/lib/invitation-recipient-server.js:30:54)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/integration-tests/invitation-recipient-flow.test.mjs:99:14)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    kind: 'HTTP',
+    status: 404,
+    serverCode: 'NOT_FOUND',
+    requestId: '04c3ae53-5186-4a69-8fe6-0ccf804b23b7',
+    retryAfterSeconds: undefined,
+    submissionUncertain: false
+  }
+
+test at apps\admin\integration-tests\invitation-recipient-flow.test.mjs:133:1
+✖ lost committed grant recovers the same retained original after reload and replay cannot reactivate revoked membership (1579.1419ms)
+  Error [ApiClientError]: Staff enquiry request could not be completed.
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:4041:31
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async RealtorApiClient.request (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:4074:20)
+      at async RealtorApiClient.getStaffInvitationRecipientSession (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:2074:22)
+      at async loadInvitationRecipientContext (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/dist/tests/lib/invitation-recipient-server.js:30:54)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/integration-tests/invitation-recipient-flow.test.mjs:140:14)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    kind: 'HTTP',
+    status: 404,
+    serverCode: 'NOT_FOUND',
+    requestId: '08bbe4e4-1802-4c79-9424-8efd093e7641',
+    retryAfterSeconds: undefined,
+    submissionUncertain: false
+  }
+
+test at apps\admin\integration-tests\invitation-recipient-flow.test.mjs:182:1
+✖ verified but wrong recipient cannot accept another address and a known refusal can be acknowledged safely (1477.1878ms)
+  Error [ApiClientError]: Staff enquiry request could not be completed.
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:4041:31
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async RealtorApiClient.request (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:4074:20)
+      at async RealtorApiClient.getStaffInvitationRecipientSession (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:2074:22)
+      at async loadInvitationRecipientContext (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/dist/tests/lib/invitation-recipient-server.js:30:54)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/integration-tests/invitation-recipient-flow.test.mjs:186:14)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    kind: 'HTTP',
+    status: 404,
+    serverCode: 'NOT_FOUND',
+    requestId: '87ff24ce-a9d8-4569-9683-a6c6f598e8f5',
+    retryAfterSeconds: undefined,
+    submissionUncertain: false
+  }

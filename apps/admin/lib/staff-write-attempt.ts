@@ -1,6 +1,10 @@
 import {
   parseStaffInvitationJson,
   validateStaffInvitationIssueCommand,
+  validateStaffInvitationRedemptionCommand,
+  validateStaffInvitationRedemptionRecord,
+  type StaffInvitationRedemptionCommand,
+  type StaffInvitationRedemptionRecord,
   validateStaffInvitationIssueRecord,
   type StaffInvitationIssueCommand,
   type StaffInvitationIssueRecord,
@@ -32,6 +36,11 @@ type Base = {
 };
 export type StaffWriteAttempt = Base &
   (
+    | {
+        readonly kind: 'acceptance';
+        readonly command: StaffInvitationRedemptionCommand;
+        readonly receipt: StaffInvitationRedemptionRecord | null;
+      }
     | {
         readonly kind: 'issuance';
         readonly command: StaffInvitationIssueCommand;
@@ -111,6 +120,14 @@ export function prepareStaffWrite(
       receipt: null,
     });
   }
+  if (kind === 'acceptance')
+    return Object.freeze({
+      scope: captured,
+      kind,
+      command: validateStaffInvitationRedemptionCommand(input),
+      phase: 'prepared',
+      receipt: null,
+    });
   if (kind === 'issuance')
     return Object.freeze({
       scope: captured,
@@ -170,6 +187,17 @@ export function resolveStaffWrite(
   receipt: unknown,
 ): StaffWriteAttempt {
   if (!staffWriteMatchesScope(attempt, current)) return fail();
+  if (attempt.kind === 'acceptance')
+    return Object.freeze({
+      ...attempt,
+      phase: 'resolved',
+      receipt: validateStaffInvitationRedemptionRecord(
+        receipt,
+        attempt.command.operationId,
+        attempt.command.invitationId,
+        attempt.scope.actorId,
+      ),
+    });
   if (attempt.kind === 'issuance')
     return Object.freeze({
       ...attempt,

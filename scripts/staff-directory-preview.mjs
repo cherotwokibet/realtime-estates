@@ -14,12 +14,14 @@ const args = process.argv.slice(2),
     '--second-brand',
     '--memberships',
     '--issue-invitations',
+    '--lost-acceptance',
   ];
 if (
   process.env.NODE_ENV === 'production' ||
   new Set(args).size !== args.length ||
   args.some((x) => !allowed.includes(x)) ||
-  (args.includes('--agent') && args.includes('--foreign-admin'))
+  (args.includes('--agent') && args.includes('--foreign-admin')) ||
+  (args.includes('--lost-acceptance') && !args.includes('--issue-invitations'))
 )
   throw Error('Development staff preview options are invalid.');
 if (existsSync(new URL('../apps/admin/.next/dev/lock', import.meta.url)))
@@ -34,6 +36,9 @@ const api = await startStaffPreview({
   tenantSlug: args.includes('--second-brand') ? 'sample-homes' : 'realtime-estates',
   seedAcceptedMedia: false,
   staffInvitationMode: 'synthetic-capture-only-v1',
+  ...(args.includes('--lost-acceptance')
+    ? { invitationRedemptionReplyFault: 'invalid-first-redemption-result-v1' }
+    : {}),
   ...(args.includes('--issue-invitations')
     ? { staffInvitationRedemptionMode: 'synthetic-single-use-invitations-v1' }
     : {}),
@@ -53,6 +58,7 @@ const api = await startStaffPreview({
     : {}),
 });
 const input = createInterface({ input: process.stdin, terminal: false });
+let view = 'admin';
 let child = null,
   queue = Promise.resolve();
 const shutdown = createStaffPreviewShutdown({
@@ -107,7 +113,11 @@ async function launch() {
             ? 'synthetic-existing-members-v1'
             : undefined,
         STAFF_PREVIEW_API_ORIGIN: api.origin,
-        STAFF_PREVIEW_TOKEN: api.bearerToken,
+        STAFF_PREVIEW_TOKEN: view === 'recipient' ? undefined : api.bearerToken,
+        STAFF_INVITATION_RECIPIENT_PREVIEW_MODE:
+          view === 'recipient' ? 'synthetic-verified-recipient-v1' : undefined,
+        STAFF_INVITATION_RECIPIENT_TOKEN:
+          view === 'recipient' ? api.invitationRecipient.bearerToken : undefined,
         STAFF_PREVIEW_INSTANCE: randomUUID(),
       },
     },
@@ -126,7 +136,9 @@ async function launch() {
   console.log(
     'Owned staff admin UI pid ' +
       owned.pid +
-      ' at http://127.0.0.1:3124/staff. Signed identity stays in child environment.',
+      (view === 'recipient'
+        ? ' at http://127.0.0.1:3124/invitations/accept. Recipient identity only; no admin bearer in this UI process.'
+        : ' at http://127.0.0.1:3124/staff. Signed identity stays in child environment.'),
   );
 }
 input.on('line', (line) => {
@@ -136,7 +148,9 @@ input.on('line', (line) => {
         ? stop()
         : line.trim() === 'restart'
           ? launch()
-          : console.log('Use restart or quit.'),
+          : ['recipient', 'admin'].includes(line.trim()) && args.includes('--issue-invitations')
+            ? ((view = line.trim()), launch())
+            : console.log('Use restart or quit; issuance mode also supports recipient or admin.'),
     )
     .catch(() => {
       process.exitCode = 1;
@@ -151,5 +165,5 @@ try {
   requestStop();
 }
 console.log(
-  'Synthetic fixtures only: invitations send no email and create no membership. --memberships enables existing-staff changes; --issue-invitations separately enables synthetic one-time issuance and its membership prerequisite, without email delivery or recipient UI. --lost-results corrupts first committed results. Restart retains owned API/database with a fresh browser instance; quit stops only owned children and fixtures.',
+  'Synthetic fixtures only: capture and issuance send no email or grant membership; verified recipient acceptance creates synthetic membership. --memberships enables existing-staff changes; --issue-invitations separately enables synthetic one-time issuance and its membership prerequisite, with separate recipient/admin views and no email delivery. --lost-acceptance corrupts the first committed acceptance reply. --lost-results corrupts first committed results. Restart retains owned API/database with a fresh browser instance; quit stops only owned children and fixtures.',
 );

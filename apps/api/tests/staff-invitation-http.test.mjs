@@ -10,6 +10,70 @@ import { createApiService } from '../dist/service.js';
 import { createDevelopmentServer } from '../dist/http.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const email = 'http-staff@example.invalid';
+
+test('recipient session binds host company and verified signed identity without requiring or creating membership', async () => {
+  const f = await fixture();
+  try {
+    const before = f.control.transactions,
+      recipient = { bearerToken: await signed(50, { role: 'admin', tenant_id: id(999) }) };
+    const session = await f.client().getStaffInvitationRecipientSession(recipient);
+    assert.deepEqual(session, {
+      policy: 'synthetic-staff-invitation-recipient-session-v1',
+      tenantId: id(1),
+      actorId: id(50),
+      recipientEmail: email,
+      authority: 'identity_only',
+    });
+    assert.equal(f.control.transactions, before);
+    assert.equal(await count(f.db, 'memberships'), 1);
+    assert.equal(await count(f.db, 'staff_invitation_issues'), 0);
+  } finally {
+    await f.close();
+  }
+});
+
+test('recipient session is default-off, read-only and rejects unverified claims, credentials and request-selected context before SQL', async () => {
+  const f = await fixture();
+  try {
+    const target = '/v2/staff/invitation-recipient-session',
+      before = f.control.transactions;
+    const off = createApiService({ ...f.options, staffInvitationRedemption: undefined });
+    assert.equal((await off(new Request('http://synthetic.invalid' + target))).status, 404);
+    for (const token of [
+      await signed(50, { email_verified: false }),
+      await signed(50, {}, wrongKey),
+      await signed(50, { email: 'Recipient@example.invalid' }),
+    ]) {
+      const result = await f.handler(
+        new Request('http://synthetic.invalid' + target, {
+          headers: { authorization: 'Bearer ' + token },
+        }),
+      );
+      assert.equal(result.status, 401);
+      assert.equal(result.headers.get('cache-control'), 'no-store');
+    }
+    const token = await signed(50);
+    for (const [method, path, headers, status] of [
+      ['POST', target, {}, 405],
+      ['GET', target + '?actorId=' + id(10), {}, 404],
+      ['GET', target + '/', {}, 404],
+      ['GET', target, { cookie: 'private=x' }, 400],
+      ['GET', target, { 'if-none-match': '*' }, 400],
+      ['GET', target, { 'content-length': '1' }, 400],
+    ]) {
+      const result = await f.handler(
+        new Request('http://synthetic.invalid' + path, {
+          method,
+          headers: { authorization: 'Bearer ' + token, ...headers },
+        }),
+      );
+      assert.equal(result.status, status);
+    }
+    assert.equal(f.control.transactions, before);
+  } finally {
+    await f.close();
+  }
+});
 const issue = () => ({
   policy: 'staff-invitation-issue-command-v1',
   operationId: id(300),

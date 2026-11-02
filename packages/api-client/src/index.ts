@@ -1,5 +1,7 @@
 import {
   validateStaffInvitationIssueCommand,
+  validateStaffInvitationRecipientSession,
+  type StaffInvitationRecipientSession,
   validateStaffInvitationRedemptionCommand,
   validateStaffInvitationIssueRecord,
   validateStaffInvitationRedemptionRecord,
@@ -14,6 +16,7 @@ import {
   type StaffInvitationIssueResponse,
 } from '@realtor/domain';
 export type {
+  StaffInvitationRecipientSession,
   StaffInvitationIssueCommand,
   StaffInvitationRedemptionCommand,
   StaffInvitationIssueRecord,
@@ -3665,6 +3668,17 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid membership directory page.');
     }
   }
+  async getStaffInvitationRecipientSession(
+    options: StaffRequestOptions,
+  ): Promise<StaffInvitationRecipientSession> {
+    const captured = uploadOptions(options);
+    const data = await this.request('/v2/staff/invitation-recipient-session', 'GET', captured);
+    try {
+      return validateStaffInvitationRecipientSession(data);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Recipient identity could not be verified.');
+    }
+  }
   async issueStaffInvitation(
     input: StaffInvitationIssueCommand,
     options: StaffRequestOptions,
@@ -5934,6 +5948,7 @@ export class RealtorApiClient {
     const staffBranch = /^\/v2\/staff\/branches\/(?:operations\/)?[0-9a-f-]{36}$/.test(path);
     const staffMembership = /^\/v2\/staff\/memberships\/(?:operations\/)?[0-9a-f-]{36}$/.test(path);
     const singleUseInvitation =
+      path === '/v2/staff/invitation-recipient-session' ||
       /^\/v2\/staff\/invitation-(?:issues|redemptions)\/[0-9a-f-]{36}\/operations\/[0-9a-f-]{36}(?:\/state)?$/.test(
         path,
       );

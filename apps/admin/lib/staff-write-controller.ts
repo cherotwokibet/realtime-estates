@@ -1,5 +1,8 @@
 import { ApiClientError } from '@realtor/api-client';
-import { validateStaffInvitationIssueResponse } from '@realtor/domain';
+import {
+  validateStaffInvitationIssueResponse,
+  validateStaffInvitationRawSecret,
+} from '@realtor/domain';
 import {
   prepareStaffWrite,
   markStaffWriteUncertain,
@@ -19,6 +22,8 @@ interface Store {
 }
 type Client = Pick<
   StaffDirectoryClient,
+  | 'acceptInvitation'
+  | 'getInvitationRedemption'
   | 'issueInvitation'
   | 'getInvitationIssue'
   | 'saveBranch'
@@ -68,7 +73,7 @@ export function createStaffWriteController(input: {
       throw Error(error);
     }
   };
-  async function run(mode: 'submit' | 'recover' | 'replay') {
+  async function run(mode: 'submit' | 'recover' | 'replay', rawSecret?: string) {
     requireIdle();
     if (
       !attempt ||
@@ -76,6 +81,10 @@ export function createStaffWriteController(input: {
       (mode === 'submit' ? attempt.phase !== 'prepared' : attempt.phase !== 'uncertain')
     )
       throw Error('Recover the retained original first.');
+    const acceptanceSecret =
+      attempt.kind === 'acceptance' && mode !== 'recover'
+        ? validateStaffInvitationRawSecret(rawSecret)
+        : undefined;
     const original = attempt,
       controller = new AbortController();
     active = controller;
@@ -93,6 +102,8 @@ export function createStaffWriteController(input: {
       const pending = Promise.resolve().then<unknown>(() => {
         if (controller.signal.aborted) throw Error('Staff operation interrupted.');
         if (mode === 'recover') {
+          if (uncertain.kind === 'acceptance')
+            return client.getInvitationRedemption(uncertain.command, controller.signal);
           if (uncertain.kind === 'issuance')
             return client.getInvitationIssue(uncertain.command, controller.signal);
           if (uncertain.kind === 'membership')
@@ -107,6 +118,8 @@ export function createStaffWriteController(input: {
                   controller.signal,
                 );
         }
+        if (uncertain.kind === 'acceptance')
+          return client.acceptInvitation(uncertain.command, acceptanceSecret!, controller.signal);
         if (uncertain.kind === 'issuance')
           return client.issueInvitation(uncertain.command, controller.signal);
         if (uncertain.kind === 'membership')
@@ -141,7 +154,7 @@ export function createStaffWriteController(input: {
       if (
         !closed &&
         !blocked &&
-        original.kind === 'issuance' &&
+        ['issuance', 'acceptance'].includes(original.kind) &&
         mode !== 'recover' &&
         cause instanceof ApiClientError &&
         cause.kind === 'HTTP' &&
@@ -150,7 +163,7 @@ export function createStaffWriteController(input: {
       ) {
         attempt = Object.freeze({ ...original, phase: 'refused', receipt: null });
         error =
-          'Issuance was refused without a write. Acknowledge the refusal and refresh current invitations.';
+          'Request was refused without a write. Acknowledge the refusal and verify the current invitation.';
       }
       if (!error) error = 'Original not confirmed; retain and recover this operation.';
       throw Error(error);
@@ -197,11 +210,11 @@ export function createStaffWriteController(input: {
       requireIdle();
       secret = null;
     },
-    submit: () => run('submit'),
+    submit: (rawSecret?: string) => run('submit', rawSecret),
     recover: () => run('recover'),
-    replay(confirmedExactReplay: boolean) {
+    replay(confirmedExactReplay: boolean, rawSecret?: string) {
       if (confirmedExactReplay !== true) throw Error('Confirm exact original replay.');
-      return run('replay');
+      return run('replay', rawSecret);
     },
     clear() {
       requireIdle();

@@ -1,3 +1,4 @@
+import { validateStaffInvitationEmail } from './staff-invitations.js';
 import { parseStaffInvitationJson } from './staff-invitation-records.js';
 
 /** Retain these commands, never an issuance disclosure or a submitted raw secret. */
@@ -250,4 +251,30 @@ export function parseStaffIssuedInvitationJson(value: string): unknown {
   if (typeof value !== 'string' || new TextEncoder().encode(value).byteLength > 8192)
     return invalid();
   return parseStaffInvitationJson(value);
+}
+
+/** Verified identity facts only; this does not assert membership, role or invitation access. */
+export interface StaffInvitationRecipientSession {
+  readonly policy: 'synthetic-staff-invitation-recipient-session-v1';
+  readonly tenantId: string;
+  readonly actorId: string;
+  readonly recipientEmail: string;
+  readonly authority: 'identity_only';
+}
+export function validateStaffInvitationRecipientSession(
+  value: unknown,
+): StaffInvitationRecipientSession {
+  const row = own(value, ['policy', 'tenantId', 'actorId', 'recipientEmail', 'authority']);
+  if (
+    row.policy !== 'synthetic-staff-invitation-recipient-session-v1' ||
+    row.authority !== 'identity_only'
+  )
+    return invalid();
+  return Object.freeze({
+    policy: row.policy,
+    tenantId: uuid(row.tenantId),
+    actorId: uuid(row.actorId),
+    recipientEmail: validateStaffInvitationEmail(row.recipientEmail),
+    authority: row.authority,
+  });
 }

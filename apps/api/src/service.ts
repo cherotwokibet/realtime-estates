@@ -1614,6 +1614,7 @@ export function createApiService(
       const path = url.pathname;
       const method = request.method.toUpperCase();
       if (
+        path.startsWith('/v2/staff/invitation-recipient-session') ||
         path.startsWith('/v2/staff/invitation-issues') ||
         path.startsWith('/v2/staff/invitation-redemptions')
       ) {

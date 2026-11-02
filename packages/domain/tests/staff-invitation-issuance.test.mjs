@@ -10,8 +10,43 @@ import {
   validateStaffInvitationIssueResponse as disclosure,
   validateStaffInvitationRawSecret as secret,
   parseStaffIssuedInvitationJson as parse,
+  validateStaffInvitationRecipientSession as recipientSession,
 } from '../dist/index.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
+test('recipient session is detached identity-only context with no grant, role or credential fields', () => {
+  const facts = {
+    policy: 'synthetic-staff-invitation-recipient-session-v1',
+    tenantId: id(1),
+    actorId: id(2),
+    recipientEmail: 'recipient@example.invalid',
+    authority: 'identity_only',
+  };
+  const result = recipientSession(facts);
+  facts.actorId = id(3);
+  assert.equal(result.actorId, id(2));
+  assert.ok(Object.isFrozen(result));
+  for (const patch of [
+    { role: 'admin' },
+    { secret: 'private' },
+    { membershipGranted: true },
+    { authority: 'admin' },
+    { recipientEmail: 'Recipient@example.invalid' },
+    { actorId: 'foreign' },
+  ])
+    assert.throws(() => recipientSession({ ...result, ...patch }));
+  let calls = 0;
+  const getter = { ...result };
+  Object.defineProperty(getter, 'recipientEmail', {
+    enumerable: true,
+    get() {
+      calls++;
+      return result.recipientEmail;
+    },
+  });
+  assert.throws(() => recipientSession(getter));
+  assert.equal(calls, 0);
+});
 const command = () => ({
   policy: 'staff-invitation-issue-command-v1',
   operationId: id(1),

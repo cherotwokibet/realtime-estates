@@ -2,6 +2,11 @@ import { ApiClientError } from '@realtor/api-client';
 import {
   parseStaffInvitationJson,
   validateStaffInvitationIssueCommand,
+  validateStaffInvitationRecipientSession,
+  validateStaffInvitationRedemptionCommand,
+  validateStaffInvitationRedemptionRecord,
+  validateStaffInvitationRawSecret,
+  type StaffInvitationRedemptionCommand,
   validateStaffInvitationIssueRecord,
   validateStaffInvitationIssueResponse,
   validateStaffIssuedInvitationState,
@@ -119,7 +124,7 @@ export function createStaffDirectoryClient(
         }
       }
       if (
-        path.includes('/invitation-issues/') &&
+        (path.includes('/invitation-issues/') || path.startsWith('/api/invitation-acceptance/')) &&
         response.headers.get('cache-control') !== 'no-store'
       ) {
         void response.body?.cancel().catch(() => {});
@@ -180,6 +185,40 @@ export function createStaffDirectoryClient(
     };
   };
   return Object.freeze({
+    getInvitationRecipientSession(signal?: AbortSignal) {
+      return request(
+        '/api/invitation-acceptance/session',
+        undefined,
+        'session',
+        validateStaffInvitationRecipientSession,
+        signal,
+      );
+    },
+    acceptInvitation(
+      input: StaffInvitationRedemptionCommand,
+      rawSecret: string,
+      signal?: AbortSignal,
+    ) {
+      const c = validateStaffInvitationRedemptionCommand(input),
+        secret = validateStaffInvitationRawSecret(rawSecret);
+      return request(
+        '/api/invitation-acceptance/' + c.invitationId + '/operations/' + c.operationId,
+        { command: c, secret },
+        'receipt',
+        (v) => validateStaffInvitationRedemptionRecord(v, c.operationId, c.invitationId),
+        signal,
+      );
+    },
+    getInvitationRedemption(input: StaffInvitationRedemptionCommand, signal?: AbortSignal) {
+      const c = validateStaffInvitationRedemptionCommand(input);
+      return request(
+        '/api/invitation-acceptance/' + c.invitationId + '/operations/' + c.operationId,
+        undefined,
+        'receipt',
+        (v) => validateStaffInvitationRedemptionRecord(v, c.operationId, c.invitationId),
+        signal,
+      );
+    },
     issueInvitation(input: StaffInvitationIssueCommand, signal?: AbortSignal) {
       const c = validateStaffInvitationIssueCommand(input);
       return request(

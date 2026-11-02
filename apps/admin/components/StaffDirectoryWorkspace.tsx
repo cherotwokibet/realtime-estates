@@ -714,8 +714,8 @@ export default function StaffDirectoryWorkspace({
             {issuanceEnabled && (
               <p>
                 One-time codes are enabled for synthetic requests. Issued and used states are
-                current; the original capture remains historical. Recipient acceptance UI is not yet
-                connected.
+                current; the original capture remains historical. Recipients accept using a
+                separately verified identity and the private code.
               </p>
             )}
             <button

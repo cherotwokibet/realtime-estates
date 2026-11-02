@@ -1,5 +1,6 @@
 import {
   validateStaffInvitationIssueRecord,
+  validateStaffInvitationRecipientSession,
   validateStaffInvitationRedemptionRecord,
   validateStaffIssuedInvitationState,
   type StaffInvitationIssueRecord as InvitationIssueRecord,
@@ -169,6 +170,19 @@ export function createStaffInvitationRedemptionCandidate(options: {
   const issuer = options.identity.issuer;
   const transaction = options.database.transaction.bind(options.database);
   return Object.freeze({
+    async recipientSession(company: unknown, bearer: string) {
+      guard();
+      const tenantId = uuid(company),
+        recipient = await verifyRecipient(bearer);
+      guard();
+      return validateStaffInvitationRecipientSession({
+        policy: 'synthetic-staff-invitation-recipient-session-v1',
+        tenantId,
+        actorId: recipient.actorId,
+        recipientEmail: recipient.recipientEmail,
+        authority: 'identity_only',
+      });
+    },
     async issue(value: unknown, bearer: string): Promise<InvitationIssueResult> {
       guard();
       const command = input(value),

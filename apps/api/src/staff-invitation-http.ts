@@ -114,11 +114,17 @@ export function createStaffInvitationHttpCandidate(options: {
     try {
       if (process.env.NODE_ENV === 'production') throw new InputError(404);
       const url = new URL(request.url),
-        match = route.exec(url.pathname);
-      if (!match || url.search || url.hash || (match[1] === 'invitation-redemptions' && match[4]))
+        match = route.exec(url.pathname),
+        session = url.pathname === '/v2/staff/invitation-recipient-session';
+      if (
+        (!match && !session) ||
+        url.search ||
+        url.hash ||
+        (match?.[1] === 'invitation-redemptions' && match[4])
+      )
         throw new InputError(404);
-      const state = !!match[4],
-        redemption = match[1] === 'invitation-redemptions';
+      const state = session || !!match?.[4],
+        redemption = match?.[1] === 'invitation-redemptions';
       allow = state ? 'GET' : 'GET, POST';
       if (!['GET', ...(state ? [] : ['POST'])].includes(request.method)) throw new InputError(405);
       if (
@@ -135,7 +141,7 @@ export function createStaffInvitationHttpCandidate(options: {
       )
         throw new InputError(400);
       const bearer = parseBearerHeader(request.headers.get('authorization') ?? undefined);
-      const input = { tenantId, invitationId: match[2]!, operationId: match[3]! };
+      const input = { tenantId, invitationId: match?.[2] ?? '', operationId: match?.[3] ?? '' };
       if (request.method === 'GET') {
         if (
           request.body ||
@@ -143,6 +149,8 @@ export function createStaffInvitationHttpCandidate(options: {
           (request.headers.has('content-length') && request.headers.get('content-length') !== '0')
         )
           throw new InputError(400);
+        if (session)
+          return json(200, await candidate.recipientSession(tenantId, bearer), requestId);
         return json(
           200,
           state

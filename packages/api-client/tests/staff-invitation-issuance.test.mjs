@@ -3,6 +3,48 @@ import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { RealtorApiClient } from '../dist/index.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
+test('recipient identity session uses a bounded no-store GET and rejects invented authority or cached facts', async () => {
+  const value = {
+      policy: 'synthetic-staff-invitation-recipient-session-v1',
+      tenantId: id(1),
+      actorId: id(2),
+      recipientEmail: 'recipient@example.invalid',
+      authority: 'identity_only',
+    },
+    calls = [];
+  const result = await client(async (url, init) => {
+    calls.push({ url, init });
+    return response(value);
+  }).getStaffInvitationRecipientSession(auth);
+  assert.deepEqual(result, value);
+  assert.ok(Object.isFrozen(result));
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, 'https://synthetic.invalid/v2/staff/invitation-recipient-session');
+  assert.equal(calls[0].init.method, 'GET');
+  assert.equal(calls[0].init.body, undefined);
+  assert.equal(calls[0].init.credentials, 'omit');
+  assert.equal(calls[0].init.cache, 'no-store');
+  for (const make of [
+    () => response({ ...value, role: 'admin' }),
+    () => Response.json(value),
+    () =>
+      new Response('{"actorId":1,"actorId":2}', {
+        headers: { 'content-type': 'application/json', 'cache-control': 'no-store' },
+      }),
+  ]) {
+    let n = 0;
+    await assert.rejects(
+      () =>
+        client(async () => {
+          n++;
+          return make();
+        }).getStaffInvitationRecipientSession(auth),
+      (e) => e.kind === 'INVALID_RESPONSE' && e.submissionUncertain !== true,
+    );
+    assert.equal(n, 1);
+  }
+});
 const issue = () => ({
   policy: 'staff-invitation-issue-command-v1',
   operationId: id(1),
