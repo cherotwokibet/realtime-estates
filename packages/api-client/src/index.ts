@@ -1,4 +1,27 @@
 import {
+  validateStaffInvitationIssueCommand,
+  validateStaffInvitationRedemptionCommand,
+  validateStaffInvitationIssueRecord,
+  validateStaffInvitationRedemptionRecord,
+  validateStaffIssuedInvitationState,
+  validateStaffInvitationRawSecret,
+  validateStaffInvitationIssueResponse,
+  type StaffInvitationIssueCommand,
+  type StaffInvitationRedemptionCommand,
+  type StaffInvitationIssueRecord,
+  type StaffInvitationRedemptionRecord,
+  type StaffIssuedInvitationState,
+  type StaffInvitationIssueResponse,
+} from '@realtor/domain';
+export type {
+  StaffInvitationIssueCommand,
+  StaffInvitationRedemptionCommand,
+  StaffInvitationIssueRecord,
+  StaffInvitationRedemptionRecord,
+  StaffIssuedInvitationState,
+  StaffInvitationIssueResponse,
+} from '@realtor/domain';
+import {
   parseStaffInvitationJson,
   validateStaffBranchCommand,
   validateStaffBranchRecord,
@@ -3642,6 +3665,147 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid membership directory page.');
     }
   }
+  async issueStaffInvitation(
+    input: StaffInvitationIssueCommand,
+    options: StaffRequestOptions,
+  ): Promise<StaffInvitationIssueResponse> {
+    const captured = uploadOptions(options);
+    let command: StaffInvitationIssueCommand;
+    try {
+      command = validateStaffInvitationIssueCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid invitation issue command.');
+    }
+    const data = await this.request(
+      '/v2/staff/invitation-issues/' + command.invitationId + '/operations/' + command.operationId,
+      'POST',
+      captured,
+      { ...command },
+    );
+    try {
+      return validateStaffInvitationIssueResponse(data, command.operationId, command.invitationId);
+    } catch {
+      throw new ApiClientError(
+        'INVALID_RESPONSE',
+        'Invitation issue result could not be verified.',
+        { submissionUncertain: true },
+      );
+    }
+  }
+  async getStaffInvitationIssue(
+    input: StaffInvitationIssueCommand,
+    options: StaffRequestOptions,
+  ): Promise<StaffInvitationIssueRecord> {
+    const captured = uploadOptions(options);
+    let command: StaffInvitationIssueCommand;
+    try {
+      command = validateStaffInvitationIssueCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid invitation issue command.');
+    }
+    const data = await this.request(
+      '/v2/staff/invitation-issues/' + command.invitationId + '/operations/' + command.operationId,
+      'GET',
+      captured,
+    );
+    try {
+      return validateStaffInvitationIssueRecord(data, command.operationId, command.invitationId);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid invitation issue original.');
+    }
+  }
+  async getIssuedStaffInvitationState(
+    input: StaffInvitationIssueCommand,
+    options: StaffRequestOptions,
+  ): Promise<StaffIssuedInvitationState> {
+    const captured = uploadOptions(options);
+    let command: StaffInvitationIssueCommand;
+    try {
+      command = validateStaffInvitationIssueCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid invitation state target.');
+    }
+    const data = await this.request(
+      '/v2/staff/invitation-issues/' +
+        command.invitationId +
+        '/operations/' +
+        command.operationId +
+        '/state',
+      'GET',
+      captured,
+    );
+    try {
+      return validateStaffIssuedInvitationState(data, command.operationId, command.invitationId);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid issued invitation state.');
+    }
+  }
+  async redeemStaffInvitation(
+    input: StaffInvitationRedemptionCommand,
+    rawSecret: string,
+    options: StaffRequestOptions,
+  ): Promise<StaffInvitationRedemptionRecord> {
+    const captured = uploadOptions(options);
+    let command: StaffInvitationRedemptionCommand;
+    let secret: string;
+    try {
+      command = validateStaffInvitationRedemptionCommand(input);
+      secret = validateStaffInvitationRawSecret(rawSecret);
+    } catch {
+      return invalid('VALIDATION', 'Invalid invitation redemption command.');
+    }
+    const data = await this.request(
+      '/v2/staff/invitation-redemptions/' +
+        command.invitationId +
+        '/operations/' +
+        command.operationId,
+      'POST',
+      captured,
+      { command, secret },
+    );
+    try {
+      return validateStaffInvitationRedemptionRecord(
+        data,
+        command.operationId,
+        command.invitationId,
+      );
+    } catch {
+      throw new ApiClientError(
+        'INVALID_RESPONSE',
+        'Invitation redemption result could not be verified.',
+        { submissionUncertain: true },
+      );
+    }
+  }
+  async getStaffInvitationRedemption(
+    input: StaffInvitationRedemptionCommand,
+    options: StaffRequestOptions,
+  ): Promise<StaffInvitationRedemptionRecord> {
+    const captured = uploadOptions(options);
+    let command: StaffInvitationRedemptionCommand;
+    try {
+      command = validateStaffInvitationRedemptionCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid invitation redemption target.');
+    }
+    const data = await this.request(
+      '/v2/staff/invitation-redemptions/' +
+        command.invitationId +
+        '/operations/' +
+        command.operationId,
+      'GET',
+      captured,
+    );
+    try {
+      return validateStaffInvitationRedemptionRecord(
+        data,
+        command.operationId,
+        command.invitationId,
+      );
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid invitation redemption original.');
+    }
+  }
   async saveStaffMembership(
     input: StaffMembershipCommand,
     options: StaffRequestOptions,
@@ -5769,7 +5933,12 @@ export class RealtorApiClient {
       );
     const staffBranch = /^\/v2\/staff\/branches\/(?:operations\/)?[0-9a-f-]{36}$/.test(path);
     const staffMembership = /^\/v2\/staff\/memberships\/(?:operations\/)?[0-9a-f-]{36}$/.test(path);
+    const singleUseInvitation =
+      /^\/v2\/staff\/invitation-(?:issues|redemptions)\/[0-9a-f-]{36}\/operations\/[0-9a-f-]{36}(?:\/state)?$/.test(
+        path,
+      );
     const staffInvitation =
+      singleUseInvitation ||
       staffMembership ||
       staffBranch ||
       staffDirectory ||
@@ -5926,6 +6095,14 @@ export class RealtorApiClient {
             status: result.status,
             submissionUncertain: writes,
           });
+        }
+        if (singleUseInvitation && result.headers.get('cache-control') !== 'no-store') {
+          void result.body?.cancel().catch(() => {});
+          throw new ApiClientError(
+            'INVALID_RESPONSE',
+            'Private invitation response must not be cached.',
+            { submissionUncertain: writes },
+          );
         }
         let raw: string;
         if (boundedRead) {

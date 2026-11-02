@@ -1,3 +1,11 @@
+import {
+  validateStaffInvitationIssueRecord,
+  validateStaffInvitationRedemptionRecord,
+  validateStaffIssuedInvitationState,
+  type StaffInvitationIssueRecord as InvitationIssueRecord,
+  type StaffInvitationRedemptionRecord as InvitationRedemptionRecord,
+  type StaffIssuedInvitationState as IssuedInvitationState,
+} from '@realtor/domain';
 import { createIdentityVerifier, type IdentityVerifierConfig } from './auth.js';
 import type { TransactionDatabase, TransactionQuery } from './database.js';
 import { createStaffInvitationRecipientVerifier } from './staff-invitation-recipient.js';
@@ -12,17 +20,7 @@ export interface InvitationCandidateInput {
   readonly operationId: string;
   readonly invitationId: string;
 }
-export interface InvitationIssueRecord {
-  readonly policy: 'staff-invitation-issuance-record-v1';
-  readonly operationId: string;
-  readonly invitationId: string;
-  readonly actorId: string;
-  readonly recordedAt: string;
-  readonly expiresAt: string;
-  readonly secretRecovery: 'revoke_and_replace';
-  readonly delivery: 'not_attempted';
-  readonly membershipGranted: false;
-}
+export type { StaffInvitationIssueRecord as InvitationIssueRecord } from '@realtor/domain';
 export interface InvitationIssueResult {
   readonly receipt: InvitationIssueRecord;
   readonly secretAvailable: boolean;
@@ -30,24 +28,10 @@ export interface InvitationIssueResult {
   takeSecretOnce(): string;
   destroySecret(): void;
 }
-export interface InvitationRedemptionRecord {
-  readonly policy: 'staff-invitation-redemption-record-v1';
-  readonly operationId: string;
-  readonly invitationId: string;
-  readonly memberId: string;
-  readonly requestedRole: 'agent' | 'admin';
-  readonly branchId: string | null;
-  readonly recordedAt: string;
-  readonly membershipGranted: true;
-}
-export interface IssuedInvitationState {
-  readonly policy: 'staff-issued-invitation-state-v1';
-  readonly operationId: string;
-  readonly invitationId: string;
-  readonly recordedAt: string;
-  readonly expiresAt: string;
-  readonly state: 'issued' | 'used' | 'revoked' | 'expired';
-}
+export type {
+  StaffInvitationRedemptionRecord as InvitationRedemptionRecord,
+  StaffIssuedInvitationState as IssuedInvitationState,
+} from '@realtor/domain';
 export class StaffInvitationCandidateError extends Error {
   readonly code = 'INVALID_STAFF_INVITATION_CANDIDATE';
   constructor() {
@@ -98,120 +82,44 @@ function input(value: unknown): InvitationCandidateInput {
     invitationId: uuid(row.invitationId),
   });
 }
-function date(value: unknown): string {
-  if (
-    typeof value !== 'string' ||
-    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) ||
-    !Number.isFinite(Date.parse(value)) ||
-    new Date(value).toISOString() !== value
-  )
-    return invalid();
-  return value;
-}
 function issueRecord(
   value: unknown,
   command: InvitationCandidateInput,
   actorId: string,
 ): InvitationIssueRecord {
-  const row = own(value, [
-    'policy',
-    'operationId',
-    'invitationId',
-    'actorId',
-    'recordedAt',
-    'expiresAt',
-    'secretRecovery',
-    'delivery',
-    'membershipGranted',
-  ]);
-  const recordedAt = date(row.recordedAt),
-    expiresAt = date(row.expiresAt);
-  if (
-    row.policy !== 'staff-invitation-issuance-record-v1' ||
-    row.operationId !== command.operationId ||
-    row.invitationId !== command.invitationId ||
-    row.actorId !== actorId ||
-    row.secretRecovery !== 'revoke_and_replace' ||
-    row.delivery !== 'not_attempted' ||
-    row.membershipGranted !== false ||
-    Date.parse(expiresAt) <= Date.parse(recordedAt)
-  )
+  try {
+    return validateStaffInvitationIssueRecord(
+      value,
+      command.operationId,
+      command.invitationId,
+      actorId,
+    );
+  } catch {
     return invalid();
-  return Object.freeze({
-    policy: row.policy,
-    operationId: command.operationId,
-    invitationId: command.invitationId,
-    actorId,
-    recordedAt,
-    expiresAt,
-    secretRecovery: row.secretRecovery,
-    delivery: row.delivery,
-    membershipGranted: false,
-  });
+  }
 }
 function redemptionRecord(
   value: unknown,
   command: InvitationCandidateInput,
   memberId: string,
 ): InvitationRedemptionRecord {
-  const row = own(value, [
-    'policy',
-    'operationId',
-    'invitationId',
-    'memberId',
-    'requestedRole',
-    'branchId',
-    'recordedAt',
-    'membershipGranted',
-  ]);
-  if (
-    row.policy !== 'staff-invitation-redemption-record-v1' ||
-    row.operationId !== command.operationId ||
-    row.invitationId !== command.invitationId ||
-    row.memberId !== memberId ||
-    !['agent', 'admin'].includes(row.requestedRole as string) ||
-    row.membershipGranted !== true ||
-    (row.requestedRole === 'admin' && row.branchId !== null)
-  )
+  try {
+    return validateStaffInvitationRedemptionRecord(
+      value,
+      command.operationId,
+      command.invitationId,
+      memberId,
+    );
+  } catch {
     return invalid();
-  return Object.freeze({
-    policy: row.policy,
-    operationId: command.operationId,
-    invitationId: command.invitationId,
-    memberId,
-    requestedRole: row.requestedRole as 'agent' | 'admin',
-    branchId: row.branchId === null ? null : uuid(row.branchId),
-    recordedAt: date(row.recordedAt),
-    membershipGranted: true,
-  });
+  }
 }
 function issuedState(value: unknown, command: InvitationCandidateInput): IssuedInvitationState {
-  const row = own(value, [
-    'policy',
-    'operationId',
-    'invitationId',
-    'recordedAt',
-    'expiresAt',
-    'state',
-  ]);
-  const recordedAt = date(row.recordedAt),
-    expiresAt = date(row.expiresAt);
-  if (
-    row.policy !== 'staff-issued-invitation-state-v1' ||
-    row.operationId !== command.operationId ||
-    row.invitationId !== command.invitationId ||
-    !['issued', 'used', 'revoked', 'expired'].includes(row.state as string) ||
-    Date.parse(expiresAt) <= Date.parse(recordedAt)
-  )
+  try {
+    return validateStaffIssuedInvitationState(value, command.operationId, command.invitationId);
+  } catch {
     return invalid();
-  return Object.freeze({
-    policy: row.policy,
-    operationId: command.operationId,
-    invitationId: command.invitationId,
-    recordedAt,
-    expiresAt,
-    state: row.state as IssuedInvitationState['state'],
-  });
+  }
 }
 async function scalar(
   query: TransactionQuery,
@@ -241,7 +149,7 @@ function issueResult(
   return Object.freeze(result);
 }
 
-/** Programmatic, synthetic-only boundary. Not registered as an HTTP route or startup feature. */
+/** Synthetic-only boundary. HTTP uses a separate explicit opt-in; startup does not enable it. */
 export function createStaffInvitationRedemptionCandidate(options: {
   database: TransactionDatabase;
   identity: IdentityVerifierConfig;

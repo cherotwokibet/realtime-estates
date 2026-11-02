@@ -1,4 +1,6 @@
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
+import { createStaffInvitationHttpCandidate } from './staff-invitation-http.js';
+import type { IdentityVerifierConfig } from './auth.js';
 import {
   parseStaffInvitationJson,
   validateStaffMembershipCommand,
@@ -139,6 +141,11 @@ export interface EnquiryLimiter {
   consume(key: string): LimiterResult | Promise<LimiterResult>;
 }
 export interface ApiServiceOptions {
+  /** Separate synthetic-only signed issuance/acceptance lane; absent keeps every route unavailable. */
+  readonly staffInvitationRedemption?: Readonly<{
+    mode: 'synthetic-single-use-invitations-v1';
+    identity: IdentityVerifierConfig;
+  }>;
   /** Isolated existing-staff administration only; omission leaves every membership route unavailable. */
   readonly staffMembershipMode?: 'synthetic-existing-members-v1';
   /** Isolated capture/revoke candidate only; no mail, secret or membership acceptance. */
@@ -1549,6 +1556,13 @@ export function createApiService(
   const referenceSuccessorEnabled =
     options.referenceSuccessorMode === 'synthetic-reference-successor-v1';
   const tenantId = uuid(options.tenantId, 'Configured tenant');
+  const invitationRedemptionHandler = options.staffInvitationRedemption
+    ? createStaffInvitationHttpCandidate({
+        ...options.staffInvitationRedemption,
+        database: options.database,
+        tenantId,
+      })
+    : null;
   const privacyNoticeVersion = text(
     options.privacyNoticeVersion,
     'Configured privacy notice version',
@@ -1599,6 +1613,14 @@ export function createApiService(
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method.toUpperCase();
+      if (
+        path.startsWith('/v2/staff/invitation-issues') ||
+        path.startsWith('/v2/staff/invitation-redemptions')
+      ) {
+        if (!invitationRedemptionHandler)
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        return invitationRedemptionHandler(request, correlationId);
+      }
       if (path.startsWith('/v2/staff/memberships')) {
         if (!staffMembershipsEnabled)
           throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
