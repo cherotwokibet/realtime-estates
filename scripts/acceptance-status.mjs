@@ -82,6 +82,83 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  recipientDomain275: {
+  "path": "docs/evidence/recipient275-domain.txt",
+  "counts": [
+    343
+  ],
+  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
+  "observedDate": "2026-11-02",
+  "environment": "Full shared domain including strict identity-only recipient session. No membership inferred from identity."
+},
+  recipientSdk275: {
+  "path": "docs/evidence/recipient275-sdk.txt",
+  "counts": [
+    333
+  ],
+  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
+  "observedDate": "2026-11-02",
+  "environment": "Full SDK regression including bounded no-store recipient session read."
+},
+  recipientAdmin275: {
+  "path": "docs/evidence/recipient275-admin-final2.txt",
+  "counts": [
+    504,
+    39
+  ],
+  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
+  "observedDate": "2026-11-02",
+  "environment": "Full admin library/BFF/controller and rendered UI regression. No actual device/operator acceptance."
+},
+  recipientApi275: {
+  "path": "docs/evidence/recipient275-api.txt",
+  "counts": [
+    355
+  ],
+  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
+  "observedDate": "2026-11-02",
+  "environment": "Full compiled API regression including signed nonmember recipient session without SQL grant."
+},
+  recipientFocused275: {
+  "path": "docs/evidence/recipient275-focused.txt",
+  "counts": [22],
+  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
+  "observedDate": "2026-11-02",
+  "environment": "Combined22 focused checks comprise7 domain,7 SDK and8 HTTP; all overlap their full suites."
+},
+  recipientConnected275: {
+  "path": "docs/evidence/recipient275-connected-final2.txt",
+  "counts": [
+    12
+  ],
+  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
+  "observedDate": "2026-11-02",
+  "environment": "6 BFF plus3 retained-controller units overlap admin504;3 actual signed HTTP/JWKS/PGlite compositions prove grant, wrong recipient refusal, lost committed reply and replay after revocation without reactivation."
+},
+  recipientPreview275: {
+  "path": "docs/evidence/recipient275-preview.txt",
+  "counts": [
+    22
+  ],
+  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
+  "observedDate": "2026-11-02",
+  "environment": "Existing disposable preview and owned child lifecycle checks. Synthetic only."
+},
+  recipientBrowser275: {
+  "path": "docs/evidence/2026-11-02-invitation-recipient-acceptance.md",
+  "counts": null,
+  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
+  "observedDate": "2026-11-02",
+  "environment": "Actual owned Next/browser: separate verified recipient, committed reply loss, GET-only recovery/reload, used state, admin revocation, existing inactive member refusal,390px wrapping/focus. No physical device/provider/hosted races or actual browser expiry pass."
+},
+  recipientBuild275: {
+  "path": "docs/evidence/recipient275-next-final.txt",
+  "counts": null,
+  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
+  "observedDate": "2026-11-02",
+  "environment": "Current complete admin production build including recipient acceptance page and guarded session/operation routes; no production deployment."
+},
+
   staffIssueDomain272: {
     path: 'docs/evidence/staff-issue272-domain.txt',
     counts: [342],
@@ -1086,8 +1163,17 @@ const reviewed = [
       'staffIssueConnected272',
       'staffIssueBrowser272',
       'staffIssueBuild272',
+      'recipientDomain275',
+      'recipientSdk275',
+      'recipientAdmin275',
+      'recipientApi275',
+      'recipientFocused275',
+      'recipientConnected275',
+      'recipientPreview275',
+      'recipientBrowser275',
+      'recipientBuild275',
     ],
-    'Current signed customer, revoked and foreign actor denials; server-owned staff access and guarded listing commands. Separate default-off signed invitation HTTP/SDK now connects to isolated SQL, with metadata-only lost disclosure recovery and no membership reactivation on replay. Separately enabled admin issuance now has verified BFF/controller and actual browser reveal/discard, retained recovery/reload, revocation and current issued/used state reads.',
+    'Current signed customer, revoked and foreign actor denials; server-owned staff access and guarded listing commands. Separate default-off signed invitation HTTP/SDK now connects to isolated SQL, with metadata-only lost disclosure recovery and no membership reactivation on replay. Separately enabled admin issuance now has verified BFF/controller and actual browser reveal/discard, retained recovery/reload, revocation and current issued/used state reads. Separately signed nonmember acceptance now connects through identity-only session, strict BFF/controller/UI and GET recovery. Actual browser used-state, revocation and existing-member refusal plus signed replay-without-reactivation composition are verified locally.',
     'Production identity, native route bypass and deployed storage permissions still require verification.',
     'Complete the real identity/browser/native denial matrix on the release candidate.',
   ],
@@ -1400,7 +1486,7 @@ const fixes = [
     evidence: 'staffDecisionSql261',
     before: 'docs/evidence/staff-lock261-negative.txt',
     remaining:
-      'Clock-only negative control reproduces both timing failures;23 focused SQL checks pass. Authority loss is a single-session injection. Hosted concurrent lock/role/expiry races and connected recipient redemption remain open.',
+      'Clock-only negative control reproduces both timing failures;23 focused SQL checks pass. Authority loss is a single-session injection. Hosted concurrent lock/role/expiry races remain open. Connected synthetic recipient redemption is now verified in checkpoint275; actual browser clock crossing and production-provider identity remain open.',
   },
   {
     id: 'FIX-248-01',
