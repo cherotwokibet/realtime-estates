@@ -1,0 +1,33 @@
+✔ real RS256 signature yields only immutable verified subject identity, ignoring role/company claims (140.7416ms)
+✔ bearer header parser rejects missing, duplicate and malformed credentials (1.8234ms)
+✔ expired, future and overlong-lifetime claims fail closed (13.3078ms)
+✔ wrong issuer, audience and malformed subject are denied despite valid signature (16.1789ms)
+✔ issuer, audience, subject, expiry and issued-at are required (13.5859ms)
+✔ counterfeit signature, unknown key and absent key ID are denied (15.1674ms)
+✔ HS256 algorithm confusion and unsigned/malformed tokens are denied (3.6672ms)
+✔ token-supplied key URL does not change the trusted JWKS endpoint (11.5242ms)
+✔ unavailable/malformed/redirecting JWKS endpoints deny without following redirects (15.8323ms)
+✔ trusted configuration is captured, not mutable through caller object (18.1829ms)
+✔ missing/untrusted identity configuration is rejected before any key fetch (0.702ms)
+✔ explicit loopback HTTP exception is rejected in production mode (0.1523ms)
+✔ hostname resolves only configured company and does not grant membership (0.7526ms)
+✔ tenant configuration rejects host collisions, wildcards, duplicate IDs and invalid input (0.1941ms)
+✔ verified signed recipient binds fixed issuer, UUID subject and canonical verified email, not role or company claims (159.8052ms)
+✔ missing, false, string and numeric verification claims and noncanonical addresses are refused (9.342ms)
+✔ wrong signatures, issuer, audience, subject, future or expired tokens cannot produce a recipient (4.9417ms)
+✔ caller objects and decoded unsigned payloads never become verified recipients (0.5395ms)
+✔ trusted configuration is captured and explicit synthetic mode cannot activate in production (12.905ms)
+✔ issued secret is canonical 32-byte base64url and its digest binds the exact bytes (1.5975ms)
+✔ ordinary serialization, inspection and enumeration never reveal or consume the raw secret (0.9606ms)
+✔ destroy is idempotent and permanently refuses later revelation (0.1915ms)
+✔ padding, whitespace, digest substitution, wrong lengths and noncanonical trailing bits are refused (0.2691ms)
+✔ validation errors disclose no input and never coerce caller objects (0.1685ms)
+✔ separate issuance handles have independent consumption and digest state (0.2111ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 25
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1075.4696
