@@ -1,6 +1,6 @@
 # Replacement acceptance status and defect/retest index
 
-Updated 2026-10-30. All 24 substantive vendor findings plus reserved R-001 and all 35 replacement acceptance cases are linked below. This is maintained traceability, **not release acceptance**. No legacy PASS is imported as a replacement PASS.
+Updated 2026-11-02. All 24 substantive vendor findings plus reserved R-001 and all 35 replacement acceptance cases are linked below. This is maintained traceability, **not release acceptance**. No legacy PASS is imported as a replacement PASS.
 
 Case states deliberately distinguish partial evidence, not run, deferred and the reserved header. Every unresolved case has a named gap and next action. Test counts overlap and must not be added into a platform completion figure.
 
@@ -8,6 +8,16 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| staffDomain248 | [evidence/staff-membership248-domain-full.txt](evidence/staff-membership248-domain-full.txt) · 44e30ad | 333 passed; Full domain regression including existing-staff administration contracts |
+| staffSql248 | [evidence/staff-membership248-sql-final.txt](evidence/staff-membership248-sql-final.txt) · 44e30ad | 5 passed; Restricted isolated SQL proposal with exact shared-contract outputs, current authorization, self/last-admin protection and immediate existing-resource denial; not hosted concurrency |
+| staffApi248 | [evidence/staff-membership248-api-full.txt](evidence/staff-membership248-api-full.txt) · 44e30ad | 328 passed; Full API regression including default-off membership routes and actual restricted SQL rollback validation |
+| staffSdk248 | [evidence/staff-membership248-sdk-full.txt](evidence/staff-membership248-sdk-full.txt) · 44e30ad | 323 passed; Full standard SDK regression including bounded membership writes/current/original and no automatic retry |
+| staffSigned248 | [evidence/staff-membership248-signed.txt](evidence/staff-membership248-signed.txt) · 44e30ad | 14 passed; Signed JWT/JWKS HTTP and restricted SQL membership/branch/invitation regression, including committed reply corruption and GET-only recovery |
+| staffAdmin248 | [evidence/staff-workspace248-admin-full.txt](evidence/staff-workspace248-admin-full.txt) · 44e30ad | 475 passed; Full admin server/model/controller regression after Next metadata and invitation selection fixes |
+| staffUi248 | [evidence/staff-workspace248-ui-full.txt](evidence/staff-workspace248-ui-full.txt) · 44e30ad | 36 passed; Full admin SSR/model UI checks; actual browser scope recorded separately |
+| staffBoundary248 | [evidence/staff-workspace248-focused.txt](evidence/staff-workspace248-focused.txt) · 44e30ad | 9 passed; Next Node loopback metadata and unavailable branch selection regression; no production proxy authority |
+| staffPreview248 | [evidence/staff-preview248-lifecycle.txt](evidence/staff-preview248-lifecycle.txt) · 44e30ad | 5 passed; Owned child retirement and unconditional fixture shutdown using fakes; actual harness lifecycle separately observed |
+| staffBrowser248 | [evidence/2026-11-02-staff-management.md](evidence/2026-11-02-staff-management.md) · 44e30ad | Actual owned Next/in-app browser branch/capture/revocation corrupted-reply GET recovery, reload retention, unavailable selection and separate agent denial; no membership UI or recipient redemption |
 | invitationDomain225 | [evidence/staff-invitation-domain225.txt](evidence/staff-invitation-domain225.txt) · 3d67007 | 317 passed; Full domain regression including exact capture/state/revocation records and bounded parsing |
 | invitationApi225 | [evidence/staff-invitation-api225-full.txt](evidence/staff-invitation-api225-full.txt) · 3d67007 | 318 passed; Full API regression after default-off non-production invitation routes; no provider or UI claim |
 | invitationSdk225 | [evidence/staff-invitation-sdk225-full.txt](evidence/staff-invitation-sdk225-full.txt) · 3d67007 | 311 passed; Full SDK regression including explicit invitation methods and lost/malformed-write uncertainty |
@@ -116,7 +126,7 @@ Next: Retain the correction and validate the original report when changing mappi
 Original finding: Regular role can create listings.
 Expected: Protected data withheld; 401/403 as appropriate; no listing/object/job created. Assigned agent/admin permitted
 Observed: Current signed customer, revoked and foreign actor denials; server-owned staff access and guarded listing commands.
-Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [authorizationReview223](evidence/2026-10-30-authorization-review.md), [authInventory223](evidence/2026-10-30-listing-reports/authorization-inventory.txt), [authRoles223](evidence/2026-10-30-listing-reports/authorization-role-tenants.txt), [authStorage223](evidence/2026-10-30-listing-reports/authorization-storage.txt)
+Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [staffSql248](evidence/staff-membership248-sql-final.txt), [staffApi248](evidence/staff-membership248-api-full.txt), [staffSigned248](evidence/staff-membership248-signed.txt), [staffBrowser248](evidence/2026-11-02-staff-management.md), [authorizationReview223](evidence/2026-10-30-authorization-review.md), [authInventory223](evidence/2026-10-30-listing-reports/authorization-inventory.txt), [authRoles223](evidence/2026-10-30-listing-reports/authorization-role-tenants.txt), [authStorage223](evidence/2026-10-30-listing-reports/authorization-storage.txt)
 Still open: Production identity, native route bypass and deployed storage permissions still require verification.
 Next: Complete the real identity/browser/native denial matrix on the release candidate. Owner: Boniface + Codex.
 
@@ -126,7 +136,7 @@ Next: Complete the real identity/browser/native denial matrix on the release can
 Original finding: Cross-account owner edit accepted.
 Expected: Requests denied, unchanged records/media. Server derives actor; only authorized admin reassignment succeeds; all queries/exports/subscriptions scoped
 Observed: Current company/assignment checks, exact operation recovery and raw viewing-table denial.
-Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [media213](evidence/2026-10-28-upload-acceptance/media-full.txt), [authorizationReview223](evidence/2026-10-30-authorization-review.md), [authInventory223](evidence/2026-10-30-listing-reports/authorization-inventory.txt), [authRoles223](evidence/2026-10-30-listing-reports/authorization-role-tenants.txt), [authStorage223](evidence/2026-10-30-listing-reports/authorization-storage.txt)
+Evidence: [api212](evidence/2026-10-28-operations-overview/api-full.txt), [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [media213](evidence/2026-10-28-upload-acceptance/media-full.txt), [staffSql248](evidence/staff-membership248-sql-final.txt), [staffApi248](evidence/staff-membership248-api-full.txt), [staffSigned248](evidence/staff-membership248-signed.txt), [authorizationReview223](evidence/2026-10-30-authorization-review.md), [authInventory223](evidence/2026-10-30-listing-reports/authorization-inventory.txt), [authRoles223](evidence/2026-10-30-listing-reports/authorization-role-tenants.txt), [authStorage223](evidence/2026-10-30-listing-reports/authorization-storage.txt)
 Still open: Exports, subscriptions and full production pooled/storage isolation are not accepted.
 Next: Implement and test scoped export/session/job paths, then rerun the complete two-company matrix. Owner: Boniface + Codex.
 
@@ -452,6 +462,7 @@ Next: Run independent pooled-session races and rollback/delivery integrity cases
 
 ## Fixed defects and bounded retests
 
+- **FIX-248-01** (AC-002, AC-007): Development staff BFF rejected canonical forwarded metadata automatically added by the installed Next Node adapter. Retest: [staffBoundary248](evidence/staff-workspace248-focused.txt); retested_in_stated_environment. [Initial failure](evidence/staff-boundary248-before.txt). Exact loopback metadata is transport-only; actual owned browser branch/capture/revocation GET recovery also observed. Production proxy/provider/device acceptance remains open.
 - **FIX-216-01** (AC-005, AC-030): Retired byte handler parsed route/identity before refusing new admission. Retest: [signed216](evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt); retested_in_stated_environment. [Initial failure](evidence/2026-10-28-live-media-retirement/pipeline-focused.txt). Outer fence now refuses before body/identity/SQL; production hosting/retention remains open.
 - **FIX-216-02** (AC-005, AC-019): Failed native conversion PUT described confirmed failure while original GET described processing. Retest: [signed216](evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt); retested_in_stated_environment. [Initial failure](evidence/2026-10-28-live-media-retirement/native-photo-boundaries.txt). Matching retained failure facts are descriptive only; no new launch/deletion authority and no unknown-containment success.
 - **FIX-210-01** (AC-010, AC-024): Invalid GeoJSON disabled the interactive Clear area control. Retest: [search210](evidence/2026-10-28-search-and-enquiry-acceptance.md); retested_in_stated_environment. Full device/assistive-technology acceptance remains open.

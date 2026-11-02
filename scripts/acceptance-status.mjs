@@ -82,6 +82,84 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  staffDomain248: {
+    path: 'docs/evidence/staff-membership248-domain-full.txt',
+    counts: [333],
+    commit: '44e30ad89392f57fcbdcb6dd28429e64312b7d48',
+    observedDate: '2026-11-02',
+    environment: 'Full domain regression including existing-staff administration contracts',
+  },
+  staffSql248: {
+    path: 'docs/evidence/staff-membership248-sql-final.txt',
+    counts: [5],
+    commit: '44e30ad89392f57fcbdcb6dd28429e64312b7d48',
+    observedDate: '2026-11-02',
+    environment:
+      'Restricted isolated SQL proposal with exact shared-contract outputs, current authorization, self/last-admin protection and immediate existing-resource denial; not hosted concurrency',
+  },
+  staffApi248: {
+    path: 'docs/evidence/staff-membership248-api-full.txt',
+    counts: [328],
+    commit: '44e30ad89392f57fcbdcb6dd28429e64312b7d48',
+    observedDate: '2026-11-02',
+    environment:
+      'Full API regression including default-off membership routes and actual restricted SQL rollback validation',
+  },
+  staffSdk248: {
+    path: 'docs/evidence/staff-membership248-sdk-full.txt',
+    counts: [323],
+    commit: '44e30ad89392f57fcbdcb6dd28429e64312b7d48',
+    observedDate: '2026-11-02',
+    environment:
+      'Full standard SDK regression including bounded membership writes/current/original and no automatic retry',
+  },
+  staffSigned248: {
+    path: 'docs/evidence/staff-membership248-signed.txt',
+    counts: [14],
+    commit: '44e30ad89392f57fcbdcb6dd28429e64312b7d48',
+    observedDate: '2026-11-02',
+    environment:
+      'Signed JWT/JWKS HTTP and restricted SQL membership/branch/invitation regression, including committed reply corruption and GET-only recovery',
+  },
+  staffAdmin248: {
+    path: 'docs/evidence/staff-workspace248-admin-full.txt',
+    counts: [475],
+    commit: '44e30ad89392f57fcbdcb6dd28429e64312b7d48',
+    observedDate: '2026-11-02',
+    environment:
+      'Full admin server/model/controller regression after Next metadata and invitation selection fixes',
+  },
+  staffUi248: {
+    path: 'docs/evidence/staff-workspace248-ui-full.txt',
+    counts: [36],
+    commit: '44e30ad89392f57fcbdcb6dd28429e64312b7d48',
+    observedDate: '2026-11-02',
+    environment: 'Full admin SSR/model UI checks; actual browser scope recorded separately',
+  },
+  staffBoundary248: {
+    path: 'docs/evidence/staff-workspace248-focused.txt',
+    counts: [9],
+    commit: '44e30ad89392f57fcbdcb6dd28429e64312b7d48',
+    observedDate: '2026-11-02',
+    environment:
+      'Next Node loopback metadata and unavailable branch selection regression; no production proxy authority',
+  },
+  staffPreview248: {
+    path: 'docs/evidence/staff-preview248-lifecycle.txt',
+    counts: [5],
+    commit: '44e30ad89392f57fcbdcb6dd28429e64312b7d48',
+    observedDate: '2026-11-02',
+    environment:
+      'Owned child retirement and unconditional fixture shutdown using fakes; actual harness lifecycle separately observed',
+  },
+  staffBrowser248: {
+    path: 'docs/evidence/2026-11-02-staff-management.md',
+    counts: null,
+    commit: '44e30ad89392f57fcbdcb6dd28429e64312b7d48',
+    observedDate: '2026-11-02',
+    environment:
+      'Actual owned Next/in-app browser branch/capture/revocation corrupted-reply GET recovery, reload retention, unavailable selection and separate agent denial; no membership UI or recipient redemption',
+  },
   invitationDomain225: {
     path: 'docs/evidence/staff-invitation-domain225.txt',
     counts: [317],
@@ -792,7 +870,15 @@ const reviewed = [
   [
     2,
     'partial',
-    ['api212', 'signed212', 'admin212'],
+    [
+      'api212',
+      'signed212',
+      'admin212',
+      'staffSql248',
+      'staffApi248',
+      'staffSigned248',
+      'staffBrowser248',
+    ],
     'Current signed customer, revoked and foreign actor denials; server-owned staff access and guarded listing commands.',
     'Production identity, native route bypass and deployed storage permissions still require verification.',
     'Complete the real identity/browser/native denial matrix on the release candidate.',
@@ -800,7 +886,7 @@ const reviewed = [
   [
     3,
     'partial',
-    ['api212', 'signed212', 'sdk212', 'media213'],
+    ['api212', 'signed212', 'sdk212', 'media213', 'staffSql248', 'staffApi248', 'staffSigned248'],
     'Current company/assignment checks, exact operation recovery and raw viewing-table denial.',
     'Exports, subscriptions and full production pooled/storage isolation are not accepted.',
     'Implement and test scoped export/session/job paths, then rerun the complete two-company matrix.',
@@ -1098,6 +1184,17 @@ const entries = cases.map((item, index) => {
 });
 const fixes = [
   {
+    id: 'FIX-248-01',
+    cases: ['AC-002', 'AC-007'],
+    problem:
+      'Development staff BFF rejected canonical forwarded metadata automatically added by the installed Next Node adapter.',
+    status: 'retested_in_stated_environment',
+    evidence: 'staffBoundary248',
+    before: 'docs/evidence/staff-boundary248-before.txt',
+    remaining:
+      'Exact loopback metadata is transport-only; actual owned browser branch/capture/revocation GET recovery also observed. Production proxy/provider/device acceptance remains open.',
+  },
+  {
     id: 'FIX-216-01',
     cases: ['AC-005', 'AC-030'],
     problem: 'Retired byte handler parsed route/identity before refusing new admission.',
@@ -1162,7 +1259,7 @@ for (const fix of fixes) {
 }
 const data = {
   schemaVersion: 1,
-  updatedAt: '2026-10-30',
+  updatedAt: '2026-11-02',
   owner: 'Boniface + Codex',
   purpose: 'Execution traceability, not product or release acceptance',
   originalReport: {
@@ -1242,7 +1339,7 @@ const evidenceLinks = (keys) =>
     .join(' · ');
 const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Replacement acceptance evidence and remaining work</title><style>
 *{box-sizing:border-box}body{margin:0;background:#f5f3ee;color:#252321;font:16px/1.6 system-ui,sans-serif}main{max-width:1100px;margin:auto;padding:30px 24px}a{color:#5e0202}a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #286078;outline-offset:4px}h1{font-size:clamp(30px,5vw,50px);line-height:1.15;max-width:850px}h2{font-size:25px}header p{max-width:850px}.notice{padding:20px;background:#fff4dd;border-left:4px solid #8c5916}.metrics{display:flex;gap:16px;flex-wrap:wrap;margin:24px 0}.metrics span{background:white;padding:14px 20px;border:1px solid #dcd6cc;border-radius:12px}.metrics strong{display:block;font-size:27px}.filters{display:flex;flex-wrap:wrap;gap:18px;background:white;padding:20px;border-radius:12px}.filters label{display:grid;gap:5px;flex:1;min-width:180px}input,select{font:inherit;min-height:48px;width:100%;padding:8px;border:1px solid #8c8278;border-radius:6px}article{border:1px solid #dcd6cc;background:white;border-radius:12px;padding:22px;margin:16px 0;overflow-wrap:anywhere}article h3{font-size:20px;margin:0}article p{margin:12px 0}.state{display:inline-block;border:1px solid #8c8278;border-radius:30px;padding:2px 12px;margin:10px 0;font-size:14px}details{border-top:1px solid #ddd6cc;padding-top:12px}summary{cursor:pointer;min-height:44px;display:list-item;color:#5e0202;font-weight:600}small{display:block;color:#61594f}code{font-size:14px}footer{margin:40px 0} [hidden]{display:none!important}@media(max-width:500px){main{padding:20px 16px}.filters{display:block}.filters label+label{margin-top:16px}article{padding:18px}.metrics span{flex:1;min-width:120px}}
-</style><main><header><a href="index.html">← Delivery checklist</a><p>INDEPENDENT REBUILD / ACCEPTANCE EVIDENCE / 28 OCTOBER 2026</p><h1>What was checked. What still needs work.</h1><p>Each original finding now leads to a replacement case, bounded execution evidence and an explicit next action. Old vendor results are historical evidence.</p><p class="notice"><strong>No release acceptance is implied.</strong> Partial checks, not-run cases and deferred modules stay explicit. Suite totals overlap. Actual devices, provider/account facts, operator UAT and cutover gates remain open.</p></header><div class="metrics"><span><strong>24</strong>original findings</span><span><strong>35</strong>replacement cases linked</span><span><strong>4</strong>bounded defect retests</span><span><strong>0 / 14</strong>accepted release gates</span></div><section aria-labelledby="case-title"><h2 id="case-title">Cases and next actions</h2><div class="filters"><label for="case-search">Find a case, requirement or gap<input id="case-search" type="search" placeholder="For example: upload or AC-005"></label><label for="case-state">Evidence state<select id="case-state"><option value="all">All cases</option><option value="partial">Partial evidence</option><option value="not_run">Not run</option><option value="deferred">Deferred</option><option value="reserved">Reserved correction</option></select></label></div><p id="case-count" role="status">35 cases shown</p><div id="case-list">${entries.map((entry) => `<article data-state="${entry.status}" id="${entry.id}"><h3>${entry.id} · ${escape(entry.title)}</h3><small>${escape(entry.requirement ?? 'Additional replacement gate')} · ${escape(entry.gapId ?? 'Reserved header correction')}</small><span class="state">${escape(entry.status.replaceAll('_', ' '))}</span><p><strong>Observed:</strong> ${escape(entry.observed)}</p><p><strong>Still open:</strong> ${escape(entry.remaining)}</p><p><strong>Next:</strong> ${escape(entry.nextAction)}</p><small>Owner: ${escape(entry.owner)}</small><details><summary>Expected result and evidence</summary>${entry.originalFinding ? `<p>Original finding: ${escape(entry.originalFinding.title)}</p>` : ''}<p>${escape(entry.expected)}</p><p>${entry.evidence.length ? evidenceLinks(entry.evidence) : 'No product execution pass attached.'}</p><p>No complete release-case pass recorded.</p></details></article>`).join('')}</div><p id="case-empty" hidden>No cases match. Clear the search or choose all cases.</p></section><section aria-labelledby="fix-title"><h2 id="fix-title">Fixed defects and bounded retests</h2>${fixes.map((fix) => `<article><h3>${fix.id}</h3><p>${escape(fix.problem)}</p><p>${escape(fix.cases.join(', '))} · ${evidenceLinks([fix.evidence])}</p><p>${escape(fix.remaining)}</p></article>`).join('')}</section><footer><a href="acceptance-status.json" download>Download structured case ledger</a> · <a href="acceptance-status.md" download>Download detailed notes</a><p>Source report preserved byte-for-byte. Other text evidence hashes normalize CRLF to LF for portable checks. Run <code>node scripts/acceptance-status.mjs</code> in the canonical repository to verify the index. Maintenance does not close product defects automatically.</p></footer></main><script>
+</style><main><header><a href="index.html">← Delivery checklist</a><p>INDEPENDENT REBUILD / ACCEPTANCE EVIDENCE / 2 NOVEMBER 2026</p><h1>What was checked. What still needs work.</h1><p>Each original finding now leads to a replacement case, bounded execution evidence and an explicit next action. Old vendor results are historical evidence.</p><p class="notice"><strong>No release acceptance is implied.</strong> Partial checks, not-run cases and deferred modules stay explicit. Suite totals overlap. Actual devices, provider/account facts, operator UAT and cutover gates remain open.</p></header><div class="metrics"><span><strong>24</strong>original findings</span><span><strong>35</strong>replacement cases linked</span><span><strong>${fixes.length}</strong>bounded defect retests</span><span><strong>0 / 14</strong>accepted release gates</span></div><section aria-labelledby="case-title"><h2 id="case-title">Cases and next actions</h2><div class="filters"><label for="case-search">Find a case, requirement or gap<input id="case-search" type="search" placeholder="For example: upload or AC-005"></label><label for="case-state">Evidence state<select id="case-state"><option value="all">All cases</option><option value="partial">Partial evidence</option><option value="not_run">Not run</option><option value="deferred">Deferred</option><option value="reserved">Reserved correction</option></select></label></div><p id="case-count" role="status">35 cases shown</p><div id="case-list">${entries.map((entry) => `<article data-state="${entry.status}" id="${entry.id}"><h3>${entry.id} · ${escape(entry.title)}</h3><small>${escape(entry.requirement ?? 'Additional replacement gate')} · ${escape(entry.gapId ?? 'Reserved header correction')}</small><span class="state">${escape(entry.status.replaceAll('_', ' '))}</span><p><strong>Observed:</strong> ${escape(entry.observed)}</p><p><strong>Still open:</strong> ${escape(entry.remaining)}</p><p><strong>Next:</strong> ${escape(entry.nextAction)}</p><small>Owner: ${escape(entry.owner)}</small><details><summary>Expected result and evidence</summary>${entry.originalFinding ? `<p>Original finding: ${escape(entry.originalFinding.title)}</p>` : ''}<p>${escape(entry.expected)}</p><p>${entry.evidence.length ? evidenceLinks(entry.evidence) : 'No product execution pass attached.'}</p><p>No complete release-case pass recorded.</p></details></article>`).join('')}</div><p id="case-empty" hidden>No cases match. Clear the search or choose all cases.</p></section><section aria-labelledby="fix-title"><h2 id="fix-title">Fixed defects and bounded retests</h2>${fixes.map((fix) => `<article><h3>${fix.id}</h3><p>${escape(fix.problem)}</p><p>${escape(fix.cases.join(', '))} · ${evidenceLinks([fix.evidence])}</p><p>${escape(fix.remaining)}</p></article>`).join('')}</section><footer><a href="acceptance-status.json" download>Download structured case ledger</a> · <a href="acceptance-status.md" download>Download detailed notes</a><p>Source report preserved byte-for-byte. Other text evidence hashes normalize CRLF to LF for portable checks. Run <code>node scripts/acceptance-status.mjs</code> in the canonical repository to verify the index. Maintenance does not close product defects automatically.</p></footer></main><script>
 const search=document.querySelector('#case-search'),state=document.querySelector('#case-state'),rows=[...document.querySelectorAll('#case-list article')];function filter(){const query=search.value.trim().toLocaleLowerCase();let count=0;for(const row of rows){row.hidden=(state.value!=='all'&&row.dataset.state!==state.value)||(query&&!row.textContent.toLocaleLowerCase().includes(query));if(!row.hidden)count++;}document.querySelector('#case-count').textContent=count+' cases shown';document.querySelector('#case-empty').hidden=count!==0;}search.addEventListener('input',filter);state.addEventListener('change',filter);
 </script></html>\n`;
 if (process.argv.slice(2).length > 1 || (process.argv[2] && process.argv[2] !== '--write'))
