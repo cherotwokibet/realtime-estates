@@ -123,11 +123,11 @@ export default function ReferencePropertyFields({
           ))}
         </select>
       </label>
-      <fieldset>
+      <fieldset className="reference-costs">
         <legend>Additional fees and refundable deposits</legend>
         {form.charges.map((row, index) => (
-          <div key={row.id}>
-            <label>
+          <div className="reference-charge" key={row.id}>
+            <label className="draft-field">
               Charge name
               <input
                 value={row.name}
@@ -135,7 +135,7 @@ export default function ReferencePropertyFields({
                 onChange={(e) => charge(index, { name: e.target.value })}
               />
             </label>
-            <label>
+            <label className="draft-field">
               Amount status
               <select
                 value={row.amountStatus}
@@ -147,7 +147,7 @@ export default function ReferencePropertyFields({
                 <option value="quote_required">Quote required</option>
               </select>
             </label>
-            <label>
+            <label className="draft-field">
               KES amount
               <input
                 inputMode="decimal"
@@ -156,7 +156,7 @@ export default function ReferencePropertyFields({
                 onChange={(e) => charge(index, { amount: e.target.value })}
               />
             </label>
-            <label>
+            <label className="draft-field">
               Timing
               <select
                 value={row.timing}
@@ -166,7 +166,7 @@ export default function ReferencePropertyFields({
                 <option value="per_rental_period">Per rental period</option>
               </select>
             </label>
-            <label>
+            <label className="draft-field">
               Classification
               <select
                 value={row.classification}
@@ -178,7 +178,7 @@ export default function ReferencePropertyFields({
                 <option value="refundable_deposit">Refundable deposit</option>
               </select>
             </label>
-            <label>
+            <label className="draft-checkbox">
               <input
                 type="checkbox"
                 checked={row.mandatory}

@@ -1544,3 +1544,36 @@ h3 {
   opacity: 0.6;
   cursor: wait;
 }
+
+/* Exact-cost controls must remain independently readable at narrow widths. */
+.reference-costs {
+  min-width: 0;
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.reference-costs legend {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.reference-charge {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  min-width: 0;
+  padding: 16px 0;
+}
+.reference-charge + .reference-charge {
+  border-top: 1px solid var(--line);
+}
+.reference-charge > button,
+.reference-costs > button {
+  min-height: 44px;
+  font: inherit;
+}
+@media (max-width: 640px) {
+  .reference-charge {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

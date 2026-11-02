@@ -373,11 +373,11 @@ export default function ReferenceCreationWorkspace(props: ReferenceCreationWorks
             ))}
           </select>
         </label>
-        <fieldset>
+        <fieldset className="reference-costs">
           <legend>Additional fees and refundable deposits</legend>
           {form.charges.map((charge, index) => (
-            <div key={charge.id}>
-              <label>
+            <div className="reference-charge" key={charge.id}>
+              <label className="draft-field">
                 Charge name
                 <input
                   value={charge.name}
@@ -392,7 +392,7 @@ export default function ReferenceCreationWorkspace(props: ReferenceCreationWorks
                   }
                 />
               </label>
-              <label>
+              <label className="draft-field">
                 Amount status
                 <select
                   value={charge.amountStatus}
@@ -411,7 +411,7 @@ export default function ReferenceCreationWorkspace(props: ReferenceCreationWorks
                   <option value="quote_required">Quote required</option>
                 </select>
               </label>
-              <label>
+              <label className="draft-field">
                 KES amount
                 <input
                   value={charge.amount}
@@ -427,7 +427,7 @@ export default function ReferenceCreationWorkspace(props: ReferenceCreationWorks
                   }
                 />
               </label>
-              <label>
+              <label className="draft-field">
                 Timing
                 <select
                   value={charge.timing}
@@ -446,7 +446,7 @@ export default function ReferenceCreationWorkspace(props: ReferenceCreationWorks
                   <option value="per_rental_period">Per rental period</option>
                 </select>
               </label>
-              <label>
+              <label className="draft-field">
                 Classification
                 <select
                   value={charge.classification}
@@ -465,7 +465,7 @@ export default function ReferenceCreationWorkspace(props: ReferenceCreationWorks
                   <option value="refundable_deposit">Refundable deposit</option>
                 </select>
               </label>
-              <label>
+              <label className="draft-checkbox">
                 <input
                   type="checkbox"
                   checked={charge.mandatory}
