@@ -1,0 +1,39 @@
+✔ real RS256 signature yields only immutable verified subject identity, ignoring role/company claims (227.5147ms)
+✔ bearer header parser rejects missing, duplicate and malformed credentials (4.6198ms)
+✔ expired, future and overlong-lifetime claims fail closed (29.6784ms)
+✔ wrong issuer, audience and malformed subject are denied despite valid signature (14.9818ms)
+✔ issuer, audience, subject, expiry and issued-at are required (28.0032ms)
+✔ counterfeit signature, unknown key and absent key ID are denied (9.8375ms)
+✔ HS256 algorithm confusion and unsigned/malformed tokens are denied (3.4188ms)
+✔ token-supplied key URL does not change the trusted JWKS endpoint (4.9228ms)
+✔ unavailable/malformed/redirecting JWKS endpoints deny without following redirects (20.1536ms)
+✔ trusted configuration is captured, not mutable through caller object (22.286ms)
+✔ missing/untrusted identity configuration is rejected before any key fetch (1.0091ms)
+✔ explicit loopback HTTP exception is rejected in production mode (0.261ms)
+✔ hostname resolves only configured company and does not grant membership (1.2668ms)
+✔ tenant configuration rejects host collisions, wildcards, duplicate IDs and invalid input (0.421ms)
+✔ verified signed recipient binds fixed issuer, UUID subject and canonical verified email, not role or company claims (228.6574ms)
+✔ missing, false, string and numeric verification claims and noncanonical addresses are refused (20.1712ms)
+✔ wrong signatures, issuer, audience, subject, future or expired tokens cannot produce a recipient (10.8239ms)
+✔ caller objects and decoded unsigned payloads never become verified recipients (0.8557ms)
+✔ trusted configuration is captured and explicit synthetic mode cannot activate in production (13.4853ms)
+✔ signed recipient and one-reveal issuance connect to actual SQL without serializing raw secret or digest (4455.886ms)
+✔ unverified, forged and mismatched claims and request-supplied authority never enter a transaction (2474.3232ms)
+✔ malformed actual SQL receipt rolls back membership, consumption and audit before commit (2287.7011ms)
+✔ lost committed issue reply recovers metadata and never regenerates or writes a replacement secret (2354.3236ms)
+✔ synthetic mode and production guards remain closed and discarded secrets cannot be revealed (1946.622ms)
+✔ malformed issuance rolls back the digest and malformed current state never becomes authority (2033.2818ms)
+✔ issued secret is canonical 32-byte base64url and its digest binds the exact bytes (2.2429ms)
+✔ ordinary serialization, inspection and enumeration never reveal or consume the raw secret (1.3937ms)
+✔ destroy is idempotent and permanently refuses later revelation (0.2693ms)
+✔ padding, whitespace, digest substitution, wrong lengths and noncanonical trailing bits are refused (1.7205ms)
+✔ validation errors disclose no input and never coerce caller objects (0.385ms)
+✔ separate issuance handles have independent consumption and digest state (0.4429ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18038.8132
