@@ -82,6 +82,38 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  staffHttpDomain269: {
+    path: 'docs/evidence/staff-http269-domain.txt',
+    counts: [342],
+    commit: '39d8e8e21248012eb417c2aa6e1faf54f3e570c4',
+    observedDate: '2026-11-02',
+    environment:
+      'Full shared domain regression including6 strict single-use invitation contract checks; no UI/device/provider acceptance.',
+  },
+  staffHttpSdk269: {
+    path: 'docs/evidence/staff-http269-sdk.txt',
+    counts: [332],
+    commit: '39d8e8e21248012eb417c2aa6e1faf54f3e570c4',
+    observedDate: '2026-11-02',
+    environment:
+      'Full SDK regression including6 bounded private invitation transport checks; no automatic write retry or secret recovery.',
+  },
+  staffHttpApi269: {
+    path: 'docs/evidence/staff-http269-api.txt',
+    counts: [353],
+    commit: '39d8e8e21248012eb417c2aa6e1faf54f3e570c4',
+    observedDate: '2026-11-02',
+    environment:
+      'Full compiled API regression including6 new signed HTTP checks and prior programmatic invitation checks. Actual local loopback HTTP/SDK/JWKS/PGlite, no production identity or hosted race acceptance.',
+  },
+  staffHttpFocused269: {
+    path: 'docs/evidence/staff-http269-focused.txt',
+    counts: [6],
+    commit: '39d8e8e21248012eb417c2aa6e1faf54f3e570c4',
+    observedDate: '2026-11-02',
+    environment:
+      'Focused signed synthetic invitation HTTP/SDK/actual SQL checks: connected grant, original recovery, lost disclosure, replay without reactivation, malformed input and rollback. Counts overlap the full API suite; no BFF/UI/device/operator acceptance.',
+  },
   staffRedemptionApi264: {
     path: 'docs/evidence/staff-redemption264-api-final.txt',
     counts: [347],
@@ -974,8 +1006,12 @@ const reviewed = [
       'staffApi248',
       'staffSigned248',
       'staffBrowser248',
+      'staffHttpDomain269',
+      'staffHttpSdk269',
+      'staffHttpApi269',
+      'staffHttpFocused269',
     ],
-    'Current signed customer, revoked and foreign actor denials; server-owned staff access and guarded listing commands.',
+    'Current signed customer, revoked and foreign actor denials; server-owned staff access and guarded listing commands. Separate default-off signed invitation HTTP/SDK now connects to isolated SQL, with metadata-only lost disclosure recovery and no membership reactivation on replay.',
     'Production identity, native route bypass and deployed storage permissions still require verification.',
     'Complete the real identity/browser/native denial matrix on the release candidate.',
   ],
