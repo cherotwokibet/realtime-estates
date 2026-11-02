@@ -6,7 +6,11 @@ Reaching at least80% requires78/97 completed items:29 additional whole deliverab
 
 At least22 remaining items are already deferred or tied to external release work: optional modules11-2 through11-5 (4); migration/cutover13-1 through13-7 (7); launch/stabilization/handover14-1 through14-7 (7); actual-device/accessibility matrix, staging restore, operator UAT and release decision12-4/12-6/12-7/12-8 (4). Other open tasks also need identity/account control, rights or operator review. Removing deferred items or marking future gates complete to reach a number would change the agreed measurement.
 
-## Work order for today
+## Estimate and this week’s target
+
+Boniface’s updated target is 80% this week (2–8 November). Provisional planning range: 5–10 focused working days to verified 80%, conditional on timely identity/account, staging, device and operator evidence. This is a low-confidence estimate, not a scheduled completion or a launch-readiness claim. Progress from 49 to 78 requires 29 whole items; the remaining dependency count makes this week a stretch. Re-estimate after connected staff acceptance and catalogue/media/account milestones. The full authorized rebuild and handover extend beyond the 80% milestone.
+
+## Work order
 
 1. Finish the existing staff workflow: actual membership browser checks, then safe connected invitation issuance/redemption. Checkpoint258 now verifies browser revocation, uncertain original recovery/reload, explicit reactivation/promotion, self-change absence and390px keyboard layout.08-4 remains incomplete until remaining acceptance criteria are met.
 2. Complete normalized catalogue authoring/reads across the current UI/API (06-1), and close remaining media/floor-plan/video handling (06-4) with evidence.
