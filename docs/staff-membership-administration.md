@@ -1,3 +1,11 @@
+## Implementation checkpoint252 — 2 November 2026 EAT
+
+Committed85a168953218776ec204ac691d66acf61962fd83: bounded private membership directory and separately enabled BFF/browser/retained-controller/operator UI. Fresh member/version adoption, one retained operation across all staff writes, self-target refusal, role-loss retention and original GET recovery. Domain336/SQL7/focusedAPI9/fullSDK326/admin487/UI38/signed adapter8/focused12 passed; builds and admin test TypeScript passed. Counts overlap. Failed fixture expectations and the corrected disposable preview query fence remain in raw logs. No current full production build or actual browser verification for NEW membership controls; prior248 browser/build proof covers only branch/invitation/revocation. Current memory652320KiB; no owned preview/listener/dev lock. A subagent reported usage exhaustion during read-only design review; no new agents, spending or usage bypass. Save checkpoint and resume on later authorized capacity.
+
+Evidence docs/evidence/2026-11-02-staff-membership-workspace.md. Index106 executions/7bounded fixed defects/35incomplete cases/0gates.49/97(51%rounded),08-4 open. Dashboard217 remains latest pending this checkpoint publication;731canonical notes and latest exported browser732 notes preserved. No application GitHub push/Actions, vendor or old-live change. KES10,000 total monthly service price retained.
+
+Exact next: current full admin production build when memory permits, then node scripts/staff-directory-preview.mjs --memberships --lost-results; actual browser self-change absence, fresh adoption, revoke/promote/reactivate, corrupt-reply GET recovery, reload/scope/access-loss and keyboard/narrow checks. Then trusted recipient-verified single-use invitation issue/redemption, explicit lost-secret recovery and existing-member rules, wall-clock expiry after locks, aligned tenant-first lock ordering across staff writers. Production identity/delivery, hosted concurrency, devices/operator UAT, rights/account evidence and cutover remain separate. Preserve source and private dashboard after meaningful progress. Owner Boniface + Codex.
+
 # Existing staff membership administration
 
 Checkpoint248, 2 November 2026. Independently written local synthetic candidate; task08-4 remains incomplete.

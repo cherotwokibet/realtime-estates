@@ -82,6 +82,62 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  staffDirectoryDomain251: {
+    path: 'docs/evidence/staff-directory251-domain-full.txt',
+    counts: [336],
+    commit: '85a168953218776ec204ac691d66acf61962fd83',
+    observedDate: '2026-11-02',
+    environment:
+      'Local synthetic membership directory/workspace verification; named scope only, counts overlap. No new actual Next browser or production build proof.',
+  },
+  staffDirectorySql251: {
+    path: 'docs/evidence/staff-directory251-sql.txt',
+    counts: [7],
+    commit: '85a168953218776ec204ac691d66acf61962fd83',
+    observedDate: '2026-11-02',
+    environment:
+      'Local synthetic membership directory/workspace verification; named scope only, counts overlap. No new actual Next browser or production build proof.',
+  },
+  staffDirectoryApi251: {
+    path: 'docs/evidence/staff-directory251-api.txt',
+    counts: [9],
+    commit: '85a168953218776ec204ac691d66acf61962fd83',
+    observedDate: '2026-11-02',
+    environment:
+      'Local synthetic membership directory/workspace verification; named scope only, counts overlap. No new actual Next browser or production build proof.',
+  },
+  staffDirectorySdk251: {
+    path: 'docs/evidence/staff-directory251-sdk-full.txt',
+    counts: [326],
+    commit: '85a168953218776ec204ac691d66acf61962fd83',
+    observedDate: '2026-11-02',
+    environment:
+      'Local synthetic membership directory/workspace verification; named scope only, counts overlap. No new actual Next browser or production build proof.',
+  },
+  staffDirectoryAdmin251: {
+    path: 'docs/evidence/staff-directory251-admin-full.txt',
+    counts: [487],
+    commit: '85a168953218776ec204ac691d66acf61962fd83',
+    observedDate: '2026-11-02',
+    environment:
+      'Local synthetic membership directory/workspace verification; named scope only, counts overlap. No new actual Next browser or production build proof.',
+  },
+  staffDirectoryUi251: {
+    path: 'docs/evidence/staff-directory251-ui-full.txt',
+    counts: [38],
+    commit: '85a168953218776ec204ac691d66acf61962fd83',
+    observedDate: '2026-11-02',
+    environment:
+      'Local synthetic membership directory/workspace verification; named scope only, counts overlap. No new actual Next browser or production build proof.',
+  },
+  staffDirectorySigned251: {
+    path: 'docs/evidence/staff-directory251-integration-verified.txt',
+    counts: [8],
+    commit: '85a168953218776ec204ac691d66acf61962fd83',
+    observedDate: '2026-11-02',
+    environment:
+      'Local synthetic membership directory/workspace verification; named scope only, counts overlap. No new actual Next browser or production build proof.',
+  },
   staffDomain248: {
     path: 'docs/evidence/staff-membership248-domain-full.txt',
     counts: [333],
