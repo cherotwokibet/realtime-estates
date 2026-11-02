@@ -82,6 +82,77 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  staffIssueDomain272: {
+    path: 'docs/evidence/staff-issue272-domain.txt',
+    counts: [342],
+    commit: 'd21eb4d9841332bc2b95e61d476140cfcf38fac3',
+    observedDate: '2026-11-02',
+    environment:
+      'Current shared domain, including issued/used current-state acceptance. No provider/device acceptance.',
+  },
+  staffIssueSdk272: {
+    path: 'docs/evidence/staff-issue272-sdk.txt',
+    counts: [332],
+    commit: 'd21eb4d9841332bc2b95e61d476140cfcf38fac3',
+    observedDate: '2026-11-02',
+    environment:
+      'Current SDK regression with extended current-state validation; no new recipient UI proof.',
+  },
+  staffIssueAdmin272: {
+    path: 'docs/evidence/staff-issue272-admin-final.txt',
+    counts: [495, 38],
+    commit: 'd21eb4d9841332bc2b95e61d476140cfcf38fac3',
+    observedDate: '2026-11-02',
+    environment:
+      'Full admin library/BFF/controller and SSR UI regressions, including8 focused issuance checks. Not actual device/operator acceptance.',
+  },
+  staffIssueApi272: {
+    path: 'docs/evidence/staff-issue272-api.txt',
+    counts: [353],
+    commit: 'd21eb4d9841332bc2b95e61d476140cfcf38fac3',
+    observedDate: '2026-11-02',
+    environment: 'Full compiled API regression on the current isolated invitation SQL proposal.',
+  },
+  staffIssueSql272: {
+    path: 'docs/evidence/staff-issue272-sql.txt',
+    counts: [33],
+    commit: 'd21eb4d9841332bc2b95e61d476140cfcf38fac3',
+    observedDate: '2026-11-02',
+    environment:
+      'Five isolated staff SQL suites; includes current issued/used directory regression and unchanged historical capture. No hosted multi-session race proof.',
+  },
+  staffIssueConnected272: {
+    path: 'docs/evidence/staff-issue272-connected-final.txt',
+    counts: [2],
+    commit: 'd21eb4d9841332bc2b95e61d476140cfcf38fac3',
+    observedDate: '2026-11-02',
+    environment:
+      'Retained browser client/controller and BFF through SDK, signed loopback HTTP/JWKS and PGlite. Lost committed issuance recovery and known duplicate refusal; no recipient UI.',
+  },
+  staffIssuePreview272: {
+    path: 'docs/evidence/staff-issue272-preview.txt',
+    counts: [17],
+    commit: 'd21eb4d9841332bc2b95e61d476140cfcf38fac3',
+    observedDate: '2026-11-02',
+    environment:
+      'Three existing disposable preview regression suites. New issuance opt-in separately exercised by connected integration tests.',
+  },
+  staffIssueBrowser272: {
+    path: 'docs/evidence/2026-11-02-staff-invitation-issuance-ui.md',
+    counts: null,
+    commit: 'd21eb4d9841332bc2b95e61d476140cfcf38fac3',
+    observedDate: '2026-11-02',
+    environment:
+      'Actual owned Next/browser: corrupt committed reply/original GET, navigation lock, permitted reload retains SAME issue, keyboard one-time reveal/discard,390px wrapping/focus and explicit revoke/current readback. No actual recipient acceptance, expiry or mid-request access-loss browser proof.',
+  },
+  staffIssueBuild272: {
+    path: 'docs/evidence/staff-issue272-next-final.txt',
+    counts: null,
+    commit: 'd21eb4d9841332bc2b95e61d476140cfcf38fac3',
+    observedDate: '2026-11-02',
+    environment:
+      'Current full admin production build including separately enabled issuance operation/state routes. No production deployment/provider release acceptance.',
+  },
   staffHttpDomain269: {
     path: 'docs/evidence/staff-http269-domain.txt',
     counts: [342],
@@ -1010,8 +1081,13 @@ const reviewed = [
       'staffHttpSdk269',
       'staffHttpApi269',
       'staffHttpFocused269',
+      'staffIssueAdmin272',
+      'staffIssueSql272',
+      'staffIssueConnected272',
+      'staffIssueBrowser272',
+      'staffIssueBuild272',
     ],
-    'Current signed customer, revoked and foreign actor denials; server-owned staff access and guarded listing commands. Separate default-off signed invitation HTTP/SDK now connects to isolated SQL, with metadata-only lost disclosure recovery and no membership reactivation on replay.',
+    'Current signed customer, revoked and foreign actor denials; server-owned staff access and guarded listing commands. Separate default-off signed invitation HTTP/SDK now connects to isolated SQL, with metadata-only lost disclosure recovery and no membership reactivation on replay. Separately enabled admin issuance now has verified BFF/controller and actual browser reveal/discard, retained recovery/reload, revocation and current issued/used state reads.',
     'Production identity, native route bypass and deployed storage permissions still require verification.',
     'Complete the real identity/browser/native denial matrix on the release candidate.',
   ],
