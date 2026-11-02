@@ -70,7 +70,7 @@ test('reference editor starts disabled before storage recovery and has explicit 
   assert.match(html, /Apply this selection, including unknown values/);
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /<button[^>]*disabled=""[^>]*>Review reference draft/);
-  assert.match(html, /drafts cannot be submitted yet/);
+  assert.match(html, /Submission and publication require separate checks/);
 });
 test('unknown property type does not promise type-inapplicable amenities', () => {
   const html = renderToStaticMarkup(React.createElement(ReferenceDraftEditor, props()));

@@ -4,6 +4,7 @@ import { draftToForm, formToDraft, type DraftForm } from '../lib/editor-model.ts
 import { referenceFormCommand } from '../lib/reference-draft-form.ts';
 import ReferencePropertyFields from './ReferencePropertyFields.tsx';
 import ReferenceDraftOriginal from './ReferenceDraftOriginal.tsx';
+import { assertReferenceDraftAuthorClear } from '../lib/reference-author-policy.ts';
 import {
   validateListingReferenceCatalogue,
   selectListingReferenceAttributes,
@@ -91,6 +92,8 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
         session.current = retained;
         const original = await restoreReferenceDraftAttempt(props.client!, retained, abort.signal);
         if (generation.current !== scope || abort.signal.aborted) return;
+        if (!original)
+          assertReferenceDraftAuthorClear(window.sessionStorage, props.scope, props.revision);
         current.current = original;
         setStatus(original ? 'uncertain' : 'ready');
         setMessage(
@@ -103,7 +106,9 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
       } catch {
         if (generation.current === scope && !abort.signal.aborted) {
           setStatus('blocked');
-          setMessage('The retained original could not be checked. Keep it and retry loading.');
+          setMessage(
+            'Finish any retained submission or withdrawal first. Keep saved originals and retry after resolving storage or access problems.',
+          );
         }
       } finally {
         if (generation.current === scope) flight.current = false;
@@ -157,6 +162,7 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
           props.editingDisabled
         )
           return;
+        assertReferenceDraftAuthorClear(window.sessionStorage, props.scope, props.revision);
         const command = referenceFormCommand(form, selected, catalogue, {
           operationId: crypto.randomUUID(),
           listingId: props.scope.listingId,
@@ -176,6 +182,8 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
         return;
       }
       if (mode === 'submit' && (status !== 'reviewing' || props.editingDisabled)) return;
+      if (mode === 'submit')
+        assertReferenceDraftAuthorClear(window.sessionStorage, props.scope, props.revision);
       const original = current.current;
       if (!original) return;
       setStatus('sending');
@@ -252,7 +260,10 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
           available.
         </p>
       )}
-      <p>Reference editing preview. These drafts cannot be submitted yet.</p>
+      <p>
+        Save property and reference facts together. Submission and publication require separate
+        checks.
+      </p>
       <ReferencePropertyFields form={form} setForm={setForm} disabled={locked} />
       <p>
         Current draft location:{' '}

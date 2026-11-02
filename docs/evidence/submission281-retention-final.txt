@@ -1,0 +1,45 @@
+✔ author actions are submit for draft and withdraw for pending only; review retains its own decisions (2.2005ms)
+✔ author originals use a distinct key and reject reviewer actions without erasing either original (9.8576ms)
+✔ author committed-reply loss restores the same snapshot and performs original read only, without another transition (5.1303ms)
+✔ a retained draft original blocks author preparation and is never cleared implicitly; malformed storage also locks (1.5897ms)
+✔ draft editing reciprocally refuses an outstanding author transition without deleting it, while another revision stays independently scoped (0.7937ms)
+✖ validated author nonwrite refusal survives reload as rejected and can be acknowledged without an original GET or another write (2.0514ms)
+✔ failure to retain a known refusal never creates an unverified discardable state (1.6576ms)
+✔ all four actions retain their exact original review and rejection text; a completed rejection is a received receipt (13.4703ms)
+✔ original is captured and stored/read back before a single transition; storage excludes catalogue and credentials (3.3265ms)
+✔ one-flight and first storage claim prevent duplicate sends from identical or different prepared handles (1.6313ms)
+✔ uncertain result keeps the original locked through denied and malformed recovery; no replacement or replay is allowed (2.5545ms)
+✔ reload restores only the original catalogue version and starts uncertain without automatic send or recovery (3.2565ms)
+✔ scope isolation and tampered envelopes fail before historical catalogue reads or any write (2.8701ms)
+✔ invalid historical facts or storage replacement during restoration cannot become an original attempt (2.3446ms)
+✔ storage write/readback failures block dispatch and settled clear failure never deletes a different original (1.7852ms)
+✔ malformed tokens, oversize raw text and scope/command accessors are refused without invoking getters (1.1361ms)
+✔ known rejection can be cleared, but unexpected failures and post-dispatch cancellation stay uncertain (1.8383ms)
+✔ storage changes during a successful network response keep even a valid receipt uncertain (1.2759ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 17
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 207.3112
+
+✖ failing tests:
+
+test at apps\admin\tests\reference-author-policy.test.mjs:147:1
+✖ validated author nonwrite refusal survives reload as rejected and can be acknowledged without an original GET or another write (2.0514ms)
+  Error [ApiClientError]: Retain and verify the original moderation command.
+      at fail (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/dist/tests/lib/reference-moderation-workspace.js:6:11)
+      at Object.clear (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/dist/tests/lib/reference-moderation-workspace.js:170:24)
+      at Object.discard (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/dist/tests/lib/reference-moderation-workspace.js:258:25)
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/tests/reference-author-policy.test.mjs:173:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    kind: 'VALIDATION',
+    status: undefined,
+    serverCode: undefined,
+    requestId: undefined,
+    retryAfterSeconds: undefined,
+    submissionUncertain: false
+  }

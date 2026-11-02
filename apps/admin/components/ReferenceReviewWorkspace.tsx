@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ApiClientError } from '@realtor/api-client';
 import { validateSyntheticReferenceContext, formatKes, kesFromMinor } from '@realtor/domain';
 import type { ReferenceModerationScreen } from '../lib/reference-moderation-screen.ts';
 import { createReferenceModerationClient } from '../lib/reference-moderation-client.ts';
@@ -10,11 +11,19 @@ import {
   type ReferenceModerationAttempt,
 } from '../lib/reference-moderation-workspace.ts';
 import ReviewImages from './ReviewImages.tsx';
+import {
+  referenceTransitionActions,
+  assertReferenceAuthorDraftClear,
+  type ReferenceTransitionPurpose,
+} from '../lib/reference-author-policy.ts';
+import type { SyntheticReferenceAction } from '@realtor/domain';
+type WorkspaceProps = ReferenceModerationScreen & { purpose?: ReferenceTransitionPurpose };
 
 /** Private candidate workspace; restore a retained original before enabling any new decision. */
-export default function ReferenceReviewWorkspace(props: ReferenceModerationScreen) {
+export default function ReferenceReviewWorkspace(props: WorkspaceProps) {
   // Replace all local state when server-bound identity or saved versions change.
   const key = [
+    props.purpose ?? 'review',
     props.scope.instanceId,
     props.scope.tenantId,
     props.scope.actorId,
@@ -25,7 +34,7 @@ export default function ReferenceReviewWorkspace(props: ReferenceModerationScree
   ].join(':');
   return <ReferenceReview key={key} {...props} />;
 }
-function ReferenceReview(props: ReferenceModerationScreen) {
+function ReferenceReview(props: WorkspaceProps) {
   const context = useMemo(
     () =>
       props.context === null
@@ -35,9 +44,9 @@ function ReferenceReview(props: ReferenceModerationScreen) {
             props.scope.listingId,
             props.scope.revision,
             props.context.review.revisionVersion,
-            'review',
+            props.purpose === 'author' ? 'revision' : 'review',
           ),
-    [props.context, props.scope.listingId, props.scope.revision],
+    [props.context, props.scope.listingId, props.scope.revision, props.purpose],
   );
   const client = useMemo(
     () => createReferenceModerationClient(props.scope),
@@ -58,7 +67,8 @@ function ReferenceReview(props: ReferenceModerationScreen) {
     [message, setMessage] = useState('Checking this tab for an original decision…');
   const [reason, setReason] = useState(''),
     [ack, setAck] = useState(false),
-    [retry, setRetry] = useState(0);
+    [retry, setRetry] = useState(0),
+    [denied, setDenied] = useState(false);
   useEffect(() => {
     const epoch = ++generation.current,
       controller = new AbortController();
@@ -72,24 +82,41 @@ function ReferenceReview(props: ReferenceModerationScreen) {
     setMessage('Checking this tab for an original decision…');
     (async () => {
       try {
-        const saved = referenceModerationSession(window.sessionStorage, props.scope);
+        const saved = referenceModerationSession(window.sessionStorage, props.scope, props.purpose);
         const original = await restoreReferenceModerationAttempt(client, saved, controller.signal);
         if (epoch !== generation.current || controller.signal.aborted) return;
+        if (!original && props.purpose === 'author')
+          assertReferenceAuthorDraftClear(window.sessionStorage, {
+            instanceId: props.scope.instanceId,
+            tenantId: props.scope.tenantId,
+            actorId: props.scope.actorId,
+            listingId: props.scope.listingId,
+          });
         session.current = saved;
         current.current = original;
-        setPhase(original ? 'uncertain' : context ? 'ready' : 'unavailable');
+        setPhase(original ? original.status : context ? 'ready' : 'unavailable');
         setMessage(
           original
-            ? 'An original decision is retained. Check its result before taking another action.'
+            ? original.status === 'rejected'
+              ? 'This retained action was explicitly refused before a write. Clear the settled original and inspect a fresh saved revision.'
+              : 'An original decision is retained. Check its result before taking another action.'
             : context
-              ? 'Inspect the complete saved content, historical references and verified photos before deciding.'
-              : 'This saved review is no longer pending and this tab has no retained original. Return to pending reviews.',
+              ? props.purpose === 'author'
+                ? 'Inspect the exact saved content, historical references and photo metadata before submitting or withdrawing.'
+                : 'Inspect the complete saved content, historical references and verified photos before deciding.'
+              : props.purpose === 'author'
+                ? 'No draft or pending revision is available for a new action. Retained recovery is still checked first.'
+                : 'This saved review is no longer pending and this tab has no retained original. Return to pending reviews.',
         );
-      } catch {
+      } catch (error) {
         if (epoch !== generation.current || controller.signal.aborted) return;
+        if (error instanceof ApiClientError && [401, 403].includes(error.status ?? 0))
+          setDenied(true);
         setPhase('locked');
         setMessage(
-          'The original decision could not be restored. Keep this tab’s saved data and retry when access returns.',
+          props.purpose === 'author'
+            ? 'Finish any retained draft-save original in its editor. Keep saved data and retry after resolving access or storage problems.'
+            : 'The original decision could not be restored. Keep this tab’s saved data and retry when access returns.',
         );
       } finally {
         if (epoch === generation.current) flight.current = false;
@@ -101,19 +128,28 @@ function ReferenceReview(props: ReferenceModerationScreen) {
     };
   }, [client, context, retry]);
   const reviewed = current.current?.original.review ?? context?.review;
-  async function decide(action: 'approve' | 'reject') {
+  const actions = referenceTransitionActions(props.purpose ?? 'review', context?.review.state);
+  async function decide(action: SyntheticReferenceAction) {
     if (
       flight.current ||
       phase !== 'ready' ||
       !ack ||
       !session.current ||
       current.current ||
-      !context
+      !context ||
+      !actions.includes(action)
     )
       return;
     flight.current = true;
     const epoch = generation.current;
     try {
+      if (props.purpose === 'author')
+        assertReferenceAuthorDraftClear(window.sessionStorage, {
+          instanceId: props.scope.instanceId,
+          tenantId: props.scope.tenantId,
+          actorId: props.scope.actorId,
+          listingId: props.scope.listingId,
+        });
       const attempt = prepareReferenceModerationAttempt(
         client,
         session.current,
@@ -137,8 +173,10 @@ function ReferenceReview(props: ReferenceModerationScreen) {
       setMessage(
         'The original decision is confirmed. Clear the settled original before leaving this workspace.',
       );
-    } catch {
+    } catch (error) {
       if (epoch !== generation.current) return;
+      if (error instanceof ApiClientError && [401, 403].includes(error.status ?? 0))
+        setDenied(true);
       const state = current.current?.status;
       setPhase(state === 'uncertain' ? 'uncertain' : state === 'rejected' ? 'rejected' : 'locked');
       setMessage(
@@ -163,8 +201,10 @@ function ReferenceReview(props: ReferenceModerationScreen) {
       if (epoch !== generation.current) return;
       setPhase('received');
       setMessage('The original result is confirmed. Clear the settled original before leaving.');
-    } catch {
+    } catch (error) {
       if (epoch !== generation.current) return;
+      if (error instanceof ApiClientError && [401, 403].includes(error.status ?? 0))
+        setDenied(true);
       setPhase('uncertain');
       setMessage(
         'The original remains unconfirmed. Saved facts and the decision lock are retained.',
@@ -180,7 +220,9 @@ function ReferenceReview(props: ReferenceModerationScreen) {
       current.current.discard();
       setPhase('settled');
       setMessage(
-        'Settled original cleared. Return to pending reviews and inspect a fresh saved revision.',
+        props.purpose === 'author'
+          ? 'Settled original cleared. Read the current draft before preparing another action.'
+          : 'Settled original cleared. Return to pending reviews and inspect a fresh saved revision.',
       );
     } catch {
       setPhase('locked');
@@ -201,26 +243,53 @@ function ReferenceReview(props: ReferenceModerationScreen) {
           .toLowerCase()
           .replace(/^./, (c) => c.toUpperCase());
   const receipt = current.current?.receipt;
-  if (!reviewed)
+  if (!reviewed || denied)
     return (
-      <section className="reference-review draft-panel" aria-label="Saved reference review">
-        <h1>Review saved listing</h1>
-        <p role="status">{message}</p>
-        {phase === 'locked' && (
+      <section
+        className="reference-review draft-panel"
+        aria-label={
+          props.purpose === 'author' ? 'Saved reference submission' : 'Saved reference review'
+        }
+      >
+        <h1>
+          {props.purpose === 'author' ? 'Submit or withdraw saved listing' : 'Review saved listing'}
+        </h1>
+        <p role="status">
+          {denied
+            ? 'Current access is unavailable. Retained originals were kept; reload after access is restored.'
+            : message}
+        </p>
+        {denied && (
+          <button type="button" onClick={() => window.location.reload()}>
+            Reload current access
+          </button>
+        )}
+        {phase === 'locked' && !denied && (
           <button type="button" onClick={() => setRetry((n) => n + 1)}>
             Retry original restoration
           </button>
         )}
-        {phase === 'unavailable' && <a href="/reviews">Return to pending reviews</a>}
+        {phase === 'unavailable' &&
+          (props.purpose === 'author' ? (
+            <a href={`/drafts/${props.scope.listingId}/${props.scope.revision}`}>
+              Read current draft
+            </a>
+          ) : (
+            <a href="/reviews">Return to pending reviews</a>
+          ))}
       </section>
     );
   return (
     <section
       className="reference-review draft-panel"
-      aria-label="Saved reference review"
+      aria-label={
+        props.purpose === 'author' ? 'Saved reference submission' : 'Saved reference review'
+      }
       data-phase={phase}
     >
-      <h1>Review saved listing</h1>
+      <h1>
+        {props.purpose === 'author' ? 'Submit or withdraw saved listing' : 'Review saved listing'}
+      </h1>
       <p role="status" aria-live="polite">
         {message}
       </p>
@@ -228,6 +297,13 @@ function ReferenceReview(props: ReferenceModerationScreen) {
         Listing {reviewed.listingId} · revision {reviewed.revision} · editorial version{' '}
         {reviewed.revisionVersion}
       </p>
+      {props.purpose === 'author' && (
+        <p>
+          <a href={`/drafts/${props.scope.listingId}/${props.scope.revision}`}>
+            Return to draft recovery
+          </a>
+        </p>
+      )}
       <h2>Complete private content</h2>
       <dl className="reference-review-facts">
         {Object.entries(reviewed.content).map(([key, value]) => (
@@ -302,6 +378,14 @@ function ReferenceReview(props: ReferenceModerationScreen) {
           </li>
         ))}
       </ul>
+      {props.purpose === 'author' && (
+        <p>
+          Only the current saved revision is submitted or withdrawn. Submission rechecks current
+          access, content completeness and required accepted photos. It does not publish the
+          listing. Photo acceptance below is synthetic saved metadata; image bytes were not loaded
+          here. Finish any retained draft-save original in its editor first.
+        </p>
+      )}
       <h2>Operational context</h2>
       <p>
         Listing version {reviewed.listingVersion}; state {reviewed.state}; availability{' '}
@@ -318,7 +402,7 @@ function ReferenceReview(props: ReferenceModerationScreen) {
           </li>
         ))}
       </ol>
-      {!['restoring', 'locked', 'settled'].includes(phase) && (
+      {props.purpose !== 'author' && !['restoring', 'locked', 'settled'].includes(phase) && (
         <ReviewImages
           instanceId={props.scope.instanceId}
           listingId={reviewed.listingId}
@@ -339,26 +423,46 @@ function ReferenceReview(props: ReferenceModerationScreen) {
         </p>
       )}
       <fieldset disabled={phase !== 'ready'}>
-        <legend>Decision on this saved review</legend>
+        <legend>
+          {props.purpose === 'author'
+            ? 'Action on this exact saved revision'
+            : 'Decision on this saved review'}
+        </legend>
         <label>
           <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} />I
           reviewed the saved content, historical references, operational context and photo order,
           including any unavailable-image warning in this synthetic preview.
         </label>
-        <label>
-          Rejection reason
-          <textarea value={reason} maxLength={2000} onChange={(e) => setReason(e.target.value)} />
-        </label>
-        <button type="button" disabled={!ack} onClick={() => void decide('approve')}>
-          Approve saved review
-        </button>
-        <button
-          type="button"
-          disabled={!ack || reason.trim().length === 0 || reason !== reason.trim()}
-          onClick={() => void decide('reject')}
-        >
-          Reject with reason
-        </button>
+        {props.purpose !== 'author' && (
+          <label>
+            Rejection reason
+            <textarea value={reason} maxLength={2000} onChange={(e) => setReason(e.target.value)} />
+          </label>
+        )}
+        {actions.includes('approve') && (
+          <button type="button" disabled={!ack} onClick={() => void decide('approve')}>
+            Approve saved review
+          </button>
+        )}
+        {actions.includes('reject') && (
+          <button
+            type="button"
+            disabled={!ack || reason.trim().length === 0 || reason !== reason.trim()}
+            onClick={() => void decide('reject')}
+          >
+            Reject with reason
+          </button>
+        )}
+        {actions.includes('submit') && (
+          <button type="button" disabled={!ack} onClick={() => void decide('submit')}>
+            Submit saved revision for review
+          </button>
+        )}
+        {actions.includes('withdraw') && (
+          <button type="button" disabled={!ack} onClick={() => void decide('withdraw')}>
+            Withdraw saved revision
+          </button>
+        )}
       </fieldset>
       {phase === 'uncertain' && (
         <button type="button" onClick={() => void recover()}>
@@ -375,7 +479,14 @@ function ReferenceReview(props: ReferenceModerationScreen) {
           Retry original restoration
         </button>
       )}
-      {phase === 'settled' && <a href="/reviews">Return to pending reviews</a>}
+      {phase === 'settled' &&
+        (props.purpose === 'author' ? (
+          <a href={`/drafts/${props.scope.listingId}/${props.scope.revision}`}>
+            Read current draft
+          </a>
+        ) : (
+          <a href="/reviews">Return to pending reviews</a>
+        ))}
     </section>
   );
 }

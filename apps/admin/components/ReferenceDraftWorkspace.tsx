@@ -16,6 +16,11 @@ export default function ReferenceDraftWorkspace(props: ReferenceDraftScreen) {
           Refresh current reference draft
         </a>
       </p>
+      <p>
+        <a href={`/drafts/${props.scope.listingId}/${props.revision}/submission`}>
+          Inspect saved revision for submission or withdrawal
+        </a>
+      </p>
       <ReferenceDraftEditor {...props} client={client} onReceipt={() => window.location.reload()} />
     </>
   );

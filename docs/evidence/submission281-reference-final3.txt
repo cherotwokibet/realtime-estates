@@ -1,0 +1,34 @@
+
+> @realtor/admin@0.1.0 test:reference-integration
+> npm run build --workspace=@realtor/api && tsc -p tsconfig.tests.json && node --conditions=react-server --test integration-tests/reference-draft-flow.test.mjs integration-tests/reference-moderation-flow.test.mjs integration-tests/revision-protocol-flow.test.mjs integration-tests/reference-submission-flow.test.mjs
+
+
+> @realtor/api@0.1.0 build
+> tsc -p tsconfig.json
+
+▶ mounted reference flow through browser adapter, BFF, SDK, API and restricted SQL retains originals
+  ✔ fresh initial mount facts come from exact authorized API workspace and catalogue (75.9695ms)
+  ✔ lost committed response leaves retained uncertain original and exactly one upstream save (49.4668ms)
+  ✔ restore after catalogue activation uses original historical version and performs no write (41.7379ms)
+  ✔ rotated actor and revoked membership cannot recover or replace an original (14.8626ms)
+  ✔ restored current access recovers original, explicit clear permits fresh workspace version (50.2837ms)
+✔ mounted reference flow through browser adapter, BFF, SDK, API and restricted SQL retains originals (10403.5899ms)
+▶ unmounted moderation browser adapter through BFF/SDK/API/restricted SQL preserves original decisions
+  ✔ exact private read and one committed submission with lost browser acknowledgement remain uncertain (188.6886ms)
+  ✔ browser recovery posts the original body only to BFF while every upstream recovery request is GET (91.4126ms)
+  ✔ historical catalogue refetch and admin review preserve original facts after catalogue activation (80.7129ms)
+  ✔ operational change makes displayed review stale and exact refreshed approval preserves pause (62.4424ms)
+  ✔ original approval GET settles only exact verified result and preserves approved historical snapshot (39.5748ms)
+  ✔ revoked current membership and actor rotation deny original recovery without sending another transition (19.3448ms)
+✔ unmounted moderation browser adapter through BFF/SDK/API/restricted SQL preserves original decisions (10703.3829ms)
+✔ author loader and retained browser adapter connect signed withdrawal/recovery/resubmission; incomplete photos refuse without mutation (11387.2001ms)
+✔ server-only protocol context uses signed HTTP authority and follows explicit persisted adoption (10802.6369ms)
+✔ mixed-row server handoff crosses signed HTTP before adoption and preserves saved IDs plus read-only pending recovery (2586.2256ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13974.6015

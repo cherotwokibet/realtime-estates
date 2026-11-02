@@ -1,0 +1,16 @@
+✔ author actions are submit for draft and withdraw for pending only; review retains its own decisions (2.7742ms)
+✔ author originals use a distinct key and reject reviewer actions without erasing either original (17.526ms)
+✔ author committed-reply loss restores the same snapshot and performs original read only, without another transition (4.594ms)
+✔ a retained draft original blocks author preparation and is never cleared implicitly; malformed storage also locks (1.4369ms)
+✔ author loader reads exact draft/pending snapshots and rechecks identity/version before exposing safe props (63.1828ms)
+✔ terminal adopted row is a scoped recovery shell with no fresh action context (1.2947ms)
+✔ ordinary/missing reader/denied/rotated or changed targets fail closed without stale snapshot fallback (5.0839ms)
+✔ one immutable server configuration is used across awaited reads even if the environment rotates (1.9246ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 253.22

@@ -59,7 +59,9 @@ const version = (v: unknown): string => {
 export function referenceModerationSession(
   store: ReferenceModerationStore,
   input: ReferenceModerationScope,
+  purpose: 'review' | 'author' = 'review',
 ) {
+  if (purpose !== 'review' && purpose !== 'author') return fail();
   const r = own(input, ['instanceId', 'tenantId', 'actorId', 'listingId', 'revision']);
   if (
     typeof r.revision !== 'number' ||
@@ -75,7 +77,7 @@ export function referenceModerationSession(
     listingId: uuid(r.listingId),
     revision: r.revision,
   });
-  const key = `synthetic-reference-moderation-original-v1:${scope.instanceId}:${scope.tenantId}:${scope.actorId}:${scope.listingId}:${scope.revision}`;
+  const key = `${purpose === 'author' ? 'synthetic-reference-author-original-v1' : 'synthetic-reference-moderation-original-v1'}:${scope.instanceId}:${scope.tenantId}:${scope.actorId}:${scope.listingId}:${scope.revision}`;
   const bounded = (raw: string) => {
     if (
       typeof raw !== 'string' ||
@@ -84,8 +86,25 @@ export function referenceModerationSession(
     )
       return fail();
   };
-  const envelope = (command: SyntheticReferenceTransitionCommand) =>
-    JSON.stringify({ schema: 'synthetic-reference-moderation-attempt-v1', ...scope, command });
+  const envelope = (
+    command: SyntheticReferenceTransitionCommand,
+    outcome: 'outstanding' | 'refused' = 'outstanding',
+  ) =>
+    JSON.stringify({
+      schema:
+        purpose === 'author'
+          ? 'synthetic-reference-author-attempt-v1'
+          : 'synthetic-reference-moderation-attempt-v1',
+      ...scope,
+      command,
+      ...(purpose === 'author' ? { outcome } : {}),
+    });
+  const matches = (command: SyntheticReferenceTransitionCommand) => {
+    const raw = store.getItem(key);
+    return (
+      raw === envelope(command) || (purpose === 'author' && raw === envelope(command, 'refused'))
+    );
+  };
   function inspect(raw: string) {
     bounded(raw);
     const row = own(parseReferenceModerationJson(raw), [
@@ -96,9 +115,14 @@ export function referenceModerationSession(
       'listingId',
       'revision',
       'command',
+      ...(purpose === 'author' ? ['outcome'] : []),
     ]);
     if (
-      row.schema !== 'synthetic-reference-moderation-attempt-v1' ||
+      row.schema !==
+        (purpose === 'author'
+          ? 'synthetic-reference-author-attempt-v1'
+          : 'synthetic-reference-moderation-attempt-v1') ||
+      (purpose === 'author' && !['outstanding', 'refused'].includes(row.outcome as string)) ||
       Object.keys(scope).some((k) => row[k] !== scope[k as keyof typeof scope])
     )
       return fail();
@@ -112,6 +136,7 @@ export function referenceModerationSession(
       'reason',
     ]);
     if (
+      (purpose === 'author' && !['submit', 'withdraw'].includes(c.action as string)) ||
       c.policy !== 'synthetic-reference-transition-v1' ||
       c.listingId !== scope.listingId ||
       c.revision !== scope.revision
@@ -145,13 +170,18 @@ export function referenceModerationSession(
   }
   return Object.freeze({
     scope,
+    purpose,
     load() {
       const raw = store.getItem(key);
       return raw === null ? null : inspect(raw);
     },
     retain(command: SyntheticReferenceTransitionCommand, catalogue: ListingReferenceCatalogue) {
       const original = validateSyntheticReferenceTransitionCommand(command, catalogue);
-      if (original.listingId !== scope.listingId || original.revision !== scope.revision)
+      if (
+        (purpose === 'author' && !['submit', 'withdraw'].includes(original.action)) ||
+        original.listingId !== scope.listingId ||
+        original.revision !== scope.revision
+      )
         return fail();
       const raw = envelope(original);
       bounded(raw);
@@ -161,10 +191,17 @@ export function referenceModerationSession(
       if (store.getItem(key) !== raw) return fail();
     },
     verify(command: SyntheticReferenceTransitionCommand) {
-      if (store.getItem(key) !== envelope(command)) return fail();
+      if (!matches(command)) return fail();
+    },
+    recordRefusal(command: SyntheticReferenceTransitionCommand) {
+      if (purpose !== 'author' || store.getItem(key) !== envelope(command)) return fail();
+      const raw = envelope(command, 'refused');
+      bounded(raw);
+      store.setItem(key, raw);
+      if (store.getItem(key) !== raw) return fail();
     },
     clear(command: SyntheticReferenceTransitionCommand) {
-      if (store.getItem(key) !== envelope(command)) return fail();
+      if (!matches(command)) return fail();
       store.removeItem(key);
       if (store.getItem(key) !== null) return fail();
     },
@@ -186,6 +223,7 @@ function attempt(
   input: unknown,
   catalogueInput: unknown,
   restored: boolean,
+  knownRefusal = false,
 ): ReferenceModerationAttempt {
   const catalogue = validateListingReferenceCatalogue(catalogueInput),
     original = validateSyntheticReferenceTransitionCommand(input, catalogue);
@@ -196,7 +234,11 @@ function attempt(
     return fail();
   const transition = client.transition.bind(client),
     recover = client.recover.bind(client);
-  let status: ReferenceModerationAttempt['status'] = restored ? 'uncertain' : 'ready',
+  let status: ReferenceModerationAttempt['status'] = knownRefusal
+      ? 'rejected'
+      : restored
+        ? 'uncertain'
+        : 'ready',
     receipt: SyntheticReferenceTransitionReceipt | null = null,
     discarded = false,
     retained = restored;
@@ -239,6 +281,20 @@ function attempt(
         mode === 'recover' || !(error instanceof ApiClientError) || error.submissionUncertain
           ? 'uncertain'
           : 'rejected';
+      if (
+        status === 'rejected' &&
+        session.purpose === 'author' &&
+        error instanceof ApiClientError &&
+        error.kind === 'HTTP' &&
+        (error.status ?? 0) >= 400 &&
+        (error.status ?? 0) < 500
+      ) {
+        try {
+          session.recordRefusal(original);
+        } catch {
+          status = 'uncertain';
+        }
+      }
       throw error;
     }
   }
@@ -291,8 +347,17 @@ export async function restoreReferenceModerationAttempt(
     'listingId',
     'revision',
     'command',
+    ...(session.purpose === 'author' ? ['outcome'] : []),
   ]);
-  const restored = attempt(client, session, row.command, catalogue, true);
+  const restored = attempt(
+    client,
+    session,
+    row.command,
+    catalogue,
+    true,
+    session.purpose === 'author' && row.outcome === 'refused',
+  );
   session.verify(restored.original);
+  if (session.load()?.raw !== retained.raw) return fail();
   return restored;
 }
