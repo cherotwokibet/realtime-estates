@@ -82,6 +82,12 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  submissionAdmin281: {"path":"docs/evidence/submission281-admin-final5.txt","counts":[515,42],"commit":"435c49c48eb1377996b835c42dbd9a5a62db082b","observedDate":"2026-11-03","environment":"Full admin library/BFF/model515 and rendered42 regression on the connected author transition source. Counts overlap focused retention."},
+  submissionReference281: {"path":"docs/evidence/submission281-reference-final3.txt","counts":[16],"commit":"435c49c48eb1377996b835c42dbd9a5a62db082b","observedDate":"2026-11-03","environment":"Signed reference composition group includes new author loader/client/BFF through real loopback HTTP/RS256/JWKS/PGlite. Lost committed withdrawal/original read/fresh resubmission and no-photo nonwrite refusal verified."},
+  submissionRetention281: {"path":"docs/evidence/submission281-retention-final2.txt","counts":[18],"commit":"435c49c48eb1377996b835c42dbd9a5a62db082b","observedDate":"2026-11-03","environment":"Focused author/reviewer original storage tests;7 new author checks plus11 existing retention checks overlap full admin515. Includes reciprocal preparation locks and durable nonwrite refusal."},
+  submissionBrowser281: {"path":"docs/evidence/2026-11-03-reference-submission.md","counts":null,"commit":"435c49c48eb1377996b835c42dbd9a5a62db082b","observedDate":"2026-11-03","environment":"Actual assigned-agent Next/browser: pending withdrawal502, SAME original after reload, explicit recovery200/draft5, fresh submit200/pending6/unpublished; no-photo422 refusal survives reload and explicit acknowledgement, unchanged draft3;390px focus/wrapping. Synthetic metadata photos only."},
+  submissionBuild281: {"path":"docs/evidence/submission281-next-final4.txt","counts":null,"commit":"435c49c48eb1377996b835c42dbd9a5a62db082b","observedDate":"2026-11-03","environment":"Current full admin production build including dynamic /drafts/[id]/[revision]/submission. No production/provider deployment or stage gate inferred."},
+
   catalogueBrowser278: {"path":"docs/evidence/2026-11-03-catalogue-workflow.md","counts":null,"commit":"32d08cf217fc8d3ab2c67e7dd9d3edd49884dbe9","observedDate":"2026-11-03","environment":"Actual owned catalogue creation, complete property/reference review-revise-send, committed-reply loss/reload/same-original recovery and exact-price/current-ID readback; fixed fee form verified at390px. No submission/withdrawal UI, default-schema or production release acceptance."},
   catalogueRendered278: {"path":"docs/evidence/catalogue278-rendered-tests.txt","counts":[39],"commit":"32d08cf217fc8d3ab2c67e7dd9d3edd49884dbe9","observedDate":"2026-11-03","environment":"Current rendered admin UI/page regression after fee label/grid correction; test TypeScript compilation also passed. Not the full admin library suite or production build."},
 
@@ -1166,6 +1172,9 @@ const reviewed = [
       'staffIssueConnected272',
       'staffIssueBrowser272',
       'staffIssueBuild272',
+      'submissionAdmin281',
+      'submissionReference281',
+      'submissionBrowser281',
       'recipientDomain275',
       'recipientSdk275',
       'recipientAdmin275',
@@ -1223,9 +1232,9 @@ const reviewed = [
   [
     8,
     'partial',
-    ['domain212', 'api212', 'sdk212', 'admin212', 'catalogueBrowser278', 'catalogueRendered278'],
+    ['domain212', 'api212', 'sdk212', 'admin212', 'catalogueBrowser278', 'catalogueRendered278', 'submissionAdmin281', 'submissionReference281', 'submissionRetention281', 'submissionBrowser281', 'submissionBuild281'],
     'Positive exact minor-unit, purpose/period and client/server validation have executed coverage.',
-    'Current combined exact-price/fees/reference browser save and recovery is verified in checkpoint278. Reference submission/withdrawal UI, normalized import and remaining create/edit/UI/direct-bypass combinations are not accepted.',
+    'Current combined exact-price/fees/reference browser save and recovery is verified in checkpoint278. Connected synthetic reference submit/withdraw UI, retained recovery/reload and no-photo refusal are now verified at checkpoint281. Controlled configuration/schema admission and rollback, normalized import and remaining create/edit/UI/direct-bypass combinations remain open.',
     'Complete ordinary normalized catalogue/import then execute every boundary entry point.',
   ],
   [
