@@ -82,6 +82,14 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  invitationSecurity254: {
+    path: 'docs/evidence/staff-recipient254-final.txt',
+    counts: [25],
+    commit: 'e5122c8cef29a8be3e01c65e4a3865d97090b8a3',
+    observedDate: '2026-11-02',
+    environment:
+      'Existing auth plus compiled one-reveal secret and signed synthetic verified-recipient primitives; no endpoint, SQL grant or provider activation.',
+  },
   staffDirectoryDomain251: {
     path: 'docs/evidence/staff-directory251-domain-full.txt',
     counts: [336],
