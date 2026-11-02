@@ -22,12 +22,16 @@ export default function StaffDirectoryWorkspace({
   branches: initialBranches,
   invitations: initialInvitations,
   memberships: initialMemberships = null,
+  issuanceEnabled = false,
 }: {
   scope: StaffWriteScope;
   branches: StaffBranchPage;
   invitations: StaffInvitationPage;
   memberships?: StaffMembershipPage | null;
+  issuanceEnabled?: boolean;
 }) {
+  const visibleSecret = useRef<string | null>(null);
+  const [secret, setSecret] = useState<string | null>(null);
   const controller = useRef<StaffWriteController | null>(null),
     client = useRef<StaffDirectoryClient | null>(null);
   const [snapshot, setSnapshot] = useState<ReturnType<StaffWriteController['snapshot']> | null>(
@@ -62,6 +66,9 @@ export default function StaffDirectoryWorkspace({
       const response = await fetch(...args);
       if (live && (response.status === 401 || response.status === 403)) {
         setDenied(true);
+        visibleSecret.current = null;
+        setSecret(null);
+        controller.current?.close();
         setBranches({ policy: 'staff-branch-page-v1', items: [], nextAfter: null });
         setInvitations({ policy: 'staff-invitation-page-v1', items: [], nextAfter: null });
         setMemberships(null);
@@ -81,7 +88,10 @@ export default function StaffDirectoryWorkspace({
       setMessage('Retained operation storage is unavailable. No write can start.');
     }
     const before = (event: BeforeUnloadEvent) => {
-      if (controller.current && !controller.current.snapshot().canNavigate) {
+      if (
+        visibleSecret.current !== null ||
+        (controller.current && !controller.current.snapshot().canNavigate)
+      ) {
         event.preventDefault();
         event.returnValue = '';
       }
@@ -91,7 +101,7 @@ export default function StaffDirectoryWorkspace({
       if (
         target &&
         !target.hasAttribute('data-staff-reverify') &&
-        !controller.current?.snapshot().canNavigate
+        (!controller.current?.snapshot().canNavigate || visibleSecret.current !== null)
       ) {
         event.preventDefault();
         setMessage('Recover the retained original before leaving this workspace.');
@@ -101,6 +111,7 @@ export default function StaffDirectoryWorkspace({
     document.addEventListener('click', links, true);
     return () => {
       live = false;
+      visibleSecret.current = null;
       controller.current?.close();
       controller.current = null;
       client.current = null;
@@ -153,7 +164,9 @@ export default function StaffDirectoryWorkspace({
     } catch {
       if (controller.current === c)
         setMessage(
-          'Result not confirmed. Keep this request and recover its original; no automatic retry was made.',
+          c.snapshot().attempt?.phase === 'refused'
+            ? 'Issuance was refused without a write. Acknowledge the refusal, then refresh invitations.'
+            : 'Result not confirmed. Keep this request and recover its original; no automatic retry was made.',
         );
     } finally {
       if (controller.current === c) sync();
@@ -187,6 +200,25 @@ export default function StaffDirectoryWorkspace({
       setMessage(
         'Choose an active branch on this page or explicitly choose company-wide, then review the invitation fields.',
       );
+    }
+  }
+  async function prepareIssue(id: string) {
+    if (locked || !issuanceEnabled || !client.current) return;
+    const api = client.current;
+    setReading(true);
+    try {
+      const state = await api.getInvitation(id);
+      if (api !== client.current || controller.current?.snapshot().closed) return;
+      if (state.state !== 'pending') throw Error();
+      prepare('issuance', {
+        policy: 'staff-invitation-issue-command-v1',
+        operationId: crypto.randomUUID(),
+        invitationId: id,
+      });
+    } catch {
+      setMessage('A current pending invitation is required. Refresh the invitation page.');
+    } finally {
+      setReading(false);
     }
   }
   async function adopt(id: string) {
@@ -314,6 +346,70 @@ export default function StaffDirectoryWorkspace({
                     .
                   </p>
                 )}
+                {attempt.kind === 'issuance' && attempt.phase === 'resolved' && (
+                  <section aria-label="One-time invitation code">
+                    <h3>Invitation issuance confirmed</h3>
+                    <p>
+                      No email was sent. The code grants access only to the verified matching
+                      recipient before expiry. Issuance itself does not grant membership.
+                    </p>
+                    {snapshot.secretAvailable ? (
+                      <>
+                        <p>The code can be revealed once. It is not stored with this operation.</p>
+                        <button
+                          onClick={() => {
+                            try {
+                              const value = controller.current!.takeSecretOnce();
+                              visibleSecret.current = value;
+                              setSecret(value);
+                              sync();
+                            } catch {
+                              setMessage(
+                                'Code unavailable. Recover metadata or revoke and create a new request.',
+                              );
+                            }
+                          }}
+                        >
+                          Reveal invitation code once
+                        </button>
+                        <button
+                          onClick={() => {
+                            controller.current?.discardSecret();
+                            sync();
+                            setMessage(
+                              'Code discarded. Revoke this invitation and create a new request if another code is needed.',
+                            );
+                          }}
+                        >
+                          Discard unrevealed code
+                        </button>
+                      </>
+                    ) : secret ? (
+                      <>
+                        <label>
+                          Invitation code
+                          <input readOnly value={secret} autoComplete="off" spellCheck={false} />
+                        </label>
+                        <p>Keep this code private. Closing or reloading loses this view.</p>
+                        <button
+                          onClick={() => {
+                            visibleSecret.current = null;
+                            setSecret(null);
+                            sync();
+                            setMessage('Code view discarded. It cannot be revealed again.');
+                          }}
+                        >
+                          Discard code view
+                        </button>
+                      </>
+                    ) : (
+                      <p>
+                        The code is unavailable. Original recovery returns metadata only. If it was
+                        lost, explicitly revoke this invitation, then capture and issue a new one.
+                      </p>
+                    )}
+                  </section>
+                )}
                 {attempt.phase === 'prepared' && (
                   <button disabled={snapshot.busy} onClick={() => void run('submit')}>
                     Submit reviewed original
@@ -340,10 +436,11 @@ export default function StaffDirectoryWorkspace({
                 )}
                 {attempt.phase !== 'uncertain' && (
                   <button
-                    disabled={snapshot.busy}
+                    disabled={snapshot.busy || snapshot.secretAvailable || secret !== null}
                     onClick={() => {
                       try {
                         controller.current?.clear();
+                        if (attempt.kind === 'issuance') void refresh('invitations');
                         if (attempt.phase === 'resolved' && attempt.kind === 'branch') {
                           setBranch(null);
                           setName('');
@@ -372,9 +469,11 @@ export default function StaffDirectoryWorkspace({
                       }
                     }}
                   >
-                    {attempt.phase === 'resolved'
-                      ? 'Acknowledge and clear original'
-                      : 'Discard undispatched request'}
+                    {attempt.phase === 'refused'
+                      ? 'Acknowledge refusal and clear request'
+                      : attempt.phase === 'resolved'
+                        ? 'Acknowledge and clear original'
+                        : 'Discard undispatched request'}
                   </button>
                 )}
               </>
@@ -612,6 +711,13 @@ export default function StaffDirectoryWorkspace({
           </section>
           <section>
             <h2>Invitation requests · current page</h2>
+            {issuanceEnabled && (
+              <p>
+                One-time codes are enabled for synthetic requests. Issued and used states are
+                current; the original capture remains historical. Recipient acceptance UI is not yet
+                connected.
+              </p>
+            )}
             <button
               disabled={reading || !!snapshot?.busy}
               onClick={() => void refresh('invitations')}
@@ -631,8 +737,13 @@ export default function StaffDirectoryWorkspace({
                 <li key={i.operationId}>
                   <strong>{i.recipientEmail}</strong> · {i.requestedRole} · {i.state} ·{' '}
                   {i.branch?.name ?? 'Company-wide'}{' '}
+                  {issuanceEnabled && i.state === 'pending' && (
+                    <button disabled={locked} onClick={() => void prepareIssue(i.operationId)}>
+                      Prepare one-time invitation code
+                    </button>
+                  )}
                   <button
-                    disabled={locked || !revokeReason}
+                    disabled={locked || !revokeReason || i.state === 'used'}
                     onClick={() => void revoke(i.operationId)}
                   >
                     Prepare revocation

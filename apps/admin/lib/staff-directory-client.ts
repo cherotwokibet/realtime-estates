@@ -1,6 +1,11 @@
 import { ApiClientError } from '@realtor/api-client';
 import {
   parseStaffInvitationJson,
+  validateStaffInvitationIssueCommand,
+  validateStaffInvitationIssueRecord,
+  validateStaffInvitationIssueResponse,
+  validateStaffIssuedInvitationState,
+  type StaffInvitationIssueCommand,
   validateStaffDirectoryQuery,
   validateStaffBranchPage,
   validateStaffInvitationPage,
@@ -113,6 +118,13 @@ export function createStaffDirectoryClient(
           throw Error('Wrong response target.');
         }
       }
+      if (
+        path.includes('/invitation-issues/') &&
+        response.headers.get('cache-control') !== 'no-store'
+      ) {
+        void response.body?.cancel().catch(() => {});
+        throw Error('Private response cannot be cached.');
+      }
       const data = await readReferenceJson(
         response,
         envelope === 'page' ? 65536 : 8192,
@@ -168,6 +180,36 @@ export function createStaffDirectoryClient(
     };
   };
   return Object.freeze({
+    issueInvitation(input: StaffInvitationIssueCommand, signal?: AbortSignal) {
+      const c = validateStaffInvitationIssueCommand(input);
+      return request(
+        root + 'invitation-issues/' + c.invitationId + '/operations/' + c.operationId,
+        c,
+        'disclosure',
+        (v) => validateStaffInvitationIssueResponse(v, c.operationId, c.invitationId),
+        signal,
+      );
+    },
+    getInvitationIssue(input: StaffInvitationIssueCommand, signal?: AbortSignal) {
+      const c = validateStaffInvitationIssueCommand(input);
+      return request(
+        root + 'invitation-issues/' + c.invitationId + '/operations/' + c.operationId,
+        undefined,
+        'receipt',
+        (v) => validateStaffInvitationIssueRecord(v, c.operationId, c.invitationId),
+        signal,
+      );
+    },
+    getIssuedInvitationState(input: StaffInvitationIssueCommand, signal?: AbortSignal) {
+      const c = validateStaffInvitationIssueCommand(input);
+      return request(
+        root + 'invitation-issues/' + c.invitationId + '/operations/' + c.operationId + '/state',
+        undefined,
+        'state',
+        (v) => validateStaffIssuedInvitationState(v, c.operationId, c.invitationId),
+        signal,
+      );
+    },
     listMemberships(input: StaffDirectoryQuery, signal?: AbortSignal) {
       const { q, path } = queryPath('memberships', input);
       return request(path, undefined, 'page', (v) => validateStaffMembershipPage(v, q), signal);

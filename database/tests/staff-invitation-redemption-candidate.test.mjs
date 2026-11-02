@@ -17,6 +17,7 @@ async function fixture() {
     'staff-invitation-requests.sql',
     'staff-membership-changes.sql',
     'staff-invitation-redemption.sql',
+    'staff-directory-reads.sql',
   ])
     await db.exec(await readFile(new URL('../proposals/' + file, import.meta.url), 'utf8'));
   await db.query(
@@ -105,6 +106,35 @@ const readUsed = (db, op = 400, user = 50, recipient = email, tenant = 1) =>
   );
 const state = (db, invitation = 200) =>
   call(db, 10, 'SELECT app_api.read_issued_staff_invitation($1) AS result', [id(invitation)]);
+
+test('legacy current reads and bounded directory reflect issued and used states without altering historical capture facts', async () => {
+  const db = await fixture();
+  try {
+    const original = await capture(db),
+      current = () =>
+        call(db, 10, 'SELECT app_api.read_staff_invitation_state($1) AS result', [id(200)]),
+      page = () => call(db, 10, 'SELECT app_api.list_staff_invitation_requests(10,NULL) AS result');
+    assert.equal((await current()).state, 'pending');
+    await issue(db);
+    assert.equal((await current()).state, 'issued');
+    assert.equal((await page()).items[0].state, 'issued');
+    await redeem(db);
+    assert.equal((await current()).state, 'used');
+    assert.equal((await page()).items[0].state, 'used');
+    assert.equal((await current()).version, '1');
+    assert.equal((await current()).membershipGranted, false);
+    assert.deepEqual(
+      await call(db, 10, 'SELECT app_api.read_staff_invitation_request($1) AS result', [id(200)]),
+      original,
+    );
+    await assert.rejects(
+      () => call(db, 20, 'SELECT app_api.read_staff_invitation_state($1) AS result', [id(200)], 2),
+      (e) => e.code === 'P0002',
+    );
+  } finally {
+    await db.close();
+  }
+});
 const cancel = (db, op = 500, invitation = 200) =>
   call(db, 10, 'SELECT app_api.revoke_staff_invitation_request($1,$2,1,$3) AS result', [
     id(op),

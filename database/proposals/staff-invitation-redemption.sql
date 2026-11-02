@@ -156,6 +156,28 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ DECLARE s app
  || jsonb_build_object('policy','staff-issued-invitation-state-v1','state',kind);
 END $$;
 
+-- Capture receipts remain immutable historical evidence. Current reads and the
+-- bounded directory must instead reflect issuance/consumption once this proposal
+-- is installed. The capture's membershipGranted:false describes capture only.
+CREATE OR REPLACE FUNCTION app_api.read_staff_invitation_state(p_invitation uuid) RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE i app_private.staff_invitation_requests;kind text;revoked boolean;
+BEGIN
+ PERFORM app_private.assert_staff(ARRAY['admin']);
+ SELECT * INTO i FROM app_private.staff_invitation_requests
+ WHERE tenant_id=app_private.context_tenant() AND operation_id=p_invitation;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Invitation unavailable' USING ERRCODE='P0002'; END IF;
+ revoked:=EXISTS(SELECT 1 FROM app_private.staff_invitation_revocations WHERE tenant_id=i.tenant_id AND invitation_id=i.operation_id AND outcome='revoked');
+ kind:=CASE
+ WHEN EXISTS(SELECT 1 FROM app_private.staff_invitation_redemptions WHERE tenant_id=i.tenant_id AND invitation_id=i.operation_id) THEN 'used'
+ WHEN revoked THEN 'revoked'
+ WHEN clock_timestamp()>=i.recorded_at+make_interval(hours=>i.expires_after_hours) THEN 'expired'
+ WHEN EXISTS(SELECT 1 FROM app_private.staff_invitation_issues WHERE tenant_id=i.tenant_id AND invitation_id=i.operation_id) THEN 'issued'
+ ELSE 'pending' END;
+ RETURN (app_private.staff_invitation_request_json(i)-'actorId') || jsonb_build_object(
+  'policy','staff-invitation-state-v1','version',CASE WHEN revoked THEN '2' ELSE '1' END,'state',kind);
+END $$;
+
 -- Old capture-only cancellation must never label an already consumed invitation
 -- as revoked. Exact historical cancellation receipts remain immutable/readable.
 CREATE FUNCTION app_private.refuse_consumed_invitation_revocation() RETURNS trigger

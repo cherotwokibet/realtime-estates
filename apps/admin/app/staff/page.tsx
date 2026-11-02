@@ -18,8 +18,8 @@ export default async function Staff() {
       <h1 id="staff-title">Branches, staff and invitation requests</h1>
       <p>
         Synthetic local preview · Current company admin access required. Invitation requests do not
-        send email or create membership. Enabled staff controls change existing synthetic staff
-        access.
+        send email or create membership. Separately enabled one-time codes allow verified synthetic
+        recipients to accept access. Enabled staff controls change existing synthetic staff access.
       </p>
       {data ? (
         <StaffDirectoryWorkspace

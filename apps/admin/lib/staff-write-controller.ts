@@ -1,3 +1,5 @@
+import { ApiClientError } from '@realtor/api-client';
+import { validateStaffInvitationIssueResponse } from '@realtor/domain';
 import {
   prepareStaffWrite,
   markStaffWriteUncertain,
@@ -17,6 +19,8 @@ interface Store {
 }
 type Client = Pick<
   StaffDirectoryClient,
+  | 'issueInvitation'
+  | 'getInvitationIssue'
   | 'saveBranch'
   | 'getBranchOperation'
   | 'captureInvitation'
@@ -36,6 +40,7 @@ export function createStaffWriteController(input: {
     store = input.store,
     client = input.client,
     key = 'realtor.staff-write.v1:' + scope.instanceId + ':' + scope.tenantId + ':' + scope.actorId;
+  let secret: string | null = null;
   let attempt: StaffWriteAttempt | null = null,
     busy = false,
     closed = false,
@@ -88,6 +93,8 @@ export function createStaffWriteController(input: {
       const pending = Promise.resolve().then<unknown>(() => {
         if (controller.signal.aborted) throw Error('Staff operation interrupted.');
         if (mode === 'recover') {
+          if (uncertain.kind === 'issuance')
+            return client.getInvitationIssue(uncertain.command, controller.signal);
           if (uncertain.kind === 'membership')
             return client.getMembershipOperation(uncertain.command.operationId, controller.signal);
           return uncertain.kind === 'branch'
@@ -100,6 +107,8 @@ export function createStaffWriteController(input: {
                   controller.signal,
                 );
         }
+        if (uncertain.kind === 'issuance')
+          return client.issueInvitation(uncertain.command, controller.signal);
         if (uncertain.kind === 'membership')
           return client.saveMembership(uncertain.command, controller.signal);
         return uncertain.kind === 'branch'
@@ -110,11 +119,39 @@ export function createStaffWriteController(input: {
       });
       const receipt = await Promise.race([pending, cancelled]);
       if (closed || controller.signal.aborted) throw Error('Staff operation interrupted.');
-      const resolved = resolveStaffWrite(uncertain, scope, receipt);
+      const disclosure =
+        uncertain.kind === 'issuance' && mode !== 'recover'
+          ? validateStaffInvitationIssueResponse(
+              receipt,
+              uncertain.command.operationId,
+              uncertain.command.invitationId,
+              scope.actorId,
+            )
+          : null;
+      const resolved = resolveStaffWrite(
+        uncertain,
+        scope,
+        disclosure ? disclosure.record : receipt,
+      );
       persist(resolved);
       attempt = resolved;
+      secret = disclosure?.secret ?? null;
       return resolved;
-    } catch {
+    } catch (cause) {
+      if (
+        !closed &&
+        !blocked &&
+        original.kind === 'issuance' &&
+        mode !== 'recover' &&
+        cause instanceof ApiClientError &&
+        cause.kind === 'HTTP' &&
+        cause.submissionUncertain === false &&
+        [400, 401, 403, 404, 409, 413, 422].includes(cause.status ?? 0)
+      ) {
+        attempt = Object.freeze({ ...original, phase: 'refused', receipt: null });
+        error =
+          'Issuance was refused without a write. Acknowledge the refusal and refresh current invitations.';
+      }
       if (!error) error = 'Original not confirmed; retain and recover this operation.';
       throw Error(error);
     } finally {
@@ -131,7 +168,13 @@ export function createStaffWriteController(input: {
         closed,
         blocked,
         error,
-        canNavigate: !closed && !busy && !blocked && (!attempt || canDiscardStaffWrite(attempt)),
+        secretAvailable: secret !== null,
+        canNavigate:
+          secret === null &&
+          !closed &&
+          !busy &&
+          !blocked &&
+          (!attempt || canDiscardStaffWrite(attempt)),
       }),
     prepare(kind: StaffWriteAttempt['kind'], command: unknown) {
       requireIdle();
@@ -142,6 +185,18 @@ export function createStaffWriteController(input: {
       error = null;
       return value;
     },
+    takeSecretOnce() {
+      requireIdle();
+      if (secret === null)
+        throw Error('Secret unavailable. Recover metadata or revoke and replace.');
+      const value = secret;
+      secret = null;
+      return value;
+    },
+    discardSecret() {
+      requireIdle();
+      secret = null;
+    },
     submit: () => run('submit'),
     recover: () => run('recover'),
     replay(confirmedExactReplay: boolean) {
@@ -150,6 +205,7 @@ export function createStaffWriteController(input: {
     },
     clear() {
       requireIdle();
+      if (secret !== null) throw Error('Reveal or explicitly discard the secret first.');
       if (attempt && !canDiscardStaffWrite(attempt))
         throw Error('Uncertain operations cannot be discarded.');
       try {
@@ -165,6 +221,7 @@ export function createStaffWriteController(input: {
     },
     close() {
       closed = true;
+      secret = null;
       active?.abort();
     },
   });

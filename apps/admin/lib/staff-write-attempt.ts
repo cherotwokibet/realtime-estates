@@ -1,5 +1,9 @@
 import {
   parseStaffInvitationJson,
+  validateStaffInvitationIssueCommand,
+  validateStaffInvitationIssueRecord,
+  type StaffInvitationIssueCommand,
+  type StaffInvitationIssueRecord,
   validateStaffBranchCommand,
   validateStaffBranchRecord,
   validateStaffInvitationIntent,
@@ -24,10 +28,15 @@ export interface StaffWriteScope {
 }
 type Base = {
   readonly scope: StaffWriteScope;
-  readonly phase: 'prepared' | 'uncertain' | 'resolved';
+  readonly phase: 'prepared' | 'uncertain' | 'resolved' | 'refused';
 };
 export type StaffWriteAttempt = Base &
   (
+    | {
+        readonly kind: 'issuance';
+        readonly command: StaffInvitationIssueCommand;
+        readonly receipt: StaffInvitationIssueRecord | null;
+      }
     | {
         readonly kind: 'membership';
         readonly command: StaffMembershipCommand;
@@ -102,6 +111,14 @@ export function prepareStaffWrite(
       receipt: null,
     });
   }
+  if (kind === 'issuance')
+    return Object.freeze({
+      scope: captured,
+      kind,
+      command: validateStaffInvitationIssueCommand(input),
+      phase: 'prepared',
+      receipt: null,
+    });
   if (kind === 'branch')
     return Object.freeze({
       scope: captured,
@@ -143,7 +160,8 @@ export function markStaffWriteUncertain(
   attempt: StaffWriteAttempt,
   current: StaffWriteScope,
 ): StaffWriteAttempt {
-  if (!staffWriteMatchesScope(attempt, current) || attempt.phase === 'resolved') return fail();
+  if (!staffWriteMatchesScope(attempt, current) || ['resolved', 'refused'].includes(attempt.phase))
+    return fail();
   return Object.freeze({ ...attempt, phase: 'uncertain', receipt: null });
 }
 export function resolveStaffWrite(
@@ -152,6 +170,17 @@ export function resolveStaffWrite(
   receipt: unknown,
 ): StaffWriteAttempt {
   if (!staffWriteMatchesScope(attempt, current)) return fail();
+  if (attempt.kind === 'issuance')
+    return Object.freeze({
+      ...attempt,
+      phase: 'resolved',
+      receipt: validateStaffInvitationIssueRecord(
+        receipt,
+        attempt.command.operationId,
+        attempt.command.invitationId,
+        attempt.scope.actorId,
+      ),
+    });
   if (attempt.kind === 'membership')
     return Object.freeze({
       ...attempt,

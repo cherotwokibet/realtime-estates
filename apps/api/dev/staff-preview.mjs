@@ -136,6 +136,7 @@ function configuration({
   referencePublicMode,
   journeyFixture,
   publicReportMode,
+  staffInvitationRedemptionMode,
   staffInvitationMode,
   invitationReplyFault,
   branchReplyFault,
@@ -154,6 +155,15 @@ function configuration({
       publicReportMode !== 'synthetic-listing-report-v1')
   )
     throw new StaffPreviewConfigurationError('Unsupported synthetic report reply fault.');
+  if (
+    staffInvitationRedemptionMode !== undefined &&
+    (staffInvitationRedemptionMode !== 'synthetic-single-use-invitations-v1' ||
+      staffInvitationMode !== 'synthetic-capture-only-v1' ||
+      staffMembershipMode !== 'synthetic-existing-members-v1')
+  )
+    throw new StaffPreviewConfigurationError(
+      'Issuance preview requires explicit capture and membership candidates.',
+    );
   if (staffInvitationMode !== undefined && staffInvitationMode !== 'synthetic-capture-only-v1')
     throw new StaffPreviewConfigurationError('Unsupported synthetic staff invitation mode.');
   if (staffMembershipMode !== undefined && staffMembershipMode !== 'synthetic-existing-members-v1')
@@ -427,6 +437,7 @@ function configuration({
     referencePublicMode,
     journeyFixture,
     publicReportMode,
+    staffInvitationRedemptionMode,
     staffInvitationMode,
     invitationReplyFault,
     branchReplyFault,
@@ -884,6 +895,7 @@ export async function startStaffPreview(options = {}) {
     referencePublicMode,
     journeyFixture,
     publicReportMode,
+    staffInvitationRedemptionMode,
     staffInvitationMode,
     invitationReplyFault,
     branchReplyFault,
@@ -898,6 +910,7 @@ export async function startStaffPreview(options = {}) {
   let settingsReplyFaultPending = !!settingsReplyFault;
   let branchReplyFaultPending = !!branchReplyFault;
   let membershipReplyFaultPending = !!membershipReplyFault;
+  let invitationIssueFaultPending = !!invitationReplyFault;
   let invitationCaptureFaultPending = !!invitationReplyFault,
     invitationRevokeFaultPending = !!invitationReplyFault;
   let reportCaptureFaultPending = !!reportReplyFault,
@@ -945,6 +958,13 @@ export async function startStaffPreview(options = {}) {
           await readFile(new URL('../../../database/proposals/' + file, import.meta.url), 'utf8'),
         );
     }
+    if (staffInvitationRedemptionMode)
+      await db.exec(
+        await readFile(
+          new URL('../../../database/proposals/staff-invitation-redemption.sql', import.meta.url),
+          'utf8',
+        ),
+      );
     if (referenceDraftMode) {
       // Explicit disposable owner fixture only. These are never default migrations.
       for (const file of [
@@ -1238,6 +1258,19 @@ export async function startStaffPreview(options = {}) {
       database,
       verificationMode: 'synthetic-check-record-v1',
       ...(publicReportMode ? { publicReportMode } : {}),
+      ...(staffInvitationRedemptionMode
+        ? {
+            staffInvitationRedemption: {
+              mode: staffInvitationRedemptionMode,
+              identity: {
+                issuer,
+                audience: AUDIENCE,
+                jwksUrl: issuer + '/.well-known/jwks.json',
+                allowLoopbackHttpForTests: true,
+              },
+            },
+          }
+        : {}),
       ...(staffInvitationMode ? { staffInvitationMode } : {}),
       ...(staffMembershipMode ? { staffMembershipMode } : {}),
       ...(referenceDraftMode ? { referenceDraftMode } : {}),
@@ -1406,6 +1439,21 @@ export async function startStaffPreview(options = {}) {
                 status: 200,
                 headers: { 'Cache-Control': 'no-store', 'X-Synthetic-Staff-Preview': 'true' },
               },
+            );
+          }
+          return response;
+        }
+        if (
+          staffInvitationRedemptionMode &&
+          url.pathname.startsWith('/v2/staff/invitation-issues/')
+        ) {
+          const response = await service(request);
+          if (invitationIssueFaultPending && request.method === 'POST' && response.status === 200) {
+            invitationIssueFaultPending = false;
+            await response.body?.cancel();
+            return Response.json(
+              { syntheticIssueReplyCorruption: true },
+              { status: 200, headers: { 'Cache-Control': 'no-store' } },
             );
           }
           return response;

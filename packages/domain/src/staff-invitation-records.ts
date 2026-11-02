@@ -21,7 +21,7 @@ export type StaffInvitationState = Omit<StaffInvitationRequestRecord, 'policy' |
   Readonly<{
     policy: 'staff-invitation-state-v1';
     version: '1' | '2';
-    state: 'pending' | 'revoked' | 'expired';
+    state: 'pending' | 'issued' | 'used' | 'revoked' | 'expired';
   }>;
 export interface StaffInvitationRevocationCommand {
   readonly policy: 'staff-invitation-revocation-command-v1';
@@ -170,14 +170,14 @@ export function validateStaffInvitationState(
   const r = record(input, ['policy', 'version', 'state', ...requestKeys]);
   if (
     r.policy !== 'staff-invitation-state-v1' ||
-    !['pending', 'revoked', 'expired'].includes(r.state as string) ||
+    !['pending', 'issued', 'used', 'revoked', 'expired'].includes(r.state as string) ||
     r.version !== (r.state === 'revoked' ? '2' : '1')
   )
     return invalid();
   const v = Object.freeze({
     policy: 'staff-invitation-state-v1' as const,
     version: r.version as '1' | '2',
-    state: r.state as 'pending' | 'revoked' | 'expired',
+    state: r.state as StaffInvitationState['state'],
     ...requestFacts(r),
   });
   if (invitationId !== undefined && v.operationId !== uuid(invitationId)) return invalid();

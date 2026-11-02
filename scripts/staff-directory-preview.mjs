@@ -7,7 +7,14 @@ import { fileURLToPath } from 'node:url';
 import { startStaffPreview } from '../apps/api/dev/staff-preview.mjs';
 import { createStaffPreviewShutdown, retireOwnedStaffChild } from './staff-preview-lifecycle.mjs';
 const args = process.argv.slice(2),
-  allowed = ['--lost-results', '--agent', '--foreign-admin', '--second-brand', '--memberships'];
+  allowed = [
+    '--lost-results',
+    '--agent',
+    '--foreign-admin',
+    '--second-brand',
+    '--memberships',
+    '--issue-invitations',
+  ];
 if (
   process.env.NODE_ENV === 'production' ||
   new Set(args).size !== args.length ||
@@ -27,7 +34,10 @@ const api = await startStaffPreview({
   tenantSlug: args.includes('--second-brand') ? 'sample-homes' : 'realtime-estates',
   seedAcceptedMedia: false,
   staffInvitationMode: 'synthetic-capture-only-v1',
-  ...(args.includes('--memberships')
+  ...(args.includes('--issue-invitations')
+    ? { staffInvitationRedemptionMode: 'synthetic-single-use-invitations-v1' }
+    : {}),
+  ...(args.includes('--memberships') || args.includes('--issue-invitations')
     ? {
         staffMembershipMode: 'synthetic-existing-members-v1',
         ...(args.includes('--lost-results')
@@ -89,9 +99,13 @@ async function launch() {
         TENANT_SLUG: api.tenantSlug,
         STAFF_PREVIEW_MODE: 'synthetic',
         STAFF_DIRECTORY_PREVIEW_MODE: 'synthetic-v1',
-        STAFF_MEMBERSHIP_PREVIEW_MODE: args.includes('--memberships')
-          ? 'synthetic-existing-members-v1'
+        STAFF_INVITATION_ISSUE_PREVIEW_MODE: args.includes('--issue-invitations')
+          ? 'synthetic-single-use-invitations-v1'
           : undefined,
+        STAFF_MEMBERSHIP_PREVIEW_MODE:
+          args.includes('--memberships') || args.includes('--issue-invitations')
+            ? 'synthetic-existing-members-v1'
+            : undefined,
         STAFF_PREVIEW_API_ORIGIN: api.origin,
         STAFF_PREVIEW_TOKEN: api.bearerToken,
         STAFF_PREVIEW_INSTANCE: randomUUID(),
@@ -137,5 +151,5 @@ try {
   requestStop();
 }
 console.log(
-  'Synthetic fixtures only: invitations send no email and create no membership. --memberships explicitly enables existing-staff role/access changes. --lost-results corrupts first committed results. Restart retains owned API/database with a fresh browser instance; quit stops only owned children and fixtures.',
+  'Synthetic fixtures only: invitations send no email and create no membership. --memberships enables existing-staff changes; --issue-invitations separately enables synthetic one-time issuance and its membership prerequisite, without email delivery or recipient UI. --lost-results corrupts first committed results. Restart retains owned API/database with a fresh browser instance; quit stops only owned children and fixtures.',
 );

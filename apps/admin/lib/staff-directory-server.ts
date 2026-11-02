@@ -178,7 +178,14 @@ export async function loadStaffDirectoryWorkspace(
       throw Error('Staff membership workspace unavailable.');
     memberships = await api.listStaffMemberships({ limit: 10, after: null }, options);
   }
+  if (
+    env.STAFF_INVITATION_ISSUE_PREVIEW_MODE !== undefined &&
+    env.STAFF_INVITATION_ISSUE_PREVIEW_MODE !== 'synthetic-single-use-invitations-v1'
+  )
+    throw Error('Invitation issuance workspace unavailable.');
   return {
+    issuanceEnabled:
+      env.STAFF_INVITATION_ISSUE_PREVIEW_MODE === 'synthetic-single-use-invitations-v1',
     scope: { instanceId: config.instanceId, tenantId: session.tenantId, actorId: session.actorId },
     branches,
     invitations,
