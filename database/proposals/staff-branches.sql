@@ -36,6 +36,11 @@ BEGIN
  OR p_name ~ '[[:cntrl:]<>]' OR p_reason ~ '[[:cntrl:]<>]'
  OR p_name ~ U&'[\202A-\202E\2066-\2069]' OR p_reason ~ U&'[\202A-\202E\2066-\2069]'
  THEN RAISE EXCEPTION 'Invalid branch command' USING ERRCODE='23514'; END IF;
+ -- All staff administration writers acquire the tenant row before operation/branch locks.
+ -- Recheck current authority after waiting; membership writers use this same order.
+ PERFORM 1 FROM app_private.tenants WHERE id=app_private.context_tenant() FOR UPDATE;
+ PERFORM 1 FROM app_private.memberships WHERE tenant_id=app_private.context_tenant() AND user_id=app_private.context_actor() FOR SHARE;
+ PERFORM app_private.assert_staff(ARRAY['admin']);
  PERFORM pg_advisory_xact_lock(hashtextextended(app_private.context_tenant()::text||':staff-branch-op:'||p_operation::text,0));
  SELECT * INTO prior FROM app_private.staff_branch_operations WHERE tenant_id=app_private.context_tenant() AND operation_id=p_operation;
  IF FOUND THEN

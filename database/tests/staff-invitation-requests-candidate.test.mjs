@@ -186,6 +186,158 @@ test('historically expired fixture stays expired and original retrieval never ex
     await db.close();
   }
 });
+
+test('invitation capture starts its full lifetime at decision time after a delayed statement', async () => {
+  const db = await fixture();
+  try {
+    const result = await actor(db, 1, 10, () =>
+      scalar(
+        db,
+        `WITH delay AS MATERIALIZED (SELECT pg_sleep(0.15))
+        SELECT jsonb_build_object('started', statement_timestamp(),
+          'saved', app_api.record_staff_invitation_request($1,$2,'agent',NULL,24)) AS result
+        FROM delay`,
+        [id(200), 'synthetic+staff@example.invalid'],
+      ),
+    );
+    assert.ok(Date.parse(result.saved.recordedAt) - Date.parse(result.started) >= 100);
+    assert.equal(
+      Date.parse(result.saved.expiresAt) - Date.parse(result.saved.recordedAt),
+      24 * 60 * 60 * 1000,
+    );
+    assert.deepEqual(await original(db), result.saved);
+  } finally {
+    await db.close();
+  }
+});
+
+test('expiry crossed inside one statement prevents late revocation and preserves the original deadline', async () => {
+  const db = await fixture();
+  try {
+    // One real SQL statement creates a synthetic invitation with 100 ms left,
+    // waits past its deadline, then calls the actual writer. No clock is mocked.
+    // Privileged fixture insertion only; the SECURITY DEFINER writer still
+    // checks the configured actor/company. Runtime storage grants stay absent.
+    await db.query(
+      "SELECT set_config('realtor.tenant_id',$1,false),set_config('realtor.actor_id',$2,false)",
+      [id(1), id(10)],
+    );
+    const result = await scalar(
+      db,
+      `
+      WITH inserted AS (
+        INSERT INTO app_private.staff_invitation_requests
+          (tenant_id,operation_id,actor_id,recipient_email,requested_role,expires_after_hours,recorded_at)
+        VALUES($1,$2,$3,'past@example.invalid','agent',24,
+          statement_timestamp()-interval '24 hours'+interval '100 milliseconds')
+        RETURNING operation_id
+      ), delay AS MATERIALIZED (SELECT operation_id,pg_sleep(0.2) FROM inserted)
+      SELECT app_api.revoke_staff_invitation_request($4,operation_id,1,'Synthetic cancellation.') AS result FROM delay
+    `,
+      [id(1), id(200), id(10), id(300)],
+    );
+    assert.equal(result.outcome, 'expired');
+    assert.equal(result.version, '1');
+    assert.equal((await state(db)).state, 'expired');
+    assert.deepEqual(await revoke(db, 300), result);
+    assert.equal(
+      Number(
+        (
+          await db.query(
+            "SELECT count(*) AS n FROM app_private.staff_invitation_revocations WHERE outcome='revoked'",
+          )
+        ).rows[0].n,
+      ),
+      0,
+    );
+    assert.equal(
+      Number((await db.query('SELECT count(*) AS n FROM app_private.audit_events')).rows[0].n),
+      0,
+    );
+  } finally {
+    await db.close();
+  }
+});
+
+test('authority lost after admission prevents branch, capture and revocation writes atomically', async () => {
+  const db = await fixture();
+  try {
+    await branch(db, 1000, 0);
+    await capture(db);
+    const before = (await db.query('SELECT * FROM app_private.audit_events ORDER BY id')).rows;
+    // Disposable single-session failure injection: lose the actor role just
+    // after its first valid admission. This is not a hosted lock-wait test.
+    await db.exec(`CREATE OR REPLACE FUNCTION app_private.assert_staff(p_roles text[])
+      RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ BEGIN
+      IF NOT coalesce(app_private.staff_role()=ANY(p_roles),false) THEN
+        RAISE EXCEPTION 'Access denied' USING ERRCODE='42501';
+      END IF;
+      IF current_setting('realtor.test_admin_loss',true)='armed' THEN
+        PERFORM set_config('realtor.test_admin_loss','disarmed',true);
+        UPDATE app_private.memberships SET role='agent'
+          WHERE tenant_id=app_private.context_tenant() AND user_id=app_private.context_actor();
+      END IF;
+      END $$`);
+    for (const [sql, params] of [
+      [
+        'SELECT app_api.save_staff_branch($1,$2,1,$3,true,$4)',
+        [id(201), id(100), 'Changed branch', 'Synthetic change.'],
+      ],
+      [
+        "SELECT app_api.record_staff_invitation_request($1,$2,'agent',NULL,24)",
+        [id(201), 'another@example.invalid'],
+      ],
+      [
+        'SELECT app_api.revoke_staff_invitation_request($1,$2,1,$3)',
+        [id(301), id(200), 'Synthetic cancellation.'],
+      ],
+    ]) {
+      await assert.rejects(
+        () =>
+          actor(db, 1, 10, async () => {
+            await db.query("SELECT set_config('realtor.test_admin_loss','armed',true)");
+            return db.query(sql, params);
+          }),
+        (error) => error.code === '42501',
+      );
+      assert.equal(
+        (
+          await db.query(
+            'SELECT role FROM app_private.memberships WHERE tenant_id=$1 AND user_id=$2',
+            [id(1), id(10)],
+          )
+        ).rows[0].role,
+        'admin',
+      );
+      assert.deepEqual(
+        (await db.query('SELECT * FROM app_private.audit_events ORDER BY id')).rows,
+        before,
+      );
+    }
+    assert.equal(
+      Number(
+        (await db.query('SELECT count(*) AS n FROM app_private.staff_branch_operations')).rows[0].n,
+      ),
+      1,
+    );
+    assert.equal(
+      Number(
+        (await db.query('SELECT count(*) AS n FROM app_private.staff_invitation_requests')).rows[0]
+          .n,
+      ),
+      1,
+    );
+    assert.equal(
+      Number(
+        (await db.query('SELECT count(*) AS n FROM app_private.staff_invitation_revocations'))
+          .rows[0].n,
+      ),
+      0,
+    );
+  } finally {
+    await db.close();
+  }
+});
 test('current role, tenant, original requester and raw storage restrictions protect private invitation facts', async () => {
   const db = await fixture();
   try {

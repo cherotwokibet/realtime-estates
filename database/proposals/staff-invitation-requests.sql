@@ -53,6 +53,11 @@ BEGIN
  PERFORM app_private.assert_staff(ARRAY['admin']);
  IF p_operation IS NULL OR NOT app_private.staff_invitation_email_valid(p_email) OR p_role IS NULL OR p_role NOT IN ('agent','admin') OR p_hours IS NULL OR p_hours NOT IN (24,72,168) OR (p_role='admin' AND p_branch IS NOT NULL)
  THEN RAISE EXCEPTION 'Invalid invitation intent' USING ERRCODE='23514'; END IF;
+ -- All staff administration writers acquire the tenant row before operation/branch locks.
+ -- Recheck current authority after waiting; membership writers use this same order.
+ PERFORM 1 FROM app_private.tenants WHERE id=app_private.context_tenant() FOR UPDATE;
+ PERFORM 1 FROM app_private.memberships WHERE tenant_id=app_private.context_tenant() AND user_id=app_private.context_actor() FOR SHARE;
+ PERFORM app_private.assert_staff(ARRAY['admin']);
  PERFORM pg_advisory_xact_lock(hashtextextended(app_private.context_tenant()::text||':staff-invitation:'||p_operation::text,0));
  SELECT * INTO r FROM app_private.staff_invitation_requests WHERE tenant_id=app_private.context_tenant() AND operation_id=p_operation;
  IF FOUND THEN
@@ -66,8 +71,8 @@ BEGIN
   SELECT * INTO b FROM app_private.staff_branch_operations WHERE tenant_id=app_private.context_tenant() AND branch_id=p_branch AND outcome='applied' ORDER BY observed_version DESC LIMIT 1;
   IF NOT FOUND OR NOT b.active THEN RAISE EXCEPTION 'Active branch unavailable' USING ERRCODE='P0002'; END IF;
  END IF;
- INSERT INTO app_private.staff_invitation_requests(tenant_id,operation_id,actor_id,recipient_email,requested_role,branch_operation_id,expires_after_hours)
- VALUES(app_private.context_tenant(),p_operation,app_private.context_actor(),p_email,p_role,b.operation_id,p_hours) RETURNING * INTO r;
+ INSERT INTO app_private.staff_invitation_requests(tenant_id,operation_id,actor_id,recipient_email,requested_role,branch_operation_id,expires_after_hours,recorded_at)
+ VALUES(app_private.context_tenant(),p_operation,app_private.context_actor(),p_email,p_role,b.operation_id,p_hours,clock_timestamp()) RETURNING * INTO r;
  PERFORM app_private.audit('staff.invitation_request_recorded','staff_invitation',p_operation,1);
  RETURN app_private.staff_invitation_request_json(r);
 END $$;
@@ -89,6 +94,11 @@ BEGIN
  PERFORM app_private.assert_staff(ARRAY['admin']);
  IF p_operation IS NULL OR p_invitation IS NULL OR p_expected IS NULL OR p_expected NOT BETWEEN 1 AND 9007199254740990 OR p_reason IS NULL OR p_reason<>btrim(p_reason) OR char_length(p_reason) NOT BETWEEN 1 AND 500 OR p_reason<>normalize(p_reason,NFC) OR p_reason~'[[:cntrl:]<>]' OR p_reason~U&'[\202A-\202E\2066-\2069]'
  THEN RAISE EXCEPTION 'Invalid revocation' USING ERRCODE='23514'; END IF;
+ -- All staff administration writers acquire the tenant row before operation/branch locks.
+ -- Recheck current authority after waiting; membership writers use this same order.
+ PERFORM 1 FROM app_private.tenants WHERE id=app_private.context_tenant() FOR UPDATE;
+ PERFORM 1 FROM app_private.memberships WHERE tenant_id=app_private.context_tenant() AND user_id=app_private.context_actor() FOR SHARE;
+ PERFORM app_private.assert_staff(ARRAY['admin']);
  PERFORM pg_advisory_xact_lock(hashtextextended(app_private.context_tenant()::text||':staff-invitation-revoke-op:'||p_operation::text,0));
  SELECT * INTO r FROM app_private.staff_invitation_revocations WHERE tenant_id=app_private.context_tenant() AND operation_id=p_operation;
  IF FOUND THEN
@@ -102,7 +112,7 @@ BEGIN
  actual:=CASE WHEN EXISTS(SELECT 1 FROM app_private.staff_invitation_revocations WHERE tenant_id=i.tenant_id AND invitation_id=p_invitation AND outcome='revoked') THEN 2 ELSE 1 END;
  IF p_expected<>actual THEN kind:='conflict';
  ELSIF actual=2 THEN kind:='already_revoked';
- ELSIF statement_timestamp()>=i.recorded_at+make_interval(hours=>i.expires_after_hours) THEN kind:='expired';
+ ELSIF clock_timestamp()>=i.recorded_at+make_interval(hours=>i.expires_after_hours) THEN kind:='expired';
  ELSE kind:='revoked';actual:=2; END IF;
  INSERT INTO app_private.staff_invitation_revocations(tenant_id,operation_id,invitation_id,actor_id,expected_version,observed_version,reason,outcome)
  VALUES(i.tenant_id,p_operation,p_invitation,app_private.context_actor(),p_expected,actual,p_reason,kind) RETURNING * INTO r;
@@ -121,7 +131,7 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ DECLARE i app
  IF NOT FOUND THEN RAISE EXCEPTION 'Invitation unavailable' USING ERRCODE='P0002'; END IF;
  revoked:=EXISTS(SELECT 1 FROM app_private.staff_invitation_revocations WHERE tenant_id=i.tenant_id AND invitation_id=i.operation_id AND outcome='revoked');
  RETURN (app_private.staff_invitation_request_json(i)-'actorId') || jsonb_build_object('policy','staff-invitation-state-v1','version',CASE WHEN revoked THEN '2' ELSE '1' END,
- 'state',CASE WHEN revoked THEN 'revoked' WHEN statement_timestamp()>=i.recorded_at+make_interval(hours=>i.expires_after_hours) THEN 'expired' ELSE 'pending' END);
+ 'state',CASE WHEN revoked THEN 'revoked' WHEN clock_timestamp()>=i.recorded_at+make_interval(hours=>i.expires_after_hours) THEN 'expired' ELSE 'pending' END);
 END $$;
 REVOKE ALL ON FUNCTION app_private.staff_invitation_email_valid(text),app_private.staff_invitation_request_json(app_private.staff_invitation_requests),app_private.staff_invitation_revocation_json(app_private.staff_invitation_revocations),app_api.record_staff_invitation_request(uuid,text,text,uuid,integer),app_api.read_staff_invitation_request(uuid),app_api.revoke_staff_invitation_request(uuid,uuid,bigint,text),app_api.read_staff_invitation_revocation(uuid),app_api.read_staff_invitation_state(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app_api.record_staff_invitation_request(uuid,text,text,uuid,integer),app_api.read_staff_invitation_request(uuid),app_api.revoke_staff_invitation_request(uuid,uuid,bigint,text),app_api.read_staff_invitation_revocation(uuid),app_api.read_staff_invitation_state(uuid) TO api_runtime;

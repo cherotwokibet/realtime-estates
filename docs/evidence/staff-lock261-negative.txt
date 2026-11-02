@@ -1,0 +1,49 @@
+✖ invitation capture starts its full lifetime at decision time after a delayed statement (2180.4646ms)
+✖ expiry crossed inside one statement prevents late revocation and preserves the original deadline (1698.5668ms)
+✔ authority lost after admission prevents branch, capture and revocation writes atomically (1630.8223ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 1
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5707.6973
+
+✖ failing tests:
+
+test at database\tests\.staff-lock261-negative.test.mjs:190:1
+✖ invitation capture starts its full lifetime at decision time after a delayed statement (2180.4646ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(Date.parse(result.saved.recordedAt) - Date.parse(result.started) >= 100)
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/database/tests/.staff-lock261-negative.test.mjs:199:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at database\tests\.staff-lock261-negative.test.mjs:207:1
+✖ expiry crossed inside one statement prevents late revocation and preserves the original deadline (1698.5668ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'revoked'
+  - 'expired'
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/database/tests/.staff-lock261-negative.test.mjs:225:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'revoked',
+    expected: 'expired',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
