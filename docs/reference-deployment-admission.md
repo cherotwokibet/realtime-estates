@@ -1,3 +1,5 @@
+> Current classification,3November2026/checkpoint284: literal local catalogue implementation06-1 is accepted after connected author controls and whole-criterion review. The deployment controller and production rollout/rollback described below remain unimplemented or unverified release prerequisites. This historical174 foundation is still not an installed deployment gate. See evidence/2026-11-03-catalogue-implementation-acceptance.md. No schema promotion occurred.
+
 # Reference deployment admission foundation — checkpoint 174
 
 25 October 2026. A trusted owner-side admission utility now refuses an application/configuration rollback that would strand adopted reference facts or historical originals. This is an independently implemented control-plane foundation, **not an installed production deployment gate**. No launcher, API startup, hosting setting or migration runner was changed to invoke it. Task 06-1 remains open; checklist 25/97 (26% rounded), 0/14 accepted gates. KES 10,000 remains the total monthly service price per realtor.

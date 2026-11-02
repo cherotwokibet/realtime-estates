@@ -1,0 +1,40 @@
+
+> @realtor/mobile@0.1.0 test
+> npm run test:compile --workspace=@realtor/web && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 tests/*.test.mjs
+
+
+> @realtor/web@0.1.0 test:compile
+> tsc -p tsconfig.tests.json
+
+✔ actual Expo config exposes only explicit public development settings and refuses production or orphan flags (494.6042ms)
+✔ mobile configuration defaults to demo only when absent and refuses malformed, production, credential or private configuration (1.7643ms)
+✔ mobile read crosses the real SDK once anonymously, preserves exact cents and original references, and searches only public location (41.4619ms)
+✔ mobile distinguishes legacy unknown, approved empty amenities, sale no recurring period and unresolved quote (2.9496ms)
+✔ mobile errors, private additions and cancellation never substitute demo stock or retry (2.3494ms)
+✔ mobile keeps empty success distinct from failure and warns when its bounded page may be incomplete (25.6439ms)
+✔ mobile adapter reads the real anonymous HTTP/SQL approved historical projection for two fixed companies (5393.5572ms)
+✔ one anonymous read per attempt; failed refresh offers an explicit timestamped previous response (25.9102ms)
+✔ different query or page discards the one-response fallback instead of showing mismatched stock (1.186ms)
+✔ fallback expires without refreshing its age on failures and refuses a backwards or broken clock (3.6039ms)
+✔ clear invalidates an in-flight result and prevents it repopulating the fallback (0.6006ms)
+✔ a superseded response cannot replace the latest successful search (0.8267ms)
+✔ cancellation offers no cached fallback and late fetch completion cannot refill it (0.7065ms)
+✔ input is detached before I/O; accessors, unknown fields and malformed replies do not become a cache (0.5348ms)
+✔ saved filters survive a fresh controller while companies and API origins remain separate (2.6332ms)
+✔ corrupt, oversized, mismatched and future or private fields are discarded before reuse (1.6508ms)
+✔ a late save cannot overwrite a later clear across controller remounts (0.8198ms)
+✔ storage failures stay contained and do not poison later operations (0.5169ms)
+✔ a stalled restore returns unavailable without applying late saved filters (13.2029ms)
+✔ timed-out writes remain ordered before clear even after both UI waits end (31.4935ms)
+✔ connected mobile filters cross the anonymous SDK with exact cents, open-plan and bathroom criteria (25.7287ms)
+✔ mobile rejects incomparable prices and malformed boundaries before replacing applied filters (0.3802ms)
+✔ reference native controls share both configured company themes and accessible component states (2.4375ms)
+✔ reference native focus preserves pressed colors with a shared outer ring and contrasting gap (0.2278ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7212.1532
