@@ -9,9 +9,11 @@ import {
   validateStaffMembershipCommand,
   validateStaffMembershipRecord,
   validateStaffMembershipCurrent,
+  validateStaffMembershipPage,
   type StaffMembershipCommand,
   type StaffMembershipRecord,
   type StaffMembershipCurrent,
+  type StaffMembershipPage,
   validateStaffDirectoryQuery,
   validateStaffBranchPage,
   validateStaffInvitationPage,
@@ -3618,6 +3620,28 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid original report review.');
     }
   }
+  async listStaffMemberships(
+    input: StaffDirectoryQuery,
+    options: StaffRequestOptions,
+  ): Promise<StaffMembershipPage> {
+    const captured = uploadOptions(options);
+    let query: StaffDirectoryQuery;
+    try {
+      query = validateStaffDirectoryQuery(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid directory query.');
+    }
+    const path =
+      '/v2/staff/memberships?limit=' +
+      query.limit +
+      (query.after === null ? '' : '&after=' + query.after);
+    const data = await this.request(path, 'GET', captured);
+    try {
+      return validateStaffMembershipPage(data, query);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid membership directory page.');
+    }
+  }
   async saveStaffMembership(
     input: StaffMembershipCommand,
     options: StaffRequestOptions,
@@ -5740,7 +5764,7 @@ export class RealtorApiClient {
       path,
     );
     const staffDirectory =
-      /^\/v2\/staff\/(?:branches|invitation-requests)\?limit=(?:[1-9]|1[0-9]|20)(?:&after=[0-9a-f-]{36})?$/.test(
+      /^\/v2\/staff\/(?:branches|invitation-requests|memberships)\?limit=(?:[1-9]|1[0-9]|20)(?:&after=[0-9a-f-]{36})?$/.test(
         path,
       );
     const staffBranch = /^\/v2\/staff\/branches\/(?:operations\/)?[0-9a-f-]{36}$/.test(path);

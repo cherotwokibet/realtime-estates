@@ -36,6 +36,143 @@ const api = (fetch) =>
     fetch,
   });
 
+const member = (n) => ({ ...current(), memberId: id(n) });
+const page = (items = [], nextAfter = null) => ({
+  policy: 'staff-membership-page-v1',
+  items,
+  nextAfter,
+});
+
+test('membership directory snapshots query/private options and binds immutable ordered current projections to the requested cursor', async () => {
+  const query = { limit: 2, after: id(1) },
+    options = { ...auth },
+    calls = [];
+  const client = api(async (url, init) => {
+    calls.push({ url, init });
+    query.limit = 20;
+    query.after = null;
+    options.bearerToken = 'changed';
+    return Response.json(page([member(2), member(3)], id(3)));
+  });
+  const result = await client.listStaffMemberships(query, options);
+  assert.deepEqual(result, page([member(2), member(3)], id(3)));
+  assert.equal(Object.isFrozen(result), true);
+  assert.equal(Object.isFrozen(result.items), true);
+  assert.equal(Object.isFrozen(result.items[0]), true);
+  assert.equal(calls.length, 1);
+  assert.equal(
+    calls[0].url,
+    'https://synthetic.invalid/v2/staff/memberships?limit=2&after=' + id(1),
+  );
+  assert.equal(calls[0].init.method, 'GET');
+  assert.equal(calls[0].init.body, undefined);
+  assert.equal(
+    new Headers(calls[0].init.headers).get('authorization'),
+    'Bearer ' + auth.bearerToken,
+  );
+  assert.equal(calls[0].init.credentials, 'omit');
+  assert.equal(calls[0].init.redirect, 'error');
+  assert.equal(calls[0].init.cache, 'no-store');
+  assert.deepEqual(
+    await api(async () => Response.json(page())).listStaffMemberships(
+      { limit: 20, after: null },
+      auth,
+    ),
+    page(),
+  );
+});
+
+test('membership directory refuses query/credential authority before I/O and rejects cursor/order/privacy violations', async () => {
+  let calls = 0,
+    reads = 0;
+  const client = api(async () => {
+    calls++;
+    return Response.json(page());
+  });
+  for (const query of [
+    { limit: 0, after: null },
+    { limit: 21, after: null },
+    { limit: 2 },
+    { limit: 2, after: id(1), tenantId: id(7) },
+    { limit: 2, after: 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA' },
+    {
+      limit: 2,
+      get after() {
+        reads++;
+        return null;
+      },
+    },
+  ])
+    await assert.rejects(
+      () => client.listStaffMemberships(query, auth),
+      (error) => error.kind === 'VALIDATION' && !error.submissionUncertain,
+    );
+  await assert.rejects(
+    () => client.listStaffMemberships({ limit: 2, after: null }, { ...auth, actorId: id(3) }),
+    (error) => error.kind === 'VALIDATION',
+  );
+  assert.equal(calls, 0);
+  assert.equal(reads, 0);
+  for (const value of [
+    page([member(1)]),
+    page([member(3), member(2)]),
+    page([member(2), member(2)]),
+    page([member(2), member(3)], id(2)),
+    page([member(2)], id(2)),
+    page([member(2), member(3), member(4)]),
+    page([{ ...member(2), actorId: id(3) }]),
+    page([{ ...member(2), reason: 'Private original.' }]),
+    page([{ ...member(2), role: 'customer' }]),
+    { ...page(), tenantId: id(7) },
+  ]) {
+    const methods = [];
+    await assert.rejects(
+      () =>
+        api(async (_url, init) => {
+          methods.push(init.method);
+          return Response.json(value);
+        }).listStaffMemberships({ limit: 2, after: id(1) }, auth),
+      (error) => error.kind === 'INVALID_RESPONSE' && !error.submissionUncertain,
+    );
+    assert.deepEqual(methods, ['GET']);
+  }
+});
+
+test('membership directory uses strict JSON and a64KiB page ceiling while single records remain8KiB', async () => {
+  const json = JSON.stringify(page([member(2)])),
+    exact = json.padEnd(65536, ' ');
+  assert.equal(new TextEncoder().encode(exact).byteLength, 65536);
+  assert.deepEqual(
+    await api(
+      async () =>
+        new Response(exact, {
+          headers: { 'content-type': 'application/json', 'content-length': '65536' },
+        }),
+    ).listStaffMemberships({ limit: 2, after: null }, auth),
+    page([member(2)]),
+  );
+  for (const response of [
+    Response.json(page(), { status: 202 }),
+    new Response(
+      JSON.stringify(page()).replace('"nextAfter":', '"\\u006eextAfter":null,"nextAfter":'),
+      {
+        headers: { 'content-type': 'application/json' },
+      },
+    ),
+    new Response(exact + ' ', { headers: { 'content-type': 'application/json' } }),
+    Response.json(page(), { headers: { 'content-length': '65537' } }),
+    Response.json(page(), { headers: { 'content-length': '1' } }),
+    Response.json(page(), { headers: { 'content-encoding': 'gzip' } }),
+    Response.json(page(), { headers: { 'content-range': 'bytes 0-1/2' } }),
+    new Response(null, { status: 302, headers: { location: '/elsewhere' } }),
+  ])
+    await assert.rejects(
+      () => api(async () => response).listStaffMemberships({ limit: 2, after: null }, auth),
+      (error) =>
+        !error.submissionUncertain && ['INVALID_RESPONSE', 'REDIRECT'].includes(error.kind),
+    );
+});
+
 test('membership SDK snapshots exact command and private options before dispatch; originals/current use GET only', async () => {
   const calls = [],
     input = command(),

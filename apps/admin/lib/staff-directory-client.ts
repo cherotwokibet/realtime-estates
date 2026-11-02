@@ -12,10 +12,15 @@ import {
   validateStaffInvitationState,
   validateStaffInvitationRevocationCommand,
   validateStaffInvitationRevocationRecord,
+  validateStaffMembershipPage,
+  validateStaffMembershipCommand,
+  validateStaffMembershipRecord,
+  validateStaffMembershipCurrent,
   type StaffDirectoryQuery,
   type StaffBranchCommand,
   type StaffInvitationIntent,
   type StaffInvitationRevocationCommand,
+  type StaffMembershipCommand,
 } from '@realtor/domain';
 import { readReferenceJson } from './reference-draft-wire.ts';
 const uuid = (v: unknown): string => {
@@ -163,6 +168,44 @@ export function createStaffDirectoryClient(
     };
   };
   return Object.freeze({
+    listMemberships(input: StaffDirectoryQuery, signal?: AbortSignal) {
+      const { q, path } = queryPath('memberships', input);
+      return request(path, undefined, 'page', (v) => validateStaffMembershipPage(v, q), signal);
+    },
+    saveMembership(input: StaffMembershipCommand, signal?: AbortSignal) {
+      const c = validateStaffMembershipCommand(input);
+      return request(
+        root + 'memberships/operations/' + c.operationId,
+        c,
+        'receipt',
+        (v) => validateStaffMembershipRecord(v, c),
+        signal,
+      );
+    },
+    getMembershipOperation(id: string, signal?: AbortSignal) {
+      const op = uuid(id);
+      return request(
+        root + 'memberships/operations/' + op,
+        undefined,
+        'receipt',
+        (v) => {
+          const r = validateStaffMembershipRecord(v);
+          if (r.operationId !== op) throw Error();
+          return r;
+        },
+        signal,
+      );
+    },
+    getMembership(id: string, signal?: AbortSignal) {
+      const member = uuid(id);
+      return request(
+        root + 'memberships/' + member,
+        undefined,
+        'member',
+        (v) => validateStaffMembershipCurrent(v, member),
+        signal,
+      );
+    },
     listBranches(input: StaffDirectoryQuery, signal?: AbortSignal) {
       const { q, path } = queryPath('branches', input);
       return request(path, undefined, 'page', (v) => validateStaffBranchPage(v, q), signal);

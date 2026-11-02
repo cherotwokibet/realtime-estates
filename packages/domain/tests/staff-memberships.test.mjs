@@ -4,6 +4,7 @@ import {
   validateStaffMembershipCommand as command,
   validateStaffMembershipRecord as receipt,
   validateStaffMembershipCurrent as current,
+  validateStaffMembershipPage as page,
 } from '../dist/index.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const request = (patch = {}) => ({
@@ -186,4 +187,101 @@ test('current state binds the requested existing member and omits private operat
   ])
     assert.throws(() => current(state(patch)));
   assert.equal(current(state({ active: true, revokedAt: null })).revokedAt, null);
+});
+const member = (n) => state({ memberId: id(n) });
+const query = { limit: 2, after: null };
+const directory = (patch = {}) => ({
+  policy: 'staff-membership-page-v1',
+  items: [member(2), member(3)],
+  nextAfter: id(3),
+  ...patch,
+});
+test('member pages snapshot and freeze bounded current states; terminal pages may be full or empty', () => {
+  const input = directory(),
+    validated = page(input, query);
+  input.items[0].role = 'admin';
+  input.items.reverse();
+  input.nextAfter = id(99);
+  assert.equal(validated.items[0].memberId, id(2));
+  assert.equal(validated.items[0].role, 'agent');
+  assert.equal(validated.nextAfter, id(3));
+  assert.ok(Object.isFrozen(validated));
+  assert.ok(Object.isFrozen(validated.items));
+  assert.ok(Object.isFrozen(validated.items[0]));
+  assert.equal(page(directory({ nextAfter: null }), query).items.length, 2);
+  assert.deepEqual(page(directory({ items: [], nextAfter: null }), query).items, []);
+  assert.equal(page(directory(), { limit: 2, after: id(1) }).items[0].memberId, id(2));
+});
+test('member pages bind cardinality, canonical cursor and strictly increasing unique member IDs', () => {
+  for (const input of [
+    directory({ items: [member(3), member(2)] }),
+    directory({ items: [member(2), member(2)] }),
+    directory({ items: [member(2), member(3), member(4)] }),
+    directory({ items: [member(2)] }),
+    directory({ items: [] }),
+    directory({ nextAfter: id(2) }),
+    directory({ nextAfter: 'bad' }),
+    directory({ nextAfter: 'A0000000-0000-4000-8000-000000000003' }),
+    directory({ policy: 'staff-branch-page-v1' }),
+  ])
+    assert.throws(() => page(input, query));
+  for (const after of [id(2), id(3), id(99), 'bad'])
+    assert.throws(() => page(directory(), { limit: 2, after }));
+  for (const limit of [0, 21, 1.5, '2'])
+    assert.throws(() => page(directory(), { limit, after: null }));
+  assert.throws(() => page(directory(), { ...query, tenantId: id(1) }));
+  assert.equal(page(directory({ items: [member(2)], nextAfter: null }), query).nextAfter, null);
+});
+test('member pages refuse sparse/extended arrays, hidden fields, getters and projection authority without reading accessors', () => {
+  let reads = 0;
+  const sparse = new Array(2),
+    indexed = [member(2), member(3)];
+  Object.defineProperty(indexed, '0', {
+    enumerable: true,
+    get() {
+      reads++;
+      return member(2);
+    },
+  });
+  const hiddenIndex = [member(2), member(3)];
+  Object.defineProperty(hiddenIndex, '0', { enumerable: false, value: member(2) });
+  const extended = [member(2), member(3)];
+  Object.defineProperty(extended, 'hidden', { value: true });
+  const inherited = [member(2), member(3)];
+  Object.setPrototypeOf(inherited, Object.create(Array.prototype));
+  for (const items of [
+    sparse,
+    indexed,
+    hiddenIndex,
+    extended,
+    inherited,
+    { 0: member(2), length: 1 },
+  ])
+    assert.throws(() => page(directory({ items }), query));
+  const accessor = directory();
+  Object.defineProperty(accessor, 'nextAfter', {
+    enumerable: true,
+    get() {
+      reads++;
+      return id(3);
+    },
+  });
+  assert.throws(() => page(accessor, query));
+  const nested = member(2);
+  Object.defineProperty(nested, 'active', {
+    enumerable: true,
+    get() {
+      reads++;
+      return false;
+    },
+  });
+  assert.throws(() => page(directory({ items: [nested], nextAfter: null }), query));
+  assert.throws(() => page(Object.defineProperty(directory(), 'hidden', { value: true }), query));
+  for (const extra of [{ tenantId: id(1) }, { actorId: id(10) }, { reason: 'Private' }]) {
+    assert.throws(() => page({ ...directory(), ...extra }, query));
+    assert.throws(() =>
+      page(directory({ items: [{ ...member(2), ...extra }], nextAfter: null }), query),
+    );
+  }
+  assert.equal(reads, 0);
 });

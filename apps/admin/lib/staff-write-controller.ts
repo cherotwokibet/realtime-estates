@@ -23,6 +23,8 @@ type Client = Pick<
   | 'getInvitationOperation'
   | 'revokeInvitation'
   | 'getInvitationRevocation'
+  | 'saveMembership'
+  | 'getMembershipOperation'
 >;
 /** One retained request per verified UI scope. Persistence must succeed before dispatch. */
 export function createStaffWriteController(input: {
@@ -85,7 +87,9 @@ export function createStaffWriteController(input: {
       attempt = uncertain;
       const pending = Promise.resolve().then<unknown>(() => {
         if (controller.signal.aborted) throw Error('Staff operation interrupted.');
-        if (mode === 'recover')
+        if (mode === 'recover') {
+          if (uncertain.kind === 'membership')
+            return client.getMembershipOperation(uncertain.command.operationId, controller.signal);
           return uncertain.kind === 'branch'
             ? client.getBranchOperation(uncertain.command.operationId, controller.signal)
             : uncertain.kind === 'invitation'
@@ -95,6 +99,9 @@ export function createStaffWriteController(input: {
                   uncertain.command.operationId,
                   controller.signal,
                 );
+        }
+        if (uncertain.kind === 'membership')
+          return client.saveMembership(uncertain.command, controller.signal);
         return uncertain.kind === 'branch'
           ? client.saveBranch(uncertain.command, controller.signal)
           : uncertain.kind === 'invitation'

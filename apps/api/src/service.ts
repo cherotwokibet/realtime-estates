@@ -4,6 +4,7 @@ import {
   validateStaffMembershipCommand,
   validateStaffMembershipRecord,
   validateStaffMembershipCurrent,
+  validateStaffMembershipPage,
   validateStaffBranchCommand,
   validateStaffBranchRecord,
   validateStaffBranchCurrent,
@@ -1601,6 +1602,52 @@ export function createApiService(
       if (path.startsWith('/v2/staff/memberships')) {
         if (!staffMembershipsEnabled)
           throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        if (path === '/v2/staff/memberships') {
+          if (
+            request.url.includes('#') ||
+            headerNames(request.headers).some(
+              (key) =>
+                ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(key) ||
+                key.startsWith('x-') ||
+                key.startsWith('if-'),
+            )
+          )
+            throw new HttpError(400, 'INVALID_INPUT', 'Membership context is server-owned.');
+          if (method !== 'GET')
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Read only.', { Allow: 'GET' });
+          if (
+            request.body !== null ||
+            request.headers.has('content-type') ||
+            request.headers.has('content-length')
+          )
+            throw new HttpError(400, 'INVALID_INPUT', 'Reads accept no body.');
+          const match = /^\?limit=([1-9]|1[0-9]|20)(?:&after=([0-9a-f-]{36}))?$/.exec(url.search);
+          if (!match)
+            throw new HttpError(400, 'INVALID_INPUT', 'Use an exact bounded directory query.');
+          let pageQuery: ReturnType<typeof validateStaffDirectoryQuery>;
+          try {
+            pageQuery = validateStaffDirectoryQuery({
+              limit: Number(match[1]),
+              after: match[2] ?? null,
+            });
+          } catch {
+            throw new HttpError(400, 'INVALID_INPUT', 'Invalid membership cursor.');
+          }
+          const actorId = await identity(request, true);
+          const value = await options.database.transaction(
+            { tenantId, actorId, correlationId },
+            async (query) => {
+              await query.query("SET LOCAL statement_timeout = '2s'");
+              const result = await query.query(
+                'SELECT app_api.list_staff_memberships($1,$2) AS receipt',
+                [pageQuery.limit, pageQuery.after],
+              );
+              if (result.rows.length !== 1) throw Error('Invalid membership page.');
+              return validateStaffMembershipPage(result.rows[0]!.receipt, pageQuery);
+            },
+          );
+          return response(200, value, correlationId);
+        }
         const operationRoute = /^\/v2\/staff\/memberships\/operations\/([0-9a-f-]{36})$/.exec(path);
         const memberRoute = /^\/v2\/staff\/memberships\/([0-9a-f-]{36})$/.exec(path);
         if (!operationRoute && !memberRoute)

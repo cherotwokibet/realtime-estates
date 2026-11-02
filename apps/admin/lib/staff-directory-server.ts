@@ -1,6 +1,10 @@
 import 'server-only';
 import { ApiClientError, RealtorApiClient } from '@realtor/api-client';
-import { parseStaffInvitationJson, validateStaffDirectoryQuery } from '@realtor/domain';
+import {
+  parseStaffInvitationJson,
+  validateStaffDirectoryQuery,
+  type StaffMembershipPage,
+} from '@realtor/domain';
 import {
   previewConfiguration,
   assertPreviewRequest,
@@ -168,9 +172,16 @@ export async function loadStaffDirectoryWorkspace(
     api.listStaffBranches({ limit: 10, after: null }, options),
     api.listStaffInvitationRequests({ limit: 10, after: null }, options),
   ]);
+  let memberships: StaffMembershipPage | null = null;
+  if (env.STAFF_MEMBERSHIP_PREVIEW_MODE !== undefined) {
+    if (env.STAFF_MEMBERSHIP_PREVIEW_MODE !== 'synthetic-existing-members-v1')
+      throw Error('Staff membership workspace unavailable.');
+    memberships = await api.listStaffMemberships({ limit: 10, after: null }, options);
+  }
   return {
     scope: { instanceId: config.instanceId, tenantId: session.tenantId, actorId: session.actorId },
     branches,
     invitations,
+    memberships,
   };
 }

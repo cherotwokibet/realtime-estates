@@ -6,12 +6,16 @@ import {
   validateStaffInvitationRequestRecord,
   validateStaffInvitationRevocationCommand,
   validateStaffInvitationRevocationRecord,
+  validateStaffMembershipCommand,
+  validateStaffMembershipRecord,
   type StaffBranchCommand,
   type StaffBranchRecord,
   type StaffInvitationIntent,
   type StaffInvitationRequestRecord,
   type StaffInvitationRevocationCommand,
   type StaffInvitationRevocationRecord,
+  type StaffMembershipCommand,
+  type StaffMembershipRecord,
 } from '@realtor/domain';
 export interface StaffWriteScope {
   readonly instanceId: string;
@@ -24,6 +28,11 @@ type Base = {
 };
 export type StaffWriteAttempt = Base &
   (
+    | {
+        readonly kind: 'membership';
+        readonly command: StaffMembershipCommand;
+        readonly receipt: StaffMembershipRecord | null;
+      }
     | {
         readonly kind: 'branch';
         readonly command: StaffBranchCommand;
@@ -82,6 +91,17 @@ export function prepareStaffWrite(
   input: unknown,
 ): StaffWriteAttempt {
   const captured = scope(current);
+  if (kind === 'membership') {
+    const command = validateStaffMembershipCommand(input);
+    if (command.memberId === captured.actorId) return fail();
+    return Object.freeze({
+      scope: captured,
+      kind,
+      command,
+      phase: 'prepared',
+      receipt: null,
+    });
+  }
   if (kind === 'branch')
     return Object.freeze({
       scope: captured,
@@ -132,6 +152,12 @@ export function resolveStaffWrite(
   receipt: unknown,
 ): StaffWriteAttempt {
   if (!staffWriteMatchesScope(attempt, current)) return fail();
+  if (attempt.kind === 'membership')
+    return Object.freeze({
+      ...attempt,
+      phase: 'resolved',
+      receipt: validateStaffMembershipRecord(receipt, attempt.command, attempt.scope.actorId),
+    });
   if (attempt.kind === 'branch')
     return Object.freeze({
       ...attempt,

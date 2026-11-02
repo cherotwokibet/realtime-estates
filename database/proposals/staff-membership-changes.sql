@@ -83,15 +83,35 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ DECLARE r app
  IF NOT FOUND THEN RAISE EXCEPTION 'Original unavailable' USING ERRCODE='P0002'; END IF;
  RETURN app_private.staff_membership_record_json(r);
 END $$;
+CREATE FUNCTION app_private.staff_membership_current_json(r app_private.memberships) RETURNS jsonb
+LANGUAGE sql STABLE SET search_path=pg_catalog AS $$
+ SELECT jsonb_build_object('policy','staff-membership-current-v1','memberId',r.user_id,'role',r.role,'active',r.active,'version',r.admin_version::text,
+  -- Legacy active rows can retain a historical revoked_at. Reading does not rewrite history.
+  'revokedAt',CASE WHEN r.active OR r.revoked_at IS NULL THEN NULL ELSE to_char(r.revoked_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') END) $$;
 CREATE FUNCTION app_api.read_staff_membership(p_member uuid) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$ DECLARE r app_private.memberships; BEGIN
  PERFORM app_private.assert_staff(ARRAY['admin']);
  SELECT * INTO r FROM app_private.memberships WHERE tenant_id=app_private.context_tenant() AND user_id=p_member AND role IN ('agent','admin');
  IF NOT FOUND THEN RAISE EXCEPTION 'Staff member unavailable' USING ERRCODE='P0002'; END IF;
- RETURN jsonb_build_object('policy','staff-membership-current-v1','memberId',r.user_id,'role',r.role,'active',r.active,'version',r.admin_version::text,
-  -- Legacy active rows can retain a historical revoked_at. Reading does not rewrite history.
-  'revokedAt',CASE WHEN r.active OR r.revoked_at IS NULL THEN NULL ELSE to_char(r.revoked_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') END);
+ RETURN app_private.staff_membership_current_json(r);
 END $$;
-REVOKE ALL ON FUNCTION app_private.staff_membership_record_json(app_private.staff_membership_operations),app_api.save_staff_membership(uuid,uuid,bigint,text,boolean,text),app_api.read_staff_membership_operation(uuid),app_api.read_staff_membership(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION app_api.save_staff_membership(uuid,uuid,bigint,text,boolean,text),app_api.read_staff_membership_operation(uuid),app_api.read_staff_membership(uuid) TO api_runtime;
+CREATE FUNCTION app_api.list_staff_memberships(p_limit integer,p_after uuid) RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE rows_json jsonb;more boolean;next_id uuid;
+BEGIN
+ PERFORM app_private.assert_staff(ARRAY['admin']);
+ IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 20 THEN RAISE EXCEPTION 'Invalid page size' USING ERRCODE='23514'; END IF;
+ -- Stable UUID identity order, not creation order or snapshot traversal across requests.
+ WITH bounded AS (
+  SELECT * FROM app_private.memberships WHERE tenant_id=app_private.context_tenant()
+   AND role IN ('agent','admin') AND (p_after IS NULL OR user_id>p_after)
+  ORDER BY user_id LIMIT p_limit+1
+ ), page AS (SELECT * FROM bounded ORDER BY user_id LIMIT p_limit)
+ SELECT coalesce((SELECT jsonb_agg(app_private.staff_membership_current_json(p::app_private.memberships) ORDER BY p.user_id) FROM page p),'[]'::jsonb),
+  (SELECT count(*)>p_limit FROM bounded),(SELECT user_id FROM page ORDER BY user_id DESC LIMIT 1)
+ INTO rows_json,more,next_id;
+ RETURN jsonb_build_object('policy','staff-membership-page-v1','items',rows_json,'nextAfter',CASE WHEN more THEN next_id ELSE NULL END);
+END $$;
+REVOKE ALL ON FUNCTION app_private.staff_membership_record_json(app_private.staff_membership_operations),app_private.staff_membership_current_json(app_private.memberships),app_api.save_staff_membership(uuid,uuid,bigint,text,boolean,text),app_api.read_staff_membership_operation(uuid),app_api.read_staff_membership(uuid),app_api.list_staff_memberships(integer,uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app_api.save_staff_membership(uuid,uuid,bigint,text,boolean,text),app_api.read_staff_membership_operation(uuid),app_api.read_staff_membership(uuid),app_api.list_staff_memberships(integer,uuid) TO api_runtime;
 COMMIT;

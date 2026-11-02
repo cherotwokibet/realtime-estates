@@ -7,6 +7,7 @@ import {
   validateStaffMembershipCommand,
   validateStaffMembershipRecord,
   validateStaffMembershipCurrent,
+  validateStaffMembershipPage,
 } from '../../packages/domain/dist/index.js';
 
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -102,6 +103,15 @@ const current = async (db, member, tenant = 1, user = 10) => {
   return validateStaffMembershipCurrent(value, id(member));
 };
 const code = (expected) => (error) => error.code === expected;
+const page = async (db, query, tenant = 1, user = 10) => {
+  const value = await actor(db, tenant, user, () =>
+    scalar(db, 'SELECT app_api.list_staff_memberships($1,$2) AS result', [
+      query.limit,
+      query.after,
+    ]),
+  );
+  return validateStaffMembershipPage(value, query);
+};
 
 test('active legacy membership projections omit historical revocation without mutating it', async () => {
   const db = await fixture();
@@ -425,6 +435,155 @@ test('malformed commands reserve nothing and restricted roles cannot read, mutat
           await db.exec('ROLLBACK');
         }
       }, code('23514'));
+  } finally {
+    await db.close();
+  }
+});
+
+test('private membership pages traverse bounded stable IDs including inactive staff without customer/foreign/private-operation data or mutations', async () => {
+  const db = await fixture();
+  try {
+    await db.query(
+      "INSERT INTO app_private.memberships(tenant_id,user_id,role,active,revoked_at) VALUES($1,$2,'agent',false,'2026-01-02T03:04:05.006Z'),($1,$3,'customer',true,NULL),($1,$4,'agent',true,NULL)",
+      [id(1), id(14), id(15), id(16)],
+    );
+    await db.query(
+      "UPDATE app_private.memberships SET revoked_at='2026-02-03T04:05:06.007Z' WHERE tenant_id=$1 AND user_id=$2",
+      [id(1), id(11)],
+    );
+    await save(db, 300, 12, 1, 'agent', false);
+    const before = (
+      await db.query('SELECT * FROM app_private.memberships ORDER BY tenant_id,user_id')
+    ).rows;
+    const beforeAudit = (await db.query('SELECT * FROM app_private.audit_events ORDER BY id')).rows;
+    const beforeOperations = (
+      await db.query(
+        'SELECT * FROM app_private.staff_membership_operations ORDER BY tenant_id,operation_id',
+      )
+    ).rows;
+    const first = await page(db, { limit: 2, after: null });
+    assert.deepEqual(
+      first.items.map((m) => m.memberId),
+      [id(10), id(11)],
+    );
+    assert.equal(first.nextAfter, id(11));
+    assert.equal(first.items[1].revokedAt, null);
+    const second = await page(db, { limit: 2, after: first.nextAfter });
+    assert.deepEqual(
+      second.items.map((m) => m.memberId),
+      [id(12), id(14)],
+    );
+    assert.equal(second.nextAfter, id(14));
+    assert.equal(second.items[0].active, false);
+    assert.equal(second.items[0].version, '2');
+    assert.equal(second.items[1].revokedAt, '2026-01-02T03:04:05.006Z');
+    const third = await page(db, { limit: 2, after: second.nextAfter });
+    assert.deepEqual(
+      third.items.map((m) => m.memberId),
+      [id(16)],
+    );
+    assert.equal(third.nextAfter, null);
+    const ids = [...first.items, ...second.items, ...third.items].map((m) => m.memberId);
+    assert.equal(new Set(ids).size, 5);
+    const all = await page(db, { limit: 5, after: null });
+    assert.deepEqual(
+      all.items.map((m) => m.memberId),
+      ids,
+    );
+    assert.equal(all.nextAfter, null, 'Exactly full final page must not invent a continuation.');
+    assert.deepEqual((await page(db, { limit: 20, after: null })).items, all.items);
+    assert.deepEqual(await page(db, { limit: 2, after: id(16) }), {
+      policy: 'staff-membership-page-v1',
+      items: [],
+      nextAfter: null,
+    });
+    assert.deepEqual(
+      (await page(db, { limit: 2, after: id(13) })).items.map((m) => m.memberId),
+      [id(14), id(16)],
+    );
+    for (const member of all.items)
+      assert.deepEqual(member, await current(db, Number(member.memberId.slice(-12))));
+    const foreign = await page(db, { limit: 20, after: null }, 2, 20);
+    assert.deepEqual(
+      foreign.items.map((m) => m.memberId),
+      [id(20), id(21)],
+    );
+    assert.deepEqual(
+      (await db.query('SELECT * FROM app_private.memberships ORDER BY tenant_id,user_id')).rows,
+      before,
+    );
+    assert.deepEqual(
+      (await db.query('SELECT * FROM app_private.audit_events ORDER BY id')).rows,
+      beforeAudit,
+    );
+    assert.deepEqual(
+      (
+        await db.query(
+          'SELECT * FROM app_private.staff_membership_operations ORDER BY tenant_id,operation_id',
+        )
+      ).rows,
+      beforeOperations,
+    );
+  } finally {
+    await db.close();
+  }
+});
+
+test('membership page bounds, current admin/company and restricted function grants are enforced on every read', async () => {
+  const db = await fixture();
+  try {
+    for (const limit of [null, 0, -1, 21, 2147483647])
+      await assert.rejects(() => page(db, { limit, after: null }), code('23514'));
+    await assert.rejects(
+      () =>
+        actor(db, 1, 10, () =>
+          scalar(db, 'SELECT app_api.list_staff_memberships($1,$2) AS result', [2, 'not-a-uuid']),
+        ),
+      code('22P02'),
+    );
+    const one = await page(db, { limit: 1, after: null });
+    assert.deepEqual(
+      one.items.map((m) => m.memberId),
+      [id(10)],
+    );
+    assert.equal(one.nextAfter, id(10));
+    for (const [tenant, user] of [
+      [1, null],
+      [1, 12],
+      [1, 13],
+      [1, 20],
+      [2, 10],
+    ])
+      await assert.rejects(() => page(db, { limit: 2, after: null }, tenant, user), code('42501'));
+    for (const role of ['api_runtime', 'media_coordinator', 'media_maintenance']) {
+      const grants = (
+        await db.query(
+          "SELECT has_function_privilege($1,'app_api.list_staff_memberships(integer,uuid)','EXECUTE') AS list,has_function_privilege($1,'app_private.staff_membership_current_json(app_private.memberships)','EXECUTE') AS helper",
+          [role],
+        )
+      ).rows[0];
+      assert.deepEqual(grants, { list: role === 'api_runtime', helper: false });
+    }
+    const publicGrants = (
+      await db.query(
+        "SELECT count(*)::int AS n FROM pg_proc p,aclexplode(p.proacl) a WHERE p.oid='app_api.list_staff_memberships(integer,uuid)'::regprocedure AND a.grantee=0 AND a.privilege_type='EXECUTE'",
+      )
+    ).rows[0].n;
+    assert.equal(publicGrants, 0);
+    await db.query(
+      'UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',
+      [id(1), id(10)],
+    );
+    await assert.rejects(() => page(db, { limit: 2, after: null }), code('42501'));
+    const peer = await page(db, { limit: 2, after: null }, 1, 11);
+    assert.equal(peer.items[0].memberId, id(10));
+    assert.equal(peer.items[0].active, false);
+    await db.query('UPDATE app_private.tenants SET enabled=false WHERE id=$1', [id(1)]);
+    await assert.rejects(() => page(db, { limit: 2, after: null }, 1, 11), code('42501'));
+    assert.equal(
+      Number((await db.query('SELECT count(*) AS n FROM app_private.audit_events')).rows[0].n),
+      0,
+    );
   } finally {
     await db.close();
   }

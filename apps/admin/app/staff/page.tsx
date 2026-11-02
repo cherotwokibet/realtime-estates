@@ -15,10 +15,11 @@ export default async function Staff() {
       <header>
         <a href="/">Staff workspace</a> · <a href="/operations">Daily work</a>
       </header>
-      <h1 id="staff-title">Branches and invitation requests</h1>
+      <h1 id="staff-title">Branches, staff and invitation requests</h1>
       <p>
-        Synthetic local preview · Current company admin access required. Requests do not send email
-        or grant access.
+        Synthetic local preview · Current company admin access required. Invitation requests do not
+        send email or create membership. Enabled staff controls change existing synthetic staff
+        access.
       </p>
       {data ? (
         <StaffDirectoryWorkspace

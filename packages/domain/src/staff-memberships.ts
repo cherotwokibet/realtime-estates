@@ -1,3 +1,7 @@
+import {
+  validateStaffDirectoryQuery,
+  type StaffDirectoryQuery,
+} from './staff-invitation-records.js';
 /** Existing staff administration only. A validated command never creates membership or authority. */
 export interface StaffMembershipCommand {
   readonly policy: 'staff-membership-command-v1';
@@ -22,6 +26,11 @@ export interface StaffMembershipCurrent {
   readonly active: boolean;
   readonly version: string;
   readonly revokedAt: string | null;
+}
+export interface StaffMembershipPage {
+  readonly policy: 'staff-membership-page-v1';
+  readonly items: readonly StaffMembershipCurrent[];
+  readonly nextAfter: string | null;
 }
 const invalid = (): never => {
   throw Error('Invalid staff membership data.');
@@ -168,5 +177,45 @@ export function validateStaffMembershipCurrent(
     active: isActive,
     version: version(values.version),
     revokedAt,
+  });
+}
+/** Bounded stable member-ID page; a directory projection never supplies actor or company authority. */
+export function validateStaffMembershipPage(
+  input: unknown,
+  query: StaffDirectoryQuery,
+): StaffMembershipPage {
+  const bound = validateStaffDirectoryQuery(query),
+    values = record(input, ['policy', 'items', 'nextAfter']);
+  if (
+    values.policy !== 'staff-membership-page-v1' ||
+    !Array.isArray(values.items) ||
+    Object.getPrototypeOf(values.items) !== Array.prototype
+  )
+    return invalid();
+  const descriptors = Object.getOwnPropertyDescriptors(values.items),
+    length = Object.getOwnPropertyDescriptor(values.items, 'length')?.value as number;
+  if (
+    !Number.isInteger(length) ||
+    length < 0 ||
+    length > bound.limit ||
+    Reflect.ownKeys(values.items).length !== length + 1
+  )
+    return invalid();
+  const items: StaffMembershipCurrent[] = [];
+  let previous = bound.after;
+  for (let index = 0; index < length; index++) {
+    const descriptor = descriptors[String(index)];
+    if (!descriptor?.enumerable || !Object.hasOwn(descriptor, 'value')) return invalid();
+    const member = validateStaffMembershipCurrent(descriptor.value);
+    if (previous !== null && member.memberId <= previous) return invalid();
+    items.push(member);
+    previous = member.memberId;
+  }
+  const nextAfter = values.nextAfter === null ? null : uuid(values.nextAfter);
+  if (nextAfter !== null && (length !== bound.limit || nextAfter !== previous)) return invalid();
+  return Object.freeze({
+    policy: 'staff-membership-page-v1',
+    items: Object.freeze(items),
+    nextAfter,
   });
 }

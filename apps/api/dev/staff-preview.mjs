@@ -1328,6 +1328,7 @@ export async function startStaffPreview(options = {}) {
           staffInvitationMode &&
           ['/v2/staff/branches', '/v2/staff/invitation-requests'].includes(url.pathname)
         ) &&
+        !(staffMembershipMode && url.pathname === '/v2/staff/memberships') &&
         !(publicReportMode && url.pathname === '/v2/staff/listing-reports') &&
         (!(
           url.pathname === '/v2/staff/listings' ||

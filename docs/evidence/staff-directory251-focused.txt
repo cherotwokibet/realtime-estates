@@ -1,0 +1,39 @@
+✔ membership attempts snapshot exact facts, refuse self changes, bind current actor and restore only to original recovery (11.2067ms)
+✔ membership controller persists before dispatch, locks every replacement and recovers an uncertain write by GET only (61.1451ms)
+✔ restored membership requests cannot submit anew, and deliberate exact replay cannot replace retained facts (2.7573ms)
+✔ membership role loss and wrong-actor originals remain retained without deletion or replacement (5.15ms)
+✔ self-target and unavailable persistence refuse membership dispatch before any write can start (1.0472ms)
+✔ membership browser client snapshots query/command and uses exact page/member/receipt envelopes without authority (4.2553ms)
+✔ membership browser binding/status failures retain uncertainty only for dispatched writes and never retry (12.2196ms)
+✔ membership BFF requires its separate server flag plus current loopback scope before all upstream reads/writes (69.0062ms)
+✔ membership directory BFF validates exact bounded query/body-free framing and typed private pages (18.1485ms)
+✔ membership operation BFF binds body to route and rejects malformed/duplicate/oversized/framed authority before IO (15.0893ms)
+✔ membership BFF uses server-held identity for exact command/original/current endpoints with no-store envelopes (7.1014ms)
+✖ unknown committed membership replies stay uncertain and private upstream errors are sanitized without retry (7.2567ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 460.9141
+
+✖ failing tests:
+
+test at apps\admin\tests\staff-membership.test.mjs:222:1
+✖ unknown committed membership replies stay uncertain and private upstream errors are sanitized without retry (7.2567ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  502 !== 403
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/admin/tests/staff-membership.test.mjs:253:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 502,
+    expected: 403,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

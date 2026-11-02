@@ -33,6 +33,11 @@ const current = {
   version: '2',
   revokedAt: null,
 };
+const directory = {
+  policy: 'staff-membership-page-v1',
+  items: [current],
+  nextAfter: null,
+};
 const req = (path = operationPath(), { method = 'GET', body, headers = {} } = {}) =>
   new Request('http://synthetic.invalid' + path, {
     method,
@@ -71,9 +76,11 @@ function fixture({ projection, ...overrides } = {}) {
                       {
                         receipt:
                           projection === undefined
-                            ? sql.includes('read_staff_membership(')
-                              ? current
-                              : saved
+                            ? sql.includes('list_staff_memberships(')
+                              ? directory
+                              : sql.includes('read_staff_membership(')
+                                ? current
+                                : saved
                             : projection,
                       },
                     ],
@@ -106,6 +113,7 @@ test('membership candidate defaults off before identity/database and refuses inv
     [operationPath(), 'POST', command()],
     [memberPath(), 'GET', undefined],
     ['/v2/staff/memberships', 'GET', undefined],
+    ['/v2/staff/memberships?limit=2', 'GET', undefined],
   ])
     assert.equal((await off.run(req(path, { method, body }))).status, 404);
   assert.equal(off.verified(), 0);
@@ -144,6 +152,74 @@ test('membership commands, current projection and original reads use fixed SQL a
     args: [id(12)],
   });
   assert.equal(f.commits(), 3);
+});
+test('bounded membership directory uses fixed SQL and validates the page against exact cursor and private identity', async () => {
+  const f = fixture();
+  const response = await f.run(req('/v2/staff/memberships?limit=2&after=' + id(11)));
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('cache-control'), /no-store/);
+  assert.deepEqual(await response.json(), directory);
+  assert.deepEqual(f.calls, [
+    { sql: "SET LOCAL statement_timeout = '2s'", args: undefined },
+    { sql: 'SELECT app_api.list_staff_memberships($1,$2) AS receipt', args: [2, id(11)] },
+  ]);
+  assert.equal(f.contexts[0].tenantId, id(1));
+  assert.equal(f.contexts[0].actorId, id(10));
+  assert.equal(f.verified(), 1);
+  for (const projection of [
+    { ...directory, nextAfter: id(12) },
+    { ...directory, actorId: id(10) },
+    { ...directory, items: [{ ...current, memberId: id(11) }] },
+    { ...directory, items: [{ ...current, tenantId: id(1) }] },
+    { ...directory, items: [current, current] },
+  ]) {
+    const malformed = fixture({ projection });
+    assert.equal(
+      (await malformed.run(req('/v2/staff/memberships?limit=2&after=' + id(11)))).status,
+      503,
+    );
+    assert.equal(malformed.commits(), 0);
+    assert.equal(malformed.rollbacks(), 1);
+  }
+});
+test('directory query aliases, duplicate/reordered/encoded bounds, body and caller authority are rejected before identity or SQL', async () => {
+  const f = fixture();
+  for (const query of [
+    '',
+    '?',
+    '?limit=0',
+    '?limit=21',
+    '?limit=02',
+    '?limit=2.0',
+    '?limit=2&limit=2',
+    '?after=' + id(11) + '&limit=2',
+    '?limit=2&after=bad',
+    '?limit=2&after=',
+    '?%6cimit=2',
+    '?limit=%32',
+    '?limit=2&after=A0000000-0000-4000-8000-000000000011',
+    '?limit=2&after=' + id(11) + '&tenantId=' + id(1),
+    '?limit=2&actorId=' + id(10),
+    '?limit=2#authority',
+  ])
+    assert.equal((await f.run(req('/v2/staff/memberships' + query))).status, 400);
+  for (const headers of [
+    { cookie: 'synthetic' },
+    { 'x-tenant-id': id(2) },
+    { 'if-match': '1' },
+    { 'content-type': 'application/json' },
+    { 'content-length': '0' },
+    { 'idempotency-key': id(99) },
+    { range: 'bytes=0-1' },
+    { 'content-encoding': 'gzip' },
+  ])
+    assert.equal((await f.run(req('/v2/staff/memberships?limit=2', { headers }))).status, 400);
+  assert.equal(
+    (await f.run(req('/v2/staff/memberships?limit=2', { method: 'POST', body: command() }))).status,
+    405,
+  );
+  assert.equal(f.verified(), 0);
+  assert.equal(f.calls.length, 0);
 });
 test('membership body authority, duplicates, unsafe versions, route mismatch and framing are refused before SQL', async () => {
   const f = fixture();
@@ -196,7 +272,7 @@ test('wrong methods, absent identity and unrecognized membership paths perform n
   assert.equal((await f.run(req(operationPath(), { method: 'DELETE' }))).status, 405);
   assert.equal((await f.run(new Request('http://synthetic.invalid' + memberPath()))).status, 401);
   for (const path of [
-    '/v2/staff/memberships',
+    '/v2/staff/membershipsextra',
     '/v2/staff/memberships/bad',
     operationPath() + '/extra',
     '/v2/staff/memberships/' + id(12) + '/extra',
@@ -328,6 +404,44 @@ test('actual restricted SQL rechecks current company/admin, blocks self and cust
         },
       },
     });
+    const firstPage = await run(req('/v2/staff/memberships?limit=2'));
+    assert.equal(firstPage.status, 200);
+    const firstMembers = await firstPage.json();
+    assert.deepEqual(
+      firstMembers.items.map((member) => member.memberId),
+      [id(10), id(11)],
+    );
+    assert.equal(firstMembers.nextAfter, id(11));
+    const finalPage = await run(
+      req('/v2/staff/memberships?limit=2&after=' + firstMembers.nextAfter),
+    );
+    assert.equal(finalPage.status, 200);
+    const finalMembers = await finalPage.json();
+    assert.deepEqual(
+      finalMembers.items.map((member) => member.memberId),
+      [id(12)],
+    );
+    assert.equal(finalMembers.nextAfter, null);
+    assert.equal(
+      (
+        await run(
+          req('/v2/staff/memberships?limit=2', {
+            headers: { authorization: 'Bearer synthetic-agent' },
+          }),
+        )
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await run(
+          req('/v2/staff/memberships?limit=2', {
+            headers: { authorization: 'Bearer synthetic-foreign' },
+          }),
+        )
+      ).status,
+      403,
+    );
     // Validation runs inside the transaction, so a forged result rolls back the real attempted role change.
     corrupt = true;
     assert.equal(

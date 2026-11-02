@@ -1,0 +1,69 @@
+✔ current-instance directory boundary uses SDK over signed HTTP/restricted SQL for real branch and invitation pages (3324.28ms)
+✔ signed upstream agent/foreign authority is refused and BFF error stays sanitized (4331.1769ms)
+✔ branch BFF uncertain committed write recovers original with GET over signed HTTP without automatic replay (2116.3497ms)
+✔ invitation BFF committed capture/revocation replies stay uncertain and recover each original by GET only (2164.2778ms)
+✔ current-instance browser adapter through BFF and signed API retains uncertain branch original and invitation states (2237.3888ms)
+✖ signed staff loader and membership BFF expose bounded current staff only with the separate explicit flag (3412.445ms)
+✖ signed agent and foreign administrator cannot load or read/change private company memberships (2740.3761ms)
+✖ browser/controller/BFF signed membership change persists before POST, survives corrupt committed reply and recovers by GET only (2.3685ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 5
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 21499.858
+
+✖ failing tests:
+
+test at apps\admin\integration-tests\staff-membership-flow.test.mjs:62:1
+✖ signed staff loader and membership BFF expose bounded current staff only with the separate explicit flag (3412.445ms)
+  Error [ApiClientError]: Staff enquiry request could not be completed.
+      at file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:3926:31
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async RealtorApiClient.request (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:3959:20)
+      at async RealtorApiClient.listStaffMemberships (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/packages/api-client/dist/index.js:2063:22)
+      at async loadStaffDirectoryWorkspace (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/admin/dist/tests/lib/staff-directory-server.js:151:23)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/admin/integration-tests/staff-membership-flow.test.mjs:80:20)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    kind: 'HTTP',
+    status: 400,
+    serverCode: 'INVALID_INPUT',
+    requestId: 'c4656c6e-b86c-409c-8dcc-97a122c892c2',
+    retryAfterSeconds: undefined,
+    submissionUncertain: false
+  }
+
+test at apps\admin\integration-tests\staff-membership-flow.test.mjs:131:1
+✖ signed agent and foreign administrator cannot load or read/change private company memberships (2740.3761ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  400 !== 403
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/admin/integration-tests/staff-membership-flow.test.mjs:147:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 400,
+    expected: 403,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps\admin\integration-tests\staff-membership-flow.test.mjs:159:1
+✖ browser/controller/BFF signed membership change persists before POST, survives corrupt committed reply and recovers by GET only (2.3685ms)
+  Error: Choose the explicit synthetic-v1 enquiry preview mode or omit it.
+      at configuration (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/dev/staff-preview.mjs:305:11)
+      at startStaffPreview (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/api/dev/staff-preview.mjs:892:7)
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/OneDrive/Documentos/ChatGPT/RealEstate/realtor-platform/apps/admin/integration-tests/staff-membership-flow.test.mjs:160:25)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)

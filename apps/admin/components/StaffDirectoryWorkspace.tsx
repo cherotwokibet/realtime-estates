@@ -1,6 +1,12 @@
 'use client';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import type { StaffBranchPage, StaffInvitationPage, StaffBranchCurrent } from '@realtor/domain';
+import type {
+  StaffBranchPage,
+  StaffInvitationPage,
+  StaffBranchCurrent,
+  StaffMembershipCurrent,
+  StaffMembershipPage,
+} from '@realtor/domain';
 import {
   createStaffDirectoryClient,
   type StaffDirectoryClient,
@@ -15,10 +21,12 @@ export default function StaffDirectoryWorkspace({
   scope,
   branches: initialBranches,
   invitations: initialInvitations,
+  memberships: initialMemberships = null,
 }: {
   scope: StaffWriteScope;
   branches: StaffBranchPage;
   invitations: StaffInvitationPage;
+  memberships?: StaffMembershipPage | null;
 }) {
   const controller = useRef<StaffWriteController | null>(null),
     client = useRef<StaffDirectoryClient | null>(null);
@@ -27,6 +35,7 @@ export default function StaffDirectoryWorkspace({
     ),
     [branches, setBranches] = useState(initialBranches),
     [invitations, setInvitations] = useState(initialInvitations),
+    [memberships, setMemberships] = useState(initialMemberships),
     [message, setMessage] = useState(''),
     [denied, setDenied] = useState(false),
     [reading, setReading] = useState(false),
@@ -40,6 +49,10 @@ export default function StaffDirectoryWorkspace({
     [branchId, setBranchId] = useState(''),
     [hours, setHours] = useState<24 | 72 | 168>(24),
     [revokeReason, setRevokeReason] = useState('');
+  const [member, setMember] = useState<StaffMembershipCurrent | null>(null),
+    [memberRole, setMemberRole] = useState<'agent' | 'admin'>('agent'),
+    [memberActive, setMemberActive] = useState(true),
+    [memberReason, setMemberReason] = useState('');
   const sync = () => {
     if (controller.current) setSnapshot(controller.current.snapshot());
   };
@@ -51,6 +64,8 @@ export default function StaffDirectoryWorkspace({
         setDenied(true);
         setBranches({ policy: 'staff-branch-page-v1', items: [], nextAfter: null });
         setInvitations({ policy: 'staff-invitation-page-v1', items: [], nextAfter: null });
+        setMemberships(null);
+        setMember(null);
       }
       return response;
     });
@@ -95,12 +110,18 @@ export default function StaffDirectoryWorkspace({
   }, [scope.instanceId, scope.tenantId, scope.actorId]);
   const locked =
     !snapshot || snapshot.busy || snapshot.blocked || !!snapshot.attempt || denied || reading;
-  async function refresh(kind: 'branches' | 'invitations', after: string | null = null) {
+  async function refresh(
+    kind: 'branches' | 'invitations' | 'memberships',
+    after: string | null = null,
+  ) {
     if (!client.current || denied) return;
     setReading(true);
     try {
       if (kind === 'branches') setBranches(await client.current.listBranches({ limit: 10, after }));
-      else setInvitations(await client.current.listInvitations({ limit: 10, after }));
+      else if (kind === 'invitations')
+        setInvitations(await client.current.listInvitations({ limit: 10, after }));
+      else if (memberships !== null)
+        setMemberships(await client.current.listMemberships({ limit: 10, after }));
       setMessage('Current page refreshed.');
     } catch {
       setMessage('Current authorized page could not be confirmed. Reload to verify access.');
@@ -202,6 +223,35 @@ export default function StaffDirectoryWorkspace({
       setReading(false);
     }
   }
+  async function adoptMember(id: string) {
+    if (locked || !client.current || memberships === null || id === scope.actorId) return;
+    setReading(true);
+    try {
+      const current = await client.current.getMembership(id);
+      setMember(current);
+      setMemberRole(current.role);
+      setMemberActive(current.active);
+      setMemberReason('');
+      setMessage('Current staff access adopted. Review role, active access and reason.');
+    } catch {
+      setMessage('Current staff access could not be verified.');
+    } finally {
+      setReading(false);
+    }
+  }
+  function membershipForm(event: FormEvent) {
+    event.preventDefault();
+    if (locked || !member || memberships === null || member.memberId === scope.actorId) return;
+    prepare('membership', {
+      policy: 'staff-membership-command-v1',
+      operationId: crypto.randomUUID(),
+      memberId: member.memberId,
+      expectedVersion: member.version,
+      requestedRole: memberRole,
+      active: memberActive,
+      reason: memberReason,
+    });
+  }
   const attempt = snapshot?.attempt;
   const branchSelectionUnavailable =
     role === 'agent' &&
@@ -247,7 +297,9 @@ export default function StaffDirectoryWorkspace({
                     ? attempt.command.name
                     : attempt.kind === 'invitation'
                       ? attempt.command.recipientEmail
-                      : 'Invitation ' + attempt.command.invitationId}
+                      : attempt.kind === 'membership'
+                        ? 'Staff member ' + attempt.command.memberId
+                        : 'Invitation ' + attempt.command.invitationId}
                 </p>
                 <details>
                   <summary>Review exact original request</summary>
@@ -306,8 +358,12 @@ export default function StaffDirectoryWorkspace({
                         }
                         if (attempt.phase === 'resolved' && attempt.kind === 'revocation')
                           setRevokeReason('');
+                        if (attempt.phase === 'resolved' && attempt.kind === 'membership') {
+                          setMember(null);
+                          setMemberReason('');
+                        }
                         setMessage(
-                          'Retained operation cleared explicitly. For further branch edits, adopt its current version.',
+                          'Retained operation cleared explicitly. Adopt the current version before further branch or staff changes.',
                         );
                         sync();
                       } catch {
@@ -441,6 +497,94 @@ export default function StaffDirectoryWorkspace({
               </form>
             </section>
           </div>
+          {memberships !== null && (
+            <section>
+              <h2>Existing staff access</h2>
+              <p>
+                Choose existing staff to review their current access. Your own access cannot be
+                changed here. No new membership is created.
+              </p>
+              <button
+                disabled={reading || !!snapshot?.busy}
+                onClick={() => void refresh('memberships')}
+              >
+                Refresh first staff page
+              </button>
+              <ul>
+                {memberships.items.map((entry) => (
+                  <li key={entry.memberId}>
+                    <strong>Staff member {entry.memberId}</strong> · {entry.role} ·{' '}
+                    {entry.active ? 'Active' : 'Inactive'} · version {entry.version}
+                    {entry.memberId === scope.actorId ? (
+                      <span> · You; own access changes unavailable.</span>
+                    ) : (
+                      <button disabled={locked} onClick={() => void adoptMember(entry.memberId)}>
+                        Review current access for {entry.memberId}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              {memberships.nextAfter && (
+                <button
+                  disabled={reading || !!snapshot?.busy}
+                  onClick={() => void refresh('memberships', memberships.nextAfter)}
+                >
+                  Next staff page
+                </button>
+              )}
+              {member && (
+                <form onSubmit={membershipForm}>
+                  <h3>Change existing staff access</h3>
+                  <p>
+                    Member {member.memberId} · adopted version {member.version}
+                  </p>
+                  <fieldset disabled={locked}>
+                    <label>
+                      Staff role
+                      <select
+                        value={memberRole}
+                        onChange={(e) => setMemberRole(e.target.value as 'agent' | 'admin')}
+                      >
+                        <option value="agent">Agent</option>
+                        <option value="admin">Company admin</option>
+                      </select>
+                    </label>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={memberActive}
+                        onChange={(e) => setMemberActive(e.target.checked)}
+                      />
+                      Staff access active
+                    </label>
+                    <label>
+                      Staff access reason
+                      <textarea
+                        value={memberReason}
+                        onChange={(e) => setMemberReason(e.target.value)}
+                        required
+                      />
+                    </label>
+                    <button>Prepare staff access change</button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMember(null);
+                        setMemberReason('');
+                      }}
+                    >
+                      Discard staff access draft
+                    </button>
+                  </fieldset>
+                </form>
+              )}
+              <p>
+                Rows use member IDs in this synthetic preview. Identity display names require the
+                verified account integration.
+              </p>
+            </section>
+          )}
           <section>
             <h2>Branches · current page</h2>
             <button disabled={reading || !!snapshot?.busy} onClick={() => void refresh('branches')}>
