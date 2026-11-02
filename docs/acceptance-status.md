@@ -8,6 +8,8 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| catalogueBrowser278 | [evidence/2026-11-03-catalogue-workflow.md](evidence/2026-11-03-catalogue-workflow.md) · 32d08cf | Actual owned catalogue creation, complete property/reference review-revise-send, committed-reply loss/reload/same-original recovery and exact-price/current-ID readback; fixed fee form verified at390px. No submission/withdrawal UI, default-schema or production release acceptance. |
+| catalogueRendered278 | [evidence/catalogue278-rendered-tests.txt](evidence/catalogue278-rendered-tests.txt) · 32d08cf | 39 passed; Current rendered admin UI/page regression after fee label/grid correction; test TypeScript compilation also passed. Not the full admin library suite or production build. |
 | recipientDomain275 | [evidence/recipient275-domain.txt](evidence/recipient275-domain.txt) · d4e9b3c | 343 passed; Full shared domain including strict identity-only recipient session. No membership inferred from identity. |
 | recipientSdk275 | [evidence/recipient275-sdk.txt](evidence/recipient275-sdk.txt) · d4e9b3c | 333 passed; Full SDK regression including bounded no-store recipient session read. |
 | recipientAdmin275 | [evidence/recipient275-admin-final2.txt](evidence/recipient275-admin-final2.txt) · d4e9b3c | 504 + 39 passed; Full admin library/BFF/controller and rendered UI regression. No actual device/operator acceptance. |
@@ -220,8 +222,8 @@ Next: Run the complete boot/deep-link/recovery matrix on the release application
 Original finding: Edit bypasses minimum sale price.
 Expected: Same rule everywhere; positive safe-integer minor units accepted within ceiling; invalid numbers/zero rejected; rent period required, sale null; no historical arbitrary floor
 Observed: Positive exact minor-unit, purpose/period and client/server validation have executed coverage.
-Evidence: [domain212](evidence/2026-10-28-operations-overview/domain-full.txt), [api212](evidence/2026-10-28-operations-overview/api-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt)
-Still open: The full normalized import and every create/edit/UI/direct-bypass combination has not been accepted.
+Evidence: [domain212](evidence/2026-10-28-operations-overview/domain-full.txt), [api212](evidence/2026-10-28-operations-overview/api-full.txt), [sdk212](evidence/2026-10-28-operations-overview/sdk-full.txt), [admin212](evidence/2026-10-28-operations-overview/admin-tests-fixed.txt), [catalogueBrowser278](evidence/2026-11-03-catalogue-workflow.md), [catalogueRendered278](evidence/catalogue278-rendered-tests.txt)
+Still open: Current combined exact-price/fees/reference browser save and recovery is verified in checkpoint278. Reference submission/withdrawal UI, normalized import and remaining create/edit/UI/direct-bypass combinations are not accepted.
 Next: Complete ordinary normalized catalogue/import then execute every boundary entry point. Owner: Boniface + Codex.
 
 ### AC-009 — price matching
@@ -496,6 +498,7 @@ Next: Run independent pooled-session races and rollback/delivery integrity cases
 
 ## Fixed defects and bounded retests
 
+- **FIX-278-01** (AC-008, AC-011): Reference creation/editing fee labels and native controls ran together at390px, obscuring exact amounts and classifications despite no page overflow. Retest: [catalogueBrowser278](evidence/2026-11-03-catalogue-workflow.md); retested_in_stated_environment. [Initial failure](evidence/catalogue278-narrow.jpg). After correction all5 fee text/select controls are separate48px-high rows within the narrow client width in both creation and editing. Physical device/AT/operator acceptance and reference submission workflow remain open.
 - **FIX-261-01** (AC-002, AC-030): Staff invitation lifetime/expiry used statement start instead of the decision wall clock; branch/capture/revocation writers also lacked the coordinated post-company-lock authority check. Retest: [staffDecisionSql261](evidence/staff-lock261-sql.txt); retested_in_stated_environment. [Initial failure](evidence/staff-lock261-negative.txt). Clock-only negative control reproduces both timing failures;23 focused SQL checks pass. Authority loss is a single-session injection. Hosted concurrent lock/role/expiry races remain open. Connected synthetic recipient redemption is now verified in checkpoint275; actual browser clock crossing and production-provider identity remain open.
 - **FIX-248-01** (AC-002, AC-007): Development staff BFF rejected canonical forwarded metadata automatically added by the installed Next Node adapter. Retest: [staffBoundary248](evidence/staff-workspace248-focused.txt); retested_in_stated_environment. [Initial failure](evidence/staff-boundary248-before.txt). Exact loopback metadata is transport-only; actual owned browser branch/capture/revocation GET recovery also observed. Production proxy/provider/device acceptance remains open.
 - **FIX-216-01** (AC-005, AC-030): Retired byte handler parsed route/identity before refusing new admission. Retest: [signed216](evidence/2026-10-28-live-media-retirement/signed-http-full-final.txt); retested_in_stated_environment. [Initial failure](evidence/2026-10-28-live-media-retirement/pipeline-focused.txt). Outer fence now refuses before body/identity/SQL; production hosting/retention remains open.

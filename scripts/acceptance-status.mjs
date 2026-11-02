@@ -82,6 +82,9 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  catalogueBrowser278: {"path":"docs/evidence/2026-11-03-catalogue-workflow.md","counts":null,"commit":"32d08cf217fc8d3ab2c67e7dd9d3edd49884dbe9","observedDate":"2026-11-03","environment":"Actual owned catalogue creation, complete property/reference review-revise-send, committed-reply loss/reload/same-original recovery and exact-price/current-ID readback; fixed fee form verified at390px. No submission/withdrawal UI, default-schema or production release acceptance."},
+  catalogueRendered278: {"path":"docs/evidence/catalogue278-rendered-tests.txt","counts":[39],"commit":"32d08cf217fc8d3ab2c67e7dd9d3edd49884dbe9","observedDate":"2026-11-03","environment":"Current rendered admin UI/page regression after fee label/grid correction; test TypeScript compilation also passed. Not the full admin library suite or production build."},
+
   recipientDomain275: {
   "path": "docs/evidence/recipient275-domain.txt",
   "counts": [
@@ -1220,9 +1223,9 @@ const reviewed = [
   [
     8,
     'partial',
-    ['domain212', 'api212', 'sdk212', 'admin212'],
+    ['domain212', 'api212', 'sdk212', 'admin212', 'catalogueBrowser278', 'catalogueRendered278'],
     'Positive exact minor-unit, purpose/period and client/server validation have executed coverage.',
-    'The full normalized import and every create/edit/UI/direct-bypass combination has not been accepted.',
+    'Current combined exact-price/fees/reference browser save and recovery is verified in checkpoint278. Reference submission/withdrawal UI, normalized import and remaining create/edit/UI/direct-bypass combinations are not accepted.',
     'Complete ordinary normalized catalogue/import then execute every boundary entry point.',
   ],
   [
@@ -1477,6 +1480,7 @@ const entries = cases.map((item, index) => {
   };
 });
 const fixes = [
+  {"id":"FIX-278-01","cases":["AC-008","AC-011"],"problem":"Reference creation/editing fee labels and native controls ran together at390px, obscuring exact amounts and classifications despite no page overflow.","status":"retested_in_stated_environment","evidence":"catalogueBrowser278","before":"docs/evidence/catalogue278-narrow.jpg","remaining":"After correction all5 fee text/select controls are separate48px-high rows within the narrow client width in both creation and editing. Physical device/AT/operator acceptance and reference submission workflow remain open."},
   {
     id: 'FIX-261-01',
     cases: ['AC-002', 'AC-030'],
