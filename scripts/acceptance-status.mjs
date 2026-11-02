@@ -82,6 +82,15 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  videoDomain287: {"path":"docs/evidence/video287-domain-final.txt","counts":[349],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Full current domain; six new private-video validation/original/state checks overlap the full suite."},
+  videoSdk287: {"path":"docs/evidence/video287-sdk-final.txt","counts":[337],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Full current SDK unit suite; four new video snapshot/uncertainty/GET/no-store checks overlap. No automatic write retry."},
+  videoApi287: {"path":"docs/evidence/video287-api-final.txt","counts":[358],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Full current compiled API suite; three new default-off/context/input/response checks overlap."},
+  videoSql287: {"path":"docs/evidence/video287-sql-final4.txt","counts":[3],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Restricted synthetic private-video candidate SQL: exact replay/clear/stale denial, assignment/company/revocation, logical rollback, raw table denial, decided-revision/public preservation. No hosted races or durable host restart."},
+  videoSigned287: {"path":"docs/evidence/video287-signed-final4.txt","counts":[2],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Actual loopback signed HTTP/JWKS/SDK/restricted SQL: consumed committed reply/loss, explicit GET same original, deliberate replay/stale conflict/clear; invalid signature/unknown target/omitted mode refused. No application browser or provider request."},
+  videoPreview287: {"path":"docs/evidence/video287-preview-final.txt","counts":[13],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Existing ordinary signed staff preview/session/protocol compatibility; no provider or new native device acceptance."},
+  videoTypes287: {"path":"docs/evidence/video287-types-final.txt","counts":null,"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"All eight workspace typechecks on current shared exports and SDK/API changes. No new production Next build."},
+  videoFormat287: {"path":"docs/evidence/video287-format-final.txt","counts":null,"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Changed TypeScript/JavaScript formatting check passed; SQL proposal not handled by Prettier."},
+  videoEvidence287: {"path":"docs/evidence/2026-11-03-private-listing-video.md","counts":null,"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Connected default-off private-video preparation only. Author browser retention/BFF/UI, review/approved public/native display and floor-plan assets remain incomplete.06-4 and all gates stay open."},
   catalogueAudit284: { path: 'docs/evidence/2026-11-03-catalogue-implementation-acceptance.md', counts: null, commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60', observedDate: '2026-11-03', environment: 'Literal06-1 local synthetic implementation review. Complete listed data capabilities mapped to connected maintained paths and dated browser evidence. Only local build06-1 accepted; deployment controller/schema rollout, complete release cases and all14 gates remain open. No new application code or browser/device test.' },
   catalogueBuild284: { path: 'docs/evidence/catalogue284-builds.txt', counts: null, commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60', observedDate: '2026-11-03', environment: 'Fresh shared domain, SDK and API compilation. No new Next production build or provider deployment.' },
   catalogueDomain284: { path: 'docs/evidence/catalogue284-domain.txt', counts: [343], commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60', observedDate: '2026-11-03', environment: 'Fresh full shared domain regression, including exact KES, catalogue hierarchy/amenity selection and complete property validation. Overlaps focused checks.' },
@@ -1164,7 +1173,7 @@ const reviewed = [
   [
     2,
     'partial',
-    [
+    ['videoSql287', 'videoApi287', 'videoSigned287',
       'api212',
       'signed212',
       'admin212',
@@ -1201,7 +1210,7 @@ const reviewed = [
   [
     3,
     'partial',
-    ['api212', 'signed212', 'sdk212', 'media213', 'staffSql248', 'staffApi248', 'staffSigned248'],
+    ['videoSql287', 'videoSigned287', 'api212', 'signed212', 'sdk212', 'media213', 'staffSql248', 'staffApi248', 'staffSigned248'],
     'Current company/assignment checks, exact operation recovery and raw viewing-table denial.',
     'Exports, subscriptions and full production pooled/storage isolation are not accepted.',
     'Implement and test scoped export/session/job paths, then rerun the complete two-company matrix.',
@@ -1217,7 +1226,7 @@ const reviewed = [
   [
     5,
     'partial',
-    ['media216', 'signed216', 'admin216', 'browser216', 'database215'],
+    ['videoSdk287', 'videoSql287', 'videoSigned287', 'videoEvidence287', 'media216', 'signed216', 'admin216', 'browser216', 'database215'],
     'Actual browser Cancel at third upload preserved two photos and recovered the original confirmed stop. Live original-instance retirement/drain, exact authorized incomplete workspace cleanup, verified/reference protection and uncertainty guards passed locally.',
     'Production provider retention/schedule/alerts, hosted process isolation and actual Android/iOS/operator interruption journeys remain open.',
     'Verify staged provider lifecycle and actual devices; historical journals never grant new cleanup authority.',
@@ -1329,7 +1338,7 @@ const reviewed = [
   [
     19,
     'partial',
-    ['media216', 'signed217', 'admin216', 'browser216', 'api217', 'database217', 'browser217'],
+    ['videoDomain287', 'videoSdk287', 'videoApi287', 'videoSql287', 'videoEvidence287', 'videoTypes287', 'videoFormat287', 'videoPreview287', 'media216', 'signed217', 'admin216', 'browser216', 'api217', 'database217', 'browser217'],
     'Actual codec format/metadata/corrupt/dimension/byte caps and upload recovery passed. Public bytes now require current approved/fresh publication and matching native seals before/after I/O; four actual anonymous WebPs decoded and pause denied later access.',
     'Production object provider access and actual device interruption/oversized-selection matrix remain open.',
     'Verify deployed object isolation and complete invalid/oversized device selections with approved test bytes.',

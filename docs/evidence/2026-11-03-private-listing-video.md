@@ -25,6 +25,7 @@ The signed disposable preview explicitly installs only this reviewed proposal wh
 | Restricted candidate SQL |3 passed| [SQL](video287-sql-final4.txt) |
 | Actual signed HTTP/JWKS/SDK/restricted SQL composition |2 passed| [signed composition](video287-signed-final4.txt) |
 | Ordinary signed preview/session/protocol compatibility |13 passed| [preview compatibility](video287-preview-final.txt) |
+| All eight workspace typechecks |passed| [types](video287-types-final.txt) |
 | Changed TypeScript/JavaScript formatting |passed| [format](video287-format-final.txt) |
 
 Counts overlap. All final listed test logs have zero failures/skips/cancellations. Six new domain, four SDK and three API checks are included in their full suites; focused logs must not be added again. New SQL checks verify exact replay/clear/stale conflict, logical rollback, raw-table denial, current assignment/role/foreign-company/revocation refusals, decided-revision protection and unchanged public projection.
