@@ -82,6 +82,22 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  staffRedemptionApi264: {
+    path: 'docs/evidence/staff-redemption264-api-final.txt',
+    counts: [347],
+    commit: 'ddaa4e4d4310913bb6d2500ab77eca8cea994331',
+    observedDate: '2026-11-02',
+    environment:
+      'Full compiled API regression including6 signed synthetic invitation/actual SQL checks. Isolated programmatic candidate only; no HTTP/SDK/BFF/UI/provider or hosted multi-session acceptance.',
+  },
+  staffRedemptionSql264: {
+    path: 'docs/evidence/staff-redemption264-sql-final.txt',
+    counts: [32],
+    commit: 'ddaa4e4d4310913bb6d2500ab77eca8cea994331',
+    observedDate: '2026-11-02',
+    environment:
+      'Five isolated staff SQL suites including9 single-use issuance/redemption checks; wall-clock negative control reproduced. No hosted concurrency/lock-wait/deadlock/race proof.',
+  },
   staffDecisionSql261: {
     path: 'docs/evidence/staff-lock261-sql.txt',
     counts: [23],
