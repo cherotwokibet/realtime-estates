@@ -1,0 +1,30 @@
+✖ signed reviewer and anonymous public video routes compose through JWKS and restricted SQL without provider requests (2721.7685ms)
+✔ video publication default is unavailable and unsupported startup mode is rejected (2950.778ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6138.9605
+
+✖ failing tests:
+
+test at apps\admin\integration-tests\listing-video-publication-flow.test.mjs:14:1
+✖ signed reviewer and anonymous public video routes compose through JWKS and restricted SQL without provider requests (2721.7685ms)
+  Error [ApiClientError]: Staff enquiry request could not be completed.
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:4138:31
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async RealtorApiClient.request (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:4171:20)
+      at async RealtorApiClient.getReviewListingVideo (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:1469:22)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/integration-tests/listing-video-publication-flow.test.mjs:22:15)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    kind: 'HTTP',
+    status: 404,
+    serverCode: 'NOT_FOUND',
+    requestId: '8a558ced-1630-4098-a39a-7c09e1081cd2',
+    retryAfterSeconds: undefined,
+    submissionUncertain: false
+  }

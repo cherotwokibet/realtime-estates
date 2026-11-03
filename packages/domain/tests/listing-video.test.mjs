@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  validatePublishedListingVideo,
   validateListingVideo,
   validateListingVideoCommand,
   validateListingVideoRecord,
@@ -111,4 +112,25 @@ test('current video states bind listing and revision independently of old origin
   assert.equal(validateListingVideoState(s, id(2), 1).video, null);
   assert.throws(() => validateListingVideoState(s, id(4), 1));
   assert.throws(() => validateListingVideoState(s, id(2), 2));
+});
+
+test('published video projection snapshots exact public facts and refuses private fields or target changes', () => {
+  const v = {
+    policy: 'synthetic-published-listing-video-v1',
+    listingId: id(2),
+    revision: 1,
+    approvedVersion: '5',
+    video: { ...video },
+  };
+  const result = validatePublishedListingVideo(v, id(2), 1);
+  v.video.title = 'Changed';
+  assert.equal(result.video.title, video.title);
+  assert.ok(Object.isFrozen(result.video));
+  for (const changed of [
+    { ...v, actorId: id(3) },
+    { ...v, approvedVersion: '0' },
+    { ...v, revision: 2 },
+  ])
+    assert.throws(() => validatePublishedListingVideo(changed, id(2), 1));
+  assert.equal(validatePublishedListingVideo({ ...v, video: null }, id(2), 1).video, null);
 });

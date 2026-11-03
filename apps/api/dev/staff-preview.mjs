@@ -1472,6 +1472,13 @@ export async function startStaffPreview(options = {}) {
           }
           return response;
         }
+        const videoReadPath = new URL(request.url).pathname;
+        if (
+          listingVideoPublicationMode &&
+          (/^\/v3\/properties\/[^/]+\/revisions\/[^/]+\/video/.test(videoReadPath) ||
+            /^\/v2\/staff\/reviews\/[^/]+\/[^/]+\/video/.test(videoReadPath))
+        )
+          return service(request);
         const url = new URL(request.url),
           reviewQueue = url.pathname === '/v2/staff/reviews';
         if (
