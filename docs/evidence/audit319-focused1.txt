@@ -1,0 +1,54 @@
+✖ signed audit HTTP/shared SDK reads actual command facts and enforces current authority without write replay (2298.5941ms)
+✔ audit route default-off, production/method/filter/authority input refusals never verify or query (28.8551ms)
+✔ audit authenticates before SQL, rechecks current admin and parameterizes exact filters (2.6768ms)
+✖ audit malformed database responses and SQL messages never expose private payloads or invoke getters (1.5486ms)
+✔ audit SDK pins exact filters and expected company, uses private GET once (28.6087ms)
+✔ audit SDK refuses cached, duplicate-key, excessive and private-field responses without retry (1.7846ms)
+✔ audit stalled stream and late reply cancellation settle once and never retry (28.5168ms)
+✔ audit bounds, exact bigint strings, company/filter/order/cursor bindings (3.8168ms)
+✔ audit accessors, extra private fields and sparse/accessor rows fail without invoking getters (0.3126ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 7
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3448.1173
+
+✖ failing tests:
+
+test at apps\api\dev\admin-audit-http.test.mjs:31:1
+✖ signed audit HTTP/shared SDK reads actual command facts and enforces current authority without write replay (2298.5941ms)
+  Error [ApiClientError]: Staff enquiry request could not be completed.
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:4169:31
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async RealtorApiClient.request (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:4202:20)
+      at async RealtorApiClient.listAdminAuditEvents (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:2161:22)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/api/dev/admin-audit-http.test.mjs:115:20)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    kind: 'HTTP',
+    status: 503,
+    serverCode: 'SERVICE_UNAVAILABLE',
+    requestId: '0af16e1a-55c9-45e4-8199-1379b4642654',
+    retryAfterSeconds: undefined,
+    submissionUncertain: false
+  }
+
+test at apps\api\tests\admin-audit.test.mjs:111:1
+✖ audit malformed database responses and SQL messages never expose private payloads or invoke getters (1.5486ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  503 !== 500
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/api/tests/admin-audit.test.mjs:144:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 503,
+    expected: 500,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

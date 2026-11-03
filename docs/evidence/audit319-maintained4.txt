@@ -1,0 +1,36 @@
+
+> realtor-platform@0.1.0 test:admin-audit
+> npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/api && npm run build --workspace=@realtor/api-client && node --test --test-concurrency=1 packages/domain/tests/admin-audit.test.mjs apps/api/tests/admin-audit.test.mjs packages/api-client/tests/admin-audit.test.mjs apps/api/dev/admin-audit-http.test.mjs database/tests/admin-audit-candidate.test.mjs
+
+
+> @realtor/domain@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ signed audit HTTP/shared SDK reads actual command facts and enforces current authority without write replay (2465.3112ms)
+✔ audit route default-off, production/method/filter/authority input refusals never verify or query (32.1033ms)
+✔ audit authenticates before SQL, rechecks current admin and parameterizes exact filters (3.8016ms)
+✔ audit malformed database responses and SQL messages never expose private payloads or invoke getters (2.0831ms)
+✔ audit projection preserves exact metadata and bigint facts without private payloads or foreign events (2153.7013ms)
+✔ descending bounded pagination and exact UUID filters preserve rows across newer inserts (1599.9211ms)
+✔ every read rechecks current admin authority and company enablement; audit stays append-only (1462.718ms)
+✔ audit SDK pins exact filters and expected company, uses private GET once (30.1227ms)
+✔ audit SDK refuses cached, duplicate-key, excessive and private-field responses without retry (2.4418ms)
+✔ audit stalled stream and late reply cancellation settle once and never retry (32.6214ms)
+✔ audit bounds, exact bigint strings, company/filter/order/cursor bindings (2.4329ms)
+✔ audit accessors, extra private fields and sparse/accessor rows fail without invoking getters (0.2792ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8945.1645

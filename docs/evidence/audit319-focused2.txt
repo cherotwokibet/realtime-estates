@@ -1,0 +1,49 @@
+✖ signed audit HTTP/shared SDK reads actual command facts and enforces current authority without write replay (2100.0492ms)
+✔ audit route default-off, production/method/filter/authority input refusals never verify or query (28.7005ms)
+✔ audit authenticates before SQL, rechecks current admin and parameterizes exact filters (2.0629ms)
+✔ audit malformed database responses and SQL messages never expose private payloads or invoke getters (1.6343ms)
+✔ audit projection preserves exact metadata and bigint facts without private payloads or foreign events (1946.0786ms)
+✔ descending bounded pagination and exact UUID filters preserve rows across newer inserts (1353.1098ms)
+✔ every read rechecks current admin authority and company enablement; audit stays append-only (1392.5171ms)
+✔ audit SDK pins exact filters and expected company, uses private GET once (26.2811ms)
+✔ audit SDK refuses cached, duplicate-key, excessive and private-field responses without retry (1.5604ms)
+✔ audit stalled stream and late reply cancellation settle once and never retry (39.3189ms)
+✔ audit bounds, exact bigint strings, company/filter/order/cursor bindings (2.5416ms)
+✔ audit accessors, extra private fields and sparse/accessor rows fail without invoking getters (0.2691ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7977.8064
+
+✖ failing tests:
+
+test at apps\api\dev\admin-audit-http.test.mjs:31:1
+✖ signed audit HTTP/shared SDK reads actual command facts and enforces current authority without write replay (2100.0492ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  ApiClientError: Staff enquiry request could not be completed.
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/api/dev/admin-audit-http.test.mjs:124:7)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: ApiClientError: Staff enquiry request could not be completed.
+        at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:4169:31
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async RealtorApiClient.request (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:4202:20)
+        at async RealtorApiClient.listAdminAuditEvents (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:2161:22)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/api/dev/admin-audit-http.test.mjs:124:7)
+        at async Test.run (node:internal/test_runner/test:1389:7)
+        at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3),
+    operator: 'rejects',
+    diff: 'simple'
+  }

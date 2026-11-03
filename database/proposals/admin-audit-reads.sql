@@ -26,7 +26,8 @@ BEGIN
  ), page AS (SELECT * FROM bounded ORDER BY id DESC LIMIT p_limit)
  SELECT coalesce((SELECT jsonb_agg(jsonb_build_object(
    'id',id::text,'actorId',actor_id,'action',action,'objectType',object_type,
-   'objectId',object_id,'objectVersion',object_version::text,'occurredAt',occurred_at
+   'objectId',object_id,'objectVersion',object_version::text,
+   'occurredAt',to_char(occurred_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
   ) ORDER BY id DESC) FROM page),'[]'::jsonb),
   (SELECT count(*)>p_limit FROM bounded),
   (SELECT min(id) FROM page)

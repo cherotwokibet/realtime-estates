@@ -44,3 +44,4 @@ export * from './staff-invitation-issuance.js';
 export * from './listing-video.js';
 
 export * from './customer-favourites.js';
+export * from './admin-audit.js';

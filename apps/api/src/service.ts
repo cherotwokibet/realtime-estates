@@ -1,4 +1,5 @@
 import { createCustomerFavouritesHttpCandidate } from './customer-favourites-http.js';
+import { adminAuditQuery, validateAdminAuditPage } from '@realtor/domain';
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
 import {
   parseListingVideoJson,
@@ -151,6 +152,8 @@ export interface EnquiryLimiter {
 export interface ApiServiceOptions {
   /** Isolated current-customer candidate; omitted leaves all customer routes unavailable. */
   readonly customerFavouritesMode?: 'synthetic-customer-favourites-v1';
+  /** Isolated audit-read candidate; never installs SQL or enables production access. */
+  readonly adminAuditMode?: 'synthetic-admin-audit-v1';
   /** Isolated private video metadata preparation; no provider/public delivery or schema installation. */
   readonly listingVideoMode?: 'synthetic-private-listing-video-v1';
   readonly listingVideoPublicationMode?: 'synthetic-listing-video-publication-v1';
@@ -1605,6 +1608,12 @@ export function createApiService(
         verifyAuthorization: options.verifyAuthorization,
       })
     : null;
+  if (
+    options.adminAuditMode !== undefined &&
+    (options.adminAuditMode !== 'synthetic-admin-audit-v1' || process.env.NODE_ENV === 'production')
+  )
+    throw Error('Unsupported administrator audit configuration.');
+  const adminAuditEnabled = options.adminAuditMode === 'synthetic-admin-audit-v1';
   const privacyNoticeVersion = text(
     options.privacyNoticeVersion,
     'Configured privacy notice version',
@@ -1655,6 +1664,53 @@ export function createApiService(
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method.toUpperCase();
+      if (path === '/v2/staff/audit-events') {
+        if (!adminAuditEnabled || process.env.NODE_ENV === 'production')
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        if (method !== 'GET')
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Audit reads require GET.', {
+            Allow: 'GET',
+          });
+        if (
+          request.url.length > 2048 ||
+          request.url.includes('#') ||
+          request.body !== null ||
+          headerNames(request.headers).some(
+            (k) =>
+              [
+                'cookie',
+                'content-type',
+                'content-length',
+                'content-encoding',
+                'range',
+                'idempotency-key',
+              ].includes(k) ||
+              k.startsWith('if-') ||
+              /^x-(?:actor|tenant|company|role|assigned|revision)(?:-|$)/.test(k),
+          )
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Invalid audit read.');
+        let input: ReturnType<typeof adminAuditQuery>;
+        try {
+          input = adminAuditQuery(url.searchParams);
+        } catch {
+          throw new HttpError(400, 'INVALID_INPUT', 'Invalid audit filters.');
+        }
+        const actorId = await identity(request, true);
+        const page = await options.database.transaction(
+          { tenantId, actorId, correlationId },
+          async (query) => {
+            await assertAdmin(query);
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            const rows = await query.query(
+              'SELECT app_api.list_admin_audit_events($1::integer,$2::bigint,$3::uuid,$4::uuid) AS page',
+              [input.limit, input.before, input.actorId, input.objectId],
+            );
+            return validateAdminAuditPage(scalar(rows, 'page'), tenantId, input);
+          },
+        );
+        return response(200, page, correlationId);
+      }
       if (path === '/v2/customer' || path.startsWith('/v2/customer/')) {
         if (!customerHandler) throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
         return customerHandler(request, correlationId);

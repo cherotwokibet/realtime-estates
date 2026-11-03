@@ -1,4 +1,11 @@
 import {
+  validateAdminAuditQuery,
+  validateAdminAuditPage,
+  type AdminAuditQuery,
+  type AdminAuditPage,
+} from '@realtor/domain';
+export type { AdminAuditQuery, AdminAuditPage } from '@realtor/domain';
+import {
   validateStaffInvitationIssueCommand,
   validateStaffInvitationRecipientSession,
   type StaffInvitationRecipientSession,
@@ -3779,6 +3786,36 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid original report review.');
     }
   }
+  async listAdminAuditEvents(
+    tenantId: string,
+    input: AdminAuditQuery,
+    options: StaffRequestOptions,
+  ): Promise<AdminAuditPage> {
+    const captured = uploadOptions(options);
+    let query: AdminAuditQuery;
+    if (
+      typeof tenantId !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(tenantId)
+    )
+      return invalid('VALIDATION', 'Invalid expected company.');
+    try {
+      query = validateAdminAuditQuery(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid audit query.');
+    }
+    const path =
+      '/v2/staff/audit-events?limit=' +
+      query.limit +
+      (query.before === null ? '' : '&before=' + query.before) +
+      (query.actorId === null ? '' : '&actorId=' + query.actorId) +
+      (query.objectId === null ? '' : '&objectId=' + query.objectId);
+    const data = await this.request(path, 'GET', captured);
+    try {
+      return validateAdminAuditPage(data, tenantId, query);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid administrator audit page.');
+    }
+  }
   async listStaffMemberships(
     input: StaffDirectoryQuery,
     options: StaffRequestOptions,
@@ -6103,7 +6140,9 @@ export class RealtorApiClient {
       /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/video-(?:operations\/[0-9a-f-]{36}|revisions\/[1-9][0-9]{0,9})$/.test(
         path,
       );
+    const adminAudit = /^\/v2\/staff\/audit-events\?limit=/.test(path);
     const listingReport =
+      adminAudit ||
       listingVideo ||
       staffInvitation ||
       anonymousReport ||
@@ -6254,7 +6293,7 @@ export class RealtorApiClient {
           });
         }
         if (
-          (singleUseInvitation || listingVideo) &&
+          (adminAudit || singleUseInvitation || listingVideo) &&
           result.headers.get('cache-control') !== 'no-store'
         ) {
           void result.body?.cancel().catch(() => {});
@@ -6266,27 +6305,29 @@ export class RealtorApiClient {
         }
         let raw: string;
         if (boundedRead) {
-          const maximum = staffDirectory
-              ? 65536
-              : listingReport
-                ? reportQueue
-                  ? 524288
-                  : 8192
-                : staffSession || revisionProtocol
-                  ? 8192
-                  : publicReference || publicSearch || publicReferenceOptions
-                    ? 3 * 1024 * 1024
-                    : referenceCreation || referenceSuccessor
-                      ? result.ok
-                        ? referenceSuccessor
-                          ? SYNTHETIC_REFERENCE_SUCCESSOR_MAX_BYTES
-                          : SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
-                        : 131072
-                      : referenceContext && result.ok
-                        ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
-                        : referenceModeration
-                          ? 131072
-                          : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
+          const maximum = adminAudit
+              ? 32768
+              : staffDirectory
+                ? 65536
+                : listingReport
+                  ? reportQueue
+                    ? 524288
+                    : 8192
+                  : staffSession || revisionProtocol
+                    ? 8192
+                    : publicReference || publicSearch || publicReferenceOptions
+                      ? 3 * 1024 * 1024
+                      : referenceCreation || referenceSuccessor
+                        ? result.ok
+                          ? referenceSuccessor
+                            ? SYNTHETIC_REFERENCE_SUCCESSOR_MAX_BYTES
+                            : SYNTHETIC_REFERENCE_CREATION_MAX_BYTES
+                          : 131072
+                        : referenceContext && result.ok
+                          ? SYNTHETIC_REFERENCE_CONTEXT_MAX_BYTES
+                          : referenceModeration
+                            ? 131072
+                            : (referenceCatalogue ? 6 : 1) * 1024 * 1024,
             declared = result.headers.get('content-length');
           if (
             result.headers.has('content-encoding') ||
@@ -6417,17 +6458,18 @@ export class RealtorApiClient {
             )
           )
             assertMediaJsonTokens(raw);
-          payload = staffInvitation
-            ? parseStaffInvitationJson(raw)
-            : listingReport
-              ? parseListingReportJson(raw)
-              : verification ||
-                  reference ||
-                  /^\/v2\/staff\/listings\/[^/]+(?:\/revision-operations\/[^/]+)?$/.test(path)
-                ? parseListingSuccessorJsonV2(raw)
-                : path.startsWith('/v2/')
-                  ? parseListingJsonV2(raw)
-                  : JSON.parse(raw);
+          payload =
+            adminAudit || staffInvitation
+              ? parseStaffInvitationJson(raw)
+              : listingReport
+                ? parseListingReportJson(raw)
+                : verification ||
+                    reference ||
+                    /^\/v2\/staff\/listings\/[^/]+(?:\/revision-operations\/[^/]+)?$/.test(path)
+                  ? parseListingSuccessorJsonV2(raw)
+                  : path.startsWith('/v2/')
+                    ? parseListingJsonV2(raw)
+                    : JSON.parse(raw);
         } catch {
           throw new ApiClientError('INVALID_RESPONSE', 'Malformed API JSON.', {
             status: result.status,

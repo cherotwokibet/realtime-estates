@@ -1,3 +1,9 @@
+## Signed audit API319 — 3 November 2026
+
+Added default-off, production-unavailable administrator audit GET, strict shared domain projection/query and shared SDK metadata read. Actual RS256/JWKS/HTTP/restricted SQL/shared SDK composition reads one original settings-approval audit after exact command replay, with foreign/current-role/company/filter/signature/audience denials. Fixed UTC projection after session +03 timestamp mismatch; failed logs retained. Maintained fresh-build audit12/12; full domain356/API363/SDK346 all pass, zero failures/skips, overlapping counts. Source inventory maps16 action/read families, not every exact dispatcher/UI route. Evidence docs/evidence/2026-11-03-admin-audit-api.md and docs/ADMIN-ACTION-AUDIT-MATRIX.md.
+
+08-7 stays open,53/97(55%),0/14gates. Next reconcile every reachable admin mutation/legacy route to current authority and meaningful original audit/receipt, verify denied/no-write/replay effects and fix gaps; then safe no-store admin BFF/read screen. No UI/build/device/provider/hosted load/snapshot/production acceptance here. Isolated SQL not in normal migrations, raw admin SELECT unchanged. No app push/Actions/spending/vendor/live change. KES10,000 totalmonthly/realtor; owner Boniface + Codex.
+
 ## Published audit metadata candidate318 — 3 November 2026
 
 Private dashboard242/source0e27fe1bf8b90debc43e2df5f853d4b5c7fd564f/deploymentappgdep_6aea12e20700819198ef270126c373e8 succeeded; exact version/source and1owner/0others/external/groups independently verified. Actual user tab shows new audit foundation and55%/53of97; all803 previous note multiplicities,804canonical notes and27manual checks retained in805-note export21. Exports20/21 moved withoutoverwrite/hashreadback. Screenshot docs/evidence/audit318-published.jpg; journal docs/evidence/admin-audit-publication318.json. No import/reset/sign-in/access change. One browser handle reset after unavailable session.
