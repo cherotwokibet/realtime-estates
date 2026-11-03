@@ -137,6 +137,7 @@ function configuration({
   journeyFixture,
   publicReportMode,
   listingVideoMode,
+  listingVideoReplyFault,
   invitationRedemptionReplyFault,
   staffInvitationRedemptionMode,
   staffInvitationMode,
@@ -196,6 +197,12 @@ function configuration({
   )
     throw new StaffPreviewConfigurationError('Unsupported synthetic branch reply fault.');
   journeyFixtureSelection(journeyFixture);
+  if (
+    listingVideoReplyFault !== undefined &&
+    (listingVideoReplyFault !== 'invalid-first-video-v1' ||
+      listingVideoMode !== 'synthetic-private-listing-video-v1')
+  )
+    throw new StaffPreviewConfigurationError('Video fault requires its explicit isolated mode.');
   if (listingVideoMode !== undefined && listingVideoMode !== 'synthetic-private-listing-video-v1')
     throw new StaffPreviewConfigurationError('Unsupported private video candidate.');
   if (publicReportMode !== undefined && publicReportMode !== 'synthetic-listing-report-v1')
@@ -450,6 +457,7 @@ function configuration({
     journeyFixture,
     publicReportMode,
     listingVideoMode,
+    listingVideoReplyFault,
     invitationRedemptionReplyFault,
     staffInvitationRedemptionMode,
     staffInvitationMode,
@@ -910,6 +918,7 @@ export async function startStaffPreview(options = {}) {
     journeyFixture,
     publicReportMode,
     listingVideoMode,
+    listingVideoReplyFault,
     invitationRedemptionReplyFault,
     staffInvitationRedemptionMode,
     staffInvitationMode,
@@ -1301,6 +1310,7 @@ export async function startStaffPreview(options = {}) {
         agent: Object.freeze({ actorId: company.agent, bearerToken: agentToken }),
       });
     }
+    let videoReplyPending = listingVideoReplyFault === 'invalid-first-video-v1';
     const service = createApiService({
       database,
       ...(listingVideoMode ? { listingVideoMode } : {}),
@@ -1434,8 +1444,17 @@ export async function startStaffPreview(options = {}) {
         if (
           listingVideoMode &&
           /^\/v2\/staff\/listings\/[^/]+\/video-/.test(new URL(request.url).pathname)
-        )
-          return service(request);
+        ) {
+          const response = await service(request);
+          if (videoReplyPending && request.method === 'POST' && response.status === 200) {
+            videoReplyPending = false;
+            return Response.json(
+              { syntheticReplyCorruption: true },
+              { headers: { 'Cache-Control': 'no-store' } },
+            );
+          }
+          return response;
+        }
         const url = new URL(request.url),
           reviewQueue = url.pathname === '/v2/staff/reviews';
         if (

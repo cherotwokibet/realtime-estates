@@ -1,6 +1,7 @@
 import { referenceModerationSession } from './reference-moderation-workspace.ts';
 import { referenceDraftSession, type ReferenceDraftScope } from './reference-draft-workspace.ts';
 import type { SyntheticReferenceAction } from '@realtor/domain';
+import { assertListingVideoClear } from './listing-video-session.ts';
 export type ReferenceTransitionPurpose = 'review' | 'author';
 /** Presentation eligibility only. The API/SQL still decide current permissions and completeness. */
 export function referenceTransitionActions(
@@ -28,6 +29,7 @@ export function assertReferenceAuthorDraftClear(
   },
   scope: ReferenceDraftScope,
 ): void {
+  assertListingVideoClear(store, scope.instanceId, scope.listingId);
   if (referenceDraftSession(store, scope).load() !== null)
     throw Error('Finish the retained draft original before a submission or withdrawal.');
 }
@@ -42,6 +44,7 @@ export function assertReferenceDraftAuthorClear(
   scope: ReferenceDraftScope,
   revision: number,
 ): void {
+  assertListingVideoClear(store, scope.instanceId, scope.listingId);
   if (referenceModerationSession(store, { ...scope, revision }, 'author').load() !== null)
     throw Error('Finish the retained submission or withdrawal before editing.');
 }

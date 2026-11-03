@@ -9,7 +9,7 @@
     "build": "next build",
     "typecheck": "tsc --noEmit",
     "test": "tsc -p tsconfig.tests.json && node --conditions=react-server --test tests/*.test.mjs && node --test ui-tests/*.test.mjs",
-    "test:reference-integration": "npm run build --workspace=@realtor/api && tsc -p tsconfig.tests.json && node --conditions=react-server --test integration-tests/reference-draft-flow.test.mjs integration-tests/reference-moderation-flow.test.mjs integration-tests/revision-protocol-flow.test.mjs integration-tests/reference-submission-flow.test.mjs",
+    "test:reference-integration": "npm run build --workspace=@realtor/api && tsc -p tsconfig.tests.json && node --conditions=react-server --test integration-tests/reference-draft-flow.test.mjs integration-tests/reference-moderation-flow.test.mjs integration-tests/revision-protocol-flow.test.mjs integration-tests/reference-submission-flow.test.mjs integration-tests/listing-video-flow.test.mjs",
     "test:staff-directory-integration": "npm run build --workspace=@realtor/api && tsc -p tsconfig.tests.json && node --conditions=react-server --test integration-tests/staff-directory-flow.test.mjs integration-tests/staff-membership-flow.test.mjs integration-tests/staff-invitation-issue-flow.test.mjs integration-tests/invitation-recipient-flow.test.mjs",
     "test:allocation-integration": "npm run build --workspace=@realtor/api && tsc -p tsconfig.tests.json && node --conditions=react-server --test integration-tests/ordinary-allocation-flow.test.mjs"
   },

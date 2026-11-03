@@ -10,6 +10,7 @@ export async function readRevisionProtocolScreen(
   revision: string,
   env: Readonly<Record<string, string | undefined>> = process.env,
   transport?: typeof fetch,
+  signal?: AbortSignal,
 ) {
   const config = previewConfiguration(env);
   if (
@@ -24,7 +25,7 @@ export async function readRevisionProtocolScreen(
     allowLoopbackHttp: true,
     ...(transport ? { fetch: transport } : {}),
   });
-  const options = { bearerToken: config.bearerToken, timeoutMs: 10000 };
+  const options = { bearerToken: config.bearerToken, timeoutMs: 10000, signal };
   const current = await client.getSyntheticReferenceSessionV3(options);
   const protocol = await client.getRevisionProtocolV3(target.listingId, target.revision, options);
   return Object.freeze({

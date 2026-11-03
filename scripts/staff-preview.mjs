@@ -44,6 +44,12 @@ if (
   throw new Error('Moderation preview requires its explicit reference draft and transition modes.');
 if (referenceDraftMode !== undefined && referenceDraftMode !== 'synthetic-reference-draft-v1')
   throw new Error('Choose the explicit synthetic-reference-draft-v1 reference mode or omit it.');
+const listingVideoMode = process.env.STAFF_PREVIEW_VIDEO;
+if (
+  listingVideoMode !== undefined &&
+  (listingVideoMode !== 'synthetic-private-listing-video-v1' || !referenceDraftMode)
+)
+  throw Error('Video workspace requires explicit video and reference modes.');
 const uiPort = process.env.STAFF_PREVIEW_UI_PORT ?? '3001';
 if (
   !/^[1-9]\d{3,4}$/.test(uiPort) ||
@@ -92,6 +98,8 @@ const preview = await startStaffPreview({
   controlReplyFault: process.env.STAFF_PREVIEW_CONTROL_REPLY_FAULT,
   successorTerminalFixture: process.env.STAFF_PREVIEW_SUCCESSOR_TERMINAL,
   referenceDraftMode,
+  listingVideoMode,
+  listingVideoReplyFault: process.env.STAFF_PREVIEW_VIDEO_REPLY_FAULT,
   referenceReplyFault: process.env.STAFF_PREVIEW_REFERENCE_REPLY_FAULT,
   referenceModerationMode,
   referenceCreationMode,

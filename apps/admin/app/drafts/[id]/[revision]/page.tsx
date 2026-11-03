@@ -58,6 +58,7 @@ export default async function DraftPage({
           </section>
         ) : screen?.kind === 'reference' ? (
           <ReferenceDraftWorkspace
+            videoEnabled={process.env.STAFF_PREVIEW_VIDEO === 'synthetic-private-listing-video-v1'}
             key={JSON.stringify([
               screen.screen.scope,
               screen.screen.revision,
