@@ -16,6 +16,8 @@ import {
   type StaffInvitationIssueResponse,
 } from '@realtor/domain';
 import {
+  validatePublishedListingVideo,
+  type PublishedListingVideo,
   listingVideoTarget,
   validateListingVideoCommand,
   validateListingVideoRecord,
@@ -2691,6 +2693,59 @@ export function validateStaffEnquiryInput(
 }
 
 export class RealtorApiClient {
+  async getReviewListingVideo(
+    listingId: string,
+    revision: number,
+    expectedVersion: string,
+    options: StaffRequestOptions,
+  ): Promise<ListingVideoState> {
+    const captured = uploadOptions(options);
+    try {
+      listingVideoTarget(listingId, revision);
+      if (
+        !/^[1-9][0-9]{0,15}$/.test(expectedVersion) ||
+        BigInt(expectedVersion) > 9007199254740991n
+      )
+        throw Error();
+    } catch {
+      return invalid('VALIDATION', 'Invalid review version.');
+    }
+    const data = await this.request(
+      `/v2/staff/reviews/${listingId}/${revision}/video/${expectedVersion}`,
+      'GET',
+      captured,
+    );
+    try {
+      const state = validateListingVideoState(data, listingId, revision);
+      if (state.version !== expectedVersion) throw Error();
+      return state;
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Review video differs.');
+    }
+  }
+  async getPublishedListingVideo(
+    listingId: string,
+    revision: number,
+    options: Omit<RequestOptions, 'bearerToken'> = {},
+  ): Promise<PublishedListingVideo> {
+    const captured = anonymousReportOptions(options);
+    try {
+      listingVideoTarget(listingId, revision);
+    } catch {
+      return invalid('VALIDATION', 'Invalid published video revision.');
+    }
+    const data = await this.request(
+      `/v3/properties/${listingId}/revisions/${revision}/video`,
+      'GET',
+      captured,
+    );
+    try {
+      return validatePublishedListingVideo(data, listingId, revision);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Published video differs.');
+    }
+  }
+
   async savePrivateListingVideo(
     input: ListingVideoCommand,
     options: StaffRequestOptions,
@@ -6040,7 +6095,11 @@ export class RealtorApiClient {
         path,
       );
     const reportQueue = /^\/v2\/staff\/listing-reports\?/.test(path);
+    const videoRead =
+      /^\/v3\/properties\/[0-9a-f-]{36}\/revisions\/[1-9][0-9]{0,9}\/video$/.test(path) ||
+      /^\/v2\/staff\/reviews\/[0-9a-f-]{36}\/[1-9][0-9]{0,9}\/video\/[1-9][0-9]{0,15}$/.test(path);
     const listingVideo =
+      videoRead ||
       /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/video-(?:operations\/[0-9a-f-]{36}|revisions\/[1-9][0-9]{0,9})$/.test(
         path,
       );

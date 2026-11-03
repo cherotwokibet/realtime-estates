@@ -26,6 +26,34 @@ export interface ListingVideoState {
   readonly version: string;
   readonly video: ListingVideo | null;
 }
+export interface PublishedListingVideo {
+  readonly policy: 'synthetic-published-listing-video-v1';
+  readonly listingId: string;
+  readonly revision: number;
+  readonly approvedVersion: string;
+  readonly video: ListingVideo | null;
+}
+export function validatePublishedListingVideo(
+  v: unknown,
+  listingId: string,
+  revision: number,
+): PublishedListingVideo {
+  const r = exact(v, ['policy', 'listingId', 'revision', 'approvedVersion', 'video']);
+  listingVideoTarget(r.listingId, r.revision);
+  if (
+    r.policy !== 'synthetic-published-listing-video-v1' ||
+    r.listingId !== listingId ||
+    r.revision !== revision
+  )
+    return fail();
+  return Object.freeze({
+    policy: r.policy,
+    listingId,
+    revision,
+    approvedVersion: version(r.approvedVersion),
+    video: validateListingVideo(r.video),
+  });
+}
 const fail = (): never => {
   throw Error('Invalid private listing video facts.');
 };

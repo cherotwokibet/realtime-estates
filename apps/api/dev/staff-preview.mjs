@@ -137,6 +137,7 @@ function configuration({
   journeyFixture,
   publicReportMode,
   listingVideoMode,
+  listingVideoPublicationMode,
   listingVideoReplyFault,
   invitationRedemptionReplyFault,
   staffInvitationRedemptionMode,
@@ -203,6 +204,12 @@ function configuration({
       listingVideoMode !== 'synthetic-private-listing-video-v1')
   )
     throw new StaffPreviewConfigurationError('Video fault requires its explicit isolated mode.');
+  if (
+    listingVideoPublicationMode !== undefined &&
+    (listingVideoPublicationMode !== 'synthetic-listing-video-publication-v1' ||
+      listingVideoMode !== 'synthetic-private-listing-video-v1')
+  )
+    throw Error('Invalid video publication mode');
   if (listingVideoMode !== undefined && listingVideoMode !== 'synthetic-private-listing-video-v1')
     throw new StaffPreviewConfigurationError('Unsupported private video candidate.');
   if (publicReportMode !== undefined && publicReportMode !== 'synthetic-listing-report-v1')
@@ -457,6 +464,7 @@ function configuration({
     journeyFixture,
     publicReportMode,
     listingVideoMode,
+    listingVideoPublicationMode,
     listingVideoReplyFault,
     invitationRedemptionReplyFault,
     staffInvitationRedemptionMode,
@@ -918,6 +926,7 @@ export async function startStaffPreview(options = {}) {
     journeyFixture,
     publicReportMode,
     listingVideoMode,
+    listingVideoPublicationMode,
     listingVideoReplyFault,
     invitationRedemptionReplyFault,
     staffInvitationRedemptionMode,
@@ -995,6 +1004,13 @@ export async function startStaffPreview(options = {}) {
       await db.exec(
         await readFile(
           new URL('../../../database/proposals/listing-video.sql', import.meta.url),
+          'utf8',
+        ),
+      );
+    if (listingVideoPublicationMode)
+      await db.exec(
+        await readFile(
+          new URL('../../../database/proposals/listing-video-publication.sql', import.meta.url),
           'utf8',
         ),
       );
@@ -1314,6 +1330,7 @@ export async function startStaffPreview(options = {}) {
     const service = createApiService({
       database,
       ...(listingVideoMode ? { listingVideoMode } : {}),
+      ...(listingVideoPublicationMode ? { listingVideoPublicationMode } : {}),
       verificationMode: 'synthetic-check-record-v1',
       ...(publicReportMode ? { publicReportMode } : {}),
       ...(staffInvitationRedemptionMode
