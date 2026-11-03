@@ -1,3 +1,4 @@
+import { readVideoReviewScreen } from '../dist/tests/lib/video-review-screen.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { RealtorApiClient } from '@realtor/api-client';
@@ -19,6 +20,19 @@ test('signed reviewer and anonymous public video routes compose through JWKS and
       allowLoopbackHttp: true,
       privacyNoticeVersion: 'synthetic',
     });
+    const screen = await readVideoReviewScreen(p.listingId, '1', p.referenceReviewVersion, {
+      NODE_ENV: 'development',
+      STAFF_PREVIEW_MODE: 'synthetic',
+      STAFF_PREVIEW_REFERENCE: modes.referenceDraftMode,
+      STAFF_PREVIEW_REFERENCE_MODERATION: modes.referenceModerationMode,
+      STAFF_PREVIEW_VIDEO_PUBLICATION: modes.listingVideoPublicationMode,
+      STAFF_PREVIEW_API_ORIGIN: p.origin,
+      STAFF_PREVIEW_TOKEN: p.bearerToken,
+      STAFF_PREVIEW_INSTANCE: '00000000-0000-4000-8000-000000000990',
+    });
+    assert.equal(screen.video.video, null);
+    assert.ok(screen.context);
+    assert.ok(!JSON.stringify(screen).includes(p.bearerToken));
     const r = await c.getReviewListingVideo(p.listingId, 1, p.referenceReviewVersion, {
       bearerToken: p.bearerToken,
     });

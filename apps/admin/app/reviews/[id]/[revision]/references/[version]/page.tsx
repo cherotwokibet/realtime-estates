@@ -1,8 +1,6 @@
 import ReferenceReviewWorkspace from '../../../../../../components/ReferenceReviewWorkspace.tsx';
-import {
-  readReferenceModerationScreen,
-  type ReferenceModerationScreen,
-} from '../../../../../../lib/reference-moderation-screen.ts';
+import { type ReferenceModerationScreen } from '../../../../../../lib/reference-moderation-screen.ts';
+import { readVideoReviewScreen } from '../../../../../../lib/video-review-screen.ts';
 export const dynamic = 'force-dynamic';
 export default async function ReferenceReviewPage({
   params,
@@ -12,7 +10,7 @@ export default async function ReferenceReviewPage({
   const { id, revision, version } = await params;
   let screen: ReferenceModerationScreen | null = null;
   try {
-    screen = await readReferenceModerationScreen(id, revision, version);
+    screen = await readVideoReviewScreen(id, revision, version);
   } catch {
     /* Keep private upstream errors and credentials on the server. */
   }

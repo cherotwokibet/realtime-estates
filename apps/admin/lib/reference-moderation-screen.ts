@@ -1,12 +1,14 @@
 import 'server-only';
 import { ApiClientError, RealtorApiClient } from '@realtor/api-client';
 import type { SyntheticReferenceContext } from '@realtor/domain';
+import type { ListingVideoState } from '@realtor/domain';
 import type { ReferenceModerationScope } from './reference-moderation-client.ts';
 import { previewConfiguration } from './staff-preview-policy.ts';
 
 export interface ReferenceModerationScreen {
   readonly scope: ReferenceModerationScope;
   readonly context: SyntheticReferenceContext | null;
+  readonly video?: ListingVideoState;
 }
 /** Default-off server loader. Only the API's current session and stored snapshot supply scope and catalogue. */
 export async function readReferenceModerationScreen(

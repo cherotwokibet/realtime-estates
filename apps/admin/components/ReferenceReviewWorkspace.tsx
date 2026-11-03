@@ -11,6 +11,7 @@ import {
   type ReferenceModerationAttempt,
 } from '../lib/reference-moderation-workspace.ts';
 import ReviewImages from './ReviewImages.tsx';
+import ReviewListingVideo from './ReviewListingVideo.tsx';
 import {
   referenceTransitionActions,
   assertReferenceAuthorDraftClear,
@@ -293,6 +294,9 @@ function ReferenceReview(props: WorkspaceProps) {
       <p role="status" aria-live="polite">
         {message}
       </p>
+      {props.purpose !== 'author' && context && props.video && (
+        <ReviewListingVideo state={props.video} />
+      )}
       <p>
         Listing {reviewed.listingId} · revision {reviewed.revision} · editorial version{' '}
         {reviewed.revisionVersion}
