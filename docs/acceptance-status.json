@@ -19,6 +19,30 @@
     "caseCount": 35
   },
   "executions": {
+    "customerDomain311": {
+      "path": "docs/evidence/customer311-domain-full.txt",
+      "counts": [
+        354
+      ],
+      "environment": "Full shared domain suite with strict customer favourite command/account/state/receipt/page contracts. Four focused checks overlap.",
+      "commit": "6fa76114b7b3de36e8896a5b98bd45ec2dc2be25",
+      "observedDate": "2026-11-03",
+      "sha256": "006fbd3c473d707c77a187574e1bb8e07cab2030b97300a8ababc648af93acdb",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
+    "customerSql311": {
+      "path": "docs/evidence/customer311-focused5.txt",
+      "counts": [
+        9
+      ],
+      "environment": "Local restricted SQL5 and shared contracts4. Current customer/tenant isolation,100 quota, versioned originals, dynamic availability/removal, snapshot export into fresh engine and forced receipt rollback. No signed HTTP/UI/cache/provider/hosted race or on-disk crash pass.",
+      "commit": "6fa76114b7b3de36e8896a5b98bd45ec2dc2be25",
+      "observedDate": "2026-11-03",
+      "sha256": "477c91309fb6e2d53960d9a1ffff2b5eea5ab072bc5b44ca513f039fd40bd60c",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
     "secondBrand309": {
       "path": "docs/evidence/brand309-final3.txt",
       "counts": [
@@ -2193,7 +2217,9 @@
         "authorizationReview223",
         "authInventory223",
         "authRoles223",
-        "authStorage223"
+        "authStorage223",
+        "customerDomain311",
+        "customerSql311"
       ],
       "observed": "Current signed customer, revoked and foreign actor denials; server-owned staff access and guarded listing commands. Separate default-off signed invitation HTTP/SDK now connects to isolated SQL, with metadata-only lost disclosure recovery and no membership reactivation on replay. Separately enabled admin issuance now has verified BFF/controller and actual browser reveal/discard, retained recovery/reload, revocation and current issued/used state reads. Separately signed nonmember acceptance now connects through identity-only session, strict BFF/controller/UI and GET recovery. Actual browser used-state, revocation and existing-member refusal plus signed replay-without-reactivation composition are verified locally.",
       "remaining": "Production identity, native route bypass and deployed storage permissions still require verification.",
@@ -2229,7 +2255,9 @@
         "authorizationReview223",
         "authInventory223",
         "authRoles223",
-        "authStorage223"
+        "authStorage223",
+        "customerDomain311",
+        "customerSql311"
       ],
       "observed": "Current company/assignment checks, exact operation recovery and raw viewing-table denial.",
       "remaining": "Exports, subscriptions and full production pooled/storage isolation are not accepted.",
@@ -2252,7 +2280,9 @@
       "releaseCasePassed": false,
       "evidence": [
         "operations212",
-        "api212"
+        "api212",
+        "customerDomain311",
+        "customerSql311"
       ],
       "observed": "A current foreign enquiry read hides loaded private details; current membership revocation is denied at SQL/API.",
       "remaining": "Sign-out broadcast, two-tab private cache clearing, native expiry and subscription teardown are unimplemented or unverified.",

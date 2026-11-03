@@ -82,6 +82,9 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  customerDomain311: {"path":"docs/evidence/customer311-domain-full.txt","counts":[354],"environment":"Full shared domain suite with strict customer favourite command/account/state/receipt/page contracts. Four focused checks overlap.","commit":"6fa76114b7b3de36e8896a5b98bd45ec2dc2be25","observedDate":"2026-11-03"},
+  customerSql311: {"path":"docs/evidence/customer311-focused5.txt","counts":[9],"environment":"Local restricted SQL5 and shared contracts4. Current customer/tenant isolation,100 quota, versioned originals, dynamic availability/removal, snapshot export into fresh engine and forced receipt rollback. No signed HTTP/UI/cache/provider/hosted race or on-disk crash pass.","commit":"6fa76114b7b3de36e8896a5b98bd45ec2dc2be25","observedDate":"2026-11-03"},
+
   secondBrand309: {"path":"docs/evidence/brand309-final3.txt","counts":[3],"environment":"Maintained local signed two-company synthetic composition and Expo configuration. Capture-only notification records; no provider/native device/hosted launch.","commit":"c1aa64dbffa2f9766a1befc61aa154aecc62325b","observedDate":"2026-11-03"},
   secondBrandBrowser309: {"path":"docs/evidence/2026-11-03-second-brand-acceptance.md","counts":null,"environment":"Actual local browser DOM identity/contact/stock/foreign unavailable proof. Screenshot API unavailable; no visual/device pass.","commit":"c1aa64dbffa2f9766a1befc61aa154aecc62325b","observedDate":"2026-11-03"},
 
@@ -1515,6 +1518,7 @@ const entries = cases.map((item, index) => {
   if ([2, 3, 19, 30, 35].includes(number))
     evidence.push('authorizationReview223', 'authInventory223', 'authRoles223', 'authStorage223');
   if ([19, 35].includes(number)) evidence.push('browserReport223', 'signedReport223');
+  if ([2,3,4].includes(number)) evidence.push('customerDomain311','customerSql311');
   evidence.forEach((key) => assert.ok(executions[key], `Missing evidence ${key}`));
   const originalFinding =
     index > 0 && index < 25
