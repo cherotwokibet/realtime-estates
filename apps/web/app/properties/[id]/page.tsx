@@ -1,3 +1,4 @@
+import { customerBridge } from '../../../lib/customer-runtime';
 import Image from 'next/image';
 import PublicListingVideo from '../../../components/PublicListingVideo';
 import { readPublicVideo } from '../../../lib/public-video';
@@ -302,6 +303,11 @@ export default async function Property({ params }: { params: Promise<{ id: strin
             <PricingDisclosureCard pricing={p.pricing} preview={synthetic} />
             <div className="contact-preview">
               <h3>Like what you see?</h3>
+              {customerBridge() && (
+                <Link className="button" href={'/account?property=' + p.id}>
+                  Save this home
+                </Link>
+              )}
               {propertyEnquiry ? (
                 <>
                   <p>

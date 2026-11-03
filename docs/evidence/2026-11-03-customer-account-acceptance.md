@@ -1,0 +1,22 @@
+# Customer accounts and favourites315 —3 November2026
+
+Task07-6: Implement favourites and account flows with safe cache scope and useful empty/error states. Accepted as a complete local synthetic website implementation; real provider identity integration remains05-1 and all-app logout/expiry remains05-7. No real customer account was created.
+
+## Criterion mapping
+
+- Favourites: isolated durable SQL from311 and signed shared API/SDK313 now connect to property Save/account list/remove and exact public title/price summaries. Remove still works when public stock is paused; no private title is retained for unavailable stock. Positive per-customer and same-subject second-company isolation verified.
+- Account flows: server-only loopback synthetic identity bootstrap verifies existing signed subject/current membership, then issues opaque host+company-bound HttpOnly/SameSiteStrict cookies; current account, choice/switch, expiry and logout disposal implemented. Tokens/keys remain server memory/environment, never page/URL/browser storage. Secure cookie applies to HTTPS; preview is explicit loopback only and refuses production. No provider signup/password/reset/email/deletion claim.
+- Safe cache scope: no-store replies; explicit cookie+CSRF/origin checks, caller identity refusal, strict company/customer/generation binding, bounded decoding and cancelled/late response rejection. Logout-start message clears peer tabs without an automatic private reload; revoked access also clears peers. Session holds an original before write, forbids overwrite, and retains it across page reload until explicit read/settle. Only an explicit GET404 permits a deliberate retry of the SAME operation. No automatic write replay.
+- Empty/error: actual CustomerB empty list while CustomerA has a saved home; lost committed reply yields uncertainty and recovery; unavailable saved stock has useful generic state/removal; access loss clears account. Full list pagination/quota and late-response/expiry guards have bounded tests; no actual ten-minute browser-clock or positive multi-page UI proof claimed.
+
+## Executed proof
+
+customer315-maintained10.txt:13/13 with fresh domain/API/SDK builds and web test compile. customer315-web-full7.txt:127/127 including7 session +4 browser contract/generation checks. customer315-preview7.txt:2/2 actual owned signed preview/production-refusal checks (included in maintained13). customer315-web-build8.txt: full Next16.4.2 production build passed, includes /account and /api/customer/[...segments]. Typechecks/format/diff passed. Counts overlap. Prior SQL9/domain354 and API360/SDK343/signed9 keep their311/313 dates and are not new runs.
+
+Actual browser observations in customer315-browser.json and owned logs customer315-browser-preview2.txt/customer315-sample-preview9.txt. Realtime: synthetic A sign-in→save deliberately committed reply503→reload retains original→GET recovery→confirmed saved→finish→KES20,000/month; two tabs logout clears both; B sees empty and A's row returns after switch; pause→unavailable/no title→remove→finish empty; resume→save; revoke→both tabs clear. SampleHomes: same customer subject sees empty list despite positive first-company saved fixture; signed preview test verifies seed receipt. Keyboard Tab focused Sign out with solid outline. Desktop actual width1280/client1265/scroll1265. Screenshots recovered/saved-desktop/sample-account are actual.
+
+Initial browser GET403 exposed Next normalized URL localhost while exact Host127.0.0.1. Added a strict configured-Host adapter preserving origin/body and rejecting alternative/forwarded-host spoof; restarted owned preview to remove stale hot-reload class state. Temporary diagnostic printed only local origin/Host, never cookies/tokens, and was removed. The390×844 viewport override did not change the background tab; reset and no narrow/device pass claimed.
+
+## Limits and next work
+
+Only07-6 closes:53/97(55% rounded),0/14 accepted stage gates. Provider login/signup/verification/reset/deletion05-1, global private app/cache expiry05-7, native/mobile/device, narrow/complete AT/operator, hosted sessions/concurrency, normal schema promotion and launch/cutover remain open. Single-process preview sessions intentionally do not claim distributed durability. Old vendor/live preserved; no paid resource, credits, Actions or app source push. KES10,000 total recurring client price/realtor/month unchanged. Next08-7 audited admin activity read and UI from existing append-only events.

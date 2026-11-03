@@ -14,10 +14,12 @@ export function PublicHeader({
   purpose,
   current,
   brand = tenantBrand,
+  accounts = false,
 }: {
   purpose?: string;
   current?: 'company' | 'contact';
   brand?: typeof tenantBrand;
+  accounts?: boolean;
 }) {
   return (
     <header className="site-header container">
@@ -41,6 +43,7 @@ export function PublicHeader({
         <Link href="/contact" aria-current={current === 'contact' ? 'page' : undefined}>
           Contact
         </Link>
+        {accounts && <Link href="/account">Saved homes</Link>}
       </nav>
       <Link href={intakeEnabled() ? '/enquire' : '/'} className="header-link">
         {intakeEnabled() ? 'Test a general enquiry →' : 'Explore properties →'}
