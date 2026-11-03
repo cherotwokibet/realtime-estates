@@ -1,4 +1,6 @@
 import Image from 'next/image';
+import PublicListingVideo from '../../../components/PublicListingVideo';
+import { readPublicVideo } from '../../../lib/public-video';
 import { publicIntakeConfig } from '../../../lib/intake-config';
 import { listingReportConfig } from '../../../lib/listing-report-config';
 import { ListingReportForm } from '../../../components/ListingReportForm';
@@ -61,6 +63,10 @@ export default async function Property({ params }: { params: Promise<{ id: strin
   const p = result.property,
     mode = result.mode,
     synthetic = result.dataKind === 'synthetic';
+  const video =
+    mode === 'connected' && synthetic
+      ? await readPublicVideo(p, process.env)
+      : { status: 'off' as const };
   let propertyEnquiry = false;
   try {
     propertyEnquiry =
@@ -203,6 +209,7 @@ export default async function Property({ params }: { params: Promise<{ id: strin
               </p>
             )}
             <p>{p.description}</p>
+            <PublicListingVideo result={video} />
             <div className="detail-specs">
               <div>
                 <span>
