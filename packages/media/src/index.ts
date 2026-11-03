@@ -52,10 +52,42 @@ function sha256(bytes: Buffer): string {
  * Experimental local byte-conversion proof. This is NOT an upload endpoint, a sandbox,
  * a storage adapter, a trusted-media acceptance receipt or production verification.
  */
+export interface SyntheticFloorPlanManifest extends Omit<
+  SyntheticImageManifest,
+  'pipeline' | 'operations'
+> {
+  readonly pipeline: 'synthetic-floor-plan-codec-v1';
+  readonly role: 'floor_plan';
+  readonly countsAsPhoto: false;
+  readonly operations: readonly [
+    'auto-orient',
+    'resize-inside-1920-without-enlargement',
+    'strip-metadata',
+    'webp-lossless-effort-4',
+  ];
+}
+export interface SyntheticFloorPlanResult {
+  readonly data: Buffer;
+  readonly manifest: SyntheticFloorPlanManifest;
+}
 export async function convertSyntheticImage(
   input: Buffer,
   options: SyntheticCodecOptions = {},
 ): Promise<SyntheticImageResult> {
+  return (await convertBoundedImage(input, options, 'photo')) as SyntheticImageResult;
+}
+/** Local raster floor-plan conversion only; never a photo acceptance, attachment or public permission. */
+export async function convertSyntheticFloorPlan(
+  input: Buffer,
+  options: SyntheticCodecOptions = {},
+): Promise<SyntheticFloorPlanResult> {
+  return (await convertBoundedImage(input, options, 'floor_plan')) as SyntheticFloorPlanResult;
+}
+async function convertBoundedImage(
+  input: Buffer,
+  options: SyntheticCodecOptions,
+  role: 'photo' | 'floor_plan',
+): Promise<SyntheticImageResult | SyntheticFloorPlanResult> {
   if (!Buffer.isBuffer(input) || input.length === 0)
     throw new MediaCodecError('INVALID_INPUT', 'A non-empty Buffer is required.');
   if (input.length > SYNTHETIC_CODEC_POLICY.maxInputBytes)
@@ -107,7 +139,11 @@ export async function convertSyntheticImage(
         withoutEnlargement: true,
       })
       // Sharp strips source metadata by default; do not call keepMetadata/withMetadata.
-      .webp({ quality: SYNTHETIC_CODEC_POLICY.quality, effort: SYNTHETIC_CODEC_POLICY.effort })
+      .webp(
+        role === 'floor_plan'
+          ? { lossless: true, effort: SYNTHETIC_CODEC_POLICY.effort }
+          : { quality: SYNTHETIC_CODEC_POLICY.quality, effort: SYNTHETIC_CODEC_POLICY.effort },
+      )
       .toBuffer({ resolveWithObject: true });
     if (warned) throw new MediaCodecError('INVALID_IMAGE', 'The decoder emitted a warning.');
     if (data.length > maxOutputBytes)
@@ -128,8 +164,11 @@ export async function convertSyntheticImage(
         'Encoded output did not satisfy the codec policy.',
       );
     }
-    const manifest: SyntheticImageManifest = Object.freeze({
-      pipeline: 'synthetic-codec-v1',
+    const manifest = Object.freeze({
+      pipeline: role === 'floor_plan' ? 'synthetic-floor-plan-codec-v1' : 'synthetic-codec-v1',
+      ...(role === 'floor_plan'
+        ? { role: 'floor_plan' as const, countsAsPhoto: false as const }
+        : {}),
       sourceFormat,
       inputSha256,
       inputBytes: source.length,
@@ -144,10 +183,10 @@ export async function convertSyntheticImage(
         'auto-orient',
         'resize-inside-1920-without-enlargement',
         'strip-metadata',
-        'webp-quality-82-effort-4',
+        role === 'floor_plan' ? 'webp-lossless-effort-4' : 'webp-quality-82-effort-4',
       ] as const),
     });
-    return Object.freeze({ data, manifest });
+    return Object.freeze({ data, manifest }) as SyntheticImageResult | SyntheticFloorPlanResult;
   } catch (error) {
     if (error instanceof MediaCodecError) throw error;
     // Native diagnostic strings can contain implementation details. Keep callers on a

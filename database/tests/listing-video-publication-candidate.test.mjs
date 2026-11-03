@@ -12,7 +12,10 @@ import {
   LISTING,
   publish,
 } from './public-media-fixtures.mjs';
-import { seedGuardedListingDraft } from '../test-helpers/guarded-listing-fixture.mjs';
+import {
+  seedGuardedListingDraft,
+  seedGuardedListingSuccessor,
+} from '../test-helpers/guarded-listing-fixture.mjs';
 import { seedSyntheticSealedMedia } from '../test-helpers/synthetic-sealed-media.mjs';
 import { validatePublishedListingVideo } from '../../packages/domain/dist/index.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -34,31 +37,32 @@ const publicRead = (db, listing = LISTING, tenant = T) =>
 test('approved video captures reviewed metadata atomically and anonymous reads follow current public eligibility', async () => {
   const db = await setup();
   try {
+    const content = {
+      title: 'Synthetic tour apartment',
+      description: 'Synthetic only',
+      purpose: 'rent',
+      propertyType: 'apartment',
+      currency: 'KES',
+      amountMinor: 2000000,
+      rentPeriod: 'month',
+      bedrooms: 1,
+      privateBathrooms: 1,
+      sharedBathrooms: null,
+      country: 'KE',
+      locality: 'Synthetic area',
+      publicPrecision: 'area',
+      latitude: -1.3,
+      longitude: 36.8,
+      privateAddress: null,
+      pricing: { declaration: 'not_declared', charges: [] },
+      location: { county: null, town: null, area: null },
+    };
     const r = await asActor(db, T, AGENT, () =>
       seedGuardedListingDraft(db, {
         listingId: LISTING,
         slug: 'synthetic-video-publication',
         actorId: AGENT,
-        content: {
-          title: 'Synthetic tour apartment',
-          description: 'Synthetic only',
-          purpose: 'rent',
-          propertyType: 'apartment',
-          currency: 'KES',
-          amountMinor: 2000000,
-          rentPeriod: 'month',
-          bedrooms: 1,
-          privateBathrooms: 1,
-          sharedBathrooms: null,
-          country: 'KE',
-          locality: 'Synthetic area',
-          publicPrecision: 'area',
-          latitude: -1.3,
-          longitude: 36.8,
-          privateAddress: null,
-          pricing: { declaration: 'not_declared', charges: [] },
-          location: { county: null, town: null, area: null },
-        },
+        content,
       }),
     );
     let version = r.result.revisionVersion;
@@ -156,6 +160,71 @@ test('approved video captures reviewed metadata atomically and anonymous reads f
     await assert.rejects(() =>
       db.query("UPDATE app_private.synthetic_approved_listing_video SET video='null'::jsonb"),
     );
+    // A successor cannot silently replace the approved predecessor video.
+    const listingVersion = await scalar(
+      db,
+      'SELECT version::text FROM app_private.listings WHERE tenant_id=$1 AND id=$2',
+      [T, LISTING],
+    );
+    const successor = await asActor(db, T, AGENT, () =>
+      seedGuardedListingSuccessor(db, {
+        listingId: LISTING,
+        actorId: AGENT,
+        expectedListingVersion: listingVersion,
+        predecessor: { revision: 1, version: result.approvedVersion, state: 'approved' },
+        content,
+      }),
+    );
+    assert.equal(successor.decision.result.revision, 2);
+    assert.deepEqual(await publicRead(db), result);
+    const next = await asActor(db, T, AGENT, () =>
+      scalar(db, 'SELECT app_api.read_synthetic_listing_video($1,2)', [LISTING]),
+    );
+    assert.equal(next.video, null, 'No implicit copy of provider metadata into a new draft');
+    const clear = {
+      ...command,
+      operationId: id(1000),
+      revision: 2,
+      expectedVersion: next.version,
+      video: null,
+    };
+    const cleared = await asActor(db, T, AGENT, () =>
+      scalar(db, 'SELECT app_api.save_synthetic_listing_video($1::jsonb)', [JSON.stringify(clear)]),
+    );
+    assert.deepEqual(
+      await publicRead(db),
+      result,
+      'Explicit private removal must not unpublish predecessor metadata',
+    );
+    for (let i = 0; i < 4; i++)
+      await seedSyntheticSealedMedia(db, {
+        tenantId: T,
+        listingId: LISTING,
+        revision: 2,
+        position: i,
+        mediaId: id(810 + i),
+      });
+    const pending2 = await asActor(db, T, AGENT, () =>
+      scalar(db, 'SELECT app_api.submit_revision($1,2,$2)', [LISTING, cleared.resultVersion]),
+    );
+    assert.deepEqual(await publicRead(db), result);
+    await asActor(db, T, ADMIN, () =>
+      scalar(db, 'SELECT app_api.decide_revision($1,2,$2,true)', [LISTING, pending2]),
+    );
+    const latest = await asActor(db, T, null, () =>
+      scalar(db, 'SELECT app_api.read_synthetic_published_listing_video($1,2)', [LISTING]),
+    );
+    assert.equal(latest.video, null);
+    await assert.rejects(
+      () => publicRead(db),
+      (e) => e.code === 'P0002',
+    );
+    const oldSnapshot = await scalar(
+      db,
+      'SELECT video FROM app_private.synthetic_approved_listing_video WHERE tenant_id=$1 AND listing_id=$2 AND revision_no=1',
+      [T, LISTING],
+    );
+    assert.deepEqual(oldSnapshot, video, 'Historical approved video remains immutable');
     await db.query(
       "UPDATE app_private.listings SET publication_status='paused' WHERE tenant_id=$1 AND id=$2",
       [T, LISTING],
