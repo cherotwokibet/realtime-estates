@@ -1,0 +1,7 @@
+# Customer favourites and account flows
+
+Work started3 November2026 after second-brand310. Task07-6 remains open. Build on existing verified JWT subject plus current database customer membership, never a caller-supplied customer/company identity. Existing identity issuer/account control is unresolved: no signup, provider email or production account claim.
+
+The first isolated candidate is a durable per-company/per-customer favourite state and immutable operation receipt. Desired-state add/remove uses expected version and explicit operation ID; uncertain writes recover only by reading the original. Current customer membership and enabled company are rechecked, including reads. Staff cannot inspect customer favourites. Adding requires a currently public approved listing; removal must remain possible after unpublication. Queue returns only saved IDs and current availability, with current public summaries fetched separately through the existing public boundary. No private listing snapshot is retained. Bound active favourites to100 and queue pages to50.
+
+Keep candidate out of ordinary migrations/startup. Next connect strict shared contracts, opt-in API/SDK and synthetic signed identity composition, then customer session/login/logout and UI with no-store/subject+tenant scope and stale response cancellation. Provider-controlled identity, native/device, hosted concurrency and operator acceptance remain separate. KES10,000 total monthly baseline; no spending/Actions/vendor/live changes.
