@@ -1,3 +1,11 @@
+## Published audit metadata candidate318 — 3 November 2026
+
+Private dashboard242/source0e27fe1bf8b90debc43e2df5f853d4b5c7fd564f/deploymentappgdep_6aea12e20700819198ef270126c373e8 succeeded; exact version/source and1owner/0others/external/groups independently verified. Actual user tab shows new audit foundation and55%/53of97; all803 previous note multiplicities,804canonical notes and27manual checks retained in805-note export21. Exports20/21 moved withoutoverwrite/hashreadback. Screenshot docs/evidence/audit318-published.jpg; journal docs/evidence/admin-audit-publication318.json. No import/reset/sign-in/access change. One browser handle reset after unavailable session.
+
+Implementationdfb81fc/index7422c62 complete-history bundle318 SHA256CB407BEA58CEAEF303B0E88CB28B89020DC6CA77EF7AFA080B483E12F3FD9A6B verified with exact clean fresh restore318/fsck/restored192-scope index.9boundedfixes/0completecases/0acceptedgates. Same-device history only. Final database3/3, tracker3/3, format/diff/index checks pass; no API/UI build required or claimed for SQL-only candidate. Owned app preview not started. App push/Actions/spending/vendor/live unchanged.
+
+Exact next:08-7 literal every-admin-action permission/audit evidence inventory, fix missing command facts/denial tests; then connect metadata candidate through default-off signed API/strict SDK/existing admin BFF/no-store UI. Do not close08-7 from timeline alone. Candidate excludes raw summary/reason/correlation; existing underlying admin SELECT unchanged. No cross-request snapshot/load/HTTP/UI/device/production pass.53/97(55%),0/14gates. KES10,000 totalmonthly/realtor. Owner Boniface + Codex.
+
 ## Admin audit candidate317 — 3 November 2026
 
 Added isolated bounded admin-only audit metadata SQL and three meaningful restricted-role database tests; final3/3 passed, zero failures/skips. Raw summary/private reasons/correlation excluded; exact bigint strings, own-company actor/object filters and descending cursor. Current role/revocation/company checks and append-only denials verified. Not installed by normal migrations. Evidence: docs/evidence/2026-11-03-admin-audit-candidate.md and audit317-database.txt.
