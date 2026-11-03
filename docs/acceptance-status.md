@@ -8,6 +8,8 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| secondBrand309 | [evidence/brand309-final3.txt](evidence/brand309-final3.txt) · c1aa64d | 3 passed; Maintained local signed two-company synthetic composition and Expo configuration. Capture-only notification records; no provider/native device/hosted launch. |
+| secondBrandBrowser309 | [evidence/2026-11-03-second-brand-acceptance.md](evidence/2026-11-03-second-brand-acceptance.md) · c1aa64d | Actual local browser DOM identity/contact/stock/foreign unavailable proof. Screenshot API unavailable; no visual/device pass. |
 | floorRequest307 | [evidence/floor307-media-full.txt](evidence/floor307-media-full.txt) · 2ca5323 | 218 passed; Full maintained media after separate immutable floor-plan intent/source facade. Real durable close/reopen, exact binding/bytes/receipts, lost source acknowledgement read recovery/no retry and missing source/no repair, descriptor/snapshot/singleflight/close checks. Focused5 overlaps. Local metadata/storage only; no current authorization, worker permit, SQL attachment or end-to-end photo-count acceptance. |
 | floorWorker305 | [evidence/floor305-media-full.txt](evidence/floor305-media-full.txt) · bd482c2 | 213 passed; Full maintained media suite after fixed floor-plan worker/shared bounded file I/O and separate lossless byte readback. Includes actual owned Windows child success/extra role argument exit1, empty-job barrier, real line pixels, photo-manifest boundary rejection. Focused8 overlaps; no application floor-plan admission/attachment/UI or production sandbox claim. |
 | floorMedia302 | [evidence/floor302-media-full.txt](evidence/floor302-media-full.txt) · fabdf7e | 210 passed; Full maintained media suite after shared fixed-role codec refactor; new lossless raster floor-plan tests overlap. No connected floor-plan processing/attachment/UI claim. |
@@ -467,7 +469,7 @@ Next: Repeat assignment/history/closure on the release candidate with a Realtime
 
 Expected: Onboard synthetic second agency via validated configuration; company logo/colors/domains/contact/policies render across web/mobile/admin. No code fork or A content/contact/cache/storage/notification appearing in B
 Observed: Two synthetic company contexts and shared configuration are exercised; no code fork required.
-Evidence: [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [mobile211](evidence/2026-10-28-mobile-offline.md)
+Evidence: [signed212](evidence/2026-10-28-operations-overview/signed-http-full.txt), [mobile211](evidence/2026-10-28-mobile-offline.md), [secondBrand309](evidence/brand309-final3.txt), [secondBrandBrowser309](evidence/2026-11-03-second-brand-acceptance.md)
 Still open: Full web/mobile/admin identity/contact/storage/cache/notification second-brand acceptance remains open.
 Next: Run the entire configured second-brand flow including notifications and device storage separation. Owner: Boniface + Codex.
 

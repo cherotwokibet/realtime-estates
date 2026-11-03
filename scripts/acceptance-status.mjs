@@ -82,6 +82,9 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  secondBrand309: {"path":"docs/evidence/brand309-final3.txt","counts":[3],"environment":"Maintained local signed two-company synthetic composition and Expo configuration. Capture-only notification records; no provider/native device/hosted launch.","commit":"c1aa64dbffa2f9766a1befc61aa154aecc62325b","observedDate":"2026-11-03"},
+  secondBrandBrowser309: {"path":"docs/evidence/2026-11-03-second-brand-acceptance.md","counts":null,"environment":"Actual local browser DOM identity/contact/stock/foreign unavailable proof. Screenshot API unavailable; no visual/device pass.","commit":"c1aa64dbffa2f9766a1befc61aa154aecc62325b","observedDate":"2026-11-03"},
+
   floorRequest307: {"path":"docs/evidence/floor307-media-full.txt","counts":[218],"commit":"2ca53233aae60518cab1f96b07ad54f07a55fafe","observedDate":"2026-11-03","environment":"Full maintained media after separate immutable floor-plan intent/source facade. Real durable close/reopen, exact binding/bytes/receipts, lost source acknowledgement read recovery/no retry and missing source/no repair, descriptor/snapshot/singleflight/close checks. Focused5 overlaps. Local metadata/storage only; no current authorization, worker permit, SQL attachment or end-to-end photo-count acceptance."},
   floorWorker305: {"path":"docs/evidence/floor305-media-full.txt","counts":[213],"commit":"bd482c2a81eec6963774758c2a72f8d89cb7cd7a","observedDate":"2026-11-03","environment":"Full maintained media suite after fixed floor-plan worker/shared bounded file I/O and separate lossless byte readback. Includes actual owned Windows child success/extra role argument exit1, empty-job barrier, real line pixels, photo-manifest boundary rejection. Focused8 overlaps; no application floor-plan admission/attachment/UI or production sandbox claim."},
   floorMedia302: {"path":"docs/evidence/floor302-media-full.txt","counts":[210],"commit":"fabdf7ea063824a9d96451457e104cbfa3c0e986","observedDate":"2026-11-03","environment":"Full maintained media suite after shared fixed-role codec refactor; new lossless raster floor-plan tests overlap. No connected floor-plan processing/attachment/UI claim."},
@@ -1443,7 +1446,7 @@ const reviewed = [
   [
     28,
     'partial',
-    ['signed212', 'mobile211'],
+    ['signed212', 'mobile211', 'secondBrand309', 'secondBrandBrowser309'],
     'Two synthetic company contexts and shared configuration are exercised; no code fork required.',
     'Full web/mobile/admin identity/contact/storage/cache/notification second-brand acceptance remains open.',
     'Run the entire configured second-brand flow including notifications and device storage separation.',
