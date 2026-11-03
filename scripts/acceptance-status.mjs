@@ -82,6 +82,10 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  customerSigned313: {"path":"docs/evidence/customer313-maintained4.txt","counts":[9],"environment":"Maintained fresh-build customer composition: signed RS256/JWKS/HTTP/shared SDK/restricted SQL3, API boundaries2, SDK4. Lost/malformed committed reply→uncertain→GET of original, trace POST/GET only; both companies/current membership, signature/authority/default-off/production refusals. No customer browser/session/cache/provider/device/hosted race.","commit":"02cf28c5788dbda08c06355869a7c76a7f5160be","observedDate":"2026-11-03"},
+  customerApi313: {"path":"docs/evidence/customer313-api-full.txt","counts":[360],"environment":"Full maintained compiled API suite after default-off customer handler integration. Includes customer boundary checks, not customer UI/provider deployment.","commit":"02cf28c5788dbda08c06355869a7c76a7f5160be","observedDate":"2026-11-03"},
+  customerSdk313: {"path":"docs/evidence/customer313-sdk-full.txt","counts":[343],"environment":"Full maintained shared SDK suite including new customer file4 checks. Scope binding, no-store/omit/redirect-error, bounded stalled-body/late-response cancellation and no automatic retry. Focused checks overlap; no actual browser cache/logout proof.","commit":"02cf28c5788dbda08c06355869a7c76a7f5160be","observedDate":"2026-11-03"},
+
   customerDomain311: {"path":"docs/evidence/customer311-domain-full.txt","counts":[354],"environment":"Full shared domain suite with strict customer favourite command/account/state/receipt/page contracts. Four focused checks overlap.","commit":"6fa76114b7b3de36e8896a5b98bd45ec2dc2be25","observedDate":"2026-11-03"},
   customerSql311: {"path":"docs/evidence/customer311-focused5.txt","counts":[9],"environment":"Local restricted SQL5 and shared contracts4. Current customer/tenant isolation,100 quota, versioned originals, dynamic availability/removal, snapshot export into fresh engine and forced receipt rollback. No signed HTTP/UI/cache/provider/hosted race or on-disk crash pass.","commit":"6fa76114b7b3de36e8896a5b98bd45ec2dc2be25","observedDate":"2026-11-03"},
 
@@ -1518,7 +1522,7 @@ const entries = cases.map((item, index) => {
   if ([2, 3, 19, 30, 35].includes(number))
     evidence.push('authorizationReview223', 'authInventory223', 'authRoles223', 'authStorage223');
   if ([19, 35].includes(number)) evidence.push('browserReport223', 'signedReport223');
-  if ([2,3,4].includes(number)) evidence.push('customerDomain311','customerSql311');
+  if ([2,3,4].includes(number)) evidence.push('customerDomain311','customerSql311','customerSigned313','customerApi313','customerSdk313');
   evidence.forEach((key) => assert.ok(executions[key], `Missing evidence ${key}`));
   const originalFinding =
     index > 0 && index < 25
