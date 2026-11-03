@@ -82,6 +82,13 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  videoAuthorAdmin290: {"path": "docs/evidence/video290-admin-final1.txt", "counts": [525, 44], "commit": "516d72e69f203b63bfb6ed97677ffa66f936f202", "observedDate": "2026-11-03", "environment": "Full admin libraries/BFF/controllers plus rendered UI. Video checks overlap focused and signed records; no physical device acceptance."},
+  videoAuthorReference290: {"path": "docs/evidence/video290-reference-final1.txt", "counts": [18], "commit": "516d72e69f203b63bfb6ed97677ffa66f936f202", "observedDate": "2026-11-03", "environment": "Full maintained signed reference composition, including two new video cases; actual HTTP/JWKS/SDK/restricted SQL, not hosted concurrency."},
+  videoAuthorFocused290: {"path": "docs/evidence/video290-focused1.txt", "counts": [10], "commit": "516d72e69f203b63bfb6ed97677ffa66f936f202", "observedDate": "2026-11-03", "environment": "Video retained original and browser BFF transport checks. Overlaps full admin525."},
+  videoAuthorBuild290: {"path": "docs/evidence/video290-next-final1.txt", "counts": null, "commit": "516d72e69f203b63bfb6ed97677ffa66f936f202", "observedDate": "2026-11-03", "environment": "Full current admin Next production build, including video page and save/recover routes. No production deployment."},
+  videoAuthorFormat290: {"path": "docs/evidence/video290-format-final2.txt", "counts": null, "commit": "516d72e69f203b63bfb6ed97677ffa66f936f202", "observedDate": "2026-11-03", "environment": "Changed code formatting passed after test-config formatting correction; no runtime behavior change."},
+  videoAuthorBrowser290: {"path": "docs/evidence/2026-11-03-private-video-author.md", "counts": null, "commit": "516d72e69f203b63bfb6ed97677ffa66f936f202", "observedDate": "2026-11-03", "environment": "Actual owned Next browser: committed-reply loss502, reload/SAME original, explicit recovery200, fresh removal200 and version5/None.390px geometry/keyboard inspected. Earlier compiler OOM interrupted fixture is not a recovery pass. Adopted revision only; no reviewer/public/native/provider/floorplan acceptance."},
+
   videoDomain287: {"path":"docs/evidence/video287-domain-final.txt","counts":[349],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Full current domain; six new private-video validation/original/state checks overlap the full suite."},
   videoSdk287: {"path":"docs/evidence/video287-sdk-final.txt","counts":[337],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Full current SDK unit suite; four new video snapshot/uncertainty/GET/no-store checks overlap. No automatic write retry."},
   videoApi287: {"path":"docs/evidence/video287-api-final.txt","counts":[358],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Full current compiled API suite; three new default-off/context/input/response checks overlap."},
@@ -1210,7 +1217,7 @@ const reviewed = [
   [
     3,
     'partial',
-    ['videoSql287', 'videoSigned287', 'api212', 'signed212', 'sdk212', 'media213', 'staffSql248', 'staffApi248', 'staffSigned248'],
+    ['videoAuthorReference290', 'videoAuthorBrowser290', 'videoSql287', 'videoSigned287', 'api212', 'signed212', 'sdk212', 'media213', 'staffSql248', 'staffApi248', 'staffSigned248'],
     'Current company/assignment checks, exact operation recovery and raw viewing-table denial.',
     'Exports, subscriptions and full production pooled/storage isolation are not accepted.',
     'Implement and test scoped export/session/job paths, then rerun the complete two-company matrix.',
@@ -1226,7 +1233,7 @@ const reviewed = [
   [
     5,
     'partial',
-    ['videoSdk287', 'videoSql287', 'videoSigned287', 'videoEvidence287', 'media216', 'signed216', 'admin216', 'browser216', 'database215'],
+    ['videoAuthorAdmin290', 'videoAuthorFocused290', 'videoAuthorReference290', 'videoAuthorBuild290', 'videoAuthorFormat290', 'videoAuthorBrowser290', 'videoSdk287', 'videoSql287', 'videoSigned287', 'videoEvidence287', 'media216', 'signed216', 'admin216', 'browser216', 'database215'],
     'Actual browser Cancel at third upload preserved two photos and recovered the original confirmed stop. Live original-instance retirement/drain, exact authorized incomplete workspace cleanup, verified/reference protection and uncertainty guards passed locally.',
     'Production provider retention/schedule/alerts, hosted process isolation and actual Android/iOS/operator interruption journeys remain open.',
     'Verify staged provider lifecycle and actual devices; historical journals never grant new cleanup authority.',
