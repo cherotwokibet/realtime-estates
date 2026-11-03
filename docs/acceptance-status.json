@@ -19,6 +19,30 @@
     "caseCount": 35
   },
   "executions": {
+    "floorMedia302": {
+      "path": "docs/evidence/floor302-media-full.txt",
+      "counts": [
+        210
+      ],
+      "commit": "fabdf7ea063824a9d96451457e104cbfa3c0e986",
+      "observedDate": "2026-11-03",
+      "environment": "Full maintained media suite after shared fixed-role codec refactor; new lossless raster floor-plan tests overlap. No connected floor-plan processing/attachment/UI claim.",
+      "sha256": "95839dedece6802aca98ab808d9c2de77c87572ee7bd14882994881fe8a67acb",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
+    "videoSuccessor302": {
+      "path": "docs/evidence/video302-successor-sql.txt",
+      "counts": [
+        2
+      ],
+      "commit": "fabdf7ea063824a9d96451457e104cbfa3c0e986",
+      "observedDate": "2026-11-03",
+      "environment": "Restricted sequential PGlite: guarded successor does not copy private video; private null preserves prior public video until successor approval; newly approved null removes current public video while old immutable capture remains. No new browser/hosted race pass.",
+      "sha256": "7b5eaeb03d99314a22075941a73fd73c5104694d2d5891ea5c26e8ed9a590413",
+      "hashScope": "UTF-8 text with CRLF normalized to LF; raw log contents otherwise retained",
+      "coverage": "Limited to the named tests and environment. Not a complete acceptance-case or release-gate pass."
+    },
     "approvedVideoDomain294": {
       "path": "docs/evidence/video294-domain-full.txt",
       "counts": [
@@ -2204,6 +2228,8 @@
       "status": "partial",
       "releaseCasePassed": false,
       "evidence": [
+        "floorMedia302",
+        "videoSuccessor302",
         "approvedVideoDomain294",
         "approvedVideoSdk294",
         "approvedVideoApi294",
