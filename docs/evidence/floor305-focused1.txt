@@ -1,0 +1,36 @@
+✔ floor-plan readback binds actual bytes and refuses the existing photo manifest boundary in both directions (27.4892ms)
+✔ floor-plan readback refuses role relabelling, lossy output and forged or noncanonical sidecars (9.5012ms)
+✖ fixed floor-plan worker runs in the owned Windows job and rejects caller-supplied role arguments (3625.6727ms)
+✔ pure readback matches actual encoded dimensions/hashes and snapshots ordinary buffers (13.5667ms)
+✔ sidecar cannot override input/output facts, encoder, pipeline or operations (4.2733ms)
+✔ bounded canonical sidecar rejects duplicate/escaped keys, rounded tokens and invalid UTF-8 (4.2712ms)
+✔ static coded headers reject metadata, animation, unknown/trailing chunks and canvas mismatch (16.4297ms)
+✔ readback enforces actual byte caps and rejects shared memory before parsing (3.8744ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 7
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4196.8133
+
+✖ failing tests:
+
+test at packages\media\tests\floor-plan-worker.test.mjs:100:1
+✖ fixed floor-plan worker runs in the owned Windows job and rejects caller-supplied role arguments (3625.6727ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'exited' !== 'failed'
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/media/tests/floor-plan-worker.test.mjs:158:16)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'exited',
+    expected: 'failed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { isSharedArrayBuffer } from 'node:util/types';
 import { inspectContainer, SYNTHETIC_CODEC_POLICY } from './containers.js';
-import type { SyntheticImageResult } from './index.js';
+import type { SyntheticImageResult, SyntheticFloorPlanResult } from './index.js';
 
 export class MediaReadbackError extends Error {
   override readonly name = 'MediaReadbackError';
@@ -38,7 +38,7 @@ function dimension(value: number): void {
 }
 
 /** Pure byte/header check, not a native decode or a security sandbox. */
-function outputDimensions(bytes: Buffer): { width: number; height: number } {
+function outputDimensions(bytes: Buffer, losslessOnly: boolean): { width: number; height: number } {
   if (
     bytes.length < 20 ||
     bytes.toString('latin1', 0, 4) !== 'RIFF' ||
@@ -113,6 +113,7 @@ function outputDimensions(bytes: Buffer): { width: number; height: number } {
   }
   if (
     !coded ||
+    (losslessOnly && coded.kind !== 'VP8L') ||
     offset !== bytes.length ||
     (canvas &&
       (canvas.width !== coded.width ||
@@ -136,6 +137,22 @@ export function verifySyntheticProcessReadback(
   output: Buffer,
   sidecar: Buffer,
 ): SyntheticImageResult {
+  return verifyFixedRoleReadback(input, output, sidecar, 'photo') as SyntheticImageResult;
+}
+/** Separate local floor-plan readback; no attachment, photo count or authorization capability. */
+export function verifySyntheticFloorPlanReadback(
+  input: Buffer,
+  output: Buffer,
+  sidecar: Buffer,
+): SyntheticFloorPlanResult {
+  return verifyFixedRoleReadback(input, output, sidecar, 'floor_plan') as SyntheticFloorPlanResult;
+}
+function verifyFixedRoleReadback(
+  input: Buffer,
+  output: Buffer,
+  sidecar: Buffer,
+  role: 'photo' | 'floor_plan',
+): SyntheticImageResult | SyntheticFloorPlanResult {
   try {
     if (
       ![input, output, sidecar].every(Buffer.isBuffer) ||
@@ -155,7 +172,13 @@ export function verifySyntheticProcessReadback(
     // The owned worker writes JSON.stringify. Exact canonical readback rejects duplicate
     // keys, escaped aliases, rounded number literals and invalid UTF-8 replacement aliases.
     if (JSON.stringify(parsed) !== text) reject();
+    const operations =
+      role === 'floor_plan'
+        ? Object.freeze([...OPERATIONS.slice(0, 3), 'webp-lossless-effort-4'] as const)
+        : OPERATIONS;
+    const pipeline = role === 'floor_plan' ? 'synthetic-floor-plan-codec-v1' : 'synthetic-codec-v1';
     const m = object(parsed, [
+      ...(role === 'floor_plan' ? ['role', 'countsAsPhoto'] : []),
       'pipeline',
       'sourceFormat',
       'inputSha256',
@@ -170,10 +193,11 @@ export function verifySyntheticProcessReadback(
       'operations',
     ]);
     const encoder = object(m.encoder, ['sharp', 'vips']);
-    const size = outputDimensions(data);
+    const size = outputDimensions(data, role === 'floor_plan');
     const sourceFormat = inspectContainer(source);
     if (
-      m.pipeline !== 'synthetic-codec-v1' ||
+      m.pipeline !== pipeline ||
+      (role === 'floor_plan' && (m.role !== 'floor_plan' || m.countsAsPhoto !== false)) ||
       m.sourceFormat !== sourceFormat ||
       m.inputSha256 !== hash(source) ||
       m.inputBytes !== source.length ||
@@ -186,13 +210,16 @@ export function verifySyntheticProcessReadback(
       encoder.sharp !== ENCODER.sharp ||
       encoder.vips !== ENCODER.vips ||
       !Array.isArray(m.operations) ||
-      JSON.stringify(m.operations) !== JSON.stringify(OPERATIONS)
+      JSON.stringify(m.operations) !== JSON.stringify(operations)
     )
       reject();
     return Object.freeze({
       data,
       manifest: Object.freeze({
-        pipeline: 'synthetic-codec-v1',
+        pipeline,
+        ...(role === 'floor_plan'
+          ? { role: 'floor_plan' as const, countsAsPhoto: false as const }
+          : {}),
         sourceFormat,
         inputSha256: hash(source),
         inputBytes: source.length,
@@ -203,9 +230,9 @@ export function verifySyntheticProcessReadback(
         height: size.height,
         bytes: data.length,
         encoder: ENCODER,
-        operations: OPERATIONS,
+        operations,
       }),
-    });
+    }) as SyntheticImageResult | SyntheticFloorPlanResult;
   } catch {
     throw new MediaReadbackError();
   }
