@@ -1,0 +1,31 @@
+
+> @realtor/media@0.1.0 build
+> tsc -p tsconfig.json
+
+src/floor-plan-request.ts(84,23): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'object'.
+src/floor-plan-request.ts(128,10): error TS2352: Conversion of type 'Function' to type 'DurableSyntheticStore' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'Function' is missing the following properties from type 'DurableSyntheticStore': storeId, rootDirectory, install, read, close
+src/floor-plan-request.ts(129,5): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(f: Function): Function', gave the following error.
+    Object literal may only specify known properties, and 'storeId' does not exist in type 'Function'.
+  Overload 2 of 3, '(o: { [idx: string]: string | number | bigint | boolean | symbol | object | null | undefined; }): Readonly<{ [idx: string]: string | number | bigint | boolean | symbol | object | null | undefined; }>', gave the following error.
+    Type 'unknown' is not assignable to type 'string | number | bigint | boolean | symbol | object | null | undefined'.
+  Overload 3 of 3, '(o: { storeId: string; rootDirectory: string; install: (reference: DurableSyntheticReference, bytes: Buffer<ArrayBufferLike>) => Promise<...>; read: (reference: DurableSyntheticReference) => Promise<...>; close: () => Promise<...>; }): Readonly<...>', gave the following error.
+    Type 'unknown' is not assignable to type 'string'.
+src/floor-plan-request.ts(130,33): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/floor-plan-request.ts(158,29): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'WithImplicitCoercion<string | ArrayLike<number>>'.
+src/floor-plan-request.ts(241,11): error TS2322: Type 'Readonly<{ version: 1; role: "floor_plan"; pipeline: "synthetic-floor-plan-codec-v1"; requestStoreId: string; inputStoreId: string; binding: FloorPlanRequestBinding; source: Readonly<...>; }>' is not assignable to type 'FloorPlanRequest'.
+  The types of 'source.sha256' are incompatible between these types.
+    Type 'unknown' is not assignable to type 'string'.
+src/floor-plan-request.ts(270,30): error TS2769: No overload matches this call.
+  The last overload gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'WithImplicitCoercion<string | ArrayLike<number>>'.
+npm error Lifecycle script `build` failed with error:
+npm error code 2
+npm error path C:\Users\BONIFACE\Realtime System\RealEstate\realtor-platform\packages\media
+npm error workspace @realtor/media@0.1.0
+npm error location C:\Users\BONIFACE\Realtime System\RealEstate\realtor-platform\packages\media
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c tsc -p tsconfig.json
