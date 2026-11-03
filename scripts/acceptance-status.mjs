@@ -82,6 +82,11 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  customerMaintain315: {"path":"docs/evidence/customer315-maintained10.txt","counts":[13],"environment":"Maintained fresh domain/API/SDK builds, web compile, customer session7/browser contract4/owned signed preview2. Counts overlap full web127. Exact Host adapter, session/CSRF/expiry/original-retention and deliberate same-op retry, stale generation/decoder and positive foreign saved fixture. No provider/device/global logout acceptance.","commit":"54d292a25aeec670838d64293204e39e3724a526","observedDate":"2026-11-03"},
+  customerWeb315: {"path":"docs/evidence/customer315-web-full7.txt","counts":[127],"environment":"Entire maintained public web suite including11 customer session/browser checks. Real browser proof separately dated; no native device or real identity provider.","commit":"54d292a25aeec670838d64293204e39e3724a526","observedDate":"2026-11-03"},
+  customerBuild315: {"path":"docs/evidence/customer315-web-build8.txt","counts":null,"environment":"Full Next16.4.2 web production build and TypeScript, includes account and customer route. Synthetic accounts remain default-off and production-unavailable; no deployment activation.","commit":"54d292a25aeec670838d64293204e39e3724a526","observedDate":"2026-11-03"},
+  customerBrowser315: {"path":"docs/evidence/2026-11-03-customer-account-acceptance.md","counts":null,"environment":"Actual local customer browser sign-in, lost committed save/reload/original recovery, exact price, unavailable removal, A/B separation, cross-tab logout/revocation clearing and SampleHomes empty with positive foreign fixture. Desktop1280 only; requested390 override did not apply and was reset. No physical/native/narrow/provider/operator/hosted gate.","commit":"54d292a25aeec670838d64293204e39e3724a526","observedDate":"2026-11-03"},
+
   customerSigned313: {"path":"docs/evidence/customer313-maintained4.txt","counts":[9],"environment":"Maintained fresh-build customer composition: signed RS256/JWKS/HTTP/shared SDK/restricted SQL3, API boundaries2, SDK4. Lost/malformed committed reply→uncertain→GET of original, trace POST/GET only; both companies/current membership, signature/authority/default-off/production refusals. No customer browser/session/cache/provider/device/hosted race.","commit":"02cf28c5788dbda08c06355869a7c76a7f5160be","observedDate":"2026-11-03"},
   customerApi313: {"path":"docs/evidence/customer313-api-full.txt","counts":[360],"environment":"Full maintained compiled API suite after default-off customer handler integration. Includes customer boundary checks, not customer UI/provider deployment.","commit":"02cf28c5788dbda08c06355869a7c76a7f5160be","observedDate":"2026-11-03"},
   customerSdk313: {"path":"docs/evidence/customer313-sdk-full.txt","counts":[343],"environment":"Full maintained shared SDK suite including new customer file4 checks. Scope binding, no-store/omit/redirect-error, bounded stalled-body/late-response cancellation and no automatic retry. Focused checks overlap; no actual browser cache/logout proof.","commit":"02cf28c5788dbda08c06355869a7c76a7f5160be","observedDate":"2026-11-03"},
@@ -1523,6 +1528,7 @@ const entries = cases.map((item, index) => {
     evidence.push('authorizationReview223', 'authInventory223', 'authRoles223', 'authStorage223');
   if ([19, 35].includes(number)) evidence.push('browserReport223', 'signedReport223');
   if ([2,3,4].includes(number)) evidence.push('customerDomain311','customerSql311','customerSigned313','customerApi313','customerSdk313');
+  if([2,3,4,11,28].includes(number))evidence.push('customerMaintain315','customerWeb315','customerBuild315','customerBrowser315');
   evidence.forEach((key) => assert.ok(executions[key], `Missing evidence ${key}`));
   const originalFinding =
     index > 0 && index < 25
