@@ -1,3 +1,4 @@
+import { createCustomerFavouritesHttpCandidate } from './customer-favourites-http.js';
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
 import {
   parseListingVideoJson,
@@ -148,6 +149,8 @@ export interface EnquiryLimiter {
   consume(key: string): LimiterResult | Promise<LimiterResult>;
 }
 export interface ApiServiceOptions {
+  /** Isolated current-customer candidate; omitted leaves all customer routes unavailable. */
+  readonly customerFavouritesMode?: 'synthetic-customer-favourites-v1';
   /** Isolated private video metadata preparation; no provider/public delivery or schema installation. */
   readonly listingVideoMode?: 'synthetic-private-listing-video-v1';
   readonly listingVideoPublicationMode?: 'synthetic-listing-video-publication-v1';
@@ -1589,6 +1592,19 @@ export function createApiService(
         tenantId,
       })
     : null;
+  if (
+    options.customerFavouritesMode !== undefined &&
+    options.customerFavouritesMode !== 'synthetic-customer-favourites-v1'
+  )
+    throw Error('Unsupported customer mode.');
+  const customerHandler = options.customerFavouritesMode
+    ? createCustomerFavouritesHttpCandidate({
+        mode: options.customerFavouritesMode,
+        tenantId,
+        database: options.database,
+        verifyAuthorization: options.verifyAuthorization,
+      })
+    : null;
   const privacyNoticeVersion = text(
     options.privacyNoticeVersion,
     'Configured privacy notice version',
@@ -1639,6 +1655,10 @@ export function createApiService(
       const url = new URL(request.url);
       const path = url.pathname;
       const method = request.method.toUpperCase();
+      if (path === '/v2/customer' || path.startsWith('/v2/customer/')) {
+        if (!customerHandler) throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        return customerHandler(request, correlationId);
+      }
       if (
         /^\/v3\/properties\/[^/]+\/revisions\/[^/]+\/video/.test(path) ||
         /^\/v2\/staff\/reviews\/[^/]+\/[^/]+\/video/.test(path)

@@ -1,0 +1,33 @@
+
+> realtor-platform@0.1.0 test:customer-favourites
+> npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/api && npm run build --workspace=@realtor/api-client && node --test --test-concurrency=1 apps/api/dev/customer-favourites-http.test.mjs apps/api/tests/customer-favourites.test.mjs packages/api-client/tests/customer-favourites.test.mjs
+
+
+> @realtor/domain@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ signed customer SDK/HTTP uses current SQL scope, original receipt and safe unavailable/removal state (8465.4849ms)
+✔ lost and malformed committed write replies stay uncertain; recovery is explicit GET without another POST (6079.1077ms)
+✔ default-off, production, signature, authority/query/body limits fail closed without publishing secrets (6316.9893ms)
+✔ malformed database replies are refused without accessing original getters or exposing database errors (115.4648ms)
+✔ customer route method/path refusals and omitted mode do not touch database or verifier (4.5055ms)
+✔ SDK sends only explicit bearer/no-store/omit/error policy and never adds caller scope (98.9349ms)
+✔ SDK binds company/customer/original and treats malformed success or network loss as uncertain without retry (9.7887ms)
+✔ SDK rejects unsafe origin/authority/getters and already-aborted writes before transport (2.272ms)
+✔ SDK cancellation rejects late ignored-abort replies and bounds a stalled success body (35.113ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 23733.4777

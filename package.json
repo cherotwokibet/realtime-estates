@@ -25,7 +25,8 @@
     "test:database": "node --test --test-concurrency=1 database/tests/*.test.mjs",
     "test:media": "npm run test --workspace=@realtor/media",
     "dev:operations-preview": "npm run build:packages && npm run build --workspace=@realtor/api && node scripts/operations-preview.mjs",
-    "test:second-brand": "npm run build --workspace=@realtor/api && npm run build --workspace=@realtor/api-client && npm run test:compile --workspace=@realtor/web && node --test --test-concurrency=1 scripts/second-brand-demo.test.mjs apps/mobile/tests/reference-build-config.test.mjs"
+    "test:second-brand": "npm run build --workspace=@realtor/api && npm run build --workspace=@realtor/api-client && npm run test:compile --workspace=@realtor/web && node --test --test-concurrency=1 scripts/second-brand-demo.test.mjs apps/mobile/tests/reference-build-config.test.mjs",
+    "test:customer-favourites": "npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/api && npm run build --workspace=@realtor/api-client && node --test --test-concurrency=1 apps/api/dev/customer-favourites-http.test.mjs apps/api/tests/customer-favourites.test.mjs packages/api-client/tests/customer-favourites.test.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",

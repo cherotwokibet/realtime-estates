@@ -1,0 +1,35 @@
+✔ signed customer SDK/HTTP uses current SQL scope, original receipt and safe unavailable/removal state (8545.3012ms)
+✔ lost and malformed committed write replies stay uncertain; recovery is explicit GET without another POST (5910.6988ms)
+✔ default-off, production, signature, authority/query/body limits fail closed without publishing secrets (5990.4142ms)
+✔ SDK sends only explicit bearer/no-store/omit/error policy and never adds caller scope (97.6603ms)
+✔ SDK binds company/customer/original and treats malformed success or network loss as uncertain without retry (9.7292ms)
+✖ SDK rejects unsafe origin/authority/getters and already-aborted writes before transport (1.9406ms)
+✔ SDK cancellation rejects late ignored-abort replies and bounds a stalled success body (31.8927ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 6
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 22925.0246
+
+✖ failing tests:
+
+test at packages\api-client\tests\customer-favourites.test.mjs:82:1
+✖ SDK rejects unsafe origin/authority/getters and already-aborted writes before transport (1.9406ms)
+  Error [CustomerApiError]: Customer request unavailable.
+      at CustomerFavouritesClient.setFavourite (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/customer-favourites.js:209:19)
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/tests/customer-favourites.test.mjs:105:32
+      at waitForActual (node:assert:632:21)
+      at strict.rejects (node:assert:769:31)
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/tests/customer-favourites.test.mjs:105:16)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12) {
+    kind: 'validation',
+    submissionUncertain: false,
+    status: undefined
+  }

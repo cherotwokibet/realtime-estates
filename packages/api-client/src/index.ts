@@ -6579,3 +6579,5 @@ export class RealtorApiClient {
 export { createEnquiryProxyTransport } from './enquiry-proxy.js';
 
 export { handleSyntheticEnquiry } from './synthetic-enquiry-handler.js';
+
+export * from './customer-favourites.js';
