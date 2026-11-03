@@ -1,0 +1,28 @@
+
+> realtor-platform@0.1.0 test:second-brand
+> npm run build --workspace=@realtor/api && npm run build --workspace=@realtor/api-client && npm run test:compile --workspace=@realtor/web && node --test --test-concurrency=1 scripts/second-brand-demo.test.mjs apps/mobile/tests/reference-build-config.test.mjs
+
+
+> @realtor/api@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/web@0.1.0 test:compile
+> tsc -p tsconfig.tests.json
+
+✔ actual Expo config exposes only explicit public development settings and refuses production or orphan flags (563.1606ms)
+{"policy":"synthetic-second-brand-proof-v1","brands":[{"slug":"realtime-estates","tenantId":"00000000-0000-4000-8000-000000000001","name":"Realtime Estates — synthetic pilot","email":"realtime-preview@example.invalid","primary":"#5e0202","listingId":"00000000-0000-4000-8000-000000000400","inventoryIds":["00000000-0000-4000-8000-000000000400"],"foreignInventoryAbsent":true,"foreignEnquiryDenied":true,"notification":{"mode":"capture-only-v1","outcome":"captured","enquiryId":"00000000-0000-4000-8000-000000000701","viewingId":"3bf42650-14aa-495e-8b6b-46693994c208","actorId":"00000000-0000-4000-8000-000000000011","operationId":"03223496-4a99-4a54-aa48-7cf0d2f4e1d7","readbackIdentical":true,"foreignOriginalDenied":true,"providerDelivery":false}},{"slug":"sample-homes","tenantId":"00000000-0000-4000-8000-000000000002","name":"Sample Homes — synthetic second brand","email":"sample-homes@example.invalid","primary":"#10465b","listingId":"00000000-0000-4000-8000-000000000500","inventoryIds":["00000000-0000-4000-8000-000000000500"],"foreignInventoryAbsent":true,"foreignEnquiryDenied":true,"notification":{"mode":"capture-only-v1","outcome":"captured","enquiryId":"00000000-0000-4000-8000-000000000801","viewingId":"fddfd268-1724-4b61-8aa9-6840a3cbed8b","actorId":"00000000-0000-4000-8000-000000000021","operationId":"d18c3b42-4591-40c3-a22d-a544124c5c7a","readbackIdentical":true,"foreignOriginalDenied":true,"providerDelivery":false}}]}
+✔ two independently configured synthetic brands retain distinct public identities, contact addresses, stock and signed reminder captures (14697.3409ms)
+✔ brand demonstration refuses unknown identity, production and swapped presentation scope (2.6312ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16147.8252
