@@ -1,0 +1,31 @@
+✔ signed reviewer and anonymous public video routes compose through JWKS and restricted SQL without provider requests (8892.4532ms)
+✔ video publication default is unavailable and unsupported startup mode is rejected (6512.2763ms)
+✖ non-null signed reviewer selection freezes on approval and remains anonymous public metadata (7388.3193ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 23805.8006
+
+✖ failing tests:
+
+test at apps\admin\integration-tests\listing-video-publication-flow.test.mjs:84:1
+✖ non-null signed reviewer selection freezes on approval and remains anonymous public metadata (7388.3193ms)
+  Error [ApiClientError]: Invalid synthetic reference revision.
+      at invalid (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:177:11)
+      at RealtorApiClient.referenceRevision (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:2706:20)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async prepareVideoReview (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/scripts/video-publication-fixture.mjs:11:49)
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/integration-tests/listing-video-publication-flow.test.mjs:84:162)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    kind: 'INVALID_RESPONSE',
+    status: undefined,
+    serverCode: undefined,
+    requestId: undefined,
+    retryAfterSeconds: undefined,
+    submissionUncertain: false
+  }

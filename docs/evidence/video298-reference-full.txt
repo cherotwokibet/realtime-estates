@@ -1,0 +1,39 @@
+
+> @realtor/admin@0.1.0 test:reference-integration
+> npm run build --workspace=@realtor/api && tsc -p tsconfig.tests.json && node --conditions=react-server --test integration-tests/reference-draft-flow.test.mjs integration-tests/reference-moderation-flow.test.mjs integration-tests/revision-protocol-flow.test.mjs integration-tests/reference-submission-flow.test.mjs integration-tests/listing-video-flow.test.mjs integration-tests/listing-video-publication-flow.test.mjs
+
+
+> @realtor/api@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ author loader/BFF/client/retained model connect signed video save, lost reply, reload, GET original and fresh removal (38288.5907ms)
+✔ post-save access loss stays uncertain while all BFF reads and originals use current signed scope (11390.456ms)
+✔ signed reviewer and anonymous public video routes compose through JWKS and restricted SQL without provider requests (38331.3539ms)
+✔ video publication default is unavailable and unsupported startup mode is rejected (9763.1701ms)
+✔ non-null signed reviewer selection freezes on approval and remains anonymous public metadata (10190.1356ms)
+▶ mounted reference flow through browser adapter, BFF, SDK, API and restricted SQL retains originals
+  ✔ fresh initial mount facts come from exact authorized API workspace and catalogue (12.7731ms)
+  ✔ lost committed response leaves retained uncertain original and exactly one upstream save (227.2545ms)
+  ✔ restore after catalogue activation uses original historical version and performs no write (177.3116ms)
+  ✔ rotated actor and revoked membership cannot recover or replace an original (141.7723ms)
+  ✔ restored current access recovers original, explicit clear permits fresh workspace version (251.3925ms)
+✔ mounted reference flow through browser adapter, BFF, SDK, API and restricted SQL retains originals (34831.8198ms)
+▶ unmounted moderation browser adapter through BFF/SDK/API/restricted SQL preserves original decisions
+  ✔ exact private read and one committed submission with lost browser acknowledgement remain uncertain (764.3449ms)
+  ✔ browser recovery posts the original body only to BFF while every upstream recovery request is GET (229.6436ms)
+  ✔ historical catalogue refetch and admin review preserve original facts after catalogue activation (490.2383ms)
+  ✔ operational change makes displayed review stale and exact refreshed approval preserves pause (490.5679ms)
+  ✔ original approval GET settles only exact verified result and preserves approved historical snapshot (199.7394ms)
+  ✔ revoked current membership and actor rotation deny original recovery without sending another transition (103.049ms)
+✔ unmounted moderation browser adapter through BFF/SDK/API/restricted SQL preserves original decisions (36699.3989ms)
+✔ author loader and retained browser adapter connect signed withdrawal/recovery/resubmission; incomplete photos refuse without mutation (39753.9753ms)
+✔ server-only protocol context uses signed HTTP authority and follows explicit persisted adoption (36858.6841ms)
+✔ mixed-row server handoff crosses signed HTTP before adoption and preserves saved IDs plus read-only pending recovery (11893.3047ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 70015.4333

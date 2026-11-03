@@ -45,6 +45,14 @@ if (
 if (referenceDraftMode !== undefined && referenceDraftMode !== 'synthetic-reference-draft-v1')
   throw new Error('Choose the explicit synthetic-reference-draft-v1 reference mode or omit it.');
 const listingVideoMode = process.env.STAFF_PREVIEW_VIDEO;
+const listingVideoPublicationMode = process.env.STAFF_PREVIEW_VIDEO_PUBLICATION;
+if (
+  listingVideoPublicationMode !== undefined &&
+  (listingVideoPublicationMode !== 'synthetic-listing-video-publication-v1' ||
+    listingVideoMode !== 'synthetic-private-listing-video-v1' ||
+    !referenceModerationMode)
+)
+  throw Error('Video publication requires explicit private video and moderation modes.');
 if (
   listingVideoMode !== undefined &&
   (listingVideoMode !== 'synthetic-private-listing-video-v1' || !referenceDraftMode)
@@ -99,6 +107,7 @@ const preview = await startStaffPreview({
   successorTerminalFixture: process.env.STAFF_PREVIEW_SUCCESSOR_TERMINAL,
   referenceDraftMode,
   listingVideoMode,
+  listingVideoPublicationMode,
   listingVideoReplyFault: process.env.STAFF_PREVIEW_VIDEO_REPLY_FAULT,
   referenceReplyFault: process.env.STAFF_PREVIEW_REFERENCE_REPLY_FAULT,
   referenceModerationMode,

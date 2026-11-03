@@ -1,3 +1,4 @@
+import { prepareVideoReview } from '../../../scripts/video-publication-fixture.mjs';
 import { readVideoReviewScreen } from '../dist/tests/lib/video-review-screen.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -78,4 +79,24 @@ test('video publication default is unavailable and unsupported startup mode is r
       listingVideoPublicationMode: 'synthetic-listing-video-publication-v1',
     }),
   );
+});
+
+test('non-null signed reviewer selection freezes on approval and remains anonymous public metadata', async () => {
+  const p = await startStaffPreview(modes);
+  try {
+    const s = await prepareVideoReview(p);
+    const pending = await s.api.getReviewListingVideo(p.listingId, 1, s.version, s.auth);
+    assert.equal(pending.video.title, 'Synthetic approved apartment tour');
+    await assert.rejects(
+      () => s.api.getPublishedListingVideo(p.listingId, 1),
+      (e) => e.status === 404,
+    );
+    const approved = await s.transition('approve', await s.read(s.version));
+    const pub = await s.api.getPublishedListingVideo(p.listingId, 1);
+    assert.deepEqual(pub.video, pending.video);
+    assert.equal(pub.approvedVersion, approved.revisionVersion);
+    assert.ok(!JSON.stringify(pub).includes('actorId'));
+  } finally {
+    await p.close();
+  }
 });

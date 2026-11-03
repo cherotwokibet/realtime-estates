@@ -114,6 +114,31 @@ test('approved video captures reviewed metadata atomically and anonymous reads f
         ),
       (e) => e.code === '40001',
     );
+    await assert.rejects(() =>
+      asActor(db, T, ADMIN, async () => {
+        await scalar(db, 'SELECT app_api.decide_revision($1,1,$2,true)', [LISTING, pending]);
+        throw Error('Synthetic after-capture transaction failure');
+      }),
+    );
+    assert.equal(
+      await scalar(
+        db,
+        'SELECT count(*)::integer FROM app_private.synthetic_approved_listing_video',
+      ),
+      0,
+    );
+    await assert.rejects(() => publicRead(db));
+    assert.deepEqual(
+      (
+        await asActor(db, T, ADMIN, () =>
+          scalar(db, 'SELECT app_api.read_synthetic_review_listing_video($1,1,$2)', [
+            LISTING,
+            pending,
+          ]),
+        )
+      ).video,
+      video,
+    );
     await asActor(db, T, ADMIN, () =>
       scalar(db, 'SELECT app_api.decide_revision($1,1,$2,true)', [LISTING, pending]),
     );
