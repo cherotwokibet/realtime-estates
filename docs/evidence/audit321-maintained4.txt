@@ -1,0 +1,40 @@
+
+> realtor-platform@0.1.0 test:admin-audit-screen
+> npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/api && npm run build --workspace=@realtor/api-client && tsc -p apps/admin/tsconfig.tests.json && node --conditions=react-server --test --test-concurrency=1 apps/admin/tests/admin-audit.test.mjs apps/admin/integration-tests/admin-audit-flow.test.mjs && node --test apps/admin/ui-tests/admin-audit-ui.test.mjs
+
+
+> @realtor/domain@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ signed audit screen loader traverses original events, filters and current revocation with no private summary (2451.3252ms)
+✔ second-company screen sees empty own history while fixture retains positive first-company history (1576.8845ms)
+✔ owned audit fixture refuses unsupported configuration before starting services (1.2997ms)
+✔ audit server pins session company and server-held bearer, snapshots exact filters and returns no credentials (27.3196ms)
+✔ audit server refuses foreign/malformed/denied replies and rechecks on every navigation (2.328ms)
+✔ audit input and preview host fences reject caller authority, arrays, getters and production without transport (1.2115ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4602.8504
+✔ audit view renders empty and safe read-only filtering/pagination without client credential or storage code (7.5692ms)
+✔ audit view displays exact versions, actor references, time zone and escaped text with an older-page link (56.3044ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 183.2018

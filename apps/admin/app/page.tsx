@@ -169,6 +169,13 @@ export default function Admin() {
                   Company content and branding
                 </a>
               )}
+            {process.env.NODE_ENV === 'development' &&
+              process.env.STAFF_AUDIT_PREVIEW_MODE === 'synthetic-admin-audit-v1' && (
+                <a href="/audit">
+                  <Icon name="actions" />
+                  Activity history
+                </a>
+              )}
             <a href="#actions">
               <Icon name="actions" />
               Next actions
