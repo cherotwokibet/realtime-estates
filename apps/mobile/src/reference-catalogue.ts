@@ -14,6 +14,7 @@ export type MobileReferenceConfig =
       tenantSlug: DemoTenantSlug;
       apiOrigin: string;
       allowLoopbackHttp: boolean;
+      videoMode?: 'synthetic-listing-video-publication-v1';
     }>;
 
 /** Public build configuration only. A device never receives staff credentials or a tenant override. */
@@ -27,7 +28,12 @@ export function resolveMobileReferenceConfig(
     if (!development || input === null || typeof input !== 'object' || Array.isArray(input))
       throw Error('Unsupported preview');
     const descriptors = Object.getOwnPropertyDescriptors(input);
-    const allowed = ['mode', 'apiOrigin', 'allowLoopbackHttp'];
+    const allowed = [
+      'mode',
+      'apiOrigin',
+      'allowLoopbackHttp',
+      ...(Object.hasOwn(input, 'videoMode') ? ['videoMode'] : []),
+    ];
     if (Reflect.ownKeys(input).length !== allowed.length) throw Error('Invalid fields');
     for (const key of Reflect.ownKeys(input))
       if (typeof key !== 'string' || !allowed.includes(key) || !('value' in descriptors[key]!))
@@ -41,6 +47,9 @@ export function resolveMobileReferenceConfig(
       typeof allowLoopbackHttp !== 'boolean'
     )
       throw Error('Invalid configuration');
+    const videoMode = descriptors.videoMode?.value;
+    if (Object.hasOwn(input, 'videoMode') && videoMode !== 'synthetic-listing-video-publication-v1')
+      throw Error('Invalid video mode');
     const tenantSlug = resolveDemoTenantSlug(tenant);
     new RealtorApiClient({
       baseUrl: apiOrigin,
@@ -52,6 +61,7 @@ export function resolveMobileReferenceConfig(
       tenantSlug,
       apiOrigin: new URL(apiOrigin).origin,
       allowLoopbackHttp,
+      ...(videoMode ? { videoMode } : {}),
     });
   } catch {
     return Object.freeze({ mode: 'error' });

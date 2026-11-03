@@ -18,6 +18,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   if (mode !== undefined) {
     const candidate = {
       mode,
+      ...(process.env.MOBILE_CATALOGUE_VIDEO !== undefined
+        ? { videoMode: process.env.MOBILE_CATALOGUE_VIDEO }
+        : {}),
       apiOrigin: process.env.MOBILE_API_ORIGIN,
       allowLoopbackHttp: process.env.MOBILE_ALLOW_LOOPBACK_API === 'true',
     };
@@ -35,6 +38,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       throw Error('Invalid synthetic mobile catalogue configuration.');
     extra.mobileReference = candidate;
   } else if (
+    process.env.MOBILE_CATALOGUE_VIDEO !== undefined ||
     process.env.MOBILE_API_ORIGIN !== undefined ||
     process.env.MOBILE_ALLOW_LOOPBACK_API !== undefined
   ) {
