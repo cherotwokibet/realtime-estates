@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import {
   fixture,
+  createDraft,
   asActor,
   scalar,
   T,
@@ -134,4 +135,48 @@ test('every read rechecks current admin authority and company enablement; audit 
   } finally {
     await db.close();
   }
+});
+
+test('an admin sees a real media registration without exposing staging receipt details', async (t) => {
+  const db = await setup();
+  t.after(() => db.close());
+  const version = await createDraft(db);
+  const registration = '00000000-0000-4000-8000-000000000500';
+  const altText = 'PRIVATE SYNTHETIC ALT TEXT';
+  const register = (user) =>
+    asActor(db, T, user, () =>
+      scalar(db, 'SELECT app_api.register_media_upload($1,1,$2,$3,$4)', [
+        LISTING,
+        version,
+        registration,
+        altText,
+      ]),
+    );
+
+  const original = await register(AGENT);
+  const projected = await page(db, { actor: AGENT, object: LISTING });
+  const [row] = projected.items.filter((item) => item.action === 'media.registered');
+  assert.ok(row);
+  assert.deepEqual(
+    projected.items.filter((item) => item.action === 'media.registered'),
+    [
+      {
+        id: row.id,
+        actorId: AGENT,
+        action: 'media.registered',
+        objectType: 'listing',
+        objectId: LISTING,
+        objectVersion: String(version),
+        occurredAt: row.occurredAt,
+      },
+    ],
+  );
+  assert.doesNotMatch(JSON.stringify(projected), /PRIVATE|correlation|operationId|jobId|summary/);
+  assert.deepEqual(
+    (await page(db, { tenant: OTHER, user: otherAdmin, object: LISTING })).items,
+    [],
+  );
+  await denied(() => page(db, { user: AGENT }));
+  assert.deepEqual(await register(AGENT), original);
+  assert.deepEqual(await page(db, { actor: AGENT, object: LISTING }), projected);
 });

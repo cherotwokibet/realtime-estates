@@ -1,3 +1,9 @@
+## Media audit projection checkpoint 346 - 4 November 2026 EAT
+
+Seven audit checks passed. An actual synthetic media registration appeared in its company admin timeline. The projection withheld staging receipt details, denied agent access, isolated the event from another company and remained unchanged on replay. Keep binary upload and attachment intent receipts restricted to the existing recovery paths. The admin timeline shows registration and completed attachment events. Next, verify completed attachment through the same projection and reconcile the remaining dispatcher evidence for task 08-7. Checklist 53/97.
+
+Evidence in docs/evidence/audit346-media-projection.txt. Private publication awaits a fresh export because browser access is unavailable.
+
 ## Reference allocation audit checkpoint 345 - 4 November 2026 EAT
 
 All 18 focused database checks passed. Reference listing creation and successor allocation each recorded the original actor, company, listing, version and request correlation. Exact replay added no audit events. Next, reconcile dispatcher evidence for task 08-7 and verify which staging records authorized operators need to see. Checklist 53/97. The private dashboard awaits a fresh browser export because browser access remains unavailable.
