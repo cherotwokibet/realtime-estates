@@ -1,3 +1,7 @@
+## Published staff audit checkpoint 332 - 4 November 2026 EAT
+
+Private deployment appgdep_6aeae4fcdb008191b78c69527126979f succeeded from dashboard commit 73bc39e. Browser reload showed the new checkpoint and exports 33 and 34 preserved all prior notes and manual edits. The new export contains 819 notes and 27 checked items. Export 34 SHA-256 AB5FEF21C78377A2C140B3E925179F78655C405C913A003D417436F8E5FDDCFD.
+
 ## Signed staff audit checkpoint 332 - 4 November 2026 EAT
 
 Signed staff requests verified exact audit entries for branch creation, membership revocation, invitation request and invitation cancellation. Replays, unchanged saves, conflicts and a foreign cancellation added no entries. All 22 maintained audit checks passed. Invitation issuance and redemption and the remaining viewing paths are next. Task 08-7 remains open.
