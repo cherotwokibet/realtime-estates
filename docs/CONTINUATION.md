@@ -1,3 +1,7 @@
+## Published enquiry audit checkpoint 342 - 4 November 2026 EAT
+
+Private deployment appgdep_6aeb5cea30888191806e1748635b3774 succeeded from dashboard commit 6b3c00c after retry. The live checkpoint and preservation of browser notes and manual edits were verified against exports 53 and 54. Next, classify the remaining admin handlers by actual write, recovery read or validation preview, and reconcile each with the evidence before accepting task 08-7.
+
 ## Staff capture and follow-up audit checkpoint 342 - 4 November 2026 EAT
 
 Ten signed enquiry tests passed. Staff capture and follow-up rescheduling each retained the original actor, version and HTTP request ID in the audit trail. The published checklist is 53 of 97 deliverables (55%). Task 08-7 needs a full route-to-audit reconciliation before it can count.
