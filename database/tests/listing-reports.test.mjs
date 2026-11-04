@@ -241,6 +241,34 @@ test('reasoned triage is exact-version, once-only, original-actor/current-role b
     );
     await rejected(() => read());
     await rejected(() => decision(db));
+    await capture(db, command(id(2001)), id(1001));
+    const dismissal = {
+      ...decide(id(3003)),
+      reportId: id(1001),
+      decision: 'dismissed',
+    };
+    const dismissed = await decision(db, dismissal, PEER);
+    assert.equal(dismissed.version, '2');
+    assert.deepEqual(await decision(db, dismissal, PEER), dismissed);
+    const { rows } = await db.query(
+      "SELECT tenant_id, actor_id, action, object_type, object_id, object_version::text, correlation_id, summary FROM app_private.audit_events WHERE action IN ('listing.report_reviewed','listing.report_dismissed') ORDER BY id",
+    );
+    assert.deepEqual(
+      rows,
+      [
+        [ADMIN, 'reviewed', REPORT],
+        [PEER, 'dismissed', id(1001)],
+      ].map(([actorId, action, reportId]) => ({
+        tenant_id: T,
+        actor_id: actorId,
+        action: 'listing.report_' + action,
+        object_type: 'listing_report',
+        object_id: reportId,
+        object_version: '2',
+        correlation_id: 'synthetic-db-test',
+        summary: {},
+      })),
+    );
   } finally {
     await db.close();
   }

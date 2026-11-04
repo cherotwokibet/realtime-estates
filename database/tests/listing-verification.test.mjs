@@ -32,7 +32,7 @@ test('private synthetic verification ledger is current-admin scoped, atomic and 
     await db.exec('BEGIN; SET LOCAL ROLE api_runtime');
     try {
       await db.query(
-        "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
+        "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true),set_config('realtor.correlation_id','synthetic-verification-audit',true)",
         [id(tenant), id(user)],
       );
       const result = await work();
@@ -164,11 +164,23 @@ test('private synthetic verification ledger is current-admin scoped, atomic and 
       );
       const audit = (
         await db.query(
-          "SELECT summary FROM app_private.audit_events WHERE action='listing.synthetic_check_recorded'",
+          "SELECT tenant_id,actor_id,object_type,object_id,object_version::text,correlation_id,summary FROM app_private.audit_events WHERE action='listing.synthetic_check_recorded'",
         )
-      ).rows[0].summary;
-      assert.equal(audit.operationId, id(300));
-      assert.equal(Object.hasOwn(audit, 'note'), false);
+      ).rows[0];
+      assert.deepEqual(audit, {
+        tenant_id: id(1),
+        actor_id: id(10),
+        object_type: 'listing_verification',
+        object_id: id(100),
+        object_version: '1',
+        correlation_id: 'synthetic-verification-audit',
+        summary: {
+          operationId: id(300),
+          policy: 'synthetic-check-record-v1',
+          subject: 'advertising_authority',
+          outcome: 'supported',
+        },
+      });
     },
   );
   await t.test(

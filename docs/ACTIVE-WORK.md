@@ -1,3 +1,9 @@
+## Listing verification and report audit checkpoint 338 - 4 November 2026 EAT
+
+All 24 focused checks passed. Database tests matched the audit records for synthetic listing verification, report review and report dismissal to the original actor, tenant, target and version. Signed tests checked current permissions and original receipt recovery. Next, verify gallery registration, attachment, removal and reorder under task 08-7.
+
+Evidence in docs/evidence/audit338-listings.txt. Synthetic local verification. Checklist 53/97 and 0/14 gates.
+
 ## Reminder audit checkpoint 337 - 4 November 2026 EAT
 
 The signed reminder integration test passed. Three admissions and two captures retained the original agent, request ID and viewing version. Each capture also identified its admission. Replays, duplicate captures, waits and suppressed attempts added no audit entries. Next, reconcile the remaining audit matrix rows against task 08-7.

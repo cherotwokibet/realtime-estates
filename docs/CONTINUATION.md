@@ -1,3 +1,9 @@
+## Listing verification and report audit checkpoint 338 - 4 November 2026 EAT
+
+All 24 focused checks passed. Database tests matched the audit records for synthetic listing verification, report review and report dismissal to the original actor, tenant, target and version. Signed tests checked current permissions and original receipt recovery. Next, verify gallery registration, attachment, removal and reorder under task 08-7.
+
+Evidence in docs/evidence/audit338-listings.txt. Synthetic local verification. Checklist 53/97 and 0/14 gates.
+
 ## Published reminder audit checkpoint 337 - 4 November 2026 EAT
 
 Private deployment appgdep_6aeb2b5f0ad881918f570dbc8779d998 succeeded from dashboard commit 6cb0c19. Browser reload showed the new checkpoint. Exports 43 and 44 retained all prior browser notes and manual edits. Export 44 holds 829 notes and 27 checked items. SHA-256 5ABDD787DE306F37646E5838C5B000AB5B303A3213F07184B3A6BC0F97034DF8.
