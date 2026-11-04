@@ -1,0 +1,63 @@
+
+> realtor-platform@0.1.0 test:admin-audit
+> npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/api && npm run build --workspace=@realtor/api-client && node --test --test-concurrency=1 packages/domain/tests/admin-audit.test.mjs apps/api/tests/admin-audit.test.mjs packages/api-client/tests/admin-audit.test.mjs apps/api/dev/admin-audit-http.test.mjs database/tests/admin-audit-candidate.test.mjs apps/api/dev/admin-settings-audit-http.test.mjs apps/api/dev/admin-listing-controls-audit-http.test.mjs
+
+
+> @realtor/domain@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ signed audit HTTP/shared SDK reads actual command facts and enforces current authority without write replay (3114.5312ms)
+file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/api/dev/admin-listing-controls-audit-http.test.mjs:241
+  await assert.rejects(()=>f.clients[0].controlListingV2({...command(await version(f.db),operation++,true),publicationStatus:'paused'},agent),http(403));assert.deepEqual(await state(f.db),archived);
+                                                                     ^^^^^
+
+SyntaxError: Unexpected reserved word
+    at compileSourceTextModule (node:internal/modules/esm/utils:318:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:89:18)
+    at #translate (node:internal/modules/esm/loader:434:20)
+    at afterLoad (node:internal/modules/esm/loader:502:29)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:507:12)
+    at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:560:36)
+    at afterResolve (node:internal/modules/esm/loader:607:52)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:613:12)
+    at node:internal/modules/esm/loader:632:32
+    at TracingChannel.tracePromise (node:diagnostics_channel:362:14)
+
+Node.js v24.19.0
+✖ apps\api\dev\admin-listing-controls-audit-http.test.mjs (88.9854ms)
+✔ signed settings approval records exact actor/company/version/request correlation once across replay and original reads (2300.5928ms)
+✔ signed settings API rejects current role/company and malformed authority before any settings or audit mutation (1624.6655ms)
+✔ audit insertion failure rolls back the actual HTTP approval and original identity; later explicit retry records one event (1484.6299ms)
+✔ audit route default-off, production/method/filter/authority input refusals never verify or query (29.8208ms)
+✔ audit authenticates before SQL, rechecks current admin and parameterizes exact filters (2.2383ms)
+✔ audit malformed database responses and SQL messages never expose private payloads or invoke getters (1.6414ms)
+✔ audit projection preserves exact metadata and bigint facts without private payloads or foreign events (1920.6184ms)
+✔ descending bounded pagination and exact UUID filters preserve rows across newer inserts (1387.2542ms)
+✔ every read rechecks current admin authority and company enablement; audit stays append-only (1369.7531ms)
+✔ audit SDK pins exact filters and expected company, uses private GET once (27.393ms)
+✔ audit SDK refuses cached, duplicate-key, excessive and private-field responses without retry (2.1947ms)
+✔ audit stalled stream and late reply cancellation settle once and never retry (31.2704ms)
+✔ audit bounds, exact bigint strings, company/filter/order/cursor bindings (2.4222ms)
+✔ audit accessors, extra private fields and sparse/accessor rows fail without invoking getters (0.7495ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 15
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15864.2055
+
+✖ failing tests:
+
+test at apps\api\dev\admin-listing-controls-audit-http.test.mjs:1:1
+✖ apps\api\dev\admin-listing-controls-audit-http.test.mjs (88.9854ms)
+  'test failed'

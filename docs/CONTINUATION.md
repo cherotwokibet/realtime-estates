@@ -1,3 +1,9 @@
+## Signed admin command verification 323 — 4 November 2026 EAT
+
+Company settings approval, listing availability and listing publication passed signed local HTTP verification against a restricted synthetic database. Tests cover exact audit attribution and versions, replay, authorization denials and rollback when the audit insert fails. The listing SDK tests exercise every supported availability and publication target. The final maintained run on 3 November passed 19 checks, including seven new command scenarios. An earlier run failed to parse a test callback and is retained with the corrected results.
+
+Task 08-7 remains open at 53 of 97 verified deliverables. Next, reconcile signed listing draft and moderation mutations with their retained events, including both approve and reject decisions, and then continue through enquiry and staff commands. Evidence is in docs/evidence/2026-11-04-admin-command-verification.md.
+
 ## Published connected audit screen322 — 3 November 2026
 
 Private dashboard244/sourcec48a7ad5d83a7a0f1d36a54c373b2f3fbd86b54a/deploymentappgdep_6aea1e4840b48191b65fa72cfef17283 succeeded. Exact version/source and1owner/0others/external/groups independently verified. Actual browser reload confirms connected activity headline/screenshot and55%/53of97; all807prior note multiplicities,808canonical notes and27manual checks preserved in809-note export25. Exports24/25 moved withoutoverwrite/hashreadback. Screenshot docs/evidence/audit322-published.jpg; journal docs/evidence/admin-audit-publication322.json. No import/reset/sign-in/access change. One browser connection reset after unavailable user-tab handle; owned22/23 already closed before reset.
