@@ -1,4 +1,5 @@
 // Disposable signed command fixture. SET LOCAL ROLE test adapter, not a production login pool.
+import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import {
@@ -22,7 +23,7 @@ const close = (s) =>
     s.closeAllConnections();
     s.close(resolve);
   });
-export async function startAdminCommandFixture() {
+export async function startAdminCommandFixture({ staff = false } = {}) {
   const db = await fixture(),
     servers = [];
   try {
@@ -30,6 +31,17 @@ export async function startAdminCommandFixture() {
       "INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'admin')",
       [T, id(15)],
     );
+    if (staff) {
+      for (const file of [
+        'staff-branches.sql',
+        'staff-invitation-requests.sql',
+        'staff-membership-changes.sql',
+      ]) {
+        await db.exec(
+          await readFile(new URL('../../../database/proposals/' + file, import.meta.url), 'utf8'),
+        );
+      }
+    }
     const keys = await generateKeyPair('RS256'),
       jwk = {
         ...(await exportJWK(keys.publicKey)),
@@ -68,6 +80,12 @@ export async function startAdminCommandFixture() {
       const server = createDevelopmentServer(
         createApiService({
           tenantId,
+          ...(staff
+            ? {
+                staffInvitationMode: 'synthetic-capture-only-v1',
+                staffMembershipMode: 'synthetic-existing-members-v1',
+              }
+            : {}),
           privacyNoticeVersion: 'settings-audit323',
           verifyAuthorization: (r) =>
             verify(parseBearerHeader(r.headers.get('authorization') ?? undefined)),

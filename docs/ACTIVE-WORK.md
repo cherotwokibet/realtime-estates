@@ -1,3 +1,9 @@
+## Signed staff audit checkpoint 332 - 4 November 2026 EAT
+
+Signed staff requests verified exact audit entries for branch creation, membership revocation, invitation request and invitation cancellation. Replays, unchanged saves, conflicts and a foreign cancellation added no entries. All 22 maintained audit checks passed. Invitation issuance and redemption and the remaining viewing paths are next. Task 08-7 remains open.
+
+Evidence: docs/evidence/audit332-staff-maintained.txt. Synthetic local SQL and signed loopback HTTP. Checklist 53/97 and 0/14 gates.
+
 ## Published enquiry audit and staff regression checkpoint 331 - 4 November 2026 EAT
 
 Private dashboard deployment appgdep_6aead6b1e7608191bd328cf8fd1dd330 succeeded from f4aa06b. The live headline was verified after reload. Exports 31 and 32 preserved all 815 prior notes and all 27 manual checks, with 817 notes after publication. Export 32 SHA-256 EC77B025BCD6EB9F6759EC5DF299EE96F007EB10ED4741C27D8A29FE8F9FD1B3.
