@@ -138,4 +138,16 @@ async function publish(db) {
 }
 const denied = (fn, code = '42501') => assert.rejects(fn, (error) => error.code === code);
 
-export { fixture, publish, asActor, scalar, T, OTHER, ADMIN, AGENT, LISTING };
+export {
+  fixture,
+  createDraft,
+  seedMedia,
+  publish,
+  asActor,
+  scalar,
+  T,
+  OTHER,
+  ADMIN,
+  AGENT,
+  LISTING,
+};

@@ -29,3 +29,6 @@ Remaining closure work: turn this family inventory into an exact command/dispatc
 
 
 Checkpoint 323 adds signed HTTP evidence for company settings approval and both listing controls. The tests verify exact actor, tenant, record, version, request correlation and audit facts, and confirm that denial, replay and failed audit insertion preserve the appropriate business state. See docs/evidence/2026-11-04-admin-command-verification.md for exact coverage.
+
+
+Checkpoint 325 verifies signed v2 save, submit, approve and reject commands with exact audit attribution, persisted-state comparisons and stale decision replay. Withdrawal and guarded allocation remain separate checks. See docs/evidence/2026-11-04-admin-moderation-verification.md.

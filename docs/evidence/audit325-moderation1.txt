@@ -1,0 +1,43 @@
+✖ signed draft save, submission and both moderation decisions retain exact audit attribution (4275.2025ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6175.7337
+
+✖ failing tests:
+
+test at apps\api\dev\admin-moderation-audit-http.test.mjs:18:1
+✖ signed draft save, submission and both moderation decisions retain exact audit attribution (4275.2025ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  ... Skipped lines
+  
+    [
+      {
+        action: 'revision.saved',
+        actor_id: '00000000-0000-4000-8000-000000000011',
+        correlation_id: 'd05cca3f-8558-4bf3-b24b-cfc517845805',
+  ...
+        summary: {
+  +       contract: 'v2',
+          revision: 1
+        },
+        tenant_id: '00000000-0000-4000-8000-000000000001'
+      },
+      {
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/api/dev/admin-moderation-audit-http.test.mjs:97:14)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ { tenant_id: '00000000-0000-4000-8000-000000000001', actor_id: '00000000-0000-4000-8000-000000000011', action: 'revision.saved', object_id: '00000000-0000-4000-8000-000000000100', object_version: '3', correlation_id: 'd05cca3f-8558-4bf3-b24b-cfc517845805', summary: [Object] }, { tenant_id: '00000000-0000-4000-8000-000000000001', actor_id: '00000000-0000-4000-8000-000000000011', action: 'revision.submitted', object_id: '00000000-0000-4000-8000-000000000100', object_version: '4', correlation_id: 'e45dad58-53ce-4d28-af1e-86a95464bb65', summary: [Object] }, { tenant_id: '00000000-0000-4000-8000-000000000001', actor_id: '00000000-0000-4000-8000-000000000010', action: 'revision.approved', object_id: '00000000-0000-4000-8000-000000000100', object_version: '5', correlation_id: 'd82f1a5d-d73e-445e-89f1-f933721806cf', summary: [Object] } ],
+    expected: [ { tenant_id: '00000000-0000-4000-8000-000000000001', actor_id: '00000000-0000-4000-8000-000000000011', action: 'revision.saved', object_id: '00000000-0000-4000-8000-000000000100', object_version: '3', correlation_id: 'd05cca3f-8558-4bf3-b24b-cfc517845805', summary: [Object] }, { tenant_id: '00000000-0000-4000-8000-000000000001', actor_id: '00000000-0000-4000-8000-000000000011', action: 'revision.submitted', object_id: '00000000-0000-4000-8000-000000000100', object_version: '4', correlation_id: 'e45dad58-53ce-4d28-af1e-86a95464bb65', summary: [Object] }, { tenant_id: '00000000-0000-4000-8000-000000000001', actor_id: '00000000-0000-4000-8000-000000000010', action: 'revision.approved', object_id: '00000000-0000-4000-8000-000000000100', object_version: '5', correlation_id: 'd82f1a5d-d73e-445e-89f1-f933721806cf', summary: [Object] } ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

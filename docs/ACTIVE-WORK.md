@@ -1,3 +1,9 @@
+## Signed draft and moderation verification 325 — 4 November 2026 EAT
+
+Signed v2 SDK requests proved exact draft save, submit, approve and reject audit facts, foreign draft write denial, unauthorized review denial and stale decision preservation. Approval yielded the expected snapshot and rejection retained the private reason. The corrected final maintained run passed all 20 checks. See docs/evidence/2026-11-04-admin-moderation-verification.md.
+
+Next verify withdrawal and guarded creation and successor command paths, then reconcile the remaining enquiry and staff actions. Task 08-7 remains open at 53 of 97 verified deliverables.
+
 ## Signed admin command verification 323 — 4 November 2026 EAT
 
 Company settings approval, listing availability and listing publication passed signed local HTTP verification against a restricted synthetic database. Tests cover exact audit attribution and versions, replay, authorization denials and rollback when the audit insert fails. The listing SDK tests exercise every supported availability and publication target. The final maintained run on 3 November passed 19 checks, including seven new command scenarios. An earlier run failed to parse a test callback and is retained with the corrected results.
