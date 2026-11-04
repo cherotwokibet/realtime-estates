@@ -39,3 +39,5 @@ Checkpoint 328 combines signed allocation and reference withdrawal integration e
 Checkpoint 330: Signed local enquiry checks matched assignment, contact recording and stage changes to the original actor, company, version and request ID. A foreign contact write was denied and replays added no audit events. All 21 maintained audit checks passed. Next, verify staff commands. Task 08-7 remains open.
 
 Checkpoint 332. Signed staff requests verified exact audit entries for branch creation, membership revocation, invitation request and invitation cancellation. Replays, unchanged saves, conflicts and a foreign cancellation added no entries. All 22 maintained audit checks passed. Invitation issuance and redemption and the remaining viewing paths are next. Task 08-7 remains open.
+
+Checkpoint 333. Signed local tests matched invitation issuance to the administrator and redemption to the verified recipient, including each operation ID and version. Replays, denied requests and malformed SQL results left no extra audit entries. All 18 invitation HTTP and database checks passed. Next, verify audit entries for viewing mutations under task 08-7.

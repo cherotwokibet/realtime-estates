@@ -153,8 +153,8 @@ async function fixture() {
       await db.exec('BEGIN;SET LOCAL ROLE api_runtime');
       try {
         await db.query(
-          "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
-          [context.tenantId, context.actorId ?? ''],
+          "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true),set_config('realtor.correlation_id',$3,true)",
+          [context.tenantId, context.actorId ?? '', context.correlationId ?? ''],
         );
         const result = await operation({
           async query(sql, args) {
@@ -227,6 +227,22 @@ async function fixture() {
 }
 const count = async (db, table) =>
   Number((await db.query('SELECT count(*) AS n FROM app_private.' + table)).rows[0].n);
+const invitationAudit = async (db) =>
+  (
+    await db.query(
+      "SELECT tenant_id, actor_id, action, object_type, object_id, object_version::text, correlation_id, summary FROM app_private.audit_events WHERE action IN ('staff.invitation_issued','staff.invitation_redeemed') ORDER BY id",
+    )
+  ).rows;
+const issuedAudit = {
+  tenant_id: id(1),
+  actor_id: id(10),
+  action: 'staff.invitation_issued',
+  object_type: 'staff_invitation',
+  object_id: id(200),
+  object_version: '1',
+  correlation_id: id(300),
+  summary: { operationId: id(300) },
+};
 async function post(f, token, body = issue(), target = path(), headers = {}) {
   return f.handler(
     new Request('http://synthetic.invalid' + target, {
@@ -317,6 +333,17 @@ test('native loopback HTTP and SDK connect signed issue, metadata-only recovery,
     );
     assert.equal(await count(f.db, 'staff_invitation_redemptions'), 1);
     assert.equal(await count(f.db, 'staff_invitation_issues'), 1);
+    assert.deepEqual(await invitationAudit(f.db), [
+      issuedAudit,
+      {
+        ...issuedAudit,
+        actor_id: id(50),
+        action: 'staff.invitation_redeemed',
+        object_version: '2',
+        correlation_id: id(400),
+        summary: { operationId: id(400), role: 'agent' },
+      },
+    ]);
     assert.ok(
       !JSON.stringify((await f.db.query('SELECT * FROM app_private.audit_events')).rows).includes(
         issued.secret,
@@ -450,6 +477,7 @@ test('signed route cannot use an ordinary authorization hook or caller company/r
     assert.equal(foreign.status, 404);
     const forbidden = await post(f, await signed(50, { role: 'admin', tenant_id: id(1) }));
     assert.equal(forbidden.status, 403);
+    assert.deepEqual(await invitationAudit(f.db), [issuedAudit]);
     assert.equal(await count(f.db, 'staff_invitation_redemptions'), 0);
   } finally {
     await f.close();
@@ -465,6 +493,7 @@ test('malformed SQL issue and redemption receipts roll back before generic HTTP 
     assert.equal(failed.status, 503);
     assert.ok(!(await failed.text()).includes('refuse-before-commit'));
     assert.equal(await count(f.db, 'staff_invitation_issues'), 0);
+    assert.deepEqual(await invitationAudit(f.db), []);
     f.control.corruptIssue = false;
     const issued = await f.client().issueStaffInvitation(issue(), { bearerToken: admin });
     f.control.corruptRedemption = true;
@@ -485,6 +514,7 @@ test('malformed SQL issue and redemption receipts roll back before generic HTTP 
       ).rows[0].n,
       0,
     );
+    assert.deepEqual(await invitationAudit(f.db), [issuedAudit]);
     f.control.corruptRedemption = false;
     assert.equal(
       (await f.client().getIssuedStaffInvitationState(issue(), { bearerToken: admin })).state,

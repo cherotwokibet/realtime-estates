@@ -1,3 +1,9 @@
+## Invitation issuance and redemption audit checkpoint 333 - 4 November 2026 EAT
+
+Signed local tests matched invitation issuance to the administrator and redemption to the verified recipient, including each operation ID and version. Replays, denied requests and malformed SQL results left no extra audit entries. All 18 invitation HTTP and database checks passed. Next, verify audit entries for viewing mutations under task 08-7.
+
+Evidence in docs/evidence/audit333-invitation.txt. Checklist 53/97 and 0/14 gates. Start with signed viewing proposal and confirmation, then reschedule, cancel, decline and outcomes.
+
 ## Published staff audit checkpoint 332 - 4 November 2026 EAT
 
 Private deployment appgdep_6aeae4fcdb008191b78c69527126979f succeeded from dashboard commit 73bc39e. Browser reload showed the new checkpoint and exports 33 and 34 preserved all prior notes and manual edits. The new export contains 819 notes and 27 checked items. Export 34 SHA-256 AB5FEF21C78377A2C140B3E925179F78655C405C913A003D417436F8E5FDDCFD.
