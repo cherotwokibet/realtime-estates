@@ -1,3 +1,9 @@
+## Signed enquiry audit checkpoint 330 - 4 November 2026 EAT
+
+Signed local enquiry checks matched assignment, contact recording and stage changes to the original actor, company, version and request ID. A foreign contact write was denied and replays added no audit events. All 21 maintained audit checks passed. Next, verify staff commands. Task 08-7 remains open.
+
+Evidence: docs/evidence/audit330-enquiry-maintained.txt. Local signed HTTP and synthetic SQL only. Checklist remains 53/97 with 0/14 accepted gates.
+
 ## Published allocation and withdrawal audit checkpoint 329 — 4 November 2026 EAT
 
 The private dashboard reached version 247 and the live tab showed 36 focused database checks and three earlier signed integration checks. Exports 29 and 30 were saved with hash readback. All prior notes and manual choices survived, with 815 notes and 27 checked items after publication. The complete source bundle a4e0247-329 passed a clean restore and Git integrity check. See docs/evidence/admin-audit-publication329.json.

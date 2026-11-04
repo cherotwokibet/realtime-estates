@@ -1,0 +1,45 @@
+
+> realtor-platform@0.1.0 test:admin-audit
+> npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/api && npm run build --workspace=@realtor/api-client && node --test --test-concurrency=1 packages/domain/tests/admin-audit.test.mjs apps/api/tests/admin-audit.test.mjs packages/api-client/tests/admin-audit.test.mjs apps/api/dev/admin-audit-http.test.mjs database/tests/admin-audit-candidate.test.mjs apps/api/dev/admin-settings-audit-http.test.mjs apps/api/dev/admin-listing-controls-audit-http.test.mjs apps/api/dev/admin-moderation-audit-http.test.mjs apps/api/dev/admin-enquiry-audit-http.test.mjs
+
+
+> @realtor/domain@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/api-client@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ signed audit HTTP/shared SDK reads actual command facts and enforces current authority without write replay (2159.201ms)
+✔ signed enquiry commands audit each applied mutation once with exact attribution (2159.5194ms)
+✔ signed SDK availability/publication writes retain exact original audit facts and replay/conflict decisions (2299.0763ms)
+✔ signed listing controls deny wrong/current membership, company, assignment and original actor without mutation (1668.1142ms)
+✔ actual HTTP/SDK control audit failure rolls back listing, original request/result and public facts atomically (1545.4163ms)
+✔ all maintained availability and publication targets retain attributable audits and enforce the agent boundary (2018.5192ms)
+✔ signed draft save, submission and both moderation decisions retain exact audit attribution (2444.6782ms)
+✔ signed settings approval records exact actor/company/version/request correlation once across replay and original reads (2143.2895ms)
+✔ signed settings API rejects current role/company and malformed authority before any settings or audit mutation (1675.3408ms)
+✔ audit insertion failure rolls back the actual HTTP approval and original identity; later explicit retry records one event (1453.069ms)
+✔ audit route default-off, production/method/filter/authority input refusals never verify or query (28.564ms)
+✔ audit authenticates before SQL, rechecks current admin and parameterizes exact filters (2.2941ms)
+✔ audit malformed database responses and SQL messages never expose private payloads or invoke getters (1.6961ms)
+✔ audit projection preserves exact metadata and bigint facts without private payloads or foreign events (2078.1861ms)
+✔ descending bounded pagination and exact UUID filters preserve rows across newer inserts (1388.6319ms)
+✔ every read rechecks current admin authority and company enablement; audit stays append-only (1548.0231ms)
+✔ audit SDK pins exact filters and expected company, uses private GET once (37.3791ms)
+✔ audit SDK refuses cached, duplicate-key, excessive and private-field responses without retry (2.8102ms)
+✔ audit stalled stream and late reply cancellation settle once and never retry (33.6447ms)
+✔ audit bounds, exact bigint strings, company/filter/order/cursor bindings (3.6204ms)
+✔ audit accessors, extra private fields and sparse/accessor rows fail without invoking getters (0.6174ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 27504.4846

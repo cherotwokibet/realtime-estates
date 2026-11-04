@@ -35,3 +35,5 @@ Checkpoint 325 verifies signed v2 save, submit, approve and reject commands with
 
 
 Checkpoint 328 combines signed allocation and reference withdrawal integration evidence with exact SQL assertions for listing.created, revision.saved, revision.started, revision.withdrawn and revision.synthetic_reference_withdraw. An exact withdrawal replay returns the original result and preserves the two attributable events. The focused SQL suite passed 36 checks. Next are enquiry and staff mutation paths.
+
+Checkpoint 330: Signed local enquiry checks matched assignment, contact recording and stage changes to the original actor, company, version and request ID. A foreign contact write was denied and replays added no audit events. All 21 maintained audit checks passed. Next, verify staff commands. Task 08-7 remains open.
