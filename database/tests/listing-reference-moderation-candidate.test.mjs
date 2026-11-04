@@ -506,7 +506,32 @@ test('isolated reference moderation binds reviewed facts and immutable approved 
       let r = await snapshot(11, 103);
       await command(11, 'submit', r, 2040, null, 103);
       const old = await snapshot(10, 103);
-      await command(11, 'withdraw', old, 2041, null, 103);
+      const withdrawn = await command(11, 'withdraw', old, 2041, null, 103);
+      assert.deepEqual(await command(11, 'withdraw', old, 2041, null, 103), withdrawn);
+      assert.deepEqual(
+        (
+          await db.query(
+            "SELECT tenant_id,actor_id,action,object_version::text,summary FROM app_private.audit_events WHERE object_id=$1 AND action IN ('revision.withdrawn','revision.synthetic_reference_withdraw') ORDER BY id",
+            [id(103)],
+          )
+        ).rows,
+        [
+          {
+            tenant_id: id(1),
+            actor_id: id(11),
+            action: 'revision.withdrawn',
+            object_version: withdrawn.revisionVersion,
+            summary: { revision: 1 },
+          },
+          {
+            tenant_id: id(1),
+            actor_id: id(11),
+            action: 'revision.synthetic_reference_withdraw',
+            object_version: withdrawn.revisionVersion,
+            summary: { revision: 1, operationId: id(2041) },
+          },
+        ],
+      );
       r = await snapshot(11, 103);
       await command(11, 'submit', r, 2042, null, 103);
       await fail(() => command(10, 'approve', old, 2043, null, 103), '40001');

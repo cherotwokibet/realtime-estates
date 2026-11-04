@@ -146,6 +146,22 @@ test('successor SQL allocates once with empty gallery and preserves terminal pre
       reason: null,
       result: { listingVersion: '2', revision: 2, revisionVersion: '2' },
     });
+    assert.deepEqual(
+      (
+        await db.query(
+          "SELECT tenant_id,actor_id,object_id,object_version::text,summary FROM app_private.audit_events WHERE action='revision.started'",
+        )
+      ).rows,
+      [
+        {
+          tenant_id: T,
+          actor_id: U,
+          object_id: L,
+          object_version: saved.decision.result.listingVersion,
+          summary: { predecessor: 1, revision: 2, contract: 'v2' },
+        },
+      ],
+    );
     assert.equal(
       await scalar(
         db,

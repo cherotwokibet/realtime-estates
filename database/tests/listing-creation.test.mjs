@@ -125,6 +125,31 @@ test('durable listing creation allocates atomically and recovers only exact curr
           2,
         );
         assert.equal(await count('audit_events'), 2);
+        assert.deepEqual(
+          (
+            await db.query(
+              'SELECT tenant_id,actor_id,object_id,action,object_version::text,summary FROM app_private.audit_events ORDER BY id',
+            )
+          ).rows,
+          [
+            {
+              tenant_id: T,
+              actor_id: U,
+              object_id: L,
+              action: 'listing.created',
+              object_version: '1',
+              summary: {},
+            },
+            {
+              tenant_id: T,
+              actor_id: U,
+              object_id: L,
+              action: 'revision.saved',
+              object_version: '2',
+              summary: { revision: 1, contract: 'v2' },
+            },
+          ],
+        );
         assert.ok(
           !JSON.stringify(
             (await db.query('SELECT summary FROM app_private.audit_events')).rows,

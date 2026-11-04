@@ -1,3 +1,9 @@
+## Allocation and withdrawal audit verification 328 — 4 November 2026 EAT
+
+Strengthened three SQL suites to verify the exact tenant, actor, record, version and summary for guarded creation, successor allocation and reference withdrawal. The withdrawal replay preserves one base event and one operation event. All 36 focused checks passed. The earlier signed allocation and reference withdrawal integrations passed three checks. Evidence: docs/evidence/audit328-exact-events1.txt and the audit327 integration logs.
+
+Next, use the signed admin command fixture to verify enquiry assignment, stage changes and contact recording. Match each applied event to its immutable operation and check denied and repeated calls for extra writes. Task 08-7 remains open.
+
 ## Published command and moderation checkpoints 324 and 326 — 4 November 2026 EAT
 
 The private dashboard reached version 246. The live tab showed the moderation checkpoint and 20 passing maintained checks. Exports 26 through 28 were retained with hash readback. All 809 original browser notes, manual choices and 27 checked items survived, with 813 notes after the updates. The restored source bundle matched commit cfc9eb1, passed Git integrity verification and verified 202 evidence scopes. See docs/evidence/admin-audit-publication326.json.

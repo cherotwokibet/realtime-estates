@@ -32,3 +32,6 @@ Checkpoint 323 adds signed HTTP evidence for company settings approval and both 
 
 
 Checkpoint 325 verifies signed v2 save, submit, approve and reject commands with exact audit attribution, persisted-state comparisons and stale decision replay. Withdrawal and guarded allocation remain separate checks. See docs/evidence/2026-11-04-admin-moderation-verification.md.
+
+
+Checkpoint 328 combines signed allocation and reference withdrawal integration evidence with exact SQL assertions for listing.created, revision.saved, revision.started, revision.withdrawn and revision.synthetic_reference_withdraw. An exact withdrawal replay returns the original result and preserves the two attributable events. The focused SQL suite passed 36 checks. Next are enquiry and staff mutation paths.
