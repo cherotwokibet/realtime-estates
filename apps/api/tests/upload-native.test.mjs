@@ -203,7 +203,7 @@ test(
       finishedPromise = new Promise((resolve) => {
         finished = resolve;
       });
-    let discard = true;
+    let discard = false;
     server = createDevelopmentServer(
       async () => new Response('not found', { status: 404 }),
       new WeakMap(),
@@ -222,6 +222,25 @@ test(
     const uploadId = randomUUID(),
       url = `http://127.0.0.1:${server.address().port}/v2/staff/listings/${id(100)}/revisions/1/media-jobs/${e.jobId}/uploads/${uploadId}`;
     const pixels = syntheticPng(43, 31, (x, y) => [x * 5, y * 7, 80, 255]);
+    const foreign = await new SignJWT({})
+      .setProtectedHeader({ alg: 'RS256', kid: jwk.kid })
+      .setIssuer(issuer)
+      .setAudience('synthetic-upload-test')
+      .setSubject(id(12))
+      .setIssuedAt()
+      .setExpirationTime('5m')
+      .sign(keys.privateKey);
+    const ledgerBeforeDenial = await readdir(ledger.rootDirectory, { recursive: true });
+    const deniedWrite = await fetch(url, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${foreign}`, 'Content-Type': 'application/octet-stream' },
+      body: pixels,
+    });
+    assert.equal(deniedWrite.status, 404);
+    assert.equal(nativeCalls, 0);
+    assert.deepEqual(await readdir(ledger.rootDirectory, { recursive: true }), ledgerBeforeDenial);
+    await e.inspectUnchanged(0);
+    discard = true;
     let client;
     const lost = new Promise((resolve) => {
       client = httpRequest(
@@ -267,6 +286,15 @@ test(
     });
     assert.equal(nativeCalls, 1);
     const binding = await ledger.read({ jobId: e.jobId, uploadId });
+    assert.deepEqual(
+      {
+        tenant: binding.tenantId,
+        actor: binding.actorId,
+        listing: binding.listingId,
+        revision: binding.revision,
+      },
+      { tenant: id(1), actor: id(11), listing: id(100), revision: 1 },
+    );
     assert.equal(binding.input.sha256, createHash('sha256').update(pixels).digest('hex'));
     const processing = await e.coordinator.readProcessing(e.jobId),
       output = await photos.read({
@@ -287,16 +315,9 @@ test(
     });
     assert.equal(repeated.status, 409);
     assert.equal(nativeCalls, 1);
-    const foreign = await new SignJWT({})
-      .setProtectedHeader({ alg: 'RS256', kid: jwk.kid })
-      .setIssuer(issuer)
-      .setAudience('synthetic-upload-test')
-      .setSubject(id(12))
-      .setIssuedAt()
-      .setExpirationTime('5m')
-      .sign(keys.privateKey);
     const denied = await fetch(url, { headers: { Authorization: `Bearer ${foreign}` } });
     assert.equal(denied.status, 404);
+    assert.deepEqual(await ledger.read({ jobId: e.jobId, uploadId }), binding);
     assert.equal(nativeCalls, 1);
     await e.inspectUnchanged(1);
   },

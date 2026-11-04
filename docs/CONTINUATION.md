@@ -1,3 +1,9 @@
+## Media staging audit checkpoint 344 - 4 November 2026 EAT
+
+All 16 focused media checks passed. A denied signed upload left no receipt or listing change. The original upload receipt survived reopening the store after a lost reply, and the attachment tests verified one final audit event. Next: decide whether authorized auditors need a safe projection of synthetic staging receipts, then finish the remaining dispatcher checks for task 08-7. The checklist stays at 53/97.
+
+Evidence: docs/evidence/audit344-media-staging.txt. The dashboard browser still reported browser.user is unavailable, so the updated tracker is local pending a fresh export.
+
 ## Admin route reconciliation checkpoint 343 - 4 November 2026 EAT
 
 Classified 56 admin route exports, including 15 receipt recovery routes. Seven focused checks passed. The development-only media upload has a request receipt, but a durable audit trail for upload and attachment staging still needs verification. Task 08-7 remains open; 53 of 97 deliverables are verified.
