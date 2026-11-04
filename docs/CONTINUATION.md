@@ -1,3 +1,7 @@
+## Published reference and video audit checkpoint 340 - 4 November 2026 EAT
+
+Private deployment appgdep_6aeb525f07748191a695d73239cc6e1e succeeded from dashboard commit 7912bfe. Browser reload showed the new checkpoint. Exports 49 and 50 retained all prior browser notes and manual edits. Export 50 holds 835 notes and 27 checked items. SHA-256 447D67CEBDC248C539308058474442DC04EC689A12984B22AEB6D4D61DDF1659.
+
 ## Reference draft and private video audit checkpoint 340 - 4 November 2026 EAT
 
 All 26 focused database and API tests passed. The synthetic reference draft save and private video save and clear each retained the original actor, tenant, revision and version. Replays added no duplicate entries. Next, reconcile the remaining admin routes against task 08-7.
