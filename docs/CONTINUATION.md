@@ -1,3 +1,9 @@
+## Published enquiry audit and staff regression checkpoint 331 - 4 November 2026 EAT
+
+Private dashboard deployment appgdep_6aead6b1e7608191bd328cf8fd1dd330 succeeded from f4aa06b. The live headline was verified after reload. Exports 31 and 32 preserved all 815 prior notes and all 27 manual checks, with 817 notes after publication. Export 32 SHA-256 EC77B025BCD6EB9F6759EC5DF299EE96F007EB10ED4741C27D8A29FE8F9FD1B3.
+
+A follow-up signed staff regression passed 14 checks across branch, membership and invitation paths. See docs/evidence/audit331-staff-signed.txt. Next, assert exact audit attribution, correlation and event counts directly alongside those signed mutations, including revocation, no-op and replay. Task 08-7 remains open at 53/97 deliverables and zero accepted stage gates.
+
 ## Signed enquiry audit checkpoint 330 - 4 November 2026 EAT
 
 Signed local enquiry checks matched assignment, contact recording and stage changes to the original actor, company, version and request ID. A foreign contact write was denied and replays added no audit events. All 21 maintained audit checks passed. Next, verify staff commands. Task 08-7 remains open.
