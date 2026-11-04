@@ -456,10 +456,18 @@ test('signed terminal workflow recovers a discarded committed reply and retains 
 test('signed phone confirmation recovers a lost committed result and preserves historical proposals/current access', async () => {
   const preview = await startStaffPreview({
     port: 0,
+    inspectViewingAudit: true,
     enquiryPreview: 'synthetic-v1',
     enquiryCatalogue: 'synthetic-v1',
   });
   try {
+    let requestId;
+    const capture = async (url, init) => {
+      const response = await fetch(url, init);
+      requestId = response.headers.get('x-request-id');
+      assert.ok(requestId);
+      return response;
+    };
     const make = (fetch) =>
         new RealtorApiClient({
           baseUrl: preview.origin,
@@ -467,7 +475,7 @@ test('signed phone confirmation recovers a lost committed result and preserves h
           privacyNoticeVersion: 'synthetic-staff-notice-v1',
           ...(fetch ? { fetch } : {}),
         }),
-      api = make(),
+      api = make(capture),
       admin = { bearerToken: preview.enquiryStaff.admin.bearerToken },
       agent = { bearerToken: preview.enquiryStaff.agent.bearerToken },
       enquiry = preview.enquiryFixtures.assigned;
@@ -479,8 +487,10 @@ test('signed phone confirmation recovers a lost committed result and preserves h
         notes: 'Synthetic request before agreement.',
       },
       requested = await api.requestViewingV2(enquiry, request, agent);
+    const requestCorrelation = requestId;
     const proposal = { operationId: randomUUID(), expectedVersion: '1', slot },
       proposed = await api.proposeViewingV2(enquiry, requested.viewingId, proposal, agent);
+    const proposalCorrelation = requestId;
     const command = {
       operationId: randomUUID(),
       expectedVersion: '2',
@@ -491,7 +501,7 @@ test('signed phone confirmation recovers a lost committed result and preserves h
     };
     let writes = 0;
     const lost = make(async (url, init) => {
-      const response = await fetch(url, init);
+      const response = await capture(url, init);
       if (init.method === 'POST' && url.endsWith('/confirmations')) {
         writes++;
         assert.equal(response.status, 200);
@@ -505,6 +515,7 @@ test('signed phone confirmation recovers a lost committed result and preserves h
       (e) => e.submissionUncertain && e.kind === 'NETWORK',
     );
     assert.equal(writes, 1);
+    const confirmationCorrelation = requestId;
     const receipt = await api.getViewingConfirmationReceiptV2(
       enquiry,
       requested.viewingId,
@@ -584,6 +595,23 @@ test('signed phone confirmation recovers a lost committed result and preserves h
     );
     assert.equal((await api.getStaffEnquiryV2(enquiry, agent)).version, '4');
     assert.equal((await api.listViewingsV2(enquiry, agent)).items.length, 1);
+    assert.deepEqual(
+      await preview.readViewingAudit(requested.viewingId),
+      [
+        ['request', '1', requestCorrelation, request.operationId],
+        ['propose', '2', proposalCorrelation, proposal.operationId],
+        ['confirm', '3', confirmationCorrelation, command.operationId],
+      ].map(([kind, version, correlation, operationId]) => ({
+        tenant_id: '00000000-0000-4000-8000-000000000001',
+        actor_id: preview.enquiryStaff.agent.actorId,
+        action: 'viewing.' + kind,
+        object_type: 'viewing',
+        object_id: requested.viewingId,
+        object_version: version,
+        correlation_id: correlation,
+        summary: { kind, operationId },
+      })),
+    );
   } finally {
     await preview.close();
   }

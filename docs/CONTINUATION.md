@@ -1,3 +1,9 @@
+## Viewing audit checkpoint 334 - 4 November 2026 EAT
+
+Signed viewing tests verified one audit entry each for request, proposal and phone confirmation. Each entry matched the original actor, tenant, viewing version, operation and HTTP request ID. Confirmation recovery and replay left the three entries intact. All four viewing integration tests passed. Next, check audit entries for rescheduling, cancellation, decline and outcomes under task 08-7.
+
+Evidence in docs/evidence/audit334-viewings.txt. The first audit read attempts were denied or returned no rows under the fixture restrictions. The final test uses a separate read-only viewing audit login in the synthetic database. Checklist 53/97 and 0/14 gates.
+
 ## Published invitation audit checkpoint 333 - 4 November 2026 EAT
 
 Private deployment appgdep_6aeaf1d6be08819193ce372978e10f09 succeeded from dashboard commit ea33b9a. Browser reload showed the new checkpoint. Exports 35 and 36 retained all prior browser notes and manual edits. Export 36 holds 821 notes and 27 checked items. SHA-256 237BD9F6444BE2DA9231155C52EC8FE12421B922908A081FC47E706C4DE19685.

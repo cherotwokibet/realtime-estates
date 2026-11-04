@@ -799,7 +799,7 @@ async function seedEnquiries(db) {
     }
   }
 }
-function runtimePools(db, withMedia) {
+function runtimePools(db, withMedia, inspectViewingAudit) {
   let tail = Promise.resolve();
   let closed = false,
     poisoned = false,
@@ -820,7 +820,7 @@ function runtimePools(db, withMedia) {
           throw new DatabaseSafetyError();
         }
         try {
-          // PGlite has one session. A shared queue changes only between two fixed,
+          // PGlite has one session. A shared queue changes only between fixed,
           // separately granted logins; request SQL never receives bootstrap access.
           await db.exec(`SET SESSION AUTHORIZATION ${login}; RESET ROLE;`);
         } catch (error) {
@@ -850,6 +850,7 @@ function runtimePools(db, withMedia) {
     })());
   return {
     api: { ...pool('synthetic_staff_login'), end: close },
+    auditInspection: inspectViewingAudit ? pool('synthetic_viewing_audit_login') : undefined,
     media: withMedia ? pool('synthetic_staff_media_login') : undefined,
     close,
   };
@@ -1232,7 +1233,12 @@ export async function startStaffPreview(options = {}) {
       await db.exec(
         'CREATE ROLE synthetic_staff_media_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT media_coordinator TO synthetic_staff_media_login;',
       );
-    const pools = runtimePools(db, !!nativeUploads);
+    if (options.inspectViewingAudit === true) {
+      await db.exec(
+        `CREATE ROLE synthetic_viewing_audit_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT USAGE ON SCHEMA app_private TO synthetic_viewing_audit_login; GRANT SELECT ON app_private.audit_events TO synthetic_viewing_audit_login; CREATE POLICY synthetic_viewing_audit_read ON app_private.audit_events FOR SELECT TO synthetic_viewing_audit_login USING (object_type = 'viewing');`,
+      );
+    }
+    const pools = runtimePools(db, !!nativeUploads, options.inspectViewingAudit === true);
     database = new PostgresTransactionDatabase(pools.api);
     await database.checkConnection();
     if (nativeUploads) {
@@ -2172,6 +2178,23 @@ export async function startStaffPreview(options = {}) {
       nativeUploads: !!nativeMedia,
       close,
     };
+    if (pools.auditInspection) {
+      Object.defineProperty(preview, 'readViewingAudit', {
+        value: async (viewingId) => {
+          const connection = await pools.auditInspection.connect();
+          try {
+            return (
+              await connection.query(
+                "SELECT tenant_id, actor_id, action, object_type, object_id, object_version::text, correlation_id, summary FROM app_private.audit_events WHERE object_type='viewing' AND object_id=$1 ORDER BY id",
+                [viewingId],
+              )
+            ).rows;
+          } finally {
+            connection.release();
+          }
+        },
+      });
+    }
     // Avoid incidental console/JSON dumps of a whole return object exposing its token.
     Object.defineProperty(preview, 'bearerToken', {
       value: bearerToken,

@@ -1,3 +1,9 @@
+## Viewing audit checkpoint 334 - 4 November 2026 EAT
+
+Signed viewing tests verified one audit entry each for request, proposal and phone confirmation. Each entry matched the original actor, tenant, viewing version, operation and HTTP request ID. Confirmation recovery and replay left the three entries intact. All four viewing integration tests passed. Next, check audit entries for rescheduling, cancellation, decline and outcomes under task 08-7.
+
+Evidence in docs/evidence/audit334-viewings.txt. The first audit read attempts were denied or returned no rows under the fixture restrictions. The final test uses a separate read-only viewing audit login in the synthetic database. Checklist 53/97 and 0/14 gates.
+
 ## Invitation issuance and redemption audit checkpoint 333 - 4 November 2026 EAT
 
 Signed local tests matched invitation issuance to the administrator and redemption to the verified recipient, including each operation ID and version. Replays, denied requests and malformed SQL results left no extra audit entries. All 18 invitation HTTP and database checks passed. Next, verify audit entries for viewing mutations under task 08-7.
