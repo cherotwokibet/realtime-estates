@@ -1,3 +1,9 @@
+## Staff capture and follow-up audit checkpoint 342 - 4 November 2026 EAT
+
+Ten signed enquiry tests passed. Staff capture and follow-up rescheduling each retained the original actor, version and HTTP request ID in the audit trail. The published checklist is 53 of 97 deliverables (55%). Task 08-7 needs a full route-to-audit reconciliation before it can count.
+
+Evidence in docs/evidence/audit342-enquiry.txt. Listing reassignment is exercised through SQL fixtures. Source search found no admin UI or API route for it. Next, enumerate the remaining reachable admin mutations and distinguish SQL-only functions, then close verified rows in one pass.
+
 ## Reference moderation audit checkpoint 341 - 4 November 2026 EAT
 
 All 37 focused tests passed. Reference submission, approval and rejection each recorded the base event and its reference operation with matching actor, tenant, revision, version and correlation. Exact replays preserved the audit entries. Next, compare the remaining admin mutation routes with the audit matrix for task 08-7.

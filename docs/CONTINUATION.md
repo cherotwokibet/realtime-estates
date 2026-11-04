@@ -1,3 +1,9 @@
+## Staff capture and follow-up audit checkpoint 342 - 4 November 2026 EAT
+
+Ten signed enquiry tests passed. Staff capture and follow-up rescheduling each retained the original actor, version and HTTP request ID in the audit trail. The published checklist is 53 of 97 deliverables (55%). Task 08-7 needs a full route-to-audit reconciliation before it can count.
+
+Evidence in docs/evidence/audit342-enquiry.txt. Listing reassignment is exercised through SQL fixtures. Source search found no admin UI or API route for it. Next, enumerate the remaining reachable admin mutations and distinguish SQL-only functions, then close verified rows in one pass.
+
 ## Published reference moderation audit checkpoint 341 - 4 November 2026 EAT
 
 Private deployment appgdep_6aeb565293d88191ab6bb79ba0f66e65 succeeded from dashboard commit d11de96. Browser reload showed the new checkpoint. Exports 51 and 52 retained all prior browser notes and manual edits. Export 52 holds 837 notes and 27 checked items. SHA-256 D8C385EC5A04998C698187025A01978E0D2D37986F8C424C0D0FB7F72CE5D925.

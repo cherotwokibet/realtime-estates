@@ -162,6 +162,13 @@ test('enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL 
       });
     apiServer = createDevelopmentServer(serviceFor(TENANT));
     const origin = await listen(apiServer);
+    let requestId;
+    const captureResponse = async (url, init) => {
+      const response = await fetch(url, init);
+      requestId = response.headers.get('x-request-id');
+      assert.ok(requestId);
+      return response;
+    };
     const makeClient = (transport) =>
         new RealtorApiClient({
           baseUrl: origin,
@@ -169,7 +176,7 @@ test('enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL 
           allowLoopbackHttp: true,
           ...(transport ? { fetch: transport } : {}),
         }),
-      api = makeClient();
+      api = makeClient(captureResponse);
     const token = async (actor) =>
       new SignJWT({})
         .setProtectedHeader({ alg: 'RS256', kid: jwk.kid })
@@ -194,6 +201,16 @@ test('enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL 
               [TENANT, enquiry],
             )
           ).rows[0],
+      );
+    const audit = (enquiryId, action) =>
+      asOwner(
+        async (q) =>
+          (
+            await q.query(
+              'SELECT tenant_id, actor_id, object_type, object_version::text, correlation_id, summary FROM app_private.audit_events WHERE object_id=$1 AND action=$2',
+              [enquiryId, action],
+            )
+          ).rows,
       );
     let enquiry, second, originalAssignment, lostReceipt;
 
@@ -290,6 +307,7 @@ test('enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL 
           reschedule(id(1012), '3', '2026-10-13T06:30:00.000Z'),
           agent,
         );
+        const rescheduleRequestId = requestId;
         assert.equal(moved.result.version, '4');
         const before = await counts(enquiry),
           noop = await api.applyEnquiryOperationV2(
@@ -301,6 +319,21 @@ test('enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL 
         assert.equal(noop.result.version, '4');
         assert.equal((await counts(enquiry)).audits, before.audits);
         assert.deepEqual(await api.getEnquiryOperationV2(enquiry, id(1011), agent), stale);
+        assert.deepEqual(await audit(enquiry, 'enquiry.reschedule'), [
+          {
+            tenant_id: TENANT,
+            actor_id: AGENT,
+            object_type: 'enquiry',
+            object_version: '4',
+            correlation_id: rescheduleRequestId,
+            summary: {
+              operationId: id(1012),
+              kind: 'reschedule',
+              status: 'contacted',
+              assignedAgentId: AGENT,
+            },
+          },
+        ]);
         const qualified = await api.applyEnquiryOperationV2(
           enquiry,
           transition(id(1014), '4', 'qualified', '2026-10-14T06:30:00.000Z'),
@@ -414,6 +447,7 @@ test('enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL 
         for (const identity of [null, customer, foreign, inactive])
           assert.equal((await capture(identity)).status, identity ? 403 : 401);
         const receipt = await api.captureStaffEnquiryV2(body, { ...admin, idempotencyKey: key });
+        const captureRequestId = requestId;
         const stored = await asOwner(
           async (q) =>
             (
@@ -433,6 +467,16 @@ test('enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL 
         assert.equal((await capture(admin, { ...body, message: 'Changed original' })).status, 409);
         assert.equal((await capture(admin, { ...body, origin: 'web' })).status, 400);
         assert.deepEqual(await counts(receipt.id), before);
+        assert.deepEqual(await audit(receipt.id, 'enquiry.received'), [
+          {
+            tenant_id: TENANT,
+            actor_id: ADMIN,
+            object_type: 'enquiry',
+            object_version: '1',
+            correlation_id: captureRequestId,
+            summary: {},
+          },
+        ]);
       },
     );
     await t.test(
