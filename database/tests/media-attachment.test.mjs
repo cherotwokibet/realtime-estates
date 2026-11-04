@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFile } from 'node:fs/promises';
 import {
   seedGuardedListingDraft,
   seedGuardedListingSuccessor,
@@ -422,9 +423,21 @@ test('single-photo attachment requires an authenticated exact intent and immutab
     await t.test(
       'coordinator atomically attaches exact sealed facts, one revision token and one derived audit',
       async () => {
+        await db.exec(
+          await readFile(new URL('../proposals/admin-audit-reads.sql', import.meta.url), 'utf8'),
+        );
         const x = await sealed(db, await listing(db, 105), 105),
           op = id(40105);
+        const page = (actor = ADMIN, tenant = T) =>
+          api(db, { actor, tenant }, () =>
+            scalar(db, 'SELECT app_api.list_admin_audit_events(20,NULL,NULL,$1)', [x.listing]),
+          );
         const ready = await intent(db, x, op);
+        const staging = await page();
+        assert.equal(
+          staging.items.some((row) => row.action === 'media.attached'),
+          false,
+        );
         const result = await finalize(db, op);
         assert.equal(result.status, 'applied');
         const receipt = result.receipt;
@@ -493,6 +506,20 @@ test('single-photo attachment requires an authenticated exact intent and immutab
         assert.deepEqual(await readApi(db, x, op), result);
         assert.deepEqual(await readCoordinator(db, op), result);
         assert.deepEqual(await snapshot(db), before);
+        const completed = await page();
+        const [event, ...older] = completed.items;
+        assert.deepEqual(older, staging.items);
+        assert.deepEqual(event, {
+          id: event.id,
+          actorId: AGENT,
+          action: 'media.attached',
+          objectType: 'listing',
+          objectId: x.listing,
+          objectVersion: receipt.version,
+          occurredAt: event.occurredAt,
+        });
+        await deny(() => page(AGENT), '42501');
+        assert.deepEqual((await page(OTHERADMIN, OTHER)).items, []);
         assert.deepEqual(
           await scalar(
             db,

@@ -1,3 +1,9 @@
+## Completed attachment projection checkpoint 347 - 5 November 2026 EAT
+
+All 14 attachment database checks passed. The company admin timeline showed one completed attachment with the original actor and revision version. It excluded staging details, denied agent access, and showed no event to another company. Replay left the timeline unchanged. Task 08-7 remains at 53/97 overall. Next, reconcile each remaining dispatcher variant with its permission, no-write, audit and recovery evidence.
+
+Evidence in docs/evidence/audit347-attachment-projection.txt. Private publication awaits a fresh export because browser access is unavailable.
+
 ## Media audit projection checkpoint 346 - 4 November 2026 EAT
 
 Seven audit checks passed. An actual synthetic media registration appeared in its company admin timeline. The projection withheld staging receipt details, denied agent access, isolated the event from another company and remained unchanged on replay. Keep binary upload and attachment intent receipts restricted to the existing recovery paths. The admin timeline shows registration and completed attachment events. Next, verify completed attachment through the same projection and reconcile the remaining dispatcher evidence for task 08-7. Checklist 53/97.
