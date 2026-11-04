@@ -907,6 +907,24 @@ test('explicit contact preserves raw facts and actor without changing enquiry st
       ).rows[0].status,
       'new',
     );
+    const contactAudits = async () =>
+      (
+        await db.query(
+          "SELECT tenant_id,actor_id,object_type,object_id,object_version::text,correlation_id,summary FROM app_private.audit_events WHERE action='enquiry.contact_recorded'",
+        )
+      ).rows;
+    const expectedAudit = [
+      {
+        tenant_id: T,
+        actor_id: ADMIN,
+        object_type: 'enquiry',
+        object_id: E,
+        object_version: '1',
+        correlation_id: 'synthetic-enquiry-operations',
+        summary: { operationId: id(3000), channel: 'call', outcome: 'no_response' },
+      },
+    ];
+    assert.deepEqual(await contactAudits(), expectedAudit);
     await command(db);
     const later = await totals(db);
     assert.deepEqual(await contact(db), saved);
@@ -919,6 +937,7 @@ test('explicit contact preserves raw facts and actor without changing enquiry st
     assert.equal(page.items.length, 1);
     assert.deepEqual(page.items[0], saved.entry);
     await denied(() => contactReceipt(db, AGENT), 'P0002');
+    assert.deepEqual(await contactAudits(), expectedAudit);
   } finally {
     await db.close();
   }

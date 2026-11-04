@@ -1,3 +1,9 @@
+## Enquiry dispatcher audit checkpoint 348 - 5 November 2026 EAT
+
+All 22 focused checks passed. The enquiry dispatcher review matched assignment, transition and rescheduling to signed audit evidence. The contact regression verifies the original actor, company, operation and version, and confirms that replay and denied requests add no events. The route inventory has 57 write-verb exports. Checkpoint 343 misstated the total as 56. Next, reconcile the publication and report decision variants, including no-op and refusal behavior. Task 08-7 stays open at 53/97.
+
+Evidence in docs/evidence/audit348-enquiry-dispatch.txt. Private publication awaits a fresh export because browser access is unavailable.
+
 ## Completed attachment projection checkpoint 347 - 5 November 2026 EAT
 
 All 14 attachment database checks passed. The company admin timeline showed one completed attachment with the original actor and revision version. It excluded staging details, denied agent access, and showed no event to another company. Replay left the timeline unchanged. Task 08-7 remains at 53/97 overall. Next, reconcile each remaining dispatcher variant with its permission, no-write, audit and recovery evidence.
