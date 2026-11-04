@@ -16,7 +16,7 @@ async function actor(db, user, work, tenant = T) {
   await db.exec('BEGIN;SET LOCAL ROLE api_runtime');
   try {
     await db.query(
-      "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
+      "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true),set_config('realtor.correlation_id','synthetic-publication-audit',true)",
       [tenant, user],
     );
     const r = await work();
@@ -262,7 +262,8 @@ test('admin publication selects existing approved snapshot without renewing conf
     const snapshot = (
       await db.query('SELECT * FROM app_private.public_snapshots WHERE listing_id=$1', [L])
     ).rows[0];
-    const r = await write(db, cmd('set_publication', 'published', String(before.version)), A);
+    const publish = cmd('set_publication', 'published', String(before.version));
+    const r = await write(db, publish, A);
     assert.equal(r.decision.outcome, 'applied');
     const after = (await db.query('SELECT * FROM app_private.listings WHERE id=$1', [L])).rows[0];
     assert.equal(after.publication_status, 'published');
@@ -294,11 +295,32 @@ test('admin publication selects existing approved snapshot without renewing conf
       "UPDATE app_private.listings SET last_availability_confirmed_at=now()-interval '30 days' WHERE id=$1",
       [L],
     );
+    const publicationAudits = async () =>
+      (
+        await db.query(
+          "SELECT tenant_id,actor_id,object_id,object_version::text,correlation_id,summary FROM app_private.audit_events WHERE action='listing.publication_changed' ORDER BY id",
+        )
+      ).rows;
+    const expectedAudit = [
+      ['published', O, BigInt(after.version)],
+      ['archived', id(201), BigInt(after.version) + 1n],
+      ['published', id(203), BigInt(after.version) + 3n],
+    ].map(([status, operationId, version]) => ({
+      tenant_id: T,
+      actor_id: A,
+      object_id: L,
+      object_version: String(version),
+      correlation_id: 'synthetic-publication-audit',
+      summary: { status, operationId },
+    }));
+    assert.deepEqual(await publicationAudits(), expectedAudit);
+    assert.deepEqual(await write(db, publish, A), r);
     const v = await scalar(db, 'SELECT version::text FROM app_private.listings WHERE id=$1', [L]);
     assert.equal(
       (await write(db, cmd('set_publication', 'published', v, id(204)), A)).decision.reason,
       'APPROVED_PUBLICATION_REQUIRED',
     );
+    assert.deepEqual(await publicationAudits(), expectedAudit);
   } finally {
     await db.close();
   }

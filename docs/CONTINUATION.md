@@ -1,3 +1,9 @@
+## Publication and report audit checkpoint 349 - 5 November 2026 EAT
+
+Two focused database checks passed. Publishing, archiving and reopening retained the original actor, company, operation and version. A replay and a request refused for stale availability added no publication event. Report review and dismissal each retained their own audit event. Next, reconcile role and action variants for draft decisions and staff directory dispatch. Task 08-7 stays open at 53/97.
+
+Evidence in docs/evidence/audit349-publication-report.txt. Private publication awaits a fresh export because browser access is unavailable.
+
 ## Enquiry dispatcher audit checkpoint 348 - 5 November 2026 EAT
 
 All 22 focused checks passed. The enquiry dispatcher review matched assignment, transition and rescheduling to signed audit evidence. The contact regression verifies the original actor, company, operation and version, and confirms that replay and denied requests add no events. The route inventory has 57 write-verb exports. Checkpoint 343 misstated the total as 56. Next, reconcile the publication and report decision variants, including no-op and refusal behavior. Task 08-7 stays open at 53/97.
