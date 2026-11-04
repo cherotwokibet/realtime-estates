@@ -95,7 +95,7 @@ test('isolated reference creation composes allocation and selection without part
     await db.exec('BEGIN; SET LOCAL ROLE api_runtime');
     try {
       await db.query(
-        "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
+        "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true),set_config('realtor.correlation_id','synthetic-reference-allocation',true)",
         [id(tenant), id(user)],
       );
       const out = await work();
@@ -162,7 +162,33 @@ test('isolated reference creation composes allocation and selection without part
         'Synthetic creation lift',
       );
       assert.deepEqual(original.referenceDraft.content, content);
+      const auditRows = async () =>
+        (
+          await db.query(
+            'SELECT action,tenant_id,actor_id,object_type,object_id,object_version::text,correlation_id,summary FROM app_private.audit_events WHERE object_id=$1 AND action IN ($2,$3) ORDER BY id',
+            [id(100), 'listing.created', 'revision.synthetic_references_saved'],
+          )
+        ).rows;
+      const facts = {
+        tenant_id: id(1),
+        actor_id: id(11),
+        object_type: 'listing',
+        object_id: id(100),
+        correlation_id: 'synthetic-reference-allocation',
+      };
+      const expectedAudit = [
+        { ...facts, action: 'listing.created', object_version: '1', summary: {} },
+        {
+          ...facts,
+          action: 'revision.synthetic_references_saved',
+          object_version: '3',
+          summary: { revision: 1 },
+        },
+      ];
+      assert.deepEqual(await auditRows(), expectedAudit);
       assert.deepEqual(await read(), original);
+      assert.deepEqual(await create(), original);
+      assert.deepEqual(await auditRows(), expectedAudit);
       assert.deepEqual(await counts(), {
         listings: 1,
         revisions: 1,

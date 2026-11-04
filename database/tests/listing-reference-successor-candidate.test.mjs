@@ -93,7 +93,7 @@ test('isolated reference successor atomically adopts explicit references and pre
     await db.exec('BEGIN; SET LOCAL ROLE api_runtime');
     try {
       await db.query(
-        "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
+        "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true),set_config('realtor.correlation_id','synthetic-reference-allocation',true)",
         [id(tenant), id(user)],
       );
       const out = await work();
@@ -284,7 +284,38 @@ test('isolated reference successor atomically adopts explicit references and pre
       assert.equal(original.referenceDraft.actorId, id(11));
       assert.deepEqual(original.referenceDraft.content, content);
       assert.deepEqual(original.referenceDraft.selection, selection);
+      const auditRows = async () =>
+        (
+          await db.query(
+            'SELECT action,tenant_id,actor_id,object_type,object_id,object_version::text,correlation_id,summary FROM app_private.audit_events WHERE object_id=$1 AND action IN ($2,$3) ORDER BY id',
+            [id(q.listing), 'revision.started', 'revision.synthetic_references_saved'],
+          )
+        ).rows;
+      const facts = {
+        tenant_id: id(1),
+        actor_id: id(11),
+        object_type: 'listing',
+        object_id: id(q.listing),
+        correlation_id: 'synthetic-reference-allocation',
+      };
+      const expectedAudit = [
+        {
+          ...facts,
+          action: 'revision.started',
+          object_version: '2',
+          summary: { predecessor: 1, revision: 2, contract: 'v2' },
+        },
+        {
+          ...facts,
+          action: 'revision.synthetic_references_saved',
+          object_version: '3',
+          summary: { revision: 2 },
+        },
+      ];
+      assert.deepEqual(await auditRows(), expectedAudit);
       assert.deepEqual(await read(q), original);
+      assert.deepEqual(await start(q), original);
+      assert.deepEqual(await auditRows(), expectedAudit);
       assert.equal(
         await scalar(
           'SELECT count(*)::int FROM app_private.revision_media WHERE listing_id=$1 AND revision_no=2',

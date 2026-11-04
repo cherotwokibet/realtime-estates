@@ -1,3 +1,9 @@
+## Reference allocation audit checkpoint 345 - 4 November 2026 EAT
+
+All 18 focused database checks passed. Reference listing creation and successor allocation each recorded the original actor, company, listing, version and request correlation. Exact replay added no audit events. Next, reconcile dispatcher evidence for task 08-7 and verify which staging records authorized operators need to see. Checklist 53/97. The private dashboard awaits a fresh browser export because browser access remains unavailable.
+
+Evidence: docs/evidence/audit345-reference-allocation.txt.
+
 ## Media staging audit checkpoint 344 - 4 November 2026 EAT
 
 All 16 focused media checks passed. A denied signed upload left no receipt or listing change. The original upload receipt survived reopening the store after a lost reply, and the attachment tests verified one final audit event. Next: decide whether authorized auditors need a safe projection of synthetic staging receipts, then finish the remaining dispatcher checks for task 08-7. The checklist stays at 53/97.
