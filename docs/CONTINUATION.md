@@ -1,3 +1,7 @@
+## Published listing decisions audit checkpoint 338 - 4 November 2026 EAT
+
+Private deployment appgdep_6aeb3ac70a508191bae5ea44c7c1546f succeeded from dashboard commit edc7762. Browser reload showed the new checkpoint. Exports 45 and 46 retained all prior browser notes and manual edits. Export 46 holds 831 notes and 27 checked items. SHA-256 AE3C8800C7B9FF3DD01A0E3BD1936896A6CD12B1FF6B01BA66DA2CBD559C2504.
+
 ## Listing verification and report audit checkpoint 338 - 4 November 2026 EAT
 
 All 24 focused checks passed. Database tests matched the audit records for synthetic listing verification, report review and report dismissal to the original actor, tenant, target and version. Signed tests checked current permissions and original receipt recovery. Next, verify gallery registration, attachment, removal and reorder under task 08-7.
