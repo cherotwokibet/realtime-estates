@@ -91,10 +91,23 @@ test('private video originals replay once, removal is explicit and stale/changed
       2,
     );
     const audits = await db.query(
-      "SELECT summary FROM app_private.audit_events WHERE action='listing.private_video_saved'",
+      "SELECT tenant_id,actor_id,object_type,object_id,object_version::text,correlation_id,summary FROM app_private.audit_events WHERE action='listing.private_video_saved' ORDER BY id",
     );
-    assert.equal(audits.rows.length, 2);
-    assert.ok(audits.rows.every((x) => !JSON.stringify(x).includes('abcdefghijk')));
+    assert.deepEqual(
+      audits.rows,
+      [
+        [OP, '3'],
+        [clear.operationId, '4'],
+      ].map(([operationId, version]) => ({
+        tenant_id: T,
+        actor_id: AGENT,
+        object_type: 'listing',
+        object_id: L,
+        object_version: version,
+        correlation_id: 'synthetic-db-test',
+        summary: { revision: 1, operationId },
+      })),
+    );
   } finally {
     await db.close();
   }

@@ -1,3 +1,9 @@
+## Reference draft and private video audit checkpoint 340 - 4 November 2026 EAT
+
+All 26 focused database and API tests passed. The synthetic reference draft save and private video save and clear each retained the original actor, tenant, revision and version. Replays added no duplicate entries. Next, reconcile the remaining admin routes against task 08-7.
+
+Evidence in docs/evidence/audit340-reference-video.txt. Next reconcile admin UI mutation routes with API authorization and exact events, starting with reference submit, approve and reject. Checklist 53/97 and 0/14 gates.
+
 ## Gallery audit checkpoint 339 - 4 November 2026 EAT
 
 All 63 focused database and API tests passed. Gallery registration, attachment, removal and reorder audit records matched the original actor, revision, operation and version. Replays and unchanged reorder preserved the audit history. Next, verify synthetic references and private video under task 08-7.

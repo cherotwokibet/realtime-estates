@@ -79,7 +79,7 @@ test('isolated reference candidate binds content, labels and receipt to one edit
     await db.exec('BEGIN; SET LOCAL ROLE api_runtime');
     try {
       await db.query(
-        "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
+        "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true),set_config('realtor.correlation_id','synthetic-reference-audit',true)",
         [id(tenant), id(user)],
       );
       const result = await work();
@@ -225,6 +225,21 @@ test('isolated reference candidate binds content, labels and receipt to one edit
       () => as(1, 11, () => save(300, '2', { ...content, title: 'Changed replay' })),
       '40001',
     );
+    const audit = await db.query(
+      "SELECT tenant_id,actor_id,object_type,object_id,object_version::text,correlation_id,summary FROM app_private.audit_events WHERE action='revision.synthetic_references_saved' AND object_id=$1",
+      [id(100)],
+    );
+    assert.deepEqual(audit.rows, [
+      {
+        tenant_id: id(1),
+        actor_id: id(11),
+        object_type: 'listing',
+        object_id: id(100),
+        object_version: '3',
+        correlation_id: 'synthetic-reference-audit',
+        summary: { revision: 1 },
+      },
+    ]);
   });
   await t.test(
     'legacy edit and invisible submission fail closed after explicit adoption',
