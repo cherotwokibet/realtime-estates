@@ -1,3 +1,9 @@
+## Viewing outcome audit checkpoint 336 - 4 November 2026 EAT
+
+Five signed viewing integration tests passed. Completion and no-show each left one audit entry with the original agent, tenant, operation, request ID and viewing version. Recovery, replay and refused attempts added no entries. Next, verify reminder admission and capture audit entries under task 08-7.
+
+Evidence in docs/evidence/audit336-viewing-outcomes.txt. Synthetic local verification. Checklist 53/97 and 0/14 gates.
+
 ## Viewing changes audit checkpoint 335 - 4 November 2026 EAT
 
 Four signed viewing integration tests passed. Two reschedules, a cancellation and a decline each retained the original actor, operation, request ID and resulting version. Replays and a refused decline added no duplicate events. Next, verify completed and no-show outcome audits under task 08-7.

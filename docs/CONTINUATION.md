@@ -1,3 +1,9 @@
+## Viewing outcome audit checkpoint 336 - 4 November 2026 EAT
+
+Five signed viewing integration tests passed. Completion and no-show each left one audit entry with the original agent, tenant, operation, request ID and viewing version. Recovery, replay and refused attempts added no entries. Next, verify reminder admission and capture audit entries under task 08-7.
+
+Evidence in docs/evidence/audit336-viewing-outcomes.txt. Synthetic local verification. Checklist 53/97 and 0/14 gates.
+
 ## Published viewing changes audit checkpoint 335 - 4 November 2026 EAT
 
 Private deployment appgdep_6aeb0ec52a988191af5ea048fbacd11c succeeded from dashboard commit b5a5989. Browser reload showed the new checkpoint. Exports 39 and 40 retained all prior browser notes and manual edits. Export 40 holds 825 notes and 27 checked items. SHA-256 CDE5DCBC0ED3BFC90442F108C4421FFFF70A7FFCBF36CBA8C72DAD03604A1F1C.

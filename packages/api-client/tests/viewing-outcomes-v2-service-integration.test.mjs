@@ -132,6 +132,13 @@ test('signed attendance recovers a discarded commit through access restoration a
           verify(parseBearerHeader(req.headers.get('authorization') ?? undefined)),
       }),
     );
+    let requestId;
+    const capture = async (url, init) => {
+      const response = await fetch(url, init);
+      requestId = response.headers.get('x-request-id');
+      assert.ok(requestId);
+      return response;
+    };
     const origin = await listen(apiServer),
       make = (fetch) =>
         new RealtorApiClient({
@@ -140,7 +147,7 @@ test('signed attendance recovers a discarded commit through access restoration a
           privacyNoticeVersion: 'synthetic-v1',
           ...(fetch ? { fetch } : {}),
         }),
-      api = make();
+      api = make(capture);
     const token = (user) =>
         new SignJWT({})
           .setProtectedHeader({ alg: 'RS256', kid: jwk.kid })
@@ -155,7 +162,7 @@ test('signed attendance recovers a discarded commit through access restoration a
     const command = { ...first.fixture.command, operationId: id(2000) };
     let writes = 0;
     const lost = make(async (url, init) => {
-      const response = await fetch(url, init);
+      const response = await capture(url, init);
       if (init.method === 'POST' && url.endsWith('/completions')) {
         writes++;
         assert.equal(response.status, 200);
@@ -169,6 +176,7 @@ test('signed attendance recovers a discarded commit through access restoration a
       (e) => e.kind === 'NETWORK' && e.submissionUncertain,
     );
     assert.equal(writes, 1);
+    const completionRequestId = requestId;
     const saved = await api.getViewingOutcomeReceiptV2(E, id(300), 'complete', command, agent);
     assert.equal(saved.result.status, 'completed');
     assert.equal(saved.result.version, '4');
@@ -256,6 +264,7 @@ test('signed attendance recovers a discarded commit through access restoration a
     const before = (await api.getStaffEnquiryV2(E, agent)).version;
     const next = { ...later.fixture.command, operationId: id(2002) },
       missed = await api.recordViewingOutcomeV2(E, id(301), 'no_show', next, agent);
+    const noShowRequestId = requestId;
     assert.equal(missed.result.status, 'no_show');
     assert.equal(missed.result.version, '6');
     assert.equal((await api.getStaffEnquiryV2(E, agent)).version, before);
@@ -268,6 +277,30 @@ test('signed attendance recovers a discarded commit through access restoration a
     assert.deepEqual(page.items[3].schedule.agreement, later.receipts[2].result.agreement);
     assert.deepEqual(page.items[1].schedule.agreement, later.receipts[4].result.agreement);
     assert.equal((await api.listViewingsV2(E, agent)).items.length, 2);
+    const audit = await asOwner(
+      async () =>
+        (
+          await db.query(
+            "SELECT tenant_id, actor_id, action, object_type, object_id, object_version::text, correlation_id, summary FROM app_private.audit_events WHERE object_type='viewing' ORDER BY id",
+          )
+        ).rows,
+    );
+    assert.deepEqual(
+      audit,
+      [
+        ['complete', id(300), '4', completionRequestId, command.operationId],
+        ['no_show', id(301), '6', noShowRequestId, next.operationId],
+      ].map(([kind, viewingId, version, correlationId, operationId]) => ({
+        tenant_id: T,
+        actor_id: AGENT,
+        action: 'viewing.' + kind,
+        object_type: 'viewing',
+        object_id: viewingId,
+        object_version: version,
+        correlation_id: correlationId,
+        summary: { kind, operationId },
+      })),
+    );
     const totals = await asOwner(
       async () =>
         (

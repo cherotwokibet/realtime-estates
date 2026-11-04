@@ -45,3 +45,5 @@ Checkpoint 333. Signed local tests matched invitation issuance to the administra
 Checkpoint 334. Signed viewing tests verified one audit entry each for request, proposal and phone confirmation. Each entry matched the original actor, tenant, viewing version, operation and HTTP request ID. Confirmation recovery and replay left the three entries intact. All four viewing integration tests passed. Next, check audit entries for rescheduling, cancellation, decline and outcomes under task 08-7.
 
 Checkpoint 335. Four signed viewing integration tests passed. Two reschedules, a cancellation and a decline each retained the original actor, operation, request ID and resulting version. Replays and a refused decline added no duplicate events. Next, verify completed and no-show outcome audits under task 08-7.
+
+Checkpoint 336. Five signed viewing integration tests passed. Completion and no-show each left one audit entry with the original agent, tenant, operation, request ID and viewing version. Recovery, replay and refused attempts added no entries. Next, verify reminder admission and capture audit entries under task 08-7.
