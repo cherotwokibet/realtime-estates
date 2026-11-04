@@ -1,3 +1,11 @@
+## Published command and moderation checkpoints 324 and 326 — 4 November 2026 EAT
+
+The private dashboard reached version 246. The live tab showed the moderation checkpoint and 20 passing maintained checks. Exports 26 through 28 were retained with hash readback. All 809 original browser notes, manual choices and 27 checked items survived, with 813 notes after the updates. The restored source bundle matched commit cfc9eb1, passed Git integrity verification and verified 202 evidence scopes. See docs/evidence/admin-audit-publication326.json.
+
+Follow-up 327 passed the existing signed guarded creation and successor integration tests, the signed synthetic reference withdrawal/recovery/resubmission test and all 36 focused SQL checks across creation, successor and reference moderation. Logs are docs/evidence/audit327-allocation-integration1.txt, audit327-withdrawal1.txt and audit327-allocation-withdrawal-sql1.txt. Ordinary allocation already covers original recovery after corrupt committed replies. The supported withdrawal UI invokes the opt-in v3 reference transition operation.
+
+Next, map exact guarded-allocation and withdrawal event and original-receipt facts to those fresh tests, then verify enquiry assignment, contact and stage changes and the staff mutation commands. Task 08-7 remains open at 53 of 97 verified deliverables with zero accepted stage gates.
+
 ## Signed draft and moderation verification 325 — 4 November 2026 EAT
 
 Signed v2 SDK requests proved exact draft save, submit, approve and reject audit facts, foreign draft write denial, unauthorized review denial and stale decision preservation. Approval yielded the expected snapshot and rejection retained the private reason. The corrected final maintained run passed all 20 checks. See docs/evidence/2026-11-04-admin-moderation-verification.md.
