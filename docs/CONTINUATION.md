@@ -1,3 +1,7 @@
+## Published viewing audit checkpoint 334 - 4 November 2026 EAT
+
+Private deployment appgdep_6aeb01ed07508191848f9d47d0ef7878 succeeded from dashboard commit f89e731. Browser reload showed the new checkpoint. Exports 37 and 38 retained all prior browser notes and manual edits. Export 38 holds 823 notes and 27 checked items. SHA-256 40D47591E47CFA4E200F0479B78478C82DB0C235CD5E5A1220033360EFB088E8.
+
 ## Viewing audit checkpoint 334 - 4 November 2026 EAT
 
 Signed viewing tests verified one audit entry each for request, proposal and phone confirmation. Each entry matched the original actor, tenant, viewing version, operation and HTTP request ID. Confirmation recovery and replay left the three entries intact. All four viewing integration tests passed. Next, check audit entries for rescheduling, cancellation, decline and outcomes under task 08-7.
