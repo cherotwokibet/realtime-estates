@@ -1,3 +1,9 @@
+## Gallery audit checkpoint 339 - 4 November 2026 EAT
+
+All 63 focused database and API tests passed. Gallery registration, attachment, removal and reorder audit records matched the original actor, revision, operation and version. Replays and unchanged reorder preserved the audit history. Next, verify synthetic references and private video under task 08-7.
+
+Evidence in docs/evidence/audit339-gallery.txt. Synthetic local verification. Checklist 53/97 and 0/14 gates.
+
 ## Published listing decisions audit checkpoint 338 - 4 November 2026 EAT
 
 Private deployment appgdep_6aeb3ac70a508191bae5ea44c7c1546f succeeded from dashboard commit edc7762. Browser reload showed the new checkpoint. Exports 45 and 46 retained all prior browser notes and manual edits. Export 46 holds 831 notes and 27 checked items. SHA-256 AE3C8800C7B9FF3DD01A0E3BD1936896A6CD12B1FF6B01BA66DA2CBD559C2504.

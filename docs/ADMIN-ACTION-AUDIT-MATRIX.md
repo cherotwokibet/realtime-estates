@@ -51,3 +51,5 @@ Checkpoint 336. Five signed viewing integration tests passed. Completion and no-
 Checkpoint 337. The signed reminder integration test passed. Three admissions and two captures retained the original agent, request ID and viewing version. Each capture also identified its admission. Replays, duplicate captures, waits and suppressed attempts added no audit entries. Next, reconcile the remaining audit matrix rows against task 08-7.
 
 Checkpoint 338. All 24 focused checks passed. Database tests matched the audit records for synthetic listing verification, report review and report dismissal to the original actor, tenant, target and version. Signed tests checked current permissions and original receipt recovery. Next, verify gallery registration, attachment, removal and reorder under task 08-7.
+
+Checkpoint 339. All 63 focused database and API tests passed. Gallery registration, attachment, removal and reorder audit records matched the original actor, revision, operation and version. Replays and unchanged reorder preserved the audit history. Next, verify synthetic references and private video under task 08-7.

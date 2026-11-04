@@ -465,7 +465,7 @@ test('single-photo attachment requires an authenticated exact intent and immutab
         assert.equal(media.accepted, true);
         const audit = (
           await db.query(
-            `SELECT tenant_id,actor_id,object_id,object_version::text,correlation_id FROM app_private.audit_events WHERE action='media.attached' AND object_id=$1`,
+            `SELECT tenant_id,actor_id,object_id,object_version::text,correlation_id,object_type,summary FROM app_private.audit_events WHERE action='media.attached' AND object_id=$1`,
             [x.listing],
           )
         ).rows;
@@ -476,6 +476,8 @@ test('single-photo attachment requires an authenticated exact intent and immutab
             object_id: x.listing,
             object_version: '3',
             correlation_id: `media-attach/${op}`,
+            object_type: 'listing',
+            summary: { revision: 1, operationId: op, mediaId: receipt.mediaId },
           },
         ]);
         assert.equal(

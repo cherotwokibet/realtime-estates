@@ -267,11 +267,25 @@ test('draft gallery commands preserve exact consent, contiguous positions and im
         );
         const audit = (
           await db.query(
-            "SELECT actor_id,tenant_id,object_version::text FROM app_private.audit_events WHERE object_id=$1 AND action='media.removed'",
+            "SELECT actor_id,tenant_id,object_version::text,object_type,correlation_id,summary FROM app_private.audit_events WHERE object_id=$1 AND action='media.removed'",
             [x.listing],
           )
         ).rows;
-        assert.deepEqual(audit, [{ actor_id: AGENT, tenant_id: T, object_version: '3' }]);
+        assert.deepEqual(audit, [
+          {
+            actor_id: AGENT,
+            tenant_id: T,
+            object_type: 'listing',
+            object_version: '3',
+            correlation_id: 'synthetic-gallery-policy',
+            summary: {
+              revision: 1,
+              operationId: op,
+              mediaId: ids[1],
+              orderedIds: [ids[0], ids[2], ids[3]],
+            },
+          },
+        ]);
         const after = await snapshot(db);
         assert.deepEqual(await remove(db, x, op, ids[1]), receipt);
         assert.deepEqual(await read(db, x, op), receipt);
@@ -341,13 +355,23 @@ test('draft gallery commands preserve exact consent, contiguous positions and im
           assert.deepEqual(after[table], before[table], table);
         assert.equal(after.media_operations.length, before.media_operations.length + 1);
         assert.deepEqual(await reorder(db, x, id(12101), next), noop);
-        assert.equal(
-          await scalar(
-            db,
-            "SELECT count(*)::integer FROM app_private.audit_events WHERE object_id=$1 AND action='media.reordered'",
-            [x.listing],
-          ),
-          2,
+        const audit = await db.query(
+          "SELECT actor_id,tenant_id,object_version::text,object_type,correlation_id,summary FROM app_private.audit_events WHERE object_id=$1 AND action='media.reordered' ORDER BY id",
+          [x.listing],
+        );
+        assert.deepEqual(
+          audit.rows,
+          [
+            [op, '3', requested],
+            [id(11101), '4', next],
+          ].map(([operationId, version, orderedIds]) => ({
+            actor_id: AGENT,
+            tenant_id: T,
+            object_type: 'listing',
+            object_version: version,
+            correlation_id: 'synthetic-gallery-policy',
+            summary: { revision: 1, operationId, mediaId: null, orderedIds },
+          })),
         );
         const empty = await listing(db, 102);
         const emptyNoop = await reorder(db, empty, id(10102), []);

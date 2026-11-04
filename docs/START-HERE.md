@@ -1,3 +1,9 @@
+## Gallery audit checkpoint 339 - 4 November 2026 EAT
+
+All 63 focused database and API tests passed. Gallery registration, attachment, removal and reorder audit records matched the original actor, revision, operation and version. Replays and unchanged reorder preserved the audit history. Next, verify synthetic references and private video under task 08-7.
+
+Evidence in docs/evidence/audit339-gallery.txt. Synthetic local verification. Checklist 53/97 and 0/14 gates.
+
 ## Listing verification and report audit checkpoint 338 - 4 November 2026 EAT
 
 All 24 focused checks passed. Database tests matched the audit records for synthetic listing verification, report review and report dismissal to the original actor, tenant, target and version. Signed tests checked current permissions and original receipt recovery. Next, verify gallery registration, attachment, removal and reorder under task 08-7.

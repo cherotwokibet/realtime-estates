@@ -272,6 +272,21 @@ test('registered media jobs preserve private identity and authorized historical 
           operations: before.operations + 1,
           audits: before.audits + 1,
         });
+        const audit = await db.query(
+          "SELECT tenant_id, actor_id, object_type, object_id, object_version::text, correlation_id, summary FROM app_private.audit_events WHERE action='media.registered' AND object_id=$1",
+          [listing],
+        );
+        assert.deepEqual(audit.rows, [
+          {
+            tenant_id: T,
+            actor_id: AGENT,
+            object_type: 'listing',
+            object_id: listing,
+            object_version: '2',
+            correlation_id: 'synthetic-registration-test',
+            summary: { revision: 1, operationId: operation, jobId: result.jobId },
+          },
+        ]);
         const after = await db.query(
           `SELECT l.version::text AS listing,r.version::text AS revision FROM app_private.listings l
         JOIN app_private.listing_revisions r ON r.tenant_id=l.tenant_id AND r.listing_id=l.id WHERE l.id=$1`,
