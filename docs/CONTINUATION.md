@@ -1,3 +1,7 @@
+## Published invitation audit checkpoint 333 - 4 November 2026 EAT
+
+Private deployment appgdep_6aeaf1d6be08819193ce372978e10f09 succeeded from dashboard commit ea33b9a. Browser reload showed the new checkpoint. Exports 35 and 36 retained all prior browser notes and manual edits. Export 36 holds 821 notes and 27 checked items. SHA-256 237BD9F6444BE2DA9231155C52EC8FE12421B922908A081FC47E706C4DE19685.
+
 ## Invitation issuance and redemption audit checkpoint 333 - 4 November 2026 EAT
 
 Signed local tests matched invitation issuance to the administrator and redemption to the verified recipient, including each operation ID and version. Replays, denied requests and malformed SQL results left no extra audit entries. All 18 invitation HTTP and database checks passed. Next, verify audit entries for viewing mutations under task 08-7.
