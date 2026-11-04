@@ -1,0 +1,85 @@
+4 November 2026 EAT — admin write-verb route inventory
+Static source reconciliation; numbers are route exports, not tests.
+
+[Read-only receipt recovery] (15)
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\contacts\recover\route.ts:4:export async function POST(request: Request, { params }: Context) {
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewing-reminder-admissions\[admissionOperationId]\captures\recover\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\cancellations\recover\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\completions\recover\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\confirmations\recover\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\declines\recover\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\no-shows\recover\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\reminder-admissions\recover\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\reschedules\recover\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\recover\route.ts:4:export async function POST(request: Request, { params }: Context) {
+apps/admin/app\api\staff\listings\[id]\reference-creation-operations\[operationId]\recover\route.ts:3:export const POST = referenceCreationRequest;
+apps/admin/app\api\staff\listings\[id]\reference-draft-operations\[operationId]\recover\route.ts:3:export const POST = referenceDraftRequest;
+apps/admin/app\api\staff\listings\[id]\reference-successor-operations\[operationId]\recover\route.ts:3:export const POST = referenceSuccessorRequest;
+apps/admin/app\api\staff\listings\[id]\reference-transition-operations\[operationId]\recover\route.ts:3:export const POST = referenceModerationRequest;
+apps/admin/app\api\staff\listings\[id]\video-operations\[operationId]\recover\route.ts:3:export const POST = (request: Request) => listingVideoRequest(request);
+
+[Validation preview] (1)
+apps/admin/app\api\staff\listing-import-preview\route.ts:3:export const POST = listingImportPreviewRequest;
+
+[Guest synthetic intake (public capture policy)] (1)
+apps/admin/app\api\enquiry-intake\route.ts:3:export const POST = intakePreviewRequest;
+
+[Media staging and finalization (343 focus)] (3)
+apps/admin/app\api\staff\drafts\[id]\[revision]\media-attach-intents\[operationId]\finalize\route.ts:3:export async function POST(
+apps/admin/app\api\staff\drafts\[id]\[revision]\media-attach-intents\route.ts:3:export async function POST(
+apps/admin/app\api\staff\drafts\[id]\[revision]\media-jobs\[jobId]\uploads\[uploadId]\route.ts:3:export async function PUT(
+
+[Gallery commands (339)] (3)
+apps/admin/app\api\staff\drafts\[id]\[revision]\media-registrations\route.ts:3:export async function POST(
+apps/admin/app\api\staff\drafts\[id]\[revision]\media-removals\route.ts:2:export async function POST(
+apps/admin/app\api\staff\drafts\[id]\[revision]\media-reorders\route.ts:2:export async function POST(
+
+[Enquiry commands (330, 342)] (3)
+apps/admin/app\api\enquiry-preview\[actor]\capture\route.ts:3:export async function POST(request: Request, { params }: { params: Promise<{ actor: string }> }) {
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\contacts\route.ts:7:export async function POST(request: Request, { params }: Context) {
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\operations\route.ts:3:export async function POST(
+
+[Viewing and reminder commands (334–337)] (10)
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewing-reminder-admissions\[admissionOperationId]\captures\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\cancellations\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\completions\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\confirmations\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\declines\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\no-shows\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\proposals\route.ts:4:export async function POST(request: Request, { params }: Context) {
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\reminder-admissions\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\[viewingId]\reschedules\route.ts:3:export async function POST(
+apps/admin/app\api\enquiry-preview\[actor]\enquiries\[id]\viewings\route.ts:7:export async function POST(request: Request, { params }: Context) {
+
+[Reference and video commands (340–341; allocation proofs separate)] (5)
+apps/admin/app\api\staff\listings\[id]\reference-creation-operations\[operationId]\route.ts:3:export const POST = referenceCreationRequest;
+apps/admin/app\api\staff\listings\[id]\reference-draft-operations\[operationId]\route.ts:3:export const POST = referenceDraftRequest;
+apps/admin/app\api\staff\listings\[id]\reference-successor-operations\[operationId]\route.ts:3:export const POST = referenceSuccessorRequest;
+apps/admin/app\api\staff\listings\[id]\reference-transition-operations\[operationId]\route.ts:3:export const POST = referenceModerationRequest;
+apps/admin/app\api\staff\listings\[id]\video-operations\[operationId]\route.ts:3:export const POST = (request: Request) => listingVideoRequest(request);
+
+[Listing verification and report decisions (338)] (2)
+apps/admin/app\api\listing-reports\[report]\operations\[operation]\route.ts:9:export const POST = handle;
+apps/admin/app\api\staff\listings\[id]\verification-operations\[operationId]\route.ts:4:export const POST = listingVerificationRequest;
+
+[Publication and availability (328)] (2)
+apps/admin/app\api\staff\listings\[id]\availability-operations\[operationId]\route.ts:4:export async function POST(request: Request, { params }: Context) {
+apps/admin/app\api\staff\listings\[id]\publication-operations\[operationId]\route.ts:4:export async function POST(request: Request, { params }: Context) {
+
+[Allocation and revision moderation (325, 327–328)] (7)
+apps/admin/app\api\staff\drafts\[id]\[revision]\route.ts:7:export async function PUT(request: Request, context: Context) {
+apps/admin/app\api\staff\drafts\[id]\[revision]\submit\route.ts:2:export async function POST(
+apps/admin/app\api\staff\listings\[id]\creation-operations\[operationId]\route.ts:7:export async function POST(request: Request, context: Context) {
+apps/admin/app\api\staff\listings\[id]\retained-creation-operations\[operationId]\route.ts:7:export async function POST(request: Request, context: Context) {
+apps/admin/app\api\staff\listings\[id]\retained-revision-operations\[operationId]\route.ts:7:export async function POST(request: Request, context: Context) {
+apps/admin/app\api\staff\listings\[id]\revision-operations\[operationId]\route.ts:4:export async function POST(request: Request, { params }: Context) {
+apps/admin/app\api\staff\reviews\[id]\[revision]\decision\route.ts:3:export async function POST(
+
+[Company settings (323)] (1)
+apps/admin/app\api\company-settings\operations\[id]\route.ts:7:export async function POST(request: Request, context: Context) {
+
+[Staff management (331–333)] (4)
+apps/admin/app\api\staff-directory\branches\operations\[operation]\route.ts:8:export async function POST(request: Request, context: Context) {
+apps/admin/app\api\staff-directory\invitations\[invitation]\revocations\[operation]\route.ts:8:export async function POST(request: Request, context: Context) {
+apps/admin/app\api\staff-directory\invitations\operations\[operation]\route.ts:8:export async function POST(request: Request, context: Context) {
+apps/admin/app\api\staff-directory\memberships\operations\[operation]\route.ts:8:export async function POST(request: Request, context: Context) {
