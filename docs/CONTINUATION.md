@@ -1,3 +1,9 @@
+## Viewing changes audit checkpoint 335 - 4 November 2026 EAT
+
+Four signed viewing integration tests passed. Two reschedules, a cancellation and a decline each retained the original actor, operation, request ID and resulting version. Replays and a refused decline added no duplicate events. Next, verify completed and no-show outcome audits under task 08-7.
+
+Evidence in docs/evidence/audit335-viewing-changes.txt. Synthetic local verification. Checklist 53/97 and 0/14 gates.
+
 ## Published viewing audit checkpoint 334 - 4 November 2026 EAT
 
 Private deployment appgdep_6aeb01ed07508191848f9d47d0ef7878 succeeded from dashboard commit f89e731. Browser reload showed the new checkpoint. Exports 37 and 38 retained all prior browser notes and manual edits. Export 38 holds 823 notes and 27 checked items. SHA-256 40D47591E47CFA4E200F0479B78478C82DB0C235CD5E5A1220033360EFB088E8.

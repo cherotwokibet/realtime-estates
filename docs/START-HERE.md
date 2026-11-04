@@ -1,3 +1,9 @@
+## Viewing changes audit checkpoint 335 - 4 November 2026 EAT
+
+Four signed viewing integration tests passed. Two reschedules, a cancellation and a decline each retained the original actor, operation, request ID and resulting version. Replays and a refused decline added no duplicate events. Next, verify completed and no-show outcome audits under task 08-7.
+
+Evidence in docs/evidence/audit335-viewing-changes.txt. Synthetic local verification. Checklist 53/97 and 0/14 gates.
+
 ## Viewing audit checkpoint 334 - 4 November 2026 EAT
 
 Signed viewing tests verified one audit entry each for request, proposal and phone confirmation. Each entry matched the original actor, tenant, viewing version, operation and HTTP request ID. Confirmation recovery and replay left the three entries intact. All four viewing integration tests passed. Next, check audit entries for rescheduling, cancellation, decline and outcomes under task 08-7.

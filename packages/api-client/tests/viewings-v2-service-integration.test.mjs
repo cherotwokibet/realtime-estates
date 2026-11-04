@@ -11,13 +11,39 @@ const slot = {
 const denied = (status) => (e) =>
   e instanceof ApiClientError && e.kind === 'HTTP' && e.status === status && !e.submissionUncertain;
 
+async function assertViewingAudit(preview, viewingId, kind, operations) {
+  const action = 'viewing.' + kind;
+  const rows = await preview.readViewingAudit(viewingId);
+  assert.deepEqual(
+    rows.filter((row) => row.action === action),
+    operations.map(([operationId, version, requestId]) => ({
+      tenant_id: '00000000-0000-4000-8000-000000000001',
+      actor_id: preview.enquiryStaff.agent.actorId,
+      action,
+      object_type: 'viewing',
+      object_id: viewingId,
+      object_version: version,
+      correlation_id: requestId,
+      summary: { kind, operationId },
+    })),
+  );
+}
+
 test('signed rescheduling recovers a discarded commit,requires new agreements and retains repeated-cycle history through current access loss', async () => {
   const preview = await startStaffPreview({
     port: 0,
+    inspectViewingAudit: true,
     enquiryPreview: 'synthetic-v1',
     enquiryCatalogue: 'synthetic-v1',
   });
   try {
+    let requestId;
+    const capture = async (url, init) => {
+      const response = await fetch(url, init);
+      requestId = response.headers.get('x-request-id');
+      assert.ok(requestId);
+      return response;
+    };
     const make = (fetch) =>
         new RealtorApiClient({
           baseUrl: preview.origin,
@@ -25,7 +51,7 @@ test('signed rescheduling recovers a discarded commit,requires new agreements an
           privacyNoticeVersion: 'synthetic-staff-notice-v1',
           ...(fetch ? { fetch } : {}),
         }),
-      api = make(),
+      api = make(capture),
       admin = { bearerToken: preview.enquiryStaff.admin.bearerToken },
       agent = { bearerToken: preview.enquiryStaff.agent.bearerToken },
       enquiry = preview.enquiryFixtures.assigned;
@@ -70,7 +96,7 @@ test('signed rescheduling recovers a discarded commit,requires new agreements an
       };
     let writes = 0;
     const lost = make(async (url, init) => {
-      const response = await fetch(url, init);
+      const response = await capture(url, init);
       if (init.method === 'POST' && url.endsWith('/reschedules')) {
         writes++;
         assert.equal(response.status, 200);
@@ -84,6 +110,7 @@ test('signed rescheduling recovers a discarded commit,requires new agreements an
       (e) => e instanceof ApiClientError && e.kind === 'NETWORK' && e.submissionUncertain,
     );
     assert.equal(writes, 1);
+    const firstMoveRequestId = requestId;
     const second = await api.getViewingRescheduleReceiptV2(enquiry, viewing, move, agent);
     assert.equal(second.result.version, '4');
     assert.equal(second.result.cycle.number, '2');
@@ -179,6 +206,7 @@ test('signed rescheduling recovers a discarded commit,requires new agreements an
         reason: 'Synthetic third proposal.',
       },
       third = await api.rescheduleViewingV2(enquiry, viewing, thirdMove, agent);
+    const thirdMoveRequestId = requestId;
     assert.equal(third.result.version, '6');
     assert.equal(third.result.cycle.number, '3');
     assert.equal(Object.hasOwn(third.result, 'agreement'), false);
@@ -223,6 +251,10 @@ test('signed rescheduling recovers a discarded commit,requires new agreements an
     assert.deepEqual(await api.rescheduleViewingV2(enquiry, viewing, thirdMove, agent), third);
     assert.equal((await api.listViewingsV2(enquiry, agent)).items.length, 1);
     assert.equal((await api.getStaffEnquiryV2(enquiry, agent)).version, '4');
+    await assertViewingAudit(preview, viewing, 'reschedule', [
+      [move.operationId, '4', firstMoveRequestId],
+      [thirdMove.operationId, '6', thirdMoveRequestId],
+    ]);
   } finally {
     await preview.close();
   }
@@ -231,10 +263,18 @@ test('signed rescheduling recovers a discarded commit,requires new agreements an
 test('signed terminal workflow recovers a discarded committed reply and retains original phone evidence through access loss', async () => {
   const preview = await startStaffPreview({
     port: 0,
+    inspectViewingAudit: true,
     enquiryPreview: 'synthetic-v1',
     enquiryCatalogue: 'synthetic-v1',
   });
   try {
+    let requestId;
+    const capture = async (url, init) => {
+      const response = await fetch(url, init);
+      requestId = response.headers.get('x-request-id');
+      assert.ok(requestId);
+      return response;
+    };
     const make = (fetch) =>
         new RealtorApiClient({
           baseUrl: preview.origin,
@@ -242,7 +282,7 @@ test('signed terminal workflow recovers a discarded committed reply and retains 
           privacyNoticeVersion: 'synthetic-staff-notice-v1',
           ...(fetch ? { fetch } : {}),
         }),
-      api = make(),
+      api = make(capture),
       admin = { bearerToken: preview.enquiryStaff.admin.bearerToken },
       agent = { bearerToken: preview.enquiryStaff.agent.bearerToken },
       enquiry = preview.enquiryFixtures.assigned;
@@ -273,7 +313,7 @@ test('signed terminal workflow recovers a discarded committed reply and retains 
       };
     let writes = 0;
     const lost = make(async (url, init) => {
-      const response = await fetch(url, init);
+      const response = await capture(url, init);
       if (init.method === 'POST' && url.endsWith('/cancellations')) {
         writes++;
         assert.equal(response.status, 200);
@@ -287,6 +327,7 @@ test('signed terminal workflow recovers a discarded committed reply and retains 
       (e) => e instanceof ApiClientError && e.kind === 'NETWORK' && e.submissionUncertain,
     );
     assert.equal(writes, 1);
+    const cancellationRequestId = requestId;
     const original = await api.getViewingTerminationReceiptV2(
       enquiry,
       requested.viewingId,
@@ -437,6 +478,7 @@ test('signed terminal workflow recovers a discarded committed reply and retains 
         declineCommand,
         agent,
       );
+    const declineRequestId = requestId;
     assert.equal(decline.result.status, 'declined');
     assert.equal(decline.result.version, '2');
     assert.deepEqual(
@@ -449,6 +491,13 @@ test('signed terminal workflow recovers a discarded committed reply and retains 
       ),
       decline,
     );
+    await assertViewingAudit(preview, requested.viewingId, 'cancel', [
+      [ending.operationId, '4', cancellationRequestId],
+    ]);
+    await assertViewingAudit(preview, requested.viewingId, 'decline', []);
+    await assertViewingAudit(preview, next.viewingId, 'decline', [
+      [declineCommand.operationId, '2', declineRequestId],
+    ]);
   } finally {
     await preview.close();
   }

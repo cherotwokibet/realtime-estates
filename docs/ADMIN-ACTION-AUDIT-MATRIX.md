@@ -43,3 +43,5 @@ Checkpoint 332. Signed staff requests verified exact audit entries for branch cr
 Checkpoint 333. Signed local tests matched invitation issuance to the administrator and redemption to the verified recipient, including each operation ID and version. Replays, denied requests and malformed SQL results left no extra audit entries. All 18 invitation HTTP and database checks passed. Next, verify audit entries for viewing mutations under task 08-7.
 
 Checkpoint 334. Signed viewing tests verified one audit entry each for request, proposal and phone confirmation. Each entry matched the original actor, tenant, viewing version, operation and HTTP request ID. Confirmation recovery and replay left the three entries intact. All four viewing integration tests passed. Next, check audit entries for rescheduling, cancellation, decline and outcomes under task 08-7.
+
+Checkpoint 335. Four signed viewing integration tests passed. Two reschedules, a cancellation and a decline each retained the original actor, operation, request ID and resulting version. Replays and a refused decline added no duplicate events. Next, verify completed and no-show outcome audits under task 08-7.
