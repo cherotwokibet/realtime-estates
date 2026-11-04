@@ -1,3 +1,7 @@
+## Published reference moderation audit checkpoint 341 - 4 November 2026 EAT
+
+Private deployment appgdep_6aeb565293d88191ab6bb79ba0f66e65 succeeded from dashboard commit d11de96. Browser reload showed the new checkpoint. Exports 51 and 52 retained all prior browser notes and manual edits. Export 52 holds 837 notes and 27 checked items. SHA-256 D8C385EC5A04998C698187025A01978E0D2D37986F8C424C0D0FB7F72CE5D925.
+
 ## Reference moderation audit checkpoint 341 - 4 November 2026 EAT
 
 All 37 focused tests passed. Reference submission, approval and rejection each recorded the base event and its reference operation with matching actor, tenant, revision, version and correlation. Exact replays preserved the audit entries. Next, compare the remaining admin mutation routes with the audit matrix for task 08-7.
