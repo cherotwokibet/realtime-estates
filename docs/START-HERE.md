@@ -1,3 +1,9 @@
+## Reminder audit checkpoint 337 - 4 November 2026 EAT
+
+The signed reminder integration test passed. Three admissions and two captures retained the original agent, request ID and viewing version. Each capture also identified its admission. Replays, duplicate captures, waits and suppressed attempts added no audit entries. Next, reconcile the remaining audit matrix rows against task 08-7.
+
+Evidence in docs/evidence/audit337-reminders.txt. Synthetic local verification. Checklist 53/97 and 0/14 gates.
+
 ## Viewing outcome audit checkpoint 336 - 4 November 2026 EAT
 
 Five signed viewing integration tests passed. Completion and no-show each left one audit entry with the original agent, tenant, operation, request ID and viewing version. Recovery, replay and refused attempts added no entries. Next, verify reminder admission and capture audit entries under task 08-7.

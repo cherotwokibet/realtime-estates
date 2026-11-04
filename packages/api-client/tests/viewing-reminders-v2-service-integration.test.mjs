@@ -96,6 +96,13 @@ test('signed capture-only reminder HTTP recovers discarded commits and preserves
           verify(parseBearerHeader(request.headers.get('authorization') ?? undefined)),
       }),
     );
+    let requestId;
+    const captureResponse = async (url, init) => {
+      const response = await fetch(url, init);
+      requestId = response.headers.get('x-request-id');
+      assert.ok(requestId);
+      return response;
+    };
     const origin = await listen(apiServer),
       make = (fetch) =>
         new RealtorApiClient({
@@ -104,7 +111,7 @@ test('signed capture-only reminder HTTP recovers discarded commits and preserves
           privacyNoticeVersion: 'synthetic-v1',
           ...(fetch ? { fetch } : {}),
         }),
-      api = make();
+      api = make(captureResponse);
     const token = (user) =>
         new SignJWT({})
           .setProtectedHeader({ alg: 'RS256', kid: jwk.kid })
@@ -125,7 +132,7 @@ test('signed capture-only reminder HTTP recovers discarded commits and preserves
       };
     let admissionWrites = 0;
     const lostAdmission = make(async (url, init) => {
-      const response = await fetch(url, init);
+      const response = await captureResponse(url, init);
       if (init.method === 'POST' && url.endsWith('/reminder-admissions')) {
         admissionWrites++;
         assert.equal(response.status, 200);
@@ -139,6 +146,7 @@ test('signed capture-only reminder HTTP recovers discarded commits and preserves
       () => lostAdmission.admitViewingReminderV2(E, viewing, command, agent),
       (error) => error.kind === 'NETWORK' && error.submissionUncertain,
     );
+    const firstAdmissionId = requestId;
     assert.equal(admissionWrites, 1);
     const admission = await api.getViewingReminderAdmissionReceiptV2(E, viewing, command, agent);
     assert.equal(admission.outcome, 'admitted');
@@ -161,7 +169,7 @@ test('signed capture-only reminder HTTP recovers discarded commits and preserves
     const captureCommand = { operationId: id(4000) };
     let captureWrites = 0;
     const lostCapture = make(async (url, init) => {
-      const response = await fetch(url, init);
+      const response = await captureResponse(url, init);
       if (init.method === 'POST' && url.endsWith('/captures')) {
         captureWrites++;
         assert.equal(response.status, 200);
@@ -175,6 +183,7 @@ test('signed capture-only reminder HTTP recovers discarded commits and preserves
       () => lostCapture.captureViewingReminderV2(admission, captureCommand, agent),
       (error) => error.kind === 'NETWORK' && error.submissionUncertain,
     );
+    const firstCaptureId = requestId;
     assert.equal(captureWrites, 1);
     const saved = await api.getViewingReminderCaptureReceiptV2(admission, captureCommand, agent);
     assert.equal(saved.outcome, 'captured');
@@ -295,22 +304,25 @@ test('signed capture-only reminder HTTP recovers discarded commits and preserves
       },
       agent,
     );
+    const nextAdmissionId = requestId;
     assert.equal(next.candidate.cycleNumber, '2');
     const second = await api.captureViewingReminderV2(next, { operationId: id(2200) }, agent);
+    const nextCaptureId = requestId;
     assert.equal(second.outcome, 'captured');
     assert.equal(second.capture.viewingVersion, '5');
     const future = await api.admitViewingReminderV2(
-        E,
-        viewing,
-        {
-          operationId: id(2101),
-          expectedVersion: '5',
-          dueAt: '2090-01-02T08:00:00.000Z',
-          expiresAt: slot.startAt,
-        },
-        agent,
-      ),
-      waiting = await api.captureViewingReminderV2(future, { operationId: id(2201) }, agent);
+      E,
+      viewing,
+      {
+        operationId: id(2101),
+        expectedVersion: '5',
+        dueAt: '2090-01-02T08:00:00.000Z',
+        expiresAt: slot.startAt,
+      },
+      agent,
+    );
+    const futureAdmissionId = requestId;
+    const waiting = await api.captureViewingReminderV2(future, { operationId: id(2201) }, agent);
     assert.equal(waiting.outcome, 'waiting');
     assert.equal(waiting.reason, 'NOT_DUE');
     assert.equal(waiting.capture, null);
@@ -368,6 +380,37 @@ test('signed capture-only reminder HTTP recovers discarded commits and preserves
       history.items[1].schedule.agreement.notes,
     );
     assert.equal((await api.getStaffEnquiryV2(E, agent)).version, '4');
+    const audit = await asOwner(
+      async () =>
+        (
+          await db.query(
+            "SELECT tenant_id, actor_id, action, object_type, object_id, object_version::text, correlation_id, summary FROM app_private.audit_events WHERE action IN ('viewing.reminder_admitted','viewing.reminder_captured') ORDER BY id",
+          )
+        ).rows,
+    );
+    assert.deepEqual(
+      audit,
+      [
+        ['admitted', '3', firstAdmissionId, 2000],
+        ['captured', '3', firstCaptureId, 4000, 2000],
+        ['admitted', '5', nextAdmissionId, 2100],
+        ['captured', '5', nextCaptureId, 2200, 2100],
+        ['admitted', '5', futureAdmissionId, 2101],
+      ].map(([kind, version, correlationId, operation, admissionOperation]) => ({
+        tenant_id: T,
+        actor_id: U,
+        action: 'viewing.reminder_' + kind,
+        object_type: 'viewing',
+        object_id: viewing,
+        object_version: version,
+        correlation_id: correlationId,
+        summary: {
+          operationId: id(operation),
+          mode: 'capture-only-v1',
+          ...(admissionOperation ? { admissionOperationId: id(admissionOperation) } : {}),
+        },
+      })),
+    );
     const totals = await asOwner(
       async () =>
         (
