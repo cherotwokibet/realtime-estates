@@ -1,3 +1,9 @@
+## Reference moderation audit checkpoint 341 - 4 November 2026 EAT
+
+All 37 focused tests passed. Reference submission, approval and rejection each recorded the base event and its reference operation with matching actor, tenant, revision, version and correlation. Exact replays preserved the audit entries. Next, compare the remaining admin mutation routes with the audit matrix for task 08-7.
+
+Evidence in docs/evidence/audit341-reference-moderation.txt. Next, enumerate reachable admin mutations and reconcile them with existing authorization, audit and replay evidence. Begin with listing reassignment, staff enquiry capture and enquiry rescheduling. Checklist 53/97 and 0/14 gates.
+
 ## Reference draft and private video audit checkpoint 340 - 4 November 2026 EAT
 
 All 26 focused database and API tests passed. The synthetic reference draft save and private video save and clear each retained the original actor, tenant, revision and version. Replays added no duplicate entries. Next, reconcile the remaining admin routes against task 08-7.

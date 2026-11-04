@@ -55,3 +55,5 @@ Checkpoint 338. All 24 focused checks passed. Database tests matched the audit r
 Checkpoint 339. All 63 focused database and API tests passed. Gallery registration, attachment, removal and reorder audit records matched the original actor, revision, operation and version. Replays and unchanged reorder preserved the audit history. Next, verify synthetic references and private video under task 08-7.
 
 Checkpoint 340. All 26 focused database and API tests passed. The synthetic reference draft save and private video save and clear each retained the original actor, tenant, revision and version. Replays added no duplicate entries. Next, reconcile the remaining admin routes against task 08-7.
+
+Checkpoint 341. All 37 focused tests passed. Reference submission, approval and rejection each recorded the base event and its reference operation with matching actor, tenant, revision, version and correlation. Exact replays preserved the audit entries. Next, compare the remaining admin mutation routes with the audit matrix for task 08-7.

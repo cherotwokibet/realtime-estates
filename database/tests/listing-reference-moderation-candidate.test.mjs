@@ -92,7 +92,7 @@ test('isolated reference moderation binds reviewed facts and immutable approved 
     await db.exec('BEGIN;SET LOCAL ROLE api_runtime');
     try {
       await db.query(
-        "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
+        "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true),set_config('realtor.correlation_id','synthetic-reference-moderation',true)",
         [id(tenant), id(user)],
       );
       const value = await work();
@@ -198,6 +198,36 @@ test('isolated reference moderation binds reviewed facts and immutable approved 
       'utf8',
     ),
   );
+  async function assertTransitionAudit(
+    listing,
+    actor,
+    action,
+    baseAction,
+    operation,
+    version,
+    baseSummary,
+  ) {
+    const { rows } = await db.query(
+      'SELECT tenant_id,actor_id,action,object_type,object_id,object_version::text,correlation_id,summary FROM app_private.audit_events WHERE object_id=$1 AND action IN ($2,$3) AND object_version=$4 ORDER BY id',
+      [id(listing), baseAction, 'revision.synthetic_reference_' + action, version],
+    );
+    const common = {
+      tenant_id: id(1),
+      actor_id: id(actor),
+      object_type: 'listing',
+      object_id: id(listing),
+      object_version: version,
+      correlation_id: 'synthetic-reference-moderation',
+    };
+    assert.deepEqual(rows, [
+      { ...common, action: baseAction, summary: baseSummary },
+      {
+        ...common,
+        action: 'revision.synthetic_reference_' + action,
+        summary: { revision: 1, operationId: id(operation) },
+      },
+    ]);
+  }
   let draft, pending, submission, approval;
   await t.test(
     'read projection contains exact private content, original attributes and immutable media facts',
@@ -302,6 +332,9 @@ test('isolated reference moderation binds reviewed facts and immutable approved 
         submission,
       );
       await fail(() => command(10, 'submit', draft, 2010), '40001');
+      await assertTransitionAudit(100, 11, 'submit', 'revision.submitted', 2010, '4', {
+        revision: 1,
+      });
       await fail(
         () =>
           as(10, () =>
@@ -411,6 +444,10 @@ test('isolated reference moderation binds reviewed facts and immutable approved 
         0,
       );
       assert.deepEqual(await command(10, 'approve', pending, 2022), approval);
+      await assertTransitionAudit(100, 10, 'approve', 'revision.approved', 2022, '5', {
+        revision: 1,
+        selfApproval: false,
+      });
       assert.equal((await state()).version, 5);
     },
   );
@@ -539,6 +576,19 @@ test('isolated reference moderation binds reviewed facts and immutable approved 
       await fail(() => command(10, 'reject', r, 2043, ' ', 103), '23514');
       const rejected = await command(10, 'reject', r, 2044, 'Synthetic evidence incomplete', 103);
       assert.equal(rejected.state, 'rejected');
+      assert.deepEqual(
+        await command(10, 'reject', r, 2044, 'Synthetic evidence incomplete', 103),
+        rejected,
+      );
+      await assertTransitionAudit(
+        103,
+        10,
+        'reject',
+        'revision.rejected',
+        2044,
+        rejected.revisionVersion,
+        { revision: 1, selfApproval: false },
+      );
       assert.equal(
         (
           await db.query(
