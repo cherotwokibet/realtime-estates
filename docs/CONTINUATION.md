@@ -1,3 +1,9 @@
+## Published reminder audit checkpoint 337 - 4 November 2026 EAT
+
+Private deployment appgdep_6aeb2b5f0ad881918f570dbc8779d998 succeeded from dashboard commit 6cb0c19. Browser reload showed the new checkpoint. Exports 43 and 44 retained all prior browser notes and manual edits. Export 44 holds 829 notes and 27 checked items. SHA-256 5ABDD787DE306F37646E5838C5B000AB5B303A3213F07184B3A6BC0F97034DF8.
+
+Next, reconcile 08-7 against the current admin routes. Start with listing verification and report decisions, then media gallery mutations, synthetic references and private video. Record exact action and remaining scope in the matrix before deciding whether 08-7 can close.
+
 ## Reminder audit checkpoint 337 - 4 November 2026 EAT
 
 The signed reminder integration test passed. Three admissions and two captures retained the original agent, request ID and viewing version. Each capture also identified its admission. Replays, duplicate captures, waits and suppressed attempts added no audit entries. Next, reconcile the remaining audit matrix rows against task 08-7.
