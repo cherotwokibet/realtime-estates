@@ -1,3 +1,7 @@
+## Published native processing checkpoint360 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec4d9295ac8191b8aad8bd3070c81e succeeded from dashboarde68a5b1. Live heading verified after a navigation wait timed out but the current document loaded correctly. Exports(12)/(13) retain all 862 prior note occurrences and every manual task/status/gate/decision/risk field. Implementationeca177a has45 passing focused checks, zero skips, successful media build and formatting, plus3 dashboard checks. Actual Windows fixed floor-plan child confirmed zero exit and empty job, recorded termination and exact lossless source/output raw-pixel equality. Next, separate immutable SQL output seal and durable output receipt/reconciliation, then floor-plan attachment/gallery/approval/public integration. Readback alone is not seal/attachment authority.54/97(56%), all14 gates open. Screenshot floor360-published.png.
+
 ## Native floor-plan processing checkpoint360 - 5 November 2026 EAT
 
 The floor-plan path now runs the fixed Windows worker from the SQL lease and durable source/journal, then verifies actual lossless output. All 45 focused checks passed with no skips. Progress remains 54/97 (56%).
