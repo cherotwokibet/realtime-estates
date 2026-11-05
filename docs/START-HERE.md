@@ -1,3 +1,11 @@
+## Floor-plan processing lease checkpoint358 - 5 November 2026 EAT
+
+Floor-plan processing now retains one immutable lease per registration, with a fixed claim, output identity and deadline. All 12 focused database checks passed. Progress remains 54/97 (56%).
+
+Next, bind the fixed floor-plan worker and durable attempt journal to fresh lease admission and the retained source. Then implement lossless output sealing and separate attachment, gallery, approval and public consumers under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-processing-lease.md and floor358-processing-lease.txt. SQL predicate only, native worker/journal coupling and output attachment remain open. Publication and browser preservation verification follow.
+
 ## Floor-plan preflight/source checkpoint357 - 5 November 2026 EAT
 
 Floor-plan source admission now checks fresh SQL authorization and matches the registered company, actor, draft and source bytes before storage. All 14 focused SQL and durable-store checks passed. Progress is 54/97 (56%).
