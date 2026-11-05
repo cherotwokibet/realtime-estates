@@ -15,3 +15,5 @@ The admin workspace now declares its existing local @realtor/media dependency fo
 Next, implement the retained-original floor-plan author/reviewer screens and private image BFF, connect the opt-in local preview composition, and verify the actual browser flow. Then add approved/public snapshots and successor-copy rules under task06-4.
 
 No author/reviewer UI, preview deployment, public output or launch gate accepted. Task06-4 remains open;54/97 broad tasks,0/14 exit gates.
+
+Additional local validation after packaging: full Next admin build passed; all4 new dynamic routes appear in floor367-admin-build.txt. This supplemental build log stays canonical locally for the next dashboard evidence refresh.

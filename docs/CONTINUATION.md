@@ -1,3 +1,9 @@
+## Published private admin boundary checkpoint367 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec819258948191b6fc3ae51b63ebd5 succeeded from dashboard9531e64. Current heading verified. Exports(26)/(27) retain all 876 prior stage-note occurrences and every manual task/status/gate/decision/risk field. Implementationab0a504 has17 passing focused checks,0 skips, admin compilation/typecheck and3 dashboard checks. Full Next admin build also passed after the publication archive was prepared; local log floor367-admin-build.txt confirms all4 new dynamic routes. Screenshot floor367-published.png. Native test crosses the Node browser adapter/BFF/API with actual Windows coordinator and restricted isolated SQL; session/protocol replies remain simulated. No new signed identity, actual browser, listening-network or device proof.
+
+Exact next step: implement retained-original author/reviewer screens (persist command before sending, never persist source bytes; lock conflicting originals, GET-only preparation recovery and explicit attachment recovery), private image BFF, and opt-in local preview composition. Verify the actual browser flow; then approved/public snapshots and successor-copy rules under task06-4.54/97(56%), all14 gates open. Old live/vendor resources untouched; no GitHub Actions or paid compute used.
+
 ## Private floor-plan admin boundary checkpoint367 - 5 November 2026 EAT
 
 Protected admin routes and a same-origin browser adapter now connect floor-plan upload, preparation recovery, attachment and attachment recovery. All 17 focused checks passed, including an actual Windows coordinator across the adapter, BFF and API. Progress remains 54/97 (56%).
