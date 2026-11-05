@@ -1,3 +1,9 @@
+## Parsed admin route reconciliation checkpoint 354 - 5 November 2026 EAT
+
+All 11 signed audit composition tests and 14 invitation boundary tests passed. TypeScript parsing found 73 write-verb exports across 61 routes, including multiline invitation exports missed by the earlier search. Browser control was restored and current notes exported. The 57 direct exports remain covered by the existing matrix. The 16 aliased exports add issuance, acceptance, identity context and status routes. Their handlers admit POST only for issuance and acceptance, and reject the other write verbs before upstream work. Next, attach an explicit route-level evidence map and finish task 08-7 acceptance. Checklist 53/97.
+
+Evidence in docs/evidence/audit354-signed-composition.txt. Browser export saved in Progress Exports/realtor-progress-2026-11-05.json. Publication and preservation verification follow.
+
 ## Draft decision audit checkpoint 353 - 5 November 2026 EAT
 
 The signed moderation test passed for approval, rejection and an admin approving their own draft. The audit distinguished self approval and retained the original request ID. Wrong role, foreign company and replay produced no extra decisions or audit entries. Next, reconcile all 57 route exports against evidence and list any remaining acceptance gaps for task 08-7. Checklist 53/97.
