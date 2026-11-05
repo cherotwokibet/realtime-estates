@@ -1,3 +1,7 @@
+## Published processing lease checkpoint358 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec401e97088191b74643079fb420dc succeeded from dashboard commit4b35a64. Live lease heading verified. Browser exports(8) and(9) retain all 858 prior note occurrences and every manual task/status/gate/decision/risk field. Implementation92253dd has12 passing database checks and3 dashboard preservation checks. Checklist54/97(56%), all14 release gates open. Next, bind the fixed floor-plan worker and persistent attempt journal to fresh lease preflight and retained source, then output seal and attachment/gallery. SQL lease alone does not prove one native process execution. Screenshot floor358-published.png.
+
 ## Floor-plan processing lease checkpoint358 - 5 November 2026 EAT
 
 Floor-plan processing now retains one immutable lease per registration, with a fixed claim, output identity and deadline. All 12 focused database checks passed. Progress remains 54/97 (56%).
