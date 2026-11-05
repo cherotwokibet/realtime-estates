@@ -1,3 +1,9 @@
+## Published atomic floor-plan snapshot checkpoint372 - 5 November 2026 EAT
+
+Private deployment appgdep_6aecdc2c94a481918aa14e3ba71bc093 succeeded from dashboardcc0125ff957f76a59c4d99c1d71b71d8007a3754. New heading and15-check evidence link verified at checkpoint372; screenshot floor372-published.png is dashboard evidence only. Exports(36)/(37) preserve all886 prior stage-note occurrences and every manual task/status/gate/decision/risk field; manual browser checklist remains27. Implementation3ac3855 has15 passing database checks,0 skips;3 dashboard checks passed. No new app browser/native/device/release acceptance.54/97(56%), all14 gates open.
+
+Exact next remains strict shared published/review floor-plan contracts and API/SDK projections, separately authorized approved/public durable byte reads with before/after current eligibility, then successor-copy/explicit-null and web/mobile consumers. Preserve original ledgers and combined floor/photo/video/draft/transition locks. No Github Actions/spending/vendor/live changes. Both source/dashboard were clean after checkpoint commits; no runtime launched this turn.
+
 ## Atomic floor-plan approval candidate372 - 5 November 2026 EAT
 
 An isolated SQL approval snapshot captures the sealed attachment or explicit absence inside the moderation transaction. Current-authority admin pending/approved reads and public-eligible metadata projections are covered by15 database checks,0 skips, including rollback, rejection, removal, historical originals, no backfill and private identifier exclusion. Evidence: docs/evidence/2026-11-05-floor-plan-approval-snapshot.md and floor372-database*.txt. No API/SDK/public byte route or preview activation yet;54/97(56%), all14 gates open.
