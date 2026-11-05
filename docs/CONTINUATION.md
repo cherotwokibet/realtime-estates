@@ -1,3 +1,11 @@
+## Floor-plan output seal checkpoint361 - 5 November 2026 EAT
+
+Floor-plan output sealing now retains one original SQL receipt, checks current authority and source/lease facts, and blocks new processing after sealing. All 20 focused checks passed, including actual Windows-worker output sealing. Progress remains 54/97 (56%).
+
+Next, persist verified floor-plan output bytes and the original seal intent in the durable stores, bind the SQL receipt, and reconcile lost acknowledgements without decoding or writing again. Then add separate attachment, gallery, approval and public consumers under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-output-seal.md and floor361-output-seal.txt. Eight new output checks plus12 registration/lease regressions passed. SQL receipt metadata only, durable output byte/intent composition remains open. The isolated output proposal adds sealed-result refusal to worker preflight while preserving exact historical receipt recovery. Publication and browser preservation verification follow.
+
 ## Published native processing checkpoint360 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec4d9295ac8191b8aad8bd3070c81e succeeded from dashboarde68a5b1. Live heading verified after a navigation wait timed out but the current document loaded correctly. Exports(12)/(13) retain all 862 prior note occurrences and every manual task/status/gate/decision/risk field. Implementationeca177a has45 passing focused checks, zero skips, successful media build and formatting, plus3 dashboard checks. Actual Windows fixed floor-plan child confirmed zero exit and empty job, recorded termination and exact lossless source/output raw-pixel equality. Next, separate immutable SQL output seal and durable output receipt/reconciliation, then floor-plan attachment/gallery/approval/public integration. Readback alone is not seal/attachment authority.54/97(56%), all14 gates open. Screenshot floor360-published.png.
