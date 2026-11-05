@@ -1,3 +1,9 @@
+## Published approved floor-plan metadata checkpoint373 - 5 November 2026 EAT
+
+Private deployment appgdep_6aece9ecaa1c819190c4c552fceb6600 succeeded from dashboardee8fd362e3fe76a76a25d81cb6bb689cfcf56cd9. New heading and metadata/build evidence links verified; floor373-published.png is dashboard evidence only. Exports(38)/(39) preserve all888 prior stage-note occurrences and every manual task/status/gate/decision/risk field; browser checklist remains27. Implementationa9ec6d4 has18 passing focused checks,0 skips; domain/API-client/API builds and3 dashboard checks passed. Source/dashboard clean after checkpoint commits. No runtime launched or new app browser/native/device/release proof.
+
+Exact next: separately authorized approved/public durable image delivery with eligibility/output checks before and after IO, followed by signed listening/native preview/browser approval/public proof. Current media readAttached only accepts private actor-scoped gallery and is not public authorization; add a separate capability rather than repurpose private reads. Preserve source creator binding and immutable snapshot while current audience controls fresh delivery. Then successor-copy/explicit-null, web/mobile consumers and combined original lock matrix.54/97(56%), all14 gates open. No Actions/spending/vendor/live changes.
+
 ## Approved floor-plan metadata transport373 - 5 November 2026 EAT
 
 Strict published/review shared contracts, default-off API routes and SDK reads now connect the immutable floor-plan approval ledger.18 focused checks,0 skips; domain/API-client/API builds passed. Anonymous output excludes private provenance; admin pending/approved reads bind exact version/current authority. Tests use injected identity and Request/Response with actual restricted PGlite SQL, not listening HTTP/JWKS/native/browser proof. Evidence: docs/evidence/2026-11-05-floor-plan-metadata-transport.md and floor373-* logs.
