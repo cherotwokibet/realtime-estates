@@ -123,5 +123,18 @@ export async function setup(t, options = {}) {
       lease.leaseNonce,
     ]);
   const config = { requests, journal, worker, preflight };
-  return { db, source, requests, journalStore, journal, worker, target, lease, preflight, config };
+  return {
+    db,
+    source,
+    requests,
+    journalStore,
+    journal,
+    worker,
+    target,
+    lease,
+    preflight,
+    config,
+    parent,
+    resources,
+  };
 }

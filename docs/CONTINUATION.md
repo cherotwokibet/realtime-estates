@@ -1,3 +1,11 @@
+## Durable floor-plan output checkpoint362 - 5 November 2026 EAT
+
+Verified floor-plan bytes, seal intent and SQL receipt now persist in durable stores. Read-only recovery verifies the original without decoding or repeating writes. All 32 focused checks passed, including actual Windows processing and store reopening. Progress remains 54/97 (56%).
+
+Next, add separate floor-plan listing attachment and saved gallery reads, binding current company/actor/draft version to the sealed output and durable bytes. Then connect author/reviewer UI and approval/public consumers under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-durable-output.md and floor362-output-delivery.txt. Media build and32 checks passed, including10 new delivery checks and22 regressions. Historical validation explicitly skips only fresh-work time checks; worker admission defaults remain fresh. Reconciliation is read-only and missing unsealed/partial evidence stays blocked. A missing local receipt may be reported without being rewritten when SQL plus retained intent/bytes agree. Publication and browser preservation verification follow.
+
 ## Published floor-plan output seal checkpoint361 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec5d8c5a948191a27c5c4708d70efa succeeded from dashboard5203a0d. Live heading verified. Exports(14)/(15) retain all 864 prior note occurrences and every manual task/status/gate/decision/risk field. Implementation150edc5 has20 passing focused SQL/native checks, zero skips, formatting/whitespace and3 dashboard checks. Actual Windows-worker output was bound to the isolated SQL output seal. Exact replay retains the original audit/receipt; sealed results block further worker preflight. Next, durable verified-output bytes plus retained seal intent/receipt and lost-acknowledgement reconciliation without decode/write replay. Then separate attachment/gallery/approval/public integration. SQL metadata only, no listing attachment yet.54/97(56%), all14 gates open. Screenshot floor361-published.png.

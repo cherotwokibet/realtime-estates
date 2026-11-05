@@ -1,0 +1,40 @@
+✔ actual SQL lease binds durable source, worker slot and one-use journal ticket; reopening cannot recreate admission (2378.0407ms)
+✔ draft change during source IO is checked again before reserving a worker or journal (1559.9976ms)
+✔ fresh access loss before arming releases only the unlaunched slot and retains the immutable attempt (1689.8558ms)
+✔ changed output identity and wrong role receipts cannot reserve or arm actual worker state (1682.0004ms)
+✔ target snapshots, busy fencing and closed admissions cannot create replacement attempts (1557.4066ms)
+✔ malformed, expired, wrong-scope and accessor receipts never reserve worker state (1653.7744ms)
+✔ explicit cancellation releases an unarmed slot but never deletes or retries its journal intent (1690.2819ms)
+✔ actual Windows output persists before SQL seal and reopens for read-only original recovery (4132.1626ms)
+✔ typed uncertain seal acknowledgement reads the exact original once and never repeats the seal (1959.4815ms)
+✔ generic SQL failure performs no implicit read and uncertain missing original remains blocked without replay (1795.8013ms)
+✔ lost durable receipt acknowledgement recovers from SQL and byte evidence with no writes (1750.297ms)
+✔ missing local receipt can be verified read-only while a missing durable output stays blocked (1788.9283ms)
+✔ receipt identity or manifest mismatch cannot be adopted during uncertain acknowledgement or recovery (1690.808ms)
+✔ output persistence failure preserves intent without SQL or decoder replay, and access loss prevents recovery reads (1539.6535ms)
+✔ confirmed originals stay recoverable under simulated local lease expiry without fresh processing (1754.6164ms)
+✔ altered stored byte receipt fails reconciliation and cannot be replaced or promoted (1713.6928ms)
+✔ busy fencing and close drain an admitted seal while rejecting later run and recovery calls (1687.7045ms)
+✔ actual SQL/source/journal admission stages and decodes through the fixed Windows floor-plan child (3907.1917ms)
+✔ simulated unconfirmed supervisor retains the worker and journal without output inspection or replacement (1896.3843ms)
+✔ simulated successful process with malformed bytes cannot become verified readback (2133.8496ms)
+✔ fresh SQL draft check after simulated decoding refuses private result delivery (2173.1908ms)
+✔ exclusive source staging refuses an existing file and cannot replace its original bytes (1724.1932ms)
+✔ simulated deadline failure requires no output files and remains non-verified (1905.3408ms)
+✔ a simulated successful child with an unexpected file is not admitted as output (1906.0582ms)
+✔ input snapshot, busy fence and close drain preserve an admitted supervised attempt (2551.0861ms)
+✔ floor-plan intent and source survive reopen with exact scope, version, store identities and immutable bytes (266.3693ms)
+✔ a lost source commit acknowledgement recovers by read without another install or inferred processing authority (177.556ms)
+✔ a lost intent acknowledgement leaves input unavailable and read never repairs or overwrites it (100.3838ms)
+✔ canonical floor-plan intent rejects forged role, scope, stores and receipt facts before returning source bytes (218.894ms)
+✔ strict descriptors, source bounds and local singleflight/close keep supplied stores caller-owned (137.8044ms)
+✔ fresh SQL floor-plan preflight binds real durable source bytes and survives source-store reopening (2638.4012ms)
+✔ floor-plan source admission refuses mismatched scope, role and bytes before persistence and never retries preflight (1.4586ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 54988.6276

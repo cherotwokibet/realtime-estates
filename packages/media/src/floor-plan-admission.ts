@@ -81,6 +81,7 @@ export function validateFloorPlanWorkerLease(
   value: unknown,
   selected: FloorPlanWorkerTarget,
   source: Buffer,
+  requireFresh = true,
 ): FloorPlanWorkerLease {
   const row = object(value, [
     'policy',
@@ -132,8 +133,7 @@ export function validateFloorPlanWorkerLease(
     expires <= claimed ||
     expires > claimed + 300000 ||
     expires > registrationExpires ||
-    claimed > Date.now() ||
-    expires <= Date.now()
+    (requireFresh && (claimed > Date.now() || expires <= Date.now()))
   )
     fail('BLOCKED');
   return Object.freeze({

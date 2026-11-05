@@ -1,3 +1,11 @@
+## Durable floor-plan output checkpoint362 - 5 November 2026 EAT
+
+Verified floor-plan bytes, seal intent and SQL receipt now persist in durable stores. Read-only recovery verifies the original without decoding or repeating writes. All 32 focused checks passed, including actual Windows processing and store reopening. Progress remains 54/97 (56%).
+
+Next, add separate floor-plan listing attachment and saved gallery reads, binding current company/actor/draft version to the sealed output and durable bytes. Then connect author/reviewer UI and approval/public consumers under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-durable-output.md and floor362-output-delivery.txt. Media build and32 checks passed, including10 new delivery checks and22 regressions. Historical validation explicitly skips only fresh-work time checks; worker admission defaults remain fresh. Reconciliation is read-only and missing unsealed/partial evidence stays blocked. A missing local receipt may be reported without being rewritten when SQL plus retained intent/bytes agree. Publication and browser preservation verification follow.
+
 ## Floor-plan output seal checkpoint361 - 5 November 2026 EAT
 
 Floor-plan output sealing now retains one original SQL receipt, checks current authority and source/lease facts, and blocks new processing after sealing. All 20 focused checks passed, including actual Windows-worker output sealing. Progress remains 54/97 (56%).
