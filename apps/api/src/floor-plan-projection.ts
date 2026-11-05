@@ -178,12 +178,18 @@ export function floorPlanStateFromSql(
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { isSharedArrayBuffer } from 'node:util/types';
-import type { FloorPlanState } from '@realtor/domain';
-export function floorPlanImageFromProvider(
+import type { FloorPlanState, PublishedFloorPlan } from '@realtor/domain';
+function imageBytesFromProvider(
   value: unknown,
-  state: FloorPlanState,
+  state: Readonly<{
+    listingId: string;
+    revision: number;
+    version: string;
+    floorPlan: PublishedFloorPlan['floorPlan'];
+  }>,
   tenantId: string,
-  actorId: string,
+  actorId: string | null,
+  operationId?: string,
 ) {
   const r = object(value, ['state', 'target', 'version', 'operationId', 'manifest', 'data']),
     t = object(r.target, ['companyId', 'actorId', 'listingId', 'revision']),
@@ -212,7 +218,11 @@ export function floorPlanImageFromProvider(
     t.listingId !== state.listingId ||
     t.revision !== state.revision ||
     r.version !== state.version ||
-    r.operationId !== expected.operationId ||
+    (operationId !== undefined && r.operationId !== operationId) ||
+    typeof r.operationId !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
+      r.operationId,
+    ) ||
     m.pipeline !== 'synthetic-floor-plan-codec-v1' ||
     m.role !== 'floor_plan' ||
     m.countsAsPhoto !== false ||
@@ -235,4 +245,30 @@ export function floorPlanImageFromProvider(
   )
     fail();
   return bytes;
+}
+
+export function floorPlanImageFromProvider(
+  value: unknown,
+  state: FloorPlanState,
+  tenantId: string,
+  actorId: string,
+) {
+  return imageBytesFromProvider(value, state, tenantId, actorId, state.floorPlan?.operationId);
+}
+export function publishedFloorPlanImageFromProvider(
+  value: unknown,
+  state: PublishedFloorPlan,
+  tenantId: string,
+) {
+  return imageBytesFromProvider(
+    value,
+    {
+      listingId: state.listingId,
+      revision: state.revision,
+      version: state.approvedVersion,
+      floorPlan: state.floorPlan,
+    },
+    tenantId,
+    null,
+  );
 }

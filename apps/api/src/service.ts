@@ -11,6 +11,7 @@ import {
   floorPlanRecordFromSql,
   floorPlanStateFromSql,
   floorPlanImageFromProvider,
+  publishedFloorPlanImageFromProvider,
 } from './floor-plan-projection.js';
 import { createCustomerFavouritesHttpCandidate } from './customer-favourites-http.js';
 import { adminAuditQuery, validateAdminAuditPage } from '@realtor/domain';
@@ -178,6 +179,13 @@ export interface ApiServiceOptions {
   }>;
   readonly floorPlanMode?: 'synthetic-private-floor-plan-v1';
   readonly floorPlanPublicationMode?: 'synthetic-floor-plan-publication-v1';
+  readonly publishedFloorPlanImageRead?: (
+    context: Readonly<{ tenantId: string; actorId: null; correlationId: string }>,
+    listingId: string,
+    revision: number,
+    approvedVersion: string,
+  ) => Promise<unknown>;
+
   readonly floorPlanImageRead?: (
     context: Readonly<{ tenantId: string; actorId: string; correlationId: string }>,
     listingId: string,
@@ -1561,6 +1569,12 @@ export function createApiService(
     throw Error('Floor-plan publication candidate requires explicit non-production mode.');
   const floorPlanPublicationEnabled =
     options.floorPlanPublicationMode === 'synthetic-floor-plan-publication-v1';
+  const publishedFloorPlanImageRead = options.publishedFloorPlanImageRead;
+  if (
+    publishedFloorPlanImageRead !== undefined &&
+    (!floorPlanPublicationEnabled || typeof publishedFloorPlanImageRead !== 'function')
+  )
+    throw Error('Published floor-plan image requires explicit publication mode.');
   const floorPlanEnabled = options.floorPlanMode === 'synthetic-private-floor-plan-v1';
   const floorPlanImageRead = options.floorPlanImageRead;
   const floorPlanPreparation = options.floorPlanPreparation;
@@ -1845,6 +1859,78 @@ export function createApiService(
           },
         );
         return response(200, value, correlationId);
+      }
+      if (/^\/v3\/properties\/[^/]+\/revisions\/[^/]+\/floor-plan-image/.test(path)) {
+        if (
+          !floorPlanPublicationEnabled ||
+          !publishedFloorPlanImageRead ||
+          process.env.NODE_ENV === 'production'
+        )
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        const route =
+          /^\/v3\/properties\/([0-9a-f-]{36})\/revisions\/([1-9][0-9]{0,9})\/floor-plan-image\/([1-9][0-9]{0,15})$/.exec(
+            path,
+          );
+        if (!route) throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        if (method !== 'GET')
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Read only.', { Allow: 'GET' });
+        if (
+          request.url.includes('?') ||
+          request.url.includes('#') ||
+          request.body !== null ||
+          headerNames(request.headers).some(
+            (k) =>
+              [
+                'authorization',
+                'cookie',
+                'content-type',
+                'content-length',
+                'content-encoding',
+                'transfer-encoding',
+                'expect',
+                'range',
+                'idempotency-key',
+              ].includes(k) ||
+              k.startsWith('x-') ||
+              k.startsWith('if-'),
+          )
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Anonymous image read only.');
+        const listing = uuid(route[1], 'Listing'),
+          revision = Number(route[2]),
+          expected = route[3]!;
+        if (revision > 2147483647 || BigInt(expected) > 9007199254740991n)
+          throw new HttpError(400, 'INVALID_INPUT', 'Invalid approved image target.');
+        const context = Object.freeze({ tenantId, actorId: null, correlationId });
+        const readPublished = () =>
+          options.database.transaction(context, async (query) => {
+            const r = await query.query(
+              'SELECT app_api.read_synthetic_published_floor_plan($1::uuid,$2::integer) AS value',
+              [listing, revision],
+            );
+            const state = validatePublishedFloorPlan(scalar(r, 'value'), listing, revision);
+            if (state.approvedVersion !== expected || !state.floorPlan)
+              throw new HttpError(404, 'NOT_FOUND', 'Floor plan is unavailable.');
+            return state;
+          });
+        const first = await readPublished();
+        const bytes = publishedFloorPlanImageFromProvider(
+          await publishedFloorPlanImageRead(context, listing, revision, expected),
+          first,
+          tenantId,
+        );
+        if (JSON.stringify(await readPublished()) !== JSON.stringify(first))
+          throw new HttpError(404, 'NOT_FOUND', 'Floor plan is unavailable.');
+        return new Response(new Uint8Array(bytes), {
+          status: 200,
+          headers: {
+            'content-type': 'image/webp',
+            'content-length': String(bytes.length),
+            'content-disposition': 'inline; filename="floor-plan.webp"',
+            'cache-control': 'private, no-store',
+            'x-content-type-options': 'nosniff',
+          },
+        });
       }
       if (
         /^\/v3\/properties\/[^/]+\/revisions\/[^/]+\/floor-plan/.test(path) ||

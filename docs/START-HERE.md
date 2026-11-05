@@ -1,3 +1,9 @@
+## Approved floor-plan image API375 - 6 November 2026 EAT
+
+Separate default-off anonymous approvedVersion image route verifies current public metadata, frozen tenant/null-actor context and exact provider output, then rechecks eligibility before returning WebP/private-no-store/nosniff/fixed filename bytes.20 focused checks,0 skips:4 new approved image cases/16 metadata/private-image/SDK/domain regressions. API build/format/diff passed. Tests use injected identity, direct Request/Response, restricted PGlite SQL and simulated final image provider; no actual durable/native/HTTP/browser join yet. Evidence: docs/evidence/2026-11-06-floor-plan-image-api.md and floor375-* logs.
+
+Exact next: native preview provider→delivery.readPublished with scoped anonymous api_runtime read_synthetic_published_floor_plan_output; install opt-in publication/output proposals only in explicit preview mode and forward the public image path through HTTP. Add separate admin reviewed-output authority/bytes. Then signed listening/native/browser approval/public proof, successor-copy/explicit-null, shared web/mobile consumers and combined original lock matrix.54/97(56%), all14 gates open; task06-4 incomplete. No Actions/spending/vendor/live changes; KES10,000 baseline retained.
+
 ## Approved floor-plan durable output374 - 6 November 2026 EAT
 
 Separate readPublished capability joins anonymous exact-version approval SQL to retained verified bytes, with authority before/after IO and no private-gallery fallback, source-creator impersonation, repair, decoder or write replay.20 output tests passed,0 skips:5 public capability cases/15 regressions; existing actual Windows output regression passed. New public cases use simulated processing plus actual durable stores/restricted PGlite SQL. Media build/format/diff passed. Evidence: docs/evidence/2026-11-06-floor-plan-published-output.md and floor374-* logs. No HTTP/public browser/preview activation yet.
