@@ -1,3 +1,7 @@
+## Published floor-plan API/client checkpoint364 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec7749815081919d8ce68d52fc88ff succeeded from dashboardee2a52c. Current heading verified. Exports(21)/(22) retain all 870 prior note occurrences and every manual task/status/gate/decision/risk field. Implementationfec1a6b has25 passing focused API/SDK checks, zero skips, domain/API/client builds, formatting/whitespace and3 dashboard checks. Shared client supports attachment/save, exact GET original recovery and saved metadata. Opt-in synthetic API adds current staff-authorized metadata and operation-bound private bytes with before/after SQL gallery checks. Tests use actual isolated SQL but simulate the image reader; no new native HTTP/browser proof. Next, guarded file preparation/upload and original preparation recovery, then authenticated BFF and author/reviewer UI, followed by approved/public/successor snapshot rules. No route enabled by default, no UI/public integration or release gate accepted.54/97(56%), all14 gates open. Screenshot floor364-published.png.
+
 ## Floor-plan API/client checkpoint364 - 5 November 2026 EAT
 
 Authenticated floor-plan attachment/recovery, saved metadata and private image routes now have shared client support and bounded client metadata. All 25 focused API/SDK checks passed. Progress remains 54/97 (56%).
