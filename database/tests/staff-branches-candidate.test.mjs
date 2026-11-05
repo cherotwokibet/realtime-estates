@@ -29,12 +29,12 @@ async function fixture() {
     ]);
   return db;
 }
-async function actor(db, t, u, fn) {
+async function actor(db, t, u, fn, correlation = null) {
   await db.exec('BEGIN;SET LOCAL ROLE api_runtime');
   try {
     await db.query(
-      "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
-      [id(t), u === null ? '' : id(u)],
+      "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true),set_config('realtor.correlation_id',$3,true)",
+      [id(t), u === null ? '' : id(u), correlation ?? ''],
     );
     const r = await fn();
     await db.exec('COMMIT');
@@ -46,15 +46,20 @@ async function actor(db, t, u, fn) {
 }
 const scalar = async (db, sql, args = []) => (await db.query(sql, args)).rows[0].result;
 const save = async (db, op, expected, name = 'Synthetic branch', active = true, t = 1, u = 10) => {
-  const value = await actor(db, t, u, () =>
-    scalar(db, 'SELECT app_api.save_staff_branch($1,$2,$3,$4,$5,$6) AS result', [
-      id(op),
-      id(100),
-      expected,
-      name,
-      active,
-      'Synthetic branch change.',
-    ]),
+  const value = await actor(
+    db,
+    t,
+    u,
+    () =>
+      scalar(db, 'SELECT app_api.save_staff_branch($1,$2,$3,$4,$5,$6) AS result', [
+        id(op),
+        id(100),
+        expected,
+        name,
+        active,
+        'Synthetic branch change.',
+      ]),
+    'synthetic-branch-' + op,
   );
   return validateStaffBranchRecord(
     value,
@@ -98,9 +103,22 @@ test('isolated branch writes retain original, terminal conflict and no-op withou
       (await db.query('SELECT * FROM app_private.memberships ORDER BY tenant_id,user_id')).rows,
       memberships,
     );
-    assert.equal(
-      Number((await db.query('SELECT count(*) AS n FROM app_private.audit_events')).rows[0].n),
-      3,
+    assert.deepEqual(
+      (
+        await db.query(
+          'SELECT tenant_id,actor_id,action,object_type,object_id,object_version::text,correlation_id,summary FROM app_private.audit_events ORDER BY id',
+        )
+      ).rows,
+      [200, 202, 204].map((operation, index) => ({
+        tenant_id: id(1),
+        actor_id: id(10),
+        action: 'staff.branch_saved',
+        object_type: 'staff_branch',
+        object_id: id(100),
+        object_version: String(index + 1),
+        correlation_id: 'synthetic-branch-' + operation,
+        summary: {},
+      })),
     );
   } finally {
     await db.close();
