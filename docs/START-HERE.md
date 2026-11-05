@@ -1,3 +1,11 @@
+## Floor-plan worker admission checkpoint359 - 5 November 2026 EAT
+
+Floor-plan leases now bind retained source bytes to the actual durable worker slot and one-use attempt journal. All 47 focused checks passed. Progress remains 54/97 (56%).
+
+Next, securely stage the retained source in the reserved attempt directory, run the fixed floor-plan child through the existing Windows supervisor, record confirmed termination, and verify actual output readback. Then add SQL output sealing and separate attachment/gallery/approval/public consumers under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-worker-admission.md and floor359-worker-admission.txt. Seven new actual SQL/store/journal/worker integration checks, media build and47 focused tests passed. No native process or termination check run. Prepared/armed handles grant no output attachment authority. Cancellation keeps the original journal intent, close fences new calls and retains outstanding reservations. Publication and browser preservation verification follow.
+
 ## Floor-plan processing lease checkpoint358 - 5 November 2026 EAT
 
 Floor-plan processing now retains one immutable lease per registration, with a fixed claim, output identity and deadline. All 12 focused database checks passed. Progress remains 54/97 (56%).
