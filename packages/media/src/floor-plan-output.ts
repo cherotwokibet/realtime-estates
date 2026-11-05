@@ -17,6 +17,12 @@ import type { createFloorPlanProcessor } from './floor-plan-processing.js';
 import type { FloorPlanRequests, FloorPlanRequestBinding } from './floor-plan-request.js';
 import type { SyntheticFloorPlanManifest } from './index.js';
 import { verifySyntheticFloorPlanReadback } from './process-readback.js';
+export interface FloorPlanGalleryTarget {
+  readonly companyId: string;
+  readonly actorId: string;
+  readonly listingId: string;
+  readonly revision: number;
+}
 export class FloorPlanOutputError extends Error {
   override readonly name = 'FloorPlanOutputError';
   constructor(
@@ -200,6 +206,7 @@ export function createFloorPlanOutputDelivery(config: {
     manifest: SyntheticFloorPlanManifest,
   ) => Promise<unknown>;
   readonly readSeal: (target: FloorPlanWorkerTarget) => Promise<unknown>;
+  readonly readGallery?: (target: FloorPlanGalleryTarget) => Promise<unknown>;
 }) {
   const output = store(config.outputStore),
     metadata = store(config.metadataStore),
@@ -217,6 +224,7 @@ export function createFloorPlanOutputDelivery(config: {
     output.rootDirectory.startsWith(metadata.rootDirectory + path.sep)
   )
     fail('INVALID_CONFIGURATION');
+  const readGallery = config.readGallery;
   let busy = false,
     closed = false,
     tail: Promise<unknown> = Promise.resolve();
@@ -304,12 +312,12 @@ export function createFloorPlanOutputDelivery(config: {
       bytes = await source(target),
       ref = outputRef(saved.lease),
       data = checkedRead(await output.read(ref), output, ref, 10485760);
-    verifySyntheticFloorPlanReadback(
+    const verified = verifySyntheticFloorPlanReadback(
       bytes,
       data,
       Buffer.from(JSON.stringify(saved.manifest) + '\n'),
     );
-    return { saved, bytes, ref };
+    return { saved, bytes, ref, data: verified.data };
   }
   return Object.freeze({
     run(value: FloorPlanWorkerTarget) {
@@ -414,6 +422,130 @@ export function createFloorPlanOutputDelivery(config: {
           manifest: actual.saved.manifest,
           receipt: accepted,
           receiptPersisted,
+        });
+      });
+    },
+    /** Private current-attachment bytes. No URL, decoder, write or seal is created. */
+    readAttached(value: FloorPlanGalleryTarget) {
+      const t = object(value, ['companyId', 'actorId', 'listingId', 'revision']);
+      for (const key of ['companyId', 'actorId', 'listingId'])
+        if (typeof t[key] !== 'string' || !id.test(t[key] as string)) fail('INTEGRITY');
+      if (
+        typeof t.revision !== 'number' ||
+        !Number.isSafeInteger(t.revision) ||
+        t.revision < 1 ||
+        t.revision > 2147483647
+      )
+        fail('INTEGRITY');
+      const target = Object.freeze(t) as unknown as FloorPlanGalleryTarget;
+      return admit(async () => {
+        if (typeof readGallery !== 'function') fail('INVALID_CONFIGURATION');
+        function gallery(value: unknown) {
+          const row = object(value, [
+            'policy',
+            'companyId',
+            'actorId',
+            'listingId',
+            'revision',
+            'version',
+            'state',
+            'floorPlan',
+          ]);
+          if (
+            row.policy !== 'synthetic-floor-plan-gallery-v1' ||
+            Object.entries(target).some(([k, v]) => row[k] !== v) ||
+            typeof row.version !== 'string' ||
+            !/^[1-9][0-9]{0,15}$/.test(row.version) ||
+            BigInt(row.version) > 9007199254740991n ||
+            !['draft', 'pending', 'approved', 'rejected'].includes(row.state as string)
+          )
+            fail('INTEGRITY');
+          return snapshot(row) as Readonly<Record<string, unknown>>;
+        }
+        const original = gallery(await readGallery(target));
+        if (original.floorPlan === null) return Object.freeze({ state: 'missing' as const });
+        const attached = object(original.floorPlan, [
+          'policy',
+          'command',
+          'actorId',
+          'resultVersion',
+          'output',
+        ]);
+        const command = object(attached.command, [
+          'policy',
+          'operationId',
+          'listingId',
+          'revision',
+          'expectedVersion',
+          'requestId',
+        ]);
+        if (
+          attached.policy !== 'synthetic-floor-plan-attachment-record-v1' ||
+          typeof attached.actorId !== 'string' ||
+          !id.test(attached.actorId) ||
+          typeof attached.resultVersion !== 'string' ||
+          !/^[1-9][0-9]{0,15}$/.test(attached.resultVersion) ||
+          BigInt(attached.resultVersion) > BigInt(original.version as string) ||
+          command.policy !== 'synthetic-floor-plan-attachment-command-v1' ||
+          command.listingId !== target.listingId ||
+          command.revision !== target.revision ||
+          typeof command.operationId !== 'string' ||
+          !id.test(command.operationId) ||
+          typeof command.expectedVersion !== 'string' ||
+          !/^[1-9][0-9]{0,15}$/.test(command.expectedVersion) ||
+          BigInt(command.expectedVersion) + 1n !== BigInt(attached.resultVersion)
+        )
+          fail('INTEGRITY');
+        const sealed = object(attached.output, [
+          'policy',
+          'lease',
+          'manifest',
+          'manifestSha256',
+          'verifiedAt',
+        ]);
+        const lease = object(sealed.lease, [
+          'policy',
+          'registration',
+          'claimId',
+          'leaseNonce',
+          'outputObjectId',
+          'claimedAt',
+          'expiresAt',
+        ]);
+        const registration = object(lease.registration, [
+          'policy',
+          'role',
+          'pipeline',
+          'countsAsPhoto',
+          'binding',
+          'source',
+          'registeredAt',
+          'expiresAt',
+        ]);
+        const source = object(registration.binding, bindingKeys);
+        const selected = snapshotFloorPlanWorkerTarget({
+          ...source,
+          claimId: lease.claimId,
+          leaseNonce: lease.leaseNonce,
+        } as unknown as FloorPlanWorkerTarget);
+        if (
+          selected.companyId !== target.companyId ||
+          selected.listingId !== target.listingId ||
+          selected.revision !== target.revision ||
+          selected.requestId !== command.requestId ||
+          BigInt(selected.expectedVersion) > BigInt(command.expectedVersion)
+        )
+          fail('INTEGRITY');
+        const actual = await retained(selected);
+        receipt(sealed, actual.saved, actual.bytes);
+        if (!equal(gallery(await readGallery(target)), original)) fail('BLOCKED');
+        return Object.freeze({
+          state: 'ready' as const,
+          target,
+          version: original.version as string,
+          operationId: command.operationId,
+          manifest: actual.saved.manifest,
+          data: Buffer.from(actual.data),
         });
       });
     },

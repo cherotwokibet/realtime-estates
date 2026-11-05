@@ -1,3 +1,11 @@
+## Floor-plan attachment/gallery checkpoint363 - 5 November 2026 EAT
+
+Floor plans now attach, replace and remove through versioned commands, with private gallery bytes checked against current attachment and access before and after storage reads. All 30 focused checks passed, including the actual native-worker-to-gallery flow. Progress remains 54/97 (56%).
+
+Next, connect floor-plan attachment recovery, saved gallery metadata and verified private bytes to the authenticated API and author/reviewer screens. Then add approval snapshots, successor-copy rules and approved public delivery under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-attachment-gallery.md and floor363-attachment.txt. Seven SQL attachment checks, eight seal regressions and15 media checks passed. Optional output-delivery readGallery callback authorizes readAttached using current staff scope before/after IO, independent of original worker actor. Existing run/reconcile behavior remains. No HTTP/UI/public floor-plan integration accepted yet. Publication and browser preservation verification follow.
+
 ## Published durable floor-plan output checkpoint362 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec6bdedef481919b1696690cd99a7d succeeded from dashboard003c234. Current heading verified after the navigation wait timed out but the document loaded correctly. Exports(16)/(17) retain all 866 prior note occurrences and every manual task/status/gate/decision/risk field. Implementation11c2149 has32 passing focused media checks, zero skips, media build/formatting/whitespace and3 dashboard checks. Actual native Windows output persists before sealing; closed/reopened stores recover the same original without native/SQL/write replay. Historical receipt validation alone can skip fresh lease time checks; worker admission still defaults fresh. Missing local receipt can be reported receiptPersisted false rather than rewritten. Next, separate current-authority floor-plan listing attachment and saved gallery reads, then author/reviewer UI and approval/public consumers. No listing attachment or release gate accepted.54/97(56%), all14 gates open. Screenshot floor362-published.png.

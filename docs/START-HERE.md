@@ -1,3 +1,11 @@
+## Floor-plan attachment/gallery checkpoint363 - 5 November 2026 EAT
+
+Floor plans now attach, replace and remove through versioned commands, with private gallery bytes checked against current attachment and access before and after storage reads. All 30 focused checks passed, including the actual native-worker-to-gallery flow. Progress remains 54/97 (56%).
+
+Next, connect floor-plan attachment recovery, saved gallery metadata and verified private bytes to the authenticated API and author/reviewer screens. Then add approval snapshots, successor-copy rules and approved public delivery under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-attachment-gallery.md and floor363-attachment.txt. Seven SQL attachment checks, eight seal regressions and15 media checks passed. Optional output-delivery readGallery callback authorizes readAttached using current staff scope before/after IO, independent of original worker actor. Existing run/reconcile behavior remains. No HTTP/UI/public floor-plan integration accepted yet. Publication and browser preservation verification follow.
+
 ## Durable floor-plan output checkpoint362 - 5 November 2026 EAT
 
 Verified floor-plan bytes, seal intent and SQL receipt now persist in durable stores. Read-only recovery verifies the original without decoding or repeating writes. All 32 focused checks passed, including actual Windows processing and store reopening. Progress remains 54/97 (56%).

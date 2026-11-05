@@ -177,6 +177,62 @@ test(
     assert.deepEqual(replay.outputRef, result.outputRef);
     for (const k of ['native', 'seal', 'outputInstall', 'metadataInstall'])
       assert.equal(f.calls[k], before[k]);
+    await f.db.exec(
+      await readFile(
+        new URL('../../../database/proposals/floor-plan-attachment.sql', import.meta.url),
+        'utf8',
+      ),
+    );
+    const command = {
+      policy: 'synthetic-floor-plan-attachment-command-v1',
+      operationId: '00000000-0000-4000-8000-000000001700',
+      listingId: sql.LISTING,
+      revision: 1,
+      expectedVersion: '2',
+      requestId: f.target.requestId,
+    };
+    const attached = await sql.asActor(f.db, sql.T, sql.AGENT, () =>
+      sql.scalar(f.db, 'SELECT app_api.save_synthetic_floor_plan_attachment($1)', [command]),
+    );
+    assert.equal(attached.resultVersion, '3');
+    const gallery = await sql.asActor(f.db, sql.T, sql.AGENT, () =>
+      sql.scalar(f.db, 'SELECT app_api.read_synthetic_floor_plan_gallery($1,1)', [sql.LISTING]),
+    );
+    assert.equal(gallery.version, '3');
+    assert.equal(gallery.floorPlan.output.lease.outputObjectId, result.outputRef.objectId);
+    assert.equal(gallery.floorPlan.output.lease.leaseNonce, result.outputRef.generationId);
+    assert.equal(gallery.floorPlan.output.manifest.sha256, stored.receipt.sha256);
+    assert.equal(await sql.scalar(f.db, 'SELECT count(*)::int FROM app_private.revision_media'), 0);
+    const readGallery = (actor) =>
+      sql.asActor(f.db, sql.T, actor, () =>
+        sql.scalar(f.db, 'SELECT app_api.read_synthetic_floor_plan_gallery($1,1)', [sql.LISTING]),
+      );
+    const imageTarget = {
+      companyId: sql.T,
+      actorId: sql.AGENT,
+      listingId: sql.LISTING,
+      revision: 1,
+    };
+    const imageReader = f.open({
+      outputStore: output,
+      metadataStore: metadata,
+      readGallery: () => readGallery(sql.AGENT),
+    });
+    const image = await imageReader.readAttached(imageTarget);
+    assert.equal(image.state, 'ready');
+    assert.deepEqual(image.data, stored.data);
+    assert.equal(image.manifest.countsAsPhoto, false);
+    const adminReader = f.open({
+      outputStore: output,
+      metadataStore: metadata,
+      readGallery: () => readGallery(sql.ADMIN),
+    });
+    const adminImage = await adminReader.readAttached({ ...imageTarget, actorId: sql.ADMIN });
+    assert.equal(adminImage.state, 'ready');
+    assert.deepEqual(adminImage.data, stored.data);
+    for (const k of ['native', 'seal', 'outputInstall', 'metadataInstall'])
+      assert.equal(f.calls[k], before[k]);
+
     // History after a draft edit is checked by current SQL read authority, not fresh-work admission.
     await f.db.query(
       "UPDATE app_private.listing_revisions SET title='later edit' WHERE listing_id=$1",
@@ -392,4 +448,164 @@ test('busy fencing and close drain an admitted seal while rejecting later run an
   await closing;
   assert.equal(done, true);
   assert.equal(f.calls.seal, 1);
+});
+
+async function attachedGallery(t) {
+  const f = await fixture(t),
+    delivery = f.open();
+  await delivery.run(f.target);
+  await f.db.exec(
+    await readFile(
+      new URL('../../../database/proposals/floor-plan-attachment.sql', import.meta.url),
+      'utf8',
+    ),
+  );
+  const command = {
+    policy: 'synthetic-floor-plan-attachment-command-v1',
+    operationId: '00000000-0000-4000-8000-000000001710',
+    listingId: sql.LISTING,
+    revision: 1,
+    expectedVersion: '2',
+    requestId: f.target.requestId,
+  };
+  const save = (cmd) =>
+    sql.asActor(f.db, sql.T, sql.AGENT, () =>
+      sql.scalar(f.db, 'SELECT app_api.save_synthetic_floor_plan_attachment($1)', [cmd]),
+    );
+  await save(command);
+  const readGallery = () =>
+    sql.asActor(f.db, sql.T, sql.AGENT, () =>
+      sql.scalar(f.db, 'SELECT app_api.read_synthetic_floor_plan_gallery($1,1)', [sql.LISTING]),
+    );
+  const target = { companyId: sql.T, actorId: sql.AGENT, listingId: sql.LISTING, revision: 1 };
+  return { ...f, command, save, readGallery, galleryTarget: target };
+}
+test('attached gallery removal during byte IO refuses delivery and the next read reports missing', async (t) => {
+  const f = await attachedGallery(t);
+  let changed = false;
+  const before = { ...f.calls };
+  const reader = f.open({
+    readGallery: f.readGallery,
+    outputStore: {
+      ...f.output,
+      read: async (ref) => {
+        const value = await f.output.read(ref);
+        if (!changed) {
+          changed = true;
+          await f.save({
+            ...f.command,
+            operationId: '00000000-0000-4000-8000-000000001711',
+            expectedVersion: '3',
+            requestId: null,
+          });
+        }
+        return value;
+      },
+    },
+  });
+  await assert.rejects(() => reader.readAttached(f.galleryTarget), code('BLOCKED'));
+  assert.equal((await reader.readAttached(f.galleryTarget)).state, 'missing');
+  for (const k of ['native', 'seal', 'outputInstall', 'metadataInstall'])
+    assert.equal(f.calls[k], before[k]);
+});
+test('a replacement attachment identity during gallery IO blocks even when the same bytes were selected', async (t) => {
+  const f = await attachedGallery(t);
+  const reader = f.open({
+    readGallery: f.readGallery,
+    outputStore: {
+      ...f.output,
+      read: async (ref) => {
+        const r = await f.output.read(ref);
+        await f.save({
+          ...f.command,
+          operationId: '00000000-0000-4000-8000-000000001712',
+          expectedVersion: '3',
+        });
+        return r;
+      },
+    },
+  });
+  await assert.rejects(() => reader.readAttached(f.galleryTarget), code('BLOCKED'));
+  assert.equal(f.calls.native, 1);
+  assert.equal(f.calls.seal, 1);
+});
+test('membership access lost during attached gallery IO prevents private byte return', async (t) => {
+  const f = await attachedGallery(t);
+  let checks = 0;
+  const reader = f.open({
+    readGallery: () => {
+      checks++;
+      return f.readGallery();
+    },
+    outputStore: {
+      ...f.output,
+      read: async (ref) => {
+        const r = await f.output.read(ref);
+        await f.db.query(
+          'UPDATE app_private.memberships SET active=false,revoked_at=clock_timestamp() WHERE tenant_id=$1 AND user_id=$2',
+          [sql.T, sql.AGENT],
+        );
+        return r;
+      },
+    },
+  });
+  await assert.rejects(() => reader.readAttached(f.galleryTarget), code('42501'));
+  assert.equal(checks, 2);
+  assert.equal(f.calls.native, 1);
+  assert.equal(f.calls.seal, 1);
+});
+test('wrong gallery scope or origin binding is refused before any output byte read', async (t) => {
+  const f = await attachedGallery(t);
+  let reads = 0;
+  const outputStore = {
+    ...f.output,
+    read: async (ref) => {
+      reads++;
+      return f.output.read(ref);
+    },
+  };
+  for (const alter of [
+    (g) => ({ ...g, companyId: sql.OTHER }),
+    (g) => ({ ...g, actorId: sql.ADMIN }),
+    (g) => ({
+      ...g,
+      floorPlan: {
+        ...g.floorPlan,
+        output: {
+          ...g.floorPlan.output,
+          lease: {
+            ...g.floorPlan.output.lease,
+            registration: {
+              ...g.floorPlan.output.lease.registration,
+              binding: { ...g.floorPlan.output.lease.registration.binding, companyId: sql.OTHER },
+            },
+          },
+        },
+      },
+    }),
+  ]) {
+    const reader = f.open({ outputStore, readGallery: async () => alter(await f.readGallery()) });
+    await assert.rejects(() => reader.readAttached(f.galleryTarget), code('INTEGRITY'));
+  }
+  assert.equal(reads, 0);
+  assert.equal(f.calls.native, 1);
+});
+test('attached gallery independently refuses corrupted stored output without decode or write repair', async (t) => {
+  const f = await attachedGallery(t),
+    before = { ...f.calls };
+  const reader = f.open({
+    readGallery: f.readGallery,
+    outputStore: {
+      ...f.output,
+      read: async (ref) => {
+        const r = await f.output.read(ref),
+          data = Buffer.from(r.data);
+        data[0] ^= 1;
+        return { ...r, data };
+      },
+    },
+  });
+  await assert.rejects(() => reader.readAttached(f.galleryTarget), code('INTEGRITY'));
+  for (const k of ['native', 'seal', 'outputInstall', 'metadataInstall'])
+    assert.equal(f.calls[k], before[k]);
 });
