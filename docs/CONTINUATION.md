@@ -1,3 +1,11 @@
+## Signed native floor-plan browser checkpoint371 - 5 November 2026 EAT
+
+The private floor-plan browser flow is now verified with signed HTTP, actual Windows processing and durable bytes: upload, reload/original recovery, attachment, decoded image, read-only admin view, customer denial and removal. All80 focused checks passed. Approval/public/successor integration remains open;54/97 (56%).
+
+Next, implement atomic approved floor-plan snapshots, approved reviewer/public byte reads and successor-copy/explicit-null behavior. Preserve historical originals while current assignment/company/publication checks decide fresh reads. Then verify the combined floor-plan/photo/video/draft/transition lock matrix and extend shared mobile/public consumers before accepting task06-4.
+
+Evidence: docs/evidence/2026-11-05-floor-plan-native-browser.md; floor371-browser-observations.json and7 source/UI images;80 checks,0 skips; media/admin compilation/build passed. Actual local browser, native worker, signed identity and restricted SQL are joined now. Reviewer draft read-only and customer credential-switch denial only; pending/approved/public-floor-plan/native-device/operator gates remain unaccepted. Runtime roots retained; launcher quit and viewport/tab cleanup completed. Publication and browser-note preservation verification follow.
+
 ## Published signed floor-plan HTTP checkpoint370 - 5 November 2026 EAT
 
 Private deployment appgdep_6aecbf64c344819182cc5c5919bff471 succeeded from dashboardbae020b. Current heading verified. Exports(32)/(33) preserve all 882 prior stage-note occurrences and every manual task/status/gate/decision/risk field. Implementationfb0c193 has44 passing focused checks (5 actual signed listening HTTP/JWKS/restricted SQL,39 regressions),0 skips; API build and3 dashboard checks passed. Screenshot floor370-published.png is dashboard proof only. Actual HTTP source larger than64KiB passes through the explicit lazy hook; no iterator entry for denied/stale/oversize/GET-framed requests. Generic64KiB remains. Final preparation/image providers in these wire tests remain simulated, so no complete native preview/browser acceptance is claimed.

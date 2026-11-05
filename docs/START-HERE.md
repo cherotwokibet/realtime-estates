@@ -1,3 +1,11 @@
+## Signed native floor-plan browser checkpoint371 - 5 November 2026 EAT
+
+The private floor-plan browser flow is now verified with signed HTTP, actual Windows processing and durable bytes: upload, reload/original recovery, attachment, decoded image, read-only admin view, customer denial and removal. All80 focused checks passed. Approval/public/successor integration remains open;54/97 (56%).
+
+Next, implement atomic approved floor-plan snapshots, approved reviewer/public byte reads and successor-copy/explicit-null behavior. Preserve historical originals while current assignment/company/publication checks decide fresh reads. Then verify the combined floor-plan/photo/video/draft/transition lock matrix and extend shared mobile/public consumers before accepting task06-4.
+
+Evidence: docs/evidence/2026-11-05-floor-plan-native-browser.md; floor371-browser-observations.json and7 source/UI images;80 checks,0 skips; media/admin compilation/build passed. Actual local browser, native worker, signed identity and restricted SQL are joined now. Reviewer draft read-only and customer credential-switch denial only; pending/approved/public-floor-plan/native-device/operator gates remain unaccepted. Runtime roots retained; launcher quit and viewport/tab cleanup completed. Publication and browser-note preservation verification follow.
+
 ## Signed floor-plan streaming HTTP checkpoint370 - 5 November 2026 EAT
 
 An explicit floor-plan HTTP streaming hook now checks signed access and current draft authority before reading source bytes, while preserving the 64 KiB generic body limit. All44 focused checks passed, including real signed loopback uploads of a valid PNG larger than64 KiB. Preview/browser acceptance remains pending;54/97 (56%).

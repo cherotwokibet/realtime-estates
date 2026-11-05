@@ -33,7 +33,11 @@ import { createApiService } from '../dist/service.js';
 import { DatabaseSafetyError, PostgresTransactionDatabase } from '../dist/database.js';
 import { createDevelopmentServer } from '../dist/http.js';
 import { MediaCoordinatorDatabase } from '@realtor/media/coordinator-database';
-import { createNativeMediaPreview, nativeMediaPreviewConfiguration } from './media-preview.mjs';
+import {
+  createNativeMediaPreview,
+  createNativeFloorPlanPreview,
+  nativeMediaPreviewConfiguration,
+} from './media-preview.mjs';
 
 const id = (number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 export const REFERENCE_PREVIEW_CATALOGUE = validateListingReferenceCatalogue({
@@ -112,6 +116,8 @@ function configuration({
   port = 4101,
   actor = 'agent',
   nativeUploads,
+  nativeFloorPlan,
+  floorPlanReplyFault,
   enquiryPreview,
   enquiryCatalogue,
   contactReplyFault,
@@ -425,6 +431,24 @@ function configuration({
     throw new StaffPreviewConfigurationError(
       'Enquiry preview does not combine with image or pending-review fixtures.',
     );
+  if (nativeFloorPlan !== undefined) {
+    if (
+      nativeUploads !== undefined ||
+      enquiryPreview !== undefined ||
+      referenceDraftMode !== 'synthetic-reference-draft-v1'
+    )
+      throw new StaffPreviewConfigurationError(
+        'Floor-plan native preview requires isolated reference draft mode.',
+      );
+    nativeFloorPlan = nativeMediaPreviewConfiguration(nativeFloorPlan);
+  }
+  if (
+    floorPlanReplyFault !== undefined &&
+    (floorPlanReplyFault !== 'invalid-first-floor-plan-v1' || !nativeFloorPlan)
+  )
+    throw new StaffPreviewConfigurationError(
+      'Floor-plan reply fault requires its explicit native preview.',
+    );
   if (nativeUploads !== undefined) {
     nativeUploads = nativeMediaPreviewConfiguration(nativeUploads);
     if (seedAcceptedMedia || seedPendingReviews)
@@ -439,6 +463,8 @@ function configuration({
     seedAcceptedMedia,
     seedPendingReviews,
     nativeUploads,
+    nativeFloorPlan,
+    floorPlanReplyFault,
     enquiryPreview,
     enquiryCatalogue,
     contactReplyFault,
@@ -902,6 +928,8 @@ export async function startStaffPreview(options = {}) {
     seedAcceptedMedia,
     seedPendingReviews,
     nativeUploads,
+    nativeFloorPlan,
+    floorPlanReplyFault,
     enquiryPreview,
     enquiryCatalogue,
     contactReplyFault,
@@ -971,7 +999,7 @@ export async function startStaffPreview(options = {}) {
               ? other.admin
               : other.agent;
   const db = new PGlite();
-  let database, coordinator, nativeMedia, journeyManifest;
+  let database, coordinator, nativeMedia, nativeFloor, journeyManifest;
   let apiServer;
   let jwksServer;
   try {
@@ -1001,6 +1029,14 @@ export async function startStaffPreview(options = {}) {
           'utf8',
         ),
       );
+    if (nativeFloorPlan)
+      for (const name of ['registration', 'processing', 'output', 'attachment'])
+        await db.exec(
+          await readFile(
+            new URL('../../../database/proposals/floor-plan-' + name + '.sql', import.meta.url),
+            'utf8',
+          ),
+        );
     if (listingVideoMode)
       await db.exec(
         await readFile(
@@ -1229,7 +1265,7 @@ export async function startStaffPreview(options = {}) {
     await db.exec(
       'CREATE ROLE synthetic_staff_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT api_runtime TO synthetic_staff_login;',
     );
-    if (nativeUploads)
+    if (nativeUploads || nativeFloorPlan)
       await db.exec(
         'CREATE ROLE synthetic_staff_media_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT media_coordinator TO synthetic_staff_media_login;',
       );
@@ -1238,7 +1274,11 @@ export async function startStaffPreview(options = {}) {
         `CREATE ROLE synthetic_viewing_audit_login LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS; GRANT USAGE ON SCHEMA app_private TO synthetic_viewing_audit_login; GRANT SELECT ON app_private.audit_events TO synthetic_viewing_audit_login; CREATE POLICY synthetic_viewing_audit_read ON app_private.audit_events FOR SELECT TO synthetic_viewing_audit_login USING (object_type = 'viewing');`,
       );
     }
-    const pools = runtimePools(db, !!nativeUploads, options.inspectViewingAudit === true);
+    const pools = runtimePools(
+      db,
+      !!(nativeUploads || nativeFloorPlan),
+      options.inspectViewingAudit === true,
+    );
     database = new PostgresTransactionDatabase(pools.api);
     await database.checkConnection();
     if (nativeUploads) {
@@ -1333,8 +1373,20 @@ export async function startStaffPreview(options = {}) {
       });
     }
     let videoReplyPending = listingVideoReplyFault === 'invalid-first-video-v1';
+    let floorUploadFault = !!floorPlanReplyFault,
+      floorAttachFault = !!floorPlanReplyFault;
     const service = createApiService({
       database,
+      ...(nativeFloorPlan
+        ? {
+            floorPlanMode: 'synthetic-private-floor-plan-v1',
+            floorPlanPreparation: {
+              prepare: (...args) => nativeFloor.prepare(...args),
+              recover: (...args) => nativeFloor.recover(...args),
+            },
+            floorPlanImageRead: (...args) => nativeFloor.readImage(...args),
+          }
+        : {}),
       ...(listingVideoMode ? { listingVideoMode } : {}),
       ...(listingVideoPublicationMode ? { listingVideoPublicationMode } : {}),
       verificationMode: 'synthetic-check-record-v1',
@@ -1371,6 +1423,13 @@ export async function startStaffPreview(options = {}) {
         database,
         coordinator,
         verifyBearer: verify,
+      });
+    if (nativeFloorPlan)
+      nativeFloor = await createNativeFloorPlanPreview({
+        nativeFloorPlan,
+        tenantId: company.id,
+        database,
+        mediaPool: pools.media,
       });
     let origin;
     let allowedHosts = new Set();
@@ -1464,6 +1523,20 @@ export async function startStaffPreview(options = {}) {
       async (request) => {
         const denied = guard(request);
         if (denied) return denied;
+        if (
+          nativeFloor &&
+          /^\/v2\/staff\/listings\/[^/]+\/floor-plan-/.test(new URL(request.url).pathname)
+        ) {
+          const response = await service(request);
+          if (floorAttachFault && request.method === 'POST' && response.status === 200) {
+            floorAttachFault = false;
+            return Response.json(
+              { syntheticReplyCorruption: true },
+              { headers: { 'Cache-Control': 'no-store' } },
+            );
+          }
+          return response;
+        }
         if (
           listingVideoMode &&
           /^\/v2\/staff\/listings\/[^/]+\/video-/.test(new URL(request.url).pathname)
@@ -2132,6 +2205,21 @@ export async function startStaffPreview(options = {}) {
             return response;
           }
         : undefined,
+      nativeFloor
+        ? async (request, source) => {
+            const denied = guard(request);
+            if (denied) return denied;
+            const response = await service(request, source);
+            if (floorUploadFault && request.method === 'PUT' && response.status === 200) {
+              floorUploadFault = false;
+              return Response.json(
+                { syntheticReplyCorruption: true },
+                { headers: { 'Cache-Control': 'no-store' } },
+              );
+            }
+            return response;
+          }
+        : undefined,
     );
     origin = await listen(apiServer, port);
     allowedHosts = new Set([new URL(origin).host, `localhost:${new URL(origin).port}`]);
@@ -2143,10 +2231,12 @@ export async function startStaffPreview(options = {}) {
             closeServer(apiServer),
             closeServer(jwksServer),
             nativeMedia?.close(),
+            nativeFloor?.close(),
           ]);
         } finally {
           try {
             await nativeMedia?.close();
+            await nativeFloor?.close();
             await coordinator?.close();
           } finally {
             await database.close();
@@ -2176,6 +2266,7 @@ export async function startStaffPreview(options = {}) {
         ? { referenceReviewVersion: referenceSuccessorMode ? '5' : '4' }
         : {}),
       nativeUploads: !!nativeMedia,
+      nativeFloorPlan: !!nativeFloor,
       close,
     };
     if (pools.auditInspection) {
@@ -2202,6 +2293,26 @@ export async function startStaffPreview(options = {}) {
       writable: false,
       configurable: false,
     });
+    if (nativeFloorPlan) {
+      const entry = (actorId, token) =>
+        Object.freeze(
+          Object.defineProperty({ actorId }, 'bearerToken', { value: token, enumerable: false }),
+        );
+      Object.defineProperty(preview, 'floorPlanStaff', {
+        value: Object.freeze({
+          agent: entry(
+            company.agent,
+            actorId === company.agent ? bearerToken : await issueToken(company.agent),
+          ),
+          admin: entry(
+            company.admin,
+            actorId === company.admin ? bearerToken : await issueToken(company.admin),
+          ),
+          customer: entry(company.customer, await issueToken(company.customer)),
+        }),
+        enumerable: false,
+      });
+    }
     if (invitationRecipient)
       Object.defineProperty(preview, 'invitationRecipient', {
         value: invitationRecipient,
@@ -2224,7 +2335,12 @@ export async function startStaffPreview(options = {}) {
     return Object.freeze(preview);
   } catch (error) {
     try {
-      await Promise.all([closeServer(apiServer), closeServer(jwksServer), nativeMedia?.close()]);
+      await Promise.all([
+        closeServer(apiServer),
+        closeServer(jwksServer),
+        nativeMedia?.close(),
+        nativeFloor?.close(),
+      ]);
     } finally {
       try {
         await coordinator?.close();

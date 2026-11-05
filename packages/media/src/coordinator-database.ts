@@ -225,6 +225,33 @@ export async function assertSafeMediaCoordinatorConnection(
 ): Promise<void> {
   return assertSafeCommandConnection(client, GUARD_SQL, 'media_coordinator');
 }
+// Separate opt-in floor-plan profile; the original photo-only guard remains unchanged.
+const FLOOR_FUNCTIONS = [
+  ...FUNCTIONS,
+  { name: 'claim_synthetic_floor_plan', arguments: ['uuid', 'int4', 'uuid', 'uuid'] },
+  { name: 'read_synthetic_floor_plan_lease', arguments: ['uuid', 'int4', 'uuid'] },
+  {
+    name: 'preflight_synthetic_floor_plan_worker',
+    arguments: ['uuid', 'int4', 'uuid', 'uuid', 'uuid'],
+  },
+  { name: 'read_synthetic_floor_plan_output', arguments: ['uuid', 'int4', 'uuid'] },
+  {
+    name: 'seal_synthetic_floor_plan',
+    arguments: ['uuid', 'int4', 'uuid', 'uuid', 'uuid', 'uuid', 'jsonb'],
+  },
+] as const;
+const FLOOR_OIDS_SQL = `SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='app_media' AND (${FLOOR_FUNCTIONS.map((fn) => `(p.proname='${fn.name}' AND p.pronargs=${fn.arguments.length} AND ${fn.arguments.map((type, index) => `p.proargtypes[${index}]='pg_catalog.${type}'::pg_catalog.regtype`).join(' AND ')})`).join(' OR ')})`;
+const FLOOR_GUARD_SQL = GUARD_SQL.split(EXPECTED_OIDS_SQL)
+  .join(FLOOR_OIDS_SQL)
+  .replace(
+    `expected)<>${FUNCTIONS.length} OR EXISTS`,
+    `expected)<>${FLOOR_FUNCTIONS.length} OR EXISTS`,
+  );
+export async function assertSafeFloorPlanCoordinatorConnection(
+  client: MediaCoordinatorQuery,
+): Promise<void> {
+  return assertSafeCommandConnection(client, FLOOR_GUARD_SQL, 'media_coordinator');
+}
 // Reuse the same denied-privilege matrix, replacing only fixed command identities
 // and the fixed non-login role. Neither role nor SQL can come from a caller.
 const MAINTENANCE_OIDS_SQL = `SELECT p.oid FROM pg_catalog.pg_proc p JOIN pg_catalog.pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='app_media' AND ((p.proname='authorize_expired_cleanup' AND p.pronargs=3 AND p.proargtypes[0]='pg_catalog.uuid'::pg_catalog.regtype AND p.proargtypes[1]='pg_catalog.uuid'::pg_catalog.regtype AND p.proargtypes[2]='pg_catalog.uuid'::pg_catalog.regtype) OR (p.proname='expired_cleanup_candidates' AND p.pronargs=3 AND p.proargtypes[0]='pg_catalog.uuid'::pg_catalog.regtype AND p.proargtypes[1]='pg_catalog.uuid'::pg_catalog.regtype AND p.proargtypes[2]='pg_catalog.int4'::pg_catalog.regtype))`;

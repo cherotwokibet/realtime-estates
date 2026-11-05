@@ -216,10 +216,15 @@ export default function FloorPlanWorkspace(props: Screen) {
           accept="image/png,image/jpeg"
           onChange={(e) => setFile(e.currentTarget.files?.[0] ?? null)}
         />
-        <button type="button" disabled={!file} onClick={() => retain()}>
+        <button className="draft-secondary" type="button" disabled={!file} onClick={() => retain()}>
           Review file preparation
         </button>
-        <button type="button" disabled={!props.state.floorPlan} onClick={() => retain(true)}>
+        <button
+          className="draft-secondary"
+          type="button"
+          disabled={!props.state.floorPlan}
+          onClick={() => retain(true)}
+        >
           Review removal
         </button>
       </fieldset>
@@ -234,12 +239,22 @@ export default function FloorPlanWorkspace(props: Screen) {
             Original version {attempt.command.expectedVersion} · {status}
           </p>
           {status === 'prepared' && (
-            <button type="button" disabled={busy || !fresh} onClick={() => void run(false)}>
+            <button
+              className="draft-secondary"
+              type="button"
+              disabled={busy || !fresh}
+              onClick={() => void run(false)}
+            >
               Confirm reviewed request
             </button>
           )}
           {status === 'uncertain' && (
-            <button type="button" disabled={busy} onClick={() => void run(true)}>
+            <button
+              className="draft-secondary"
+              type="button"
+              disabled={busy}
+              onClick={() => void run(true)}
+            >
               Check original result
             </button>
           )}
@@ -249,7 +264,12 @@ export default function FloorPlanWorkspace(props: Screen) {
                 Prepared floor plan: {prepared.width} × {prepared.height} pixels · {prepared.bytes}{' '}
                 bytes.
               </p>
-              <button type="button" disabled={busy || !fresh} onClick={handoff}>
+              <button
+                className="draft-secondary"
+                type="button"
+                disabled={busy || !fresh}
+                onClick={handoff}
+              >
                 Review attachment to draft
               </button>
             </>
@@ -258,7 +278,7 @@ export default function FloorPlanWorkspace(props: Screen) {
             <p>The draft has changed. Inspect the latest saved revision before another write.</p>
           )}
           {['prepared', 'resolved', 'refused'].includes(status ?? '') && (
-            <button type="button" disabled={busy} onClick={clear}>
+            <button className="draft-secondary" type="button" disabled={busy} onClick={clear}>
               {status === 'prepared' ? 'Cancel unsent review' : 'Clear settled original'}
             </button>
           )}

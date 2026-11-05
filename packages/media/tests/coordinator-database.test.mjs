@@ -6,6 +6,7 @@ import {
   MediaCoordinatorInputError,
   MediaCoordinatorDatabaseError,
   assertSafeMediaCoordinatorConnection,
+  assertSafeFloorPlanCoordinatorConnection,
 } from '../dist/coordinator-database.js';
 
 const id = (number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
@@ -828,4 +829,42 @@ test('lost attachment COMMIT acknowledgement destroys checkout without retrying 
     1,
   );
   assert.deepEqual(f.releases, [true]);
+});
+
+test('floor-plan connection profile adds exactly five reviewed signatures while the photo profile stays narrow', async () => {
+  let sql;
+  await assertSafeFloorPlanCoordinatorConnection({
+    query: async (value) => {
+      sql = value;
+      return { rows: [safe()] };
+    },
+  });
+  assert.ok(sql.includes('expected)<>12'));
+  for (const name of [
+    'claim_synthetic_floor_plan',
+    'read_synthetic_floor_plan_lease',
+    'preflight_synthetic_floor_plan_worker',
+    'read_synthetic_floor_plan_output',
+    'seal_synthetic_floor_plan',
+  ])
+    assert.ok(sql.includes(`p.proname='${name}'`));
+  let photo;
+  await assertSafeMediaCoordinatorConnection({
+    query: async (value) => {
+      photo = value;
+      return { rows: [safe()] };
+    },
+  });
+  assert.ok(photo.includes('expected)<>7'));
+  assert.ok(!photo.includes('claim_synthetic_floor_plan'));
+});
+test('floor-plan connection profile rejects every elevated or missing privilege flag', async () => {
+  const truthy = ['canLogin', 'coordinatorMember', 'coordinatorSchemaUsage'];
+  for (const k of Object.keys(safe()).filter((k) => !['currentUser', 'sessionUser'].includes(k))) {
+    const row = { ...safe(), [k]: !truthy.includes(k) };
+    await assert.rejects(
+      assertSafeFloorPlanCoordinatorConnection({ query: async () => ({ rows: [row] }) }),
+      (e) => e instanceof MediaCoordinatorSafetyError,
+    );
+  }
 });

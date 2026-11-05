@@ -1,0 +1,32 @@
+✔ dedicated guard accepts only complete safe role metadata and queries the seven exact reviewed signatures (1.4134ms)
+✔ every unsafe privilege/ownership/membership flag and malformed guard row fails closed (5.5975ms)
+✔ unsafe checkout is destroyed before BEGIN, role selection, job work or actor context (1.9042ms)
+✔ guard is rechecked on every checkout rather than trusting a previous successful connection (0.8832ms)
+✔ five fixed commands use parameterized SQL in short transactions with no caller SQL or actor GUC surface (2.5618ms)
+✔ invalid command identities, bounds and unsupported grant/manifest fields fail before a checkout (1.3781ms)
+✔ private upload context is exact, frozen and rejects crossed identities, fields, pipeline or impossible dates (1.5321ms)
+✔ capture and manifest snapshots precede checkout awaits and returned receipts are deeply immutable (0.379ms)
+✔ response job, capture, claim, fencing and submitted-manifest mismatches roll back without committing (1.1308ms)
+✔ processing readback distinguishes historical leases and verified output while enforcing their captured input relationships (1.2986ms)
+✔ receipt timestamps preserve UTC microseconds and past historical receipts without accepting impossible calendar dates (0.8595ms)
+✔ definite SQL rejection rolls back once, exposes bounded SQLSTATE and suppresses diagnostic text without retry (0.2159ms)
+✔ failed rollback destroys the checkout instead of returning contaminated transaction state (0.2385ms)
+✔ unconfirmed COMMIT is uncertain even when a later rollback responds and the checkout is destroyed (0.2279ms)
+✔ BEGIN failure destroys checkout without pretending a transaction rollback was confirmed (0.13ms)
+✔ connection and pool shutdown errors are bounded; close releases only the injected trusted pool (0.3121ms)
+✔ response envelope requires exactly one receipt row rather than silently choosing a malformed result (0.3059ms)
+✔ attachment finalize and historical read expose only persisted intent UUID commands and immutable results (0.918ms)
+✔ invalid attachment operation arguments fail before checkout and finalization refuses a ready acknowledgement (0.4872ms)
+✔ attachment receipts reject crossed immutable tuples, malformed versions and unknown fields before commit (2.1766ms)
+✔ attachment terminal conflicts and failures preserve exact historical versions and typed outcomes (3.0537ms)
+✔ lost attachment COMMIT acknowledgement destroys checkout without retrying or pretending the result failed (0.2313ms)
+✔ floor-plan connection profile adds exactly five reviewed signatures while the photo profile stays narrow (0.182ms)
+✔ floor-plan connection profile rejects every elevated or missing privilege flag (0.706ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 116.1071

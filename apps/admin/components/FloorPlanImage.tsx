@@ -37,7 +37,7 @@ export default function FloorPlanImage({
   }, [scope, state]);
   if (!state.floorPlan) return null;
   return (
-    <figure aria-label="Saved private floor plan">
+    <figure aria-label="Saved private floor plan" style={{ margin: '1rem 0' }}>
       {url ? (
         <img
           src={url}

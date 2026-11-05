@@ -506,3 +506,277 @@ export async function createNativeMediaPreview({
     throw error;
   }
 }
+
+// Floor-plan composition uses its own fresh root and capability surface. No photo maintenance hooks.
+import {
+  createFloorPlanRequests,
+  createFloorPlanSourceAdmission,
+} from '@realtor/media/floor-plan-request';
+import { createFloorPlanProcessor } from '@realtor/media/floor-plan-processing';
+import {
+  createFloorPlanOutputDelivery,
+  FloorPlanSealUncertainError,
+} from '@realtor/media/floor-plan-output';
+import {
+  createFloorPlanPreparation,
+  FloorPlanPreparationUncertainError,
+} from '@realtor/media/floor-plan-preparation';
+import { assertSafeFloorPlanCoordinatorConnection } from '@realtor/media/coordinator-database';
+export async function createNativeFloorPlanPreview({
+  nativeFloorPlan,
+  tenantId,
+  database,
+  mediaPool,
+}) {
+  const config = nativeMediaPreviewConfiguration(nativeFloorPlan),
+    root = config.rootDirectory;
+  if (
+    typeof tenantId !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(tenantId) ||
+    typeof database?.transaction !== 'function' ||
+    typeof mediaPool?.connect !== 'function'
+  )
+    invalid();
+  const check = await mediaPool.connect();
+  let unsafe = true;
+  try {
+    await assertSafeFloorPlanCoordinatorConnection(check);
+    unsafe = false;
+  } finally {
+    check.release(unsafe);
+  }
+  await checkedAncestry(root);
+  const identity = await checkedDirectory(root),
+    directory = await opendir(root);
+  try {
+    if (await directory.read()) invalid();
+  } finally {
+    await directory.close();
+  }
+  const executable = await lstat(config.powerShellPath);
+  if (
+    !executable.isFile() ||
+    executable.isSymbolicLink() ||
+    executable.nlink !== 1 ||
+    canonical(path.resolve(await realpath(config.powerShellPath))) !==
+      canonical(config.powerShellPath)
+  )
+    invalid();
+  await exclusiveRecord(
+    root,
+    'floor-plan-owner.json',
+    { version: 1, ownerId: randomUUID(), processId: process.pid, disposableDatabase: true },
+    identity,
+  );
+  const stores = [];
+  let requests, journal, worker, supervisor, processor, delivery, preparation, closing;
+  let fenced = false;
+  const close = () => {
+    fenced = true;
+    return (closing ??= (async () => {
+      await preparation?.close();
+      await delivery?.close();
+      if (supervisor) {
+        const retirement = await retireWindowsSyntheticSupervisor(supervisor);
+        if (!retirement || !ownsWindowsSyntheticRetirement(supervisor, retirement))
+          throw Error('Floor-plan native retirement is unconfirmed; owned resources retained.');
+      }
+      for (const resource of [processor, requests, worker, journal, ...stores])
+        await resource?.close();
+    })());
+  };
+  const api = (t, sql, args) =>
+    database.transaction(
+      { tenantId: t.companyId, actorId: t.actorId, correlationId: randomUUID() },
+      async (q) => {
+        const result = await q.query(sql, args);
+        if (result.rows.length !== 1 || !Object.hasOwn(result.rows[0], 'value'))
+          throw Error('Invalid floor-plan SQL result');
+        return result.rows[0].value;
+      },
+    );
+  async function media(t, sql, args, uncertainty) {
+    const client = await mediaPool.connect();
+    let began = false,
+      commit = false,
+      destroy = false;
+    try {
+      await assertSafeFloorPlanCoordinatorConnection(client);
+      await client.query('BEGIN');
+      began = true;
+      await client.query('SET LOCAL ROLE media_coordinator');
+      await client.query(
+        "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
+        [t.companyId, t.actorId],
+      );
+      const result = await client.query(sql, args);
+      if (result.rows.length !== 1 || !Object.hasOwn(result.rows[0], 'value'))
+        throw Error('Invalid floor-plan coordinator result');
+      commit = true;
+      await client.query('COMMIT');
+      began = false;
+      return result.rows[0].value;
+    } catch (error) {
+      if (!began || commit) destroy = true;
+      if (began)
+        try {
+          await client.query('ROLLBACK');
+        } catch {
+          destroy = true;
+        }
+      if (commit && uncertainty === 'claim') throw new FloorPlanPreparationUncertainError();
+      if (commit && uncertainty === 'seal') throw new FloorPlanSealUncertainError();
+      throw error;
+    } finally {
+      client.release(destroy);
+    }
+  }
+  try {
+    async function store() {
+      const s = await createDurableSyntheticStore(root);
+      stores.push(s);
+      return s;
+    }
+    const inputStore = await store(),
+      requestStore = await store(),
+      journalStore = await store(),
+      outputStore = await store(),
+      metadataStore = await store();
+    const attemptParent = path.join(root, 'attempts');
+    await mkdir(attemptParent, { mode: 0o700 });
+    journal = await createSyntheticAttemptJournal({ store: journalStore, attemptParent });
+    worker = await createSyntheticWorkerAdmission({ parentDirectory: root, journal });
+    requests = createFloorPlanRequests({ inputStore, requestStore });
+    supervisor = await createWindowsSyntheticSupervisor({
+      powerShellPath: config.powerShellPath,
+      attemptParent,
+    });
+    const preflight = (t) =>
+      media(t, 'SELECT app_media.preflight_synthetic_floor_plan_worker($1,$2,$3,$4,$5) AS value', [
+        t.listingId,
+        t.revision,
+        t.requestId,
+        t.claimId,
+        t.leaseNonce,
+      ]);
+    const sourceAdmission = createFloorPlanSourceAdmission({
+      requests,
+      preflight: (t) =>
+        api(t, 'SELECT app_api.preflight_synthetic_floor_plan($1,$2,$3) AS value', [
+          t.listingId,
+          t.revision,
+          t.requestId,
+        ]),
+    });
+    processor = await createFloorPlanProcessor({
+      requests,
+      journal,
+      worker,
+      preflight,
+      supervisor,
+    });
+    delivery = createFloorPlanOutputDelivery({
+      processor,
+      requests,
+      outputStore,
+      metadataStore,
+      preflight,
+      seal: (t, outputId, manifest) =>
+        media(
+          t,
+          'SELECT app_media.seal_synthetic_floor_plan($1,$2,$3,$4,$5,$6,$7) AS value',
+          [t.listingId, t.revision, t.requestId, t.claimId, t.leaseNonce, outputId, manifest],
+          'seal',
+        ),
+      readSeal: (t) =>
+        media(t, 'SELECT app_media.read_synthetic_floor_plan_output($1,$2,$3) AS value', [
+          t.listingId,
+          t.revision,
+          t.requestId,
+        ]),
+      readGallery: (t) =>
+        api(t, 'SELECT app_api.read_synthetic_floor_plan_gallery($1,$2) AS value', [
+          t.listingId,
+          t.revision,
+        ]),
+    });
+    preparation = createFloorPlanPreparation({
+      requests,
+      sourceAdmission,
+      delivery,
+      register: (t, s) =>
+        api(t, 'SELECT app_api.register_synthetic_floor_plan($1,$2,$3,$4,$5,$6,$7) AS value', [
+          t.listingId,
+          t.revision,
+          t.expectedVersion,
+          t.requestId,
+          s.sha256,
+          s.bytes,
+          s.format,
+        ]),
+      readRegistration: (t) =>
+        api(t, 'SELECT app_api.read_synthetic_floor_plan_registration($1,$2) AS value', [
+          t.listingId,
+          t.requestId,
+        ]),
+      claim: (t, claim) =>
+        media(
+          t,
+          'SELECT app_media.claim_synthetic_floor_plan($1,$2,$3,$4) AS value',
+          [t.listingId, t.revision, t.requestId, claim],
+          'claim',
+        ),
+      readLease: (t) =>
+        media(t, 'SELECT app_media.read_synthetic_floor_plan_lease($1,$2,$3) AS value', [
+          t.listingId,
+          t.revision,
+          t.requestId,
+        ]),
+    });
+    const expected = new Map([
+      ['floor-plan-owner.json', 'file'],
+      ['attempts', 'directory'],
+      ...stores.map((s) => [path.basename(s.rootDirectory), 'directory']),
+      [path.basename(worker.rootDirectory), 'directory'],
+    ]);
+    await knownRoot(root, expected, identity);
+    await exclusiveRecord(
+      root,
+      'floor-plan-resources.json',
+      {
+        version: 1,
+        stores: stores.map((s) => path.basename(s.rootDirectory)),
+        worker: path.basename(worker.rootDirectory),
+      },
+      identity,
+    );
+    const target = (ctx, c) => {
+      if (fenced || ctx.tenantId !== tenantId) throw Error('Floor-plan preview unavailable.');
+      return {
+        companyId: tenantId,
+        actorId: ctx.actorId,
+        listingId: c.listingId,
+        revision: c.revision,
+        requestId: c.requestId,
+        expectedVersion: Number(c.expectedVersion),
+      };
+    };
+    return Object.freeze({
+      prepare: (ctx, c, source) => preparation.prepare(target(ctx, c), source),
+      recover: (ctx, c) => preparation.recover(target(ctx, c)),
+      readImage: (ctx, listingId, revision) => {
+        if (fenced || ctx.tenantId !== tenantId) throw Error('Floor-plan preview unavailable.');
+        return delivery.readAttached({
+          companyId: tenantId,
+          actorId: ctx.actorId,
+          listingId,
+          revision,
+        });
+      },
+      close,
+    });
+  } catch (error) {
+    await close().catch(() => {});
+    throw error;
+  }
+}
