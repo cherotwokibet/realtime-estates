@@ -1,3 +1,7 @@
+## Published guarded upload checkpoint366 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec7f2240d081918f5187303223c8a5 succeeded from dashboard044f73f. Current heading verified. Exports(24)/(25) retain all 874 prior stage-note occurrences and every manual task/status/gate/decision/risk field. Implementation54d28d6 has39 passing focused checks,0 skips, domain/API/client builds and3 dashboard checks. Actual Windows native processing runs through in-process API/client with GET-only original recovery after a mismatched acknowledgement. Screenshot floor366-published.png. Session-bound synthetic BFF routes are now the active local checkpoint367; unaccepted until checks pass. No UI/public or release gate accepted.54/97(56%), all14 gates open.
+
 ## Guarded floor-plan upload checkpoint366 - 5 November 2026 EAT
 
 Authenticated floor-plan file preparation and read-only original recovery now have bounded binary upload routes and shared client support. All 39 focused checks passed, including an actual Windows processing run through the client and API handler. Progress remains 54/97 (56%).
