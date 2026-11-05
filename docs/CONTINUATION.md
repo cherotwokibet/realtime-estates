@@ -1,3 +1,9 @@
+## Draft decision audit checkpoint 353 - 5 November 2026 EAT
+
+The signed moderation test passed for approval, rejection and an admin approving their own draft. The audit distinguished self approval and retained the original request ID. Wrong role, foreign company and replay produced no extra decisions or audit entries. Next, reconcile all 57 route exports against evidence and list any remaining acceptance gaps for task 08-7. Checklist 53/97.
+
+Evidence in docs/evidence/audit353-draft-decisions.txt. Private publication awaits a fresh export because browser access is unavailable.
+
 ## Staff invitation audit checkpoint 352 - 5 November 2026 EAT
 
 Three focused invitation database checks passed. Capture and issuance recorded the issuing admin, and acceptance recorded the recipient. The audit trail excluded the address and secret digest. Replay added no grant, and an audit failure rolled back acceptance. Next, check draft decision variants and reconcile remaining evidence for task 08-7. Checklist 53/97.

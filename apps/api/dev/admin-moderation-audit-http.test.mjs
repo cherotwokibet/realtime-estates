@@ -13,6 +13,7 @@ import {
 import { startAdminCommandFixture } from './admin-command-fixtures.mjs';
 
 const otherListing = '00000000-0000-4000-8000-000000000101';
+const selfListing = '00000000-0000-4000-8000-000000000102';
 const foreignAdmin = '00000000-0000-4000-8000-000000000020';
 
 test('signed draft save, submission and both moderation decisions retain exact audit attribution', async () => {
@@ -55,17 +56,19 @@ test('signed draft save, submission and both moderation decisions retain exact a
       return rows[0];
     };
 
-    for (const [listingId, decision] of [
-      [LISTING, 'approve'],
-      [otherListing, 'reject'],
+    for (const [listingId, decision, authorId] of [
+      [LISTING, 'approve', AGENT],
+      [otherListing, 'reject', AGENT],
+      [selfListing, 'approve', ADMIN],
     ]) {
-      await createDraft(fixture.db, listingId);
+      const author = authorId === ADMIN ? admin : agent;
+      await createDraft(fixture.db, listingId, authorId);
       await seedMedia(fixture.db, listingId);
-      await asActor(fixture.db, T, AGENT, () =>
+      await asActor(fixture.db, T, authorId, () =>
         fixture.db.query("SELECT app_api.confirm_availability($1,1,'available')", [listingId]),
       );
       const baseline = await audit(listingId);
-      const draft = await client.getStaffDraftV2(listingId, 1, agent);
+      const draft = await client.getStaffDraftV2(listingId, 1, author);
       const draftInput = {
         expectedVersion: draft.version,
         content: { ...draft.content, title: 'Synthetic signed moderation ' + decision },
@@ -76,13 +79,13 @@ test('signed draft save, submission and both moderation decisions retain exact a
         (error) => error.status === 404,
       );
       assert.deepEqual(await snapshot(listingId), beforeSave);
-      const saved = await client.saveStaffDraftV2(listingId, 1, draftInput, agent);
+      const saved = await client.saveStaffDraftV2(listingId, 1, draftInput, author);
       const saveId = trace.at(-1);
       const submitted = await client.submitStaffDraftV2(
         listingId,
         1,
         { expectedVersion: saved.version },
-        agent,
+        author,
       );
       const submitId = trace.at(-1);
       const input = {
@@ -120,14 +123,14 @@ test('signed draft save, submission and both moderation decisions retain exact a
       assert.deepEqual(
         (await audit(listingId)).slice(baseline.length),
         [
-          [AGENT, 'revision.saved', saved.version, saveId, { revision: 1, contract: 'v2' }],
-          [AGENT, 'revision.submitted', submitted.version, submitId, { revision: 1 }],
+          [authorId, 'revision.saved', saved.version, saveId, { revision: 1, contract: 'v2' }],
+          [authorId, 'revision.submitted', submitted.version, submitId, { revision: 1 }],
           [
             ADMIN,
             'revision.' + decided.state,
             decided.version,
             decisionId,
-            { revision: 1, selfApproval: false },
+            { revision: 1, selfApproval: authorId === ADMIN },
           ],
         ].map(([actor_id, action, object_version, correlation_id, summary]) => ({
           tenant_id: T,
