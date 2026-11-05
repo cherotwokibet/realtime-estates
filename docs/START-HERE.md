@@ -1,3 +1,11 @@
+## Floor-plan registration checkpoint356 - 5 November 2026 EAT
+
+Floor-plan SQL registration now binds the current company, staff member, draft version and declared source facts to an immutable original. All 23 focused database checks passed, including five new floor-plan tests. Verified progress is 54/97 (56%).
+
+Next, add fresh-work preflight that checks current authority, original assignment, expiry and exact source facts before connecting the existing immutable source store and fixed floor-plan worker. Then implement separate output sealing, attachment and gallery consumers under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-registration.md and floor356-registration.txt. Five new registration tests plus existing photo regressions pass. The SQL proposal is test-only until an explicit configured composition consumes it. Publication and browser preservation verification follow.
+
 ## Admin audit acceptance checkpoint 355 - 5 November 2026 EAT
 
 Task 08-7 is verified for the maintained local synthetic platform. All 61 admin routes with 73 write-verb exports are mapped to permission, audit, refusal and recovery evidence. The full admin suite passed 530 tests and 48 rendered checks. Verified progress is 54 of 97 deliverables (56%).

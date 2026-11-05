@@ -1,0 +1,33 @@
+✔ floor-plan registration binds current staff and source facts once without changing photo or draft state (4412.7062ms)
+✔ malformed floor-plan declarations and stale versions reserve no registration or audit (1594.4946ms)
+✔ current company, assignment and original actor fence registration and recovery (1382.0003ms)
+✔ historical originals survive draft edits and archive while fresh registration requires a current draft (1291.3494ms)
+✔ floor-plan originals are immutable and audit failure rolls back registration without leaking runtime table access (1296.1271ms)
+▶ coordinator upload context resolves generated identities under current new-work authorization
+  ✔ before capture the restricted coordinator resolves server identities without a private-table lookup (134.4526ms)
+  ✔ stored company and original requester determine authorization rather than forged GUC selectors (87.9552ms)
+  ✔ current agent assignment and the original registered assignment snapshot both apply (69.1508ms)
+  ✔ expired, non-draft, missing and null jobs expose no upload context and mutate nothing (70.3914ms)
+  ✔ context lookup adopts no new draft token and creates no capture, lease, seal or audit receipt (67.5627ms)
+  ✔ one fixed owner function is executable only by the coordinator and adds no private-table privilege (38.122ms)
+✔ coordinator upload context resolves generated identities under current new-work authorization (4769.5873ms)
+▶ fresh upload preflight requires current authenticated exact original-job authorization without mutation
+  ✔ exact agent and original admin jobs return only the fixed resource tuple (206.0069ms)
+  ✔ wrong listing, revision and job cannot select another permitted resource (77.5106ms)
+  ✔ tenant and original actor binding reject peers and another authorized admin (85.9511ms)
+  ✔ visitors and missing verified identity/context fail before disclosing a tuple (58.142ms)
+  ✔ revocation, role downgrade and disabled company are rechecked on every call (109.8639ms)
+  ✔ current agent access and original registered assignment apply independently (81.3727ms)
+  ✔ non-draft and expired jobs remain historically readable but cannot admit fresh bytes (70.1858ms)
+  ✔ malformed tuple arguments fail without reserving or changing any facts (30.9187ms)
+  ✔ later draft edits are not a refreshed version or new processing authority (37.7875ms)
+  ✔ one owner function grants only API execution without table or coordinator privileges (14.8465ms)
+✔ fresh upload preflight requires current authenticated exact original-job authorization without mutation (5086.0689ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10260.0846

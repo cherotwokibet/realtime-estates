@@ -1,3 +1,11 @@
+## Floor-plan registration checkpoint356 - 5 November 2026 EAT
+
+Floor-plan SQL registration now binds the current company, staff member, draft version and declared source facts to an immutable original. All 23 focused database checks passed, including five new floor-plan tests. Verified progress is 54/97 (56%).
+
+Next, add fresh-work preflight that checks current authority, original assignment, expiry and exact source facts before connecting the existing immutable source store and fixed floor-plan worker. Then implement separate output sealing, attachment and gallery consumers under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-registration.md and floor356-registration.txt. Five new registration tests plus existing photo regressions pass. The SQL proposal is test-only until an explicit configured composition consumes it. Publication and browser preservation verification follow.
+
 ## Published admin audit acceptance checkpoint 355 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec236476808191b8abc6db0b25e892 succeeded from dashboard commit 80cc1f0. The live dashboard shows 54/97 and 56%. Pre/post exports realtor-progress-2026-11-05 (2).json and (3).json preserved all prior notes and manual checklist/status/gate/decision/risk edits. The published canonical baseline accepts task08-7 for maintained local synthetic code. Next, implement floor-plan attachment and gallery integration under06-4, using the existing floor-plan request/worker contracts. Reset stale computer-use runtime before retrying browser control in a later heartbeat.
