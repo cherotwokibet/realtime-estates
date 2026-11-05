@@ -1,3 +1,9 @@
+## Staff membership audit checkpoint 351 - 5 November 2026 EAT
+
+All three focused membership checks passed. Promotion, deactivation and reactivation recorded the actor, company, member, operation, role, active status and resulting version. Retries, conflicts and unchanged requests added no audit events. Next, reconcile invitation dispatch variants and draft decisions against the audit evidence. Task 08-7 stays open at 53/97.
+
+Evidence in docs/evidence/audit351-membership.txt. Private publication awaits a fresh export because browser access is unavailable.
+
 ## Staff branch audit checkpoint 350 - 5 November 2026 EAT
 
 All three focused branch database checks passed. Creating, renaming and deactivating a branch each recorded the original company, admin, branch version and request correlation. Retry, stale version and unchanged submissions added no events. Next, cross-check the remaining draft decisions, membership changes and invitation variants against the audit evidence. Task 08-7 stays open at 53/97.

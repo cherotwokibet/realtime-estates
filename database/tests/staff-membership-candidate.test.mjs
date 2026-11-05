@@ -42,7 +42,7 @@ async function actor(db, tenant, user, action) {
   await db.exec('BEGIN;SET LOCAL ROLE api_runtime');
   try {
     await db.query(
-      "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
+      "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true),set_config('realtor.correlation_id','synthetic-membership-audit',true)",
       [id(tenant), user === null ? '' : id(user)],
     );
     const result = await action();
@@ -211,14 +211,26 @@ test('existing staff changes retain exact originals, terminal version conflicts 
       Number((await db.query('SELECT count(*) AS n FROM app_private.memberships')).rows[0].n),
       6,
     );
-    const summaries = (
-      await db.query('SELECT action,object_id,summary FROM app_private.audit_events')
-    ).rows;
-    for (const row of summaries) {
-      assert.equal(row.action, 'staff.membership_saved');
-      assert.equal(row.object_id, id(12));
-      assert.equal(Object.hasOwn(row.summary, 'reason'), false);
-    }
+    const audit = await db.query(
+      'SELECT tenant_id,actor_id,action,object_type,object_id,object_version::text,correlation_id,summary FROM app_private.audit_events ORDER BY id',
+    );
+    assert.deepEqual(
+      audit.rows,
+      [
+        [200, '2', 'admin', true],
+        [203, '3', 'admin', false],
+        [204, '4', 'agent', true],
+      ].map(([operation, version, role, active]) => ({
+        tenant_id: id(1),
+        actor_id: id(10),
+        action: 'staff.membership_saved',
+        object_type: 'staff_membership',
+        object_id: id(12),
+        object_version: version,
+        correlation_id: 'synthetic-membership-audit',
+        summary: { operationId: id(operation), role, active },
+      })),
+    );
   } finally {
     await db.close();
   }
