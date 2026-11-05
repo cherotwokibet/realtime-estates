@@ -1,3 +1,7 @@
+## Published admin audit acceptance checkpoint 355 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec236476808191b8abc6db0b25e892 succeeded from dashboard commit 80cc1f0. The live dashboard shows 54/97 and 56%. Pre/post exports realtor-progress-2026-11-05 (2).json and (3).json preserved all prior notes and manual checklist/status/gate/decision/risk edits. The published canonical baseline accepts task08-7 for maintained local synthetic code. Next, implement floor-plan attachment and gallery integration under06-4, using the existing floor-plan request/worker contracts. Reset stale computer-use runtime before retrying browser control in a later heartbeat.
+
 ## Admin audit acceptance checkpoint 355 - 5 November 2026 EAT
 
 Task 08-7 is verified for the maintained local synthetic platform. All 61 admin routes with 73 write-verb exports are mapped to permission, audit, refusal and recovery evidence. The full admin suite passed 530 tests and 48 rendered checks. Verified progress is 54 of 97 deliverables (56%).
