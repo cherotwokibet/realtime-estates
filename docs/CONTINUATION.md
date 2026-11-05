@@ -1,3 +1,7 @@
+## Published floor-plan registration checkpoint356 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec3115926c819184dc8946b0c6ce21 succeeded from dashboard commit ebadf91. Live heading verified. Browser exports (4) and (5) for 5 November preserved all previous note occurrences and manual task/status/gate/decision/risk edits. Code is committed at 2fccde6. Next, add floor-plan fresh-work preflight against current authority, registered assignment, draft/version, expiry and source facts, then bind the existing request store and fixed worker. Checklist 54/97 (56%), task06-4 open.
+
 ## Floor-plan registration checkpoint356 - 5 November 2026 EAT
 
 Floor-plan SQL registration now binds the current company, staff member, draft version and declared source facts to an immutable original. All 23 focused database checks passed, including five new floor-plan tests. Verified progress is 54/97 (56%).
