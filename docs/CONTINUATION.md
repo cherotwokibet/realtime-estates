@@ -1,3 +1,7 @@
+## Published floor-plan source checkpoint357 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec3c98daac8191a8826ba782d76301 succeeded from dashboard commit5713c58. The current floor-plan source heading was verified. Browser exports(6) and(7), 5November, retained every prior note occurrence and all manual task/status/gate/decision/risk edits. Source1442995 includes SQL preflight plus actual SQL/durable-store admission tests. Next, implement separate floor-plan processing leases and fresh current-authority worker admission, then output seal and separate attachment/gallery consumers. The helper currently records source after a short SQL preflight and depends on the configured trusted callback. Task06-4 remains open,54/97(56%).
+
 ## Floor-plan preflight/source checkpoint357 - 5 November 2026 EAT
 
 Floor-plan source admission now checks fresh SQL authorization and matches the registered company, actor, draft and source bytes before storage. All 14 focused SQL and durable-store checks passed. Progress is 54/97 (56%).
