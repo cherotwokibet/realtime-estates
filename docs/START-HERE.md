@@ -1,3 +1,9 @@
+## Approved floor-plan durable output374 - 6 November 2026 EAT
+
+Separate readPublished capability joins anonymous exact-version approval SQL to retained verified bytes, with authority before/after IO and no private-gallery fallback, source-creator impersonation, repair, decoder or write replay.20 output tests passed,0 skips:5 public capability cases/15 regressions; existing actual Windows output regression passed. New public cases use simulated processing plus actual durable stores/restricted PGlite SQL. Media build/format/diff passed. Evidence: docs/evidence/2026-11-06-floor-plan-published-output.md and floor374-* logs. No HTTP/public browser/preview activation yet.
+
+Exact next: API anonymous approvedVersion image route/provider option using readPublished, private no-store/nosniff/fixed disposition and exact hash/size validation; separately wire admin reviewed bytes. Recheck current SQL metadata before/after provider IO. Then signed listening/native/browser public approval proof, successor-copy/explicit-null, web/mobile consumers and combined original lock matrix.54/97(56%), all14 gates open; task06-4 incomplete. No Actions/spending/vendor/live changes; KES10,000 baseline retained.
+
 ## Approved floor-plan metadata transport373 - 5 November 2026 EAT
 
 Strict published/review shared contracts, default-off API routes and SDK reads now connect the immutable floor-plan approval ledger.18 focused checks,0 skips; domain/API-client/API builds passed. Anonymous output excludes private provenance; admin pending/approved reads bind exact version/current authority. Tests use injected identity and Request/Response with actual restricted PGlite SQL, not listening HTTP/JWKS/native/browser proof. Evidence: docs/evidence/2026-11-05-floor-plan-metadata-transport.md and floor373-* logs.

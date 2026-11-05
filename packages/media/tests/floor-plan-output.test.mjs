@@ -609,3 +609,237 @@ test('attached gallery independently refuses corrupted stored output without dec
   for (const k of ['native', 'seal', 'outputInstall', 'metadataInstall'])
     assert.equal(f.calls[k], before[k]);
 });
+
+async function publishedGallery(t, remove = false) {
+  const f = await attachedGallery(t);
+  for (const n of ['publication', 'publication-output'])
+    await f.db.exec(
+      await readFile(
+        new URL('../../../database/proposals/floor-plan-' + n + '.sql', import.meta.url),
+        'utf8',
+      ),
+    );
+  let version = '3';
+  if (remove)
+    version = (
+      await f.save({
+        ...f.command,
+        operationId: '00000000-0000-4000-8000-000000001713',
+        expectedVersion: '3',
+        requestId: null,
+      })
+    ).resultVersion;
+  await sql.seedMedia(f.db);
+  const pending = await sql.asActor(f.db, sql.T, sql.AGENT, async () => {
+    await sql.scalar(f.db, "SELECT app_api.confirm_availability($1,1,'available')", [sql.LISTING]);
+    return sql.scalar(f.db, 'SELECT app_api.submit_revision($1,1,$2)', [sql.LISTING, version]);
+  });
+  await sql.asActor(f.db, sql.T, sql.ADMIN, () =>
+    sql.scalar(f.db, 'SELECT app_api.decide_revision($1,1,$2,true)', [sql.LISTING, pending]),
+  );
+  const approvedVersion = await sql.scalar(
+    f.db,
+    'SELECT version::text FROM app_private.listing_revisions WHERE listing_id=$1 AND revision_no=1',
+    [sql.LISTING],
+  );
+  const publicTarget = { companyId: sql.T, listingId: sql.LISTING, revision: 1, approvedVersion };
+  const readPublishedGallery = (t) =>
+    sql.asActor(f.db, t.companyId, null, () =>
+      sql.scalar(f.db, 'SELECT app_api.read_synthetic_published_floor_plan_output($1,$2,$3)', [
+        t.listingId,
+        t.revision,
+        t.approvedVersion,
+      ]),
+    );
+  return { ...f, publicTarget, readPublishedGallery };
+}
+
+test('approved anonymous delivery checks current SQL eligibility around durable bytes without decoder/write replay', async (t) => {
+  const f = await publishedGallery(t),
+    before = { ...f.calls };
+  let checks = 0;
+  const reader = f.open({
+    readGallery() {
+      throw Error('Private reader must not authorize publication');
+    },
+    readPublishedGallery: async (target) => {
+      checks++;
+      return f.readPublishedGallery(target);
+    },
+  });
+  const result = await reader.readPublished(f.publicTarget);
+  assert.equal(result.state, 'ready');
+  assert.equal(result.target.actorId, null);
+  assert.equal(result.version, f.publicTarget.approvedVersion);
+  assert.equal(checks, 2);
+  assert.ok(Buffer.isBuffer(result.data));
+  for (const k of ['native', 'seal', 'outputInstall', 'metadataInstall'])
+    assert.equal(f.calls[k], before[k]);
+  await assert.rejects(
+    () =>
+      sql.asActor(f.db, sql.T, sql.ADMIN, () =>
+        sql.scalar(f.db, 'SELECT app_api.read_synthetic_published_floor_plan_output($1,1,$2)', [
+          sql.LISTING,
+          f.publicTarget.approvedVersion,
+        ]),
+      ),
+    code('42501'),
+  );
+  await assert.rejects(
+    () => f.readPublishedGallery({ ...f.publicTarget, approvedVersion: '1' }),
+    code('40001'),
+  );
+  await assert.rejects(
+    () => f.readPublishedGallery({ ...f.publicTarget, companyId: sql.OTHER }),
+    code('P0002'),
+  );
+  await assert.rejects(
+    () =>
+      media(f.db, () =>
+        sql.scalar(f.db, 'SELECT app_api.read_synthetic_published_floor_plan_output($1,1,$2)', [
+          sql.LISTING,
+          f.publicTarget.approvedVersion,
+        ]),
+      ),
+    code('42501'),
+  );
+});
+
+test('publication paused during durable IO blocks bytes and later disabled-company reads touch no output', async (t) => {
+  const f = await publishedGallery(t);
+  let reads = 0;
+  const reader = f.open({
+    readPublishedGallery: f.readPublishedGallery,
+    outputStore: {
+      ...f.output,
+      read: async (ref) => {
+        reads++;
+        const r = await f.output.read(ref);
+        await f.db.query(
+          "UPDATE app_private.listings SET publication_status='paused' WHERE id=$1",
+          [sql.LISTING],
+        );
+        return r;
+      },
+    },
+  });
+  await assert.rejects(() => reader.readPublished(f.publicTarget), code('P0002'));
+  assert.equal(reads, 1);
+  await f.db.query('UPDATE app_private.tenants SET enabled=false WHERE id=$1', [sql.T]);
+  await assert.rejects(() => reader.readPublished(f.publicTarget));
+  assert.equal(reads, 1);
+  assert.equal(f.calls.native, 1);
+  assert.equal(f.calls.seal, 1);
+});
+
+test('approved absence returns missing without searching a historical private attachment or output', async (t) => {
+  const f = await publishedGallery(t, true);
+  let reads = 0;
+  const reader = f.open({
+    readPublishedGallery: f.readPublishedGallery,
+    outputStore: {
+      ...f.output,
+      read: async (ref) => {
+        reads++;
+        return f.output.read(ref);
+      },
+    },
+  });
+  assert.equal((await reader.readPublished(f.publicTarget)).state, 'missing');
+  assert.equal(reads, 0);
+  assert.equal(f.calls.native, 1);
+});
+
+test('public capability cannot fall back to private gallery or accept altered scope/provenance before IO', async (t) => {
+  const f = await publishedGallery(t);
+  let reads = 0;
+  const outputStore = {
+    ...f.output,
+    read: async (ref) => {
+      reads++;
+      return f.output.read(ref);
+    },
+  };
+  await assert.rejects(
+    () => f.open({ readGallery: f.readGallery, outputStore }).readPublished(f.publicTarget),
+    code('INVALID_CONFIGURATION'),
+  );
+  for (const alter of [
+    (r) => ({ ...r, companyId: sql.OTHER }),
+    (r) => ({ ...r, approvedVersion: '1' }),
+    (r) => ({ ...r, actorId: sql.AGENT }),
+    (r) => ({
+      ...r,
+      floorPlan: {
+        ...r.floorPlan,
+        output: {
+          ...r.floorPlan.output,
+          lease: {
+            ...r.floorPlan.output.lease,
+            registration: {
+              ...r.floorPlan.output.lease.registration,
+              binding: { ...r.floorPlan.output.lease.registration.binding, companyId: sql.OTHER },
+            },
+          },
+        },
+      },
+    }),
+  ]) {
+    const reader = f.open({
+      outputStore,
+      readPublishedGallery: async (target) => alter(await f.readPublishedGallery(target)),
+    });
+    await assert.rejects(() => reader.readPublished(f.publicTarget), code('INTEGRITY'));
+  }
+  assert.equal(reads, 0);
+  for (const bad of [
+    { ...f.publicTarget, approvedVersion: '01' },
+    { ...f.publicTarget, actorId: sql.AGENT },
+    { ...f.publicTarget, revision: 0 },
+  ])
+    assert.throws(
+      () => f.open({ readPublishedGallery: f.readPublishedGallery }).readPublished(bad),
+      code('INTEGRITY'),
+    );
+});
+
+test('approved durable output corruption fails closed without repair and readPublished joins close/busy fencing', async (t) => {
+  const f = await publishedGallery(t),
+    before = { ...f.calls };
+  const corrupted = f.open({
+    readPublishedGallery: f.readPublishedGallery,
+    outputStore: {
+      ...f.output,
+      read: async (ref) => {
+        const r = await f.output.read(ref),
+          data = Buffer.from(r.data);
+        data[0] ^= 1;
+        return { ...r, data };
+      },
+    },
+  });
+  await assert.rejects(() => corrupted.readPublished(f.publicTarget), code('INTEGRITY'));
+  let enter, release;
+  const entered = new Promise((r) => (enter = r)),
+    held = new Promise((r) => (release = r));
+  const reader = f.open({
+    readPublishedGallery: async (target) => {
+      enter();
+      await held;
+      return f.readPublishedGallery(target);
+    },
+  });
+  const active = reader.readPublished(f.publicTarget);
+  await entered;
+  await assert.rejects(() => reader.readPublished(f.publicTarget), code('BUSY'));
+  let drained = false;
+  const closing = reader.close().then(() => (drained = true));
+  assert.equal(drained, false);
+  await assert.rejects(() => reader.readPublished(f.publicTarget), code('CLOSED'));
+  release();
+  assert.equal((await active).state, 'ready');
+  await closing;
+  assert.equal(drained, true);
+  for (const k of ['native', 'seal', 'outputInstall', 'metadataInstall'])
+    assert.equal(f.calls[k], before[k]);
+});

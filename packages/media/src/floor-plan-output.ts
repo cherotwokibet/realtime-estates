@@ -23,6 +23,12 @@ export interface FloorPlanGalleryTarget {
   readonly listingId: string;
   readonly revision: number;
 }
+export interface PublishedFloorPlanTarget {
+  readonly companyId: string;
+  readonly listingId: string;
+  readonly revision: number;
+  readonly approvedVersion: string;
+}
 export class FloorPlanOutputError extends Error {
   override readonly name = 'FloorPlanOutputError';
   constructor(
@@ -207,6 +213,7 @@ export function createFloorPlanOutputDelivery(config: {
   ) => Promise<unknown>;
   readonly readSeal: (target: FloorPlanWorkerTarget) => Promise<unknown>;
   readonly readGallery?: (target: FloorPlanGalleryTarget) => Promise<unknown>;
+  readonly readPublishedGallery?: (target: PublishedFloorPlanTarget) => Promise<unknown>;
 }) {
   const output = store(config.outputStore),
     metadata = store(config.metadataStore),
@@ -225,6 +232,7 @@ export function createFloorPlanOutputDelivery(config: {
   )
     fail('INVALID_CONFIGURATION');
   const readGallery = config.readGallery;
+  const readPublishedGallery = config.readPublishedGallery;
   let busy = false,
     closed = false,
     tail: Promise<unknown> = Promise.resolve();
@@ -318,6 +326,144 @@ export function createFloorPlanOutputDelivery(config: {
       Buffer.from(JSON.stringify(saved.manifest) + '\n'),
     );
     return { saved, bytes, ref, data: verified.data };
+  }
+  // One retained-output verifier for both audiences; each caller supplies its own authority reader.
+  function readAttachmentBytes(
+    value: Omit<FloorPlanGalleryTarget, 'actorId'> & { readonly actorId: string | null },
+    reader: (() => Promise<unknown>) | undefined,
+    expectedVersion?: string,
+  ) {
+    const t = object(value, ['companyId', 'actorId', 'listingId', 'revision']);
+    for (const key of ['companyId', 'listingId'])
+      if (typeof t[key] !== 'string' || !id.test(t[key] as string)) fail('INTEGRITY');
+    if (
+      typeof t.revision !== 'number' ||
+      !Number.isSafeInteger(t.revision) ||
+      t.revision < 1 ||
+      t.revision > 2147483647
+    )
+      fail('INTEGRITY');
+    if (
+      expectedVersion === undefined
+        ? typeof t.actorId !== 'string' || !id.test(t.actorId)
+        : t.actorId !== null
+    )
+      fail('INTEGRITY');
+    const target = Object.freeze(t) as unknown as Omit<FloorPlanGalleryTarget, 'actorId'> & {
+      readonly actorId: string | null;
+    };
+    return admit(async () => {
+      if (typeof reader !== 'function') fail('INVALID_CONFIGURATION');
+      function gallery(value: unknown) {
+        const row = object(value, [
+          'policy',
+          'companyId',
+          'actorId',
+          'listingId',
+          'revision',
+          'version',
+          'state',
+          'floorPlan',
+        ]);
+        if (
+          row.policy !== 'synthetic-floor-plan-gallery-v1' ||
+          Object.entries(target).some(([k, v]) => row[k] !== v) ||
+          typeof row.version !== 'string' ||
+          !/^[1-9][0-9]{0,15}$/.test(row.version) ||
+          BigInt(row.version) > 9007199254740991n ||
+          !['draft', 'pending', 'approved', 'rejected'].includes(row.state as string) ||
+          (expectedVersion !== undefined &&
+            (row.version !== expectedVersion || row.state !== 'approved'))
+        )
+          fail('INTEGRITY');
+        return snapshot(row) as Readonly<Record<string, unknown>>;
+      }
+      const original = gallery(await reader());
+      if (original.floorPlan === null) return Object.freeze({ state: 'missing' as const });
+      const attached = object(original.floorPlan, [
+        'policy',
+        'command',
+        'actorId',
+        'resultVersion',
+        'output',
+      ]);
+      const command = object(attached.command, [
+        'policy',
+        'operationId',
+        'listingId',
+        'revision',
+        'expectedVersion',
+        'requestId',
+      ]);
+      if (
+        attached.policy !== 'synthetic-floor-plan-attachment-record-v1' ||
+        typeof attached.actorId !== 'string' ||
+        !id.test(attached.actorId) ||
+        typeof attached.resultVersion !== 'string' ||
+        !/^[1-9][0-9]{0,15}$/.test(attached.resultVersion) ||
+        BigInt(attached.resultVersion) > BigInt(original.version as string) ||
+        command.policy !== 'synthetic-floor-plan-attachment-command-v1' ||
+        command.listingId !== target.listingId ||
+        command.revision !== target.revision ||
+        typeof command.operationId !== 'string' ||
+        !id.test(command.operationId) ||
+        typeof command.expectedVersion !== 'string' ||
+        !/^[1-9][0-9]{0,15}$/.test(command.expectedVersion) ||
+        BigInt(command.expectedVersion) + 1n !== BigInt(attached.resultVersion)
+      )
+        fail('INTEGRITY');
+      const sealed = object(attached.output, [
+        'policy',
+        'lease',
+        'manifest',
+        'manifestSha256',
+        'verifiedAt',
+      ]);
+      const lease = object(sealed.lease, [
+        'policy',
+        'registration',
+        'claimId',
+        'leaseNonce',
+        'outputObjectId',
+        'claimedAt',
+        'expiresAt',
+      ]);
+      const registration = object(lease.registration, [
+        'policy',
+        'role',
+        'pipeline',
+        'countsAsPhoto',
+        'binding',
+        'source',
+        'registeredAt',
+        'expiresAt',
+      ]);
+      const source = object(registration.binding, bindingKeys);
+      const selected = snapshotFloorPlanWorkerTarget({
+        ...source,
+        claimId: lease.claimId,
+        leaseNonce: lease.leaseNonce,
+      } as unknown as FloorPlanWorkerTarget);
+      if (
+        selected.companyId !== target.companyId ||
+        selected.listingId !== target.listingId ||
+        selected.revision !== target.revision ||
+        selected.requestId !== command.requestId ||
+        BigInt(selected.expectedVersion) > BigInt(command.expectedVersion)
+      )
+        fail('INTEGRITY');
+      const actual = await retained(selected);
+      receipt(sealed, actual.saved, actual.bytes);
+      if (!equal(gallery(await reader()), original)) fail('BLOCKED');
+      return Object.freeze({
+        state: 'ready' as const,
+        target,
+        version: original.version as string,
+        operationId: command.operationId,
+        manifest: actual.saved.manifest,
+        data: Buffer.from(actual.data),
+      });
+    });
   }
   return Object.freeze({
     run(value: FloorPlanWorkerTarget) {
@@ -427,127 +573,64 @@ export function createFloorPlanOutputDelivery(config: {
     },
     /** Private current-attachment bytes. No URL, decoder, write or seal is created. */
     readAttached(value: FloorPlanGalleryTarget) {
-      const t = object(value, ['companyId', 'actorId', 'listingId', 'revision']);
-      for (const key of ['companyId', 'actorId', 'listingId'])
+      const captured = Object.freeze(
+        object(value, ['companyId', 'actorId', 'listingId', 'revision']),
+      ) as unknown as FloorPlanGalleryTarget;
+      return readAttachmentBytes(
+        captured,
+        typeof readGallery === 'function' ? () => readGallery(captured) : undefined,
+      );
+    },
+    /** Anonymous approved delivery is a separate, exact-version capability. */
+    readPublished(value: PublishedFloorPlanTarget) {
+      const t = object(value, ['companyId', 'listingId', 'revision', 'approvedVersion']);
+      for (const key of ['companyId', 'listingId'])
         if (typeof t[key] !== 'string' || !id.test(t[key] as string)) fail('INTEGRITY');
       if (
-        typeof t.revision !== 'number' ||
-        !Number.isSafeInteger(t.revision) ||
-        t.revision < 1 ||
-        t.revision > 2147483647
+        typeof t.approvedVersion !== 'string' ||
+        !/^[1-9][0-9]{0,15}$/.test(t.approvedVersion) ||
+        BigInt(t.approvedVersion) > 9007199254740991n
       )
         fail('INTEGRITY');
-      const target = Object.freeze(t) as unknown as FloorPlanGalleryTarget;
-      return admit(async () => {
-        if (typeof readGallery !== 'function') fail('INVALID_CONFIGURATION');
-        function gallery(value: unknown) {
-          const row = object(value, [
-            'policy',
-            'companyId',
-            'actorId',
-            'listingId',
-            'revision',
-            'version',
-            'state',
-            'floorPlan',
-          ]);
-          if (
-            row.policy !== 'synthetic-floor-plan-gallery-v1' ||
-            Object.entries(target).some(([k, v]) => row[k] !== v) ||
-            typeof row.version !== 'string' ||
-            !/^[1-9][0-9]{0,15}$/.test(row.version) ||
-            BigInt(row.version) > 9007199254740991n ||
-            !['draft', 'pending', 'approved', 'rejected'].includes(row.state as string)
-          )
-            fail('INTEGRITY');
-          return snapshot(row) as Readonly<Record<string, unknown>>;
-        }
-        const original = gallery(await readGallery(target));
-        if (original.floorPlan === null) return Object.freeze({ state: 'missing' as const });
-        const attached = object(original.floorPlan, [
-          'policy',
-          'command',
-          'actorId',
-          'resultVersion',
-          'output',
-        ]);
-        const command = object(attached.command, [
-          'policy',
-          'operationId',
-          'listingId',
-          'revision',
-          'expectedVersion',
-          'requestId',
-        ]);
-        if (
-          attached.policy !== 'synthetic-floor-plan-attachment-record-v1' ||
-          typeof attached.actorId !== 'string' ||
-          !id.test(attached.actorId) ||
-          typeof attached.resultVersion !== 'string' ||
-          !/^[1-9][0-9]{0,15}$/.test(attached.resultVersion) ||
-          BigInt(attached.resultVersion) > BigInt(original.version as string) ||
-          command.policy !== 'synthetic-floor-plan-attachment-command-v1' ||
-          command.listingId !== target.listingId ||
-          command.revision !== target.revision ||
-          typeof command.operationId !== 'string' ||
-          !id.test(command.operationId) ||
-          typeof command.expectedVersion !== 'string' ||
-          !/^[1-9][0-9]{0,15}$/.test(command.expectedVersion) ||
-          BigInt(command.expectedVersion) + 1n !== BigInt(attached.resultVersion)
-        )
-          fail('INTEGRITY');
-        const sealed = object(attached.output, [
-          'policy',
-          'lease',
-          'manifest',
-          'manifestSha256',
-          'verifiedAt',
-        ]);
-        const lease = object(sealed.lease, [
-          'policy',
-          'registration',
-          'claimId',
-          'leaseNonce',
-          'outputObjectId',
-          'claimedAt',
-          'expiresAt',
-        ]);
-        const registration = object(lease.registration, [
-          'policy',
-          'role',
-          'pipeline',
-          'countsAsPhoto',
-          'binding',
-          'source',
-          'registeredAt',
-          'expiresAt',
-        ]);
-        const source = object(registration.binding, bindingKeys);
-        const selected = snapshotFloorPlanWorkerTarget({
-          ...source,
-          claimId: lease.claimId,
-          leaseNonce: lease.leaseNonce,
-        } as unknown as FloorPlanWorkerTarget);
-        if (
-          selected.companyId !== target.companyId ||
-          selected.listingId !== target.listingId ||
-          selected.revision !== target.revision ||
-          selected.requestId !== command.requestId ||
-          BigInt(selected.expectedVersion) > BigInt(command.expectedVersion)
-        )
-          fail('INTEGRITY');
-        const actual = await retained(selected);
-        receipt(sealed, actual.saved, actual.bytes);
-        if (!equal(gallery(await readGallery(target)), original)) fail('BLOCKED');
-        return Object.freeze({
-          state: 'ready' as const,
-          target,
-          version: original.version as string,
-          operationId: command.operationId,
-          manifest: actual.saved.manifest,
-          data: Buffer.from(actual.data),
-        });
-      });
+      const target = Object.freeze(t) as unknown as PublishedFloorPlanTarget;
+      const reader =
+        typeof readPublishedGallery !== 'function'
+          ? undefined
+          : async () => {
+              const raw = object(await readPublishedGallery(target), [
+                'policy',
+                'companyId',
+                'listingId',
+                'revision',
+                'approvedVersion',
+                'floorPlan',
+              ]);
+              if (
+                raw.policy !== 'synthetic-published-floor-plan-output-v1' ||
+                Object.entries(target).some(([k, v]) => raw[k] !== v)
+              )
+                fail('INTEGRITY');
+              return {
+                policy: 'synthetic-floor-plan-gallery-v1',
+                companyId: target.companyId,
+                actorId: null,
+                listingId: target.listingId,
+                revision: target.revision,
+                version: target.approvedVersion,
+                state: 'approved',
+                floorPlan: raw.floorPlan,
+              };
+            };
+      return readAttachmentBytes(
+        {
+          companyId: target.companyId,
+          actorId: null,
+          listingId: target.listingId,
+          revision: target.revision,
+        },
+        reader,
+        target.approvedVersion,
+      );
     },
     close() {
       closed = true;

@@ -1,0 +1,28 @@
+✔ actual Windows output persists before SQL seal and reopens for read-only original recovery (4728.7711ms)
+✔ typed uncertain seal acknowledgement reads the exact original once and never repeats the seal (1798.3004ms)
+✔ generic SQL failure performs no implicit read and uncertain missing original remains blocked without replay (1663.2972ms)
+✔ lost durable receipt acknowledgement recovers from SQL and byte evidence with no writes (1658.5127ms)
+✔ missing local receipt can be verified read-only while a missing durable output stays blocked (1717.4189ms)
+✔ receipt identity or manifest mismatch cannot be adopted during uncertain acknowledgement or recovery (1615.353ms)
+✔ output persistence failure preserves intent without SQL or decoder replay, and access loss prevents recovery reads (1478.4992ms)
+✔ confirmed originals stay recoverable under simulated local lease expiry without fresh processing (1662.2083ms)
+✔ altered stored byte receipt fails reconciliation and cannot be replaced or promoted (1652.3058ms)
+✔ busy fencing and close drain an admitted seal while rejecting later run and recovery calls (1622.7659ms)
+✔ attached gallery removal during byte IO refuses delivery and the next read reports missing (1669.5391ms)
+✔ a replacement attachment identity during gallery IO blocks even when the same bytes were selected (1727.7367ms)
+✔ membership access lost during attached gallery IO prevents private byte return (1695.5009ms)
+✔ wrong gallery scope or origin binding is refused before any output byte read (1817.6072ms)
+✔ attached gallery independently refuses corrupted stored output without decode or write repair (1692.9732ms)
+✔ approved anonymous delivery checks current SQL eligibility around durable bytes without decoder/write replay (1759.7366ms)
+✔ publication paused during durable IO blocks bytes and later disabled-company reads touch no output (1830.2386ms)
+✔ approved absence returns missing without searching a historical private attachment or output (1781.9422ms)
+✔ public capability cannot fall back to private gallery or accept altered scope/provenance before IO (1870.8414ms)
+✔ approved durable output corruption fails closed without repair and readPublished joins close/busy fencing (1956.9305ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 37834.0771
