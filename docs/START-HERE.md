@@ -1,3 +1,11 @@
+## Floor-plan API/client checkpoint364 - 5 November 2026 EAT
+
+Authenticated floor-plan attachment/recovery, saved metadata and private image routes now have shared client support and bounded client metadata. All 25 focused API/SDK checks passed. Progress remains 54/97 (56%).
+
+Next, implement guarded floor-plan file preparation/upload and original preparation recovery through the authenticated API, then connect session-bound BFF routes and author/reviewer screens. Follow with approval/public snapshots and successor-copy rules under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-api-sdk.md and floor364-api-sdk.txt. Domain/API/client builds and25 focused checks passed. New routes remain off by default and production-refused. Image capability is explicit and SQL-authorized before/after IO; tests simulate its reader, so no new native HTTP/browser proof. File selection/upload preparation is the next missing dependency before a complete author UI. Publication and browser preservation verification follow.
+
 ## Floor-plan attachment/gallery checkpoint363 - 5 November 2026 EAT
 
 Floor plans now attach, replace and remove through versioned commands, with private gallery bytes checked against current attachment and access before and after storage reads. All 30 focused checks passed, including the actual native-worker-to-gallery flow. Progress remains 54/97 (56%).

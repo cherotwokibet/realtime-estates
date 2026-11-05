@@ -1,3 +1,9 @@
+import { parseFloorPlanJson, validateFloorPlanAttachmentCommand } from '@realtor/domain';
+import {
+  floorPlanRecordFromSql,
+  floorPlanStateFromSql,
+  floorPlanImageFromProvider,
+} from './floor-plan-projection.js';
 import { createCustomerFavouritesHttpCandidate } from './customer-favourites-http.js';
 import { adminAuditQuery, validateAdminAuditPage } from '@realtor/domain';
 import { publicSearchQuery, PublicSearchInputError } from './public-search.js';
@@ -150,6 +156,12 @@ export interface EnquiryLimiter {
   consume(key: string): LimiterResult | Promise<LimiterResult>;
 }
 export interface ApiServiceOptions {
+  readonly floorPlanMode?: 'synthetic-private-floor-plan-v1';
+  readonly floorPlanImageRead?: (
+    context: Readonly<{ tenantId: string; actorId: string; correlationId: string }>,
+    listingId: string,
+    revision: number,
+  ) => Promise<unknown>;
   /** Isolated current-customer candidate; omitted leaves all customer routes unavailable. */
   readonly customerFavouritesMode?: 'synthetic-customer-favourites-v1';
   /** Isolated audit-read candidate; never installs SQL or enables production access. */
@@ -1513,6 +1525,19 @@ export function createApiService(
       process.env.NODE_ENV === 'production')
   )
     throw Error('Private video candidate requires explicit non-production mode.');
+  if (
+    options.floorPlanMode !== undefined &&
+    (options.floorPlanMode !== 'synthetic-private-floor-plan-v1' ||
+      process.env.NODE_ENV === 'production')
+  )
+    throw Error('Floor-plan candidate requires explicit non-production mode.');
+  const floorPlanEnabled = options.floorPlanMode === 'synthetic-private-floor-plan-v1';
+  const floorPlanImageRead = options.floorPlanImageRead;
+  if (
+    floorPlanImageRead !== undefined &&
+    (!floorPlanEnabled || typeof floorPlanImageRead !== 'function')
+  )
+    throw Error('Floor-plan image capability requires its private candidate mode.');
   const listingVideoEnabled = options.listingVideoMode === 'synthetic-private-listing-video-v1';
   if (
     options.listingVideoPublicationMode !== undefined &&
@@ -1774,6 +1799,135 @@ export function createApiService(
             return state;
           },
         );
+        return response(200, value, correlationId);
+      }
+      if (/^\/v2\/staff\/listings\/[^/]+\/floor-plan-/.test(path)) {
+        if (!floorPlanEnabled || process.env.NODE_ENV === 'production')
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        const route =
+          /^\/v2\/staff\/listings\/([0-9a-f-]{36})\/floor-plan-(operations|revisions|images)\/([0-9a-f-]{36}|[1-9][0-9]{0,9})(?:\/([0-9a-f-]{36}))?$/.exec(
+            path,
+          );
+        if (!route) throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        if (
+          request.url.includes('?') ||
+          request.url.includes('#') ||
+          headerNames(request.headers).some(
+            (k) =>
+              ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(k) ||
+              k.startsWith('x-') ||
+              k.startsWith('if-'),
+          )
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Unexpected floor-plan request context.');
+        const listing = uuid(route[1], 'Listing'),
+          operationRoute = route[2] === 'operations',
+          imageRoute = route[2] === 'images',
+          operation = operationRoute ? uuid(route[3], 'Operation') : null,
+          revision = operationRoute ? null : Number(route[3]);
+        if (
+          (!operationRoute &&
+            (!Number.isInteger(revision) || revision! < 1 || revision! > 2147483647)) ||
+          (imageRoute ? !route[4] : Boolean(route[4]))
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Invalid floor-plan target.');
+        const imageOperation = imageRoute ? uuid(route[4], 'Attachment') : null;
+        if (method !== 'GET' && !(operationRoute && method === 'POST'))
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method unavailable.', {
+            Allow: operationRoute ? 'GET, POST' : 'GET',
+          });
+        if (
+          method === 'GET' &&
+          (request.body !== null ||
+            request.headers.has('content-type') ||
+            request.headers.has('content-length'))
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Read accepts no body.');
+        if (imageRoute && !floorPlanImageRead)
+          throw new HttpError(404, 'NOT_FOUND', 'Image delivery is unavailable.');
+        const actorId = await identity(request, true);
+        let command: ReturnType<typeof validateFloorPlanAttachmentCommand> | undefined;
+        if (method === 'POST') {
+          const raw = await jsonBody(
+            request,
+            2048,
+            false,
+            false,
+            true,
+            true,
+            true,
+            5000,
+            parseFloorPlanJson,
+          );
+          try {
+            command = validateFloorPlanAttachmentCommand(raw);
+          } catch {
+            throw new HttpError(400, 'INVALID_INPUT', 'Invalid floor-plan command.');
+          }
+          if (command.listingId !== listing || command.operationId !== operation)
+            throw new HttpError(400, 'INVALID_INPUT', 'Floor-plan target differs.');
+        }
+        const context = { tenantId, actorId: actorId!, correlationId };
+        const readGallery = () =>
+          options.database.transaction(context, async (query) => {
+            const r = await query.query(
+              'SELECT app_api.read_synthetic_floor_plan_gallery($1::uuid,$2::integer) AS value',
+              [listing, revision],
+            );
+            return floorPlanStateFromSql(
+              scalar(r, 'value'),
+              tenantId,
+              actorId!,
+              listing,
+              revision!,
+            );
+          });
+        if (imageRoute) {
+          const first = await readGallery();
+          if (!first.floorPlan || first.floorPlan.operationId !== imageOperation)
+            throw new HttpError(404, 'NOT_FOUND', 'Floor plan is unavailable.');
+          const bytes = floorPlanImageFromProvider(
+            await floorPlanImageRead!(context, listing, revision!),
+            first,
+            tenantId,
+            actorId!,
+          );
+          const current = await readGallery();
+          if (JSON.stringify(current) !== JSON.stringify(first))
+            throw new HttpError(404, 'NOT_FOUND', 'Floor plan changed.');
+          return new Response(new Uint8Array(bytes), {
+            status: 200,
+            headers: {
+              'content-type': 'image/webp',
+              'content-length': String(bytes.length),
+              'content-disposition': 'inline; filename="floor-plan.webp"',
+              'cache-control': 'private, no-store',
+              vary: 'Authorization',
+              'x-content-type-options': 'nosniff',
+            },
+          });
+        }
+        const value = operationRoute
+          ? await options.database.transaction(context, async (query) => {
+              const result = command
+                ? await query.query(
+                    'SELECT app_api.save_synthetic_floor_plan_attachment($1::jsonb) AS value',
+                    [JSON.stringify(command)],
+                  )
+                : await query.query(
+                    'SELECT app_api.read_synthetic_floor_plan_attachment_original($1::uuid,$2::uuid) AS value',
+                    [listing, operation],
+                  );
+              const saved = floorPlanRecordFromSql(scalar(result, 'value'), tenantId, command);
+              if (
+                saved.command.listingId !== listing ||
+                saved.command.operationId !== operation ||
+                saved.actorId !== actorId
+              )
+                throw Error('Floor-plan original differs.');
+              return saved;
+            })
+          : await readGallery();
         return response(200, value, correlationId);
       }
       if (/^\/v2\/staff\/listings\/[^/]+\/video-/.test(path)) {

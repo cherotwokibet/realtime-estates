@@ -1,3 +1,11 @@
+## Floor-plan API/client checkpoint364 - 5 November 2026 EAT
+
+Authenticated floor-plan attachment/recovery, saved metadata and private image routes now have shared client support and bounded client metadata. All 25 focused API/SDK checks passed. Progress remains 54/97 (56%).
+
+Next, implement guarded floor-plan file preparation/upload and original preparation recovery through the authenticated API, then connect session-bound BFF routes and author/reviewer screens. Follow with approval/public snapshots and successor-copy rules under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-api-sdk.md and floor364-api-sdk.txt. Domain/API/client builds and25 focused checks passed. New routes remain off by default and production-refused. Image capability is explicit and SQL-authorized before/after IO; tests simulate its reader, so no new native HTTP/browser proof. File selection/upload preparation is the next missing dependency before a complete author UI. Publication and browser preservation verification follow.
+
 ## Published floor-plan attachment/gallery checkpoint363 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec70f539dc8191ae38c9445b9d58a4 succeeded from dashboarde1d80f4. Live heading verified. Fresh exports(19)/(20) retain all 868 prior note occurrences and every manual task/status/gate/decision/risk field. Opening export(18) also retained. Implementation00954e0 has30 passing focused SQL/media/native checks, zero skips, media build/formatting/whitespace and3 dashboard checks. Actual Windows processing joins durable bytes, SQL sealing, listing attachment and agent/admin private gallery byte reads. Gallery removal/rebinding/access changes during IO refuse byte return. Exact attach replay never restores removed content or repeats a write. Next, authenticated API/BFF and author/reviewer UI, then approval/public snapshots and successor-copy rules. Current SQL remains isolated; no UI/public integration or release gate accepted.54/97(56%), all14 gates open. Screenshot floor363-published.png.

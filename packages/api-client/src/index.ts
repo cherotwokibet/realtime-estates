@@ -1,4 +1,18 @@
 import {
+  validateFloorPlanAttachmentCommand,
+  validateFloorPlanAttachmentRecord,
+  validateFloorPlanState,
+  type FloorPlanAttachmentCommand,
+  type FloorPlanAttachmentRecord,
+  type FloorPlanState,
+} from '@realtor/domain';
+export type {
+  FloorPlanAttachmentCommand,
+  FloorPlanAttachmentRecord,
+  FloorPlanState,
+  FloorPlanMetadata,
+} from '@realtor/domain';
+import {
   validateAdminAuditQuery,
   validateAdminAuditPage,
   type AdminAuditQuery,
@@ -2753,6 +2767,75 @@ export class RealtorApiClient {
     }
   }
 
+  async saveFloorPlanAttachment(
+    input: FloorPlanAttachmentCommand,
+    options: StaffRequestOptions,
+  ): Promise<FloorPlanAttachmentRecord> {
+    const captured = uploadOptions(options);
+    let command: FloorPlanAttachmentCommand;
+    try {
+      command = validateFloorPlanAttachmentCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Review the private floor-plan command.');
+    }
+    const data = await this.request(
+      `/v2/staff/listings/${command.listingId}/floor-plan-operations/${command.operationId}`,
+      'POST',
+      captured,
+      { ...command },
+    );
+    try {
+      return validateFloorPlanAttachmentRecord(data, command);
+    } catch {
+      throw new ApiClientError('INVALID_RESPONSE', 'Floor-plan result could not be verified.', {
+        submissionUncertain: true,
+      });
+    }
+  }
+  async getFloorPlanAttachmentOriginal(
+    input: FloorPlanAttachmentCommand,
+    options: StaffRequestOptions,
+  ): Promise<FloorPlanAttachmentRecord> {
+    const captured = uploadOptions(options);
+    let command: FloorPlanAttachmentCommand;
+    try {
+      command = validateFloorPlanAttachmentCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Keep the original floor-plan command.');
+    }
+    const data = await this.request(
+      `/v2/staff/listings/${command.listingId}/floor-plan-operations/${command.operationId}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateFloorPlanAttachmentRecord(data, command);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Floor-plan original differs.');
+    }
+  }
+  async getFloorPlan(
+    listingId: string,
+    revision: number,
+    options: StaffRequestOptions,
+  ): Promise<FloorPlanState> {
+    const captured = uploadOptions(options);
+    try {
+      listingVideoTarget(listingId, revision);
+    } catch {
+      return invalid('VALIDATION', 'Invalid floor-plan revision.');
+    }
+    const data = await this.request(
+      `/v2/staff/listings/${listingId}/floor-plan-revisions/${revision}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validateFloorPlanState(data, listingId, revision);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Floor-plan state differs.');
+    }
+  }
   async savePrivateListingVideo(
     input: ListingVideoCommand,
     options: StaffRequestOptions,
@@ -6140,10 +6223,15 @@ export class RealtorApiClient {
       /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/video-(?:operations\/[0-9a-f-]{36}|revisions\/[1-9][0-9]{0,9})$/.test(
         path,
       );
+    const floorPlan =
+      /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/floor-plan-(?:operations\/[0-9a-f-]{36}|revisions\/[1-9][0-9]{0,9})$/.test(
+        path,
+      );
     const adminAudit = /^\/v2\/staff\/audit-events\?limit=/.test(path);
     const listingReport =
       adminAudit ||
       listingVideo ||
+      floorPlan ||
       staffInvitation ||
       anonymousReport ||
       reportQueue ||
@@ -6293,7 +6381,7 @@ export class RealtorApiClient {
           });
         }
         if (
-          (adminAudit || singleUseInvitation || listingVideo) &&
+          (adminAudit || singleUseInvitation || listingVideo || floorPlan) &&
           result.headers.get('cache-control') !== 'no-store'
         ) {
           void result.body?.cancel().catch(() => {});
