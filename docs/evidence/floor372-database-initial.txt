@@ -1,0 +1,60 @@
+✔ sealed floor-plan attachment advances a draft once, retains original output and has no photo-count effect (2239.1824ms)
+✔ replacement and removal preserve prior history and exact replay never restores removed content (1461.2743ms)
+✔ fresh attachment requires exact current version and a sealed output for the same company/listing/revision (1405.4107ms)
+✔ current company, membership and assignment govern writes, gallery reads and original recovery (1342.9634ms)
+✔ malformed commands and changed operation originals cannot change a draft or existing gallery (1404.5934ms)
+✔ audit failure rolls back attachment and version, while original rows remain immutable and inaccessible to raw runtime reads (1346.022ms)
+✔ pending and archived revisions refuse new attachment changes while retaining authorized historical reads (1327.553ms)
+✔ floor approval captures sealed attachment atomically; public projection excludes private provenance (2126.3182ms)
+✔ explicit removal before submission is captured as null and never resurrects a historical attachment (1507.5709ms)
+✔ current company and publication controls deny fresh delivery while retaining immutable approval (1567.6438ms)
+✔ installing extension after approval never infers a floor plan or exposes private identifiers (1446.133ms)
+✔ floor plan is optional at approval and cannot substitute for the required property photos (1466.6109ms)
+✖ rejected moderation cannot capture a public floor plan (1479.171ms)
+✔ approved video captures reviewed metadata atomically and anonymous reads follow current public eligibility (2322.187ms)
+✔ pre-extension approved stock returns no inferred video and no private identifiers (1764.7202ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 14
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 25070.3487
+
+✖ failing tests:
+
+test at database\tests\floor-plan-publication-candidate.test.mjs:180:1
+✖ rejected moderation cannot capture a public floor plan (1479.171ms)
+  error: Decision requires a reason
+      at pe.Ue (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959)
+      at pe.tt (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347)
+      at pe.parse (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021)
+      at N.qe (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1762)
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+      at wasm://wasm/0267bb86:wasm-function[10930]:0x5a5ccf
+      at wasm://wasm/0267bb86:wasm-function[3585]:0x27eaeb
+      at wasm://wasm/0267bb86:wasm-function[3627]:0x2869d1
+      at wasm://wasm/0267bb86:wasm-function[3637]:0x286c2d
+      at wasm://wasm/0267bb86:wasm-function[9914]:0x54fd4d {
+    length: 181,
+    severity: 'ERROR',
+    code: '23514',
+    detail: undefined,
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: 'PL/pgSQL function app_api.decide_revision(uuid,integer,bigint,boolean,text) line 9 at RAISE',
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'pl_exec.c',
+    line: '3923',
+    routine: 'exec_stmt_raise',
+    query: 'SELECT app_api.decide_revision($1,1,$2,false)',
+    params: [ '00000000-0000-4000-8000-000000000100', 4 ],
+    queryOptions: undefined
+  }

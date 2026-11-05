@@ -1,0 +1,41 @@
+✔ sealed floor-plan attachment advances a draft once, retains original output and has no photo-count effect (2115.1121ms)
+✔ replacement and removal preserve prior history and exact replay never restores removed content (1636.7843ms)
+✔ fresh attachment requires exact current version and a sealed output for the same company/listing/revision (1381.0005ms)
+✔ current company, membership and assignment govern writes, gallery reads and original recovery (1330.8172ms)
+✔ malformed commands and changed operation originals cannot change a draft or existing gallery (1366.0298ms)
+✔ audit failure rolls back attachment and version, while original rows remain immutable and inaccessible to raw runtime reads (1400.832ms)
+✔ pending and archived revisions refuse new attachment changes while retaining authorized historical reads (1372.7534ms)
+file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/database/tests/floor-plan-publication-candidate.test.mjs:186
+    scalar(f.db, 'SELECT app_api.decide_revision($1,1,$2,false,'Synthetic floor plan rejected')', [LISTING, v]),
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+SyntaxError: missing ) after argument list
+    at compileSourceTextModule (node:internal/modules/esm/utils:318:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:89:18)
+    at #translate (node:internal/modules/esm/loader:434:20)
+    at afterLoad (node:internal/modules/esm/loader:502:29)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:507:12)
+    at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:560:36)
+    at afterResolve (node:internal/modules/esm/loader:607:52)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:613:12)
+    at node:internal/modules/esm/loader:632:32
+    at TracingChannel.tracePromise (node:diagnostics_channel:362:14)
+
+Node.js v24.19.0
+✖ database\tests\floor-plan-publication-candidate.test.mjs (77.8977ms)
+✔ approved video captures reviewed metadata atomically and anonymous reads follow current public eligibility (2063.586ms)
+✔ pre-extension approved stock returns no inferred video and no private identifiers (1450.6105ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14785.0409
+
+✖ failing tests:
+
+test at database\tests\floor-plan-publication-candidate.test.mjs:1:1
+✖ database\tests\floor-plan-publication-candidate.test.mjs (77.8977ms)
+  'test failed'

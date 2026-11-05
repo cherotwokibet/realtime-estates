@@ -1,3 +1,9 @@
+## Atomic floor-plan approval candidate372 - 5 November 2026 EAT
+
+An isolated SQL approval snapshot captures the sealed attachment or explicit absence inside the moderation transaction. Current-authority admin pending/approved reads and public-eligible metadata projections are covered by15 database checks,0 skips, including rollback, rejection, removal, historical originals, no backfill and private identifier exclusion. Evidence: docs/evidence/2026-11-05-floor-plan-approval-snapshot.md and floor372-database*.txt. No API/SDK/public byte route or preview activation yet;54/97(56%), all14 gates open.
+
+Exact next: strict shared approved/review floor-plan contracts plus API/SDK projections; separately authorized approved/public durable byte reads with eligibility checks before/after IO; then successor copy/explicit-null, shared web/mobile consumers and combined floor/photo/video/draft/transition original lock matrix. No new native/browser/device/operator/production proof. KES10,000 baseline retained; no Actions/spending/vendor/live changes.
+
 ## Signed native floor-plan browser checkpoint371 - 5 November 2026 EAT
 
 The private floor-plan browser flow is now verified with signed HTTP, actual Windows processing and durable bytes: upload, reload/original recovery, attachment, decoded image, read-only admin view, customer denial and removal. All80 focused checks passed. Approval/public/successor integration remains open;54/97 (56%).
