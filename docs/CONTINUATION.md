@@ -1,3 +1,7 @@
+## Published route audit checkpoint 354 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec13e750b8819199d9a63d4a2d2bb5 succeeded from dashboard commit 0edc6fe. A fresh document request showed checkpoint 354. Pre/post browser exports realtor-progress-2026-11-05.json and realtor-progress-2026-11-05 (1).json retained every prior note occurrence, task edit, status, gate, decision and risk. Next, complete the explicit route-level evidence map using scripts/inventory-admin-routes.mjs, including multiline aliases. Task 08-7 remains open at 53/97.
+
 ## Parsed admin route reconciliation checkpoint 354 - 5 November 2026 EAT
 
 All 11 signed audit composition tests and 14 invitation boundary tests passed. TypeScript parsing found 73 write-verb exports across 61 routes, including multiline invitation exports missed by the earlier search. Browser control was restored and current notes exported. The 57 direct exports remain covered by the existing matrix. The 16 aliased exports add issuance, acceptance, identity context and status routes. Their handlers admit POST only for issuance and acceptance, and reject the other write verbs before upstream work. Next, attach an explicit route-level evidence map and finish task 08-7 acceptance. Checklist 53/97.
