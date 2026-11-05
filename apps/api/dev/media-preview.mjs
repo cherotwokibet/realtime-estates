@@ -524,10 +524,14 @@ import {
 import { assertSafeFloorPlanCoordinatorConnection } from '@realtor/media/coordinator-database';
 export async function createNativeFloorPlanPreview({
   nativeFloorPlan,
+  publicationMode,
   tenantId,
   database,
   mediaPool,
 }) {
+  if (publicationMode !== undefined && publicationMode !== 'synthetic-floor-plan-publication-v1')
+    invalid();
+  const publicationEnabled = publicationMode === 'synthetic-floor-plan-publication-v1';
   const config = nativeMediaPreviewConfiguration(nativeFloorPlan),
     root = config.rootDirectory;
   if (
@@ -694,6 +698,16 @@ export async function createNativeFloorPlanPreview({
           t.revision,
           t.requestId,
         ]),
+      ...(publicationEnabled
+        ? {
+            readPublishedGallery: (t) =>
+              api(
+                { ...t, actorId: null },
+                'SELECT app_api.read_synthetic_published_floor_plan_output($1,$2,$3) AS value',
+                [t.listingId, t.revision, t.approvedVersion],
+              ),
+          }
+        : {}),
       readGallery: (t) =>
         api(t, 'SELECT app_api.read_synthetic_floor_plan_gallery($1,$2) AS value', [
           t.listingId,
@@ -764,6 +778,20 @@ export async function createNativeFloorPlanPreview({
     return Object.freeze({
       prepare: (ctx, c, source) => preparation.prepare(target(ctx, c), source),
       recover: (ctx, c) => preparation.recover(target(ctx, c)),
+      ...(publicationEnabled
+        ? {
+            readPublishedImage: (ctx, listingId, revision, approvedVersion) => {
+              if (fenced || ctx.tenantId !== tenantId || ctx.actorId !== null)
+                throw Error('Published floor-plan preview unavailable.');
+              return delivery.readPublished({
+                companyId: tenantId,
+                listingId,
+                revision,
+                approvedVersion,
+              });
+            },
+          }
+        : {}),
       readImage: (ctx, listingId, revision) => {
         if (fenced || ctx.tenantId !== tenantId) throw Error('Floor-plan preview unavailable.');
         return delivery.readAttached({

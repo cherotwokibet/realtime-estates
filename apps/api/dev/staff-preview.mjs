@@ -117,6 +117,7 @@ function configuration({
   actor = 'agent',
   nativeUploads,
   nativeFloorPlan,
+  floorPlanPublicationMode,
   floorPlanReplyFault,
   enquiryPreview,
   enquiryCatalogue,
@@ -443,6 +444,13 @@ function configuration({
     nativeFloorPlan = nativeMediaPreviewConfiguration(nativeFloorPlan);
   }
   if (
+    floorPlanPublicationMode !== undefined &&
+    (floorPlanPublicationMode !== 'synthetic-floor-plan-publication-v1' || !nativeFloorPlan)
+  )
+    throw new StaffPreviewConfigurationError(
+      'Floor-plan publication requires explicit native floor preview.',
+    );
+  if (
     floorPlanReplyFault !== undefined &&
     (floorPlanReplyFault !== 'invalid-first-floor-plan-v1' || !nativeFloorPlan)
   )
@@ -464,6 +472,7 @@ function configuration({
     seedPendingReviews,
     nativeUploads,
     nativeFloorPlan,
+    floorPlanPublicationMode,
     floorPlanReplyFault,
     enquiryPreview,
     enquiryCatalogue,
@@ -929,6 +938,7 @@ export async function startStaffPreview(options = {}) {
     seedPendingReviews,
     nativeUploads,
     nativeFloorPlan,
+    floorPlanPublicationMode,
     floorPlanReplyFault,
     enquiryPreview,
     enquiryCatalogue,
@@ -1031,6 +1041,14 @@ export async function startStaffPreview(options = {}) {
       );
     if (nativeFloorPlan)
       for (const name of ['registration', 'processing', 'output', 'attachment'])
+        await db.exec(
+          await readFile(
+            new URL('../../../database/proposals/floor-plan-' + name + '.sql', import.meta.url),
+            'utf8',
+          ),
+        );
+    if (floorPlanPublicationMode)
+      for (const name of ['publication', 'publication-output'])
         await db.exec(
           await readFile(
             new URL('../../../database/proposals/floor-plan-' + name + '.sql', import.meta.url),
@@ -1387,6 +1405,12 @@ export async function startStaffPreview(options = {}) {
             floorPlanImageRead: (...args) => nativeFloor.readImage(...args),
           }
         : {}),
+      ...(floorPlanPublicationMode
+        ? {
+            floorPlanPublicationMode,
+            publishedFloorPlanImageRead: (...args) => nativeFloor.readPublishedImage(...args),
+          }
+        : {}),
       ...(listingVideoMode ? { listingVideoMode } : {}),
       ...(listingVideoPublicationMode ? { listingVideoPublicationMode } : {}),
       verificationMode: 'synthetic-check-record-v1',
@@ -1427,6 +1451,7 @@ export async function startStaffPreview(options = {}) {
     if (nativeFloorPlan)
       nativeFloor = await createNativeFloorPlanPreview({
         nativeFloorPlan,
+        publicationMode: floorPlanPublicationMode,
         tenantId: company.id,
         database,
         mediaPool: pools.media,
@@ -1523,6 +1548,13 @@ export async function startStaffPreview(options = {}) {
       async (request) => {
         const denied = guard(request);
         if (denied) return denied;
+        if (
+          floorPlanPublicationMode &&
+          /^(?:\/v3\/properties\/[^/]+\/revisions\/[^/]+|\/v2\/staff\/reviews\/[^/]+\/[^/]+)\/floor-plan/.test(
+            new URL(request.url).pathname,
+          )
+        )
+          return service(request);
         if (
           nativeFloor &&
           /^\/v2\/staff\/listings\/[^/]+\/floor-plan-/.test(new URL(request.url).pathname)
@@ -2267,6 +2299,7 @@ export async function startStaffPreview(options = {}) {
         : {}),
       nativeUploads: !!nativeMedia,
       nativeFloorPlan: !!nativeFloor,
+      syntheticFloorPlanPublication: !!floorPlanPublicationMode,
       close,
     };
     if (pools.auditInspection) {

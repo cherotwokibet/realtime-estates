@@ -202,3 +202,176 @@ test(
     assert.equal(discarded, true);
   },
 );
+
+test(
+  'signed listening native preview publishes actual retained floor bytes only after approval and withdraws them on pause',
+  { skip: process.platform !== 'win32', timeout: 120000 },
+  async (t) => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'realtor-floor-public-'));
+    let p,
+      closed = false;
+    t.after(async () => {
+      if (p) {
+        await p.close();
+        closed = true;
+      }
+      if (!closed) {
+        t.diagnostic('Unconfirmed root retained: ' + root);
+        return;
+      }
+      async function clean(dir) {
+        assert.ok(path.resolve(dir) === root || path.resolve(dir).startsWith(root + path.sep));
+        assert.ok(!(await lstat(dir)).isSymbolicLink());
+        for (const entry of await readdir(dir, { withFileTypes: true })) {
+          const target = path.join(dir, entry.name),
+            s = await lstat(target);
+          assert.ok(!s.isSymbolicLink());
+          if (s.isDirectory()) await clean(target);
+          else {
+            assert.ok(s.isFile() && s.nlink === 1);
+            await unlink(target);
+          }
+        }
+        await rmdir(dir);
+      }
+      await clean(root);
+    });
+    p = await startStaffPreview({
+      port: 0,
+      actor: 'agent',
+      referenceDraftMode: 'synthetic-reference-draft-v1',
+      nativeFloorPlan: { mode: 'synthetic-native-v1', rootDirectory: root, powerShellPath },
+      floorPlanPublicationMode: 'synthetic-floor-plan-publication-v1',
+    });
+    assert.equal(p.syntheticFloorPlanPublication, true);
+    const api = new RealtorApiClient({
+        baseUrl: p.origin,
+        allowLoopbackHttp: true,
+        privacyNoticeVersion: 'synthetic',
+      }),
+      opt = { bearerToken: p.bearerToken, timeoutMs: 60000 },
+      admin = { bearerToken: p.floorPlanStaff.admin.bearerToken };
+    const draft = await api.getStaffDraftWorkspaceV2(p.listingId, 1, opt),
+      prep = {
+        policy: 'synthetic-floor-plan-preparation-command-v1',
+        listingId: p.listingId,
+        revision: 1,
+        expectedVersion: draft.draft.version,
+        requestId: randomUUID(),
+      };
+    const prepared = await api.prepareFloorPlan(prep, syntheticPng(256, 256), opt);
+    const attached = await api.saveFloorPlanAttachment(
+      {
+        policy: 'synthetic-floor-plan-attachment-command-v1',
+        listingId: p.listingId,
+        revision: 1,
+        expectedVersion: prep.expectedVersion,
+        operationId: randomUUID(),
+        requestId: prep.requestId,
+      },
+      opt,
+    );
+    await assert.rejects(() => api.getPublishedFloorPlan(p.listingId, 1));
+    const before = await api.getRevisionProtocolV3(p.listingId, 1, opt);
+    assert.equal(
+      (
+        await api.controlListingV2(
+          {
+            kind: 'confirm_availability',
+            operationId: randomUUID(),
+            listingId: p.listingId,
+            expectedListingVersion: before.listingVersion,
+            availability: 'available',
+          },
+          opt,
+        )
+      ).decision.outcome,
+      'applied',
+    );
+    const pending = await api.submitStaffDraftV2(
+      p.listingId,
+      1,
+      { expectedVersion: attached.resultVersion },
+      opt,
+    );
+    assert.equal(
+      (await api.getReviewFloorPlan(p.listingId, 1, pending.version, admin)).state,
+      'pending',
+    );
+    await assert.rejects(
+      () => api.getReviewFloorPlan(p.listingId, 1, pending.version, opt),
+      (e) => e.status === 403,
+    );
+    const approved = await api.decideReviewV2(
+      p.listingId,
+      1,
+      { expectedVersion: pending.version, decision: 'approve', reason: null },
+      admin,
+    );
+    const published = await api.getPublishedFloorPlan(p.listingId, 1);
+    assert.equal(published.approvedVersion, approved.version);
+    assert.equal(published.floorPlan.sha256, prepared.sha256);
+    const url =
+      p.origin + `/v3/properties/${p.listingId}/revisions/1/floor-plan-image/${approved.version}`;
+    const image = await fetch(url);
+    assert.equal(image.status, 200);
+    assert.equal(image.headers.get('cache-control'), 'private, no-store');
+    assert.equal(image.headers.get('x-content-type-options'), 'nosniff');
+    const data = Buffer.from(await image.arrayBuffer());
+    const { createHash } = await import('node:crypto');
+    assert.equal(data.length, prepared.bytes);
+    assert.equal(createHash('sha256').update(data).digest('hex'), prepared.sha256);
+    assert.equal(data.toString('latin1', 8, 12), 'WEBP');
+    assert.equal(
+      (await fetch(url, { headers: { authorization: 'Bearer ' + p.bearerToken } })).status,
+      400,
+    );
+    assert.equal((await fetch(url.replace('/' + approved.version, '/1'))).status, 404);
+    assert.equal(
+      (await api.getReviewFloorPlan(p.listingId, 1, approved.version, admin)).state,
+      'approved',
+    );
+    const current = await api.getRevisionProtocolV3(p.listingId, 1, admin);
+    assert.equal(
+      (
+        await api.controlListingV2(
+          {
+            kind: 'set_publication',
+            operationId: randomUUID(),
+            listingId: p.listingId,
+            expectedListingVersion: current.listingVersion,
+            publicationStatus: 'paused',
+          },
+          admin,
+        )
+      ).decision.outcome,
+      'applied',
+    );
+    assert.equal((await fetch(url)).status, 404);
+    await assert.rejects(() => api.getPublishedFloorPlan(p.listingId, 1));
+    t.diagnostic(
+      JSON.stringify({
+        syntheticPublicFloorPlan: {
+          draftVersion: prep.expectedVersion,
+          attachmentVersion: attached.resultVersion,
+          pendingVersion: pending.version,
+          approvedVersion: approved.version,
+          width: prepared.width,
+          height: prepared.height,
+          bytes: prepared.bytes,
+          sha256: prepared.sha256,
+          pausedStatus: 404,
+        },
+      }),
+    );
+    const entries = await readdir(path.join(root, 'attempts'));
+    assert.equal(entries.length, 1, 'Publication does not reprocess the original source');
+  },
+);
+
+test('floor publication composition refuses unsupported mode and missing native capability', async () => {
+  await assert.rejects(() =>
+    startStaffPreview({ port: 0, floorPlanPublicationMode: 'synthetic-floor-plan-publication-v1' }),
+  );
+  await assert.rejects(() => startStaffPreview({ port: 0, floorPlanPublicationMode: 'live' }));
+});
