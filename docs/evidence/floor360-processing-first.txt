@@ -1,0 +1,20 @@
+✔ actual SQL lease binds durable source, worker slot and one-use journal ticket; reopening cannot recreate admission (2502.5892ms)
+✔ draft change during source IO is checked again before reserving a worker or journal (1663.1985ms)
+✔ fresh access loss before arming releases only the unlaunched slot and retains the immutable attempt (1749.0016ms)
+✔ changed output identity and wrong role receipts cannot reserve or arm actual worker state (1816.798ms)
+✔ target snapshots, busy fencing and closed admissions cannot create replacement attempts (1786.7585ms)
+✔ malformed, expired, wrong-scope and accessor receipts never reserve worker state (1707.1539ms)
+✔ explicit cancellation releases an unarmed slot but never deletes or retries its journal intent (1731.991ms)
+✔ actual SQL/source/journal admission stages and decodes through the fixed Windows floor-plan child (4306.0121ms)
+✔ simulated unconfirmed supervisor retains the worker and journal without output inspection or replacement (1904.5063ms)
+✔ simulated successful process with malformed bytes cannot become verified readback (1967.4764ms)
+✔ fresh SQL draft check after simulated decoding refuses private result delivery (2197.1312ms)
+✔ exclusive source staging refuses an existing file and cannot replace its original bytes (1718.6022ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 25827.0664

@@ -1,3 +1,11 @@
+## Native floor-plan processing checkpoint360 - 5 November 2026 EAT
+
+The floor-plan path now runs the fixed Windows worker from the SQL lease and durable source/journal, then verifies actual lossless output. All 45 focused checks passed with no skips. Progress remains 54/97 (56%).
+
+Next, add a separate immutable floor-plan SQL output seal bound to the original lease/output identity and actual manifest. Persist verified bytes and reconcile lost acknowledgements without decoding again. Then add separate attachment, gallery, approval and public consumers under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-native-processing.md and floor360-native-processing.txt. Media build and45 checks passed, including actual Windows processing and existing photo regressions after shared secure file helper extraction. Eight new processing checks distinguish actual native integration from simulated failures. Readback is not SQL sealing or attachment authority. Publication and browser preservation verification follow.
+
 ## Published worker admission checkpoint359 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec4a25b0c481918eb175c533e48c26 succeeded from dashboard729f79b. Live heading verified. Exports(10)/(11) retain all 860 prior note occurrences and every manual task/status/gate/decision/risk field. Implementationea4993d has47 passing focused checks and successful media build, plus3 dashboard checks. Next, securely stage source in the reserved attempt directory, execute the fixed floor-plan child through Windows supervisor and verify confirmed termination plus output readback. Then SQL output seal and separate attachment/gallery/approval/public consumers. Admission only at359, no native process run.54/97(56%), all14 gates open. Screenshot floor359-published.png.

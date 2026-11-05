@@ -62,7 +62,7 @@ function object(value: unknown, keys: readonly string[]): Record<string, unknown
   }
   return out;
 }
-function target(value: FloorPlanWorkerTarget): FloorPlanWorkerTarget {
+export function snapshotFloorPlanWorkerTarget(value: FloorPlanWorkerTarget): FloorPlanWorkerTarget {
   const row = object(value, [...bindingKeys, 'claimId', 'leaseNonce']);
   for (const [key, value] of Object.entries(row)) {
     if (key === 'revision' || key === 'expectedVersion') {
@@ -77,7 +77,7 @@ function target(value: FloorPlanWorkerTarget): FloorPlanWorkerTarget {
   }
   return Object.freeze(row) as unknown as FloorPlanWorkerTarget;
 }
-function lease(
+export function validateFloorPlanWorkerLease(
   value: unknown,
   selected: FloorPlanWorkerTarget,
   source: Buffer,
@@ -175,7 +175,7 @@ export function createFloorPlanWorkerAdmission(config: {
   }
   return Object.freeze({
     prepare(input: FloorPlanWorkerTarget): Promise<PreparedFloorPlanWorker> {
-      const selected = target(input);
+      const selected = snapshotFloorPlanWorkerTarget(input);
       return exclusive(async () => {
         // Check current access before private source reads. Validate the receipt after readback.
         const first = await preflight(selected);
@@ -186,8 +186,8 @@ export function createFloorPlanWorkerAdmission(config: {
         if (!Buffer.isBuffer(read.source) || isSharedArrayBuffer(read.source.buffer))
           fail('INTEGRITY');
         const source = Buffer.from(read.source),
-          original = lease(first, selected, source);
-        const fresh = lease(await preflight(selected), selected, source);
+          original = validateFloorPlanWorkerLease(first, selected, source);
+        const fresh = validateFloorPlanWorkerLease(await preflight(selected), selected, source);
         if (JSON.stringify(fresh) !== JSON.stringify(original)) fail('INTEGRITY');
         const slot = await worker.reserve({ jobId: selected.jobId, claimId: selected.claimId });
         try {
@@ -218,7 +218,7 @@ export function createFloorPlanWorkerAdmission(config: {
         if (!entry) fail('BLOCKED');
         live.delete(value);
         try {
-          const checked = lease(
+          const checked = validateFloorPlanWorkerLease(
             await preflight(entry.lease.target),
             entry.lease.target,
             value.source,
