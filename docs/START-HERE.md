@@ -1,3 +1,11 @@
+## Private floor-plan admin boundary checkpoint367 - 5 November 2026 EAT
+
+Protected admin routes and a same-origin browser adapter now connect floor-plan upload, preparation recovery, attachment and attachment recovery. All 17 focused checks passed, including an actual Windows coordinator across the adapter, BFF and API. Progress remains 54/97 (56%).
+
+Next, implement the retained-original floor-plan author/reviewer screens and private image BFF, connect the opt-in local preview composition, and verify the actual browser flow. Then add approved/public snapshots and successor-copy rules under task06-4.
+
+Evidence: docs/evidence/2026-11-05-floor-plan-bff.md and floor367-bff.txt. Admin test compile/typecheck and17 focused checks passed,0 skips. Native composition uses in-process API/BFF and a Node-invoked browser adapter with simulated session/protocol responses; no actual browser or signed identity proof claimed. Publication and browser preservation verification follow.
+
 ## Guarded floor-plan upload checkpoint366 - 5 November 2026 EAT
 
 Authenticated floor-plan file preparation and read-only original recovery now have bounded binary upload routes and shared client support. All 39 focused checks passed, including an actual Windows processing run through the client and API handler. Progress remains 54/97 (56%).
