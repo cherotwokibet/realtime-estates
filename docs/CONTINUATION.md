@@ -1,3 +1,13 @@
+## Admin audit acceptance checkpoint 355 - 5 November 2026 EAT
+
+Task 08-7 is verified for the maintained local synthetic platform. All 61 admin routes with 73 write-verb exports are mapped to permission, audit, refusal and recovery evidence. The full admin suite passed 530 tests and 48 rendered checks. Verified progress is 54 of 97 deliverables (56%).
+
+Acceptance covers configured synthetic command paths, current authority, attributed applied events, immutable staging and recovery receipts, denied attempts, conflicts, no-ops and replay. The 11 signed audit composition tests passed at checkpoint 354. The 14 unsupported invitation alias verbs now have explicit refusal-before-upstream checks. Prior command and browser evidence is dated in ADMIN-ROUTE-AUDIT-RECONCILIATION.md. Hosted database/provider validation, operator UAT and app-wide session/cache behavior remain under their existing release gates.
+
+Next, resume task 06-4 at the floor-plan attachment and gallery integration boundary, then mobile task 09-1. Use synthetic data and existing configurable shared contracts.
+
+Evidence in docs/ADMIN-ROUTE-AUDIT-RECONCILIATION.md and docs/evidence/audit355-admin-maintained.txt. Browser export realtor-progress-2026-11-05 (2).json was saved before this update. Publication and preservation verification follow.
+
 ## Published route audit checkpoint 354 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec13e750b8819199d9a63d4a2d2bb5 succeeded from dashboard commit 0edc6fe. A fresh document request showed checkpoint 354. Pre/post browser exports realtor-progress-2026-11-05.json and realtor-progress-2026-11-05 (1).json retained every prior note occurrence, task edit, status, gate, decision and risk. Next, complete the explicit route-level evidence map using scripts/inventory-admin-routes.mjs, including multiline aliases. Task 08-7 remains open at 53/97.

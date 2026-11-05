@@ -123,6 +123,20 @@ test('issuance BFF is default-off, blocks browser authority and rejects malforme
     assert.ok(
       [400, 403].includes((await boundary(request, id(4), id(5), false, env, fetcher)).status),
     );
+  for (const state of [false, true]) {
+    for (const method of state ? ['POST', 'PUT', 'PATCH', 'DELETE'] : ['PUT', 'PATCH', 'DELETE']) {
+      const request = new Request('http://localhost:3120' + path + (state ? '/state' : ''), {
+        method,
+        headers: {
+          host: '127.0.0.1:3120',
+          origin: 'http://127.0.0.1:3120',
+          'content-type': 'application/json',
+          'x-preview-instance': id(1),
+        },
+      });
+      assert.equal((await boundary(request, id(4), id(5), state, env, fetcher)).status, 405);
+    }
+  }
   assert.equal(calls, 0);
 });
 

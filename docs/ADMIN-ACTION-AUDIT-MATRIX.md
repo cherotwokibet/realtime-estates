@@ -1,6 +1,10 @@
 # Admin action permission and audit verification
 
-3 November 2026. Owner: Boniface + Codex. Task 08-7 remains open.
+5 November 2026. Owner Boniface + Codex. Task 08-7 verified for the maintained local synthetic platform at checkpoint 355.
+
+[Completed route-level reconciliation](ADMIN-ROUTE-AUDIT-RECONCILIATION.md). Acceptance covers configured synthetic command paths, current authority, attributed applied events, immutable staging and recovery receipts, denied attempts, conflicts, no-ops and replay. The 11 signed audit composition tests passed at checkpoint 354. The 14 unsupported invitation alias verbs now have explicit refusal-before-upstream checks. Prior command and browser evidence is dated in ADMIN-ROUTE-AUDIT-RECONCILIATION.md. Hosted database/provider validation, operator UAT and app-wide session/cache behavior remain under their existing release gates.
+
+The initial 3 November family inventory and dated checkpoints follow.
 
 This is a source inventory, not a blanket pass. The existing local admin portal can invoke several independent command families. Each row must have current API authorization, a meaningful immutable command/event, denied-action/no-write verification, and original-operation recovery where supported. A read-only timeline does not establish those properties. Real operator UAT and hosted deployment acceptance remain separate gates.
 

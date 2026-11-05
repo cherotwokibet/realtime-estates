@@ -110,6 +110,24 @@ test('recipient request rejects authority, secret URL/query, malformed commands,
       .status,
     405,
   );
+  for (const method of ['PUT', 'PATCH', 'DELETE']) {
+    const headers = { origin: 'http://127.0.0.1:3120', 'content-type': 'application/json' };
+    assert.equal(
+      (await boundary(req(method, path, undefined, headers), target, env, fetcher)).status,
+      405,
+    );
+    assert.equal(
+      (
+        await boundary(
+          req(method, '/api/invitation-acceptance/session', undefined, headers),
+          null,
+          env,
+          fetcher,
+        )
+      ).status,
+      405,
+    );
+  }
   assert.equal(calls, 0);
 });
 

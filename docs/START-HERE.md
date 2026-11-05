@@ -1,3 +1,13 @@
+## Admin audit acceptance checkpoint 355 - 5 November 2026 EAT
+
+Task 08-7 is verified for the maintained local synthetic platform. All 61 admin routes with 73 write-verb exports are mapped to permission, audit, refusal and recovery evidence. The full admin suite passed 530 tests and 48 rendered checks. Verified progress is 54 of 97 deliverables (56%).
+
+Acceptance covers configured synthetic command paths, current authority, attributed applied events, immutable staging and recovery receipts, denied attempts, conflicts, no-ops and replay. The 11 signed audit composition tests passed at checkpoint 354. The 14 unsupported invitation alias verbs now have explicit refusal-before-upstream checks. Prior command and browser evidence is dated in ADMIN-ROUTE-AUDIT-RECONCILIATION.md. Hosted database/provider validation, operator UAT and app-wide session/cache behavior remain under their existing release gates.
+
+Next, resume task 06-4 at the floor-plan attachment and gallery integration boundary, then mobile task 09-1. Use synthetic data and existing configurable shared contracts.
+
+Evidence in docs/ADMIN-ROUTE-AUDIT-RECONCILIATION.md and docs/evidence/audit355-admin-maintained.txt. Browser export realtor-progress-2026-11-05 (2).json was saved before this update. Publication and preservation verification follow.
+
 ## Staff capture and follow-up audit checkpoint 342 - 4 November 2026 EAT
 
 Ten signed enquiry tests passed. Staff capture and follow-up rescheduling each retained the original actor, version and HTTP request ID in the audit trail. The published checklist is 53 of 97 deliverables (55%). Task 08-7 needs a full route-to-audit reconciliation before it can count.
