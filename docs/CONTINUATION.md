@@ -1,3 +1,9 @@
+## Published retained floor-plan UI checkpoint368 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec864b56a48191b746e9e1fc708d4e succeeded from dashboardb02d0fe. Current heading verified. Exports(28)/(29) preserve all 878 prior stage-note occurrences and every manual task/status/gate/decision/risk field. Implementation6094eb0 has37 passing focused checks (26 session/policy/static-render,11 transport/native),0 skips, admin compilation/typecheck/full Next build and3 dashboard checks. Screenshot floor368-published.png verifies the dashboard only. Initial author/reviewer pages compile and render statically; actual hydrated UI/file chooser/visual image acceptance remains unrun. Native integration now includes retained originals and simulated lost acknowledgements at both writes, with GET-only preparation/original attachment recovery and no repeat writes or processing; session/protocol responses remain simulated.
+
+Exact next step: private floor-plan image BFF and opt-in native local preview composition. Then verify actual author/reviewer browser selection, review, upload, lost reply, reload, preparation recovery, attach, private image display and removal. Keep all unconfirmed originals locked. Then approved/public snapshots and successor-copy rules under task06-4.54/97(56%), all14 gates open; no GitHub Actions/spending/vendor/live changes.
+
 ## Retained floor-plan originals and initial pages checkpoint368 - 5 November 2026 EAT
 
 Floor-plan author and read-only reviewer pages now have retained-original preparation, explicit attachment/removal review and recovery controls. The state model and transport pass37 focused checks, including actual Windows recovery after both preparation and attachment acknowledgement faults. Browser acceptance remains pending; progress stays54/97 (56%).
