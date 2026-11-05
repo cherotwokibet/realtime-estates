@@ -1,11 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readdir, lstat, unlink, rmdir } from 'node:fs/promises';
+import { mkdtemp, readdir, lstat, unlink, rmdir, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { createDurableSyntheticStore, reopenDurableSyntheticStore } from '../dist/durable-store.js';
-import { createFloorPlanRequests, FloorPlanRequestError } from '../dist/floor-plan-request.js';
+import {
+  createFloorPlanRequests,
+  createFloorPlanSourceAdmission,
+  FloorPlanRequestError,
+} from '../dist/floor-plan-request.js';
 import { syntheticPng } from './fixtures.mjs';
 
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -284,4 +288,165 @@ test('strict descriptors, source bounds and local singleflight/close keep suppli
     unblock();
     await run.catch(() => {});
   }
+});
+
+test('fresh SQL floor-plan preflight binds real durable source bytes and survives source-store reopening', async (t) => {
+  const sql = await import('../../../database/tests/public-media-fixtures.mjs');
+  const db = await sql.fixture();
+  t.after(() => db.close());
+  await db.exec(
+    await readFile(
+      new URL('../../../database/proposals/floor-plan-registration.sql', import.meta.url),
+      'utf8',
+    ),
+  );
+  await sql.createDraft(db);
+  const source = syntheticPng();
+  const requestId = id(850);
+  const saved = await sql.asActor(db, sql.T, sql.AGENT, () =>
+    sql.scalar(db, 'SELECT app_api.register_synthetic_floor_plan($1,1,2,$2,$3,$4,$5)', [
+      sql.LISTING,
+      requestId,
+      hash(source),
+      source.length,
+      'png',
+    ]),
+  );
+  const target = {
+    companyId: sql.T,
+    actorId: sql.AGENT,
+    listingId: sql.LISTING,
+    revision: 1,
+    requestId,
+  };
+  const f = await fixture(t),
+    requests = f.open();
+  let calls = 0;
+  const admission = createFloorPlanSourceAdmission({
+    requests,
+    async preflight(selected) {
+      calls++;
+      assert.deepEqual(selected, { ...target, listingId: sql.LISTING });
+      return sql.asActor(db, selected.companyId, selected.actorId, () =>
+        sql.scalar(db, 'SELECT app_api.preflight_synthetic_floor_plan($1,$2,$3)', [
+          selected.listingId,
+          selected.revision,
+          selected.requestId,
+        ]),
+      );
+    },
+  });
+  const input = Buffer.from(source);
+  const pending = admission.record(target, input);
+  input.fill(0);
+  const recorded = await pending;
+  assert.deepEqual(recorded.binding, saved.binding);
+  assert.deepEqual(recorded.source, saved.source);
+  assert.equal(calls, 1);
+  await requests.close();
+  await f.requestStore.close();
+  await f.inputStore.close();
+  const recovered = await f.reopen();
+  assert.deepEqual((await recovered.read(saved.binding)).source, source);
+  // Disposable edit fixture advances the draft token before the next admission.
+  await db.query(
+    "UPDATE app_private.listing_revisions SET title='Synthetic later draft edit' WHERE listing_id=$1 AND revision_no=1",
+    [sql.LISTING],
+  );
+  let writes = 0;
+  const blocked = createFloorPlanSourceAdmission({
+    requests: {
+      ...recovered,
+      record: (...args) => {
+        writes++;
+        return recovered.record(...args);
+      },
+    },
+    preflight: (selected) =>
+      sql.asActor(db, selected.companyId, selected.actorId, () =>
+        sql.scalar(db, 'SELECT app_api.preflight_synthetic_floor_plan($1,$2,$3)', [
+          selected.listingId,
+          selected.revision,
+          selected.requestId,
+        ]),
+      ),
+  });
+  await assert.rejects(
+    () => blocked.record(target, source),
+    (error) => error.code === '40001',
+  );
+  assert.equal(writes, 0);
+  assert.deepEqual((await recovered.read(saved.binding)).request, recorded);
+});
+
+test('floor-plan source admission refuses mismatched scope, role and bytes before persistence and never retries preflight', async () => {
+  const source = syntheticPng(),
+    b = binding(900);
+  const target = {
+    companyId: b.companyId,
+    actorId: b.actorId,
+    listingId: b.listingId,
+    revision: b.revision,
+    requestId: b.requestId,
+  };
+  const registration = () => ({
+    policy: 'synthetic-floor-plan-registration-v1',
+    role: 'floor_plan',
+    pipeline: 'synthetic-floor-plan-codec-v1',
+    countsAsPhoto: false,
+    binding: { ...b },
+    source: { sha256: hash(source), bytes: source.length, format: 'png' },
+    registeredAt: '2026-11-05T00:00:00.000000Z',
+    expiresAt: '2026-11-06T00:00:00.000000Z',
+  });
+  let writes = 0,
+    reads = 0,
+    getters = 0;
+  const requests = {
+    record: async () => {
+      writes++;
+      throw Error('Unexpected persistence');
+    },
+  };
+  const accessor = registration();
+  Object.defineProperty(accessor, 'binding', {
+    enumerable: true,
+    get() {
+      getters++;
+      return b;
+    },
+  });
+  for (const value of [
+    { ...registration(), role: 'photo' },
+    { ...registration(), countsAsPhoto: true },
+    { ...registration(), binding: { ...b, companyId: id(999) } },
+    { ...registration(), source: { ...registration().source, sha256: 'a'.repeat(64) } },
+    { ...registration(), source: { ...registration().source, bytes: source.length + 1 } },
+    { ...registration(), source: { ...registration().source, format: 'jpeg' } },
+    { ...registration(), unexpected: 'private' },
+    accessor,
+  ]) {
+    const admission = createFloorPlanSourceAdmission({
+      requests,
+      preflight: async () => {
+        reads++;
+        return value;
+      },
+    });
+    await assert.rejects(() => admission.record(target, source), code('INTEGRITY'));
+  }
+  assert.equal(reads, 8);
+  assert.equal(writes, 0);
+  assert.equal(getters, 0);
+  let failedCalls = 0;
+  const unavailable = createFloorPlanSourceAdmission({
+    requests,
+    preflight: async () => {
+      failedCalls++;
+      throw Error('Unavailable');
+    },
+  });
+  await assert.rejects(() => unavailable.record(target, source), /Unavailable/);
+  assert.equal(failedCalls, 1);
+  assert.equal(writes, 0);
 });

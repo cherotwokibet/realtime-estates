@@ -106,10 +106,46 @@ BEGIN
  RETURN app_private.synthetic_floor_plan_registration_record(original);
 END $$;
 
+CREATE FUNCTION app_api.preflight_synthetic_floor_plan(p_listing uuid,p_revision integer,p_operation uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE l app_private.listings; r app_private.listing_revisions;
+ original app_private.synthetic_floor_plan_registrations; decision_time timestamptz;
+BEGIN
+ PERFORM app_private.assert_staff(ARRAY['agent','admin']);
+ IF p_listing IS NULL OR p_revision IS NULL OR p_revision<1 OR p_operation IS NULL
+ THEN RAISE EXCEPTION 'Invalid floor plan target' USING ERRCODE='23514'; END IF;
+ l:=app_private.lock_listing(p_listing);
+ SELECT * INTO r FROM app_private.listing_revisions
+  WHERE tenant_id=l.tenant_id AND listing_id=l.id AND revision_no=p_revision FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+ SELECT * INTO original FROM app_private.synthetic_floor_plan_registrations
+  WHERE tenant_id=l.tenant_id AND listing_id=l.id AND revision_no=p_revision
+   AND operation_id=p_operation AND actor_id=app_private.context_actor();
+ IF NOT FOUND THEN RAISE EXCEPTION 'Original unavailable' USING ERRCODE='P0002'; END IF;
+ PERFORM 1 FROM app_private.memberships m JOIN app_private.tenants t ON t.id=m.tenant_id
+  WHERE m.tenant_id=l.tenant_id AND m.user_id=app_private.context_actor() AND m.active AND t.enabled
+   AND (m.role='admin' OR (m.role='agent' AND l.assigned_agent_id=m.user_id))
+  FOR SHARE OF m,t;
+ IF NOT FOUND THEN RAISE EXCEPTION 'Access denied' USING ERRCODE='42501'; END IF;
+ IF l.assigned_agent_id IS DISTINCT FROM original.assigned_agent_id
+ THEN RAISE EXCEPTION 'Assignment conflict' USING ERRCODE='40001'; END IF;
+ decision_time:=clock_timestamp();
+ IF l.publication_status='archived' OR r.state<>'draft'
+  OR original.registered_at>decision_time OR original.registered_at+interval '24 hours'<=decision_time
+  OR EXISTS(SELECT 1 FROM app_private.listing_revisions
+   WHERE tenant_id=l.tenant_id AND listing_id=l.id AND revision_no>p_revision)
+ THEN RAISE EXCEPTION 'Floor plan unavailable' USING ERRCODE='23514'; END IF;
+ IF r.version<>original.expected_version
+ THEN RAISE EXCEPTION 'Version conflict' USING ERRCODE='40001'; END IF;
+ RETURN app_private.synthetic_floor_plan_registration_record(original);
+END $$;
+
 REVOKE ALL ON FUNCTION app_private.synthetic_floor_plan_registration_record(app_private.synthetic_floor_plan_registrations)
  FROM PUBLIC,api_runtime,media_coordinator;
 REVOKE ALL ON FUNCTION app_api.register_synthetic_floor_plan(uuid,integer,bigint,uuid,text,integer,text),
- app_api.read_synthetic_floor_plan_registration(uuid,uuid) FROM PUBLIC;
+ app_api.read_synthetic_floor_plan_registration(uuid,uuid),
+ app_api.preflight_synthetic_floor_plan(uuid,integer,uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION app_api.register_synthetic_floor_plan(uuid,integer,bigint,uuid,text,integer,text),
- app_api.read_synthetic_floor_plan_registration(uuid,uuid) TO api_runtime;
+ app_api.read_synthetic_floor_plan_registration(uuid,uuid),
+ app_api.preflight_synthetic_floor_plan(uuid,integer,uuid) TO api_runtime;
 COMMIT;

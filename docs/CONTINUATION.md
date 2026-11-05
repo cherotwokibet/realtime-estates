@@ -1,3 +1,11 @@
+## Floor-plan preflight/source checkpoint357 - 5 November 2026 EAT
+
+Floor-plan source admission now checks fresh SQL authorization and matches the registered company, actor, draft and source bytes before storage. All 14 focused SQL and durable-store checks passed. Progress is 54/97 (56%).
+
+Next, add a separate floor-plan processing lease and worker admission that rechecks scope and binds the retained source. Then seal the actual lossless output and add separate attachment/gallery/approval/public consumers under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-preflight-source.md and floor357-preflight-source.txt. Media build and14 focused checks passed. SQL locks end before source IO. Application HTTP and processing/worker/attachment integration remain open. Publication and browser preservation verification follow.
+
 ## Published floor-plan registration checkpoint356 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec3115926c819184dc8946b0c6ce21 succeeded from dashboard commit ebadf91. Live heading verified. Browser exports (4) and (5) for 5 November preserved all previous note occurrences and manual task/status/gate/decision/risk edits. Code is committed at 2fccde6. Next, add floor-plan fresh-work preflight against current authority, registered assignment, draft/version, expiry and source facts, then bind the existing request store and fixed worker. Checklist 54/97 (56%), task06-4 open.

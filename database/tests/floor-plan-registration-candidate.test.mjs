@@ -59,6 +59,21 @@ const original = (db, user = AGENT, tenant = T) =>
       operation,
     ]),
   );
+const preflight = (
+  db,
+  user = AGENT,
+  tenant = T,
+  listing = LISTING,
+  revision = 1,
+  request = operation,
+) =>
+  asActor(db, tenant, user, () =>
+    scalar(db, 'SELECT app_api.preflight_synthetic_floor_plan($1,$2,$3)', [
+      listing,
+      revision,
+      request,
+    ]),
+  );
 const denied = (work, code) => assert.rejects(work, (error) => error.code === code);
 const state = async (db) =>
   (
@@ -102,6 +117,7 @@ test('floor-plan registration binds current staff and source facts once without 
   assert.deepEqual(saved.source, { sha256: hash, bytes: 100, format: 'png' });
   assert.equal(Date.parse(saved.expiresAt) - Date.parse(saved.registeredAt), 86400000);
   assert.deepEqual(await original(db), saved);
+  assert.deepEqual(await preflight(db), saved);
   assert.deepEqual(await register(db), saved);
   assert.deepEqual(await state(db), { ...before, registrations: 1, audits: 1 });
   assert.deepEqual(
@@ -250,4 +266,74 @@ test('floor-plan originals are immutable and audit failure rolls back registrati
     ).rows,
     [{ relrowsecurity: true, relforcerowsecurity: true }],
   );
+});
+
+test('floor-plan fresh-work preflight fences current scope, registered assignment and draft version without refreshing an original', async (t) => {
+  const db = await setup(t);
+  const saved = await register(db, {}, ADMIN);
+  const before = await state(db);
+  assert.deepEqual(await preflight(db, ADMIN), saved);
+  for (const work of [
+    () => preflight(db),
+    () => preflight(db, ADMIN, OTHER),
+    () => preflight(db, ADMIN, T, LISTING, 2),
+    () => preflight(db, ADMIN, T, LISTING, 1, id(799)),
+  ])
+    await assert.rejects(work);
+  await db.query('UPDATE app_private.listings SET assigned_agent_id=$1 WHERE id=$2', [
+    id(12),
+    LISTING,
+  ]);
+  await denied(() => preflight(db, ADMIN), '40001');
+  assert.deepEqual(await original(db, ADMIN), saved);
+  await db.query('UPDATE app_private.listings SET assigned_agent_id=$1 WHERE id=$2', [
+    AGENT,
+    LISTING,
+  ]);
+  await db.query(
+    "UPDATE app_private.memberships SET role='customer' WHERE tenant_id=$1 AND user_id=$2",
+    [T, ADMIN],
+  );
+  await denied(() => preflight(db, ADMIN), '42501');
+  await db.query(
+    "UPDATE app_private.memberships SET role='admin' WHERE tenant_id=$1 AND user_id=$2",
+    [T, ADMIN],
+  );
+  assert.deepEqual(await state(db), before);
+  await db.query(
+    "UPDATE app_private.listing_revisions SET title='Synthetic later draft' WHERE listing_id=$1 AND revision_no=1",
+    [LISTING],
+  );
+  await denied(() => preflight(db, ADMIN), '40001');
+  assert.deepEqual(await original(db, ADMIN), saved);
+  await db.query(
+    "UPDATE app_private.listing_revisions SET state='pending' WHERE listing_id=$1 AND revision_no=1",
+    [LISTING],
+  );
+  await denied(() => preflight(db, ADMIN), '23514');
+});
+
+test('expired and future-dated floor-plan registrations remain historical and cannot admit fresh bytes', async (t) => {
+  const db = await setup(t);
+  await register(db);
+  for (const interval of ['-25 hours', '1 hour']) {
+    // Privileged disposable clock-boundary fixture. Application roles cannot edit the original.
+    await db.exec(
+      'ALTER TABLE app_private.synthetic_floor_plan_registrations DISABLE TRIGGER immutable_floor_plan_registration',
+    );
+    try {
+      await db.query(
+        'UPDATE app_private.synthetic_floor_plan_registrations SET registered_at=clock_timestamp()+$1::interval',
+        [interval],
+      );
+    } finally {
+      await db.exec(
+        'ALTER TABLE app_private.synthetic_floor_plan_registrations ENABLE TRIGGER immutable_floor_plan_registration',
+      );
+    }
+    const before = await state(db);
+    await denied(() => preflight(db), '23514');
+    assert.equal((await original(db)).binding.requestId, operation);
+    assert.deepEqual(await state(db), before);
+  }
 });

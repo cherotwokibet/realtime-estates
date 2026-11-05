@@ -41,6 +41,96 @@ export interface FloorPlanRequests {
   /** Fence new operations and drain this facade; supplied stores remain caller-owned. */
   close(): Promise<void>;
 }
+export interface FloorPlanSourceTarget {
+  readonly companyId: string;
+  readonly actorId: string;
+  readonly listingId: string;
+  readonly revision: number;
+  readonly requestId: string;
+}
+
+/** The trusted caller supplies a fresh, authenticated SQL preflight for every record attempt. */
+export function createFloorPlanSourceAdmission(configuration: {
+  readonly requests: FloorPlanRequests;
+  readonly preflight: (target: FloorPlanSourceTarget) => Promise<unknown>;
+}): {
+  record(target: FloorPlanSourceTarget, source: Buffer): Promise<FloorPlanRequest>;
+} {
+  const { requests, preflight } = configuration;
+  if (typeof preflight !== 'function' || typeof requests?.record !== 'function')
+    fail('INVALID_CONFIGURATION');
+  return Object.freeze({
+    async record(target: FloorPlanSourceTarget, input: Buffer): Promise<FloorPlanRequest> {
+      const facts = data(
+        target,
+        ['companyId', 'actorId', 'listingId', 'revision', 'requestId'],
+        'INVALID_INPUT',
+      );
+      const selected = Object.freeze({
+        companyId: uuid(facts.companyId, 'INVALID_INPUT'),
+        actorId: uuid(facts.actorId, 'INVALID_INPUT'),
+        listingId: uuid(facts.listingId, 'INVALID_INPUT'),
+        revision: positive(facts.revision, 'INVALID_INPUT'),
+        requestId: uuid(facts.requestId, 'INVALID_INPUT'),
+      });
+      if (
+        selected.revision > 2147483647 ||
+        !Buffer.isBuffer(input) ||
+        isSharedArrayBuffer(input.buffer) ||
+        input.length < 1 ||
+        input.length > SYNTHETIC_CODEC_POLICY.maxInputBytes
+      )
+        fail('INVALID_INPUT');
+      const source = Buffer.from(input);
+      const registered = data(
+        await preflight(selected),
+        [
+          'policy',
+          'role',
+          'pipeline',
+          'countsAsPhoto',
+          'binding',
+          'source',
+          'registeredAt',
+          'expiresAt',
+        ],
+        'INTEGRITY',
+      );
+      if (
+        registered.policy !== 'synthetic-floor-plan-registration-v1' ||
+        registered.role !== 'floor_plan' ||
+        registered.pipeline !== 'synthetic-floor-plan-codec-v1' ||
+        registered.countsAsPhoto !== false
+      )
+        fail('INTEGRITY');
+      const bound = binding(registered.binding, 'INTEGRITY');
+      if (
+        Object.entries(selected).some(
+          ([key, value]) => bound[key as keyof FloorPlanRequestBinding] !== value,
+        )
+      )
+        fail('INTEGRITY');
+      const declared = data(registered.source, ['sha256', 'bytes', 'format'], 'INTEGRITY');
+      if (
+        declared.sha256 !== hash(source) ||
+        declared.bytes !== source.length ||
+        declared.format !== inspectContainer(source)
+      )
+        fail('INTEGRITY');
+      const timestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
+      if (
+        typeof registered.registeredAt !== 'string' ||
+        !timestamp.test(registered.registeredAt) ||
+        typeof registered.expiresAt !== 'string' ||
+        !timestamp.test(registered.expiresAt) ||
+        Date.parse(registered.expiresAt) - Date.parse(registered.registeredAt) !== 86400000
+      )
+        fail('INTEGRITY');
+      return requests.record({ binding: bound, source });
+    },
+  });
+}
+
 type Code =
   | 'INVALID_CONFIGURATION'
   | 'INVALID_INPUT'
