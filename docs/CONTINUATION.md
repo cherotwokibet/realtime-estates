@@ -1,3 +1,9 @@
+## Staff invitation audit checkpoint 352 - 5 November 2026 EAT
+
+Three focused invitation database checks passed. Capture and issuance recorded the issuing admin, and acceptance recorded the recipient. The audit trail excluded the address and secret digest. Replay added no grant, and an audit failure rolled back acceptance. Next, check draft decision variants and reconcile remaining evidence for task 08-7. Checklist 53/97.
+
+Evidence in docs/evidence/audit352-invitations.txt. Private publication awaits a fresh export because browser access is unavailable.
+
 ## Staff membership audit checkpoint 351 - 5 November 2026 EAT
 
 All three focused membership checks passed. Promotion, deactivation and reactivation recorded the actor, company, member, operation, role, active status and resulting version. Retries, conflicts and unchanged requests added no audit events. Next, reconcile invitation dispatch variants and draft decisions against the audit evidence. Task 08-7 stays open at 53/97.

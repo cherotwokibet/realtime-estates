@@ -47,7 +47,7 @@ async function actor(db, user, fn, tenant = 1) {
   await db.exec('BEGIN;SET LOCAL ROLE api_runtime');
   try {
     await db.query(
-      "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true)",
+      "SELECT set_config('realtor.tenant_id',$1,true),set_config('realtor.actor_id',$2,true),set_config('realtor.correlation_id','synthetic-invitation-audit',true)",
       [id(tenant), user === null ? '' : id(user)],
     );
     const result = await fn();
@@ -208,10 +208,26 @@ test('atomic redemption grants once, preserves capture history and never reactiv
     );
     const audit = (
       await db.query(
-        "SELECT action,summary FROM app_private.audit_events WHERE action IN ('staff.invitation_issued','staff.invitation_redeemed') ORDER BY action",
+        "SELECT tenant_id,actor_id,action,object_type,object_id,object_version::text,correlation_id,summary FROM app_private.audit_events WHERE object_type='staff_invitation' ORDER BY id",
       )
     ).rows;
-    assert.equal(audit.length, 2);
+    assert.deepEqual(
+      audit,
+      [
+        [10, 'staff.invitation_request_recorded', '1', {}],
+        [10, 'staff.invitation_issued', '1', { operationId: id(300) }],
+        [50, 'staff.invitation_redeemed', '2', { operationId: id(400), role: 'agent' }],
+      ].map(([actor, action, version, summary]) => ({
+        tenant_id: id(1),
+        actor_id: id(actor),
+        action,
+        object_type: 'staff_invitation',
+        object_id: id(200),
+        object_version: version,
+        correlation_id: 'synthetic-invitation-audit',
+        summary,
+      })),
+    );
     assert.ok(!JSON.stringify(audit).includes(email));
     assert.ok(!JSON.stringify(audit).includes(digest));
   } finally {
