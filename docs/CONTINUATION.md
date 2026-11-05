@@ -1,3 +1,11 @@
+## Private floor-plan image checkpoint369 - 5 November 2026 EAT
+
+Saved floor-plan images now have a private admin byte boundary and bounded same-origin browser reader, with metadata and access checked around byte reads. All35 focused checks passed, including actual Windows output through retained recovery, attachment, private API/BFF and Blob verification. Actual browser acceptance remains pending;54/97 (56%).
+
+Next, compose the opt-in native local preview with signed synthetic staff identity and durable floor-plan stores, then verify the hydrated author/reviewer browser journey: select, review, prepare, lost reply/reload/recover, attach, display, remove and changed-access refusal. Then implement approved/public snapshots and successor-copy rules under task06-4.
+
+Evidence: docs/evidence/2026-11-05-floor-plan-private-image.md; floor369-images.txt(19), floor369-regressions.txt(16), floor369-admin-build.txt.0 skips. Actual Windows output reaches the Node-invoked Blob reader through private API/BFF; identity/protocol remain simulated and actual hydrated browser/decoder checks are unrun. Publication/browser-note preservation verification follow.
+
 ## Published retained floor-plan UI checkpoint368 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec864b56a48191b746e9e1fc708d4e succeeded from dashboardb02d0fe. Current heading verified. Exports(28)/(29) preserve all 878 prior stage-note occurrences and every manual task/status/gate/decision/risk field. Implementation6094eb0 has37 passing focused checks (26 session/policy/static-render,11 transport/native),0 skips, admin compilation/typecheck/full Next build and3 dashboard checks. Screenshot floor368-published.png verifies the dashboard only. Initial author/reviewer pages compile and render statically; actual hydrated UI/file chooser/visual image acceptance remains unrun. Native integration now includes retained originals and simulated lost acknowledgements at both writes, with GET-only preparation/original attachment recovery and no repeat writes or processing; session/protocol responses remain simulated.

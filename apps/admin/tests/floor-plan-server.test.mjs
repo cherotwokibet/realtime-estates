@@ -332,6 +332,13 @@ test(
             fn({ query: (s, args) => f.db.query(s, args) }),
           ),
       },
+      floorPlanImageRead: (ctx, listingId, revision) =>
+        f.config.delivery.readAttached({
+          companyId: ctx.tenantId,
+          actorId: ctx.actorId,
+          listingId,
+          revision,
+        }),
       floorPlanPreparation: {
         prepare: (ctx, c, bytes) => coordinator.prepare(target(ctx, c), bytes),
         recover: (ctx, c) => coordinator.recover(target(ctx, c)),
@@ -420,6 +427,32 @@ test(
     );
     await reloaded.recover();
     assert.equal(reloaded.receipt.resultVersion, '3');
+    const { floorPlanImageRequest } = await import('../dist/tests/lib/floor-plan-image-server.js');
+    const { loadFloorPlanImage } = await import('../dist/tests/lib/floor-plan-image.js');
+    const imageState = {
+      policy: 'synthetic-floor-plan-state-v1',
+      listingId: scope.listingId,
+      revision: 1,
+      version: '3',
+      state: 'draft',
+      floorPlan: reloaded.receipt.floorPlan,
+    };
+    const image = await loadFloorPlanImage(
+      scope,
+      imageState,
+      new AbortController().signal,
+      async (url, init) =>
+        floorPlanImageRequest(
+          new Request('http://127.0.0.1:3132' + url, {
+            ...init,
+            headers: { ...init.headers, Host: '127.0.0.1:3132', Origin: 'http://127.0.0.1:3132' },
+          }),
+          env,
+          upstream,
+        ),
+    );
+    assert.equal(image.type, 'image/webp');
+    assert.equal(image.size, imageState.floorPlan.bytes);
     reloaded.clear();
     assert.equal(storage.values.size, 0);
     assert.equal(seen.filter((c) => c.method === 'PUT').length, 1);

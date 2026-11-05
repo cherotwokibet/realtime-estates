@@ -1,4 +1,5 @@
 'use client';
+import FloorPlanImage from './FloorPlanImage.tsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   floorPlanSession,
@@ -196,6 +197,11 @@ export default function FloorPlanWorkspace(props: Screen) {
           ? `Saved floor plan: ${props.state.floorPlan.width} × ${props.state.floorPlan.height} pixels · ${props.state.floorPlan.bytes} bytes.`
           : 'Saved floor plan: None.'}
       </p>
+      <FloorPlanImage
+        key={JSON.stringify([props.scope, props.state])}
+        scope={props.scope}
+        state={props.state}
+      />
       <p>Photos are separate. Preparing a file does not attach it or publish it.</p>
       {!props.editable && <p>This saved revision is read-only.</p>}
       <p role="status" aria-live="polite">

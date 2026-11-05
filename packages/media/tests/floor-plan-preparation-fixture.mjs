@@ -123,6 +123,13 @@ async function fixture(t, native = false) {
     requests: f.requests,
     outputStore: output,
     metadataStore: metadata,
+    readGallery: (target) =>
+      sql.asActor(f.db, target.companyId, target.actorId, () =>
+        sql.scalar(f.db, 'SELECT app_api.read_synthetic_floor_plan_gallery($1,$2)', [
+          target.listingId,
+          target.revision,
+        ]),
+      ),
     preflight,
     seal: (t, outputId, manifest) => {
       calls.seal++;
