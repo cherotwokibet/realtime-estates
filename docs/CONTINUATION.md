@@ -1,3 +1,11 @@
+## Retained floor-plan originals and initial pages checkpoint368 - 5 November 2026 EAT
+
+Floor-plan author and read-only reviewer pages now have retained-original preparation, explicit attachment/removal review and recovery controls. The state model and transport pass37 focused checks, including actual Windows recovery after both preparation and attachment acknowledgement faults. Browser acceptance remains pending; progress stays54/97 (56%).
+
+Next, add the private floor-plan image BFF and opt-in native local preview composition, then exercise the actual author/reviewer browser flow (file selection, upload, lost reply, reload, GET-only preparation recovery, attachment, image display and removal). Follow with approved/public snapshots and successor-copy rules under task06-4.
+
+Evidence: docs/evidence/2026-11-05-floor-plan-retained-ui.md; floor368-session-ui.txt (26 pass), floor368-transport.txt (11 pass), floor368-admin-build.txt.0 skips. Session model is tested, pages have static React rendering and Next build checks; no hydrated browser proof. First harness fault is retained as floor368-transport-first.txt. Publication and browser-note preservation verification follow.
+
 ## Published private admin boundary checkpoint367 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec819258948191b6fc3ae51b63ebd5 succeeded from dashboard9531e64. Current heading verified. Exports(26)/(27) retain all 876 prior stage-note occurrences and every manual task/status/gate/decision/risk field. Implementationab0a504 has17 passing focused checks,0 skips, admin compilation/typecheck and3 dashboard checks. Full Next admin build also passed after the publication archive was prepared; local log floor367-admin-build.txt confirms all4 new dynamic routes. Screenshot floor367-published.png. Native test crosses the Node browser adapter/BFF/API with actual Windows coordinator and restricted isolated SQL; session/protocol replies remain simulated. No new signed identity, actual browser, listening-network or device proof.

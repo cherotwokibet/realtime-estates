@@ -18,6 +18,11 @@ export default async function ReferenceReviewPage({
     <main className="draft-main" id="reference-review-main">
       <a href="/reviews">Pending reviews</a>
       <p>Local synthetic reference review</p>
+      {screen && process.env.STAFF_PREVIEW_FLOOR_PLAN === 'synthetic-private-floor-plan-v1' && (
+        <p>
+          <a href={`/reviews/${id}/${revision}/floor-plan`}>Inspect saved private floor plan</a>
+        </p>
+      )}
       {screen ? (
         <ReferenceReviewWorkspace {...screen} />
       ) : (

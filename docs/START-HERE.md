@@ -1,3 +1,11 @@
+## Retained floor-plan originals and initial pages checkpoint368 - 5 November 2026 EAT
+
+Floor-plan author and read-only reviewer pages now have retained-original preparation, explicit attachment/removal review and recovery controls. The state model and transport pass37 focused checks, including actual Windows recovery after both preparation and attachment acknowledgement faults. Browser acceptance remains pending; progress stays54/97 (56%).
+
+Next, add the private floor-plan image BFF and opt-in native local preview composition, then exercise the actual author/reviewer browser flow (file selection, upload, lost reply, reload, GET-only preparation recovery, attachment, image display and removal). Follow with approved/public snapshots and successor-copy rules under task06-4.
+
+Evidence: docs/evidence/2026-11-05-floor-plan-retained-ui.md; floor368-session-ui.txt (26 pass), floor368-transport.txt (11 pass), floor368-admin-build.txt.0 skips. Session model is tested, pages have static React rendering and Next build checks; no hydrated browser proof. First harness fault is retained as floor368-transport-first.txt. Publication and browser-note preservation verification follow.
+
 ## Private floor-plan admin boundary checkpoint367 - 5 November 2026 EAT
 
 Protected admin routes and a same-origin browser adapter now connect floor-plan upload, preparation recovery, attachment and attachment recovery. All 17 focused checks passed, including an actual Windows coordinator across the adapter, BFF and API. Progress remains 54/97 (56%).

@@ -1,3 +1,4 @@
+import { assertFloorPlanClear } from './floor-plan-original-key.ts';
 import { ApiClientError } from '@realtor/api-client';
 import {
   validateListingVideoCommand,
@@ -139,6 +140,7 @@ export function videoSession(store: VideoStore, input: VideoScope) {
   });
 }
 export function assertVideoOtherOriginalsClear(store: VideoStore, scope: VideoScope) {
+  assertFloorPlanClear(store, scope.instanceId, scope.listingId);
   const { revision, ...draftScope } = scope;
   if (
     referenceDraftSession(store, draftScope).load() !== null ||

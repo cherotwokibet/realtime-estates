@@ -1,3 +1,4 @@
+import type { FloorPlanClient } from './floor-plan-session.ts';
 import { ApiClientError } from '@realtor/api-client';
 import {
   validateFloorPlanPreparationCommand,
@@ -117,12 +118,13 @@ export function createFloorPlanClient(
     }
   }
   return Object.freeze({
-    prepare: (c: FloorPlanPreparationCommand, bytes: Uint8Array, s?: AbortSignal) =>
-      run(c, false, bytes, s),
-    recoverPreparation: (c: FloorPlanPreparationCommand, s?: AbortSignal) =>
-      run(c, true, undefined, s),
-    attach: (c: FloorPlanAttachmentCommand, s?: AbortSignal) => run(c, false, undefined, s),
-    recoverAttachment: (c: FloorPlanAttachmentCommand, s?: AbortSignal) =>
-      run(c, true, undefined, s),
-  });
+    prepare: async (c: FloorPlanPreparationCommand, bytes: Uint8Array, s?: AbortSignal) =>
+      validatePreparedFloorPlan(await run(c, false, bytes, s), c),
+    recoverPreparation: async (c: FloorPlanPreparationCommand, s?: AbortSignal) =>
+      validatePreparedFloorPlan(await run(c, true, undefined, s), c),
+    attach: async (c: FloorPlanAttachmentCommand, s?: AbortSignal) =>
+      validateFloorPlanAttachmentRecord(await run(c, false, undefined, s), c),
+    recoverAttachment: async (c: FloorPlanAttachmentCommand, s?: AbortSignal) =>
+      validateFloorPlanAttachmentRecord(await run(c, true, undefined, s), c),
+  } satisfies FloorPlanClient);
 }

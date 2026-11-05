@@ -296,7 +296,7 @@ test('browser adapter marks malformed upload responses uncertain and never retri
   assert.equal(calls, 2);
 });
 test(
-  'actual Windows coordinator crosses browser adapter/BFF/API and recovers preparation and attachment without repeat writes',
+  'actual Windows retained originals cross adapter/BFF/API and recover lost preparation and attachment replies without repeat writes',
   { skip: process.platform !== 'win32', timeout: 90000 },
   async (t) => {
     const { fixture } =
@@ -349,31 +349,79 @@ test(
       }
       return mock.transport(url, init);
     };
-    const client = createFloorPlanClient(
-      {
-        instanceId: id(9),
-        tenantId: T,
-        actorId: AGENT,
-        listingId: f.target.listingId,
-        revision: 1,
+    const { floorPlanAttempt, floorPlanSession } =
+      await import('../dist/tests/lib/floor-plan-session.js');
+    const scope = {
+      instanceId: id(9),
+      tenantId: T,
+      actorId: AGENT,
+      listingId: f.target.listingId,
+      revision: 1,
+    };
+    const storage = {
+      values: new Map(),
+      getItem(k) {
+        return this.values.get(k) ?? null;
       },
-      async (url, init) =>
-        floorPlanRequest(
-          new Request('http://127.0.0.1:3132' + url, {
-            ...init,
-            headers: { ...init.headers, Host: '127.0.0.1:3132', Origin: 'http://127.0.0.1:3132' },
-          }),
-          env,
-          upstream,
-        ),
+      setItem(k, v) {
+        this.values.set(k, v);
+      },
+      removeItem(k) {
+        this.values.delete(k);
+      },
+    };
+    const client = createFloorPlanClient(scope, async (url, init) => {
+      const response = await floorPlanRequest(
+        new Request('http://127.0.0.1:3132' + url, {
+          ...init,
+          headers: { ...init.headers, Host: '127.0.0.1:3132', Origin: 'http://127.0.0.1:3132' },
+        }),
+        env,
+        upstream,
+      );
+      if (
+        ['PUT', 'POST'].includes(init.method) &&
+        !String(url).endsWith('/recover') &&
+        response.status === 200
+      ) {
+        const value = await response.json();
+        return Response.json(
+          init.method === 'PUT'
+            ? { ...value, requestId: id(999) }
+            : { ...value, resultVersion: '99' },
+          { headers: { 'cache-control': 'private, no-store, max-age=0' } },
+        );
+      }
+      return response;
+    });
+    const original = { ...command, requestId: f.target.requestId };
+    const first = floorPlanAttempt(storage, scope, client, original);
+    await assert.rejects(first.send(f.source), (e) => e.submissionUncertain === true);
+    assert.equal(first.status, 'uncertain');
+    assert.throws(() => first.clear());
+    const restored = floorPlanAttempt(
+      storage,
+      scope,
+      client,
+      floorPlanSession(storage, scope).load().command,
+      true,
     );
-    const original = { ...command, requestId: f.target.requestId },
-      result = await client.prepare(original, f.source);
-    assert.deepEqual(await client.recoverPreparation(original), result);
-    const attach = { ...attachment, requestId: original.requestId },
-      saved = await client.attach(attach);
-    assert.equal(saved.resultVersion, '3');
-    assert.deepEqual(await client.recoverAttachment(attach), saved);
+    await restored.recover();
+    assert.equal(restored.receipt.policy, 'synthetic-floor-plan-prepared-v1');
+    const attach = restored.handoff({ ...attachment, requestId: original.requestId });
+    await assert.rejects(attach.send(), (e) => e.submissionUncertain === true);
+    assert.equal(attach.status, 'uncertain');
+    const reloaded = floorPlanAttempt(
+      storage,
+      scope,
+      client,
+      floorPlanSession(storage, scope).load().command,
+      true,
+    );
+    await reloaded.recover();
+    assert.equal(reloaded.receipt.resultVersion, '3');
+    reloaded.clear();
+    assert.equal(storage.values.size, 0);
     assert.equal(seen.filter((c) => c.method === 'PUT').length, 1);
     assert.equal(seen.filter((c) => c.method === 'POST').length, 1);
     for (const k of ['register', 'source', 'claim', 'native', 'seal']) assert.equal(f.calls[k], 1);
