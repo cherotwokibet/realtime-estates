@@ -1534,9 +1534,10 @@ function enquiryOperationProjection(
   };
 }
 
+/** Optional source is injected only by the trusted headers-only floor-plan HTTP bridge. */
 export function createApiService(
   options: ApiServiceOptions,
-): (request: Request) => Promise<Response> {
+): (request: Request, floorPlanSource?: AsyncIterable<Uint8Array>) => Promise<Response> {
   if (
     options.listingVideoMode !== undefined &&
     (options.listingVideoMode !== 'synthetic-private-listing-video-v1' ||
@@ -1692,7 +1693,7 @@ export function createApiService(
       throw new HttpError(401, 'UNAUTHENTICATED', 'A valid bearer token is required.');
     }
   }
-  return async (request) => {
+  return async (request, floorPlanSource) => {
     const correlationId = newId();
     try {
       const clientKey = options.clientKey?.(request) ?? 'shared-local';
@@ -1852,7 +1853,7 @@ export function createApiService(
           request.url.includes('#') ||
           headerNames(request.headers).some(
             (k) =>
-              ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(k) ||
+              ['cookie', 'idempotency-key', 'range', 'content-encoding', 'expect'].includes(k) ||
               k.startsWith('x-') ||
               k.startsWith('if-'),
           )
@@ -1878,12 +1879,15 @@ export function createApiService(
           method === 'GET' &&
           (request.body !== null ||
             request.headers.has('content-type') ||
-            request.headers.has('content-length'))
+            request.headers.has('content-length') ||
+            request.headers.has('transfer-encoding'))
         )
           throw new HttpError(400, 'INVALID_INPUT', 'Read accepts no body.');
         if (
           method === 'PUT' &&
-          (!request.body || request.headers.get('content-type') !== 'application/octet-stream')
+          ((!request.body && floorPlanSource === undefined) ||
+            (request.body !== null && floorPlanSource !== undefined) ||
+            request.headers.get('content-type') !== 'application/octet-stream')
         )
           throw new HttpError(400, 'INVALID_INPUT', 'A binary floor-plan file is required.');
         const length = request.headers.get('content-length');
@@ -1954,7 +1958,7 @@ export function createApiService(
           let source: Buffer;
           try {
             source = await readSyntheticUploadBody(
-              request.body as unknown as AsyncIterable<Uint8Array>,
+              floorPlanSource ?? (request.body as unknown as AsyncIterable<Uint8Array>),
               {
                 signal: request.signal,
                 timeoutMs: floorPlanBodyTimeout,
@@ -1994,7 +1998,7 @@ export function createApiService(
           request.url.includes('#') ||
           headerNames(request.headers).some(
             (k) =>
-              ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(k) ||
+              ['cookie', 'idempotency-key', 'range', 'content-encoding', 'expect'].includes(k) ||
               k.startsWith('x-') ||
               k.startsWith('if-'),
           )
@@ -2020,7 +2024,8 @@ export function createApiService(
           method === 'GET' &&
           (request.body !== null ||
             request.headers.has('content-type') ||
-            request.headers.has('content-length'))
+            request.headers.has('content-length') ||
+            request.headers.has('transfer-encoding'))
         )
           throw new HttpError(400, 'INVALID_INPUT', 'Read accepts no body.');
         if (imageRoute && !floorPlanImageRead)

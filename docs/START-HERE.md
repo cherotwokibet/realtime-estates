@@ -1,3 +1,11 @@
+## Signed floor-plan streaming HTTP checkpoint370 - 5 November 2026 EAT
+
+An explicit floor-plan HTTP streaming hook now checks signed access and current draft authority before reading source bytes, while preserving the 64 KiB generic body limit. All44 focused checks passed, including real signed loopback uploads of a valid PNG larger than64 KiB. Preview/browser acceptance remains pending;54/97 (56%).
+
+Next, compose opt-in durable/native floor-plan services in the signed local staff preview and pass the explicit fifth HTTP hook to the service. Keep source lazy and caller identities server-owned. Then verify the hydrated author/reviewer browser journey, including larger-than64KiB file selection, lost replies/reload/recovery, attachment/image/removal and changed access. Follow with approved/public/successor snapshots under task06-4.
+
+Evidence: docs/evidence/2026-11-05-floor-plan-http-streaming.md; floor370-http.txt(5), floor370-regressions.txt(39),0 skips; API build passed. Signed listening HTTP is actual; final preparation/image providers are simulated, and the ordinary preview/native/browser composition is still unrun. Publication and browser-note preservation follow.
+
 ## Private floor-plan image checkpoint369 - 5 November 2026 EAT
 
 Saved floor-plan images now have a private admin byte boundary and bounded same-origin browser reader, with metadata and access checked around byte reads. All35 focused checks passed, including actual Windows output through retained recovery, attachment, private API/BFF and Blob verification. Actual browser acceptance remains pending;54/97 (56%).

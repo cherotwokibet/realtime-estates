@@ -46,12 +46,35 @@ function uploadPath(incoming: IncomingMessage): boolean {
   const match = V2_UPLOAD_PATH.exec(incoming.url ?? '');
   return !!match && Number(match[1]) <= 2147483647;
 }
+const FLOOR_INPUT_PATH =
+  /^\/v2\/staff\/listings\/([0-9a-f-]{36})\/floor-plan-inputs\/([1-9][0-9]{0,9})\/([1-9][0-9]{0,15})\/([0-9a-f-]{36})$/;
+const FLOOR_IMAGE_PATH =
+  /^\/v2\/staff\/listings\/([0-9a-f-]{36})\/floor-plan-images\/([1-9][0-9]{0,9})\/([0-9a-f-]{36})$/;
+function floorPlanCandidate(incoming: IncomingMessage): boolean {
+  const raw = incoming.url ?? '';
+  try {
+    return /floor-plan-(?:inputs|images)/i.test(
+      decodeURIComponent(new URL(raw, 'http://127.0.0.1').pathname),
+    );
+  } catch {
+    return /floor-plan-/i.test(raw);
+  }
+}
+const FLOOR_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+function floorPlanPath(incoming: IncomingMessage): boolean {
+  const raw = incoming.url ?? '',
+    m = FLOOR_INPUT_PATH.exec(raw) ?? FLOOR_IMAGE_PATH.exec(raw);
+  return (
+    !!m && FLOOR_UUID.test(m[1]!) && FLOOR_UUID.test(m[m.length - 1]!) && Number(m[2]) <= 2147483647
+  );
+}
 /** Loopback development bridge. Only the socket address supplies the limiter key. */
 export function createDevelopmentServer(
   handler: Handler,
   clientAddresses: WeakMap<Request, string> = new WeakMap(),
   uploadHandler?: UploadHandler,
   previewHandler?: Handler,
+  floorPlanHandler?: UploadHandler,
 ) {
   const dispatch = async (incoming: IncomingMessage, outgoing: ServerResponse) => {
     let streaming = false;
@@ -69,6 +92,12 @@ export function createDevelopmentServer(
       }
       const method = incoming.method ?? 'GET';
       const privatePreview = previewHandler !== undefined && previewPath(incoming);
+      const floorPlan = floorPlanHandler !== undefined && floorPlanCandidate(incoming);
+      const streamHandler = floorPlan
+        ? floorPlanHandler
+        : uploadHandler && uploadPath(incoming)
+          ? uploadHandler
+          : undefined;
       const url = new URL(incoming.url ?? '/', `http://${host}`);
       const headers = new Headers();
       for (let i = 0; i < incoming.rawHeaders.length; i += 2) {
@@ -118,7 +147,20 @@ export function createDevelopmentServer(
         await sendResponse(incoming, outgoing, response, true);
         return;
       }
-      if (uploadHandler && uploadPath(incoming)) {
+      if (streamHandler) {
+        if (floorPlan && !floorPlanPath(incoming)) {
+          streaming = true;
+          await sendResponse(
+            incoming,
+            outgoing,
+            new Response(JSON.stringify({ error: 'NOT_FOUND' }), {
+              status: 404,
+              headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+            }),
+            true,
+          );
+          return;
+        }
         streaming = true;
         if (headers.has('expect')) {
           await sendResponse(
@@ -160,7 +202,7 @@ export function createDevelopmentServer(
           },
         };
         clientAddresses.set(request, incoming.socket.remoteAddress ?? 'unknown-socket');
-        const response = await uploadHandler(request, source);
+        const response = await streamHandler(request, source);
         await sendResponse(incoming, outgoing, response, true);
         return;
       }
@@ -220,6 +262,10 @@ export function createDevelopmentServer(
   });
   // Node otherwise sends 100 automatically before the application sees the body.
   server.on('checkContinue', (incoming, outgoing) => {
+    if (floorPlanHandler && floorPlanCandidate(incoming)) {
+      void dispatch(incoming, outgoing);
+      return;
+    }
     if (previewHandler && previewPath(incoming)) {
       void dispatch(incoming, outgoing);
       return;
@@ -232,6 +278,10 @@ export function createDevelopmentServer(
     void dispatch(incoming, outgoing);
   });
   server.on('checkExpectation', (incoming, outgoing) => {
+    if (floorPlanHandler && floorPlanCandidate(incoming)) {
+      void dispatch(incoming, outgoing);
+      return;
+    }
     if (previewHandler && previewPath(incoming)) {
       void dispatch(incoming, outgoing);
       return;

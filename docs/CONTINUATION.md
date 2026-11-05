@@ -1,3 +1,11 @@
+## Signed floor-plan streaming HTTP checkpoint370 - 5 November 2026 EAT
+
+An explicit floor-plan HTTP streaming hook now checks signed access and current draft authority before reading source bytes, while preserving the 64 KiB generic body limit. All44 focused checks passed, including real signed loopback uploads of a valid PNG larger than64 KiB. Preview/browser acceptance remains pending;54/97 (56%).
+
+Next, compose opt-in durable/native floor-plan services in the signed local staff preview and pass the explicit fifth HTTP hook to the service. Keep source lazy and caller identities server-owned. Then verify the hydrated author/reviewer browser journey, including larger-than64KiB file selection, lost replies/reload/recovery, attachment/image/removal and changed access. Follow with approved/public/successor snapshots under task06-4.
+
+Evidence: docs/evidence/2026-11-05-floor-plan-http-streaming.md; floor370-http.txt(5), floor370-regressions.txt(39),0 skips; API build passed. Signed listening HTTP is actual; final preparation/image providers are simulated, and the ordinary preview/native/browser composition is still unrun. Publication and browser-note preservation follow.
+
 ## Published private floor-plan image checkpoint369 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec948b4b6c8191a0204b7fdc684550 succeeded from dashboardfa0c721. Current heading verified. Exports(30)/(31) preserve all 880 prior stage-note occurrences and every manual task/status/gate/decision/risk field. Implementatione18d455 has35 passing focused checks (19 image/transport/native,16 regressions),0 skips, admin compilation/Next build and3 dashboard checks. Screenshot floor369-published.png is dashboard proof only. Actual Windows output is attached and read through restricted SQL, API, image BFF and Node-invoked Blob reader after both retained-original recoveries. Session/protocol replies remain simulated; no actual browser decode/viewport/device or signed-identity acceptance.
