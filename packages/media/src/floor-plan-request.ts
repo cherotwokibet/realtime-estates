@@ -82,53 +82,67 @@ export function createFloorPlanSourceAdmission(configuration: {
       )
         fail('INVALID_INPUT');
       const source = Buffer.from(input);
-      const registered = data(
+      const bound = validateFloorPlanSourceRegistration(
         await preflight(selected),
-        [
-          'policy',
-          'role',
-          'pipeline',
-          'countsAsPhoto',
-          'binding',
-          'source',
-          'registeredAt',
-          'expiresAt',
-        ],
-        'INTEGRITY',
+        selected,
+        source,
       );
-      if (
-        registered.policy !== 'synthetic-floor-plan-registration-v1' ||
-        registered.role !== 'floor_plan' ||
-        registered.pipeline !== 'synthetic-floor-plan-codec-v1' ||
-        registered.countsAsPhoto !== false
-      )
-        fail('INTEGRITY');
-      const bound = binding(registered.binding, 'INTEGRITY');
-      if (
-        Object.entries(selected).some(
-          ([key, value]) => bound[key as keyof FloorPlanRequestBinding] !== value,
-        )
-      )
-        fail('INTEGRITY');
-      const declared = data(registered.source, ['sha256', 'bytes', 'format'], 'INTEGRITY');
-      if (
-        declared.sha256 !== hash(source) ||
-        declared.bytes !== source.length ||
-        declared.format !== inspectContainer(source)
-      )
-        fail('INTEGRITY');
-      const timestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
-      if (
-        typeof registered.registeredAt !== 'string' ||
-        !timestamp.test(registered.registeredAt) ||
-        typeof registered.expiresAt !== 'string' ||
-        !timestamp.test(registered.expiresAt) ||
-        Date.parse(registered.expiresAt) - Date.parse(registered.registeredAt) !== 86400000
-      )
-        fail('INTEGRITY');
       return requests.record({ binding: bound, source });
     },
   });
+}
+
+export function validateFloorPlanSourceRegistration(
+  value: unknown,
+  selected: FloorPlanSourceTarget,
+  source: Buffer,
+): FloorPlanRequestBinding {
+  const registered = data(
+    value,
+    [
+      'policy',
+      'role',
+      'pipeline',
+      'countsAsPhoto',
+      'binding',
+      'source',
+      'registeredAt',
+      'expiresAt',
+    ],
+    'INTEGRITY',
+  );
+  if (
+    registered.policy !== 'synthetic-floor-plan-registration-v1' ||
+    registered.role !== 'floor_plan' ||
+    registered.pipeline !== 'synthetic-floor-plan-codec-v1' ||
+    registered.countsAsPhoto !== false
+  )
+    fail('INTEGRITY');
+  const bound = binding(registered.binding, 'INTEGRITY');
+  if (
+    Object.entries(selected).some(
+      ([key, value]) => bound[key as keyof FloorPlanRequestBinding] !== value,
+    )
+  )
+    fail('INTEGRITY');
+  const declared = data(registered.source, ['sha256', 'bytes', 'format'], 'INTEGRITY');
+  if (
+    declared.sha256 !== hash(source) ||
+    declared.bytes !== source.length ||
+    declared.format !== inspectContainer(source)
+  )
+    fail('INTEGRITY');
+  const timestamp = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/;
+  if (
+    typeof registered.registeredAt !== 'string' ||
+    !timestamp.test(registered.registeredAt) ||
+    typeof registered.expiresAt !== 'string' ||
+    !timestamp.test(registered.expiresAt) ||
+    Date.parse(registered.expiresAt) - Date.parse(registered.registeredAt) !== 86400000
+  )
+    fail('INTEGRITY');
+
+  return bound;
 }
 
 type Code =

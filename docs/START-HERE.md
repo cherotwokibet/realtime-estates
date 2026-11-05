@@ -1,3 +1,11 @@
+## Floor-plan preparation coordinator checkpoint365 - 5 November 2026 EAT
+
+Floor-plan preparation now joins registration, source admission, deterministic claiming, fixed processing and sealing in one server coordinator, with read-only original recovery. All 13 focused checks passed, including an actual Windows-worker preparation run. Progress remains 54/97 (56%).
+
+Next, expose guarded bounded file upload/preparation and original preparation recovery through the authenticated HTTP API, using verified server identity and early current-draft authorization. Then connect BFF and author/reviewer screens, followed by approved/public/successor snapshot rules under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-preparation.md and floor365-preparation.txt. Media build and13 focused checks passed. The shared source registration validator is extracted/reused. The request UUID also supplies the deterministic claim identity; nonce/output IDs stay SQL-owned. Only explicit preparation-uncertainty errors permit matching original reads; recover issues no new write or decoder run. Server-only, no HTTP upload route yet. Publication and browser preservation verification follow.
+
 ## Floor-plan API/client checkpoint364 - 5 November 2026 EAT
 
 Authenticated floor-plan attachment/recovery, saved metadata and private image routes now have shared client support and bounded client metadata. All 25 focused API/SDK checks passed. Progress remains 54/97 (56%).

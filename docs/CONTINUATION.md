@@ -1,3 +1,11 @@
+## Floor-plan preparation coordinator checkpoint365 - 5 November 2026 EAT
+
+Floor-plan preparation now joins registration, source admission, deterministic claiming, fixed processing and sealing in one server coordinator, with read-only original recovery. All 13 focused checks passed, including an actual Windows-worker preparation run. Progress remains 54/97 (56%).
+
+Next, expose guarded bounded file upload/preparation and original preparation recovery through the authenticated HTTP API, using verified server identity and early current-draft authorization. Then connect BFF and author/reviewer screens, followed by approved/public/successor snapshot rules under task06-4.
+
+Evidence in docs/evidence/2026-11-05-floor-plan-preparation.md and floor365-preparation.txt. Media build and13 focused checks passed. The shared source registration validator is extracted/reused. The request UUID also supplies the deterministic claim identity; nonce/output IDs stay SQL-owned. Only explicit preparation-uncertainty errors permit matching original reads; recover issues no new write or decoder run. Server-only, no HTTP upload route yet. Publication and browser preservation verification follow.
+
 ## Published floor-plan API/client checkpoint364 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec7749815081919d8ce68d52fc88ff succeeded from dashboardee2a52c. Current heading verified. Exports(21)/(22) retain all 870 prior note occurrences and every manual task/status/gate/decision/risk field. Implementationfec1a6b has25 passing focused API/SDK checks, zero skips, domain/API/client builds, formatting/whitespace and3 dashboard checks. Shared client supports attachment/save, exact GET original recovery and saved metadata. Opt-in synthetic API adds current staff-authorized metadata and operation-bound private bytes with before/after SQL gallery checks. Tests use actual isolated SQL but simulate the image reader; no new native HTTP/browser proof. Next, guarded file preparation/upload and original preparation recovery, then authenticated BFF and author/reviewer UI, followed by approved/public/successor snapshot rules. No route enabled by default, no UI/public integration or release gate accepted.54/97(56%), all14 gates open. Screenshot floor364-published.png.
