@@ -1,3 +1,7 @@
+## Published preparation coordinator checkpoint365 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec7d3ff7a08191bdab89cdaeee9920 succeeded from dashboard ad12597. Live heading verified; exports (23)/(24) preserve all 872 prior stage notes and manual task/gate/decision/risk fields. Implementation a1121da has13 passing focused checks including actual Windows processing. Screenshot floor365-published.png. Guarded HTTP upload/SDK work continues locally as checkpoint366; it is not yet accepted.54/97(56%), all14 gates open.
+
 ## Floor-plan preparation coordinator checkpoint365 - 5 November 2026 EAT
 
 Floor-plan preparation now joins registration, source admission, deterministic claiming, fixed processing and sealing in one server coordinator, with read-only original recovery. All 13 focused checks passed, including an actual Windows-worker preparation run. Progress remains 54/97 (56%).
