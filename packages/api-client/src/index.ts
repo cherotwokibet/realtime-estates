@@ -1,4 +1,8 @@
 import {
+  validateFloorPlanPreparationCommand,
+  validatePreparedFloorPlan,
+  type FloorPlanPreparationCommand,
+  type PreparedFloorPlan,
   validateFloorPlanAttachmentCommand,
   validateFloorPlanAttachmentRecord,
   validateFloorPlanState,
@@ -7,6 +11,8 @@ import {
   type FloorPlanState,
 } from '@realtor/domain';
 export type {
+  FloorPlanPreparationCommand,
+  PreparedFloorPlan,
   FloorPlanAttachmentCommand,
   FloorPlanAttachmentRecord,
   FloorPlanState,
@@ -2767,6 +2773,63 @@ export class RealtorApiClient {
     }
   }
 
+  async prepareFloorPlan(
+    input: FloorPlanPreparationCommand,
+    source: Uint8Array,
+    options: StaffRequestOptions,
+  ): Promise<PreparedFloorPlan> {
+    const captured = uploadOptions(options),
+      bytes = uploadBytes(source);
+    let command: FloorPlanPreparationCommand;
+    try {
+      command = validateFloorPlanPreparationCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Review the original floor-plan preparation command.');
+    }
+    try {
+      const data = await this.request(
+        `/v2/staff/listings/${command.listingId}/floor-plan-inputs/${command.revision}/${command.expectedVersion}/${command.requestId}`,
+        'PUT',
+        captured,
+        undefined,
+        undefined,
+        bytes,
+      );
+      try {
+        return validatePreparedFloorPlan(data, command);
+      } catch {
+        throw new ApiClientError(
+          'INVALID_RESPONSE',
+          'Floor-plan preparation receipt could not be verified.',
+          { submissionUncertain: true },
+        );
+      }
+    } catch (error) {
+      return uncertainWriteError(error);
+    }
+  }
+  async getFloorPlanPreparationOriginal(
+    input: FloorPlanPreparationCommand,
+    options: StaffRequestOptions,
+  ): Promise<PreparedFloorPlan> {
+    const captured = uploadOptions(options);
+    let command: FloorPlanPreparationCommand;
+    try {
+      command = validateFloorPlanPreparationCommand(input);
+    } catch {
+      return invalid('VALIDATION', 'Keep the original floor-plan preparation command.');
+    }
+    const data = await this.request(
+      `/v2/staff/listings/${command.listingId}/floor-plan-inputs/${command.revision}/${command.expectedVersion}/${command.requestId}`,
+      'GET',
+      captured,
+    );
+    try {
+      return validatePreparedFloorPlan(data, command);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Floor-plan preparation original differs.');
+    }
+  }
   async saveFloorPlanAttachment(
     input: FloorPlanAttachmentCommand,
     options: StaffRequestOptions,
@@ -6224,7 +6287,7 @@ export class RealtorApiClient {
         path,
       );
     const floorPlan =
-      /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/floor-plan-(?:operations\/[0-9a-f-]{36}|revisions\/[1-9][0-9]{0,9})$/.test(
+      /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/floor-plan-(?:inputs\/[1-9][0-9]{0,9}\/[1-9][0-9]{0,15}\/[0-9a-f-]{36}|operations\/[0-9a-f-]{36}|revisions\/[1-9][0-9]{0,9})$/.test(
         path,
       );
     const adminAudit = /^\/v2\/staff\/audit-events\?limit=/.test(path);

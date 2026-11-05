@@ -1,3 +1,11 @@
+## Guarded floor-plan upload checkpoint366 - 5 November 2026 EAT
+
+Authenticated floor-plan file preparation and read-only original recovery now have bounded binary upload routes and shared client support. All 39 focused checks passed, including an actual Windows processing run through the client and API handler. Progress remains 54/97 (56%).
+
+Next, connect session-bound BFF routes and author/reviewer screens, then approved/public/successor snapshot rules under task06-4. Keep source/job/store/lease identities server-only and retain exact original commands for uncertain outcomes.
+
+Evidence: docs/evidence/2026-11-05-floor-plan-upload.md and floor366-upload.txt. Domain/API/client builds and39 tests passed,0 skips. Native integration uses in-process Request/Response, not a listening network or browser. Publication and note-preservation verification follow.
+
 ## Published preparation coordinator checkpoint365 - 5 November 2026 EAT
 
 Private deployment appgdep_6aec7d3ff7a08191bdab89cdaeee9920 succeeded from dashboard ad12597. Live heading verified; exports (23)/(24) preserve all 872 prior stage notes and manual task/gate/decision/risk fields. Implementation a1121da has13 passing focused checks including actual Windows processing. Screenshot floor365-published.png. Guarded HTTP upload/SDK work continues locally as checkpoint366; it is not yet accepted.54/97(56%), all14 gates open.

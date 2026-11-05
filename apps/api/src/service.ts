@@ -1,3 +1,9 @@
+import { readSyntheticUploadBody, SyntheticUploadBodyError } from '@realtor/media/upload-body';
+import {
+  validateFloorPlanPreparationCommand,
+  validatePreparedFloorPlan,
+  type FloorPlanPreparationCommand,
+} from '@realtor/domain';
 import { parseFloorPlanJson, validateFloorPlanAttachmentCommand } from '@realtor/domain';
 import {
   floorPlanRecordFromSql,
@@ -156,6 +162,18 @@ export interface EnquiryLimiter {
   consume(key: string): LimiterResult | Promise<LimiterResult>;
 }
 export interface ApiServiceOptions {
+  readonly floorPlanPreparation?: Readonly<{
+    prepare: (
+      context: Readonly<{ tenantId: string; actorId: string; correlationId: string }>,
+      command: FloorPlanPreparationCommand,
+      source: Buffer,
+    ) => Promise<unknown>;
+    recover: (
+      context: Readonly<{ tenantId: string; actorId: string; correlationId: string }>,
+      command: FloorPlanPreparationCommand,
+    ) => Promise<unknown>;
+    bodyTimeoutMs?: number;
+  }>;
   readonly floorPlanMode?: 'synthetic-private-floor-plan-v1';
   readonly floorPlanImageRead?: (
     context: Readonly<{ tenantId: string; actorId: string; correlationId: string }>,
@@ -1533,6 +1551,21 @@ export function createApiService(
     throw Error('Floor-plan candidate requires explicit non-production mode.');
   const floorPlanEnabled = options.floorPlanMode === 'synthetic-private-floor-plan-v1';
   const floorPlanImageRead = options.floorPlanImageRead;
+  const floorPlanPreparation = options.floorPlanPreparation;
+  const floorPlanBodyTimeout = floorPlanPreparation?.bodyTimeoutMs ?? 15000;
+  if (
+    floorPlanPreparation !== undefined &&
+    (!floorPlanEnabled ||
+      typeof floorPlanPreparation.prepare !== 'function' ||
+      typeof floorPlanPreparation.recover !== 'function' ||
+      !Number.isSafeInteger(floorPlanBodyTimeout) ||
+      floorPlanBodyTimeout < 1 ||
+      floorPlanBodyTimeout > 15000)
+  )
+    throw Error('Floor-plan preparation requires private mode and bounded capabilities.');
+  const prepareFloorPlan = floorPlanPreparation?.prepare.bind(floorPlanPreparation),
+    recoverFloorPlan = floorPlanPreparation?.recover.bind(floorPlanPreparation);
+  let floorPlanInputBusy = false;
   if (
     floorPlanImageRead !== undefined &&
     (!floorPlanEnabled || typeof floorPlanImageRead !== 'function')
@@ -1800,6 +1833,153 @@ export function createApiService(
           },
         );
         return response(200, value, correlationId);
+      }
+      if (/^\/v2\/staff\/listings\/[^/]+\/floor-plan-inputs\//.test(path)) {
+        if (
+          !floorPlanEnabled ||
+          !prepareFloorPlan ||
+          !recoverFloorPlan ||
+          process.env.NODE_ENV === 'production'
+        )
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        const route =
+          /^\/v2\/staff\/listings\/([0-9a-f-]{36})\/floor-plan-inputs\/([1-9][0-9]{0,9})\/([1-9][0-9]{0,15})\/([0-9a-f-]{36})$/.exec(
+            path,
+          );
+        if (!route) throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        if (
+          request.url.includes('?') ||
+          request.url.includes('#') ||
+          headerNames(request.headers).some(
+            (k) =>
+              ['cookie', 'idempotency-key', 'range', 'content-encoding'].includes(k) ||
+              k.startsWith('x-') ||
+              k.startsWith('if-'),
+          )
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Unexpected preparation context.');
+        if (method !== 'GET' && method !== 'PUT')
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method unavailable.', {
+            Allow: 'GET, PUT',
+          });
+        let command: FloorPlanPreparationCommand;
+        try {
+          command = validateFloorPlanPreparationCommand({
+            policy: 'synthetic-floor-plan-preparation-command-v1',
+            listingId: route[1],
+            revision: Number(route[2]),
+            expectedVersion: route[3],
+            requestId: route[4],
+          });
+        } catch {
+          throw new HttpError(400, 'INVALID_INPUT', 'Invalid preparation target.');
+        }
+        if (
+          method === 'GET' &&
+          (request.body !== null ||
+            request.headers.has('content-type') ||
+            request.headers.has('content-length'))
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Read accepts no body.');
+        if (
+          method === 'PUT' &&
+          (!request.body || request.headers.get('content-type') !== 'application/octet-stream')
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'A binary floor-plan file is required.');
+        const length = request.headers.get('content-length');
+        let declaredBytes: number | undefined;
+        if (method === 'PUT' && length !== null) {
+          if (!/^[1-9][0-9]{0,15}$/.test(length))
+            throw new HttpError(400, 'INVALID_INPUT', 'Invalid source length.');
+          declaredBytes = Number(length);
+          if (declaredBytes > 10485760)
+            throw new HttpError(413, 'PAYLOAD_TOO_LARGE', 'File is too large.');
+        }
+        const actorId = (await identity(request, true))!,
+          context = { tenantId, actorId, correlationId };
+        await options.database.transaction(context, async (query) => {
+          const r = await query.query(
+            'SELECT app_api.read_synthetic_floor_plan_gallery($1::uuid,$2::integer) AS value',
+            [command.listingId, command.revision],
+          );
+          const gallery = floorPlanStateFromSql(
+            scalar(r, 'value'),
+            tenantId,
+            actorId,
+            command.listingId,
+            command.revision,
+          );
+          if (method === 'PUT') {
+            const listing = await query.query(
+              'SELECT publication_status AS status FROM app_private.listings WHERE tenant_id=$1::uuid AND id=$2::uuid',
+              [tenantId, command.listingId],
+            );
+            if (
+              listing.rows.length !== 1 ||
+              listing.rows[0]!.status === 'archived' ||
+              gallery.state !== 'draft' ||
+              gallery.version !== command.expectedVersion
+            )
+              throw new HttpError(
+                409,
+                'CONFLICT',
+                'Refresh the current draft before preparing a file.',
+              );
+          }
+        });
+        const accepted = (value: unknown) => {
+          if (!value || typeof value !== 'object') throw Error('Invalid preparation result.');
+          const descriptors = Object.getOwnPropertyDescriptors(value);
+          if (
+            Reflect.ownKeys(value).length !== 2 ||
+            !descriptors.state ||
+            !Object.hasOwn(descriptors.state, 'value') ||
+            descriptors.state.value !== 'prepared' ||
+            !descriptors.prepared ||
+            !Object.hasOwn(descriptors.prepared, 'value')
+          )
+            throw new HttpError(
+              503,
+              'UNAVAILABLE',
+              'Keep the original preparation request and check its status.',
+            );
+          return validatePreparedFloorPlan(descriptors.prepared.value, command);
+        };
+        if (method === 'GET')
+          return response(200, accepted(await recoverFloorPlan(context, command)), correlationId);
+        if (floorPlanInputBusy)
+          throw new HttpError(503, 'UNAVAILABLE', 'File preparation is busy.');
+        floorPlanInputBusy = true;
+        try {
+          let source: Buffer;
+          try {
+            source = await readSyntheticUploadBody(
+              request.body as unknown as AsyncIterable<Uint8Array>,
+              {
+                signal: request.signal,
+                timeoutMs: floorPlanBodyTimeout,
+                ...(declaredBytes === undefined ? {} : { declaredBytes }),
+              },
+            );
+          } catch (error) {
+            if (error instanceof SyntheticUploadBodyError)
+              throw new HttpError(
+                error.code === 'INPUT_TOO_LARGE' ? 413 : error.code === 'TIMED_OUT' ? 408 : 400,
+                'INVALID_INPUT',
+                'File could not be read within the source limits.',
+              );
+            throw error;
+          }
+          if (request.signal.aborted)
+            throw new HttpError(400, 'INVALID_INPUT', 'File preparation was cancelled.');
+          return response(
+            200,
+            accepted(await prepareFloorPlan(context, command, source)),
+            correlationId,
+          );
+        } finally {
+          floorPlanInputBusy = false;
+        }
       }
       if (/^\/v2\/staff\/listings\/[^/]+\/floor-plan-/.test(path)) {
         if (!floorPlanEnabled || process.env.NODE_ENV === 'production')

@@ -149,3 +149,82 @@ export function validateFloorPlanState(
     floorPlan: r.floorPlan === null ? null : validateFloorPlanMetadata(r.floorPlan),
   });
 }
+export interface FloorPlanPreparationCommand {
+  readonly policy: 'synthetic-floor-plan-preparation-command-v1';
+  readonly listingId: string;
+  readonly revision: number;
+  readonly expectedVersion: string;
+  readonly requestId: string;
+}
+export interface PreparedFloorPlan extends Omit<FloorPlanPreparationCommand, 'policy'> {
+  readonly policy: 'synthetic-floor-plan-prepared-v1';
+  readonly width: number;
+  readonly height: number;
+  readonly bytes: number;
+  readonly sha256: string;
+}
+export function validateFloorPlanPreparationCommand(v: unknown): FloorPlanPreparationCommand {
+  const r = exact(v, ['policy', 'listingId', 'revision', 'expectedVersion', 'requestId']);
+  if (r.policy !== 'synthetic-floor-plan-preparation-command-v1') fail();
+  const command = validateFloorPlanAttachmentCommand({
+    policy: 'synthetic-floor-plan-attachment-command-v1',
+    operationId: r.requestId,
+    listingId: r.listingId,
+    revision: r.revision,
+    expectedVersion: r.expectedVersion,
+    requestId: r.requestId,
+  });
+  return Object.freeze({
+    policy: r.policy,
+    listingId: command.listingId,
+    revision: command.revision,
+    expectedVersion: command.expectedVersion,
+    requestId: command.requestId!,
+  });
+}
+export function validatePreparedFloorPlan(
+  v: unknown,
+  original: FloorPlanPreparationCommand,
+): PreparedFloorPlan {
+  const r = exact(v, [
+      'policy',
+      'listingId',
+      'revision',
+      'expectedVersion',
+      'requestId',
+      'width',
+      'height',
+      'bytes',
+      'sha256',
+    ]),
+    t = validateFloorPlanPreparationCommand(original);
+  if (
+    r.policy !== 'synthetic-floor-plan-prepared-v1' ||
+    r.listingId !== t.listingId ||
+    r.revision !== t.revision ||
+    r.expectedVersion !== t.expectedVersion ||
+    r.requestId !== t.requestId
+  )
+    fail();
+  const m = validateFloorPlanMetadata({
+    operationId: t.requestId,
+    requestId: t.requestId,
+    width: r.width,
+    height: r.height,
+    bytes: r.bytes,
+    sha256: r.sha256,
+  });
+  return Object.freeze({
+    policy: r.policy,
+    ...{
+      listingId: t.listingId,
+      revision: t.revision,
+      expectedVersion: t.expectedVersion,
+      requestId: t.requestId,
+    },
+    width: m.width,
+    height: m.height,
+    bytes: m.bytes,
+    sha256: m.sha256,
+  }) as unknown as PreparedFloorPlan;
+}
