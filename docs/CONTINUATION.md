@@ -1,3 +1,7 @@
+## Published durable floor-plan output checkpoint362 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec6bdedef481919b1696690cd99a7d succeeded from dashboard003c234. Current heading verified after the navigation wait timed out but the document loaded correctly. Exports(16)/(17) retain all 866 prior note occurrences and every manual task/status/gate/decision/risk field. Implementation11c2149 has32 passing focused media checks, zero skips, media build/formatting/whitespace and3 dashboard checks. Actual native Windows output persists before sealing; closed/reopened stores recover the same original without native/SQL/write replay. Historical receipt validation alone can skip fresh lease time checks; worker admission still defaults fresh. Missing local receipt can be reported receiptPersisted false rather than rewritten. Next, separate current-authority floor-plan listing attachment and saved gallery reads, then author/reviewer UI and approval/public consumers. No listing attachment or release gate accepted.54/97(56%), all14 gates open. Screenshot floor362-published.png.
+
 ## Durable floor-plan output checkpoint362 - 5 November 2026 EAT
 
 Verified floor-plan bytes, seal intent and SQL receipt now persist in durable stores. Read-only recovery verifies the original without decoding or repeating writes. All 32 focused checks passed, including actual Windows processing and store reopening. Progress remains 54/97 (56%).
