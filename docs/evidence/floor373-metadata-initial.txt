@@ -1,0 +1,35 @@
+✔ metadata publication default-off and production gates fail closed before SQL (2336.3928ms)
+✖ review and anonymous SDK reads join restricted SQL approval, current authority and sanitized projections (1560.0654ms)
+✔ noncanonical paths and authority/framing headers cannot enter the metadata database read (1512.0143ms)
+✔ public floor-plan read is anonymous, uncached, credential-free and authority options fail before I/O (28.6776ms)
+✔ public floor-plan reader rejects cached, duplicate, mismatched or private metadata (2.553ms)
+✔ review floor-plan reader requires staff token and exact pending/approved version (1.6ms)
+✔ published floor-plan facts are strict frozen metadata without private provenance (2.6472ms)
+✔ review floor-plan metadata binds exact approved or pending revision version (0.3199ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 7
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7219.9704
+
+✖ failing tests:
+
+test at apps\api\tests\floor-plan-publication.test.mjs:61:1
+✖ review and anonymous SDK reads join restricted SQL approval, current authority and sanitized projections (1560.0654ms)
+  Error [ApiClientError]: Use HTTPS; local HTTP requires explicit loopback development opt-in.
+      at invalid (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:179:11)
+      at origin (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:241:16)
+      at new RealtorApiClient (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/packages/api-client/dist/index.js:1687:26)
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/api/tests/floor-plan-publication.test.mjs:75:13)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    kind: 'CONFIGURATION',
+    status: undefined,
+    serverCode: undefined,
+    requestId: undefined,
+    retryAfterSeconds: undefined,
+    submissionUncertain: false
+  }

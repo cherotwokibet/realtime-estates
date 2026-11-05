@@ -44,6 +44,9 @@ import {
 } from '@realtor/domain';
 import {
   validatePublishedListingVideo,
+  validatePublishedFloorPlan,
+  validateReviewFloorPlan,
+  type PublishedFloorPlan,
   type PublishedListingVideo,
   listingVideoTarget,
   validateListingVideoCommand,
@@ -2770,6 +2773,59 @@ export class RealtorApiClient {
       return validatePublishedListingVideo(data, listingId, revision);
     } catch {
       return invalid('INVALID_RESPONSE', 'Published video differs.');
+    }
+  }
+
+  async getReviewFloorPlan(
+    listingId: string,
+    revision: number,
+    expectedVersion: string,
+    options: StaffRequestOptions,
+  ): Promise<FloorPlanState> {
+    const captured = uploadOptions(options);
+    try {
+      listingVideoTarget(listingId, revision);
+      if (
+        !/^[1-9][0-9]{0,15}$/.test(expectedVersion) ||
+        BigInt(expectedVersion) > 9007199254740991n
+      )
+        throw Error();
+    } catch {
+      return invalid('VALIDATION', 'Invalid review version.');
+    }
+    const data = await this.request(
+      `/v2/staff/reviews/${listingId}/${revision}/floor-plan/${expectedVersion}`,
+      'GET',
+      captured,
+    );
+    try {
+      const state = validateReviewFloorPlan(data, listingId, revision, expectedVersion);
+      if (state.version !== expectedVersion) throw Error();
+      return state;
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Review floor-plan differs.');
+    }
+  }
+  async getPublishedFloorPlan(
+    listingId: string,
+    revision: number,
+    options: Omit<RequestOptions, 'bearerToken'> = {},
+  ): Promise<PublishedFloorPlan> {
+    const captured = anonymousReportOptions(options);
+    try {
+      listingVideoTarget(listingId, revision);
+    } catch {
+      return invalid('VALIDATION', 'Invalid published floor-plan revision.');
+    }
+    const data = await this.request(
+      `/v3/properties/${listingId}/revisions/${revision}/floor-plan`,
+      'GET',
+      captured,
+    );
+    try {
+      return validatePublishedFloorPlan(data, listingId, revision);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Published floor-plan differs.');
     }
   }
 
@@ -6286,7 +6342,13 @@ export class RealtorApiClient {
       /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/video-(?:operations\/[0-9a-f-]{36}|revisions\/[1-9][0-9]{0,9})$/.test(
         path,
       );
+    const publishedFloorPlan =
+      /^\/v3\/properties\/[0-9a-f-]{36}\/revisions\/[1-9][0-9]{0,9}\/floor-plan$/.test(path) ||
+      /^\/v2\/staff\/reviews\/[0-9a-f-]{36}\/[1-9][0-9]{0,9}\/floor-plan\/[1-9][0-9]{0,15}$/.test(
+        path,
+      );
     const floorPlan =
+      publishedFloorPlan ||
       /^\/v2\/staff\/listings\/[0-9a-f-]{36}\/floor-plan-(?:inputs\/[1-9][0-9]{0,9}\/[1-9][0-9]{0,15}\/[0-9a-f-]{36}|operations\/[0-9a-f-]{36}|revisions\/[1-9][0-9]{0,9})$/.test(
         path,
       );

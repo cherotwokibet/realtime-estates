@@ -2,6 +2,8 @@ import { readSyntheticUploadBody, SyntheticUploadBodyError } from '@realtor/medi
 import {
   validateFloorPlanPreparationCommand,
   validatePreparedFloorPlan,
+  validatePublishedFloorPlan,
+  validateReviewFloorPlan,
   type FloorPlanPreparationCommand,
 } from '@realtor/domain';
 import { parseFloorPlanJson, validateFloorPlanAttachmentCommand } from '@realtor/domain';
@@ -175,6 +177,7 @@ export interface ApiServiceOptions {
     bodyTimeoutMs?: number;
   }>;
   readonly floorPlanMode?: 'synthetic-private-floor-plan-v1';
+  readonly floorPlanPublicationMode?: 'synthetic-floor-plan-publication-v1';
   readonly floorPlanImageRead?: (
     context: Readonly<{ tenantId: string; actorId: string; correlationId: string }>,
     listingId: string,
@@ -1550,6 +1553,14 @@ export function createApiService(
       process.env.NODE_ENV === 'production')
   )
     throw Error('Floor-plan candidate requires explicit non-production mode.');
+  if (
+    options.floorPlanPublicationMode !== undefined &&
+    (options.floorPlanPublicationMode !== 'synthetic-floor-plan-publication-v1' ||
+      process.env.NODE_ENV === 'production')
+  )
+    throw Error('Floor-plan publication candidate requires explicit non-production mode.');
+  const floorPlanPublicationEnabled =
+    options.floorPlanPublicationMode === 'synthetic-floor-plan-publication-v1';
   const floorPlanEnabled = options.floorPlanMode === 'synthetic-private-floor-plan-v1';
   const floorPlanImageRead = options.floorPlanImageRead;
   const floorPlanPreparation = options.floorPlanPreparation;
@@ -1829,6 +1840,75 @@ export function createApiService(
             const raw = scalar(r, 'value');
             if (pub) return validatePublishedListingVideo(raw, listing, revision);
             const state = validateListingVideoState(raw, listing, revision);
+            if (state.version !== review![3]) throw Error('Review version differs.');
+            return state;
+          },
+        );
+        return response(200, value, correlationId);
+      }
+      if (
+        /^\/v3\/properties\/[^/]+\/revisions\/[^/]+\/floor-plan/.test(path) ||
+        /^\/v2\/staff\/reviews\/[^/]+\/[^/]+\/floor-plan/.test(path)
+      ) {
+        if (!floorPlanPublicationEnabled || process.env.NODE_ENV === 'production')
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        const pub =
+          /^\/v3\/properties\/([0-9a-f-]{36})\/revisions\/([1-9][0-9]{0,9})\/floor-plan$/.exec(
+            path,
+          );
+        const review =
+          /^\/v2\/staff\/reviews\/([0-9a-f-]{36})\/([1-9][0-9]{0,9})\/floor-plan\/([1-9][0-9]{0,15})$/.exec(
+            path,
+          );
+        const route = pub ?? review;
+        if (!route) throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        if (method !== 'GET')
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Read only.', { Allow: 'GET' });
+        if (
+          request.url.includes('?') ||
+          request.url.includes('#') ||
+          request.body !== null ||
+          headerNames(request.headers).some(
+            (k) =>
+              [
+                'cookie',
+                'content-type',
+                'content-length',
+                'content-encoding',
+                'range',
+                'idempotency-key',
+                'transfer-encoding',
+                'expect',
+              ].includes(k) ||
+              k.startsWith('x-') ||
+              k.startsWith('if-'),
+          )
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Use only the explicit floor-plan read.');
+        if (pub && request.headers.has('authorization'))
+          throw new HttpError(400, 'INVALID_INPUT', 'Anonymous read only.');
+        const listing = uuid(route[1], 'Listing'),
+          revision = Number(route[2]);
+        if (revision > 2147483647 || (review && BigInt(review[3]!) > 9007199254740991n))
+          throw new HttpError(400, 'INVALID_INPUT', 'Invalid floor-plan revision.');
+        const actorId = review ? await identity(request, true) : null;
+        const value = await options.database.transaction(
+          { tenantId, actorId, correlationId },
+          async (query) => {
+            const r = await query.query(
+              pub
+                ? 'SELECT app_api.read_synthetic_published_floor_plan($1::uuid,$2::integer) AS value'
+                : 'SELECT app_api.read_synthetic_review_floor_plan($1::uuid,$2::integer,$3::bigint) AS value',
+              pub ? [listing, revision] : [listing, revision, review![3]],
+            );
+            const raw = scalar(r, 'value');
+            if (pub) return validatePublishedFloorPlan(raw, listing, revision);
+            const state = validateReviewFloorPlan(
+              floorPlanStateFromSql(raw, tenantId, actorId!, listing, revision),
+              listing,
+              revision,
+              review![3]!,
+            );
             if (state.version !== review![3]) throw Error('Review version differs.');
             return state;
           },

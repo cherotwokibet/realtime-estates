@@ -228,3 +228,65 @@ export function validatePreparedFloorPlan(
     sha256: m.sha256,
   }) as unknown as PreparedFloorPlan;
 }
+
+/** Public facts intentionally exclude private operation/request and storage identifiers. */
+export interface PublishedFloorPlan {
+  readonly policy: 'synthetic-published-floor-plan-v1';
+  readonly listingId: string;
+  readonly revision: number;
+  readonly approvedVersion: string;
+  readonly floorPlan: Readonly<
+    Pick<FloorPlanMetadata, 'width' | 'height' | 'bytes' | 'sha256'>
+  > | null;
+}
+export function validatePublishedFloorPlan(
+  v: unknown,
+  listingId: string,
+  revision: number,
+): PublishedFloorPlan {
+  const r = exact(v, ['policy', 'listingId', 'revision', 'approvedVersion', 'floorPlan']);
+  listingVideoTarget(r.listingId, r.revision);
+  if (
+    r.policy !== 'synthetic-published-floor-plan-v1' ||
+    r.listingId !== listingId ||
+    r.revision !== revision
+  )
+    fail();
+  let floorPlan: PublishedFloorPlan['floorPlan'] = null;
+  if (r.floorPlan !== null) {
+    const m = exact(r.floorPlan, ['width', 'height', 'bytes', 'sha256']);
+    // Reuse the private image bounds without accepting any private fields.
+    const checked = validateFloorPlanMetadata({
+      ...m,
+      operationId: listingId,
+      requestId: listingId,
+    });
+    floorPlan = Object.freeze({
+      width: checked.width,
+      height: checked.height,
+      bytes: checked.bytes,
+      sha256: checked.sha256,
+    });
+  }
+  return Object.freeze({
+    policy: r.policy,
+    listingId,
+    revision,
+    approvedVersion: version(r.approvedVersion),
+    floorPlan,
+  });
+}
+export function validateReviewFloorPlan(
+  v: unknown,
+  listingId: string,
+  revision: number,
+  expectedVersion: string,
+): FloorPlanState {
+  const result = validateFloorPlanState(v, listingId, revision);
+  if (
+    result.version !== version(expectedVersion) ||
+    !['pending', 'approved'].includes(result.state)
+  )
+    fail();
+  return result;
+}

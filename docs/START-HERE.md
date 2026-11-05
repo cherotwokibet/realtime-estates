@@ -1,3 +1,9 @@
+## Approved floor-plan metadata transport373 - 5 November 2026 EAT
+
+Strict published/review shared contracts, default-off API routes and SDK reads now connect the immutable floor-plan approval ledger.18 focused checks,0 skips; domain/API-client/API builds passed. Anonymous output excludes private provenance; admin pending/approved reads bind exact version/current authority. Tests use injected identity and Request/Response with actual restricted PGlite SQL, not listening HTTP/JWKS/native/browser proof. Evidence: docs/evidence/2026-11-05-floor-plan-metadata-transport.md and floor373-* logs.
+
+Exact next: separately authorized approved/public durable byte delivery with current eligibility and approved output checks before/after IO; signed listening/native preview/browser approval/public proof; successor copy/explicit-null and shared web/mobile consumers, then combined floor/photo/video/draft/transition original lock matrix.54/97(56%), all14 gates open; task06-4 incomplete. No production/default preview activation, Actions/spending/vendor/live changes. KES10,000 baseline retained.
+
 ## Atomic floor-plan approval candidate372 - 5 November 2026 EAT
 
 An isolated SQL approval snapshot captures the sealed attachment or explicit absence inside the moderation transaction. Current-authority admin pending/approved reads and public-eligible metadata projections are covered by15 database checks,0 skips, including rollback, rejection, removal, historical originals, no backfill and private identifier exclusion. Evidence: docs/evidence/2026-11-05-floor-plan-approval-snapshot.md and floor372-database*.txt. No API/SDK/public byte route or preview activation yet;54/97(56%), all14 gates open.
