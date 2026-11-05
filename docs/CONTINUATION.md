@@ -1,3 +1,7 @@
+## Published floor-plan output seal checkpoint361 - 5 November 2026 EAT
+
+Private deployment appgdep_6aec5d8c5a948191a27c5c4708d70efa succeeded from dashboard5203a0d. Live heading verified. Exports(14)/(15) retain all 864 prior note occurrences and every manual task/status/gate/decision/risk field. Implementation150edc5 has20 passing focused SQL/native checks, zero skips, formatting/whitespace and3 dashboard checks. Actual Windows-worker output was bound to the isolated SQL output seal. Exact replay retains the original audit/receipt; sealed results block further worker preflight. Next, durable verified-output bytes plus retained seal intent/receipt and lost-acknowledgement reconciliation without decode/write replay. Then separate attachment/gallery/approval/public integration. SQL metadata only, no listing attachment yet.54/97(56%), all14 gates open. Screenshot floor361-published.png.
+
 ## Floor-plan output seal checkpoint361 - 5 November 2026 EAT
 
 Floor-plan output sealing now retains one original SQL receipt, checks current authority and source/lease facts, and blocks new processing after sealing. All 20 focused checks passed, including actual Windows-worker output sealing. Progress remains 54/97 (56%).
