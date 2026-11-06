@@ -1,3 +1,5 @@
+import { readPublishedFloorPlanImageBytes } from './floor-plan-image.js';
+export { readPublishedFloorPlanImageBytes } from './floor-plan-image.js';
 import {
   validateFloorPlanPreparationCommand,
   validatePreparedFloorPlan,
@@ -2829,6 +2831,61 @@ export class RealtorApiClient {
     }
   }
 
+  async getPublishedFloorPlanImage(
+    listingId: string,
+    revision: number,
+    approvedVersion: string,
+    options: Omit<RequestOptions, 'bearerToken'> = {},
+  ) {
+    const captured = anonymousReportOptions(options);
+    try {
+      listingVideoTarget(listingId, revision);
+    } catch {
+      return invalid('VALIDATION', 'Invalid published floor-plan target.');
+    }
+    if (
+      typeof approvedVersion !== 'string' ||
+      !/^[1-9][0-9]{0,15}$/.test(approvedVersion) ||
+      BigInt(approvedVersion) > 9007199254740991n
+    )
+      return invalid('VALIDATION', 'Invalid approved floor-plan version.');
+    const controller = new AbortController(),
+      timer = setTimeout(() => controller.abort(), captured.timeoutMs ?? this.defaultTimeout),
+      signal = captured.signal
+        ? AbortSignal.any([captured.signal, controller.signal])
+        : controller.signal;
+    try {
+      const metadata = await this.getPublishedFloorPlan(listingId, revision, {
+        ...captured,
+        signal,
+      });
+      if (metadata.approvedVersion !== approvedVersion || !metadata.floorPlan)
+        return invalid('INVALID_RESPONSE', 'Published floor plan changed.');
+      const data = await readPublishedFloorPlanImageBytes(
+        `${this.apiOrigin}/v3/properties/${listingId}/revisions/${revision}/floor-plan-image/${approvedVersion}`,
+        metadata,
+        signal,
+        this.transport,
+      );
+      const current = await this.getPublishedFloorPlan(listingId, revision, {
+        ...captured,
+        signal,
+      });
+      if (JSON.stringify(current) !== JSON.stringify(metadata))
+        return invalid('INVALID_RESPONSE', 'Published floor plan changed.');
+      return Object.freeze({ metadata, data });
+    } catch (error) {
+      if (error instanceof ApiClientError) throw error;
+      if (signal.aborted)
+        throw new ApiClientError(
+          captured.signal?.aborted ? 'CANCELLED' : 'TIMEOUT',
+          'Published floor-plan read was interrupted.',
+        );
+      throw new ApiClientError('INVALID_RESPONSE', 'Published floor-plan image unavailable.');
+    } finally {
+      clearTimeout(timer);
+    }
+  }
   async prepareFloorPlan(
     input: FloorPlanPreparationCommand,
     source: Uint8Array,

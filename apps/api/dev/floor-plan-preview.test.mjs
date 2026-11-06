@@ -245,6 +245,7 @@ test(
       floorPlanPublicationMode: 'synthetic-floor-plan-publication-v1',
       floorPlanReferenceJourney: 'synthetic-floor-plan-reference-journey-v1',
       referenceModerationMode: 'synthetic-reference-transition-v1',
+      referencePublicMode: 'synthetic-reference-public-v1',
     });
     assert.equal(p.syntheticFloorPlanPublication, true);
     const api = new RealtorApiClient({
@@ -408,6 +409,8 @@ test(
       ).status,
       409,
     );
+    const stock = await api.getSyntheticReferencePropertiesV3();
+    assert.ok(stock.items.some((item) => item.id === p.listingId));
     const published = await api.getPublishedFloorPlan(p.listingId, 1);
     assert.equal(published.approvedVersion, approved.version);
     assert.equal(published.floorPlan.sha256, prepared.sha256);

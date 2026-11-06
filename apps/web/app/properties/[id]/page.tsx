@@ -1,3 +1,5 @@
+import PublicFloorPlan from '../../../components/PublicFloorPlan';
+import { readPublicFloorPlan } from '../../../lib/public-floor-plan';
 import { customerBridge } from '../../../lib/customer-runtime';
 import Image from 'next/image';
 import PublicListingVideo from '../../../components/PublicListingVideo';
@@ -67,6 +69,10 @@ export default async function Property({ params }: { params: Promise<{ id: strin
   const video =
     mode === 'connected' && synthetic
       ? await readPublicVideo(p, process.env)
+      : { status: 'off' as const };
+  const floorPlan =
+    mode === 'connected' && synthetic
+      ? await readPublicFloorPlan(p, process.env)
       : { status: 'off' as const };
   let propertyEnquiry = false;
   try {
@@ -211,6 +217,7 @@ export default async function Property({ params }: { params: Promise<{ id: strin
             )}
             <p>{p.description}</p>
             <PublicListingVideo result={video} />
+            <PublicFloorPlan result={floorPlan} />
             <div className="detail-specs">
               <div>
                 <span>

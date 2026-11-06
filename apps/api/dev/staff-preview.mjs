@@ -450,7 +450,6 @@ function configuration({
       floorPlanPublicationMode !== 'synthetic-floor-plan-publication-v1' ||
       referenceModerationMode !== 'synthetic-reference-transition-v1' ||
       referenceSuccessorMode !== undefined ||
-      referencePublicMode !== undefined ||
       journeyFixture !== undefined)
   )
     throw new StaffPreviewConfigurationError(

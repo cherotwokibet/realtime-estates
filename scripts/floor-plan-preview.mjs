@@ -1,3 +1,4 @@
+import { referencePublicWebEnvironment } from '../apps/api/dev/reference-public-launch-config.mjs';
 /** Synthetic local launcher only. Credentials stay in child environment, never stdout or HTTP. */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { mkdtemp } from 'node:fs/promises';
@@ -29,6 +30,10 @@ if (existsSync(new URL('../apps/admin/.next/dev/lock', import.meta.url)))
   throw Error('Admin development directory is occupied.');
 const envFile = new URL('../apps/admin/next-env.d.ts', import.meta.url),
   envBytes = readFileSync(envFile);
+const webEnvFile = new URL('../apps/web/next-env.d.ts', import.meta.url),
+  webEnvBytes = readFileSync(webEnvFile);
+if (referenceJourney && existsSync(new URL('../apps/web/.next/dev/lock', import.meta.url)))
+  throw Error('Public web development directory is occupied.');
 const rootDirectory =
   process.env.STAFF_FLOOR_ROOT ?? (await mkdtemp(path.join(os.tmpdir(), 'realtor-floor-preview-')));
 const powerShellPath =
@@ -53,6 +58,7 @@ const fixture = await startStaffPreview({
         floorPlanReferenceJourney: referenceJourney,
         floorPlanPublicationMode: 'synthetic-floor-plan-publication-v1',
         referenceModerationMode: 'synthetic-reference-transition-v1',
+        referencePublicMode: 'synthetic-reference-public-v1',
       }
     : {}),
   nativeFloorPlan: { mode: 'synthetic-native-v1', rootDirectory, powerShellPath },
@@ -111,6 +117,7 @@ try {
 }
 const instance = randomUUID();
 let child,
+  webChild,
   stopping,
   restarting = false;
 function launch(actor = 'agent') {
@@ -171,6 +178,61 @@ function launch(actor = 'agent') {
       '/1/floor-plan',
   );
 }
+function launchWeb() {
+  if (!referenceJourney) return;
+  const active = spawn(
+    process.execPath,
+    [
+      '--max-old-space-size=512',
+      fileURLToPath(new URL('../node_modules/next/dist/bin/next', import.meta.url)),
+      'dev',
+      'apps/web',
+      '--webpack',
+      '-p',
+      '3140',
+      '-H',
+      '127.0.0.1',
+    ],
+    {
+      cwd: root,
+      windowsHide: true,
+      stdio: ['ignore', 'inherit', 'inherit'],
+      env: {
+        ...referencePublicWebEnvironment(
+          {
+            ...process.env,
+            NODE_ENV: 'development',
+            WEB_CATALOGUE_REFERENCE: 'synthetic-reference-public-v1',
+            REFERENCE_PUBLIC_UI_PORT: '3140',
+            TENANT_SLUG: fixture.tenantSlug,
+            REFERENCE_PUBLIC_JOURNEY_FIXTURE: undefined,
+          },
+          fixture,
+        ),
+        WEB_CATALOGUE_FLOOR_PLAN: 'synthetic-floor-plan-publication-v1',
+      },
+    },
+  );
+  webChild = active;
+  active.on('error', () => {
+    if (webChild === active) void stop();
+  });
+  active.on('close', () => {
+    if (webChild === active && !stopping) void stop();
+  });
+  console.log(
+    'Synthetic anonymous property: http://127.0.0.1:3140/properties/' + fixture.listingId,
+  );
+}
+async function endWeb() {
+  const previous = webChild;
+  webChild = null;
+  if (previous && previous.exitCode === null && previous.signalCode === null) {
+    const ended = new Promise((resolve) => previous.once('close', resolve));
+    previous.kill();
+    await ended;
+  }
+}
 async function endChild() {
   const previous = child;
   child = null;
@@ -185,8 +247,10 @@ async function stop() {
   return (stopping ??= (async () => {
     lines.close();
     await endChild();
+    await endWeb();
     await fixture.close();
     writeFileSync(envFile, envBytes);
+    if (referenceJourney) writeFileSync(webEnvFile, webEnvBytes);
   })());
 }
 lines.on('line', async (line) => {
@@ -212,7 +276,13 @@ process.on('SIGINT', () => {
 process.on('SIGTERM', () => {
   void stop();
 });
-launch();
+try {
+  launch();
+  launchWeb();
+} catch (error) {
+  await stop();
+  throw error;
+}
 console.log(
   'Developer controls: agent / admin / customer / quit. No HTTP administration endpoint.',
 );
