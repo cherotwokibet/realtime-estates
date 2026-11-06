@@ -51,3 +51,16 @@ test('read-only floor-plan view shows actual saved metadata and makes no implici
   assert.match(html, /<fieldset disabled/);
   assert.doesNotMatch(html, /<img|<iframe|<video|https?:/);
 });
+
+test('reviewer reload stays on the review route while the author route remains separate', () => {
+  const html = render(
+    React.createElement(FloorPlanWorkspace, {
+      ...props,
+      editable: false,
+      audience: 'reviewer',
+      state: { ...props.state, state: 'pending' },
+    }),
+  );
+  assert.ok(html.includes(`/reviews/${props.scope.listingId}/1/floor-plan`));
+  assert.ok(!html.includes(`/drafts/${props.scope.listingId}/1/floor-plan`));
+});

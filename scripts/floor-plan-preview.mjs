@@ -12,6 +12,12 @@ import { RealtorApiClient } from '@realtor/api-client';
 import { normalizeStaffDraftContentV2 } from '@realtor/domain';
 if (process.env.NODE_ENV === 'production' || process.argv.length > 2)
   throw Error('Floor-plan preview is local synthetic only.');
+const referenceJourney = process.env.STAFF_FLOOR_REFERENCE_JOURNEY;
+if (
+  referenceJourney !== undefined &&
+  referenceJourney !== 'synthetic-floor-plan-reference-journey-v1'
+)
+  throw Error('Unsupported synthetic floor-plan reference journey.');
 if (
   process.env.STAFF_FLOOR_REPLY_FAULT !== undefined &&
   process.env.STAFF_FLOOR_REPLY_FAULT !== 'invalid-first-floor-plan-v1'
@@ -42,6 +48,13 @@ const fixture = await startStaffPreview({
   actor: 'agent',
   tenantSlug: process.env.TENANT_SLUG ?? 'realtime-estates',
   referenceDraftMode: 'synthetic-reference-draft-v1',
+  ...(referenceJourney
+    ? {
+        floorPlanReferenceJourney: referenceJourney,
+        floorPlanPublicationMode: 'synthetic-floor-plan-publication-v1',
+        referenceModerationMode: 'synthetic-reference-transition-v1',
+      }
+    : {}),
   nativeFloorPlan: { mode: 'synthetic-native-v1', rootDirectory, powerShellPath },
   ...(process.env.STAFF_FLOOR_REPLY_FAULT === 'invalid-first-floor-plan-v1'
     ? { floorPlanReplyFault: process.env.STAFF_FLOOR_REPLY_FAULT }
@@ -57,6 +70,11 @@ try {
   const workspace = await api.getStaffDraftWorkspaceV2(fixture.listingId, 1, options),
     catalogue = await api.getSyntheticReferenceCatalogueV3('current', options),
     session = await api.getCurrentStaffSessionV2(options);
+  const county = referenceJourney ? catalogue.locations.find((r) => r.kind === 'county') : null,
+    town = referenceJourney ? catalogue.locations.find((r) => r.kind === 'locality') : null,
+    area = referenceJourney ? catalogue.locations.find((r) => r.kind === 'neighbourhood') : null;
+  if (referenceJourney && (!county || !town || !area))
+    throw Error('Synthetic reference locations unavailable.');
   await api.saveSyntheticReferenceDraftV3(
     {
       policy: 'synthetic-reference-draft-v1',
@@ -66,12 +84,20 @@ try {
       expectedVersion: workspace.draft.version,
       content: normalizeStaffDraftContentV2({
         ...workspace.draft.content,
-        locality: null,
-        location: { county: null, town: null, area: null },
+        locality: area?.label ?? null,
+        location: {
+          county: county?.label ?? null,
+          town: town?.label ?? null,
+          area: area?.label ?? null,
+        },
       }),
       selection: {
         catalogueVersion: catalogue.version,
-        location: { countyId: null, localityId: null, neighbourhoodId: null },
+        location: {
+          countyId: county?.id ?? null,
+          localityId: town?.id ?? null,
+          neighbourhoodId: area?.id ?? null,
+        },
         amenityIds: [],
       },
     },
@@ -114,6 +140,9 @@ function launch(actor = 'agent') {
         STAFF_PREVIEW_TOKEN: fixture.floorPlanStaff[actor].bearerToken,
         STAFF_PREVIEW_INSTANCE: instance,
         STAFF_PREVIEW_REFERENCE: 'synthetic-reference-draft-v1',
+        STAFF_PREVIEW_REFERENCE_MODERATION: referenceJourney
+          ? 'synthetic-reference-transition-v1'
+          : undefined,
         STAFF_PREVIEW_FLOOR_PLAN: 'synthetic-private-floor-plan-v1',
       },
     },

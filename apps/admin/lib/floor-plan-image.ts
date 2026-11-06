@@ -1,16 +1,19 @@
 import { validateFloorPlanState, type FloorPlanState } from '@realtor/domain';
 import { captureVideoScope, type VideoScope } from './listing-video-session.ts';
 /** One saved attachment only. Bytes become a local Blob; no token, provider URL or automatic retry. */
-export async function loadFloorPlanImage(
+async function loadImage(
   input: VideoScope,
   value: FloorPlanState,
   caller: AbortSignal,
   transport: typeof fetch = (...args) => globalThis.fetch(...args),
+  reviewer = false,
 ) {
   const scope = captureVideoScope(input),
     state = validateFloorPlanState(value, scope.listingId, scope.revision),
     meta = state.floorPlan;
   if (!meta) throw Error('No saved floor plan.');
+  if (reviewer && !['pending', 'approved'].includes(state.state))
+    throw Error('Review image unavailable.');
   const deadline = new AbortController(),
     timer = setTimeout(() => deadline.abort(), 15000),
     signal = AbortSignal.any([caller, deadline.signal]);
@@ -25,7 +28,7 @@ export async function loadFloorPlanImage(
       if (signal.aborted) abort();
     });
     const pending = transport(
-      `/api/staff/listings/${scope.listingId}/floor-plan-images/${scope.revision}/${state.version}/${meta.operationId}`,
+      `/api/staff/${reviewer ? 'reviews' : 'listings'}/${scope.listingId}/floor-plan-images/${scope.revision}/${state.version}/${meta.operationId}`,
       {
         method: 'GET',
         headers: {
@@ -99,4 +102,21 @@ export async function loadFloorPlanImage(
       reader.releaseLock();
     }
   }
+}
+
+export function loadFloorPlanImage(
+  input: VideoScope,
+  value: FloorPlanState,
+  caller: AbortSignal,
+  transport: typeof fetch = (...args) => globalThis.fetch(...args),
+) {
+  return loadImage(input, value, caller, transport, false);
+}
+export function loadReviewFloorPlanImage(
+  input: VideoScope,
+  value: FloorPlanState,
+  caller: AbortSignal,
+  transport: typeof fetch = (...args) => globalThis.fetch(...args),
+) {
+  return loadImage(input, value, caller, transport, true);
 }

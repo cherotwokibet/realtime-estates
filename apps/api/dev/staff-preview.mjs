@@ -117,6 +117,7 @@ function configuration({
   actor = 'agent',
   nativeUploads,
   nativeFloorPlan,
+  floorPlanReferenceJourney,
   floorPlanPublicationMode,
   floorPlanReplyFault,
   enquiryPreview,
@@ -444,6 +445,18 @@ function configuration({
     nativeFloorPlan = nativeMediaPreviewConfiguration(nativeFloorPlan);
   }
   if (
+    floorPlanReferenceJourney !== undefined &&
+    (floorPlanReferenceJourney !== 'synthetic-floor-plan-reference-journey-v1' ||
+      floorPlanPublicationMode !== 'synthetic-floor-plan-publication-v1' ||
+      referenceModerationMode !== 'synthetic-reference-transition-v1' ||
+      referenceSuccessorMode !== undefined ||
+      referencePublicMode !== undefined ||
+      journeyFixture !== undefined)
+  )
+    throw new StaffPreviewConfigurationError(
+      'Floor-plan reference journey requires isolated native publication and moderation.',
+    );
+  if (
     floorPlanPublicationMode !== undefined &&
     (floorPlanPublicationMode !== 'synthetic-floor-plan-publication-v1' || !nativeFloorPlan)
   )
@@ -472,6 +485,7 @@ function configuration({
     seedPendingReviews,
     nativeUploads,
     nativeFloorPlan,
+    floorPlanReferenceJourney,
     floorPlanPublicationMode,
     floorPlanReplyFault,
     enquiryPreview,
@@ -938,6 +952,7 @@ export async function startStaffPreview(options = {}) {
     seedPendingReviews,
     nativeUploads,
     nativeFloorPlan,
+    floorPlanReferenceJourney,
     floorPlanPublicationMode,
     floorPlanReplyFault,
     enquiryPreview,
@@ -1085,7 +1100,7 @@ export async function startStaffPreview(options = {}) {
       await db.query('SELECT app_private.install_synthetic_reference_catalogue(0,$1::jsonb)', [
         JSON.stringify(REFERENCE_PREVIEW_CATALOGUE),
       ]);
-      if (referenceModerationMode) {
+      if (referenceModerationMode && !floorPlanReferenceJourney) {
         for (const fixtureCompany of Object.values(COMPANIES)) {
           const listing = fixtureCompany.listing;
           await bootstrapAs(db, fixtureCompany, fixtureCompany.agent, async () => {
@@ -1407,6 +1422,7 @@ export async function startStaffPreview(options = {}) {
         : {}),
       ...(floorPlanPublicationMode
         ? {
+            floorPlanReferenceJourney,
             floorPlanPublicationMode,
             publishedFloorPlanImageRead: (...args) => nativeFloor.readPublishedImage(...args),
             reviewFloorPlanImageRead: (...args) => nativeFloor.readReviewImage(...args),
@@ -2295,12 +2311,13 @@ export async function startStaffPreview(options = {}) {
       ...(referencePublicMode
         ? { referencePublicListingId: id(Number(company.listing.slice(-3)) + 10) }
         : {}),
-      ...(referenceModerationMode
+      ...(referenceModerationMode && !floorPlanReferenceJourney
         ? { referenceReviewVersion: referenceSuccessorMode ? '5' : '4' }
         : {}),
       nativeUploads: !!nativeMedia,
       nativeFloorPlan: !!nativeFloor,
       syntheticFloorPlanPublication: !!floorPlanPublicationMode,
+      syntheticFloorPlanReferenceJourney: !!floorPlanReferenceJourney,
       close,
     };
     if (pools.auditInspection) {

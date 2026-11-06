@@ -201,6 +201,7 @@ export default function FloorPlanWorkspace(props: Screen) {
         key={JSON.stringify([props.scope, props.state])}
         scope={props.scope}
         state={props.state}
+        audience={props.audience}
       />
       <p>Photos are separate. Preparing a file does not attach it or publish it.</p>
       {!props.editable && <p>This saved revision is read-only.</p>}
@@ -285,7 +286,9 @@ export default function FloorPlanWorkspace(props: Screen) {
         </section>
       )}
       <p>
-        <a href={`/drafts/${props.scope.listingId}/${props.scope.revision}/floor-plan`}>
+        <a
+          href={`/${props.audience === 'reviewer' ? 'reviews' : 'drafts'}/${props.scope.listingId}/${props.scope.revision}/floor-plan`}
+        >
           Reload saved floor plan
         </a>
       </p>

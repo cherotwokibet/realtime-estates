@@ -6,6 +6,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { startStaffPreview } from './staff-preview.mjs';
 import { RealtorApiClient } from '@realtor/api-client';
+import { normalizeStaffDraftContentV2 } from '@realtor/domain';
 import { syntheticPng } from '../../../packages/media/tests/fixtures.mjs';
 const powerShellPath =
   process.env.REALTOR_TEST_POWERSHELL ??
@@ -204,7 +205,7 @@ test(
 );
 
 test(
-  'signed listening native preview publishes actual retained floor bytes only after approval and withdraws them on pause',
+  'signed adopted-reference native preview reviews and publishes retained floor bytes after approval and denies after pause',
   { skip: process.platform !== 'win32', timeout: 120000 },
   async (t) => {
     const root = await mkdtemp(path.join(os.tmpdir(), 'realtor-floor-public-'));
@@ -242,6 +243,8 @@ test(
       referenceDraftMode: 'synthetic-reference-draft-v1',
       nativeFloorPlan: { mode: 'synthetic-native-v1', rootDirectory: root, powerShellPath },
       floorPlanPublicationMode: 'synthetic-floor-plan-publication-v1',
+      floorPlanReferenceJourney: 'synthetic-floor-plan-reference-journey-v1',
+      referenceModerationMode: 'synthetic-reference-transition-v1',
     });
     assert.equal(p.syntheticFloorPlanPublication, true);
     const api = new RealtorApiClient({
@@ -251,6 +254,37 @@ test(
       }),
       opt = { bearerToken: p.bearerToken, timeoutMs: 60000 },
       admin = { bearerToken: p.floorPlanStaff.admin.bearerToken };
+    const initial = await api.getStaffDraftWorkspaceV2(p.listingId, 1, opt),
+      catalogue = await api.getSyntheticReferenceCatalogueV3('current', opt),
+      session = await api.getCurrentStaffSessionV2(opt);
+    assert.equal(initial.draft.version, '2');
+    assert.equal(p.referenceReviewVersion, undefined);
+    assert.equal(p.syntheticFloorPlanReferenceJourney, true);
+    const county = catalogue.locations.find((r) => r.kind === 'county'),
+      town = catalogue.locations.find((r) => r.kind === 'locality'),
+      area = catalogue.locations.find((r) => r.kind === 'neighbourhood');
+    await api.saveSyntheticReferenceDraftV3(
+      {
+        policy: 'synthetic-reference-draft-v1',
+        operationId: randomUUID(),
+        listingId: p.listingId,
+        revision: 1,
+        expectedVersion: initial.draft.version,
+        content: normalizeStaffDraftContentV2({
+          ...initial.draft.content,
+          locality: area.label,
+          location: { county: county.label, town: town.label, area: area.label },
+        }),
+        selection: {
+          catalogueVersion: catalogue.version,
+          location: { countyId: county.id, localityId: town.id, neighbourhoodId: area.id },
+          amenityIds: [],
+        },
+      },
+      catalogue,
+      session.actorId,
+      opt,
+    );
     const draft = await api.getStaffDraftWorkspaceV2(p.listingId, 1, opt),
       prep = {
         policy: 'synthetic-floor-plan-preparation-command-v1',
@@ -288,12 +322,27 @@ test(
       ).decision.outcome,
       'applied',
     );
-    const pending = await api.submitStaffDraftV2(
+    const submitContext = await api.getSyntheticReferenceRevisionContextV3(
       p.listingId,
       1,
-      { expectedVersion: attached.resultVersion },
+      attached.resultVersion,
       opt,
     );
+    const pendingReceipt = await api.transitionSyntheticReferenceRevisionV3(
+      {
+        policy: 'synthetic-reference-transition-v1',
+        operationId: randomUUID(),
+        listingId: p.listingId,
+        revision: 1,
+        review: submitContext.review,
+        action: 'submit',
+        reason: null,
+      },
+      submitContext.catalogue,
+      session.actorId,
+      opt,
+    );
+    const pending = { version: pendingReceipt.revisionVersion };
     assert.equal(
       (await api.getReviewFloorPlan(p.listingId, 1, pending.version, admin)).state,
       'pending',
@@ -325,12 +374,27 @@ test(
       403,
     );
     assert.equal((await fetch(reviewImageUrl + pending.version)).status, 401);
-    const approved = await api.decideReviewV2(
+    const reviewContext = await api.getSyntheticReferenceReviewContextV3(
       p.listingId,
       1,
-      { expectedVersion: pending.version, decision: 'approve', reason: null },
+      pending.version,
       admin,
     );
+    const approvedReceipt = await api.transitionSyntheticReferenceRevisionV3(
+      {
+        policy: 'synthetic-reference-transition-v1',
+        operationId: randomUUID(),
+        listingId: p.listingId,
+        revision: 1,
+        review: reviewContext.review,
+        action: 'approve',
+        reason: null,
+      },
+      reviewContext.catalogue,
+      p.floorPlanStaff.admin.actorId,
+      admin,
+    );
+    const approved = { version: approvedReceipt.revisionVersion };
     const approvedReviewBytes = await fetch(reviewImageUrl + approved.version, {
       headers: { authorization: 'Bearer ' + admin.bearerToken },
     });
@@ -410,4 +474,34 @@ test('floor publication composition refuses unsupported mode and missing native 
     startStaffPreview({ port: 0, floorPlanPublicationMode: 'synthetic-floor-plan-publication-v1' }),
   );
   await assert.rejects(() => startStaffPreview({ port: 0, floorPlanPublicationMode: 'live' }));
+});
+
+test('reference floor journey rejects orphan and unsupported combinations before resources', async () => {
+  for (const options of [
+    { floorPlanReferenceJourney: 'synthetic-floor-plan-reference-journey-v1' },
+    { floorPlanReferenceJourney: 'wrong' },
+    {
+      floorPlanReferenceJourney: 'synthetic-floor-plan-reference-journey-v1',
+      floorPlanPublicationMode: 'synthetic-floor-plan-publication-v1',
+    },
+  ])
+    await assert.rejects(() => startStaffPreview({ ...options, port: 0 }));
+});
+
+test('interactive floor launcher refuses unsupported author-start journey before native startup', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const r = spawnSync(
+    process.execPath,
+    [fileURLToPath(new URL('../../../scripts/floor-plan-preview.mjs', import.meta.url))],
+    {
+      env: { ...process.env, NODE_ENV: 'development', STAFF_FLOOR_REFERENCE_JOURNEY: 'wrong' },
+      encoding: 'utf8',
+      timeout: 10000,
+      windowsHide: true,
+    },
+  );
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /Unsupported synthetic floor-plan reference journey/);
+  assert.ok(!r.stdout.includes('Synthetic floor-plan'));
 });

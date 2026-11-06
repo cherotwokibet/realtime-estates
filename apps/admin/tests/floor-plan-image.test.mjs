@@ -1,8 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { floorPlanImageRequest } from '../dist/tests/lib/floor-plan-image-server.js';
-import { loadFloorPlanImage } from '../dist/tests/lib/floor-plan-image.js';
+import {
+  floorPlanImageRequest,
+  reviewFloorPlanImageRequest,
+} from '../dist/tests/lib/floor-plan-image-server.js';
+import {
+  loadFloorPlanImage,
+  loadReviewFloorPlanImage,
+} from '../dist/tests/lib/floor-plan-image.js';
 import { syntheticPng } from '../../../packages/media/tests/fixtures.mjs';
 import { convertSyntheticFloorPlan } from '../../../packages/media/dist/index.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -69,7 +75,7 @@ function harness(options = {}) {
     assert.equal(new Headers(init.headers).get('authorization'), 'Bearer synthetic.server.secret');
     const p = new URL(url).pathname,
       after = read && options.change;
-    if (p.includes('/floor-plan-images/')) {
+    if (p.includes('/floor-plan-images/') || p.includes('/floor-plan-image/')) {
       read = true;
       if (options.denied) return Response.json({ error: {} }, { status: 403 });
       return options.response ? options.response() : image();
@@ -86,19 +92,22 @@ function harness(options = {}) {
         revision: 1,
         listingVersion: '1',
         revisionVersion: after === 'version' ? '4' : (options.version ?? '3'),
-        state: 'draft',
-        editable: true,
+        state: options.review ? 'pending' : 'draft',
+        editable: !options.review,
         protocol: 'synthetic-reference-v1',
       });
-    if (p.includes('/floor-plan-revisions/'))
-      return Response.json(
-        {
-          ...state,
-          version: after === 'version' ? '4' : (options.version ?? '3'),
-          floorPlan: after === 'remove' ? null : meta,
-        },
-        { headers: { 'cache-control': 'no-store' } },
-      );
+    if (p.includes('/floor-plan-revisions/') || p.includes('/floor-plan/'))
+      return options.reviewDenied
+        ? Response.json({ error: {} }, { status: 403 })
+        : Response.json(
+            {
+              ...state,
+              state: options.review ? 'pending' : state.state,
+              version: after === 'version' ? '4' : (options.version ?? '3'),
+              floorPlan: after === 'remove' ? null : meta,
+            },
+            { headers: { 'cache-control': 'no-store' } },
+          );
     throw Error('Unexpected ' + p);
   };
   return { transport, seen };
@@ -240,4 +249,70 @@ test('read-only image tuple accepts the largest safe version without inheriting 
     ).status,
     400,
   );
+});
+
+test('review image BFF uses exact admin review metadata/byte endpoints without author fallback', async () => {
+  const f = harness({ review: true });
+  const r = await reviewFloorPlanImageRequest(
+    req({}, path.replace('/staff/listings/', '/staff/reviews/')),
+    env,
+    f.transport,
+  );
+  assert.equal(r.status, 200);
+  assert.deepEqual(Buffer.from(await r.arrayBuffer()), converted.data);
+  const byteCalls = f.seen.filter((x) => x.url.includes('/floor-plan-image/'));
+  assert.equal(byteCalls.length, 1);
+  assert.ok(
+    byteCalls[0].url.endsWith('/v2/staff/reviews/' + scope.listingId + '/1/floor-plan-image/3'),
+  );
+  assert.ok(f.seen.some((x) => x.url.endsWith('/floor-plan/3')));
+  assert.ok(
+    !f.seen.some(
+      (x) => x.url.includes('/floor-plan-revisions/') || x.url.includes('/floor-plan-images/'),
+    ),
+  );
+  for (const options of [
+    { review: true, reviewDenied: true },
+    { review: true, change: 'actor' },
+    { review: true, change: 'version' },
+    { review: true, change: 'remove' },
+  ]) {
+    const g = harness(options);
+    assert.notEqual(
+      (
+        await reviewFloorPlanImageRequest(
+          req({}, path.replace('/staff/listings/', '/staff/reviews/')),
+          env,
+          g.transport,
+        )
+      ).status,
+      200,
+    );
+  }
+});
+
+test('review browser image reader selects its own same-origin endpoint and refuses draft metadata before IO', async () => {
+  let calls = 0;
+  const pending = { ...state, state: 'pending' };
+  const blob = await loadReviewFloorPlanImage(
+    scope,
+    pending,
+    new AbortController().signal,
+    async (url, o) => {
+      calls++;
+      assert.ok(String(url).startsWith('/api/staff/reviews/'));
+      assert.equal(o.credentials, 'omit');
+      assert.equal(o.cache, 'no-store');
+      assert.equal(o.redirect, 'error');
+      return image();
+    },
+  );
+  assert.equal(blob.size, meta.bytes);
+  await assert.rejects(() =>
+    loadReviewFloorPlanImage(scope, state, new AbortController().signal, async () => {
+      calls++;
+      return image();
+    }),
+  );
+  assert.equal(calls, 1);
 });

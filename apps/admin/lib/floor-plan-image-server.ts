@@ -3,7 +3,11 @@ import { createHash } from 'node:crypto';
 import { ApiClientError } from '@realtor/api-client';
 import { listingVideoTarget } from '@realtor/domain';
 import { readSyntheticUploadBody } from '@realtor/media/upload-body';
-import { floorPlanEnvironment, readFloorPlanScreen } from './floor-plan-server.ts';
+import {
+  floorPlanEnvironment,
+  readFloorPlanScreen,
+  readReviewFloorPlanScreen,
+} from './floor-plan-server.ts';
 import { assertPreviewRequest, previewConfiguration } from './staff-preview-policy.ts';
 const headers = {
   'Cache-Control': 'private, no-store, max-age=0',
@@ -15,10 +19,11 @@ const reply = (status: number) =>
     { error: { code: 'PRIVATE_FLOOR_PLAN_IMAGE_UNAVAILABLE' }, submissionUncertain: false },
     { status, headers },
   );
-export async function floorPlanImageRequest(
+async function imageRequest(
   request: Request,
   env: Readonly<Record<string, string | undefined>> = process.env,
   transport: typeof fetch = (...args) => globalThis.fetch(...args),
+  reviewer = false,
 ) {
   let captured: ReturnType<typeof floorPlanEnvironment>,
     config: ReturnType<typeof previewConfiguration>;
@@ -36,11 +41,11 @@ export async function floorPlanImageRequest(
     signal = AbortSignal.any([request.signal, deadline.signal]);
   let abort = () => {};
   try {
+    const readScreen = reviewer ? readReviewFloorPlanScreen : readFloorPlanScreen;
     const url = new URL(request.url),
-      m =
-        /^\/api\/staff\/listings\/([0-9a-f-]{36})\/floor-plan-images\/([1-9][0-9]{0,9})\/([1-9][0-9]{0,15})\/([0-9a-f-]{36})$/.exec(
-          url.pathname,
-        );
+      m = new RegExp(
+        `^/api/staff/${reviewer ? 'reviews' : 'listings'}/([0-9a-f-]{36})/floor-plan-images/([1-9][0-9]{0,9})/([1-9][0-9]{0,15})/([0-9a-f-]{36})$`,
+      ).exec(url.pathname);
     if (!m) return reply(404);
     if (request.method !== 'GET') return reply(405);
     if (request.url.includes('?') || request.url.includes('#') || request.body) return reply(400);
@@ -79,7 +84,7 @@ export async function floorPlanImageRequest(
     } catch {
       return reply(400);
     }
-    const before = await readFloorPlanScreen(m[1]!, m[2]!, captured, transport, signal),
+    const before = await readScreen(m[1]!, m[2]!, captured, transport, signal),
       meta = before.state.floorPlan;
     if (
       request.headers.get('x-reference-actor') !== before.scope.actorId ||
@@ -94,7 +99,9 @@ export async function floorPlanImageRequest(
       if (signal.aborted) abort();
     });
     const pending = transport(
-      `${config.origin}/v2/staff/listings/${m[1]}/floor-plan-images/${m[2]}/${m[4]}`,
+      reviewer
+        ? `${config.origin}/v2/staff/reviews/${m[1]}/${m[2]}/floor-plan-image/${m[3]}`
+        : `${config.origin}/v2/staff/listings/${m[1]}/floor-plan-images/${m[2]}/${m[4]}`,
       {
         method: 'GET',
         headers: { Authorization: `Bearer ${config.bearerToken}` },
@@ -139,7 +146,7 @@ export async function floorPlanImageRequest(
       createHash('sha256').update(bytes).digest('hex') !== meta.sha256
     )
       return reply(502);
-    const after = await readFloorPlanScreen(m[1]!, m[2]!, captured, transport, signal);
+    const after = await readScreen(m[1]!, m[2]!, captured, transport, signal);
     if (JSON.stringify(after) !== JSON.stringify(before)) return reply(409);
     if (signal.aborted) throw Error('Cancelled.');
     return new Response(new Uint8Array(bytes), {
@@ -159,4 +166,19 @@ export async function floorPlanImageRequest(
     clearTimeout(timer);
     signal.removeEventListener('abort', abort);
   }
+}
+
+export function floorPlanImageRequest(
+  request: Request,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  transport: typeof fetch = (...args) => globalThis.fetch(...args),
+) {
+  return imageRequest(request, env, transport, false);
+}
+export function reviewFloorPlanImageRequest(
+  request: Request,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  transport: typeof fetch = (...args) => globalThis.fetch(...args),
+) {
+  return imageRequest(request, env, transport, true);
 }

@@ -1,5 +1,5 @@
 import FloorPlanWorkspace from '../../../../../components/FloorPlanWorkspace.tsx';
-import { readFloorPlanScreen } from '../../../../../lib/floor-plan-server.ts';
+import { readReviewFloorPlanScreen } from '../../../../../lib/floor-plan-server.ts';
 export const dynamic = 'force-dynamic';
 export default async function FloorPlanPage({
   params,
@@ -7,9 +7,9 @@ export default async function FloorPlanPage({
   params: Promise<{ id: string; revision: string }>;
 }) {
   const { id, revision } = await params;
-  let screen: Awaited<ReturnType<typeof readFloorPlanScreen>> | null = null;
+  let screen: Awaited<ReturnType<typeof readReviewFloorPlanScreen>> | null = null;
   try {
-    screen = await readFloorPlanScreen(id, revision);
+    screen = await readReviewFloorPlanScreen(id, revision);
   } catch {
     /* No stale private facts or retained-original deletion. */
   }
@@ -25,11 +25,8 @@ export default async function FloorPlanPage({
           />
         ) : (
           <section className="draft-panel">
-            <h1>Private floor plan unavailable</h1>
-            <p>
-              Current access, an adopted reference revision and compatible floor-plan preview are
-              required. Retained originals have not been changed.
-            </p>
+            <h1>Review floor plan unavailable</h1>
+            <p>Current admin access and a pending or approved reference revision are required.</p>
           </section>
         )}
       </main>

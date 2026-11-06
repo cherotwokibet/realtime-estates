@@ -41,12 +41,13 @@ export function floorPlanEnvironment(env: Readonly<Record<string, string | undef
   previewConfiguration(result);
   return result;
 }
-export async function readFloorPlanScreen(
+async function readFloorPlanScreenForAudience(
   listingId: string,
   revision: string,
   env: Readonly<Record<string, string | undefined>> = process.env,
   transport?: typeof fetch,
   signal?: AbortSignal,
+  reviewer = false,
 ) {
   const captured = floorPlanEnvironment(env),
     config = previewConfiguration(captured),
@@ -59,11 +60,15 @@ export async function readFloorPlanScreen(
     allowLoopbackHttp: true,
     ...(transport ? { fetch: transport } : {}),
   });
-  const state = await client.getFloorPlan(listingId, initial.protocol.revision, {
-    bearerToken: config.bearerToken,
-    timeoutMs: 10000,
-    signal,
-  });
+  const options = { bearerToken: config.bearerToken, timeoutMs: 10000, signal };
+  const state = reviewer
+    ? await client.getReviewFloorPlan(
+        listingId,
+        initial.protocol.revision,
+        initial.protocol.revisionVersion,
+        options,
+      )
+    : await client.getFloorPlan(listingId, initial.protocol.revision, options);
   const final = await readRevisionProtocolScreen(listingId, revision, captured, transport, signal);
   if (
     JSON.stringify(initial) !== JSON.stringify(final) ||
@@ -73,8 +78,27 @@ export async function readFloorPlanScreen(
   return Object.freeze({
     scope: Object.freeze({ ...final.scope, listingId, revision: final.protocol.revision }),
     state,
-    editable: final.protocol.editable,
+    editable: reviewer ? false : final.protocol.editable,
+    audience: reviewer ? ('reviewer' as const) : ('author' as const),
   });
+}
+export function readFloorPlanScreen(
+  listingId: string,
+  revision: string,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  transport?: typeof fetch,
+  signal?: AbortSignal,
+) {
+  return readFloorPlanScreenForAudience(listingId, revision, env, transport, signal, false);
+}
+export function readReviewFloorPlanScreen(
+  listingId: string,
+  revision: string,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  transport?: typeof fetch,
+  signal?: AbortSignal,
+) {
+  return readFloorPlanScreenForAudience(listingId, revision, env, transport, signal, true);
 }
 let uploadBusy = false;
 /** Synthetic loopback BFF: identities are comparison stamps, never selectors or upstream credentials. */

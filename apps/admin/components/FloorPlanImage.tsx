@@ -2,13 +2,15 @@
 import { useEffect, useState } from 'react';
 import type { FloorPlanState } from '@realtor/domain';
 import type { VideoScope } from '../lib/listing-video-session.ts';
-import { loadFloorPlanImage } from '../lib/floor-plan-image.ts';
+import { loadFloorPlanImage, loadReviewFloorPlanImage } from '../lib/floor-plan-image.ts';
 export default function FloorPlanImage({
   scope,
   state,
+  audience = 'author',
 }: {
   scope: VideoScope;
   state: FloorPlanState;
+  audience?: 'author' | 'reviewer';
 }) {
   const [url, setUrl] = useState<string | null>(null),
     [failed, setFailed] = useState(false);
@@ -19,7 +21,11 @@ export default function FloorPlanImage({
     setUrl(null);
     setFailed(false);
     if (state.floorPlan)
-      void loadFloorPlanImage(scope, state, controller.signal).then(
+      void (audience === 'reviewer' ? loadReviewFloorPlanImage : loadFloorPlanImage)(
+        scope,
+        state,
+        controller.signal,
+      ).then(
         (blob) => {
           if (!live || controller.signal.aborted) return;
           owned = URL.createObjectURL(blob);
@@ -34,7 +40,7 @@ export default function FloorPlanImage({
       controller.abort();
       if (owned) URL.revokeObjectURL(owned);
     };
-  }, [scope, state]);
+  }, [scope, state, audience]);
   if (!state.floorPlan) return null;
   return (
     <figure aria-label="Saved private floor plan" style={{ margin: '1rem 0' }}>
