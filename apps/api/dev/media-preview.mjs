@@ -700,6 +700,12 @@ export async function createNativeFloorPlanPreview({
         ]),
       ...(publicationEnabled
         ? {
+            readReviewGallery: (t) =>
+              api(t, 'SELECT app_api.read_synthetic_review_floor_plan($1,$2,$3) AS value', [
+                t.listingId,
+                t.revision,
+                t.expectedVersion,
+              ]),
             readPublishedGallery: (t) =>
               api(
                 { ...t, actorId: null },
@@ -780,6 +786,17 @@ export async function createNativeFloorPlanPreview({
       recover: (ctx, c) => preparation.recover(target(ctx, c)),
       ...(publicationEnabled
         ? {
+            readReviewImage: (ctx, listingId, revision, expectedVersion) => {
+              if (fenced || ctx.tenantId !== tenantId || typeof ctx.actorId !== 'string')
+                throw Error('Review floor-plan preview unavailable.');
+              return delivery.readReviewed({
+                companyId: tenantId,
+                actorId: ctx.actorId,
+                listingId,
+                revision,
+                expectedVersion,
+              });
+            },
             readPublishedImage: (ctx, listingId, revision, approvedVersion) => {
               if (fenced || ctx.tenantId !== tenantId || ctx.actorId !== null)
                 throw Error('Published floor-plan preview unavailable.');

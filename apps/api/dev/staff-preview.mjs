@@ -1409,6 +1409,7 @@ export async function startStaffPreview(options = {}) {
         ? {
             floorPlanPublicationMode,
             publishedFloorPlanImageRead: (...args) => nativeFloor.readPublishedImage(...args),
+            reviewFloorPlanImageRead: (...args) => nativeFloor.readReviewImage(...args),
           }
         : {}),
       ...(listingVideoMode ? { listingVideoMode } : {}),

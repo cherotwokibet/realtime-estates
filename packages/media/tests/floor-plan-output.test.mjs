@@ -843,3 +843,79 @@ test('approved durable output corruption fails closed without repair and readPub
   for (const k of ['native', 'seal', 'outputInstall', 'metadataInstall'])
     assert.equal(f.calls[k], before[k]);
 });
+
+test('reviewed durable bytes require independent admin SQL authority, exact version and original source binding', async (t) => {
+  const f = await publishedGallery(t),
+    target = {
+      ...f.galleryTarget,
+      actorId: sql.ADMIN,
+      expectedVersion: f.publicTarget.approvedVersion,
+    };
+  let checks = 0;
+  const readReviewGallery = (t) =>
+    sql.asActor(f.db, t.companyId, t.actorId, () =>
+      sql.scalar(f.db, 'SELECT app_api.read_synthetic_review_floor_plan($1,$2,$3)', [
+        t.listingId,
+        t.revision,
+        t.expectedVersion,
+      ]),
+    );
+  const reader = f.open({
+      readReviewGallery: async (t) => {
+        checks++;
+        return readReviewGallery(t);
+      },
+      readGallery() {
+        throw Error('No author fallback');
+      },
+    }),
+    before = { ...f.calls };
+  const r = await reader.readReviewed(target);
+  assert.equal(r.state, 'ready');
+  assert.equal(r.target.actorId, sql.ADMIN);
+  assert.equal(checks, 2);
+  await assert.rejects(() => reader.readReviewed({ ...target, actorId: sql.AGENT }), code('42501'));
+  await assert.rejects(
+    () => reader.readReviewed({ ...target, expectedVersion: '1' }),
+    code('40001'),
+  );
+  await assert.rejects(
+    () => f.open({ readGallery: f.readGallery }).readReviewed(target),
+    code('INVALID_CONFIGURATION'),
+  );
+  for (const k of ['native', 'seal', 'outputInstall', 'metadataInstall'])
+    assert.equal(f.calls[k], before[k]);
+});
+
+test('admin access revoked during reviewed output IO prevents byte return', async (t) => {
+  const f = await publishedGallery(t),
+    target = {
+      ...f.galleryTarget,
+      actorId: sql.ADMIN,
+      expectedVersion: f.publicTarget.approvedVersion,
+    };
+  const reader = f.open({
+    readReviewGallery: (t) =>
+      sql.asActor(f.db, t.companyId, t.actorId, () =>
+        sql.scalar(f.db, 'SELECT app_api.read_synthetic_review_floor_plan($1,$2,$3)', [
+          t.listingId,
+          t.revision,
+          t.expectedVersion,
+        ]),
+      ),
+    outputStore: {
+      ...f.output,
+      read: async (ref) => {
+        const r = await f.output.read(ref);
+        await f.db.query(
+          'UPDATE app_private.memberships SET active=false,revoked_at=clock_timestamp() WHERE tenant_id=$1 AND user_id=$2',
+          [sql.T, sql.ADMIN],
+        );
+        return r;
+      },
+    },
+  });
+  await assert.rejects(() => reader.readReviewed(target), code('42501'));
+  assert.equal(f.calls.native, 1);
+  assert.equal(f.calls.seal, 1);
+});

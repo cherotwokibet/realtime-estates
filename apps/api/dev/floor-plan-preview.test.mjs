@@ -302,11 +302,47 @@ test(
       () => api.getReviewFloorPlan(p.listingId, 1, pending.version, opt),
       (e) => e.status === 403,
     );
+    const reviewImageUrl = p.origin + `/v2/staff/reviews/${p.listingId}/1/floor-plan-image/`;
+    const reviewBytes = await fetch(reviewImageUrl + pending.version, {
+      headers: { authorization: 'Bearer ' + admin.bearerToken },
+    });
+    assert.equal(reviewBytes.status, 200);
+    assert.equal((await reviewBytes.arrayBuffer()).byteLength, prepared.bytes);
+    assert.equal(
+      (
+        await fetch(reviewImageUrl + pending.version, {
+          headers: { authorization: 'Bearer ' + p.bearerToken },
+        })
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await fetch(reviewImageUrl + pending.version, {
+          headers: { authorization: 'Bearer ' + p.floorPlanStaff.customer.bearerToken },
+        })
+      ).status,
+      403,
+    );
+    assert.equal((await fetch(reviewImageUrl + pending.version)).status, 401);
     const approved = await api.decideReviewV2(
       p.listingId,
       1,
       { expectedVersion: pending.version, decision: 'approve', reason: null },
       admin,
+    );
+    const approvedReviewBytes = await fetch(reviewImageUrl + approved.version, {
+      headers: { authorization: 'Bearer ' + admin.bearerToken },
+    });
+    assert.equal(approvedReviewBytes.status, 200);
+    assert.equal((await approvedReviewBytes.arrayBuffer()).byteLength, prepared.bytes);
+    assert.equal(
+      (
+        await fetch(reviewImageUrl + pending.version, {
+          headers: { authorization: 'Bearer ' + admin.bearerToken },
+        })
+      ).status,
+      409,
     );
     const published = await api.getPublishedFloorPlan(p.listingId, 1);
     assert.equal(published.approvedVersion, approved.version);

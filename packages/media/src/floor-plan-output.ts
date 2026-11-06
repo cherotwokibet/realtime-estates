@@ -23,6 +23,9 @@ export interface FloorPlanGalleryTarget {
   readonly listingId: string;
   readonly revision: number;
 }
+export interface ReviewedFloorPlanTarget extends FloorPlanGalleryTarget {
+  readonly expectedVersion: string;
+}
 export interface PublishedFloorPlanTarget {
   readonly companyId: string;
   readonly listingId: string;
@@ -213,6 +216,7 @@ export function createFloorPlanOutputDelivery(config: {
   ) => Promise<unknown>;
   readonly readSeal: (target: FloorPlanWorkerTarget) => Promise<unknown>;
   readonly readGallery?: (target: FloorPlanGalleryTarget) => Promise<unknown>;
+  readonly readReviewGallery?: (target: ReviewedFloorPlanTarget) => Promise<unknown>;
   readonly readPublishedGallery?: (target: PublishedFloorPlanTarget) => Promise<unknown>;
 }) {
   const output = store(config.outputStore),
@@ -233,6 +237,7 @@ export function createFloorPlanOutputDelivery(config: {
     fail('INVALID_CONFIGURATION');
   const readGallery = config.readGallery;
   const readPublishedGallery = config.readPublishedGallery;
+  const readReviewGallery = config.readReviewGallery;
   let busy = false,
     closed = false,
     tail: Promise<unknown> = Promise.resolve();
@@ -331,7 +336,7 @@ export function createFloorPlanOutputDelivery(config: {
   function readAttachmentBytes(
     value: Omit<FloorPlanGalleryTarget, 'actorId'> & { readonly actorId: string | null },
     reader: (() => Promise<unknown>) | undefined,
-    expectedVersion?: string,
+    authority?: Readonly<{ version: string; anonymous: boolean }>,
   ) {
     const t = object(value, ['companyId', 'actorId', 'listingId', 'revision']);
     for (const key of ['companyId', 'listingId'])
@@ -344,9 +349,9 @@ export function createFloorPlanOutputDelivery(config: {
     )
       fail('INTEGRITY');
     if (
-      expectedVersion === undefined
-        ? typeof t.actorId !== 'string' || !id.test(t.actorId)
-        : t.actorId !== null
+      authority?.anonymous === true
+        ? t.actorId !== null
+        : typeof t.actorId !== 'string' || !id.test(t.actorId)
     )
       fail('INTEGRITY');
     const target = Object.freeze(t) as unknown as Omit<FloorPlanGalleryTarget, 'actorId'> & {
@@ -372,8 +377,11 @@ export function createFloorPlanOutputDelivery(config: {
           !/^[1-9][0-9]{0,15}$/.test(row.version) ||
           BigInt(row.version) > 9007199254740991n ||
           !['draft', 'pending', 'approved', 'rejected'].includes(row.state as string) ||
-          (expectedVersion !== undefined &&
-            (row.version !== expectedVersion || row.state !== 'approved'))
+          (authority !== undefined &&
+            (row.version !== authority.version ||
+              !(authority.anonymous ? ['approved'] : ['pending', 'approved']).includes(
+                row.state as string,
+              )))
         )
           fail('INTEGRITY');
         return snapshot(row) as Readonly<Record<string, unknown>>;
@@ -581,6 +589,27 @@ export function createFloorPlanOutputDelivery(config: {
         typeof readGallery === 'function' ? () => readGallery(captured) : undefined,
       );
     },
+    /** Admin review authorization is independent of private author gallery access. */
+    readReviewed(value: ReviewedFloorPlanTarget) {
+      const t = object(value, ['companyId', 'actorId', 'listingId', 'revision', 'expectedVersion']);
+      if (
+        typeof t.expectedVersion !== 'string' ||
+        !/^[1-9][0-9]{0,15}$/.test(t.expectedVersion) ||
+        BigInt(t.expectedVersion) > 9007199254740991n
+      )
+        fail('INTEGRITY');
+      const target = Object.freeze(t) as unknown as ReviewedFloorPlanTarget;
+      return readAttachmentBytes(
+        {
+          companyId: target.companyId,
+          actorId: target.actorId,
+          listingId: target.listingId,
+          revision: target.revision,
+        },
+        typeof readReviewGallery === 'function' ? () => readReviewGallery(target) : undefined,
+        { version: target.expectedVersion, anonymous: false },
+      );
+    },
     /** Anonymous approved delivery is a separate, exact-version capability. */
     readPublished(value: PublishedFloorPlanTarget) {
       const t = object(value, ['companyId', 'listingId', 'revision', 'approvedVersion']);
@@ -629,7 +658,7 @@ export function createFloorPlanOutputDelivery(config: {
           revision: target.revision,
         },
         reader,
-        target.approvedVersion,
+        { version: target.approvedVersion, anonymous: true },
       );
     },
     close() {

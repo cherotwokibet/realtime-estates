@@ -179,6 +179,12 @@ export interface ApiServiceOptions {
   }>;
   readonly floorPlanMode?: 'synthetic-private-floor-plan-v1';
   readonly floorPlanPublicationMode?: 'synthetic-floor-plan-publication-v1';
+  readonly reviewFloorPlanImageRead?: (
+    context: Readonly<{ tenantId: string; actorId: string; correlationId: string }>,
+    listingId: string,
+    revision: number,
+    expectedVersion: string,
+  ) => Promise<unknown>;
   readonly publishedFloorPlanImageRead?: (
     context: Readonly<{ tenantId: string; actorId: null; correlationId: string }>,
     listingId: string,
@@ -1569,6 +1575,12 @@ export function createApiService(
     throw Error('Floor-plan publication candidate requires explicit non-production mode.');
   const floorPlanPublicationEnabled =
     options.floorPlanPublicationMode === 'synthetic-floor-plan-publication-v1';
+  const reviewFloorPlanImageRead = options.reviewFloorPlanImageRead;
+  if (
+    reviewFloorPlanImageRead !== undefined &&
+    (!floorPlanPublicationEnabled || typeof reviewFloorPlanImageRead !== 'function')
+  )
+    throw Error('Reviewed floor-plan image requires explicit publication mode.');
   const publishedFloorPlanImageRead = options.publishedFloorPlanImageRead;
   if (
     publishedFloorPlanImageRead !== undefined &&
@@ -1859,6 +1871,85 @@ export function createApiService(
           },
         );
         return response(200, value, correlationId);
+      }
+      if (/^\/v2\/staff\/reviews\/[^/]+\/[^/]+\/floor-plan-image/.test(path)) {
+        if (
+          !floorPlanPublicationEnabled ||
+          !reviewFloorPlanImageRead ||
+          process.env.NODE_ENV === 'production'
+        )
+          throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        const route =
+          /^\/v2\/staff\/reviews\/([0-9a-f-]{36})\/([1-9][0-9]{0,9})\/floor-plan-image\/([1-9][0-9]{0,15})$/.exec(
+            path,
+          );
+        if (!route) throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
+        if (method !== 'GET')
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Read only.', { Allow: 'GET' });
+        if (
+          request.url.includes('?') ||
+          request.url.includes('#') ||
+          request.body !== null ||
+          headerNames(request.headers).some(
+            (k) =>
+              [
+                'cookie',
+                'content-type',
+                'content-length',
+                'content-encoding',
+                'transfer-encoding',
+                'expect',
+                'range',
+                'idempotency-key',
+              ].includes(k) ||
+              k.startsWith('x-') ||
+              k.startsWith('if-'),
+          )
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Explicit review image read only.');
+        const listing = uuid(route[1], 'Listing'),
+          revision = Number(route[2]),
+          expected = route[3]!;
+        if (revision > 2147483647 || BigInt(expected) > 9007199254740991n)
+          throw new HttpError(400, 'INVALID_INPUT', 'Invalid reviewed image target.');
+        const actorId = await identity(request, true);
+        const context = Object.freeze({ tenantId, actorId: actorId!, correlationId });
+        const readReviewed = () =>
+          options.database.transaction(context, async (query) => {
+            const r = await query.query(
+              'SELECT app_api.read_synthetic_review_floor_plan($1::uuid,$2::integer,$3::bigint) AS value',
+              [listing, revision, expected],
+            );
+            const state = validateReviewFloorPlan(
+              floorPlanStateFromSql(scalar(r, 'value'), tenantId, actorId!, listing, revision),
+              listing,
+              revision,
+              expected,
+            );
+            if (!state.floorPlan)
+              throw new HttpError(404, 'NOT_FOUND', 'Floor plan is unavailable.');
+            return state;
+          });
+        const first = await readReviewed();
+        const bytes = floorPlanImageFromProvider(
+          await reviewFloorPlanImageRead(context, listing, revision, expected),
+          first,
+          tenantId,
+          actorId!,
+        );
+        if (JSON.stringify(await readReviewed()) !== JSON.stringify(first))
+          throw new HttpError(404, 'NOT_FOUND', 'Floor plan is unavailable.');
+        return new Response(new Uint8Array(bytes), {
+          status: 200,
+          headers: {
+            'content-type': 'image/webp',
+            'content-length': String(bytes.length),
+            'content-disposition': 'inline; filename="floor-plan.webp"',
+            'cache-control': 'private, no-store',
+            vary: 'Authorization',
+            'x-content-type-options': 'nosniff',
+          },
+        });
       }
       if (/^\/v3\/properties\/[^/]+\/revisions\/[^/]+\/floor-plan-image/.test(path)) {
         if (

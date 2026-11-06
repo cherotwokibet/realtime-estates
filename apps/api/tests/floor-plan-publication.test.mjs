@@ -257,3 +257,82 @@ test('publication changes or company disablement during provider IO withhold app
   assert.equal((await disabled(request(f.imagePath))).status, 404);
   assert.equal(f.reads(), 2);
 });
+
+test('review image requires separate capability and current exact admin pending/approved authority', async (t) => {
+  const f = await ready(t);
+  let reads = 0;
+  const provider = async (ctx, listingId, revision, version) => {
+    reads++;
+    return {
+      state: 'ready',
+      target: { companyId: T, actorId: ctx.actorId, listingId, revision },
+      version,
+      operationId: id(1800),
+      manifest: f.result.manifest,
+      data: f.result.data,
+    };
+  };
+  const run = f.open({
+    floorPlanPublicationMode: 'synthetic-floor-plan-publication-v1',
+    reviewFloorPlanImageRead: provider,
+  });
+  const url = (v) => `/v2/staff/reviews/${LISTING}/1/floor-plan-image/${v}`;
+  assert.equal(
+    (await f.run(request(url(f.pending), { authorization: 'Bearer admin' }))).status,
+    404,
+  );
+  for (const token of ['synthetic', 'customer'])
+    assert.equal(
+      (await run(request(url(f.pending), { authorization: 'Bearer ' + token }))).status,
+      403,
+    );
+  assert.equal(reads, 0);
+  assert.equal((await run(request(url('1'), { authorization: 'Bearer admin' }))).status, 409);
+  assert.equal(reads, 0);
+  const response = await run(request(url(f.pending), { authorization: 'Bearer admin' }));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('vary'), 'Authorization');
+  assert.deepEqual(Buffer.from(await response.arrayBuffer()), f.result.data);
+  await asActor(f.db, T, ADMIN, () =>
+    scalar(f.db, 'SELECT app_api.decide_revision($1,1,$2,true)', [LISTING, f.pending]),
+  );
+  const approved = await (await f.run(request())).json();
+  assert.equal(
+    (await run(request(url(approved.approvedVersion), { authorization: 'Bearer admin' }))).status,
+    200,
+  );
+  assert.throws(() => f.open({ reviewFloorPlanImageRead: provider }));
+});
+
+test('review image rejects framing/identity overrides before SQL and withholds malformed provider targets', async (t) => {
+  const f = await ready(t);
+  let reads = 0;
+  const url = `/v2/staff/reviews/${LISTING}/1/floor-plan-image/${f.pending}`;
+  const run = f.open({
+    floorPlanPublicationMode: 'synthetic-floor-plan-publication-v1',
+    reviewFloorPlanImageRead: async (ctx, listingId, revision, version) => {
+      reads++;
+      return {
+        state: 'ready',
+        target: { companyId: T, actorId: AGENT, listingId, revision },
+        version,
+        operationId: id(1800),
+        manifest: f.result.manifest,
+        data: f.result.data,
+      };
+    },
+  });
+  const before = f.calls.database;
+  for (const h of [
+    { 'x-actor-id': ADMIN },
+    { range: 'bytes=0-1' },
+    { 'content-length': '0' },
+    { 'if-match': 'x' },
+  ])
+    assert.equal((await run(request(url, { authorization: 'Bearer admin', ...h }))).status, 400);
+  assert.equal((await run(request(url + '?x=1', { authorization: 'Bearer admin' }))).status, 400);
+  assert.equal(f.calls.database, before);
+  assert.equal(reads, 0);
+  assert.notEqual((await run(request(url, { authorization: 'Bearer admin' }))).status, 200);
+  assert.equal(reads, 1);
+});
