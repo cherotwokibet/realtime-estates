@@ -15,6 +15,7 @@ export type MobileReferenceConfig =
       apiOrigin: string;
       allowLoopbackHttp: boolean;
       videoMode?: 'synthetic-listing-video-publication-v1';
+      floorPlanMode?: 'synthetic-floor-plan-publication-v1';
     }>;
 
 /** Public build configuration only. A device never receives staff credentials or a tenant override. */
@@ -33,6 +34,7 @@ export function resolveMobileReferenceConfig(
       'apiOrigin',
       'allowLoopbackHttp',
       ...(Object.hasOwn(input, 'videoMode') ? ['videoMode'] : []),
+      ...(Object.hasOwn(input, 'floorPlanMode') ? ['floorPlanMode'] : []),
     ];
     if (Reflect.ownKeys(input).length !== allowed.length) throw Error('Invalid fields');
     for (const key of Reflect.ownKeys(input))
@@ -50,6 +52,12 @@ export function resolveMobileReferenceConfig(
     const videoMode = descriptors.videoMode?.value;
     if (Object.hasOwn(input, 'videoMode') && videoMode !== 'synthetic-listing-video-publication-v1')
       throw Error('Invalid video mode');
+    const floorPlanMode = descriptors.floorPlanMode?.value;
+    if (
+      Object.hasOwn(input, 'floorPlanMode') &&
+      floorPlanMode !== 'synthetic-floor-plan-publication-v1'
+    )
+      throw Error('Invalid floor-plan mode');
     const tenantSlug = resolveDemoTenantSlug(tenant);
     new RealtorApiClient({
       baseUrl: apiOrigin,
@@ -62,6 +70,7 @@ export function resolveMobileReferenceConfig(
       apiOrigin: new URL(apiOrigin).origin,
       allowLoopbackHttp,
       ...(videoMode ? { videoMode } : {}),
+      ...(floorPlanMode ? { floorPlanMode } : {}),
     });
   } catch {
     return Object.freeze({ mode: 'error' });

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PublishedListingVideo from './PublishedListingVideo';
+import PublishedFloorPlan from './PublishedFloorPlan';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { PublicSearchInput } from '@realtor/api-client';
@@ -321,6 +322,13 @@ function ReferenceCatalogueSession({
                 Property photos unavailable in this metadata-only preview.
               </Text>
               <Text style={s.copy}>{selected.property.description}</Text>
+              {config.floorPlanMode && (
+                <PublishedFloorPlan
+                  key={`floor:${config.tenantSlug}:${config.apiOrigin}:${selected.property.id}:${selected.property.revision}:${selected.property.reference.revisionVersion}`}
+                  config={config}
+                  property={selected.property}
+                />
+              )}
               {config.videoMode && (
                 <PublishedListingVideo
                   key={`${config.tenantSlug}:${config.apiOrigin}:${selected.property.id}:${selected.property.revision}:${selected.property.reference.revisionVersion}`}

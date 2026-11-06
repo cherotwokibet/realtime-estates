@@ -1,10 +1,12 @@
 import { validatePublishedFloorPlan, type PublishedFloorPlan } from '@realtor/domain';
+export type FloorPlanImageDigest = (data: Uint8Array<ArrayBuffer>) => Promise<ArrayBuffer>;
 /** Anonymous exact-target WebP read. No caller headers, credentials, redirects or retry. */
 export async function readPublishedFloorPlanImageBytes(
   url: string,
   value: PublishedFloorPlan,
   caller: AbortSignal,
   transport: typeof fetch = fetch,
+  digest: FloorPlanImageDigest = (data) => crypto.subtle.digest('SHA-256', data),
 ): Promise<Uint8Array<ArrayBuffer>> {
   if (typeof url !== 'string' || url.length > 2048) throw Error('Invalid image target.');
   const state = validatePublishedFloorPlan(
@@ -103,9 +105,7 @@ export async function readPublishedFloorPlanImageBytes(
       signal.aborted
     )
       throw Error('Invalid image bytes.');
-    const hash = Array.from(
-      new Uint8Array(await Promise.race([crypto.subtle.digest('SHA-256', data), cancelled])),
-    )
+    const hash = Array.from(new Uint8Array(await Promise.race([digest(data), cancelled])))
       .map((b) => b.toString(16).padStart(2, '0'))
       .join('');
     if (hash !== meta.sha256 || signal.aborted) throw Error('Image differs.');

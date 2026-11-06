@@ -1,5 +1,5 @@
-import { readPublishedFloorPlanImageBytes } from './floor-plan-image.js';
-export { readPublishedFloorPlanImageBytes } from './floor-plan-image.js';
+import { readPublishedFloorPlanImageBytes, type FloorPlanImageDigest } from './floor-plan-image.js';
+export { readPublishedFloorPlanImageBytes, type FloorPlanImageDigest } from './floor-plan-image.js';
 import {
   validateFloorPlanPreparationCommand,
   validatePreparedFloorPlan,
@@ -863,6 +863,8 @@ export interface ApiClientOptions {
   readonly allowLoopbackHttp?: boolean;
   readonly timeoutMs?: number;
   readonly fetch?: typeof globalThis.fetch;
+  /** Trusted platform SHA-256 implementation; never request-controlled. */
+  readonly floorPlanImageDigest?: FloorPlanImageDigest;
 }
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const TYPES: readonly string[] = [
@@ -2866,6 +2868,7 @@ export class RealtorApiClient {
         metadata,
         signal,
         this.transport,
+        this.floorPlanImageDigest,
       );
       const current = await this.getPublishedFloorPlan(listingId, revision, {
         ...captured,
@@ -3085,10 +3088,18 @@ export class RealtorApiClient {
   private readonly currentNotice: string;
   private readonly defaultTimeout: number;
   private readonly transport: typeof globalThis.fetch;
+  private readonly floorPlanImageDigest?: FloorPlanImageDigest;
   constructor(options: ApiClientOptions) {
     record(
       options,
-      ['baseUrl', 'privacyNoticeVersion', 'allowLoopbackHttp', 'timeoutMs', 'fetch'],
+      [
+        'baseUrl',
+        'privacyNoticeVersion',
+        'allowLoopbackHttp',
+        'timeoutMs',
+        'fetch',
+        'floorPlanImageDigest',
+      ],
       'CONFIGURATION',
     );
     if (options.allowLoopbackHttp !== undefined && typeof options.allowLoopbackHttp !== 'boolean')
@@ -3105,6 +3116,12 @@ export class RealtorApiClient {
       invalid('CONFIGURATION', 'A Fetch-compatible transport is required.');
     if (!options.fetch && typeof globalThis.fetch !== 'function')
       invalid('CONFIGURATION', 'A Fetch-compatible transport is required.');
+    if (
+      options.floorPlanImageDigest !== undefined &&
+      typeof options.floorPlanImageDigest !== 'function'
+    )
+      invalid('CONFIGURATION', 'A SHA-256 platform digest is required.');
+    this.floorPlanImageDigest = options.floorPlanImageDigest;
     this.transport = options.fetch ?? globalThis.fetch.bind(globalThis);
   }
   async listProperties(

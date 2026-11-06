@@ -172,3 +172,38 @@ test('public metadata accessors and pre-aborted SDK reads never enter transport'
   );
   assert.equal(calls, 0);
 });
+
+test('trusted platform digest adapter preserves verification without WebCrypto and rejects bad or interrupted digests', async () => {
+  const make = (digest) =>
+    new RealtorApiClient({
+      baseUrl: 'https://synthetic.invalid',
+      privacyNoticeVersion: 'synthetic',
+      floorPlanImageDigest: digest,
+      fetch: async (u) => (String(u).includes('floor-plan-image') ? image() : meta(saved)),
+    });
+  const hash = async (data) => {
+    const d = createHash('sha256').update(data).digest();
+    return d.buffer.slice(d.byteOffset, d.byteOffset + d.length);
+  };
+  assert.deepEqual(
+    Buffer.from((await make(hash).getPublishedFloorPlanImage(listing, 1, '6')).data),
+    output.data,
+  );
+  await assert.rejects(
+    () => make(async () => new ArrayBuffer(32)).getPublishedFloorPlanImage(listing, 1, '6'),
+    (e) => e.kind === 'INVALID_RESPONSE',
+  );
+  const c = new AbortController();
+  await assert.rejects(
+    () =>
+      make(async () => {
+        c.abort();
+        return new Promise(() => {});
+      }).getPublishedFloorPlanImage(listing, 1, '6', { signal: c.signal }),
+    (e) => e.kind === 'CANCELLED',
+  );
+  assert.throws(
+    () => make('wrong'),
+    (e) => e.kind === 'CONFIGURATION',
+  );
+});
