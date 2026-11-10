@@ -136,6 +136,10 @@ export function floorPlanStateFromSql(
   listingId: string,
   revision: number,
 ) {
+  const inherited =
+    v !== null &&
+    typeof v === 'object' &&
+    Object.getOwnPropertyDescriptor(v, 'policy')?.value === 'synthetic-floor-plan-selection-v1';
   const r = object(v, [
     'policy',
     'companyId',
@@ -144,22 +148,25 @@ export function floorPlanStateFromSql(
     'revision',
     'version',
     'state',
-    'floorPlan',
+    inherited ? 'source' : 'floorPlan',
   ]);
   if (
-    r.policy !== 'synthetic-floor-plan-gallery-v1' ||
+    r.policy !==
+      (inherited ? 'synthetic-floor-plan-selection-v1' : 'synthetic-floor-plan-gallery-v1') ||
     r.companyId !== tenantId ||
     r.actorId !== actorId ||
     r.listingId !== listingId ||
     r.revision !== revision
   )
     fail();
-  const plan = r.floorPlan === null ? null : floorPlanRecordFromSql(r.floorPlan, tenantId);
+  const source = inherited ? r.source : r.floorPlan;
+  const plan = source === null ? null : floorPlanRecordFromSql(source, tenantId);
   if (
     plan &&
     (plan.command.listingId !== listingId ||
-      plan.command.revision !== revision ||
-      BigInt(plan.resultVersion) > BigInt(r.version as string))
+      (inherited ? plan.command.revision > revision : plan.command.revision !== revision) ||
+      (plan.command.revision === revision &&
+        BigInt(plan.resultVersion) > BigInt(r.version as string)))
   )
     fail();
   return validateFloorPlanState(

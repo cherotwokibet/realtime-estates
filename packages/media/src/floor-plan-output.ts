@@ -360,6 +360,11 @@ export function createFloorPlanOutputDelivery(config: {
     return admit(async () => {
       if (typeof reader !== 'function') fail('INVALID_CONFIGURATION');
       function gallery(value: unknown) {
+        const inherited =
+          value !== null &&
+          typeof value === 'object' &&
+          Object.getOwnPropertyDescriptor(value, 'policy')?.value ===
+            'synthetic-floor-plan-selection-v1';
         const row = object(value, [
           'policy',
           'companyId',
@@ -368,10 +373,11 @@ export function createFloorPlanOutputDelivery(config: {
           'revision',
           'version',
           'state',
-          'floorPlan',
+          inherited ? 'source' : 'floorPlan',
         ]);
         if (
-          row.policy !== 'synthetic-floor-plan-gallery-v1' ||
+          row.policy !==
+            (inherited ? 'synthetic-floor-plan-selection-v1' : 'synthetic-floor-plan-gallery-v1') ||
           Object.entries(target).some(([k, v]) => row[k] !== v) ||
           typeof row.version !== 'string' ||
           !/^[1-9][0-9]{0,15}$/.test(row.version) ||
@@ -384,7 +390,9 @@ export function createFloorPlanOutputDelivery(config: {
               )))
         )
           fail('INTEGRITY');
-        return snapshot(row) as Readonly<Record<string, unknown>>;
+        return snapshot(inherited ? { ...row, floorPlan: row.source } : row) as Readonly<
+          Record<string, unknown>
+        >;
       }
       const original = gallery(await reader());
       if (original.floorPlan === null) return Object.freeze({ state: 'missing' as const });
@@ -409,10 +417,15 @@ export function createFloorPlanOutputDelivery(config: {
         !id.test(attached.actorId) ||
         typeof attached.resultVersion !== 'string' ||
         !/^[1-9][0-9]{0,15}$/.test(attached.resultVersion) ||
-        BigInt(attached.resultVersion) > BigInt(original.version as string) ||
+        (command.revision === target.revision &&
+          BigInt(attached.resultVersion) > BigInt(original.version as string)) ||
         command.policy !== 'synthetic-floor-plan-attachment-command-v1' ||
         command.listingId !== target.listingId ||
-        command.revision !== target.revision ||
+        (original.policy === 'synthetic-floor-plan-selection-v1'
+          ? !Number.isSafeInteger(command.revision) ||
+            (command.revision as number) < 1 ||
+            (command.revision as number) > target.revision
+          : command.revision !== target.revision) ||
         typeof command.operationId !== 'string' ||
         !id.test(command.operationId) ||
         typeof command.expectedVersion !== 'string' ||
@@ -455,7 +468,7 @@ export function createFloorPlanOutputDelivery(config: {
       if (
         selected.companyId !== target.companyId ||
         selected.listingId !== target.listingId ||
-        selected.revision !== target.revision ||
+        selected.revision !== command.revision ||
         selected.requestId !== command.requestId ||
         BigInt(selected.expectedVersion) > BigInt(command.expectedVersion)
       )
@@ -626,28 +639,39 @@ export function createFloorPlanOutputDelivery(config: {
         typeof readPublishedGallery !== 'function'
           ? undefined
           : async () => {
-              const raw = object(await readPublishedGallery(target), [
+              const incoming = await readPublishedGallery(target);
+              const inherited =
+                incoming !== null &&
+                typeof incoming === 'object' &&
+                Object.getOwnPropertyDescriptor(incoming, 'policy')?.value ===
+                  'synthetic-published-floor-plan-selection-v1';
+              const raw = object(incoming, [
                 'policy',
                 'companyId',
                 'listingId',
                 'revision',
                 'approvedVersion',
-                'floorPlan',
+                inherited ? 'source' : 'floorPlan',
               ]);
               if (
-                raw.policy !== 'synthetic-published-floor-plan-output-v1' ||
+                raw.policy !==
+                  (inherited
+                    ? 'synthetic-published-floor-plan-selection-v1'
+                    : 'synthetic-published-floor-plan-output-v1') ||
                 Object.entries(target).some(([k, v]) => raw[k] !== v)
               )
                 fail('INTEGRITY');
               return {
-                policy: 'synthetic-floor-plan-gallery-v1',
+                policy: inherited
+                  ? 'synthetic-floor-plan-selection-v1'
+                  : 'synthetic-floor-plan-gallery-v1',
                 companyId: target.companyId,
                 actorId: null,
                 listingId: target.listingId,
                 revision: target.revision,
                 version: target.approvedVersion,
                 state: 'approved',
-                floorPlan: raw.floorPlan,
+                ...(inherited ? { source: raw.source } : { floorPlan: raw.floorPlan }),
               };
             };
       return readAttachmentBytes(

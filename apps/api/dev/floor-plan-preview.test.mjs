@@ -246,6 +246,7 @@ test(
       floorPlanReferenceJourney: 'synthetic-floor-plan-reference-journey-v1',
       referenceModerationMode: 'synthetic-reference-transition-v1',
       referencePublicMode: 'synthetic-reference-public-v1',
+      referenceSuccessorMode: 'synthetic-reference-successor-v1',
     });
     assert.equal(p.syntheticFloorPlanPublication, true);
     const api = new RealtorApiClient({
@@ -434,6 +435,61 @@ test(
       (await api.getReviewFloorPlan(p.listingId, 1, approved.version, admin)).state,
       'approved',
     );
+    // A successor inherits the original verified source while the approved revision stays public.
+    const beforeSuccessor = await api.getStaffListingV2(p.listingId, opt);
+    const successor = await api.startSyntheticReferenceSuccessorV3(
+      {
+        policy: 'synthetic-reference-successor-v1',
+        listingId: p.listingId,
+        operationId: randomUUID(),
+        expectedListingVersion: beforeSuccessor.version,
+        predecessor: { revision: 1, version: approved.version, state: 'approved' },
+        content: draft.draft.content,
+        selection: {
+          catalogueVersion: catalogue.version,
+          location: { countyId: county.id, localityId: town.id, neighbourhoodId: area.id },
+          amenityIds: [],
+        },
+      },
+      catalogue,
+      session.actorId,
+      opt,
+    );
+    assert.equal(successor.referenceDraft.revisionVersion, '3');
+    const inherited = await api.getFloorPlan(p.listingId, 2, opt);
+    assert.equal(inherited.floorPlan.sha256, prepared.sha256);
+    assert.equal(inherited.floorPlan.operationId, attached.command.operationId);
+    const inheritedBytes = await fetch(
+      p.origin +
+        `/v2/staff/listings/${p.listingId}/floor-plan-images/2/${attached.command.operationId}`,
+      { headers: { authorization: 'Bearer ' + p.bearerToken } },
+    );
+    assert.equal(inheritedBytes.status, 200);
+    assert.equal((await inheritedBytes.arrayBuffer()).byteLength, prepared.bytes);
+    // Removing the copy is a local explicit null, not a mutation of the original approved image.
+    const removed = await api.saveFloorPlanAttachment(
+      {
+        policy: 'synthetic-floor-plan-attachment-command-v1',
+        listingId: p.listingId,
+        revision: 2,
+        expectedVersion: '3',
+        operationId: randomUUID(),
+        requestId: null,
+      },
+      opt,
+    );
+    assert.equal((await api.getFloorPlan(p.listingId, 2, opt)).floorPlan, null);
+    assert.equal((await fetch(url)).status, 200);
+    assert.equal(
+      (
+        await fetch(
+          p.origin +
+            `/v2/staff/listings/${p.listingId}/floor-plan-images/2/${attached.command.operationId}`,
+          { headers: { authorization: 'Bearer ' + p.bearerToken } },
+        )
+      ).status,
+      404,
+    );
     const current = await api.getRevisionProtocolV3(p.listingId, 1, admin);
     assert.equal(
       (
@@ -507,4 +563,27 @@ test('interactive floor launcher refuses unsupported author-start journey before
   assert.equal(r.status, 1);
   assert.match(r.stderr, /Unsupported synthetic floor-plan reference journey/);
   assert.ok(!r.stdout.includes('Synthetic floor-plan'));
+});
+
+test('interactive floor successor flag rejects unsupported and orphan activation before resource startup', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  for (const [reference, successor] of [
+    [undefined, 'synthetic-floor-plan-successor-journey-v1'],
+    ['synthetic-floor-plan-reference-journey-v1', 'wrong'],
+  ]) {
+    const env = { ...process.env };
+    delete env.STAFF_FLOOR_REFERENCE_JOURNEY;
+    delete env.STAFF_FLOOR_SUCCESSOR_JOURNEY;
+    if (reference) env.STAFF_FLOOR_REFERENCE_JOURNEY = reference;
+    env.STAFF_FLOOR_SUCCESSOR_JOURNEY = successor;
+    const r = spawnSync(
+      process.execPath,
+      [fileURLToPath(new URL('../../../scripts/floor-plan-preview.mjs', import.meta.url))],
+      { env, encoding: 'utf8', timeout: 10000 },
+    );
+    assert.equal(r.status, 1);
+    assert.match(r.stderr, /Successor floor journey requires/);
+    assert.equal(r.stdout.includes('Synthetic floor-plan agent view:'), false);
+  }
 });

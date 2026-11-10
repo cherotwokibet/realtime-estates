@@ -264,7 +264,7 @@ function configuration({
     (referenceSuccessorMode !== 'synthetic-reference-successor-v1' ||
       referenceModerationMode !== 'synthetic-reference-transition-v1' ||
       referenceDraftMode !== 'synthetic-reference-draft-v1' ||
-      referencePublicMode !== undefined)
+      (referencePublicMode !== undefined && !floorPlanReferenceJourney))
   )
     throw new StaffPreviewConfigurationError(
       'Successor preview requires explicit isolated reference moderation mode.',
@@ -449,7 +449,6 @@ function configuration({
     (floorPlanReferenceJourney !== 'synthetic-floor-plan-reference-journey-v1' ||
       floorPlanPublicationMode !== 'synthetic-floor-plan-publication-v1' ||
       referenceModerationMode !== 'synthetic-reference-transition-v1' ||
-      referenceSuccessorMode !== undefined ||
       journeyFixture !== undefined)
   )
     throw new StaffPreviewConfigurationError(
@@ -1063,6 +1062,14 @@ export async function startStaffPreview(options = {}) {
         );
     if (floorPlanPublicationMode)
       for (const name of ['publication', 'publication-output'])
+        await db.exec(
+          await readFile(
+            new URL('../../../database/proposals/floor-plan-' + name + '.sql', import.meta.url),
+            'utf8',
+          ),
+        );
+    if (floorPlanReferenceJourney && referenceSuccessorMode)
+      for (const name of ['successor', 'successor-delivery'])
         await db.exec(
           await readFile(
             new URL('../../../database/proposals/floor-plan-' + name + '.sql', import.meta.url),

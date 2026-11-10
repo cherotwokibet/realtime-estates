@@ -21,6 +21,10 @@ export default async function ReferencePage({
       <p>Local synthetic reference preview</p>
       {screen ? (
         <ReferenceDraftWorkspace
+          floorPlanEnabled={
+            process.env.STAFF_PREVIEW_FLOOR_PLAN === 'synthetic-private-floor-plan-v1'
+          }
+          videoEnabled={process.env.STAFF_PREVIEW_VIDEO === 'synthetic-private-listing-video-v1'}
           key={JSON.stringify([
             screen.scope,
             screen.revision,

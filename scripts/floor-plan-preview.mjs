@@ -19,6 +19,12 @@ if (
   referenceJourney !== 'synthetic-floor-plan-reference-journey-v1'
 )
   throw Error('Unsupported synthetic floor-plan reference journey.');
+const successorJourney = process.env.STAFF_FLOOR_SUCCESSOR_JOURNEY;
+if (
+  successorJourney !== undefined &&
+  (successorJourney !== 'synthetic-floor-plan-successor-journey-v1' || !referenceJourney)
+)
+  throw Error('Successor floor journey requires explicit reference floor journey.');
 if (
   process.env.STAFF_FLOOR_REPLY_FAULT !== undefined &&
   process.env.STAFF_FLOOR_REPLY_FAULT !== 'invalid-first-floor-plan-v1'
@@ -59,6 +65,7 @@ const fixture = await startStaffPreview({
         floorPlanPublicationMode: 'synthetic-floor-plan-publication-v1',
         referenceModerationMode: 'synthetic-reference-transition-v1',
         referencePublicMode: 'synthetic-reference-public-v1',
+        ...(successorJourney ? { referenceSuccessorMode: 'synthetic-reference-successor-v1' } : {}),
       }
     : {}),
   nativeFloorPlan: { mode: 'synthetic-native-v1', rootDirectory, powerShellPath },
@@ -149,6 +156,9 @@ function launch(actor = 'agent') {
         STAFF_PREVIEW_REFERENCE: 'synthetic-reference-draft-v1',
         STAFF_PREVIEW_REFERENCE_MODERATION: referenceJourney
           ? 'synthetic-reference-transition-v1'
+          : undefined,
+        STAFF_PREVIEW_REFERENCE_SUCCESSOR: successorJourney
+          ? 'synthetic-reference-successor-v1'
           : undefined,
         STAFF_PREVIEW_FLOOR_PLAN: 'synthetic-private-floor-plan-v1',
       },

@@ -338,3 +338,113 @@ test('outcome persistence failure after a successful write stays locked and reco
   assert.equal(gets, 1);
   assert.equal(b.status, 'resolved');
 });
+
+// Cross-workspace invariants: preparation is blocked, but explicit same-original
+// recovery stays possible while another retained workflow is present.
+test('combined floor, video, reference draft and author-transition matrix preserves every retained original', async () => {
+  const {
+    scope: scopeFactory,
+    catalogue,
+    command: reviewCommand,
+    id: rid,
+  } = await import('../test-helpers/reference-moderation-fixture.mjs');
+  const { referenceDraftSession } = await import('../dist/tests/lib/reference-draft-workspace.js');
+  const { referenceModerationSession } =
+    await import('../dist/tests/lib/reference-moderation-workspace.js');
+  const sc = scopeFactory(),
+    { revision, ...draftScope } = sc,
+    cat = catalogue();
+  const floor = { ...preparation(), listingId: sc.listingId };
+  const video = {
+    policy: 'synthetic-listing-video-command-v1',
+    listingId: sc.listingId,
+    revision: 1,
+    expectedVersion: '3',
+    operationId: rid(700),
+    video: null,
+  };
+  const hold = {
+    floor: (st) => floorPlanSession(st, sc).retain(floor),
+    video: (st) => videoSession(st, sc).retain(video),
+    draft: (st) =>
+      referenceDraftSession(st, draftScope).retain(
+        {
+          policy: 'synthetic-reference-draft-v1',
+          operationId: rid(701),
+          listingId: sc.listingId,
+          revision: 1,
+          expectedVersion: '3',
+          content: reviewCommand().review.content,
+          selection: {
+            catalogueVersion: '1',
+            location: { countyId: rid(200), localityId: null, neighbourhoodId: null },
+            amenityIds: [],
+          },
+        },
+        cat,
+      ),
+    author: (st) =>
+      referenceModerationSession(st, sc, 'author').retain(
+        { ...reviewCommand(), action: 'withdraw' },
+        cat,
+      ),
+  };
+  for (const [kind, retain] of Object.entries(hold)) {
+    const st = storage();
+    retain(st);
+    const before = [...st.values.entries()];
+    assert.throws(() => floorPlanAttempt(st, sc, client(), floor), kind + ' floor');
+    assert.throws(
+      () => videoAttempt(st, sc, { save: async () => {}, recover: async () => {} }, video),
+      kind + ' video',
+    );
+    if (kind !== 'draft')
+      assert.throws(
+        () => assertReferenceDraftAuthorClear(st, draftScope, revision),
+        kind + ' draft',
+      );
+    if (kind !== 'author')
+      assert.throws(() => assertReferenceAuthorDraftClear(st, draftScope), kind + ' transition');
+    assert.deepEqual([...st.values.entries()], before, kind + ' original preserved');
+  }
+});
+
+test('explicit floor recovery remains read-only while a retained video blocks every new write', async () => {
+  const st = storage();
+  let posts = 0,
+    gets = 0;
+  const api = {
+    ...client(),
+    prepare: async () => {
+      posts++;
+      throw new ApiClientError('NETWORK', 'lost', { submissionUncertain: true });
+    },
+    recoverPreparation: async (c) => {
+      gets++;
+      return prepared(c);
+    },
+  };
+  const a = floorPlanAttempt(st, scope, api, preparation());
+  await assert.rejects(() => a.send(new Uint8Array([1])));
+  videoSession(st, scope).retain({
+    policy: 'synthetic-listing-video-command-v1',
+    listingId: scope.listingId,
+    revision: 1,
+    expectedVersion: '2',
+    operationId: id(70),
+    video: null,
+  });
+  const videoBefore = [...st.values.entries()].find(([k]) => k.includes('video'));
+  const recovered = floorPlanAttempt(st, scope, api, preparation(), true);
+  await recovered.recover();
+  assert.equal(posts, 1);
+  assert.equal(gets, 1);
+  assert.throws(() => recovered.handoff(attachment()));
+  assert.deepEqual(
+    [...st.values.entries()].find(([k]) => k.includes('video')),
+    videoBefore,
+  );
+  recovered.clear();
+  assert.equal(st.values.size, 1);
+  assert.throws(() => floorPlanAttempt(st, scope, api, preparation()));
+});

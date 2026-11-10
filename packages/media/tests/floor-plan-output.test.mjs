@@ -450,8 +450,8 @@ test('busy fencing and close drain an admitted seal while rejecting later run an
   assert.equal(f.calls.seal, 1);
 });
 
-async function attachedGallery(t) {
-  const f = await fixture(t),
+async function attachedGallery(t, options = {}) {
+  const f = await fixture(t, options),
     delivery = f.open();
   await delivery.run(f.target);
   await f.db.exec(
@@ -610,8 +610,8 @@ test('attached gallery independently refuses corrupted stored output without dec
     assert.equal(f.calls[k], before[k]);
 });
 
-async function publishedGallery(t, remove = false) {
-  const f = await attachedGallery(t);
+async function publishedGallery(t, remove = false, options = {}) {
+  const f = await attachedGallery(t, options);
   for (const n of ['publication', 'publication-output'])
     await f.db.exec(
       await readFile(
@@ -919,3 +919,182 @@ test('admin access revoked during reviewed output IO prevents byte return', asyn
   assert.equal(f.calls.native, 1);
   assert.equal(f.calls.seal, 1);
 });
+
+test(
+  'actual Windows successor keeps original source bytes for author, reviewer and publication, then explicit null never resurrects',
+  { skip: process.platform !== 'win32', timeout: 120000 },
+  async (t) => {
+    const f = await publishedGallery(t, false, { native: true });
+    for (const name of ['successor', 'successor-delivery'])
+      await f.db.exec(
+        await readFile(
+          new URL('../../../database/proposals/floor-plan-' + name + '.sql', import.meta.url),
+          'utf8',
+        ),
+      );
+    const before = { ...f.calls };
+    const { normalizeStaffDraftContentV2 } = await import('../../../packages/domain/dist/index.js');
+    const content = normalizeStaffDraftContentV2({
+      title: 'Synthetic native successor',
+      description: 'Synthetic retained source test.',
+      purpose: 'rent',
+      propertyType: 'studio',
+      currency: 'KES',
+      amountMinor: 2000000,
+      rentPeriod: 'month',
+      bedrooms: 0,
+      privateBathrooms: 1,
+      country: 'KE',
+      locality: 'Synthetic',
+      location: { county: 'Synthetic', town: null, area: null },
+      publicPrecision: 'area',
+      privateAddress: 'PRIVATE SYNTHETIC',
+      pricing: { declaration: 'complete', charges: [] },
+    });
+    async function start(revision) {
+      const l = (
+        await f.db.query('SELECT version::text FROM app_private.listings WHERE id=$1', [
+          sql.LISTING,
+        ])
+      ).rows[0];
+      const r = (
+        await f.db.query(
+          'SELECT version::text,state FROM app_private.listing_revisions WHERE listing_id=$1 AND revision_no=$2',
+          [sql.LISTING, revision],
+        )
+      ).rows[0];
+      const { randomUUID } = await import('node:crypto');
+      return sql.asActor(f.db, sql.T, sql.AGENT, () =>
+        sql.scalar(f.db, 'SELECT app_api.start_listing_revision_v2($1,$2,$3,$4,$5,$6,$7)', [
+          sql.LISTING,
+          randomUUID(),
+          l.version,
+          revision,
+          r.version,
+          r.state,
+          content,
+        ]),
+      );
+    }
+    const privateTarget = {
+      companyId: sql.T,
+      actorId: sql.AGENT,
+      listingId: sql.LISTING,
+      revision: 2,
+    };
+    const readGallery = (target) =>
+      sql.asActor(f.db, target.companyId, target.actorId, () =>
+        sql.scalar(f.db, 'SELECT app_api.read_synthetic_floor_plan_gallery($1,$2)', [
+          target.listingId,
+          target.revision,
+        ]),
+      );
+    const readReviewGallery = (target) =>
+      sql.asActor(f.db, target.companyId, target.actorId, () =>
+        sql.scalar(f.db, 'SELECT app_api.read_synthetic_review_floor_plan($1,$2,$3)', [
+          target.listingId,
+          target.revision,
+          target.expectedVersion,
+        ]),
+      );
+    await start(1);
+    const source = await readGallery(privateTarget);
+    assert.equal(source.source.command.revision, 1);
+    assert.equal(source.source.actorId, sql.AGENT);
+    const reader = f.open({
+      readGallery,
+      readReviewGallery,
+      readPublishedGallery: f.readPublishedGallery,
+    });
+    const privateImage = await reader.readAttached(privateTarget);
+    assert.equal(privateImage.state, 'ready');
+    assert.equal(privateImage.target.revision, 2);
+    // The old gallery contract cannot authorize a cross-revision source.
+    const legacy = f.open({
+      readGallery: async (target) => {
+        const raw = await readGallery(target);
+        const { source, ...rest } = raw;
+        return { ...rest, policy: 'synthetic-floor-plan-gallery-v1', floorPlan: source };
+      },
+    });
+    await assert.rejects(() => legacy.readAttached(privateTarget), code('INTEGRITY'));
+    await sql.seedMedia(f.db, sql.LISTING, 2);
+    const pending = await sql.asActor(f.db, sql.T, sql.AGENT, () =>
+      sql.scalar(f.db, 'SELECT app_api.submit_revision($1,2,2)', [sql.LISTING]),
+    );
+    const reviewTarget = { ...privateTarget, actorId: sql.ADMIN, expectedVersion: String(pending) };
+    assert.deepEqual((await reader.readReviewed(reviewTarget)).data, privateImage.data);
+    await assert.rejects(
+      () => reader.readReviewed({ ...reviewTarget, actorId: sql.AGENT }),
+      code('42501'),
+    );
+    const approved = await sql.asActor(f.db, sql.T, sql.ADMIN, () =>
+      sql.scalar(f.db, 'SELECT app_api.decide_revision($1,2,$2,true)', [sql.LISTING, pending]),
+    );
+    const publicTarget = {
+      companyId: sql.T,
+      listingId: sql.LISTING,
+      revision: 2,
+      approvedVersion: String(approved),
+    };
+    assert.deepEqual((await reader.readPublished(publicTarget)).data, privateImage.data);
+    await assert.rejects(() => reader.readReviewed(reviewTarget), code('40001'));
+    await start(2);
+    const removed = await f.save({
+      ...f.command,
+      revision: 3,
+      expectedVersion: '2',
+      operationId: '00000000-0000-4000-8000-000000001799',
+      requestId: null,
+    });
+    assert.equal((await reader.readAttached({ ...privateTarget, revision: 3 })).state, 'missing');
+    assert.deepEqual((await reader.readPublished(publicTarget)).data, privateImage.data);
+    await sql.seedMedia(f.db, sql.LISTING, 3);
+    const pendingNull = await sql.asActor(f.db, sql.T, sql.AGENT, () =>
+      sql.scalar(f.db, 'SELECT app_api.submit_revision($1,3,$2)', [
+        sql.LISTING,
+        removed.resultVersion,
+      ]),
+    );
+    assert.equal(
+      (
+        await reader.readReviewed({
+          ...reviewTarget,
+          revision: 3,
+          expectedVersion: String(pendingNull),
+        })
+      ).state,
+      'missing',
+    );
+    const approvedNull = await sql.asActor(f.db, sql.T, sql.ADMIN, () =>
+      sql.scalar(f.db, 'SELECT app_api.decide_revision($1,3,$2,true)', [sql.LISTING, pendingNull]),
+    );
+    assert.equal(
+      (
+        await reader.readPublished({
+          ...publicTarget,
+          revision: 3,
+          approvedVersion: String(approvedNull),
+        })
+      ).state,
+      'missing',
+    );
+    await assert.rejects(() => reader.readPublished(publicTarget), code('P0002'));
+    for (const k of ['native', 'seal', 'outputInstall', 'metadataInstall'])
+      assert.equal(f.calls[k], before[k], k);
+    assert.equal(f.calls.native, 1);
+    t.diagnostic(
+      JSON.stringify({
+        nativeSuccessor: {
+          sourceRevision: 1,
+          copiedRevision: 2,
+          removedRevision: 3,
+          bytes: privateImage.data.length,
+          nativeAttempts: f.calls.native,
+          approvedVersion: approved,
+          approvedNullVersion: approvedNull,
+        },
+      }),
+    );
+  },
+);
