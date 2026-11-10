@@ -7,6 +7,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { startStaffPreview } from './staff-preview.mjs';
 import { publishNativeGallery, publicGalleryImageUrl } from './public-gallery-fixture.mjs';
+import { loadMobilePhoto } from '../../mobile/src/published-photos.ts';
 
 test(
   'actual anonymous published gallery returns independently decoded sealed images and stops immediately on publication pause',
@@ -34,6 +35,13 @@ test(
     });
     try {
       const { api, options, property } = await publishNativeGallery(preview);
+      const mobileConfig = {
+        mode: 'synthetic-reference-public-v1',
+        tenantSlug: 'realtime-estates',
+        apiOrigin: preview.origin,
+        allowLoopbackHttp: true,
+        photoMode: 'synthetic-native-v1',
+      };
       const hashes = [];
       for (let n = 0; n < 4; n++) {
         const url = publicGalleryImageUrl(preview, property, property.photos[n]);
@@ -42,6 +50,15 @@ test(
         assert.equal(response.headers.get('content-type'), 'image/webp');
         assert.match(response.headers.get('cache-control'), /no-store/);
         const data = Buffer.from(await response.arrayBuffer());
+        const mobile = await loadMobilePhoto(
+          mobileConfig,
+          property,
+          n,
+          new AbortController().signal,
+        );
+        assert.equal(mobile.status, 'ready');
+        assert.equal(mobile.uri, 'data:image/webp;base64,' + data.toString('base64'));
+        assert.equal(mobile.index, n);
         const metadata = await sharp(data).metadata();
         assert.equal(metadata.format, 'webp');
         assert.equal(metadata.width, 320 + n * 8);
@@ -73,6 +90,10 @@ test(
       );
       const paused = await fetch(publicGalleryImageUrl(preview, property, property.photos[0]));
       assert.equal(paused.status, 404);
+      assert.equal(
+        (await loadMobilePhoto(mobileConfig, property, 0, new AbortController().signal)).status,
+        'unavailable',
+      );
       assert.equal(paused.headers.get('content-type'), 'application/json');
       assert.equal((await paused.text()).includes(root), false);
     } finally {

@@ -24,6 +24,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...(process.env.MOBILE_CATALOGUE_FLOOR_PLAN !== undefined
         ? { floorPlanMode: process.env.MOBILE_CATALOGUE_FLOOR_PLAN }
         : {}),
+      ...(process.env.MOBILE_CATALOGUE_PHOTOS !== undefined
+        ? { photoMode: process.env.MOBILE_CATALOGUE_PHOTOS }
+        : {}),
       apiOrigin: process.env.MOBILE_API_ORIGIN,
       allowLoopbackHttp: process.env.MOBILE_ALLOW_LOOPBACK_API === 'true',
     };
@@ -43,6 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   } else if (
     process.env.MOBILE_CATALOGUE_VIDEO !== undefined ||
     process.env.MOBILE_CATALOGUE_FLOOR_PLAN !== undefined ||
+    process.env.MOBILE_CATALOGUE_PHOTOS !== undefined ||
     process.env.MOBILE_API_ORIGIN !== undefined ||
     process.env.MOBILE_ALLOW_LOOPBACK_API !== undefined
   ) {

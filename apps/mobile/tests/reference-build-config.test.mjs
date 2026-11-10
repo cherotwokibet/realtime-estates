@@ -12,6 +12,7 @@ test('actual Expo config exposes only explicit public development settings and r
     'MOBILE_ALLOW_LOOPBACK_API',
     'MOBILE_CATALOGUE_VIDEO',
     'MOBILE_CATALOGUE_FLOOR_PLAN',
+    'MOBILE_CATALOGUE_PHOTOS',
   ];
   const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
   const root = fileURLToPath(new URL('../', import.meta.url));
@@ -35,6 +36,13 @@ test('actual Expo config exposes only explicit public development settings and r
       read({ MOBILE_CATALOGUE_FLOOR_PLAN: 'synthetic-floor-plan-publication-v1' }),
     );
     assert.throws(() => read({ ...env, MOBILE_CATALOGUE_FLOOR_PLAN: 'live' }));
+    assert.equal(
+      read({ ...env, MOBILE_CATALOGUE_PHOTOS: 'synthetic-native-v1' }).extra.mobileReference
+        .photoMode,
+      'synthetic-native-v1',
+    );
+    assert.throws(() => read({ MOBILE_CATALOGUE_PHOTOS: 'synthetic-native-v1' }));
+    assert.throws(() => read({ ...env, MOBILE_CATALOGUE_PHOTOS: 'live' }));
     const config = read(env);
     assert.equal(config.extra.tenantSlug, 'sample-homes');
     assert.deepEqual(config.extra.mobileReference, {
