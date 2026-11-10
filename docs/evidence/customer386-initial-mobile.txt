@@ -1,0 +1,88 @@
+
+> @realtor/mobile@0.1.0 test
+> npm run test:compile --workspace=@realtor/web && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 tests/*.test.mjs
+
+
+> @realtor/web@0.1.0 test:compile
+> tsc -p tsconfig.tests.json
+
+✔ native session is off by default and invalid grants/config never dispatch or invoke accessors (7.3505ms)
+✔ native account validation precedes private reads; snapshots omit credentials and exact scope is validated (83.5661ms)
+✔ lost committed reply freezes one operation until original GET and explicit settlement; no automatic retry (19.1872ms)
+✔ missing original enables only deliberate retry of exact retained command and blocks concurrent writes (3.5711ms)
+✔ switch and logout abort active work and suppress late account/private replies (5.5049ms)
+✔ session expiry and server revocation clear pending private state without resurrecting it (139.9614ms)
+✖ native view subscribers observe command and expiry transitions within the configured catalogue (5.2513ms)
+✔ mobile floor-plan build mode is default-off/development-only and rejects identity, accessors and unsupported flags (3.4312ms)
+✔ mobile renders only verified anonymous bytes as exact in-memory data URI using injected native SHA256 (54.3902ms)
+✔ mobile off/pre-cancelled do zero I/O and explicit absence never requests image (4.3058ms)
+✔ mobile changed version, altered bytes, interrupted digest and stale completion expose no image or retry (11.9917ms)
+✔ mobile photo mode is strict, default-off, development-only and rejects accessors/authority extras (3.074ms)
+✔ selected mobile photo uses exact configured anonymous target and owns decoded fixture bytes only (55.7888ms)
+✔ off, empty, pre-cancelled, invalid target, duplicate key and descriptor aliases never dispatch (1.9583ms)
+✔ denied, malformed headers, overflow, truncated and altered framing expose no image and never retry (7.4548ms)
+✔ uncooperative late transport and stalled body cancel without a late image or retry (18.8443ms)
+✔ owned URI encoding preserves bounded chunk boundaries and cancellation across a large synthetic byte array (77.1675ms)
+✔ native video is explicit build opt-in, development-only and refuses extra authority (3.0148ms)
+✔ native metadata loading never opens provider and explicit action opens canonical URL only (73.0734ms)
+✔ default off and pre-cancelled video do no I/O; late cancelled and mismatched-version responses expose no link (5.8208ms)
+✔ actual Expo config exposes only explicit public development settings and refuses production or orphan flags (1263.4575ms)
+✔ mobile configuration defaults to demo only when absent and refuses malformed, production, credential or private configuration (3.2069ms)
+✔ mobile read crosses the real SDK once anonymously, preserves exact cents and original references, and searches only public location (127.9142ms)
+✔ mobile distinguishes legacy unknown, approved empty amenities, sale no recurring period and unresolved quote (4.7375ms)
+✔ mobile errors, private additions and cancellation never substitute demo stock or retry (4.0348ms)
+✔ mobile keeps empty success distinct from failure and warns when its bounded page may be incomplete (48.2181ms)
+✔ mobile adapter reads the real anonymous HTTP/SQL approved historical projection for two fixed companies (10504.2243ms)
+✔ one anonymous read per attempt; failed refresh offers an explicit timestamped previous response (48.4105ms)
+✔ different query or page discards the one-response fallback instead of showing mismatched stock (2.4346ms)
+✔ fallback expires without refreshing its age on failures and refuses a backwards or broken clock (5.5935ms)
+✔ clear invalidates an in-flight result and prevents it repopulating the fallback (3.0642ms)
+✔ a superseded response cannot replace the latest successful search (1.7416ms)
+✔ cancellation offers no cached fallback and late fetch completion cannot refill it (1.3273ms)
+✔ input is detached before I/O; accessors, unknown fields and malformed replies do not become a cache (0.9661ms)
+✔ saved filters survive a fresh controller while companies and API origins remain separate (5.2143ms)
+✔ corrupt, oversized, mismatched and future or private fields are discarded before reuse (3.6687ms)
+✔ a late save cannot overwrite a later clear across controller remounts (0.5868ms)
+✔ storage failures stay contained and do not poison later operations (0.8456ms)
+✔ a stalled restore returns unavailable without applying late saved filters (5.8373ms)
+✔ timed-out writes remain ordered before clear even after both UI waits end (33.9021ms)
+✔ connected mobile filters cross the anonymous SDK with exact cents, open-plan and bathroom criteria (41.3346ms)
+✔ mobile rejects incomparable prices and malformed boundaries before replacing applied filters (0.6409ms)
+✔ reference native controls share both configured company themes and accessible component states (4.6647ms)
+✔ reference native focus preserves pressed colors with a shared outer ring and contrasting gap (0.6005ms)
+ℹ tests 44
+ℹ suites 0
+ℹ pass 43
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17304.756
+
+✖ failing tests:
+
+test at tests\customer-session.test.mjs:290:1
+✖ native view subscribers observe command and expiry transitions within the configured catalogue (5.2513ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + 'ready'
+  - 'signed_out'
+
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/mobile/tests/customer-session.test.mjs:323:14)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'ready',
+    expected: 'signed_out',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+npm error Lifecycle script `test` failed with error:
+npm error code 1
+npm error path C:\Users\BONIFACE\Realtime System\RealEstate\realtor-platform\apps\mobile
+npm error workspace @realtor/mobile@0.1.0
+npm error location C:\Users\BONIFACE\Realtime System\RealEstate\realtor-platform\apps\mobile
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c npm run test:compile --workspace=@realtor/web && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 tests/*.test.mjs

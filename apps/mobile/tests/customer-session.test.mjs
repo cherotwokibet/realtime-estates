@@ -286,3 +286,56 @@ test('session expiry and server revocation clear pending private state without r
     s.clear();
   }
 });
+
+test(
+  'native view subscribers observe command and expiry transitions within the configured catalogue',
+  { timeout: 2500 },
+  async () => {
+    const session = createMobileCustomerSession(config, async (url, init) => {
+      if (url.endsWith('/account')) return json(account(id(13)));
+      if (init.method === 'POST') throw Error('lost reply');
+      return json(receipt);
+    });
+    const transitions = [];
+    const unsubscribe = session.subscribe(() => {
+      const snapshot = session.snapshot();
+      transitions.push([session.revision(), snapshot.status, snapshot.phase]);
+    });
+    try {
+      assert.equal(session.matches(config.tenantId, config.apiOrigin), true);
+      assert.equal(session.matches(id(2), config.apiOrigin), false);
+      assert.equal(session.matches(config.tenantId, 'https://other.invalid'), false);
+      await session.activate(grant());
+      await session.save(command);
+      await session.recover();
+      session.settle();
+      assert.deepEqual(
+        transitions.filter(([, status]) => status === 'ready').map(([, , phase]) => phase),
+        ['idle', 'busy', 'uncertain', 'busy', 'settled', 'idle'],
+      );
+      assert.equal(
+        await session.activate(grant({ expiresAt: new Date(Date.now() + 200).toISOString() })),
+        true,
+      );
+      const expiry = deferred();
+      const stop = session.subscribe(() => {
+        if (session.snapshot().status === 'signed_out') expiry.resolve();
+      });
+      try {
+        await expiry.promise;
+        assert.equal(session.snapshot().status, 'signed_out');
+      } finally {
+        stop();
+      }
+      for (let i = 1; i < transitions.length; i++)
+        assert(transitions[i][0] > transitions[i - 1][0]);
+      unsubscribe();
+      const count = transitions.length;
+      session.clear();
+      assert.equal(transitions.length, count);
+    } finally {
+      unsubscribe();
+      session.clear();
+    }
+  },
+);

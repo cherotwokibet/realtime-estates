@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import {
   AccessibilityInfo,
   Image,
@@ -23,6 +23,7 @@ import { searchCatalogue } from '@realtor/demo/search';
 import { formatKes, kesFromMinor } from '@realtor/domain';
 import { resolveMobileReferenceConfig } from './reference-catalogue';
 import { ReferenceCatalogueApp } from './ReferenceCatalogueApp';
+import type { MobileCustomerSession } from './customer-session';
 
 const tenantSlug = resolveDemoTenantSlug(Constants.expoConfig?.extra?.tenantSlug);
 const brand = getDemoBrand(tenantSlug);
@@ -247,7 +248,12 @@ const referenceConfig = resolveMobileReferenceConfig(
   tenantSlug,
   __DEV__,
 );
+// A runtime identity provider can supply a session through React context.
+export const MobileCustomerSessionContext = createContext<MobileCustomerSession | undefined>(
+  undefined,
+);
 export default function App() {
+  const customerSession = useContext(MobileCustomerSessionContext);
   if (referenceConfig.mode === 'error')
     return (
       <SafeAreaView>
@@ -255,7 +261,7 @@ export default function App() {
       </SafeAreaView>
     );
   if (referenceConfig.mode === 'synthetic-reference-public-v1')
-    return <ReferenceCatalogueApp config={referenceConfig} />;
+    return <ReferenceCatalogueApp config={referenceConfig} customerSession={customerSession} />;
   return <DemoApp />;
 }
 function DemoApp() {

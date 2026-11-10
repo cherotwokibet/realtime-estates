@@ -71,6 +71,13 @@ export function createMobileCustomerSession(
       allowLoopbackHttp: config.allowLoopbackHttp as boolean | undefined,
       fetch: transport,
     });
+  const origin = config ? new URL(config.apiOrigin as string).origin : null;
+  const listeners = new Set<() => void>();
+  let revision = 0;
+  function publish() {
+    revision++;
+    for (const listener of listeners) listener();
+  }
   let active: Active | null = null;
   let generation = 0;
   let activating = false;
@@ -91,6 +98,7 @@ export function createMobileCustomerSession(
       previous.receipt = null;
       previous.controller.abort();
     }
+    publish();
   }
   function current() {
     if (active && Date.parse(active.grant.expiresAt) <= Date.now()) clear();
@@ -111,11 +119,13 @@ export function createMobileCustomerSession(
   async function send(s: Active) {
     const command = s.pending!;
     s.phase = 'busy';
+    publish();
     try {
       const receipt = await s.client.setFavourite(command, auth(s));
       if (!valid(s)) return false;
       s.receipt = receipt;
       s.phase = 'settled';
+      publish();
       return true;
     } catch (error) {
       refused(s, error);
@@ -124,17 +134,29 @@ export function createMobileCustomerSession(
         s.pending = null;
         s.phase = 'idle';
       } else s.phase = 'uncertain';
+      publish();
       return false;
     }
   }
   return Object.freeze({
     clear,
+    matches(tenantId: string, apiOrigin: string) {
+      return config !== null && config.tenantId === tenantId && origin === apiOrigin;
+    },
+    subscribe(listener: () => void) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    revision: () => revision,
     snapshot() {
-      const s = current();
+      const s = active && Date.parse(active.grant.expiresAt) > Date.now() ? active : null;
       return Object.freeze(
         s
           ? {
               status: 'ready' as const,
+              activation: generation,
               account: Object.freeze({
                 tenantId: s.grant.tenantId,
                 customerId: s.grant.customerId,
@@ -195,6 +217,7 @@ export function createMobileCustomerSession(
         activationController = controller;
         activating = true;
         expiry = setTimeout(clear, Date.parse(grant.expiresAt) - Date.now());
+        publish();
         await client.getAccount({ bearerToken: grant.bearerToken, signal: controller.signal });
         if (
           generation !== local ||
@@ -205,6 +228,7 @@ export function createMobileCustomerSession(
         activating = false;
         activationController = null;
         active = { grant, client, controller, phase: 'idle', pending: null, receipt: null };
+        publish();
         return true;
       } catch {
         if (generation === local) clear();
@@ -247,17 +271,21 @@ export function createMobileCustomerSession(
       const s = current();
       if (!s || s.phase !== 'uncertain' || !s.pending) return false;
       s.phase = 'busy';
+      publish();
       try {
         const receipt = await s.client.getFavouriteOriginal(s.pending, auth(s));
         if (!valid(s)) return false;
         s.receipt = receipt;
         s.phase = 'settled';
+        publish();
         return true;
       } catch (error) {
         refused(s, error);
-        if (valid(s))
+        if (valid(s)) {
           s.phase =
             error instanceof CustomerApiError && error.status === 404 ? 'missing' : 'uncertain';
+          publish();
+        }
         return false;
       }
     },
@@ -271,7 +299,10 @@ export function createMobileCustomerSession(
       s.pending = null;
       s.receipt = null;
       s.phase = 'idle';
+      publish();
       return true;
     },
   });
 }
+
+export type MobileCustomerSession = ReturnType<typeof createMobileCustomerSession>;
