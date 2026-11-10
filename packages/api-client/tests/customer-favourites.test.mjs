@@ -144,3 +144,88 @@ test('SDK cancellation rejects late ignored-abort replies and bounds a stalled s
   );
   assert.equal(cancelled, true);
 });
+
+// Watchdog assertions distinguish request settlement from merely setting AbortSignal.
+const bounded = async (operation) => {
+  let timer;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(Error('Request did not settle independently.')), 1000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+test('SDK deadline settles an uncooperative pending transport for reads and writes, without retry', async () => {
+  for (const write of [false, true]) {
+    let calls = 0,
+      resolveResponse,
+      cancelled = 0,
+      transportSignal;
+    const a = new CustomerFavouritesClient({
+      baseUrl: 'https://synthetic.invalid',
+      scope,
+      timeoutMs: 20,
+      fetch: async (_url, init) => {
+        calls++;
+        transportSignal = init.signal;
+        return new Promise((resolve) => {
+          resolveResponse = resolve;
+        });
+      },
+    });
+    try {
+      await assert.rejects(
+        () => bounded(write ? a.setFavourite(c, auth) : a.getAccount(auth)),
+        (e) =>
+          e instanceof CustomerApiError &&
+          e.kind === 'cancelled' &&
+          e.submissionUncertain === write,
+      );
+      assert.equal(transportSignal.aborted, true);
+      assert.equal(calls, 1);
+    } finally {
+      resolveResponse(
+        new Response(
+          new ReadableStream({
+            cancel() {
+              cancelled++;
+            },
+          }),
+          {
+            headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
+          },
+        ),
+      );
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    assert.equal(cancelled, 1);
+    assert.equal(calls, 1);
+  }
+});
+test('SDK caller cancellation settles before a delayed transport rejects and preserves uncertainty', async () => {
+  const ctrl = new AbortController();
+  let rejectTransport,
+    calls = 0;
+  const a = client(async () => {
+    calls++;
+    return new Promise((_, reject) => {
+      rejectTransport = reject;
+    });
+  });
+  const operation = a.setFavourite(c, { ...auth, signal: ctrl.signal });
+  ctrl.abort();
+  try {
+    await assert.rejects(
+      () => bounded(operation),
+      (e) => e instanceof CustomerApiError && e.kind === 'cancelled' && e.submissionUncertain,
+    );
+    assert.equal(calls, 1);
+  } finally {
+    rejectTransport(Error('late private transport detail'));
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+});

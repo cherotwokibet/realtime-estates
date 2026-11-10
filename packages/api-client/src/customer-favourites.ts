@@ -133,17 +133,22 @@ export class CustomerFavouritesClient {
     if (signal?.aborted) throw new CustomerApiError('cancelled');
     let activeReader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     const write = command !== undefined,
-      controller = new AbortController(),
-      abort = () => {
-        controller.abort();
-        void activeReader?.cancel().catch(() => {});
-      };
+      controller = new AbortController();
+    let sent = false;
+    let rejectCancellation!: (error: CustomerApiError) => void;
+    const cancellation = new Promise<never>((_, reject) => {
+      rejectCancellation = reject;
+    });
+    const abort = () => {
+      controller.abort();
+      rejectCancellation(new CustomerApiError('cancelled', write && sent));
+      void activeReader?.cancel().catch(() => {});
+    };
     signal?.addEventListener('abort', abort, { once: true });
     const timer = setTimeout(abort, this.timeout);
-    let sent = false;
     try {
       sent = true;
-      const response = await this.transport(this.origin + path, {
+      const pendingResponse = this.transport(this.origin + path, {
         method: write ? 'POST' : 'GET',
         credentials: 'omit',
         redirect: 'error',
@@ -156,6 +161,15 @@ export class CustomerFavouritesClient {
         },
         ...(write ? { body: JSON.stringify(command) } : {}),
       });
+      // Native transports may ignore AbortSignal. Settle the caller independently;
+      // if a response arrives later, discard its body without replaying the operation.
+      const response = await Promise.race([
+        Promise.resolve(pendingResponse).then((value) => {
+          if (controller.signal.aborted) void value.body?.cancel().catch(() => {});
+          return value;
+        }),
+        cancellation,
+      ]);
       if (controller.signal.aborted) {
         void response.body?.cancel().catch(() => {});
         throw new CustomerApiError('cancelled', write);
@@ -201,7 +215,7 @@ export class CustomerFavouritesClient {
       const parts: Uint8Array[] = [];
       try {
         while (true) {
-          const next = await reader.read();
+          const next = await Promise.race([reader.read(), cancellation]);
           if (next.done) break;
           size += next.value.byteLength;
           if (size > 32768) throw new CustomerApiError('invalid_response', write);
