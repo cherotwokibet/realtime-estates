@@ -1,3 +1,9 @@
+## Published native favourites386, 11 November 2026 EAT
+
+Private deployment appgdep_6af39b3f67908191861ae53c11f418f1 succeeded from dashboard 4f2e3868f918e0068143285630edff26f711a137. Both tabs showed the new checkpoint. The export pairs before (17)/(18) and after (19)/(20) preserved all 914 prior note occurrences and all manual task, stage, decision and risk fields. The merge produced 916 notes. Screenshot and reconciliation are in customer386-published.png and customer386-browser-reconciliation.json. Three dashboard checks passed. Source e94ccb9 adds the Saved screen and detail controls through a matching runtime session. The broad checklist is 55/97 with 0/14 gates accepted.
+
+Next wire an explicit synthetic runtime sign-in provider to MobileCustomerSessionContext. Verify save, remove, original recovery, account switching and expiry in the connected screen on a supported device. Then add enquiries and viewing requests. Device interaction, sign-in and task 09-2 remain open.
+
 ## Native favourites controls386, 11 November 2026 EAT
 
 The connected mobile catalogue now includes a Saved properties screen and property detail save and remove controls when the app receives a matching customer session through React context. The adapter checks the configured synthetic company and API origin. The regular app entry supplies an empty context until a runtime sign-in provider is connected.
