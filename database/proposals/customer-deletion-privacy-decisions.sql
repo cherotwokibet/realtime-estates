@@ -125,6 +125,54 @@ BEGIN
   RETURN app_private.synthetic_deletion_privacy_receipt(saved);
 END $$;
 
+
+CREATE FUNCTION app_api.list_synthetic_deletion_privacy_queue(p_limit integer, p_after uuid)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog AS $$
+DECLARE
+  company uuid := app_private.context_tenant();
+  actor uuid := app_private.context_actor();
+  result jsonb;
+BEGIN
+  PERFORM app_private.assert_staff(ARRAY['admin']);
+  IF NOT EXISTS (
+    SELECT 1 FROM app_private.synthetic_deletion_privacy_reviewers
+    WHERE tenant_id = company AND reviewer_id = actor
+  ) THEN
+    RAISE EXCEPTION 'Privacy reviewer access is required' USING ERRCODE = '42501';
+  END IF;
+  IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 50 THEN
+    RAISE EXCEPTION 'Invalid privacy queue page' USING ERRCODE = '23514';
+  END IF;
+  WITH page AS (
+    SELECT d.customer_id, d.request_id, coalesce(r.returned_at, d.reviewed_at) AS ready_at
+    FROM app_private.customer_deletion_reviews d
+    LEFT JOIN app_private.customer_deletion_review_returns r
+      USING (tenant_id, customer_id, request_id)
+    WHERE d.tenant_id = company AND (p_after IS NULL OR d.customer_id > p_after)
+      AND (d.disposition = 'ready_for_privacy_review' OR r.operation_id IS NOT NULL)
+      AND d.reviewer_id IS DISTINCT FROM actor AND r.reviewer_id IS DISTINCT FROM actor
+      AND NOT EXISTS (
+        SELECT 1 FROM app_private.synthetic_deletion_privacy_decisions saved
+        WHERE saved.tenant_id = company AND saved.customer_id = d.customer_id
+      )
+    ORDER BY d.customer_id LIMIT p_limit + 1
+  ), numbered AS (
+    SELECT *, row_number() OVER (ORDER BY customer_id) AS rn FROM page
+  )
+  SELECT jsonb_build_object(
+    'policy', 'synthetic-deletion-privacy-queue-v1', 'tenantId', company, 'reviewerId', actor,
+    'items', coalesce(jsonb_agg(jsonb_build_object(
+      'customerId', customer_id, 'requestId', request_id,
+      'readyAt', to_char(ready_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+    ) ORDER BY rn) FILTER (WHERE rn <= p_limit), '[]'::jsonb),
+    'hasMore', count(*) > p_limit
+  ) INTO result FROM numbered;
+  RETURN result;
+END $$;
+
+REVOKE ALL ON FUNCTION app_api.list_synthetic_deletion_privacy_queue(integer, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app_api.list_synthetic_deletion_privacy_queue(integer, uuid) TO api_runtime;
+
 REVOKE ALL ON FUNCTION app_private.synthetic_deletion_privacy_receipt(app_private.synthetic_deletion_privacy_decisions),
   app_api.record_synthetic_deletion_privacy_decision(uuid, uuid, uuid, text),
   app_api.read_synthetic_deletion_privacy_decision(uuid, uuid, uuid) FROM PUBLIC;

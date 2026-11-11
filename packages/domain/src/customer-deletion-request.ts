@@ -321,3 +321,97 @@ export function validateCustomerDeletionReturnReceipt(
     returnedAt: timestamp(row.returnedAt),
   });
 }
+
+export type DeletionPrivacyDecision = 'plan_review' | 'hold';
+export interface DeletionPrivacyCommand extends CustomerDeletionReviewTarget {
+  readonly decision: DeletionPrivacyDecision;
+}
+function privacyDecision(value: unknown): DeletionPrivacyDecision {
+  return value === 'plan_review' || value === 'hold' ? value : invalid();
+}
+export function validateDeletionPrivacyCommand(value: unknown): DeletionPrivacyCommand {
+  const row = record(value, ['customerId', 'requestId', 'operationId', 'decision']);
+  return Object.freeze({ ...reviewTarget(row), decision: privacyDecision(row.decision) });
+}
+export function validateDeletionPrivacyReceipt(
+  value: unknown,
+  expected: CustomerDeletionReviewTarget & {
+    tenantId: string;
+    reviewerId: string;
+    decision?: DeletionPrivacyDecision;
+  },
+) {
+  const row = record(value, [
+    'policy',
+    'retentionProfile',
+    'tenantId',
+    'reviewerId',
+    'customerId',
+    'requestId',
+    'operationId',
+    'decision',
+    'decidedAt',
+  ]);
+  const target = reviewTarget(row);
+  const decision = privacyDecision(row.decision);
+  if (
+    row.policy !== 'synthetic-deletion-privacy-decision-v1' ||
+    row.retentionProfile !== 'synthetic-retention-review-v1' ||
+    requestId(row.tenantId) !== expected.tenantId ||
+    requestId(row.reviewerId) !== expected.reviewerId ||
+    target.customerId !== expected.customerId ||
+    target.requestId !== expected.requestId ||
+    target.operationId !== expected.operationId ||
+    (expected.decision !== undefined && decision !== expected.decision)
+  )
+    return invalid();
+  return Object.freeze({
+    policy: row.policy,
+    retentionProfile: row.retentionProfile,
+    tenantId: expected.tenantId,
+    reviewerId: expected.reviewerId,
+    ...target,
+    decision,
+    decidedAt: timestamp(row.decidedAt),
+  });
+}
+export function validateDeletionPrivacyQueue(
+  value: unknown,
+  limit: number,
+  after: string | null,
+  expected: { tenantId: string; reviewerId: string },
+) {
+  const row = record(value, ['policy', 'tenantId', 'reviewerId', 'items', 'hasMore']);
+  if (
+    row.policy !== 'synthetic-deletion-privacy-queue-v1' ||
+    requestId(row.tenantId) !== expected.tenantId ||
+    requestId(row.reviewerId) !== expected.reviewerId ||
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > 50 ||
+    !Array.isArray(row.items) ||
+    row.items.length > limit ||
+    typeof row.hasMore !== 'boolean' ||
+    (row.hasMore && row.items.length !== limit)
+  )
+    return invalid();
+  let prior = after;
+  const items = Array.from(row.items, (item: unknown) => {
+    const entry = record(item, ['customerId', 'requestId', 'readyAt']);
+    const customerId = requestId(entry.customerId);
+    if (prior !== null && customerId <= prior) return invalid();
+    prior = customerId;
+    return Object.freeze({
+      customerId,
+      requestId: requestId(entry.requestId),
+      readyAt: timestamp(entry.readyAt),
+    });
+  });
+  return Object.freeze({
+    policy: row.policy,
+    tenantId: expected.tenantId,
+    reviewerId: expected.reviewerId,
+    items: Object.freeze(items),
+    hasMore: row.hasMore,
+  });
+}

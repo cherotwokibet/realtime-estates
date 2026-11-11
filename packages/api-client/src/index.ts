@@ -105,6 +105,10 @@ import {
   validateCustomerDeletionTriage,
   validateCustomerDeletionFollowUp,
   validateCustomerDeletionReturnReceipt,
+  validateDeletionPrivacyCommand,
+  validateDeletionPrivacyQueue,
+  validateDeletionPrivacyReceipt,
+  type DeletionPrivacyCommand,
   type CustomerDeletionDisposition,
   validateCustomerDeletionReviewTarget,
   validateCustomerDeletionReviewCommand,
@@ -4241,6 +4245,84 @@ export class RealtorApiClient {
       });
     }
   }
+  async listDeletionPrivacyQueue(
+    input: { readonly limit?: number; readonly after?: string },
+    scope: { readonly tenantId: string; readonly reviewerId: string },
+    options: StaffRequestOptions,
+  ) {
+    const expected = deletionReviewerScope(scope);
+    const { limit, after, suffix } = deletionQueueFilters(input, expected.tenantId);
+    const value = await this.request(
+      '/v2/staff/customer-deletion-privacy?' + suffix,
+      'GET',
+      uploadOptions(options),
+    );
+    try {
+      return validateDeletionPrivacyQueue(value, limit, after, expected);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid deletion privacy queue.');
+    }
+  }
+
+  async recordDeletionPrivacyDecision(
+    input: DeletionPrivacyCommand,
+    scope: { readonly tenantId: string; readonly reviewerId: string },
+    options: StaffRequestOptions,
+  ) {
+    return this.deletionPrivacyOperation(input, scope, options, 'POST');
+  }
+
+  async getDeletionPrivacyDecision(
+    target: CustomerDeletionReviewTarget,
+    scope: { readonly tenantId: string; readonly reviewerId: string },
+    options: StaffRequestOptions,
+  ) {
+    return this.deletionPrivacyOperation(target, scope, options, 'GET');
+  }
+
+  private async deletionPrivacyOperation(
+    input: CustomerDeletionReviewTarget,
+    scope: { readonly tenantId: string; readonly reviewerId: string },
+    options: StaffRequestOptions,
+    method: 'GET' | 'POST',
+  ) {
+    const expected = deletionReviewerScope(scope);
+    let target: CustomerDeletionReviewTarget;
+    let command: DeletionPrivacyCommand | undefined;
+    try {
+      if (method === 'POST') {
+        command = validateDeletionPrivacyCommand(input);
+        target = command;
+      } else target = validateCustomerDeletionReviewTarget(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid deletion privacy operation.');
+    }
+    const path =
+      '/v2/staff/customer-deletion-privacy/' +
+      target.customerId +
+      '/requests/' +
+      target.requestId +
+      '/decisions/' +
+      target.operationId;
+    const value = await this.request(
+      path,
+      method,
+      uploadOptions(options),
+      command && { ...command },
+    );
+    try {
+      return validateDeletionPrivacyReceipt(value, {
+        ...target,
+        ...expected,
+        decision: command?.decision,
+      });
+    } catch {
+      throw new ApiClientError('INVALID_RESPONSE', 'Invalid deletion privacy receipt.', {
+        submissionUncertain: method === 'POST',
+      });
+    }
+  }
+
   async listAdminAuditEvents(
     tenantId: string,
     input: AdminAuditQuery,
@@ -6617,6 +6699,9 @@ export class RealtorApiClient {
     const listingReport =
       deletionTriage ||
       deletionFollowUp ||
+      /^\/v2\/staff\/customer-deletion-privacy(?:\?limit=[1-9]\d?(?:&after=[0-9a-f-]{36})?|\/[0-9a-f-]{36}\/requests\/[0-9a-f-]{36}\/decisions\/[0-9a-f-]{36})$/.test(
+        path,
+      ) ||
       /^\/v2\/staff\/customer-deletion-follow-up\/[0-9a-f-]{36}\/requests\/[0-9a-f-]{36}\/returns\/[0-9a-f-]{36}$/.test(
         path,
       ) ||

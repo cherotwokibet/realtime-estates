@@ -51,6 +51,9 @@ import {
   validateCustomerDeletionTriage,
   validateCustomerDeletionFollowUp,
   validateCustomerDeletionReturnReceipt,
+  validateDeletionPrivacyCommand,
+  validateDeletionPrivacyQueue,
+  validateDeletionPrivacyReceipt,
   validateListingReportDecisionReceipt,
   validateListingReportQueue,
   validateCompanySettingsCommand,
@@ -211,6 +214,7 @@ export interface ApiServiceOptions {
   readonly adminAuditMode?: 'synthetic-admin-audit-v1';
   readonly adminDeletionReviewMode?: 'synthetic-admin-deletion-review-v1';
   readonly deletionFollowUpMode?: 'synthetic-customer-deletion-follow-up-v1';
+  readonly deletionPrivacyMode?: 'synthetic-deletion-privacy-v1';
   /** Isolated private video metadata preparation; no provider/public delivery or schema installation. */
   readonly listingVideoMode?: 'synthetic-private-listing-video-v1';
   readonly listingVideoPublicationMode?: 'synthetic-listing-video-publication-v1';
@@ -1728,6 +1732,12 @@ export function createApiService(
     throw Error('Unsupported deletion follow-up mode.');
   const deletionFollowUpEnabled =
     options.deletionFollowUpMode === 'synthetic-customer-deletion-follow-up-v1';
+  if (
+    options.deletionPrivacyMode !== undefined &&
+    (options.deletionPrivacyMode !== 'synthetic-deletion-privacy-v1' || !deletionFollowUpEnabled)
+  )
+    throw Error('Unsupported deletion privacy mode.');
+  const deletionPrivacyEnabled = options.deletionPrivacyMode === 'synthetic-deletion-privacy-v1';
   const customerHandler = options.customerFavouritesMode
     ? createCustomerFavouritesHttpCandidate({
         mode: options.customerFavouritesMode,
@@ -2915,12 +2925,19 @@ export function createApiService(
         return response(intent ? 202 : 200, value, correlationId);
       }
       const deletionFollowUp = path === '/v2/staff/customer-deletion-follow-up';
-      const deletionQueue = path === '/v2/staff/customer-deletion-triage' || deletionFollowUp;
+      const privacyQueue = path === '/v2/staff/customer-deletion-privacy';
+      const privacyOperation =
+        /^\/v2\/staff\/customer-deletion-privacy\/([^/]+)\/requests\/([^/]+)\/decisions\/([^/]+)$/.exec(
+          path,
+        );
+      const deletionQueue =
+        path === '/v2/staff/customer-deletion-triage' || deletionFollowUp || privacyQueue;
       const deletionReturn =
         /^\/v2\/staff\/customer-deletion-follow-up\/([^/]+)\/requests\/([^/]+)\/returns\/([^/]+)$/.exec(
           path,
         );
       const deletionOperation =
+        privacyOperation ??
         deletionReturn ??
         /^\/v2\/staff\/customer-deletion-triage\/([^/]+)\/requests\/([^/]+)\/operations\/([^/]+)$/.exec(
           path,
@@ -2929,7 +2946,8 @@ export function createApiService(
         if (
           !adminDeletionReviewEnabled ||
           process.env.NODE_ENV !== 'development' ||
-          ((deletionFollowUp || deletionReturn) && !deletionFollowUpEnabled)
+          ((deletionFollowUp || deletionReturn) && !deletionFollowUpEnabled) ||
+          ((privacyQueue || privacyOperation) && !deletionPrivacyEnabled)
         )
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
         if (method !== 'GET' && !(method === 'POST' && deletionOperation))
@@ -2973,10 +2991,23 @@ export function createApiService(
               }
               const args = [target.customerId, target.requestId, target.operationId];
               let command: ReturnType<typeof validateCustomerDeletionReviewCommand> | undefined;
+              let privacy: ReturnType<typeof validateDeletionPrivacyCommand> | undefined;
               if (method === 'POST') {
                 try {
                   const input = await jsonBody(request, 2048, true, true, true, false, true, 5000);
-                  if (deletionReturn) {
+                  if (privacyOperation) {
+                    privacy = validateDeletionPrivacyCommand(input);
+                    if (
+                      privacy.customerId !== target.customerId ||
+                      privacy.requestId !== target.requestId ||
+                      privacy.operationId !== target.operationId
+                    )
+                      throw new HttpError(
+                        400,
+                        'INVALID_INPUT',
+                        'Privacy decision target changed route.',
+                      );
+                  } else if (deletionReturn) {
                     const confirmed = validateCustomerDeletionReviewTarget(input);
                     if (
                       confirmed.customerId !== target.customerId ||
@@ -3008,7 +3039,7 @@ export function createApiService(
                   );
               }
 
-              return { target, args, command };
+              return { target, args, command, privacy };
             })()
           : null;
         const value = await options.database.transaction(
@@ -3036,6 +3067,16 @@ export function createApiService(
                 filters.after === undefined ? null : uuid(filters.after, 'Customer cursor');
               if (limit < 1 || limit > 50 || (after !== null && after !== filters.after))
                 throw new HttpError(400, 'INVALID_INPUT', 'Invalid deletion triage cursor.');
+              if (privacyQueue) {
+                const page = await query.query(
+                  'SELECT app_api.list_synthetic_deletion_privacy_queue($1,$2) AS result',
+                  [limit, after],
+                );
+                return validateDeletionPrivacyQueue(scalar(page, 'result'), limit, after, {
+                  tenantId,
+                  reviewerId,
+                });
+              }
               if (deletionFollowUp) {
                 const outcome = filters.disposition;
                 if (outcome !== 'ready_for_privacy_review' && outcome !== 'needs_information')
@@ -3068,7 +3109,24 @@ export function createApiService(
               );
             }
             if (!operation) throw Error('Missing deletion review route.');
-            const { target, args, command } = operation;
+            const { target, args, command, privacy } = operation;
+            if (privacyOperation) {
+              const result = privacy
+                ? await query.query(
+                    'SELECT app_api.record_synthetic_deletion_privacy_decision($1,$2,$3,$4) AS result',
+                    [...args, privacy.decision],
+                  )
+                : await query.query(
+                    'SELECT app_api.read_synthetic_deletion_privacy_decision($1,$2,$3) AS result',
+                    args,
+                  );
+              return validateDeletionPrivacyReceipt(scalar(result, 'result'), {
+                ...target,
+                tenantId,
+                reviewerId,
+                decision: privacy?.decision,
+              });
+            }
             if (deletionReturn) {
               const result = await query.query(
                 method === 'POST'

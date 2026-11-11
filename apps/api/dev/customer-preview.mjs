@@ -35,6 +35,8 @@ export async function startCustomerPreview({
   deletionMode,
   deletionReviewMode,
   deletionFollowUpMode,
+  deletionPrivacyMode,
+  deletionPrivacyReplyFault,
   deletionReviewReplyFault,
   deletionReturnReplyFault,
   deletionReplyFault,
@@ -47,6 +49,10 @@ export async function startCustomerPreview({
       (enquiryReplyFault !== 'lost-first-enquiry-result-v1' || !mobileMode)) ||
     (deletionReplyFault !== undefined &&
       (deletionReplyFault !== 'lost-first-deletion-result-v1' || !deletionMode)) ||
+    (deletionPrivacyMode !== undefined &&
+      (deletionPrivacyMode !== 'synthetic-deletion-privacy-v1' || !deletionFollowUpMode)) ||
+    (deletionPrivacyReplyFault !== undefined &&
+      (deletionPrivacyReplyFault !== 'lost-first-deletion-privacy-v1' || !deletionPrivacyMode)) ||
     (deletionFollowUpMode !== undefined &&
       (deletionFollowUpMode !== 'synthetic-customer-deletion-follow-up-v1' ||
         !deletionReviewMode)) ||
@@ -127,6 +133,21 @@ export async function startCustomerPreview({
           'utf8',
         ),
       );
+    if (deletionPrivacyMode) {
+      await db.exec(
+        await readFile(
+          new URL(
+            '../../../database/proposals/customer-deletion-privacy-decisions.sql',
+            import.meta.url,
+          ),
+          'utf8',
+        ),
+      );
+      await db.query(
+        'INSERT INTO app_private.synthetic_deletion_privacy_reviewers(tenant_id,reviewer_id) VALUES($1,$2),($1,$3)',
+        [tenantId, tenantId === T ? ADMIN : id(20), id(25)],
+      );
+    }
     let foreignSavedFixture = false;
     if (tenantSlug === 'sample-homes') {
       const saved = await asActor(db, T, id(13), () =>
@@ -225,6 +246,7 @@ export async function startCustomerPreview({
       customerDeletionMode: deletionMode,
       adminDeletionReviewMode: deletionReviewMode,
       deletionFollowUpMode,
+      deletionPrivacyMode,
       verifyAuthorization: (r) =>
         verify(parseBearerHeader(r.headers.get('authorization') ?? undefined)),
       database: {
@@ -235,6 +257,8 @@ export async function startCustomerPreview({
     let faultPending = replyFault !== undefined;
     let enquiryFaultPending = enquiryReplyFault !== undefined;
     let deletionFaultPending = deletionReplyFault === 'lost-first-deletion-result-v1';
+    let deletionPrivacyFaultPending =
+      deletionPrivacyReplyFault === 'lost-first-deletion-privacy-v1';
     let deletionReturnFaultPending = deletionReturnReplyFault === 'lost-first-deletion-return-v1';
     let deletionReviewFaultPending = deletionReviewReplyFault === 'lost-first-deletion-review-v1';
     const api = createDevelopmentServer(async (r) => {
@@ -272,6 +296,25 @@ export async function startCustomerPreview({
         );
       }
       const result = await service(r);
+      if (
+        deletionPrivacyFaultPending &&
+        r.method === 'POST' &&
+        url.pathname.startsWith('/v2/staff/customer-deletion-privacy/') &&
+        result.status === 200
+      ) {
+        deletionPrivacyFaultPending = false;
+        const requestId = result.headers.get('x-request-id');
+        return Response.json(
+          {
+            error: {
+              code: 'SERVICE_UNAVAILABLE',
+              message: 'Synthetic committed privacy reply unavailable.',
+            },
+            requestId,
+          },
+          { status: 503, headers: { 'Cache-Control': 'no-store', 'X-Request-Id': requestId } },
+        );
+      }
       if (
         deletionReturnFaultPending &&
         r.method === 'POST' &&
@@ -398,6 +441,23 @@ export async function startCustomerPreview({
             admin: Object.freeze({ bearerToken: await sign(adminId, issued, issued + 900) }),
             agent: Object.freeze({ bearerToken: await sign(agentId, issued, issued + 900) }),
           });
+        },
+        enumerable: false,
+      },
+      deletionPrivacyStaff: {
+        value: async () => {
+          if (!deletionPrivacyMode) throw Error('Deletion privacy fixture is unavailable.');
+          return {
+            reviewerId: id(25),
+            token: await sign(id(25), issued, issued + 900),
+            revoke: () =>
+              withDatabase(() =>
+                db.query(
+                  'DELETE FROM app_private.synthetic_deletion_privacy_reviewers WHERE tenant_id=$1 AND reviewer_id=$2',
+                  [tenantId, id(25)],
+                ),
+              ),
+          };
         },
         enumerable: false,
       },
