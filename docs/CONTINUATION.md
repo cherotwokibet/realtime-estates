@@ -1,3 +1,9 @@
+## Published notification consent390, 11 November 2026 EAT
+
+Private deployment appgdep_6af3e36f3ba4819193870762a77297ba succeeded from dashboard 8746f7ff1cd35cd0e278ea4cb7afb6490f08ae55. Both tabs showed the consent checkpoint. The 11 November export pairs before (13)/(14) and after (15)/(16) preserved all 922 prior note occurrences and every manual task, stage, decision and risk field. The merge produced 924 notes. Three dashboard checks passed. Source 87c3a2c adds scoped synthetic consent and registration storage with eight passing SQL checks. The checklist stands at 55/97 and 0/14 gates.
+
+Next add typed preference commands and bounded response validators, a durable exact-original receipt or an explicit reconciliation contract for uncertain writes, then an opt-in signed HTTP adapter and native settings. Use the current customer identity and disposable fixture. Live push, device and operator checks remain pending.
+
 ## Customer notification preferences390, 11 November 2026 EAT
 
 The isolated SQL proposal stores consent for transactional push alerts and synthetic device registration identifiers. Consent defaults off. The database records the latest consent change timestamp and requires the current preference version for updates. Withdrawal deactivates every registration in the same transaction. A later opt-in leaves those registrations inactive until the customer explicitly registers again.
