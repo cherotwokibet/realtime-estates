@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 409, admin deletion processing plan
+
+The local browser verified a read-only plan after exact decision recovery, a separate hold with no plan, and revoked access clearing the plan on refresh. Thirteen focused checks and the admin build passed. See [evidence](evidence/2026-11-12-admin-deletion-processing-plan.md). Next verify the disposable restore behavior for pending deletion and withdrawn notification consent. Task 09-3 and production deletion remain open.
+
 ## Published signed deletion processing plan, checkpoint 408, 12 November 2026 EAT
 
 Private deployment appgdep_6af4d87f08b08191927f06abc6d89fe6 succeeded from dashboard 3f0e1ecc1d7c0ab9d48a95cfba6ec9300d91a7aa. Both browser tabs showed the new checkpoint and 55/97. The before exports (85)/(86) and after exports (87)/(88) matched within each pair. All 958 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 960 notes and 27 manual checks. Three dashboard tests passed.

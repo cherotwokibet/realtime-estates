@@ -52,7 +52,11 @@ export function deletionPrivacyConfiguration(env: Readonly<Record<string, string
     !uuid.test(reviewerId)
   )
     throw Error('Deletion privacy preview is unavailable.');
-  return { ...config, scope: { tenantId, reviewerId } };
+  return {
+    ...config,
+    scope: { tenantId, reviewerId },
+    processingPlan: env.STAFF_DELETION_PROCESSING_PLAN === 'synthetic-v1',
+  };
 }
 
 const reply = (status: number, body: unknown) =>
@@ -66,14 +70,14 @@ export async function deletionTriageBoundary(
   operation?: CustomerDeletionReviewTarget,
   env: Readonly<Record<string, string | undefined>> = process.env,
   fetcher: typeof fetch = fetch,
-  action: 'triage' | 'return' | 'privacy' = 'triage',
+  action: 'triage' | 'return' | 'privacy' | 'processing-plan' = 'triage',
 ) {
-  let config: ReturnType<typeof deletionTriageConfiguration>;
+  const privacyAction = action === 'privacy' || action === 'processing-plan';
+  let config: ReturnType<typeof deletionTriageConfiguration> & { processingPlan?: boolean };
   try {
-    config =
-      action === 'privacy'
-        ? { ...deletionPrivacyConfiguration(env), followUp: false }
-        : deletionTriageConfiguration(env);
+    config = privacyAction
+      ? { ...deletionPrivacyConfiguration(env), followUp: false }
+      : deletionTriageConfiguration(env);
     assertPreviewRequest(request, config.instanceId);
     request.headers.forEach((_value, name) => {
       if (
@@ -95,7 +99,12 @@ export async function deletionTriageBoundary(
   }
   if (action === 'return' && (!operation || !config.followUp))
     return reply(404, { error: 'TRIAGE_UNAVAILABLE' });
-  if (request.method !== 'GET' && !(operation && request.method === 'POST'))
+  if (action === 'processing-plan' && (!operation || !config.processingPlan))
+    return reply(404, { error: 'TRIAGE_UNAVAILABLE' });
+  if (
+    request.method !== 'GET' &&
+    !(operation && action !== 'processing-plan' && request.method === 'POST')
+  )
     return reply(405, { error: 'METHOD_UNAVAILABLE' });
   if (
     request.url.includes('#') ||
@@ -174,6 +183,8 @@ export async function deletionTriageBoundary(
     } catch {
       return reply(400, { error: 'INVALID_TRIAGE_REQUEST' });
     }
+    if (action === 'processing-plan')
+      return reply(200, await api.getDeletionProcessingPlan(target, config.scope, options));
     if (action === 'privacy') {
       const receipt = privacyCommand
         ? await api.recordDeletionPrivacyDecision(privacyCommand, config.scope, options)

@@ -15,7 +15,11 @@ export default function DeletionPrivacy() {
       </p>
       <h1>Deletion privacy review</h1>
       {preview ? (
-        <DeletionPrivacyWorkspace instanceId={preview.instanceId} scope={preview.scope} />
+        <DeletionPrivacyWorkspace
+          instanceId={preview.instanceId}
+          scope={preview.scope}
+          processingPlanEnabled={preview.processingPlan}
+        />
       ) : (
         <p role="alert">The synthetic privacy reviewer preview is unavailable.</p>
       )}

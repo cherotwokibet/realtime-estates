@@ -28,6 +28,7 @@ const preview = await startCustomerPreview({
   ...(privacy
     ? {
         deletionPrivacyMode: 'synthetic-deletion-privacy-v1',
+        deletionProcessingPlanMode: 'synthetic-deletion-processing-plan-v1',
         deletionPrivacyReplyFault: 'lost-first-deletion-privacy-v1',
       }
     : {}),
@@ -141,6 +142,7 @@ try {
         STAFF_DELETION_FOLLOW_UP: 'synthetic-v1',
         STAFF_DELETION_TRIAGE_TENANT: preview.tenantId,
         STAFF_DELETION_TRIAGE_REVIEWER: reviewer.reviewerId,
+        STAFF_DELETION_PROCESSING_PLAN: privacyReviewer ? 'synthetic-v1' : '',
         STAFF_DELETION_PRIVACY_MODE: privacyReviewer ? 'synthetic-v1' : '',
         STAFF_DELETION_PRIVACY_REVIEWER: privacyReviewer?.reviewerId ?? '',
         STAFF_DELETION_PRIVACY_TOKEN: privacyReviewer?.token ?? '',

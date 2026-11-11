@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import {
   validateDeletionPrivacyQueue,
   validateDeletionPrivacyReceipt,
+  validateDeletionProcessingPlan,
+  type CustomerDeletionReviewTarget,
   type DeletionPrivacyCommand,
   type DeletionPrivacyDecision,
 } from '@realtor/domain';
@@ -15,6 +17,33 @@ const labels = { plan_review: 'Review processing plan', hold: 'Place on hold' } 
   DeletionPrivacyDecision,
   string
 >;
+type Receipt = ReturnType<typeof validateDeletionPrivacyReceipt>;
+type Plan = ReturnType<typeof validateDeletionProcessingPlan>;
+const inventoryLabels = {
+  favouriteStates: 'Saved property records',
+  favouriteReceipts: 'Saved property receipts',
+  pushPreferences: 'Notification preferences',
+  pushRegistrations: 'Notification registrations',
+  activePushRegistrations: 'Active notification registrations',
+  pushReceipts: 'Notification receipts',
+  linkedEnquiries: 'Linked enquiries',
+  linkedViewings: 'Linked viewings',
+  returnReceipts: 'Return-to-review receipts',
+} satisfies Record<keyof Plan['inventory'], string>;
+const requirements = [
+  'Verify the customer identity and linked memberships.',
+  'Record the retention reason and expiry for operational history.',
+  'Identify the minimum audit and receipt evidence to retain.',
+  'Review unlinked enquiries separately to verify identity.',
+  'Check for applicable holds.',
+  'Verify provider control and disposition.',
+  'Verify backup custody, expiry and reapplication after restore.',
+];
+
+function decisionPath(target: CustomerDeletionReviewTarget) {
+  return [route, target.customerId, target.requestId, target.operationId].join('/');
+}
+
 type Queue = ReturnType<typeof validateDeletionPrivacyQueue>;
 type Pending = { command: DeletionPrivacyCommand; canRetry: boolean };
 
@@ -27,8 +56,10 @@ class PrivacyExchangeError extends Error {
 export function DeletionPrivacyWorkspace({
   instanceId,
   scope,
+  processingPlanEnabled,
 }: {
   instanceId: string;
+  processingPlanEnabled: boolean;
   scope: { tenantId: string; reviewerId: string };
 }) {
   const [queue, setQueue] = useState<Queue | null>(null);
@@ -36,6 +67,8 @@ export function DeletionPrivacyWorkspace({
   const [decision, setDecision] = useState<DeletionPrivacyDecision | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState<Pending | null>(null);
+  const [planningReceipt, setPlanningReceipt] = useState<Receipt | null>(null);
+  const [plan, setPlan] = useState<Plan | null>(null);
   const [busy, setBusy] = useState(false);
   const [denied, setDenied] = useState(false);
   const [status, setStatus] = useState('Load eligible requests to begin.');
@@ -95,6 +128,8 @@ export function DeletionPrivacyWorkspace({
     if (!(error instanceof PrivacyExchangeError) || ![401, 403].includes(error.status))
       return false;
     setDenied(true);
+    setPlanningReceipt(null);
+    setPlan(null);
     setQueue(null);
     setPending(null);
     select(null);
@@ -104,6 +139,8 @@ export function DeletionPrivacyWorkspace({
 
   function load(after: string | null = null) {
     void run(async (signal, current) => {
+      setPlanningReceipt(null);
+      setPlan(null);
       try {
         const params = new URLSearchParams({ limit: String(limit) });
         if (after) params.set('after', after);
@@ -130,7 +167,7 @@ export function DeletionPrivacyWorkspace({
 
   function settle(command: DeletionPrivacyCommand, recover = false) {
     void run(async (signal, current) => {
-      const path = [route, command.customerId, command.requestId, command.operationId].join('/');
+      const path = decisionPath(command);
       try {
         const receipt = validateDeletionPrivacyReceipt(
           await exchange(path, signal, recover ? undefined : command),
@@ -139,6 +176,10 @@ export function DeletionPrivacyWorkspace({
         if (!current()) return;
         setQueue(null);
         setPending(null);
+        setPlanningReceipt(
+          processingPlanEnabled && receipt.decision === 'plan_review' ? receipt : null,
+        );
+        setPlan(null);
         select(null);
         setStatus(
           labels[receipt.decision] + (recover ? ' decision recovered.' : ' decision recorded.'),
@@ -163,6 +204,31 @@ export function DeletionPrivacyWorkspace({
         }
         setPending({ command, canRetry: false });
         setStatus('The decision could not be confirmed. Check the original receipt.');
+      }
+    });
+  }
+
+  function loadPlan(receipt: Receipt) {
+    void run(async (signal, current) => {
+      setPlan(null);
+      setStatus('Loading the processing plan.');
+      try {
+        const value = validateDeletionProcessingPlan(
+          await exchange(decisionPath(receipt) + '/processing-plan', signal),
+          {
+            ...scope,
+            customerId: receipt.customerId,
+            requestId: receipt.requestId,
+            operationId: receipt.operationId,
+          },
+        );
+        if (value.decision.decidedAt !== receipt.decidedAt) throw Error('Privacy receipt changed.');
+        if (!current()) return;
+        setPlan(value);
+        setStatus('Processing plan loaded.');
+      } catch (error) {
+        if (!current() || accessLost(error)) return;
+        setStatus('Could not load the processing plan for this decision.');
       }
     });
   }
@@ -244,6 +310,34 @@ export function DeletionPrivacyWorkspace({
             Record privacy decision
           </button>
         </fieldset>
+      )}
+      {planningReceipt && (
+        <section aria-labelledby="processing-plan">
+          <h3 id="processing-plan">Read-only processing plan</h3>
+          <p>Request {planningReceipt.requestId}</p>
+          <button type="button" disabled={busy} onClick={() => loadPlan(planningReceipt)}>
+            {plan ? 'Refresh processing plan' : 'Load processing plan'}
+          </button>
+          {plan && (
+            <>
+              <h4>Linked record counts</h4>
+              <dl>
+                {(Object.keys(inventoryLabels) as (keyof Plan['inventory'])[]).map((key) => (
+                  <div key={key}>
+                    <dt>{inventoryLabels[key]}</dt>
+                    <dd>{plan.inventory[key]}</dd>
+                  </div>
+                ))}
+              </dl>
+              <h4>Checks still required</h4>
+              <ul>
+                {requirements.map((requirement) => (
+                  <li key={requirement}>{requirement}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </section>
       )}
       {pending && (
         <div>
