@@ -1,3 +1,9 @@
+## Published native notification settings, checkpoint 392, 11 November 2026 EAT
+
+Private deployment appgdep_6af400b258cc81918e71c9d216450f9d succeeded from dashboard a07a94927cf22a71c32f0a079d1d919ed1d13ca6. Both dashboard tabs showed the notification consent checkpoint and the canonical 55/97 baseline, with 0/14 stage gates accepted. The 11 November exports before (21)/(22) and after (23)/(24) preserved all 926 prior note occurrences and all manual task, stage, gate, decision and risk fields. There are 928 notes and 27 manual checks after publication. Three dashboard baseline checks passed.
+
+Source 9ba418f delivered signed synthetic notification settings. All 52 checks and the Android development export passed; physical or emulator interaction, real delivery, and account deletion remain unverified. Next: implement the tracked synthetic deletion request and consent withdrawal, then agree review and retention boundaries before connecting a deletion worker.
+
 ## Native notification settings392, 11 November 2026 EAT
 
 The owned synthetic mobile preview now includes notification preferences for a signed customer. Customers can read current consent, opt in or out, and register or remove a test device identifier. The SDK reuses the bounded authenticated customer transport and validates all preference and original-operation replies. The development launcher enables this path with --push. The application uses in-memory synthetic identifiers and the configured loopback API.
