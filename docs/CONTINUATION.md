@@ -1,3 +1,9 @@
+## Synthetic deletion follow-up and customer progress, checkpoint 399, 11 November 2026 EAT
+
+The optional SQL proposal lets current company admins find triaged requests in two bounded follow-up queues and gives the signed customer a separate minimal current status projection. The stable original intake receipt is preserved. Company admins are the provisional owners of both queues. Nine focused database checks passed. See docs/evidence/2026-11-11-deletion-follow-up.md and deletion399-sql.txt.
+
+Next expose signed read endpoints with strict domain and SDK validation, then wire the admin and mobile views. Individual assignment, return to review and privacy approval remain decisions before processing. Task 09-3 remains open at 55/97 and 0/14 gates.
+
 ## Published admin deletion triage browser journey, checkpoint 398, 11 November 2026 EAT
 
 Private deployment appgdep_6af457b94bc881918d2dd754a9655154 succeeded from dashboard 158b73c37769c8a6b2de170c29cf86efbb773214. Both browser tabs showed the new checkpoint and 55/97. The before exports (45)/(46) and after exports (47)/(48) matched within each pair. All 938 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 940 notes and 27 manual checks. Three dashboard tests passed.
