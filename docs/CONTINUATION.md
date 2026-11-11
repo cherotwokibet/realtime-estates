@@ -1,3 +1,9 @@
+## Published synthetic deletion intake, checkpoint 393, 11 November 2026 EAT
+
+Private deployment appgdep_6af40e3191a481919aee2ad35a710d1b succeeded from dashboard af9fe251eb82704847a68e8bdc91266f684e1f4f. Both browser tabs showed the new checkpoint and 55/97. The two pre-publication exports (25)/(26) and the two post-publication exports (27)/(28) matched within each pair. All 928 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved; after publication there are 930 notes and 27 manual checks. Three dashboard checks passed.
+
+Source d4c1efe passed eight local database checks for synthetic deletion intake and notification withdrawal. No account deletion, hosted concurrency or device acceptance was tested. Next: add strict request and receipt validators in the shared domain, route status and exact-ID submit through the opt-in signed customer HTTP handler, and load the proposal only through the disposable customer preview. Verify lost response, current membership and default-off behavior over real listening HTTP before mobile confirmation. Define review and retention boundaries before adding any deletion worker.
+
 ## Synthetic account deletion request intake, checkpoint 393, 11 November 2026 EAT
 
 Added a disposable SQL proposal that records an explicitly confirmed current customer's deletion request and withdraws push consent and test devices in the same transaction. Exact retry returns the pending receipt; a second request ID conflicts. While pending, new opt-in is blocked. All eight focused database checks passed with zero skips, including isolation, revocation, historical replay and rollback. See docs/evidence/2026-11-11-synthetic-deletion-intake.md and deletion393-sql.txt.
