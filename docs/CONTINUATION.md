@@ -1,3 +1,9 @@
+## Published signed synthetic deletion request, checkpoint 394, 11 November 2026 EAT
+
+Private deployment appgdep_6af41cbb4b5c819192063b9cc800c373 succeeded from dashboard 06e1bfc6c089d6dbedb557b912a79e47b6699bd4. Both browser tabs showed the new checkpoint and 55/97. The before exports (29)/(30) and after exports (31)/(32) matched within each pair. All 930 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved; after publication there are 932 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 1c58455 implements the opt-in signed synthetic intake and status. Eight checks passed, including recovery by GET after a committed response was replaced with a 503. Domain and API builds passed. Next: add SDK methods and explicit mobile confirmation, recover with the exact request ID, then refresh current push preferences. The reviewer and retention decision remains required before a worker. No actual deletion or device verification.
+
 ## Signed synthetic deletion request, checkpoint 394, 11 November 2026 EAT
 
 The default-off development customer API now accepts confirmed synthetic deletion requests and exposes current status. The shared contract checks exact IDs, current customer and company, pending-review state and the timestamp. Eight signed HTTP and customer API regression checks passed with zero skips, along with domain/API builds. A synthetic 503 after commit was recovered by GET, and the current push state was off with zero active test devices. See docs/evidence/2026-11-11-signed-deletion-intake.md and deletion394-http.txt.
