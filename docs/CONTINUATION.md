@@ -1,3 +1,9 @@
+## Published synthetic staff deletion triage, checkpoint 396, 11 November 2026 EAT
+
+Private deployment appgdep_6af43980fab48191aabb49bd32f193a6 succeeded from dashboard 241f293b32b8845e94e5aa909902fa595066c302. Both browser tabs showed the new checkpoint and 55/97. The before exports (37)/(38) and after exports (39)/(40) matched within each pair. All 934 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 936 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 6619e2f passed 11 local database checks, including actor-bound recovery and audit rollback. Next add strict domain contracts and a default-off signed admin API and SDK for the unreviewed queue, exact disposition write and original receipt recovery. Physical device verification, signed staff HTTP, and the admin screen remain pending.
+
 ## Synthetic staff deletion triage, checkpoint 396, 11 November 2026 EAT
 
 The optional SQL proposal gives current company admins a bounded unreviewed queue and one immutable internal disposition per request. The disposition and minimal audit event commit together, and exact receipt recovery requires current authority and the original reviewer. The two provisional dispositions are ready for privacy review and needs information. Customer intake remains pending.
