@@ -1,3 +1,9 @@
+## Published signed notification preferences391, 11 November 2026 EAT
+
+Private deployment appgdep_6af3f191039881919011ed8b1137d270 succeeded from dashboard 25276a1c1d6cb4adfc806486366e9d025021c30d. Both tabs showed the signed preference checkpoint. The 11 November export pairs before (17)/(18) and after (19)/(20) preserved all 924 prior note occurrences and all manual task, stage, decision and risk fields. The merge produced 926 notes. Three dashboard checks passed. Source 25ea524 adds typed signed notification preferences and original receipts with 15 passing SQL and API checks. The checklist stands at 55/97 and 0/14 gates.
+
+Next extend the existing customer SDK transport with preference read, exact command write and original GET. Wire a native synthetic settings controller that retains one uncertain command and refreshes current consent after original recovery. Use the signed disposable API fixture. Real push, account deletion and device/operator verification remain open.
+
 ## Signed customer notification preferences391, 11 November 2026 EAT
 
 The optional synthetic customer API now exposes current notification preferences and writes or retrieves an original operation under the signed customer session. The tenant comes from service configuration and customer identity comes from the verified bearer and current membership. The existing bounded customer request handling rejects extra input fields and checks that the operation in the body matches the route. Shared domain validators check command shape, scope, version, consent timestamp and bounded device counts.
