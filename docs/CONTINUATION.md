@@ -1,3 +1,9 @@
+## Published signed synthetic deletion triage, checkpoint 397, 11 November 2026 EAT
+
+Private deployment appgdep_6af447ffbdf48191ad678d975649f220 succeeded from dashboard 87c978c034fe01684da728fdbda40ef8f9377092. Both browser tabs showed the new checkpoint and 55/97. The before exports (41)/(42) and after exports (43)/(44) matched within each pair. All 936 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 938 notes and 27 manual checks. Three dashboard tests passed.
+
+Source f0aec94 passed six signed HTTP and database checks, including exact reviewer recovery after a lost response. Domain, API and SDK builds passed. Next wire the admin BFF and review screen with server-owned scope, explicit confirmation and exact recovery, then verify the signed browser journey. Physical device and operator verification remain pending.
+
 ## Signed synthetic deletion triage, checkpoint 397, 11 November 2026 EAT
 
 The opt-in staff API and SDK expose the company queue, exact disposition write and reviewer-bound original read. A listening signed fixture returned a synthetic 503 after committing a decision. Recovery returned the original only for the current reviewer. Six focused checks and the domain, API and SDK builds passed. See docs/evidence/2026-11-11-signed-deletion-triage.md and deletion397-checks.txt.
