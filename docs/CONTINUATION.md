@@ -1,3 +1,9 @@
+## Published signed synthetic privacy queue, checkpoint 405, 11 November 2026 EAT
+
+Private deployment appgdep_6af4bbef4f808191a0248320a542bf78 succeeded from dashboard 7901fdd5e5d89425ac2b4bce890f49855be9d761. Both browser tabs showed the new checkpoint and 55/97. The before exports (73)/(74) and after exports (75)/(76) matched within each pair. All 952 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 954 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 3c6722c passed eight focused checks and the domain, API and SDK builds. Next connect the dedicated reviewer screen and verify confirmation and recovery in a browser. Production retention, privacy approval, provider and restore checks remain open.
+
 ## 11 November 2026 EAT - checkpoint 405, signed synthetic privacy queue
 
 Eight focused checks and the domain, API and SDK builds passed. A designated independent reviewer can list eligible requests, record a hold or plan-review decision, and recover the exact receipt after a lost committed reply. See [evidence](evidence/2026-11-11-signed-privacy-queue.md). Next connect a dedicated admin reviewer screen and verify confirmation and recovery in a browser. Task 09-3 and production processing remain open.
