@@ -1,3 +1,9 @@
+## Published synthetic deletion restore, checkpoint 410, 12 November 2026 EAT
+
+Private deployment appgdep_6af4f387c02c81918dc8116cb5a6e257 succeeded from dashboard e26b994a112c4fe6c86e217489ede363b39b37fc. Both browser tabs showed the new checkpoint and 55/97. The before exports (93)/(94) and after exports (95)/(96) matched within each pair. All 962 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 964 notes and 27 manual checks. Three dashboard tests passed.
+
+Source cde363e passed seventeen focused checks. The old snapshot demonstrated stale consent and the later snapshot preserved the withdrawal and original receipts. Next define recovery of committed privacy changes before reopening from an older snapshot. Production retention, privacy approval, provider and restore checks remain open.
+
 ## 12 November 2026 EAT - checkpoint 410, synthetic deletion restore
 
 An older disposable snapshot restored stale notification consent and the prior active registration without the deletion request. A snapshot taken after the decision preserved pending review, disabled consent, zero active registrations and the original receipts. Seventeen focused tests passed. See [evidence](evidence/2026-11-12-synthetic-deletion-restore.md). Next define and test how to recover committed privacy changes before reopening service from an older snapshot. Task 09-3 and production recovery remain open.
