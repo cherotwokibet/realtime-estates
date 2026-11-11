@@ -64,7 +64,7 @@ BEGIN
     SELECT *, row_number() OVER (ORDER BY customer_id) AS rn FROM page
   )
   SELECT jsonb_build_object(
-    'policy', 'synthetic-customer-deletion-triage-v1',
+    'policy', 'synthetic-customer-deletion-triage-v1', 'tenantId', company,
     'items', coalesce(jsonb_agg(jsonb_build_object(
       'customerId', customer_id, 'requestId', request_id,
       'requestedAt', to_char(requested_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')

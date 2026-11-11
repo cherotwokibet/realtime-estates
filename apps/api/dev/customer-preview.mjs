@@ -33,6 +33,8 @@ export async function startCustomerPreview({
   mobileMode,
   pushMode,
   deletionMode,
+  deletionReviewMode,
+  deletionReviewReplyFault,
   deletionReplyFault,
   enquiryReplyFault,
 } = {}) {
@@ -43,6 +45,10 @@ export async function startCustomerPreview({
       (enquiryReplyFault !== 'lost-first-enquiry-result-v1' || !mobileMode)) ||
     (deletionReplyFault !== undefined &&
       (deletionReplyFault !== 'lost-first-deletion-result-v1' || !deletionMode)) ||
+    (deletionReviewMode !== undefined &&
+      (deletionReviewMode !== 'synthetic-admin-deletion-review-v1' || !deletionMode)) ||
+    (deletionReviewReplyFault !== undefined &&
+      (deletionReviewReplyFault !== 'lost-first-deletion-review-v1' || !deletionReviewMode)) ||
     (deletionMode !== undefined &&
       (deletionMode !== 'synthetic-customer-deletion-v1' || !pushMode)) ||
     (pushMode !== undefined && pushMode !== 'synthetic-customer-push-v1') ||
@@ -89,6 +95,20 @@ export async function startCustomerPreview({
         ),
       );
 
+    const tenantId = tenantSlug === 'sample-homes' ? OTHER : T;
+    if (deletionReviewMode) {
+      await db.exec(
+        await readFile(
+          new URL('../../../database/proposals/customer-deletion-reviews.sql', import.meta.url),
+          'utf8',
+        ),
+      );
+      await db.query(
+        "INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'admin')",
+        [tenantId, id(25)],
+      );
+    }
+
     await db.query(
       "INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'customer'),($3,$4,'customer'),($3,$2,'customer')",
       [T, id(14), OTHER, id(13)],
@@ -104,7 +124,6 @@ export async function startCustomerPreview({
       foreignSavedFixture = saved.rows[0].receipt.saved === true;
       if (!foreignSavedFixture) throw Error('Synthetic positive isolation fixture failed.');
     }
-    const tenantId = tenantSlug === 'sample-homes' ? OTHER : T;
     let nativeListingId = null;
     if (mobileMode) {
       const { REFERENCE_PREVIEW_CATALOGUE, seedPublicReferenceListing } =
@@ -190,6 +209,7 @@ export async function startCustomerPreview({
       customerFavouritesMode: 'synthetic-customer-favourites-v1',
       customerPushMode: pushMode,
       customerDeletionMode: deletionMode,
+      adminDeletionReviewMode: deletionReviewMode,
       verifyAuthorization: (r) =>
         verify(parseBearerHeader(r.headers.get('authorization') ?? undefined)),
       database: {
@@ -200,6 +220,7 @@ export async function startCustomerPreview({
     let faultPending = replyFault !== undefined;
     let enquiryFaultPending = enquiryReplyFault !== undefined;
     let deletionFaultPending = deletionReplyFault === 'lost-first-deletion-result-v1';
+    let deletionReviewFaultPending = deletionReviewReplyFault === 'lost-first-deletion-review-v1';
     const api = createDevelopmentServer(async (r) => {
       const url = new URL(r.url);
       if (mobileMode && url.pathname === '/dev/mobile-customer/session') {
@@ -235,6 +256,26 @@ export async function startCustomerPreview({
         );
       }
       const result = await service(r);
+      if (
+        deletionReviewFaultPending &&
+        r.method === 'POST' &&
+        url.pathname.startsWith('/v2/staff/customer-deletion-triage/') &&
+        result.status === 200
+      ) {
+        deletionReviewFaultPending = false;
+        const requestId = result.headers.get('x-request-id');
+        return Response.json(
+          {
+            error: {
+              code: 'SERVICE_UNAVAILABLE',
+              message: 'Synthetic committed reply unavailable.',
+            },
+            requestId,
+          },
+          { status: 503, headers: { 'Cache-Control': 'no-store', 'X-Request-Id': requestId } },
+        );
+      }
+
       if (
         deletionFaultPending &&
         r.method === 'POST' &&
@@ -322,6 +363,25 @@ export async function startCustomerPreview({
             admin: Object.freeze({ bearerToken: await sign(adminId, issued, issued + 900) }),
             agent: Object.freeze({ bearerToken: await sign(agentId, issued, issued + 900) }),
           });
+        },
+        enumerable: false,
+      },
+      deletionReviewStaff: {
+        value: async () => {
+          if (!deletionReviewMode) throw Error('Deletion review fixture is unavailable.');
+          const primary = tenantId === T ? ADMIN : id(20);
+          return {
+            reviewerId: primary,
+            token: await sign(primary, issued, issued + 900),
+            peerToken: await sign(id(25), issued, issued + 900),
+            revoke: () =>
+              withDatabase(() =>
+                db.query(
+                  'UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',
+                  [tenantId, primary],
+                ),
+              ),
+          };
         },
         enumerable: false,
       },

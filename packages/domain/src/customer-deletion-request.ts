@@ -77,15 +77,11 @@ export function validateCustomerDeletionRequest(
     scope,
   );
   const id = requestId(row.requestId);
-  const date = row.requestedAt;
+  const date = timestamp(row.requestedAt);
   if (
     row.policy !== 'synthetic-customer-deletion-request-v1' ||
     row.status !== 'pending_review' ||
-    (expectedRequestId !== undefined && id !== expectedRequestId) ||
-    typeof date !== 'string' ||
-    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(date) ||
-    !Number.isFinite(Date.parse(date)) ||
-    new Date(date).toISOString() !== date
+    (expectedRequestId !== undefined && id !== expectedRequestId)
   )
     return invalid();
   return Object.freeze({
@@ -95,5 +91,131 @@ export function validateCustomerDeletionRequest(
     requestId: id,
     status: row.status,
     requestedAt: date,
+  });
+}
+
+function timestamp(date: unknown) {
+  if (
+    typeof date !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(date) ||
+    !Number.isFinite(Date.parse(date)) ||
+    new Date(date).toISOString() !== date
+  )
+    return invalid();
+  return date;
+}
+export type CustomerDeletionDisposition = 'ready_for_privacy_review' | 'needs_information';
+export interface CustomerDeletionReviewTarget {
+  readonly customerId: string;
+  readonly requestId: string;
+  readonly operationId: string;
+}
+export interface CustomerDeletionReviewCommand extends CustomerDeletionReviewTarget {
+  readonly policy: 'synthetic-customer-deletion-review-command-v1';
+  readonly disposition: CustomerDeletionDisposition;
+}
+function disposition(value: unknown): CustomerDeletionDisposition {
+  if (value !== 'ready_for_privacy_review' && value !== 'needs_information') return invalid();
+  return value;
+}
+function reviewTarget(row: Record<string, unknown>): CustomerDeletionReviewTarget {
+  return {
+    customerId: requestId(row.customerId),
+    requestId: requestId(row.requestId),
+    operationId: requestId(row.operationId),
+  };
+}
+export function validateCustomerDeletionReviewTarget(value: unknown): CustomerDeletionReviewTarget {
+  return Object.freeze(reviewTarget(record(value, ['customerId', 'requestId', 'operationId'])));
+}
+export function validateCustomerDeletionReviewCommand(
+  value: unknown,
+): CustomerDeletionReviewCommand {
+  const row = record(value, ['policy', 'customerId', 'requestId', 'operationId', 'disposition']);
+  if (row.policy !== 'synthetic-customer-deletion-review-command-v1') return invalid();
+  return Object.freeze({
+    policy: row.policy,
+    ...reviewTarget(row),
+    disposition: disposition(row.disposition),
+  });
+}
+export function validateCustomerDeletionReviewReceipt(
+  value: unknown,
+  expected: CustomerDeletionReviewTarget & {
+    tenantId: string;
+    reviewerId: string;
+    disposition?: CustomerDeletionDisposition;
+  },
+) {
+  const row = record(value, [
+    'policy',
+    'tenantId',
+    'reviewerId',
+    'customerId',
+    'requestId',
+    'operationId',
+    'disposition',
+    'reviewedAt',
+  ]);
+  const tenantId = requestId(row.tenantId),
+    reviewerId = requestId(row.reviewerId);
+  const target = reviewTarget(row);
+  const decision = disposition(row.disposition);
+  if (
+    row.policy !== 'synthetic-customer-deletion-review-v1' ||
+    tenantId !== expected.tenantId ||
+    reviewerId !== expected.reviewerId ||
+    target.customerId !== expected.customerId ||
+    target.requestId !== expected.requestId ||
+    target.operationId !== expected.operationId ||
+    (expected.disposition !== undefined && decision !== expected.disposition)
+  )
+    return invalid();
+  return Object.freeze({
+    policy: row.policy,
+    tenantId,
+    reviewerId,
+    ...target,
+    disposition: decision,
+    reviewedAt: timestamp(row.reviewedAt),
+  });
+}
+
+export function validateCustomerDeletionTriage(
+  value: unknown,
+  limit: number,
+  after: string | null,
+  tenantId: string,
+) {
+  const row = record(value, ['policy', 'tenantId', 'items', 'hasMore']);
+  if (
+    row.policy !== 'synthetic-customer-deletion-triage-v1' ||
+    requestId(row.tenantId) !== tenantId ||
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > 50 ||
+    !Array.isArray(row.items) ||
+    row.items.length > limit ||
+    typeof row.hasMore !== 'boolean' ||
+    (row.hasMore && row.items.length !== limit)
+  )
+    return invalid();
+  let prior = after;
+  const items = Array.from(row.items, (item: unknown) => {
+    const entry = record(item, ['customerId', 'requestId', 'requestedAt']);
+    const customerId = requestId(entry.customerId);
+    if (prior !== null && customerId <= prior) return invalid();
+    prior = customerId;
+    return Object.freeze({
+      customerId,
+      requestId: requestId(entry.requestId),
+      requestedAt: timestamp(entry.requestedAt),
+    });
+  });
+  return Object.freeze({
+    policy: row.policy,
+    tenantId,
+    items: Object.freeze(items),
+    hasMore: row.hasMore,
   });
 }

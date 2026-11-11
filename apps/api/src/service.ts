@@ -45,6 +45,10 @@ import {
   validateListingReportCommand,
   validateListingReportReceipt,
   validateListingReportDecisionCommand,
+  validateCustomerDeletionReviewTarget,
+  validateCustomerDeletionReviewCommand,
+  validateCustomerDeletionReviewReceipt,
+  validateCustomerDeletionTriage,
   validateListingReportDecisionReceipt,
   validateListingReportQueue,
   validateCompanySettingsCommand,
@@ -203,6 +207,7 @@ export interface ApiServiceOptions {
   readonly customerDeletionMode?: 'synthetic-customer-deletion-v1';
   /** Isolated audit-read candidate; never installs SQL or enables production access. */
   readonly adminAuditMode?: 'synthetic-admin-audit-v1';
+  readonly adminDeletionReviewMode?: 'synthetic-admin-deletion-review-v1';
   /** Isolated private video metadata preparation; no provider/public delivery or schema installation. */
   readonly listingVideoMode?: 'synthetic-private-listing-video-v1';
   readonly listingVideoPublicationMode?: 'synthetic-listing-video-publication-v1';
@@ -1726,6 +1731,14 @@ export function createApiService(
     (options.adminAuditMode !== 'synthetic-admin-audit-v1' || process.env.NODE_ENV === 'production')
   )
     throw Error('Unsupported administrator audit configuration.');
+  if (
+    options.adminDeletionReviewMode !== undefined &&
+    (options.adminDeletionReviewMode !== 'synthetic-admin-deletion-review-v1' ||
+      process.env.NODE_ENV !== 'development')
+  )
+    throw Error('Unsupported admin deletion review mode.');
+  const adminDeletionReviewEnabled =
+    options.adminDeletionReviewMode === 'synthetic-admin-deletion-review-v1';
   const adminAuditEnabled = options.adminAuditMode === 'synthetic-admin-audit-v1';
   const privacyNoticeVersion = text(
     options.privacyNoticeVersion,
@@ -2887,6 +2900,132 @@ export function createApiService(
           },
         );
         return response(intent ? 202 : 200, value, correlationId);
+      }
+      const deletionQueue = path === '/v2/staff/customer-deletion-triage';
+      const deletionOperation =
+        /^\/v2\/staff\/customer-deletion-triage\/([^/]+)\/requests\/([^/]+)\/operations\/([^/]+)$/.exec(
+          path,
+        );
+      if (deletionQueue || deletionOperation) {
+        if (!adminDeletionReviewEnabled || process.env.NODE_ENV !== 'development')
+          throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+        if (method !== 'GET' && !(method === 'POST' && deletionOperation))
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method unavailable.', {
+            Allow: deletionQueue ? 'GET' : 'GET, POST',
+          });
+        if (
+          request.url.includes('#') ||
+          (!deletionQueue && request.url.includes('?')) ||
+          (method === 'GET' &&
+            (request.body !== null ||
+              request.headers.has('content-type') ||
+              request.headers.has('content-length'))) ||
+          headerNames(request.headers).some(
+            (name) =>
+              [
+                'cookie',
+                'idempotency-key',
+                'range',
+                'content-encoding',
+                'transfer-encoding',
+                'expect',
+              ].includes(name) ||
+              name.startsWith('x-') ||
+              name.startsWith('if-'),
+          )
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Invalid deletion triage request.');
+        const reviewerId = (await identity(request, true))!;
+        const operation = deletionOperation
+          ? await (async () => {
+              let target: ReturnType<typeof validateCustomerDeletionReviewTarget>;
+              try {
+                target = validateCustomerDeletionReviewTarget({
+                  customerId: deletionOperation![1],
+                  requestId: deletionOperation![2],
+                  operationId: deletionOperation![3],
+                });
+              } catch {
+                throw new HttpError(400, 'INVALID_INPUT', 'Invalid deletion review route.');
+              }
+              const args = [target.customerId, target.requestId, target.operationId];
+              let command: ReturnType<typeof validateCustomerDeletionReviewCommand> | undefined;
+              if (method === 'POST') {
+                try {
+                  command = validateCustomerDeletionReviewCommand(
+                    await jsonBody(request, 2048, true, true, true, false, true, 5000),
+                  );
+                } catch (error) {
+                  if (error instanceof HttpError) throw error;
+                  throw new HttpError(400, 'INVALID_INPUT', 'Invalid deletion review command.');
+                }
+                if (
+                  command.customerId !== target.customerId ||
+                  command.requestId !== target.requestId ||
+                  command.operationId !== target.operationId
+                )
+                  throw new HttpError(
+                    400,
+                    'INVALID_INPUT',
+                    'Deletion review command changed route.',
+                  );
+              }
+
+              return { target, args, command };
+            })()
+          : null;
+        const value = await options.database.transaction(
+          { tenantId, actorId: reviewerId, correlationId },
+          async (query) => {
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            if (deletionQueue) {
+              const filters: Record<string, string> = Object.create(null);
+              for (const [key, val] of url.searchParams) {
+                if (!['limit', 'after'].includes(key) || Object.hasOwn(filters, key))
+                  throw new HttpError(400, 'INVALID_INPUT', 'Invalid deletion triage cursor.');
+                filters[key] = val;
+              }
+              const limit =
+                filters.limit === undefined
+                  ? 20
+                  : /^[1-9]\d?$/.test(filters.limit)
+                    ? Number(filters.limit)
+                    : 0;
+              const after =
+                filters.after === undefined ? null : uuid(filters.after, 'Customer cursor');
+              if (limit < 1 || limit > 50 || (after !== null && after !== filters.after))
+                throw new HttpError(400, 'INVALID_INPUT', 'Invalid deletion triage cursor.');
+              const result = await query.query(
+                'SELECT app_api.list_customer_deletion_triage($1,$2) AS result',
+                [limit, after],
+              );
+              return validateCustomerDeletionTriage(
+                scalar(result, 'result'),
+                limit,
+                after,
+                tenantId,
+              );
+            }
+            if (!operation) throw Error('Missing deletion review route.');
+            const { target, args, command } = operation;
+            const result = command
+              ? await query.query(
+                  'SELECT app_api.review_customer_deletion($1,$2,$3,$4) AS result',
+                  [...args, command.disposition],
+                )
+              : await query.query(
+                  'SELECT app_api.read_customer_deletion_review($1,$2,$3) AS result',
+                  args,
+                );
+            return validateCustomerDeletionReviewReceipt(scalar(result, 'result'), {
+              ...target,
+              tenantId,
+              reviewerId,
+              disposition: command?.disposition,
+            });
+          },
+        );
+        return response(200, value, correlationId);
       }
       const publicReport = /^\/v2\/public\/listings\/([^/]+)\/reports\/([^/]+)$/.exec(path);
       const staffReport = /^\/v2\/staff\/listing-reports(?:\/([^/]+)\/operations\/([^/]+))?$/.exec(

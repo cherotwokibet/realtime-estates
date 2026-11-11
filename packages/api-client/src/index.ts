@@ -102,6 +102,12 @@ import {
   validateListingReportCommand,
   validateListingReportReceipt,
   validateListingReportDecisionCommand,
+  validateCustomerDeletionTriage,
+  validateCustomerDeletionReviewTarget,
+  validateCustomerDeletionReviewCommand,
+  validateCustomerDeletionReviewReceipt,
+  type CustomerDeletionReviewTarget,
+  type CustomerDeletionReviewCommand,
   validateListingReportDecisionReceipt,
   validateListingReportQueue,
   parseListingReportJson,
@@ -4062,6 +4068,98 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid original report review.');
     }
   }
+  async listCustomerDeletionTriage(
+    input: { readonly limit?: number; readonly after?: string },
+    tenantId: string,
+    options: StaffRequestOptions,
+  ) {
+    const captured = uploadOptions(options);
+    if (!input || typeof input !== 'object')
+      return invalid('VALIDATION', 'Invalid deletion triage filters.');
+    const keys = Reflect.ownKeys(input);
+    if (keys.some((key) => key !== 'limit' && key !== 'after'))
+      return invalid('VALIDATION', 'Invalid deletion triage filters.');
+    const filters = attachRecord(input, keys as string[], 'VALIDATION');
+    const limit = integer(filters.limit ?? 20, 1, 50, 'VALIDATION', 'Limit');
+    const after =
+      filters.after === undefined ? null : uuid(filters.after, 'VALIDATION', 'Customer cursor');
+    if (
+      uuid(tenantId, 'VALIDATION', 'Company ID') !== tenantId ||
+      (after !== null && after !== filters.after)
+    )
+      return invalid('VALIDATION', 'Canonical deletion triage scope required.');
+    const data = await this.request(
+      '/v2/staff/customer-deletion-triage?limit=' +
+        limit +
+        (after === null ? '' : '&after=' + after),
+      'GET',
+      captured,
+    );
+    try {
+      return validateCustomerDeletionTriage(data, limit, after, tenantId);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid deletion triage queue.');
+    }
+  }
+  async reviewCustomerDeletion(
+    input: CustomerDeletionReviewCommand,
+    scope: { readonly tenantId: string; readonly reviewerId: string },
+    options: StaffRequestOptions,
+  ) {
+    return this.customerDeletionReview(input, scope, options, 'POST');
+  }
+  async getCustomerDeletionReview(
+    target: CustomerDeletionReviewTarget,
+    scope: { readonly tenantId: string; readonly reviewerId: string },
+    options: StaffRequestOptions,
+  ) {
+    return this.customerDeletionReview(target, scope, options, 'GET');
+  }
+  private async customerDeletionReview(
+    input: CustomerDeletionReviewTarget,
+    scope: { readonly tenantId: string; readonly reviewerId: string },
+    options: StaffRequestOptions,
+    method: 'GET' | 'POST',
+  ) {
+    const captured = uploadOptions(options);
+    const expected = attachRecord(scope, ['tenantId', 'reviewerId'], 'VALIDATION');
+    const tenantId = uuid(expected.tenantId, 'VALIDATION', 'Company ID');
+    const reviewerId = uuid(expected.reviewerId, 'VALIDATION', 'Reviewer ID');
+    if (tenantId !== expected.tenantId || reviewerId !== expected.reviewerId)
+      return invalid('VALIDATION', 'Canonical review scope required.');
+    let target: CustomerDeletionReviewTarget;
+    let command: CustomerDeletionReviewCommand | undefined;
+    try {
+      if (method === 'POST') {
+        command = validateCustomerDeletionReviewCommand(input);
+        target = command;
+      } else {
+        target = validateCustomerDeletionReviewTarget(input);
+      }
+    } catch {
+      return invalid('VALIDATION', 'Invalid deletion review input.');
+    }
+    const path =
+      '/v2/staff/customer-deletion-triage/' +
+      target.customerId +
+      '/requests/' +
+      target.requestId +
+      '/operations/' +
+      target.operationId;
+    const data = await this.request(path, method, captured, command && { ...command });
+    try {
+      return validateCustomerDeletionReviewReceipt(data, {
+        ...target,
+        tenantId,
+        reviewerId,
+        disposition: command?.disposition,
+      });
+    } catch {
+      throw new ApiClientError('INVALID_RESPONSE', 'Invalid deletion review receipt.', {
+        submissionUncertain: method === 'POST',
+      });
+    }
+  }
   async listAdminAuditEvents(
     tenantId: string,
     input: AdminAuditQuery,
@@ -6427,7 +6525,12 @@ export class RealtorApiClient {
         path,
       );
     const adminAudit = /^\/v2\/staff\/audit-events\?limit=/.test(path);
+    const deletionTriage =
+      /^\/v2\/staff\/customer-deletion-triage(?:\?limit=[1-9]\d?(?:&after=[0-9a-f-]{36})?|\/[0-9a-f-]{36}\/requests\/[0-9a-f-]{36}\/operations\/[0-9a-f-]{36})$/.test(
+        path,
+      );
     const listingReport =
+      deletionTriage ||
       adminAudit ||
       listingVideo ||
       floorPlan ||
