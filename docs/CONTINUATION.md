@@ -1,3 +1,9 @@
+## Synthetic account deletion request intake, checkpoint 393, 11 November 2026 EAT
+
+Added a disposable SQL proposal that records an explicitly confirmed current customer's deletion request and withdraws push consent and test devices in the same transaction. Exact retry returns the pending receipt; a second request ID conflicts. While pending, new opt-in is blocked. All eight focused database checks passed with zero skips, including isolation, revocation, historical replay and rollback. See docs/evidence/2026-11-11-synthetic-deletion-intake.md and deletion393-sql.txt.
+
+Next add a strict shared contract and default-off signed API, then verify lost-response recovery and expose explicit confirmation in the mobile preview. Review authority and retention boundaries are required before a worker. No account/data deletion, production activation, or device acceptance. Task 09-3 remains open; 55/97 tasks and 0/14 gates.
+
 ## Published native notification settings, checkpoint 392, 11 November 2026 EAT
 
 Private deployment appgdep_6af400b258cc81918e71c9d216450f9d succeeded from dashboard a07a94927cf22a71c32f0a079d1d919ed1d13ca6. Both dashboard tabs showed the notification consent checkpoint and the canonical 55/97 baseline, with 0/14 stage gates accepted. The 11 November exports before (21)/(22) and after (23)/(24) preserved all 926 prior note occurrences and all manual task, stage, gate, decision and risk fields. There are 928 notes and 27 manual checks after publication. Three dashboard baseline checks passed.

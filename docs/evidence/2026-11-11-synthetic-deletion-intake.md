@@ -1,0 +1,9 @@
+# Synthetic customer deletion request intake — checkpoint 393
+
+11 November 2026 EAT. The optional SQL proposal records one explicitly confirmed request per current customer and company. It returns a stable pending-review receipt on exact retry, and a different request ID conflicts. The current customer can read the pending request using membership-scoped authority. Runtime roles cannot query the private ledger directly.
+
+Request intake and push withdrawal commit together. The same membership lock serializes intake and push mutations. A request turns off existing consent and deactivates test devices, and the preference guard prevents opt-in while the request remains pending. Prior operation receipts remain historical; read current preferences for current consent.
+
+All eight focused PGlite checks passed with no skips: four new intake checks and four push regression checks. They exercised exact retry, duplicate refusal, revoked membership, cross-account and cross-company isolation, default-off, historical replay and rollback after a forced intake failure. See deletion393-sql.txt. No hosted PostgreSQL concurrency, signed HTTP or mobile device execution was tested for this feature.
+
+The proposal only queues requests in a disposable synthetic database. It does not delete customer data, cancel requests, revoke accounts, or authorize a reviewer or worker. Next: add a typed and default-off signed status and submit API, verify lost-response recovery through listening HTTP, and expose explicit confirmation with current consent refresh in mobile. Before any worker, decide reviewer authority, retention, customer status, linked enquiries and viewings, backups and provider identity cleanup. The checklist remains at 55/97 and 0/14 stage gates; task 09-3 is open. KES 10,000 per realtor per month remains the recurring baseline.
