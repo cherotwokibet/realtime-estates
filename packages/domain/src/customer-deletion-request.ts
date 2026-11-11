@@ -287,3 +287,37 @@ export function validateCustomerDeletionFollowUp(
     hasMore: row.hasMore,
   });
 }
+
+export function validateCustomerDeletionReturnReceipt(
+  value: unknown,
+  expected: CustomerDeletionReviewTarget & { tenantId: string; reviewerId: string },
+) {
+  const row = record(value, [
+    'policy',
+    'tenantId',
+    'reviewerId',
+    'customerId',
+    'requestId',
+    'operationId',
+    'returnedAt',
+  ]);
+  const tenantId = requestId(row.tenantId);
+  const reviewerId = requestId(row.reviewerId);
+  const target = reviewTarget(row);
+  if (
+    row.policy !== 'synthetic-customer-deletion-return-v1' ||
+    tenantId !== expected.tenantId ||
+    reviewerId !== expected.reviewerId ||
+    target.customerId !== expected.customerId ||
+    target.requestId !== expected.requestId ||
+    target.operationId !== expected.operationId
+  )
+    return invalid();
+  return Object.freeze({
+    policy: row.policy,
+    tenantId,
+    reviewerId,
+    ...target,
+    returnedAt: timestamp(row.returnedAt),
+  });
+}

@@ -50,6 +50,7 @@ import {
   validateCustomerDeletionReviewReceipt,
   validateCustomerDeletionTriage,
   validateCustomerDeletionFollowUp,
+  validateCustomerDeletionReturnReceipt,
   validateListingReportDecisionReceipt,
   validateListingReportQueue,
   validateCompanySettingsCommand,
@@ -2915,7 +2916,12 @@ export function createApiService(
       }
       const deletionFollowUp = path === '/v2/staff/customer-deletion-follow-up';
       const deletionQueue = path === '/v2/staff/customer-deletion-triage' || deletionFollowUp;
+      const deletionReturn =
+        /^\/v2\/staff\/customer-deletion-follow-up\/([^/]+)\/requests\/([^/]+)\/returns\/([^/]+)$/.exec(
+          path,
+        );
       const deletionOperation =
+        deletionReturn ??
         /^\/v2\/staff\/customer-deletion-triage\/([^/]+)\/requests\/([^/]+)\/operations\/([^/]+)$/.exec(
           path,
         );
@@ -2923,7 +2929,7 @@ export function createApiService(
         if (
           !adminDeletionReviewEnabled ||
           process.env.NODE_ENV !== 'development' ||
-          (deletionFollowUp && !deletionFollowUpEnabled)
+          ((deletionFollowUp || deletionReturn) && !deletionFollowUpEnabled)
         )
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
         if (method !== 'GET' && !(method === 'POST' && deletionOperation))
@@ -2969,17 +2975,31 @@ export function createApiService(
               let command: ReturnType<typeof validateCustomerDeletionReviewCommand> | undefined;
               if (method === 'POST') {
                 try {
-                  command = validateCustomerDeletionReviewCommand(
-                    await jsonBody(request, 2048, true, true, true, false, true, 5000),
-                  );
+                  const input = await jsonBody(request, 2048, true, true, true, false, true, 5000);
+                  if (deletionReturn) {
+                    const confirmed = validateCustomerDeletionReviewTarget(input);
+                    if (
+                      confirmed.customerId !== target.customerId ||
+                      confirmed.requestId !== target.requestId ||
+                      confirmed.operationId !== target.operationId
+                    )
+                      throw new HttpError(
+                        400,
+                        'INVALID_INPUT',
+                        'Deletion return target changed route.',
+                      );
+                  } else {
+                    command = validateCustomerDeletionReviewCommand(input);
+                  }
                 } catch (error) {
                   if (error instanceof HttpError) throw error;
                   throw new HttpError(400, 'INVALID_INPUT', 'Invalid deletion review command.');
                 }
                 if (
-                  command.customerId !== target.customerId ||
-                  command.requestId !== target.requestId ||
-                  command.operationId !== target.operationId
+                  command &&
+                  (command.customerId !== target.customerId ||
+                    command.requestId !== target.requestId ||
+                    command.operationId !== target.operationId)
                 )
                   throw new HttpError(
                     400,
@@ -3049,6 +3069,19 @@ export function createApiService(
             }
             if (!operation) throw Error('Missing deletion review route.');
             const { target, args, command } = operation;
+            if (deletionReturn) {
+              const result = await query.query(
+                method === 'POST'
+                  ? 'SELECT app_api.return_customer_deletion_to_review($1,$2,$3) AS result'
+                  : 'SELECT app_api.read_customer_deletion_review_return($1,$2,$3) AS result',
+                args,
+              );
+              return validateCustomerDeletionReturnReceipt(scalar(result, 'result'), {
+                ...target,
+                tenantId,
+                reviewerId,
+              });
+            }
             const result = command
               ? await query.query(
                   'SELECT app_api.review_customer_deletion($1,$2,$3,$4) AS result',

@@ -1,3 +1,9 @@
+## Signed return to privacy review, checkpoint 403, 11 November 2026 EAT
+
+The opt-in signed staff action and admin confirmation now return a request to privacy review. The local browser recovered the original receipt after a simulated committed 503 and verified the queue move. The signed fixture verified current customer progress and preserved original receipts. Eight focused checks, two admin boundary regression checks and domain, API, SDK and admin builds passed. See docs/evidence/2026-11-11-signed-deletion-return.md and deletion403 evidence.
+
+Next define a synthetic privacy decision and retention boundary for the ready queue. Operator acceptance and physical device checks are pending. Task 09-3 remains open at 55/97 and 0/14 gates.
+
 ## Published audited return to privacy review, checkpoint 402, 11 November 2026 EAT
 
 Private deployment appgdep_6af490a2e728819183a632baf98dc7b1 succeeded from dashboard ac6b51228cb3816b597fd46c0e8482329b5df036. Both browser tabs showed the new checkpoint and 55/97. The before exports (61)/(62) and after exports (63)/(64) matched within each pair. All 946 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 948 notes and 27 manual checks. Three dashboard tests passed.

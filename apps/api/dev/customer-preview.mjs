@@ -36,6 +36,7 @@ export async function startCustomerPreview({
   deletionReviewMode,
   deletionFollowUpMode,
   deletionReviewReplyFault,
+  deletionReturnReplyFault,
   deletionReplyFault,
   enquiryReplyFault,
 } = {}) {
@@ -51,6 +52,8 @@ export async function startCustomerPreview({
         !deletionReviewMode)) ||
     (deletionReviewMode !== undefined &&
       (deletionReviewMode !== 'synthetic-admin-deletion-review-v1' || !deletionMode)) ||
+    (deletionReturnReplyFault !== undefined &&
+      (deletionReturnReplyFault !== 'lost-first-deletion-return-v1' || !deletionFollowUpMode)) ||
     (deletionReviewReplyFault !== undefined &&
       (deletionReviewReplyFault !== 'lost-first-deletion-review-v1' || !deletionReviewMode)) ||
     (deletionMode !== undefined &&
@@ -232,6 +235,7 @@ export async function startCustomerPreview({
     let faultPending = replyFault !== undefined;
     let enquiryFaultPending = enquiryReplyFault !== undefined;
     let deletionFaultPending = deletionReplyFault === 'lost-first-deletion-result-v1';
+    let deletionReturnFaultPending = deletionReturnReplyFault === 'lost-first-deletion-return-v1';
     let deletionReviewFaultPending = deletionReviewReplyFault === 'lost-first-deletion-review-v1';
     const api = createDevelopmentServer(async (r) => {
       const url = new URL(r.url);
@@ -268,6 +272,25 @@ export async function startCustomerPreview({
         );
       }
       const result = await service(r);
+      if (
+        deletionReturnFaultPending &&
+        r.method === 'POST' &&
+        url.pathname.startsWith('/v2/staff/customer-deletion-follow-up/') &&
+        result.status === 200
+      ) {
+        deletionReturnFaultPending = false;
+        const requestId = result.headers.get('x-request-id');
+        return Response.json(
+          {
+            error: {
+              code: 'SERVICE_UNAVAILABLE',
+              message: 'Synthetic committed return reply unavailable.',
+            },
+            requestId,
+          },
+          { status: 503, headers: { 'Cache-Control': 'no-store', 'X-Request-Id': requestId } },
+        );
+      }
       if (
         deletionReviewFaultPending &&
         r.method === 'POST' &&

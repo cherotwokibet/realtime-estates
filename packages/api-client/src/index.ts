@@ -104,6 +104,7 @@ import {
   validateListingReportDecisionCommand,
   validateCustomerDeletionTriage,
   validateCustomerDeletionFollowUp,
+  validateCustomerDeletionReturnReceipt,
   type CustomerDeletionDisposition,
   validateCustomerDeletionReviewTarget,
   validateCustomerDeletionReviewCommand,
@@ -2570,6 +2571,14 @@ function uploadBytes(input: unknown): Uint8Array<ArrayBuffer> {
     return invalid('VALIDATION', 'Supply an ordinary byte array within the upload limit.');
   }
 }
+function deletionReviewerScope(scope: unknown) {
+  const expected = attachRecord(scope, ['tenantId', 'reviewerId'], 'VALIDATION');
+  const tenantId = uuid(expected.tenantId, 'VALIDATION', 'Company ID');
+  const reviewerId = uuid(expected.reviewerId, 'VALIDATION', 'Reviewer ID');
+  if (tenantId !== expected.tenantId || reviewerId !== expected.reviewerId)
+    return invalid('VALIDATION', 'Canonical review scope required.');
+  return { tenantId, reviewerId };
+}
 function deletionQueueFilters(input: unknown, tenantId: string) {
   if (!input || typeof input !== 'object')
     return invalid('VALIDATION', 'Invalid deletion triage filters.');
@@ -4147,11 +4156,7 @@ export class RealtorApiClient {
     method: 'GET' | 'POST',
   ) {
     const captured = uploadOptions(options);
-    const expected = attachRecord(scope, ['tenantId', 'reviewerId'], 'VALIDATION');
-    const tenantId = uuid(expected.tenantId, 'VALIDATION', 'Company ID');
-    const reviewerId = uuid(expected.reviewerId, 'VALIDATION', 'Reviewer ID');
-    if (tenantId !== expected.tenantId || reviewerId !== expected.reviewerId)
-      return invalid('VALIDATION', 'Canonical review scope required.');
+    const { tenantId, reviewerId } = deletionReviewerScope(scope);
     let target: CustomerDeletionReviewTarget;
     let command: CustomerDeletionReviewCommand | undefined;
     try {
@@ -4181,6 +4186,57 @@ export class RealtorApiClient {
       });
     } catch {
       throw new ApiClientError('INVALID_RESPONSE', 'Invalid deletion review receipt.', {
+        submissionUncertain: method === 'POST',
+      });
+    }
+  }
+  async returnCustomerDeletionToReview(
+    target: CustomerDeletionReviewTarget,
+    scope: { readonly tenantId: string; readonly reviewerId: string },
+    options: StaffRequestOptions,
+  ) {
+    return this.customerDeletionReturn(target, scope, options, 'POST');
+  }
+
+  async getCustomerDeletionReviewReturn(
+    target: CustomerDeletionReviewTarget,
+    scope: { readonly tenantId: string; readonly reviewerId: string },
+    options: StaffRequestOptions,
+  ) {
+    return this.customerDeletionReturn(target, scope, options, 'GET');
+  }
+
+  private async customerDeletionReturn(
+    input: CustomerDeletionReviewTarget,
+    scope: { readonly tenantId: string; readonly reviewerId: string },
+    options: StaffRequestOptions,
+    method: 'GET' | 'POST',
+  ) {
+    const captured = uploadOptions(options);
+    const { tenantId, reviewerId } = deletionReviewerScope(scope);
+    let target: CustomerDeletionReviewTarget;
+    try {
+      target = validateCustomerDeletionReviewTarget(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid deletion return target.');
+    }
+    const path =
+      '/v2/staff/customer-deletion-follow-up/' +
+      target.customerId +
+      '/requests/' +
+      target.requestId +
+      '/returns/' +
+      target.operationId;
+    const value = await this.request(
+      path,
+      method,
+      captured,
+      method === 'POST' ? { ...target } : undefined,
+    );
+    try {
+      return validateCustomerDeletionReturnReceipt(value, { ...target, tenantId, reviewerId });
+    } catch {
+      throw new ApiClientError('INVALID_RESPONSE', 'Invalid deletion return receipt.', {
         submissionUncertain: method === 'POST',
       });
     }
@@ -6561,6 +6617,9 @@ export class RealtorApiClient {
     const listingReport =
       deletionTriage ||
       deletionFollowUp ||
+      /^\/v2\/staff\/customer-deletion-follow-up\/[0-9a-f-]{36}\/requests\/[0-9a-f-]{36}\/returns\/[0-9a-f-]{36}$/.test(
+        path,
+      ) ||
       adminAudit ||
       listingVideo ||
       floorPlan ||

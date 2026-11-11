@@ -12,10 +12,10 @@ import { startCustomerPreview } from '../apps/api/dev/customer-preview.mjs';
 const args = process.argv.slice(2);
 if (
   process.env.NODE_ENV !== 'development' ||
-  args.some((arg) => arg !== '--lost-result') ||
+  args.some((arg) => !['--lost-result', '--lost-return'].includes(arg)) ||
   args.length > 1
 )
-  throw Error('Run in development with optional --lost-result.');
+  throw Error('Run in development with optional --lost-result or --lost-return.');
 if (existsSync(new URL('../apps/admin/.next/dev/lock', import.meta.url)))
   throw Error('The admin development directory is occupied.');
 
@@ -24,6 +24,9 @@ const preview = await startCustomerPreview({
   deletionMode: 'synthetic-customer-deletion-v1',
   deletionReviewMode: 'synthetic-admin-deletion-review-v1',
   deletionFollowUpMode: 'synthetic-customer-deletion-follow-up-v1',
+  ...(args.includes('--lost-return')
+    ? { deletionReturnReplyFault: 'lost-first-deletion-return-v1' }
+    : {}),
   ...(args.includes('--lost-result')
     ? { deletionReviewReplyFault: 'lost-first-deletion-review-v1' }
     : {}),

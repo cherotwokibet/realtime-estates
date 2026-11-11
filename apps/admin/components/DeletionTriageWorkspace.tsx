@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   validateCustomerDeletionReviewReceipt,
+  validateCustomerDeletionReturnReceipt,
+  type CustomerDeletionReviewTarget,
   validateCustomerDeletionTriage,
   validateCustomerDeletionFollowUp,
   type CustomerDeletionDisposition,
@@ -11,7 +13,10 @@ import { readReferenceJson } from '../lib/reference-draft-wire';
 
 type Queue = ReturnType<typeof validateCustomerDeletionTriage>;
 type FollowUpQueue = ReturnType<typeof validateCustomerDeletionFollowUp>;
-type Pending = { command: CustomerDeletionReviewCommand; phase: 'uncertain' | 'missing' };
+type Pending = {
+  command: CustomerDeletionReviewCommand | CustomerDeletionReviewTarget;
+  phase: 'uncertain' | 'missing';
+};
 const labels = {
   ready_for_privacy_review: 'Ready for privacy review',
   needs_information: 'Needs information',
@@ -34,6 +39,9 @@ export function DeletionTriageWorkspace({
   const [queue, setQueue] = useState<Queue | FollowUpQueue | null>(null);
   const [selected, setSelected] = useState<Queue['items'][number] | null>(null);
   const [decision, setDecision] = useState<CustomerDeletionDisposition | ''>('');
+  const [returnSelection, setReturnSelection] = useState<FollowUpQueue['items'][number] | null>(
+    null,
+  );
   const [pending, setPending] = useState<Pending | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Load unreviewed requests to begin.');
@@ -50,7 +58,7 @@ export function DeletionTriageWorkspace({
   async function exchange(
     path: string,
     signal: AbortSignal,
-    command?: CustomerDeletionReviewCommand,
+    command?: CustomerDeletionReviewCommand | CustomerDeletionReviewTarget,
   ) {
     const response = await fetch(path, {
       method: command ? 'POST' : 'GET',
@@ -89,6 +97,7 @@ export function DeletionTriageWorkspace({
 
   function clearSelection() {
     setSelected(null);
+    setReturnSelection(null);
     setDecision('');
   }
   function accessLost(error: unknown) {
@@ -125,34 +134,58 @@ export function DeletionTriageWorkspace({
     });
   }
 
-  function settle(command: CustomerDeletionReviewCommand, recover = false) {
+  function settle(
+    command: CustomerDeletionReviewCommand | CustomerDeletionReviewTarget,
+    recover = false,
+  ) {
     void run(async (signal, current) => {
       const { customerId, requestId, operationId } = command;
-      const path = base + '/' + customerId + '/' + requestId + '/' + operationId;
+      const isReturn = !('disposition' in command);
+      const path =
+        base + '/' + customerId + '/' + requestId + '/' + operationId + (isReturn ? '/return' : '');
       try {
         const value = await exchange(path, signal, recover ? undefined : command);
-        const receipt = validateCustomerDeletionReviewReceipt(value, { ...scope, ...command });
+        let outcome: string;
+        if (isReturn) {
+          validateCustomerDeletionReturnReceipt(value, { ...scope, ...command });
+          outcome = 'Returned to privacy review.';
+        } else {
+          const receipt = validateCustomerDeletionReviewReceipt(value, { ...scope, ...command });
+          outcome = labels[receipt.disposition] + ' recorded.';
+        }
         if (!current()) return;
         setPending(null);
         clearSelection();
         setQueue(null);
-        setStatus(labels[receipt.disposition] + ' recorded. Reload to see remaining requests.');
+        setStatus(outcome + ' Reload to see remaining requests.');
       } catch (error) {
         if (!current() || accessLost(error)) return;
         if (recover && error instanceof ExchangeError && error.status === 404) {
           setPending({ command, phase: 'missing' });
-          setStatus('No original decision found. You can retry the same decision.');
+          setStatus(
+            isReturn
+              ? 'No original return found. You can retry the same return.'
+              : 'No original decision found. You can retry the same decision.',
+          );
           return;
         }
         if (!recover && error instanceof ExchangeError && error.status < 500) {
           setPending(null);
           clearSelection();
           setQueue(null);
-          setStatus('The decision was refused. Reload the queue before continuing.');
+          setStatus(
+            isReturn
+              ? 'The return was refused. Reload the queue before continuing.'
+              : 'The decision was refused. Reload the queue before continuing.',
+          );
           return;
         }
         setPending({ command, phase: 'uncertain' });
-        setStatus('The decision could not be confirmed. Check the original receipt.');
+        setStatus(
+          isReturn
+            ? 'The return could not be confirmed. Check the original receipt.'
+            : 'The decision could not be confirmed. Check the original receipt.',
+        );
       }
     });
   }
@@ -193,11 +226,25 @@ export function DeletionTriageWorkspace({
                   aria-pressed={selected?.customerId === item.customerId}
                   disabled={busy || !!pending}
                   onClick={() => {
+                    setReturnSelection(null);
                     setSelected(item);
                     setDecision('');
                   }}
                 >
                   Review request for {item.customerId}
+                </button>
+              )}
+              {outcome === 'needs_information' && 'reviewedAt' in item && (
+                <button
+                  type="button"
+                  disabled={busy || !!pending}
+                  aria-pressed={returnSelection?.customerId === item.customerId}
+                  onClick={() => {
+                    clearSelection();
+                    setReturnSelection(item);
+                  }}
+                >
+                  Return request {item.requestId} to privacy review
                 </button>
               )}
             </li>
@@ -248,14 +295,35 @@ export function DeletionTriageWorkspace({
           </button>
         </form>
       )}
+      {returnSelection && !pending && (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (active.current) return;
+            settle({
+              customerId: returnSelection.customerId,
+              requestId: returnSelection.requestId,
+              operationId: crypto.randomUUID(),
+            });
+          }}
+        >
+          <p>Move request {returnSelection.requestId} to Ready for privacy review.</p>
+          <button type="submit" disabled={busy}>
+            Confirm return to privacy review
+          </button>
+          <button type="button" disabled={busy} onClick={clearSelection}>
+            Cancel
+          </button>
+        </form>
+      )}
       {pending?.phase === 'uncertain' && (
         <button type="button" disabled={busy} onClick={() => settle(pending.command, true)}>
-          Check original decision
+          {'disposition' in pending.command ? 'Check original decision' : 'Check original return'}
         </button>
       )}
       {pending?.phase === 'missing' && (
         <button type="button" disabled={busy} onClick={() => settle(pending.command)}>
-          Retry the same decision
+          {'disposition' in pending.command ? 'Retry the same decision' : 'Retry the same return'}
         </button>
       )}
     </section>

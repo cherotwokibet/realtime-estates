@@ -46,6 +46,7 @@ export async function deletionTriageBoundary(
   operation?: CustomerDeletionReviewTarget,
   env: Readonly<Record<string, string | undefined>> = process.env,
   fetcher: typeof fetch = fetch,
+  action: 'triage' | 'return' = 'triage',
 ) {
   let config: ReturnType<typeof deletionTriageConfiguration>;
   try {
@@ -69,6 +70,8 @@ export async function deletionTriageBoundary(
   } catch {
     return reply(403, { error: 'TRIAGE_UNAVAILABLE' });
   }
+  if (action === 'return' && (!operation || !config.followUp))
+    return reply(404, { error: 'TRIAGE_UNAVAILABLE' });
   if (request.method !== 'GET' && !(operation && request.method === 'POST'))
     return reply(405, { error: 'METHOD_UNAVAILABLE' });
   if (
@@ -90,6 +93,7 @@ export async function deletionTriageBoundary(
   });
   const options = { bearerToken: config.bearerToken, signal: request.signal };
   let command: CustomerDeletionReviewCommand | undefined;
+  let submittedReturn = false;
   try {
     if (!operation) {
       const query = new URL(request.url).searchParams;
@@ -124,23 +128,32 @@ export async function deletionTriageBoundary(
     try {
       target = validateCustomerDeletionReviewTarget(operation);
       if (request.method === 'POST') {
-        const submitted = validateCustomerDeletionReviewCommand(
-          await readReferenceJson(
-            request,
-            2048,
-            AbortSignal.any([request.signal, AbortSignal.timeout(5000)]),
-          ),
+        const input = await readReferenceJson(
+          request,
+          2048,
+          AbortSignal.any([request.signal, AbortSignal.timeout(5000)]),
         );
+        const submitted =
+          action === 'return'
+            ? validateCustomerDeletionReviewTarget(input)
+            : validateCustomerDeletionReviewCommand(input);
         if (
           submitted.customerId !== target.customerId ||
           submitted.requestId !== target.requestId ||
           submitted.operationId !== target.operationId
         )
           throw Error();
-        command = submitted;
+        if ('disposition' in submitted) command = submitted as CustomerDeletionReviewCommand;
+        else submittedReturn = true;
       }
     } catch {
       return reply(400, { error: 'INVALID_TRIAGE_REQUEST' });
+    }
+    if (action === 'return') {
+      const receipt = submittedReturn
+        ? await api.returnCustomerDeletionToReview(target, config.scope, options)
+        : await api.getCustomerDeletionReviewReturn(target, config.scope, options);
+      return reply(200, receipt);
     }
     const receipt = command
       ? await api.reviewCustomerDeletion(command, config.scope, options)
@@ -152,7 +165,8 @@ export async function deletionTriageBoundary(
       {
         error: 'TRIAGE_UNAVAILABLE',
         submissionUncertain:
-          !!command && (!(error instanceof ApiClientError) || error.submissionUncertain),
+          (!!command || submittedReturn) &&
+          (!(error instanceof ApiClientError) || error.submissionUncertain),
       },
     );
   }
