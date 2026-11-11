@@ -199,6 +199,7 @@ export interface ApiServiceOptions {
   ) => Promise<unknown>;
   /** Isolated current-customer candidate; omitted leaves all customer routes unavailable. */
   readonly customerFavouritesMode?: 'synthetic-customer-favourites-v1';
+  readonly customerPushMode?: 'synthetic-customer-push-v1';
   /** Isolated audit-read candidate; never installs SQL or enables production access. */
   readonly adminAuditMode?: 'synthetic-admin-audit-v1';
   /** Isolated private video metadata preparation; no provider/public delivery or schema installation. */
@@ -1696,9 +1697,15 @@ export function createApiService(
     options.customerFavouritesMode !== 'synthetic-customer-favourites-v1'
   )
     throw Error('Unsupported customer mode.');
+  if (
+    options.customerPushMode !== undefined &&
+    (options.customerPushMode !== 'synthetic-customer-push-v1' || !options.customerFavouritesMode)
+  )
+    throw Error('Unsupported customer notification mode.');
   const customerHandler = options.customerFavouritesMode
     ? createCustomerFavouritesHttpCandidate({
         mode: options.customerFavouritesMode,
+        pushMode: options.customerPushMode,
         tenantId,
         database: options.database,
         verifyAuthorization: options.verifyAuthorization,

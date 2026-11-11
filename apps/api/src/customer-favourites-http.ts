@@ -7,6 +7,10 @@ import {
   validateCustomerFavouriteState,
   validateCustomerFavouritesPage,
   type CustomerFavouriteCommand,
+  validateCustomerPushCommand,
+  validateCustomerPushPreferences,
+  validateCustomerPushReceipt,
+  type CustomerPushCommand,
 } from '@realtor/domain';
 import { parseBearerHeader } from './auth.js';
 import type { TransactionDatabase } from './database.js';
@@ -66,20 +70,24 @@ async function body(request: Request): Promise<unknown> {
 /** Host-resolved tenant and verifier are server-owned. This handler never installs its isolated SQL. */
 export function createCustomerFavouritesHttpCandidate(options: {
   mode: 'synthetic-customer-favourites-v1';
+  pushMode?: 'synthetic-customer-push-v1';
   tenantId: string;
   database: TransactionDatabase;
   verifyAuthorization: (request: Request) => Promise<{ readonly actorId: string }>;
 }) {
   if (
     options.mode !== 'synthetic-customer-favourites-v1' ||
+    (options.pushMode !== undefined && options.pushMode !== 'synthetic-customer-push-v1') ||
     process.env.NODE_ENV === 'production' ||
     !validId(options.tenantId)
   )
     throw Error('Unsupported customer favourites configuration.');
   const tenantId = options.tenantId,
     database = options.database,
-    verify = options.verifyAuthorization;
+    verify = options.verifyAuthorization,
+    pushEnabled = options.pushMode === 'synthetic-customer-push-v1';
   return async (request: Request, requestId: string = randomUUID()): Promise<Response> => {
+    let pushRoute = false;
     try {
       if (process.env.NODE_ENV === 'production')
         return json(
@@ -91,12 +99,18 @@ export function createCustomerFavouritesHttpCandidate(options: {
         path = url.pathname;
       const state = new RegExp('^/v2/customer/favourites/(' + UUID + ')$').exec(path),
         original = new RegExp('^/v2/customer/favourite-operations/(' + UUID + ')$').exec(path);
+      const pushPreferences = pushEnabled && path === '/v2/customer/push-preferences';
+      const pushOriginal = pushEnabled
+        ? new RegExp('^/v2/customer/push-operations/(' + UUID + ')$').exec(path)
+        : null;
+      pushRoute = pushPreferences || pushOriginal !== null;
       const account = path === '/v2/customer/account',
         queue = path === '/v2/customer/favourites';
-      if (!account && !queue && !state && !original) throw new InputError(404);
+      if (!account && !queue && !state && !original && !pushRoute) throw new InputError(404);
       const method = request.method.toUpperCase();
-      const allow = original ? 'GET, POST' : 'GET';
-      if (!(method === 'GET' || (original && method === 'POST')))
+      const canWrite = original || pushOriginal;
+      const allow = canWrite ? 'GET, POST' : 'GET';
+      if (!(method === 'GET' || (canWrite && method === 'POST')))
         return json(
           405,
           { error: { code: 'METHOD_NOT_ALLOWED', message: 'Method unavailable.' } },
@@ -154,21 +168,41 @@ export function createCustomerFavouritesHttpCandidate(options: {
       }
       const scope = { tenantId, customerId: actorId };
       let command: CustomerFavouriteCommand | undefined;
+      let pushCommand: CustomerPushCommand | undefined;
       if (write) {
         try {
-          command = validateCustomerFavouriteCommand(await body(request));
-        } catch (e) {
-          if (e instanceof InputError) throw e;
+          const input = await body(request);
+          if (pushOriginal) {
+            pushCommand = validateCustomerPushCommand(input);
+            if (pushCommand.operationId !== pushOriginal[1]) throw new InputError(400);
+          } else {
+            command = validateCustomerFavouriteCommand(input);
+            if (command.operationId !== original?.[1]) throw new InputError(400);
+          }
+        } catch (error) {
+          if (error instanceof InputError) throw error;
           throw new InputError(400);
         }
-        if (command.operationId !== original?.[1]) throw new InputError(400);
       }
       const value = await database.transaction(
         { tenantId, actorId, correlationId: requestId },
         async (query) => {
           let sql: string,
             args: unknown[] = [];
-          if (account) sql = 'SELECT app_api.customer_account() AS result';
+          if (pushPreferences) sql = 'SELECT app_api.read_customer_push_preferences() AS result';
+          else if (pushCommand) {
+            sql = 'SELECT app_api.change_customer_push_preferences($1,$2,$3,$4,$5) AS result';
+            args = [
+              pushCommand.operationId,
+              pushCommand.expectedVersion,
+              pushCommand.action,
+              pushCommand.enabled,
+              pushCommand.registrationId,
+            ];
+          } else if (pushOriginal) {
+            sql = 'SELECT app_api.read_customer_push_operation($1) AS result';
+            args = [pushOriginal[1]];
+          } else if (account) sql = 'SELECT app_api.customer_account() AS result';
           else if (queue) {
             sql = 'SELECT app_api.list_customer_favourites($1,$2) AS result';
             args = [limit, after];
@@ -184,6 +218,9 @@ export function createCustomerFavouritesHttpCandidate(options: {
           }
           const rows = await query.query<{ result: unknown }>(sql, args);
           const r = rows.rows[0]?.result;
+          if (pushPreferences) return validateCustomerPushPreferences(r, scope);
+          if (pushOriginal)
+            return validateCustomerPushReceipt(r, scope, pushOriginal[1]!, pushCommand);
           if (account) return validateCustomerAccount(r, scope);
           if (queue) return validateCustomerFavouritesPage(r, scope, limit, after);
           if (state) return validateCustomerFavouriteState(r, scope, state[1]!);
@@ -238,7 +275,9 @@ export function createCustomerFavouritesHttpCandidate(options: {
                   : status === 404
                     ? 'NOT_FOUND'
                     : status === 429
-                      ? 'FAVOURITE_LIMIT'
+                      ? pushRoute
+                        ? 'PUSH_DEVICE_LIMIT'
+                        : 'FAVOURITE_LIMIT'
                       : status === 500
                         ? 'UNAVAILABLE'
                         : 'INVALID_REQUEST',

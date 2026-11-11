@@ -31,6 +31,7 @@ export async function startCustomerPreview({
   tenantSlug = 'realtime-estates',
   replyFault,
   mobileMode,
+  pushMode,
   enquiryReplyFault,
 } = {}) {
   if (
@@ -38,6 +39,7 @@ export async function startCustomerPreview({
     !['realtime-estates', 'sample-homes'].includes(tenantSlug) ||
     (enquiryReplyFault !== undefined &&
       (enquiryReplyFault !== 'lost-first-enquiry-result-v1' || !mobileMode)) ||
+    (pushMode !== undefined && pushMode !== 'synthetic-customer-push-v1') ||
     (mobileMode !== undefined && mobileMode !== 'synthetic-mobile-customer-v1') ||
     (replyFault !== undefined && replyFault !== 'lost-first-favourite-result-v1')
   )
@@ -66,6 +68,13 @@ export async function startCustomerPreview({
         'utf8',
       ),
     );
+    if (pushMode)
+      await db.exec(
+        await readFile(
+          new URL('../../../database/proposals/customer-push-preferences.sql', import.meta.url),
+          'utf8',
+        ),
+      );
     await db.query(
       "INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'customer'),($3,$4,'customer'),($3,$2,'customer')",
       [T, id(14), OTHER, id(13)],
@@ -165,6 +174,7 @@ export async function startCustomerPreview({
           }
         : {}),
       customerFavouritesMode: 'synthetic-customer-favourites-v1',
+      customerPushMode: pushMode,
       verifyAuthorization: (r) =>
         verify(parseBearerHeader(r.headers.get('authorization') ?? undefined)),
       database: {

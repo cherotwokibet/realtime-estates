@@ -1,4 +1,6 @@
 import test from 'node:test';
+import { randomUUID } from 'node:crypto';
+import { PGlite } from '@electric-sql/pglite';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { fixture, asActor, scalar, T, OTHER, ADMIN, AGENT } from './public-media-fixtures.mjs';
@@ -10,14 +12,23 @@ const registration = id(3001);
 const denied = (call, code = '42501') => assert.rejects(call, (error) => error.code === code);
 const read = (db, actor = customer, tenant = T) =>
   asActor(db, tenant, actor, () => scalar(db, 'SELECT app_api.read_customer_push_preferences()'));
-const write = (db, expected, action, enabled, key, actor = customer, tenant = T) =>
+const change = (db, operation, expected, action, enabled, key, actor = customer, tenant = T) =>
   asActor(db, tenant, actor, () =>
-    scalar(db, 'SELECT app_api.change_customer_push_preferences($1,$2,$3,$4)', [
+    scalar(db, 'SELECT app_api.change_customer_push_preferences($1,$2,$3,$4,$5)', [
+      operation,
       expected,
       action,
       enabled,
       key,
     ]),
+  );
+const write = async (db, ...args) => {
+  const receipt = await change(db, randomUUID(), ...args);
+  return { ...receipt.preferences, outcome: receipt.outcome };
+};
+const original = (db, operation, actor = customer, tenant = T) =>
+  asActor(db, tenant, actor, () =>
+    scalar(db, 'SELECT app_api.read_customer_push_operation($1)', [operation]),
   );
 
 async function setup() {
@@ -146,5 +157,37 @@ test('current customer access, command shape, version and active device limit ar
     await denied(() => write(db, 13, 'consent', false, null));
   } finally {
     await db.close();
+  }
+});
+
+test('notification receipt and state commit together and the exact original survives later changes and restore', async () => {
+  const db = await setup();
+  let restored;
+  try {
+    const operation = id(7001);
+    const optIn = await change(db, operation, 0, 'consent', true, null);
+    assert.equal(optIn.outcome, 'applied');
+    assert.equal((await change(db, id(7002), 0, 'consent', false, null)).outcome, 'conflict');
+    await change(db, id(7003), 1, 'consent', false, null);
+    assert.deepEqual(await change(db, operation, 0, 'consent', true, null), optIn);
+    await denied(() => change(db, operation, 0, 'consent', false, null), '23505');
+    await denied(() => original(db, operation, peer), 'P0002');
+    await denied(() => original(db, operation, customer, OTHER), 'P0002');
+    assert.equal((await read(db)).enabled, false);
+    const snapshot = await db.dumpDataDir();
+    await db.close();
+    restored = await PGlite.create({ loadDataDir: snapshot });
+    assert.deepEqual(await original(restored, operation), optIn);
+    assert.equal((await original(restored, id(7002))).outcome, 'conflict');
+    await restored.exec(
+      "CREATE FUNCTION app_private.fail_push_receipt() RETURNS trigger LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'synthetic receipt fault' USING ERRCODE='23514'; END$$; CREATE TRIGGER fail_push_receipt BEFORE INSERT ON app_private.customer_push_operations FOR EACH ROW EXECUTE FUNCTION app_private.fail_push_receipt();",
+    );
+    await denied(() => change(restored, id(7004), 2, 'consent', true, null), '23514');
+    assert.equal((await read(restored)).version, '2');
+    assert.equal((await read(restored)).enabled, false);
+    await denied(() => original(restored, id(7004)), 'P0002');
+  } finally {
+    await restored?.close();
+    if (!db.closed) await db.close();
   }
 });
