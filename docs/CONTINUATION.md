@@ -1,3 +1,9 @@
+## Published signed return to privacy review, checkpoint 403, 11 November 2026 EAT
+
+Private deployment appgdep_6af49ef2253c8191a39d2923a29bc172 succeeded from dashboard 8958ddff0981c867f8c5e20e6cc2b31152c9177a. Both browser tabs showed the new checkpoint and 55/97. The before exports (65)/(66) and after exports (67)/(68) matched within each pair. All 948 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 950 notes and 27 manual checks. Three dashboard tests passed.
+
+Source dcb64fe passed eight focused checks, two admin boundary regression checks, the local browser return and recovery journey, and the domain, API, SDK and admin builds. Next define a synthetic privacy decision and retention boundary. Physical device and operator acceptance remain open.
+
 ## Signed return to privacy review, checkpoint 403, 11 November 2026 EAT
 
 The opt-in signed staff action and admin confirmation now return a request to privacy review. The local browser recovered the original receipt after a simulated committed 503 and verified the queue move. The signed fixture verified current customer progress and preserved original receipts. Eight focused checks, two admin boundary regression checks and domain, API, SDK and admin builds passed. See docs/evidence/2026-11-11-signed-deletion-return.md and deletion403 evidence.
