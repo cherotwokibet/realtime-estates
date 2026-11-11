@@ -118,3 +118,101 @@ test('customer progress reveals only a scoped status and preserves the original 
   );
   await deny(() => progress(db), '42501');
 });
+const returnOperation = id(851);
+const returnToReview = (db, actor = ADMIN, tenant = T, op = returnOperation, customer = primary) =>
+  query(
+    db,
+    'SELECT app_api.return_customer_deletion_to_review($1,$2,$3)',
+    [customer, requestId, op],
+    actor,
+    tenant,
+  );
+const originalReturn = (db, actor = ADMIN) =>
+  query(
+    db,
+    'SELECT app_api.read_customer_deletion_review_return($1,$2,$3)',
+    [primary, requestId, returnOperation],
+    actor,
+  );
+
+test('a current company admin can return a request to privacy review while preserving its original decisions', async (t) => {
+  const db = await setup(t);
+  const handoffAdmin = id(31);
+  await db.query(
+    "INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'admin')",
+    [T, handoffAdmin],
+  );
+  const intakeReceipt = await intake(db, primary);
+  await intake(db, peer);
+  await intake(db, primary, OTHER);
+  await deny(() => returnToReview(db), '23514');
+  const initialDecision = await review(db, primary, info);
+  await review(db, peer, ready);
+  await deny(() => returnToReview(db, ADMIN, T, returnOperation, peer), '23514');
+  await deny(() => returnToReview(db, AGENT), '42501');
+  await deny(() => returnToReview(db, otherAdmin, OTHER), '23514');
+  await db.query(
+    'UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',
+    [T, ADMIN],
+  );
+  await deny(() => returnToReview(db), '42501');
+  const receipt = await returnToReview(db, handoffAdmin);
+  assert.equal(receipt.reviewerId, handoffAdmin);
+  assert.equal(receipt.requestId, requestId);
+  assert.deepEqual(await originalReturn(db, handoffAdmin), receipt);
+  assert.deepEqual(await returnToReview(db, handoffAdmin), receipt);
+  await deny(() => returnToReview(db, handoffAdmin, T, id(852)), '23505');
+  assert.deepEqual((await queue(db, info, 20, null, handoffAdmin)).items, []);
+  const readyPage = await queue(db, ready, 20, null, handoffAdmin);
+  assert.equal(readyPage.items[0].reviewedAt, receipt.returnedAt);
+  assert.deepEqual(
+    readyPage.items.map((item) => item.customerId),
+    [primary, peer],
+  );
+  assert.equal((await progress(db)).status, 'privacy_review_pending');
+  assert.equal((await progress(db, primary, OTHER)).status, 'pending_review');
+  assert.deepEqual(await intake(db, primary), intakeReceipt);
+  const persisted = await db.query(
+    'SELECT disposition, operation_id FROM app_private.customer_deletion_reviews WHERE tenant_id=$1 AND customer_id=$2',
+    [T, primary],
+  );
+  assert.deepEqual(persisted.rows, [
+    { disposition: initialDecision.disposition, operation_id: initialDecision.operationId },
+  ]);
+  const audit = await db.query(
+    "SELECT actor_id,object_id,summary FROM app_private.audit_events WHERE action='customer.deletion_returned_to_review'",
+  );
+  assert.deepEqual(audit.rows, [
+    { actor_id: handoffAdmin, object_id: returnOperation, summary: { from: info, to: ready } },
+  ]);
+});
+
+test('failed return audit leaves the request in follow-up and another admin cannot recover the receipt', async (t) => {
+  const db = await setup(t);
+  const secondAdmin = id(31);
+  await db.query(
+    "INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'admin')",
+    [T, secondAdmin],
+  );
+  await intake(db, primary);
+  await review(db, primary, info);
+  await db.exec(`
+    CREATE FUNCTION app_private.reject_return_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      IF NEW.action = 'customer.deletion_returned_to_review' THEN
+        RAISE EXCEPTION 'Synthetic audit failure' USING ERRCODE = '23514';
+      END IF;
+      RETURN NEW;
+    END $$;
+    CREATE TRIGGER reject_return_audit BEFORE INSERT ON app_private.audit_events
+      FOR EACH ROW EXECUTE FUNCTION app_private.reject_return_audit();
+  `);
+  await deny(() => returnToReview(db), '23514');
+  await deny(() => originalReturn(db), 'P0002');
+  assert.equal((await progress(db)).status, 'staff_follow_up_pending');
+  assert.equal((await queue(db, info, 20, null)).items.length, 1);
+  await db.exec('DROP TRIGGER reject_return_audit ON app_private.audit_events');
+  await returnToReview(db);
+  await deny(() => originalReturn(db, secondAdmin), 'P0002');
+  await deny(() => returnToReview(db, secondAdmin), '23505');
+});

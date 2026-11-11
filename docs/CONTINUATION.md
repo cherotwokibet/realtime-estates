@@ -1,3 +1,9 @@
+## Audited return to privacy review, checkpoint 402, 11 November 2026 EAT
+
+The synthetic SQL workflow moves an eligible request from Needs information to Ready for privacy review. Current same-company admins share ownership. It records the transition and audit together and preserves original intake and triage records. Nine focused checks passed. See docs/evidence/2026-11-11-deletion-return-review.md and deletion402-checks.txt.
+
+Next add signed write and receipt recovery to the admin API and SDK, then connect a confirmation in the Needs information queue and verify the browser and customer status. Customer contact, privacy approval and retention remain open before processing. Task 09-3 remains open at 55/97 and 0/14 gates.
+
 ## Published admin and mobile deletion progress views, checkpoint 401, 11 November 2026 EAT
 
 Private deployment appgdep_6af48146e7e08191a282684a9c3f422f succeeded from dashboard dae210f7988c7c5c494f51fb9358db0efd18bb3f. Both browser tabs showed the new checkpoint and 55/97. The before exports (57)/(58) and after exports (59)/(60) matched within each pair. All 944 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 946 notes and 27 manual checks. Three dashboard tests passed.
