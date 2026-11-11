@@ -11,6 +11,9 @@ import {
   validateCustomerPushPreferences,
   validateCustomerPushReceipt,
   type CustomerPushCommand,
+  validateCustomerDeletionCommand,
+  validateCustomerDeletionRequest,
+  type CustomerDeletionCommand,
 } from '@realtor/domain';
 import { parseBearerHeader } from './auth.js';
 import type { TransactionDatabase } from './database.js';
@@ -71,6 +74,7 @@ async function body(request: Request): Promise<unknown> {
 export function createCustomerFavouritesHttpCandidate(options: {
   mode: 'synthetic-customer-favourites-v1';
   pushMode?: 'synthetic-customer-push-v1';
+  deletionMode?: 'synthetic-customer-deletion-v1';
   tenantId: string;
   database: TransactionDatabase;
   verifyAuthorization: (request: Request) => Promise<{ readonly actorId: string }>;
@@ -78,6 +82,10 @@ export function createCustomerFavouritesHttpCandidate(options: {
   if (
     options.mode !== 'synthetic-customer-favourites-v1' ||
     (options.pushMode !== undefined && options.pushMode !== 'synthetic-customer-push-v1') ||
+    (options.deletionMode !== undefined &&
+      (options.deletionMode !== 'synthetic-customer-deletion-v1' ||
+        !options.pushMode ||
+        process.env.NODE_ENV !== 'development')) ||
     process.env.NODE_ENV === 'production' ||
     !validId(options.tenantId)
   )
@@ -85,7 +93,8 @@ export function createCustomerFavouritesHttpCandidate(options: {
   const tenantId = options.tenantId,
     database = options.database,
     verify = options.verifyAuthorization,
-    pushEnabled = options.pushMode === 'synthetic-customer-push-v1';
+    pushEnabled = options.pushMode === 'synthetic-customer-push-v1',
+    deletionEnabled = options.deletionMode === 'synthetic-customer-deletion-v1';
   return async (request: Request, requestId: string = randomUUID()): Promise<Response> => {
     let pushRoute = false;
     try {
@@ -106,11 +115,28 @@ export function createCustomerFavouritesHttpCandidate(options: {
       pushRoute = pushPreferences || pushOriginal !== null;
       const account = path === '/v2/customer/account',
         queue = path === '/v2/customer/favourites';
-      if (!account && !queue && !state && !original && !pushRoute) throw new InputError(404);
+      const deletionStatus = deletionEnabled && path === '/v2/customer/deletion-request';
+      const deletionSubmit = deletionEnabled
+        ? new RegExp('^/v2/customer/deletion-requests/(' + UUID + ')$').exec(path)
+        : null;
+      if ((deletionStatus || deletionSubmit) && process.env.NODE_ENV !== 'development')
+        throw new InputError(404);
+      if (
+        !account &&
+        !queue &&
+        !state &&
+        !original &&
+        !pushRoute &&
+        !deletionStatus &&
+        !deletionSubmit
+      )
+        throw new InputError(404);
       const method = request.method.toUpperCase();
       const canWrite = original || pushOriginal;
-      const allow = canWrite ? 'GET, POST' : 'GET';
-      if (!(method === 'GET' || (canWrite && method === 'POST')))
+      const allow = deletionSubmit ? 'POST' : canWrite ? 'GET, POST' : 'GET';
+      if (
+        deletionSubmit ? method !== 'POST' : !(method === 'GET' || (canWrite && method === 'POST'))
+      )
         return json(
           405,
           { error: { code: 'METHOD_NOT_ALLOWED', message: 'Method unavailable.' } },
@@ -169,10 +195,14 @@ export function createCustomerFavouritesHttpCandidate(options: {
       const scope = { tenantId, customerId: actorId };
       let command: CustomerFavouriteCommand | undefined;
       let pushCommand: CustomerPushCommand | undefined;
+      let deletionCommand: CustomerDeletionCommand | undefined;
       if (write) {
         try {
           const input = await body(request);
-          if (pushOriginal) {
+          if (deletionSubmit) {
+            deletionCommand = validateCustomerDeletionCommand(input);
+            if (deletionCommand.requestId !== deletionSubmit[1]) throw new InputError(400);
+          } else if (pushOriginal) {
             pushCommand = validateCustomerPushCommand(input);
             if (pushCommand.operationId !== pushOriginal[1]) throw new InputError(400);
           } else {
@@ -189,7 +219,12 @@ export function createCustomerFavouritesHttpCandidate(options: {
         async (query) => {
           let sql: string,
             args: unknown[] = [];
-          if (pushPreferences) sql = 'SELECT app_api.read_customer_push_preferences() AS result';
+          if (deletionStatus) sql = 'SELECT app_api.read_customer_deletion_request() AS result';
+          else if (deletionCommand) {
+            sql = 'SELECT app_api.request_customer_deletion($1,$2) AS result';
+            args = [deletionCommand.requestId, deletionCommand.confirmed];
+          } else if (pushPreferences)
+            sql = 'SELECT app_api.read_customer_push_preferences() AS result';
           else if (pushCommand) {
             sql = 'SELECT app_api.change_customer_push_preferences($1,$2,$3,$4,$5) AS result';
             args = [
@@ -218,6 +253,9 @@ export function createCustomerFavouritesHttpCandidate(options: {
           }
           const rows = await query.query<{ result: unknown }>(sql, args);
           const r = rows.rows[0]?.result;
+          if (deletionStatus) return r === null ? null : validateCustomerDeletionRequest(r, scope);
+          if (deletionCommand)
+            return validateCustomerDeletionRequest(r, scope, deletionCommand.requestId);
           if (pushPreferences) return validateCustomerPushPreferences(r, scope);
           if (pushOriginal)
             return validateCustomerPushReceipt(r, scope, pushOriginal[1]!, pushCommand);

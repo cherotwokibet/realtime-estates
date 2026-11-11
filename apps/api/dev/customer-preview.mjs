@@ -32,6 +32,8 @@ export async function startCustomerPreview({
   replyFault,
   mobileMode,
   pushMode,
+  deletionMode,
+  deletionReplyFault,
   enquiryReplyFault,
 } = {}) {
   if (
@@ -39,6 +41,10 @@ export async function startCustomerPreview({
     !['realtime-estates', 'sample-homes'].includes(tenantSlug) ||
     (enquiryReplyFault !== undefined &&
       (enquiryReplyFault !== 'lost-first-enquiry-result-v1' || !mobileMode)) ||
+    (deletionReplyFault !== undefined &&
+      (deletionReplyFault !== 'lost-first-deletion-result-v1' || !deletionMode)) ||
+    (deletionMode !== undefined &&
+      (deletionMode !== 'synthetic-customer-deletion-v1' || !pushMode)) ||
     (pushMode !== undefined && pushMode !== 'synthetic-customer-push-v1') ||
     (mobileMode !== undefined && mobileMode !== 'synthetic-mobile-customer-v1') ||
     (replyFault !== undefined && replyFault !== 'lost-first-favourite-result-v1')
@@ -75,6 +81,14 @@ export async function startCustomerPreview({
           'utf8',
         ),
       );
+    if (deletionMode)
+      await db.exec(
+        await readFile(
+          new URL('../../../database/proposals/customer-deletion-requests.sql', import.meta.url),
+          'utf8',
+        ),
+      );
+
     await db.query(
       "INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'customer'),($3,$4,'customer'),($3,$2,'customer')",
       [T, id(14), OTHER, id(13)],
@@ -175,6 +189,7 @@ export async function startCustomerPreview({
         : {}),
       customerFavouritesMode: 'synthetic-customer-favourites-v1',
       customerPushMode: pushMode,
+      customerDeletionMode: deletionMode,
       verifyAuthorization: (r) =>
         verify(parseBearerHeader(r.headers.get('authorization') ?? undefined)),
       database: {
@@ -184,6 +199,7 @@ export async function startCustomerPreview({
     });
     let faultPending = replyFault !== undefined;
     let enquiryFaultPending = enquiryReplyFault !== undefined;
+    let deletionFaultPending = deletionReplyFault === 'lost-first-deletion-result-v1';
     const api = createDevelopmentServer(async (r) => {
       const url = new URL(r.url);
       if (mobileMode && url.pathname === '/dev/mobile-customer/session') {
@@ -219,6 +235,24 @@ export async function startCustomerPreview({
         );
       }
       const result = await service(r);
+      if (
+        deletionFaultPending &&
+        r.method === 'POST' &&
+        url.pathname.startsWith('/v2/customer/deletion-requests/') &&
+        result.status === 200
+      ) {
+        deletionFaultPending = false;
+        return Response.json(
+          {
+            error: {
+              code: 'SYNTHETIC_LOST_REPLY',
+              message: 'Synthetic committed reply unavailable.',
+            },
+          },
+          { status: 503, headers: { 'Cache-Control': 'no-store' } },
+        );
+      }
+
       if (
         enquiryFaultPending &&
         r.method === 'POST' &&

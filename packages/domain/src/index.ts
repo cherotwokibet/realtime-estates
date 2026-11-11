@@ -45,6 +45,7 @@ export * from './listing-video.js';
 
 export * from './customer-favourites.js';
 export * from './customer-push-preferences.js';
+export * from './customer-deletion-request.js';
 export * from './admin-audit.js';
 
 export * from './floor-plan.js';

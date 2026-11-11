@@ -1,3 +1,9 @@
+## Signed synthetic deletion request, checkpoint 394, 11 November 2026 EAT
+
+The default-off development customer API now accepts confirmed synthetic deletion requests and exposes current status. The shared contract checks exact IDs, current customer and company, pending-review state and the timestamp. Eight signed HTTP and customer API regression checks passed with zero skips, along with domain/API builds. A synthetic 503 after commit was recovered by GET, and the current push state was off with zero active test devices. See docs/evidence/2026-11-11-signed-deletion-intake.md and deletion394-http.txt.
+
+Next extend the customer SDK with status and submit, connect mobile explicit confirmation and uncertainty recovery bound to the submitted ID, and refresh notification preferences after request confirmation. Define reviewer authority and retention before a worker. No customer data was deleted; no mobile/device acceptance. Task 09-3 remains open, 55/97 tasks and 0/14 gates.
+
 ## Published synthetic deletion intake, checkpoint 393, 11 November 2026 EAT
 
 Private deployment appgdep_6af40e3191a481919aee2ad35a710d1b succeeded from dashboard af9fe251eb82704847a68e8bdc91266f684e1f4f. Both browser tabs showed the new checkpoint and 55/97. The two pre-publication exports (25)/(26) and the two post-publication exports (27)/(28) matched within each pair. All 928 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved; after publication there are 930 notes and 27 manual checks. Three dashboard checks passed.
