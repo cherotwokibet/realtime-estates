@@ -1,3 +1,9 @@
+## Published synthetic deletion follow-up, checkpoint 399, 11 November 2026 EAT
+
+Private deployment appgdep_6af4650210f08191b45a6cc21be86a90 succeeded from dashboard 8a1e401a511c0ef6f8c980f40798e357273a9825. Both browser tabs showed the new checkpoint and 55/97. The before exports (49)/(50) and after exports (51)/(52) matched within each pair. All 940 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 942 notes and 27 manual checks. Three dashboard tests passed.
+
+Source bf54b0e passed nine local database checks for company follow-up queues and separate current customer status. Next connect both projections through strict shared contracts and signed API and SDK reads, then wire the admin and mobile views. Individual assignment, return to review, privacy approval and retention remain open.
+
 ## Synthetic deletion follow-up and customer progress, checkpoint 399, 11 November 2026 EAT
 
 The optional SQL proposal lets current company admins find triaged requests in two bounded follow-up queues and gives the signed customer a separate minimal current status projection. The stable original intake receipt is preserved. Company admins are the provisional owners of both queues. Nine focused database checks passed. See docs/evidence/2026-11-11-deletion-follow-up.md and deletion399-sql.txt.
