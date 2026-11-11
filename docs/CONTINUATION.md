@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 408, signed synthetic deletion processing plan
+
+The exact planning decision now has a default-off signed GET and strict shared response validation. Ten focused checks and the domain, API and SDK builds passed. See [evidence](evidence/2026-11-12-signed-deletion-processing-plan.md). Next connect the admin receipt-to-plan view and verify it in a browser. Task 09-3 and production deletion remain open.
+
 ## Published read-only deletion processing plan, checkpoint 407, 11 November 2026 EAT
 
 Private deployment appgdep_6af4d6eb62cc819197a759dbda6412d8 succeeded from dashboard 383704dbd347c4c1d0516cfe30ad4a2f257d216f. Both browser tabs showed the new checkpoint and 55/97. The before exports (81)/(82) and after exports (83)/(84) matched within each pair. All 956 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 958 notes and 27 manual checks. Three dashboard tests passed.

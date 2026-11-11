@@ -36,6 +36,7 @@ export async function startCustomerPreview({
   deletionReviewMode,
   deletionFollowUpMode,
   deletionPrivacyMode,
+  deletionProcessingPlanMode,
   deletionPrivacyReplyFault,
   deletionReviewReplyFault,
   deletionReturnReplyFault,
@@ -49,6 +50,9 @@ export async function startCustomerPreview({
       (enquiryReplyFault !== 'lost-first-enquiry-result-v1' || !mobileMode)) ||
     (deletionReplyFault !== undefined &&
       (deletionReplyFault !== 'lost-first-deletion-result-v1' || !deletionMode)) ||
+    (deletionProcessingPlanMode !== undefined &&
+      (deletionProcessingPlanMode !== 'synthetic-deletion-processing-plan-v1' ||
+        !deletionPrivacyMode)) ||
     (deletionPrivacyMode !== undefined &&
       (deletionPrivacyMode !== 'synthetic-deletion-privacy-v1' || !deletionFollowUpMode)) ||
     (deletionPrivacyReplyFault !== undefined &&
@@ -148,6 +152,16 @@ export async function startCustomerPreview({
         [tenantId, tenantId === T ? ADMIN : id(20), id(25)],
       );
     }
+    if (deletionProcessingPlanMode)
+      await db.exec(
+        await readFile(
+          new URL(
+            '../../../database/proposals/customer-deletion-processing-plan.sql',
+            import.meta.url,
+          ),
+          'utf8',
+        ),
+      );
     let foreignSavedFixture = false;
     if (tenantSlug === 'sample-homes') {
       const saved = await asActor(db, T, id(13), () =>
@@ -247,6 +261,7 @@ export async function startCustomerPreview({
       adminDeletionReviewMode: deletionReviewMode,
       deletionFollowUpMode,
       deletionPrivacyMode,
+      deletionProcessingPlanMode,
       verifyAuthorization: (r) =>
         verify(parseBearerHeader(r.headers.get('authorization') ?? undefined)),
       database: {

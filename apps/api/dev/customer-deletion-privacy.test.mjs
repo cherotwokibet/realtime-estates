@@ -11,6 +11,7 @@ const modes = {
   deletionFollowUpMode: 'synthetic-customer-deletion-follow-up-v1',
 };
 const mode = 'synthetic-deletion-privacy-v1';
+const planMode = 'synthetic-deletion-processing-plan-v1';
 const base = '/v2/staff/customer-deletion-privacy';
 const status = (wanted) => (error) => error.status === wanted;
 
@@ -22,6 +23,9 @@ test('designated reviewer sees independent requests and recovers their exact pri
     else process.env.NODE_ENV = prior;
   });
   await assert.rejects(() => startCustomerPreview({ deletionPrivacyMode: mode }));
+  await assert.rejects(() =>
+    startCustomerPreview({ ...modes, deletionProcessingPlanMode: planMode }),
+  );
   const off = await startCustomerPreview(modes);
   try {
     assert.equal((await fetch(off.origin + base)).status, 404);
@@ -31,6 +35,7 @@ test('designated reviewer sees independent requests and recovers their exact pri
   const preview = await startCustomerPreview({
     ...modes,
     deletionPrivacyMode: mode,
+    deletionProcessingPlanMode: planMode,
     deletionPrivacyReplyFault: 'lost-first-deletion-privacy-v1',
   });
   t.after(() => preview.close());
@@ -96,6 +101,20 @@ test('designated reviewer sees independent requests and recovers their exact pri
     target.requestId +
     '/decisions/' +
     target.operationId;
+  const planEndpoint = endpoint + '/processing-plan';
+  await assert.rejects(() => api.getDeletionProcessingPlan(target, scope, auth), status(404));
+  const mismatchedPlanMethod = await fetch(preview.origin + planEndpoint, {
+    method: 'POST',
+    headers: { authorization: 'Bearer ' + reviewer.token },
+  });
+  assert.equal(mismatchedPlanMethod.status, 405);
+  assert.equal(mismatchedPlanMethod.headers.get('allow'), 'GET');
+  for (const path of [planEndpoint + '?limit=1', planEndpoint + '?']) {
+    const malformed = await fetch(preview.origin + path, {
+      headers: { authorization: 'Bearer ' + reviewer.token },
+    });
+    assert.equal(malformed.status, 400);
+  }
   const mismatch = await fetch(preview.origin + endpoint, {
     method: 'POST',
     headers: { authorization: 'Bearer ' + reviewer.token, 'content-type': 'application/json' },
@@ -113,6 +132,40 @@ test('designated reviewer sees independent requests and recovers their exact pri
   const receipt = await api.getDeletionPrivacyDecision(target, scope, auth);
   assert.equal(receipt.decision, 'plan_review');
   assert.equal(receipt.retentionProfile, 'synthetic-retention-review-v1');
+  const plan = await api.getDeletionProcessingPlan(target, scope, auth);
+  assert.equal(plan.policy, planMode);
+  assert.deepEqual(plan.decision, receipt);
+  assert.equal(plan.inventory.activePushRegistrations, 0);
+  assert.equal(plan.requirements.backups, 'verify_expiry_custody_and_restore_reapplication');
+  assert.equal(plan.requirements.holds, 'verify_no_applicable_hold');
+  await assert.rejects(
+    () => api.getDeletionProcessingPlan(target, scope, { bearerToken: a.bearerToken }),
+    status(403),
+  );
+  await assert.rejects(
+    () => api.getDeletionProcessingPlan(target, triageScope, triageAuth),
+    status(404),
+  );
+  for (const invalid of [
+    { ...plan, inventory: { ...plan.inventory, pushPreferences: 2 } },
+    { ...plan, inventory: { ...plan.inventory, linkedEnquiries: '1' } },
+    { ...plan, inventory: { ...plan.inventory, contact: 'synthetic@example.invalid' } },
+    { ...plan, decision: { ...plan.decision, decision: 'hold' } },
+    { ...plan, decision: { ...plan.decision, requestId: randomUUID() } },
+    { ...plan, requirements: { ...plan.requirements, holds: 'clear' } },
+  ]) {
+    const malformedApi = new RealtorApiClient({
+      baseUrl: preview.origin,
+      allowLoopbackHttp: true,
+      privacyNoticeVersion: 'test',
+      fetch: async () => Response.json(invalid),
+    });
+    await assert.rejects(
+      () => malformedApi.getDeletionProcessingPlan(target, scope, auth),
+      (error) => error.kind === 'INVALID_RESPONSE',
+    );
+  }
+
   assert.deepEqual(await api.recordDeletionPrivacyDecision(command, scope, auth), receipt);
   await assert.rejects(
     () => api.getDeletionPrivacyDecision(target, triageScope, triageAuth),
@@ -126,7 +179,16 @@ test('designated reviewer sees independent requests and recovers their exact pri
     (await api.listDeletionPrivacyQueue({}, scope, auth)).items.map((item) => item.requestId),
     [targets[1].requestId],
   );
+  await api.recordDeletionPrivacyDecision({ ...targets[1], decision: 'hold' }, scope, auth);
+  await assert.rejects(() => api.getDeletionProcessingPlan(targets[1], scope, auth), status(404));
+  const privacyOnly = await startCustomerPreview({ ...modes, deletionPrivacyMode: mode });
+  try {
+    assert.equal((await fetch(privacyOnly.origin + planEndpoint)).status, 404);
+  } finally {
+    await privacyOnly.close();
+  }
   await reviewer.revoke();
+  await assert.rejects(() => api.getDeletionProcessingPlan(target, scope, auth), status(403));
   await assert.rejects(() => api.listDeletionPrivacyQueue({}, scope, auth), status(403));
   await assert.rejects(() => api.getDeletionPrivacyDecision(target, scope, auth), status(403));
 });

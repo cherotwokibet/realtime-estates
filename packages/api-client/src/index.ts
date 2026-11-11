@@ -108,6 +108,7 @@ import {
   validateDeletionPrivacyCommand,
   validateDeletionPrivacyQueue,
   validateDeletionPrivacyReceipt,
+  validateDeletionProcessingPlan,
   type DeletionPrivacyCommand,
   type CustomerDeletionDisposition,
   validateCustomerDeletionReviewTarget,
@@ -2575,6 +2576,17 @@ function uploadBytes(input: unknown): Uint8Array<ArrayBuffer> {
     return invalid('VALIDATION', 'Supply an ordinary byte array within the upload limit.');
   }
 }
+function deletionPrivacyPath(target: CustomerDeletionReviewTarget) {
+  return (
+    '/v2/staff/customer-deletion-privacy/' +
+    target.customerId +
+    '/requests/' +
+    target.requestId +
+    '/decisions/' +
+    target.operationId
+  );
+}
+
 function deletionReviewerScope(scope: unknown) {
   const expected = attachRecord(scope, ['tenantId', 'reviewerId'], 'VALIDATION');
   const tenantId = uuid(expected.tenantId, 'VALIDATION', 'Company ID');
@@ -4280,6 +4292,30 @@ export class RealtorApiClient {
     return this.deletionPrivacyOperation(target, scope, options, 'GET');
   }
 
+  async getDeletionProcessingPlan(
+    input: CustomerDeletionReviewTarget,
+    scope: { readonly tenantId: string; readonly reviewerId: string },
+    options: StaffRequestOptions,
+  ) {
+    const expected = deletionReviewerScope(scope);
+    let target: CustomerDeletionReviewTarget;
+    try {
+      target = validateCustomerDeletionReviewTarget(input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid deletion processing plan target.');
+    }
+    const value = await this.request(
+      deletionPrivacyPath(target) + '/processing-plan',
+      'GET',
+      uploadOptions(options),
+    );
+    try {
+      return validateDeletionProcessingPlan(value, { ...target, ...expected });
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid deletion processing plan.');
+    }
+  }
+
   private async deletionPrivacyOperation(
     input: CustomerDeletionReviewTarget,
     scope: { readonly tenantId: string; readonly reviewerId: string },
@@ -4297,15 +4333,8 @@ export class RealtorApiClient {
     } catch {
       return invalid('VALIDATION', 'Invalid deletion privacy operation.');
     }
-    const path =
-      '/v2/staff/customer-deletion-privacy/' +
-      target.customerId +
-      '/requests/' +
-      target.requestId +
-      '/decisions/' +
-      target.operationId;
     const value = await this.request(
-      path,
+      deletionPrivacyPath(target),
       method,
       uploadOptions(options),
       command && { ...command },
@@ -6699,7 +6728,7 @@ export class RealtorApiClient {
     const listingReport =
       deletionTriage ||
       deletionFollowUp ||
-      /^\/v2\/staff\/customer-deletion-privacy(?:\?limit=[1-9]\d?(?:&after=[0-9a-f-]{36})?|\/[0-9a-f-]{36}\/requests\/[0-9a-f-]{36}\/decisions\/[0-9a-f-]{36})$/.test(
+      /^\/v2\/staff\/customer-deletion-privacy(?:\?limit=[1-9]\d?(?:&after=[0-9a-f-]{36})?|\/[0-9a-f-]{36}\/requests\/[0-9a-f-]{36}\/decisions\/[0-9a-f-]{36}(?:\/processing-plan)?)$/.test(
         path,
       ) ||
       /^\/v2\/staff\/customer-deletion-follow-up\/[0-9a-f-]{36}\/requests\/[0-9a-f-]{36}\/returns\/[0-9a-f-]{36}$/.test(

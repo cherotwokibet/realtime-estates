@@ -54,6 +54,7 @@ import {
   validateDeletionPrivacyCommand,
   validateDeletionPrivacyQueue,
   validateDeletionPrivacyReceipt,
+  validateDeletionProcessingPlan,
   validateListingReportDecisionReceipt,
   validateListingReportQueue,
   validateCompanySettingsCommand,
@@ -215,6 +216,7 @@ export interface ApiServiceOptions {
   readonly adminDeletionReviewMode?: 'synthetic-admin-deletion-review-v1';
   readonly deletionFollowUpMode?: 'synthetic-customer-deletion-follow-up-v1';
   readonly deletionPrivacyMode?: 'synthetic-deletion-privacy-v1';
+  readonly deletionProcessingPlanMode?: 'synthetic-deletion-processing-plan-v1';
   /** Isolated private video metadata preparation; no provider/public delivery or schema installation. */
   readonly listingVideoMode?: 'synthetic-private-listing-video-v1';
   readonly listingVideoPublicationMode?: 'synthetic-listing-video-publication-v1';
@@ -1738,6 +1740,14 @@ export function createApiService(
   )
     throw Error('Unsupported deletion privacy mode.');
   const deletionPrivacyEnabled = options.deletionPrivacyMode === 'synthetic-deletion-privacy-v1';
+  if (
+    options.deletionProcessingPlanMode !== undefined &&
+    (options.deletionProcessingPlanMode !== 'synthetic-deletion-processing-plan-v1' ||
+      !deletionPrivacyEnabled)
+  )
+    throw Error('Unsupported deletion processing plan mode.');
+  const deletionProcessingPlanEnabled =
+    options.deletionProcessingPlanMode === 'synthetic-deletion-processing-plan-v1';
   const customerHandler = options.customerFavouritesMode
     ? createCustomerFavouritesHttpCandidate({
         mode: options.customerFavouritesMode,
@@ -2927,9 +2937,10 @@ export function createApiService(
       const deletionFollowUp = path === '/v2/staff/customer-deletion-follow-up';
       const privacyQueue = path === '/v2/staff/customer-deletion-privacy';
       const privacyOperation =
-        /^\/v2\/staff\/customer-deletion-privacy\/([^/]+)\/requests\/([^/]+)\/decisions\/([^/]+)$/.exec(
+        /^\/v2\/staff\/customer-deletion-privacy\/([^/]+)\/requests\/([^/]+)\/decisions\/([^/]+)(\/processing-plan)?$/.exec(
           path,
         );
+      const processingPlan = !!privacyOperation?.[4];
       const deletionQueue =
         path === '/v2/staff/customer-deletion-triage' || deletionFollowUp || privacyQueue;
       const deletionReturn =
@@ -2947,12 +2958,13 @@ export function createApiService(
           !adminDeletionReviewEnabled ||
           process.env.NODE_ENV !== 'development' ||
           ((deletionFollowUp || deletionReturn) && !deletionFollowUpEnabled) ||
-          ((privacyQueue || privacyOperation) && !deletionPrivacyEnabled)
+          ((privacyQueue || privacyOperation) && !deletionPrivacyEnabled) ||
+          (processingPlan && !deletionProcessingPlanEnabled)
         )
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
-        if (method !== 'GET' && !(method === 'POST' && deletionOperation))
+        if (method !== 'GET' && !(method === 'POST' && deletionOperation && !processingPlan))
           throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method unavailable.', {
-            Allow: deletionQueue ? 'GET' : 'GET, POST',
+            Allow: deletionQueue || processingPlan ? 'GET' : 'GET, POST',
           });
         if (
           request.url.includes('#') ||
@@ -3110,6 +3122,17 @@ export function createApiService(
             }
             if (!operation) throw Error('Missing deletion review route.');
             const { target, args, command, privacy } = operation;
+            if (processingPlan) {
+              const result = await query.query(
+                'SELECT app_api.read_synthetic_deletion_processing_plan($1,$2,$3) AS result',
+                args,
+              );
+              return validateDeletionProcessingPlan(scalar(result, 'result'), {
+                ...target,
+                tenantId,
+                reviewerId,
+              });
+            }
             if (privacyOperation) {
               const result = privacy
                 ? await query.query(

@@ -415,3 +415,63 @@ export function validateDeletionPrivacyQueue(
     hasMore: row.hasMore,
   });
 }
+
+const deletionProcessingInventoryFields = [
+  'favouriteStates',
+  'favouriteReceipts',
+  'pushPreferences',
+  'pushRegistrations',
+  'activePushRegistrations',
+  'pushReceipts',
+  'linkedEnquiries',
+  'linkedViewings',
+  'returnReceipts',
+] as const;
+
+const deletionProcessingRequirements = Object.freeze({
+  accountScope: 'verify_identity_and_linked_memberships',
+  operationalHistory: 'review_retention_reason_and_expiry',
+  privacyEvidence: 'review_minimum_audit_and_receipt_evidence',
+  unlinkedEnquiries: 'manual_identity_review_required',
+  holds: 'verify_no_applicable_hold',
+  providers: 'verify_provider_control_and_disposition',
+  backups: 'verify_expiry_custody_and_restore_reapplication',
+} as const);
+
+export function validateDeletionProcessingPlan(
+  value: unknown,
+  expected: CustomerDeletionReviewTarget & { tenantId: string; reviewerId: string },
+) {
+  const row = record(value, ['policy', 'decision', 'inventory', 'requirements']);
+  if (row.policy !== 'synthetic-deletion-processing-plan-v1') return invalid();
+  const decision = validateDeletionPrivacyReceipt(row.decision, {
+    ...expected,
+    decision: 'plan_review',
+  });
+  const rawInventory = record(row.inventory, deletionProcessingInventoryFields);
+  const inventory = {} as Record<(typeof deletionProcessingInventoryFields)[number], number>;
+  for (const key of deletionProcessingInventoryFields) {
+    const count = rawInventory[key];
+    if (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0) return invalid();
+    inventory[key] = count;
+  }
+  if (
+    inventory.activePushRegistrations > inventory.pushRegistrations ||
+    inventory.pushPreferences > 1 ||
+    inventory.returnReceipts > 1
+  )
+    return invalid();
+
+  const requirementKeys = Object.keys(
+    deletionProcessingRequirements,
+  ) as (keyof typeof deletionProcessingRequirements)[];
+  const requirements = record(row.requirements, requirementKeys);
+  if (requirementKeys.some((key) => requirements[key] !== deletionProcessingRequirements[key]))
+    return invalid();
+  return Object.freeze({
+    policy: row.policy,
+    decision,
+    inventory: Object.freeze(inventory),
+    requirements: deletionProcessingRequirements,
+  });
+}
