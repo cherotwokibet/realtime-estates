@@ -103,6 +103,8 @@ import {
   validateListingReportReceipt,
   validateListingReportDecisionCommand,
   validateCustomerDeletionTriage,
+  validateCustomerDeletionFollowUp,
+  type CustomerDeletionDisposition,
   validateCustomerDeletionReviewTarget,
   validateCustomerDeletionReviewCommand,
   validateCustomerDeletionReviewReceipt,
@@ -2568,6 +2570,23 @@ function uploadBytes(input: unknown): Uint8Array<ArrayBuffer> {
     return invalid('VALIDATION', 'Supply an ordinary byte array within the upload limit.');
   }
 }
+function deletionQueueFilters(input: unknown, tenantId: string) {
+  if (!input || typeof input !== 'object')
+    return invalid('VALIDATION', 'Invalid deletion triage filters.');
+  const keys = Reflect.ownKeys(input);
+  if (keys.some((key) => key !== 'limit' && key !== 'after'))
+    return invalid('VALIDATION', 'Invalid deletion triage filters.');
+  const filters = attachRecord(input, keys as string[], 'VALIDATION');
+  const limit = integer(filters.limit ?? 20, 1, 50, 'VALIDATION', 'Limit');
+  const after =
+    filters.after === undefined ? null : uuid(filters.after, 'VALIDATION', 'Customer cursor');
+  if (
+    uuid(tenantId, 'VALIDATION', 'Company ID') !== tenantId ||
+    (after !== null && after !== filters.after)
+  )
+    return invalid('VALIDATION', 'Canonical deletion triage scope required.');
+  return { limit, after, suffix: 'limit=' + limit + (after === null ? '' : '&after=' + after) };
+}
 function reportQueueInput(input: unknown): Record<string, unknown> {
   if (
     !input ||
@@ -4074,24 +4093,9 @@ export class RealtorApiClient {
     options: StaffRequestOptions,
   ) {
     const captured = uploadOptions(options);
-    if (!input || typeof input !== 'object')
-      return invalid('VALIDATION', 'Invalid deletion triage filters.');
-    const keys = Reflect.ownKeys(input);
-    if (keys.some((key) => key !== 'limit' && key !== 'after'))
-      return invalid('VALIDATION', 'Invalid deletion triage filters.');
-    const filters = attachRecord(input, keys as string[], 'VALIDATION');
-    const limit = integer(filters.limit ?? 20, 1, 50, 'VALIDATION', 'Limit');
-    const after =
-      filters.after === undefined ? null : uuid(filters.after, 'VALIDATION', 'Customer cursor');
-    if (
-      uuid(tenantId, 'VALIDATION', 'Company ID') !== tenantId ||
-      (after !== null && after !== filters.after)
-    )
-      return invalid('VALIDATION', 'Canonical deletion triage scope required.');
+    const { limit, after, suffix } = deletionQueueFilters(input, tenantId);
     const data = await this.request(
-      '/v2/staff/customer-deletion-triage?limit=' +
-        limit +
-        (after === null ? '' : '&after=' + after),
+      '/v2/staff/customer-deletion-triage?' + suffix,
       'GET',
       captured,
     );
@@ -4099,6 +4103,27 @@ export class RealtorApiClient {
       return validateCustomerDeletionTriage(data, limit, after, tenantId);
     } catch {
       return invalid('INVALID_RESPONSE', 'Invalid deletion triage queue.');
+    }
+  }
+  async listCustomerDeletionFollowUp(
+    outcome: CustomerDeletionDisposition,
+    input: { readonly limit?: number; readonly after?: string },
+    tenantId: string,
+    options: StaffRequestOptions,
+  ) {
+    const captured = uploadOptions(options);
+    if (outcome !== 'ready_for_privacy_review' && outcome !== 'needs_information')
+      return invalid('VALIDATION', 'Invalid deletion follow-up disposition.');
+    const { limit, after, suffix } = deletionQueueFilters(input, tenantId);
+    const data = await this.request(
+      '/v2/staff/customer-deletion-follow-up?' + suffix + '&disposition=' + outcome,
+      'GET',
+      captured,
+    );
+    try {
+      return validateCustomerDeletionFollowUp(data, limit, after, tenantId, outcome);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid deletion follow-up queue.');
     }
   }
   async reviewCustomerDeletion(
@@ -6529,8 +6554,13 @@ export class RealtorApiClient {
       /^\/v2\/staff\/customer-deletion-triage(?:\?limit=[1-9]\d?(?:&after=[0-9a-f-]{36})?|\/[0-9a-f-]{36}\/requests\/[0-9a-f-]{36}\/operations\/[0-9a-f-]{36})$/.test(
         path,
       );
+    const deletionFollowUp =
+      /^\/v2\/staff\/customer-deletion-follow-up\?limit=[1-9]\d?(?:&after=[0-9a-f-]{36})?&disposition=(?:ready_for_privacy_review|needs_information)$/.test(
+        path,
+      );
     const listingReport =
       deletionTriage ||
+      deletionFollowUp ||
       adminAudit ||
       listingVideo ||
       floorPlan ||

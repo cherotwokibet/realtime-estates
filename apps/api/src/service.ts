@@ -49,6 +49,7 @@ import {
   validateCustomerDeletionReviewCommand,
   validateCustomerDeletionReviewReceipt,
   validateCustomerDeletionTriage,
+  validateCustomerDeletionFollowUp,
   validateListingReportDecisionReceipt,
   validateListingReportQueue,
   validateCompanySettingsCommand,
@@ -208,6 +209,7 @@ export interface ApiServiceOptions {
   /** Isolated audit-read candidate; never installs SQL or enables production access. */
   readonly adminAuditMode?: 'synthetic-admin-audit-v1';
   readonly adminDeletionReviewMode?: 'synthetic-admin-deletion-review-v1';
+  readonly deletionFollowUpMode?: 'synthetic-customer-deletion-follow-up-v1';
   /** Isolated private video metadata preparation; no provider/public delivery or schema installation. */
   readonly listingVideoMode?: 'synthetic-private-listing-video-v1';
   readonly listingVideoPublicationMode?: 'synthetic-listing-video-publication-v1';
@@ -1716,11 +1718,21 @@ export function createApiService(
       process.env.NODE_ENV !== 'development')
   )
     throw Error('Unsupported customer deletion mode.');
+  if (
+    options.deletionFollowUpMode !== undefined &&
+    (options.deletionFollowUpMode !== 'synthetic-customer-deletion-follow-up-v1' ||
+      !options.customerDeletionMode ||
+      !options.adminDeletionReviewMode)
+  )
+    throw Error('Unsupported deletion follow-up mode.');
+  const deletionFollowUpEnabled =
+    options.deletionFollowUpMode === 'synthetic-customer-deletion-follow-up-v1';
   const customerHandler = options.customerFavouritesMode
     ? createCustomerFavouritesHttpCandidate({
         mode: options.customerFavouritesMode,
         pushMode: options.customerPushMode,
         deletionMode: options.customerDeletionMode,
+        deletionFollowUpMode: options.deletionFollowUpMode,
         tenantId,
         database: options.database,
         verifyAuthorization: options.verifyAuthorization,
@@ -2901,13 +2913,18 @@ export function createApiService(
         );
         return response(intent ? 202 : 200, value, correlationId);
       }
-      const deletionQueue = path === '/v2/staff/customer-deletion-triage';
+      const deletionFollowUp = path === '/v2/staff/customer-deletion-follow-up';
+      const deletionQueue = path === '/v2/staff/customer-deletion-triage' || deletionFollowUp;
       const deletionOperation =
         /^\/v2\/staff\/customer-deletion-triage\/([^/]+)\/requests\/([^/]+)\/operations\/([^/]+)$/.exec(
           path,
         );
       if (deletionQueue || deletionOperation) {
-        if (!adminDeletionReviewEnabled || process.env.NODE_ENV !== 'development')
+        if (
+          !adminDeletionReviewEnabled ||
+          process.env.NODE_ENV !== 'development' ||
+          (deletionFollowUp && !deletionFollowUpEnabled)
+        )
           throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
         if (method !== 'GET' && !(method === 'POST' && deletionOperation))
           throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method unavailable.', {
@@ -2981,7 +2998,11 @@ export function createApiService(
             if (deletionQueue) {
               const filters: Record<string, string> = Object.create(null);
               for (const [key, val] of url.searchParams) {
-                if (!['limit', 'after'].includes(key) || Object.hasOwn(filters, key))
+                if (
+                  (!['limit', 'after'].includes(key) &&
+                    !(deletionFollowUp && key === 'disposition')) ||
+                  Object.hasOwn(filters, key)
+                )
                   throw new HttpError(400, 'INVALID_INPUT', 'Invalid deletion triage cursor.');
                 filters[key] = val;
               }
@@ -2995,6 +3016,26 @@ export function createApiService(
                 filters.after === undefined ? null : uuid(filters.after, 'Customer cursor');
               if (limit < 1 || limit > 50 || (after !== null && after !== filters.after))
                 throw new HttpError(400, 'INVALID_INPUT', 'Invalid deletion triage cursor.');
+              if (deletionFollowUp) {
+                const outcome = filters.disposition;
+                if (outcome !== 'ready_for_privacy_review' && outcome !== 'needs_information')
+                  throw new HttpError(
+                    400,
+                    'INVALID_INPUT',
+                    'Choose a deletion follow-up disposition.',
+                  );
+                const page = await query.query(
+                  'SELECT app_api.list_customer_deletion_follow_up($1,$2,$3) AS result',
+                  [outcome, limit, after],
+                );
+                return validateCustomerDeletionFollowUp(
+                  scalar(page, 'result'),
+                  limit,
+                  after,
+                  tenantId,
+                  outcome,
+                );
+              }
               const result = await query.query(
                 'SELECT app_api.list_customer_deletion_triage($1,$2) AS result',
                 [limit, after],

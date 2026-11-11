@@ -34,6 +34,7 @@ export async function startCustomerPreview({
   pushMode,
   deletionMode,
   deletionReviewMode,
+  deletionFollowUpMode,
   deletionReviewReplyFault,
   deletionReplyFault,
   enquiryReplyFault,
@@ -45,6 +46,9 @@ export async function startCustomerPreview({
       (enquiryReplyFault !== 'lost-first-enquiry-result-v1' || !mobileMode)) ||
     (deletionReplyFault !== undefined &&
       (deletionReplyFault !== 'lost-first-deletion-result-v1' || !deletionMode)) ||
+    (deletionFollowUpMode !== undefined &&
+      (deletionFollowUpMode !== 'synthetic-customer-deletion-follow-up-v1' ||
+        !deletionReviewMode)) ||
     (deletionReviewMode !== undefined &&
       (deletionReviewMode !== 'synthetic-admin-deletion-review-v1' || !deletionMode)) ||
     (deletionReviewReplyFault !== undefined &&
@@ -113,6 +117,13 @@ export async function startCustomerPreview({
       "INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'customer'),($3,$4,'customer'),($3,$2,'customer')",
       [T, id(14), OTHER, id(13)],
     );
+    if (deletionFollowUpMode)
+      await db.exec(
+        await readFile(
+          new URL('../../../database/proposals/customer-deletion-follow-up.sql', import.meta.url),
+          'utf8',
+        ),
+      );
     let foreignSavedFixture = false;
     if (tenantSlug === 'sample-homes') {
       const saved = await asActor(db, T, id(13), () =>
@@ -210,6 +221,7 @@ export async function startCustomerPreview({
       customerPushMode: pushMode,
       customerDeletionMode: deletionMode,
       adminDeletionReviewMode: deletionReviewMode,
+      deletionFollowUpMode,
       verifyAuthorization: (r) =>
         verify(parseBearerHeader(r.headers.get('authorization') ?? undefined)),
       database: {

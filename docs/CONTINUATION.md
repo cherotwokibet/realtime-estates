@@ -1,3 +1,9 @@
+## Signed synthetic deletion follow-up reads, checkpoint 400, 11 November 2026 EAT
+
+The opt-in signed API and SDK now expose the two company follow-up queues and the customer's current deletion progress. The original intake receipt remains stable. Seven focused HTTP and database checks passed, as did the domain, API and SDK builds. See docs/evidence/2026-11-11-signed-deletion-follow-up.md and deletion400-checks.txt.
+
+Next add the admin BFF and read-only follow-up views, then mobile current progress refresh. Keep browser, device, assignment, return to review, privacy approval and retention evidence explicit. Task 09-3 remains open at 55/97 and 0/14 gates.
+
 ## Published synthetic deletion follow-up, checkpoint 399, 11 November 2026 EAT
 
 Private deployment appgdep_6af4650210f08191b45a6cc21be86a90 succeeded from dashboard 8a1e401a511c0ef6f8c980f40798e357273a9825. Both browser tabs showed the new checkpoint and 55/97. The before exports (49)/(50) and after exports (51)/(52) matched within each pair. All 940 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 942 notes and 27 manual checks. Three dashboard tests passed.

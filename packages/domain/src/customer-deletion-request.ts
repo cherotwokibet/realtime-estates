@@ -219,3 +219,71 @@ export function validateCustomerDeletionTriage(
     hasMore: row.hasMore,
   });
 }
+
+export function validateCustomerDeletionProgress(value: unknown, scope: CustomerScope) {
+  const row = record(value, ['policy', 'tenantId', 'customerId', 'requestId', 'status']);
+  const { tenantId, customerId } = validateCustomerAccount(
+    {
+      policy: 'customer-account-v1',
+      tenantId: row.tenantId,
+      customerId: row.customerId,
+    },
+    scope,
+  );
+  if (
+    row.policy !== 'synthetic-customer-deletion-progress-v1' ||
+    (row.status !== 'pending_review' &&
+      row.status !== 'privacy_review_pending' &&
+      row.status !== 'staff_follow_up_pending')
+  )
+    return invalid();
+  return Object.freeze({
+    policy: row.policy,
+    tenantId,
+    customerId,
+    requestId: requestId(row.requestId),
+    status: row.status,
+  });
+}
+
+export function validateCustomerDeletionFollowUp(
+  value: unknown,
+  limit: number,
+  after: string | null,
+  tenantId: string,
+  outcome: CustomerDeletionDisposition,
+) {
+  const row = record(value, ['policy', 'tenantId', 'disposition', 'items', 'hasMore']);
+  if (
+    row.policy !== 'synthetic-customer-deletion-follow-up-v1' ||
+    requestId(row.tenantId) !== tenantId ||
+    disposition(row.disposition) !== outcome ||
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > 50 ||
+    !Array.isArray(row.items) ||
+    row.items.length > limit ||
+    typeof row.hasMore !== 'boolean' ||
+    (row.hasMore && row.items.length !== limit)
+  )
+    return invalid();
+  let prior = after;
+  const items = Array.from(row.items, (item: unknown) => {
+    const entry = record(item, ['customerId', 'requestId', 'reviewedAt']);
+    const customerId = requestId(entry.customerId);
+    if (prior !== null && customerId <= prior) return invalid();
+    prior = customerId;
+    return Object.freeze({
+      customerId,
+      requestId: requestId(entry.requestId),
+      reviewedAt: timestamp(entry.reviewedAt),
+    });
+  });
+  return Object.freeze({
+    policy: row.policy,
+    tenantId,
+    disposition: outcome,
+    items: Object.freeze(items),
+    hasMore: row.hasMore,
+  });
+}

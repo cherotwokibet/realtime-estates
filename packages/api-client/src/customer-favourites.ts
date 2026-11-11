@@ -13,6 +13,7 @@ import {
   type CustomerDeletionCommand,
   validateCustomerDeletionCommand,
   validateCustomerDeletionRequest,
+  validateCustomerDeletionProgress,
   type CustomerFavouriteCommand,
   type CustomerFavouriteReceipt,
   type CustomerFavouritesPage,
@@ -313,6 +314,12 @@ export class CustomerFavouritesClient {
     }
     return this.request('/v2/customer/favourite-operations/' + command.operationId, options, (v) =>
       validateCustomerFavouriteReceipt(v, command, this.scope),
+    );
+  }
+
+  async getDeletionProgress(options: CustomerRequestOptions) {
+    return this.request('/v2/customer/deletion-progress', options, (value) =>
+      value === null ? null : validateCustomerDeletionProgress(value, this.scope),
     );
   }
 
