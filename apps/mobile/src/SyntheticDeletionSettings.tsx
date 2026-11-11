@@ -5,6 +5,12 @@ import { CatalogueButton } from './ReferenceCatalogueButton';
 import type { MobileCustomerSession } from './customer-session';
 import type { createReferenceCatalogueStyles } from './reference-theme';
 
+const progressLabels = {
+  pending_review: 'Pending staff review.',
+  privacy_review_pending: 'Privacy review is pending.',
+  staff_follow_up_pending: 'Staff follow-up is pending.',
+};
+
 type Ready = Extract<ReturnType<MobileCustomerSession['snapshot']>, { status: 'ready' }>;
 
 export function SyntheticDeletionSettings({
@@ -24,7 +30,7 @@ export function SyntheticDeletionSettings({
   const act = (action: () => unknown) => {
     if (session.revision() === revision) void action();
   };
-  const { phase, receipt, alreadyPending } = deletion;
+  const { phase, receipt, alreadyPending, progress } = deletion;
   return (
     <View>
       <CatalogueButton
@@ -33,6 +39,7 @@ export function SyntheticDeletionSettings({
           setOpen(!open);
           setConfirming(false);
           if (!open && phase === 'idle' && !pushBusy) act(session.checkDeletionRequest);
+          if (!open && phase === 'recorded' && progress) act(session.refreshDeletionProgress);
         }}
         styles={styles}
       />
@@ -43,10 +50,26 @@ export function SyntheticDeletionSettings({
           </Text>
           {receipt && (
             <Text accessibilityLiveRegion="polite" style={styles.copy}>
-              {alreadyPending
-                ? 'An earlier request is pending review.'
-                : 'Your request is pending review.'}
+              {alreadyPending ? 'An earlier request is on file.' : 'Your request is on file.'}
+              {!progress && ' Pending review.'}
             </Text>
+          )}
+          {receipt && progress && (
+            <>
+              <Text accessibilityLiveRegion="polite" style={styles.copy}>
+                {progress.status
+                  ? progressLabels[progress.status]
+                  : progress.phase === 'unavailable'
+                    ? 'Current progress is unavailable.'
+                    : 'Checking current progress…'}
+              </Text>
+              <CatalogueButton
+                label="Refresh request progress"
+                disabled={progress.phase === 'loading'}
+                onPress={() => act(session.refreshDeletionProgress)}
+                styles={styles}
+              />
+            </>
           )}
           {(phase === 'checking' || phase === 'sending') && (
             <Text accessibilityLiveRegion="polite" style={styles.copy}>

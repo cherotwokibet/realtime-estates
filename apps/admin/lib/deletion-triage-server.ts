@@ -4,6 +4,7 @@ import {
   validateCustomerDeletionReviewCommand,
   validateCustomerDeletionReviewTarget,
   type CustomerDeletionReviewTarget,
+  type CustomerDeletionDisposition,
   type CustomerDeletionReviewCommand,
 } from '@realtor/domain';
 import { readReferenceJson } from './reference-draft-wire.ts';
@@ -27,7 +28,11 @@ export function deletionTriageConfiguration(env: Readonly<Record<string, string 
     !uuid.test(reviewerId)
   )
     throw Error('Deletion triage preview is unavailable.');
-  return { ...config, scope: { tenantId, reviewerId } };
+  return {
+    ...config,
+    scope: { tenantId, reviewerId },
+    followUp: env.STAFF_DELETION_FOLLOW_UP === 'synthetic-v1',
+  };
 }
 
 const reply = (status: number, body: unknown) =>
@@ -89,12 +94,26 @@ export async function deletionTriageBoundary(
     if (!operation) {
       const query = new URL(request.url).searchParams;
       const filters: { limit?: number; after?: string } = {};
+      let outcome: CustomerDeletionDisposition | undefined;
       for (const [key, value] of query) {
         if (key === 'limit' && filters.limit === undefined && /^[1-9]\d?$/.test(value))
           filters.limit = Number(value);
         else if (key === 'after' && filters.after === undefined && uuid.test(value))
           filters.after = value;
+        else if (
+          key === 'disposition' &&
+          outcome === undefined &&
+          (value === 'ready_for_privacy_review' || value === 'needs_information')
+        )
+          outcome = value;
         else return reply(400, { error: 'INVALID_TRIAGE_REQUEST' });
+      }
+      if (outcome) {
+        if (!config.followUp) return reply(404, { error: 'TRIAGE_UNAVAILABLE' });
+        return reply(
+          200,
+          await api.listCustomerDeletionFollowUp(outcome, filters, config.scope.tenantId, options),
+        );
       }
       return reply(
         200,

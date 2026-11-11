@@ -14,7 +14,11 @@ export default function DeletionTriage() {
       </p>
       <h1>Account deletion requests</h1>
       {preview ? (
-        <DeletionTriageWorkspace instanceId={preview.instanceId} scope={preview.scope} />
+        <DeletionTriageWorkspace
+          instanceId={preview.instanceId}
+          scope={preview.scope}
+          followUp={preview.followUp}
+        />
       ) : (
         <p role="alert">The synthetic staff review preview is unavailable.</p>
       )}

@@ -3,12 +3,14 @@ import { useEffect, useRef, useState } from 'react';
 import {
   validateCustomerDeletionReviewReceipt,
   validateCustomerDeletionTriage,
+  validateCustomerDeletionFollowUp,
   type CustomerDeletionDisposition,
   type CustomerDeletionReviewCommand,
 } from '@realtor/domain';
 import { readReferenceJson } from '../lib/reference-draft-wire';
 
 type Queue = ReturnType<typeof validateCustomerDeletionTriage>;
+type FollowUpQueue = ReturnType<typeof validateCustomerDeletionFollowUp>;
 type Pending = { command: CustomerDeletionReviewCommand; phase: 'uncertain' | 'missing' };
 const labels = {
   ready_for_privacy_review: 'Ready for privacy review',
@@ -23,11 +25,13 @@ class ExchangeError extends Error {
 export function DeletionTriageWorkspace({
   instanceId,
   scope,
+  followUp,
 }: {
   instanceId: string;
+  followUp: boolean;
   scope: { tenantId: string; reviewerId: string };
 }) {
-  const [queue, setQueue] = useState<Queue | null>(null);
+  const [queue, setQueue] = useState<Queue | FollowUpQueue | null>(null);
   const [selected, setSelected] = useState<Queue['items'][number] | null>(null);
   const [decision, setDecision] = useState<CustomerDeletionDisposition | ''>('');
   const [pending, setPending] = useState<Pending | null>(null);
@@ -97,20 +101,26 @@ export function DeletionTriageWorkspace({
     return true;
   }
 
-  function load(after: string | null = null) {
+  function load(after: string | null = null, outcome?: CustomerDeletionDisposition) {
     void run(async (signal, current) => {
       try {
-        const value = await exchange(base + '?limit=20' + (after ? '&after=' + after : ''), signal);
-        const page = validateCustomerDeletionTriage(value, 20, after, scope.tenantId);
+        const params = new URLSearchParams({ limit: '20' });
+        if (after) params.set('after', after);
+        if (outcome) params.set('disposition', outcome);
+        const value = await exchange(base + '?' + params, signal);
+        const page = outcome
+          ? validateCustomerDeletionFollowUp(value, 20, after, scope.tenantId, outcome)
+          : validateCustomerDeletionTriage(value, 20, after, scope.tenantId);
         if (!current()) return;
         setQueue(page);
         clearSelection();
-        setStatus(page.items.length ? 'Unreviewed requests loaded.' : 'No unreviewed requests.');
+        const queueName = outcome ? labels[outcome] : 'Unreviewed requests';
+        setStatus(page.items.length ? queueName + ' loaded.' : 'No requests in this queue.');
       } catch (error) {
         if (!current() || accessLost(error)) return;
         setQueue(null);
         clearSelection();
-        setStatus('Could not load unreviewed requests.');
+        setStatus('Could not load requests.');
       }
     });
   }
@@ -148,38 +158,58 @@ export function DeletionTriageWorkspace({
   }
 
   const last = queue?.items.at(-1);
+  const outcome = queue && 'disposition' in queue ? queue.disposition : undefined;
   return (
     <section aria-labelledby="triage-heading">
-      <h2 id="triage-heading">Unreviewed requests</h2>
+      <h2 id="triage-heading">{outcome ? labels[outcome] : 'Unreviewed requests'}</h2>
       <p role="status">{status}</p>
       <button type="button" disabled={busy || denied || !!pending} onClick={() => load()}>
         Load unreviewed requests
       </button>
+      {followUp &&
+        (Object.keys(labels) as CustomerDeletionDisposition[]).map((value) => (
+          <button
+            key={value}
+            type="button"
+            disabled={busy || denied || !!pending}
+            onClick={() => load(null, value)}
+          >
+            {labels[value]}
+          </button>
+        ))}
       {queue && queue.items.length > 0 && (
         <ul>
           {queue.items.map((item) => (
             <li key={item.customerId}>
               <p>
                 Request {item.requestId} ·{' '}
-                <time dateTime={item.requestedAt}>{item.requestedAt}</time>
+                <time dateTime={'reviewedAt' in item ? item.reviewedAt : item.requestedAt}>
+                  {'reviewedAt' in item ? item.reviewedAt : item.requestedAt}
+                </time>
               </p>
-              <button
-                type="button"
-                aria-pressed={selected?.customerId === item.customerId}
-                disabled={busy || !!pending}
-                onClick={() => {
-                  setSelected(item);
-                  setDecision('');
-                }}
-              >
-                Review request for {item.customerId}
-              </button>
+              {'requestedAt' in item && (
+                <button
+                  type="button"
+                  aria-pressed={selected?.customerId === item.customerId}
+                  disabled={busy || !!pending}
+                  onClick={() => {
+                    setSelected(item);
+                    setDecision('');
+                  }}
+                >
+                  Review request for {item.customerId}
+                </button>
+              )}
             </li>
           ))}
         </ul>
       )}
       {queue?.hasMore && last && (
-        <button type="button" disabled={busy || !!pending} onClick={() => load(last.customerId)}>
+        <button
+          type="button"
+          disabled={busy || !!pending}
+          onClick={() => load(last.customerId, outcome)}
+        >
           Next page
         </button>
       )}

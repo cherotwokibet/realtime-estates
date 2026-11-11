@@ -8,6 +8,7 @@ import {
   type CustomerPushPreferences,
   type CustomerDeletionCommand,
   type CustomerDeletionRequest,
+  type validateCustomerDeletionProgress,
   validateCustomerDeletionCommand,
 } from '@realtor/domain';
 
@@ -27,6 +28,7 @@ export interface MobileCustomerConfig {
   readonly allowLoopbackHttp?: boolean;
   readonly pushMode?: 'synthetic-customer-push-v1';
   readonly deletionMode?: 'synthetic-customer-deletion-v1';
+  readonly deletionFollowUpMode?: 'synthetic-customer-deletion-follow-up-v1';
 }
 type Phase = 'idle' | 'busy' | 'uncertain' | 'missing' | 'settled';
 interface PushSettings {
@@ -48,6 +50,10 @@ interface DeletionSettings {
   pending: CustomerDeletionCommand | null;
   receipt: CustomerDeletionRequest | null;
   alreadyPending: boolean;
+  progress?: {
+    phase: 'idle' | 'loading' | 'ready' | 'unavailable';
+    status?: ReturnType<typeof validateCustomerDeletionProgress>['status'];
+  };
 }
 interface Active {
   readonly grant: MobileCustomerGrant;
@@ -88,13 +94,16 @@ export function createMobileCustomerSession(
       : fields(
           input,
           ['mode', 'tenantId', 'apiOrigin'],
-          ['allowLoopbackHttp', 'pushMode', 'deletionMode'],
+          ['allowLoopbackHttp', 'pushMode', 'deletionMode', 'deletionFollowUpMode'],
         );
   if (
     config &&
     (config.mode !== 'runtime-customer-v1' ||
       typeof config.tenantId !== 'string' ||
       !uuid.test(config.tenantId) ||
+      (config.deletionFollowUpMode !== undefined &&
+        (config.deletionFollowUpMode !== 'synthetic-customer-deletion-follow-up-v1' ||
+          !config.deletionMode)) ||
       (config.deletionMode !== undefined &&
         (config.deletionMode !== 'synthetic-customer-deletion-v1' || !config.pushMode)) ||
       (config.pushMode !== undefined &&
@@ -245,6 +254,31 @@ export function createMobileCustomerSession(
   function deletionBusy(s: Active) {
     return s.deletion?.phase === 'checking' || s.deletion?.phase === 'sending';
   }
+  async function readDeletionProgress(s: Active, deletion: DeletionSettings) {
+    const progress = deletion.progress;
+    const receipt = deletion.receipt;
+    if (!progress || !receipt || progress.phase === 'loading') return false;
+    progress.phase = 'loading';
+    delete progress.status;
+    publish();
+    try {
+      const value = await s.client.getDeletionProgress(auth(s));
+      if (!valid(s)) return false;
+      if (!value || value.requestId !== receipt.requestId)
+        throw Error('Deletion progress unavailable.');
+      progress.status = value.status;
+      progress.phase = 'ready';
+      publish();
+      return true;
+    } catch (error) {
+      refused(s, error);
+      if (valid(s)) {
+        progress.phase = 'unavailable';
+        publish();
+      }
+      return false;
+    }
+  }
   async function runDeletion(s: Active, deletion: DeletionSettings, mode: 'check' | 'send') {
     const command = deletion.pending;
     const push = s.push!;
@@ -270,7 +304,7 @@ export function createMobileCustomerSession(
       deletion.alreadyPending = command !== null && command.requestId !== receipt.requestId;
       deletion.pending = null;
       deletion.phase = 'recorded';
-      await readPush(s, push);
+      await Promise.all([readPush(s, push), readDeletionProgress(s, deletion)]);
       return valid(s) && !deletion.alreadyPending;
     } catch (error) {
       refused(s, error);
@@ -314,6 +348,9 @@ export function createMobileCustomerSession(
                       phase: s.deletion.phase,
                       receipt: s.deletion.receipt,
                       alreadyPending: s.deletion.alreadyPending,
+                      ...(s.deletion.progress
+                        ? { progress: Object.freeze({ ...s.deletion.progress }) }
+                        : {}),
                     }),
                   }
                 : {}),
@@ -396,7 +433,13 @@ export function createMobileCustomerSession(
           receipt: null,
           push: config.pushMode ? { phase: 'idle', pending: null, preferences: null } : null,
           deletion: config.deletionMode
-            ? { phase: 'idle', pending: null, receipt: null, alreadyPending: false }
+            ? {
+                phase: 'idle',
+                pending: null,
+                receipt: null,
+                alreadyPending: false,
+                ...(config.deletionFollowUpMode ? { progress: { phase: 'idle' as const } } : {}),
+              }
             : null,
         };
         publish();
@@ -405,6 +448,10 @@ export function createMobileCustomerSession(
         if (generation === local) clear();
         return false;
       }
+    },
+    async refreshDeletionProgress() {
+      const s = current();
+      return s?.deletion?.phase === 'recorded' ? readDeletionProgress(s, s.deletion) : false;
     },
     async checkDeletionRequest() {
       const s = current();

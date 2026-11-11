@@ -36,6 +36,9 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ...(process.env.MOBILE_DELETION_MODE !== undefined
         ? { deletionMode: process.env.MOBILE_DELETION_MODE }
         : {}),
+      ...(process.env.MOBILE_DELETION_FOLLOW_UP_MODE !== undefined
+        ? { deletionFollowUpMode: process.env.MOBILE_DELETION_FOLLOW_UP_MODE }
+        : {}),
       apiOrigin: process.env.MOBILE_API_ORIGIN,
       allowLoopbackHttp: process.env.MOBILE_ALLOW_LOOPBACK_API === 'true',
     };
@@ -59,6 +62,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     process.env.MOBILE_CUSTOMER_MODE !== undefined ||
     process.env.MOBILE_PUSH_MODE !== undefined ||
     process.env.MOBILE_DELETION_MODE !== undefined ||
+    process.env.MOBILE_DELETION_FOLLOW_UP_MODE !== undefined ||
     process.env.MOBILE_API_ORIGIN !== undefined ||
     process.env.MOBILE_ALLOW_LOOPBACK_API !== undefined
   ) {

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { CustomerFavouritesClient } from '@realtor/api-client';
+import { CustomerFavouritesClient, RealtorApiClient } from '@realtor/api-client';
 import { startCustomerPreview } from './customer-preview.mjs';
 import { createMobileCustomerSession } from '../../mobile/src/customer-session.ts';
 import { requestSyntheticCustomerGrant } from '../../mobile/src/synthetic-customer-sign-in.ts';
@@ -14,7 +14,7 @@ const command = () => ({
   confirmed: true,
 });
 
-async function setup(t, fault, replyFault) {
+async function setup(t, fault, replyFault, progressMode) {
   const previous = process.env.NODE_ENV;
   process.env.NODE_ENV = 'development';
   t.after(() => {
@@ -26,6 +26,12 @@ async function setup(t, fault, replyFault) {
     pushMode,
     deletionMode,
     deletionReplyFault: replyFault,
+    ...(progressMode
+      ? {
+          deletionReviewMode: 'synthetic-admin-deletion-review-v1',
+          deletionFollowUpMode: progressMode,
+        }
+      : {}),
   });
   t.after(() => preview.close());
   const grant = (who) =>
@@ -46,6 +52,7 @@ async function setup(t, fault, replyFault) {
     allowLoopbackHttp: true,
     pushMode,
     deletionMode,
+    deletionFollowUpMode: progressMode,
   };
   const calls = [];
   const session = createMobileCustomerSession(config, async (url, init) => {
@@ -61,7 +68,7 @@ async function setup(t, fault, replyFault) {
     scope: { tenantId: preview.tenantId, customerId: a.customerId },
   });
   assert.equal(await session.activate(a), true);
-  return { a, b, client, session, calls, config };
+  return { a, b, client, session, calls, config, preview };
 }
 
 test('mobile recovers a committed confirmed request and reloads current consent across account switches', async (t) => {
@@ -142,4 +149,47 @@ test('mobile retries only the original command after a null status and distingui
   assert.equal(session.snapshot().deletion.alreadyPending, true);
   assert.equal(session.snapshot().deletion.receipt.requestId, other.requestId);
   assert.equal(await session.retryAccountDeletion(), false);
+});
+
+test('mobile refreshes current progress without replay and clears it on account switch', async (t) => {
+  const mode = 'synthetic-customer-deletion-follow-up-v1';
+  let interrupt = false;
+  const { a, b, session, preview, calls } = await setup(
+    t,
+    (path) => interrupt && path.endsWith('/deletion-progress'),
+    undefined,
+    mode,
+  );
+  assert.equal(await session.checkDeletionRequest(), true);
+  const submit = command();
+  assert.equal(await session.requestAccountDeletion(submit), true);
+  assert.equal(session.snapshot().deletion.progress.status, 'pending_review');
+  const reviewer = await preview.deletionReviewStaff();
+  const staff = new RealtorApiClient({
+    baseUrl: preview.origin,
+    allowLoopbackHttp: true,
+    privacyNoticeVersion: 'test',
+  });
+  await staff.reviewCustomerDeletion(
+    {
+      policy: 'synthetic-customer-deletion-review-command-v1',
+      customerId: a.customerId,
+      requestId: submit.requestId,
+      operationId: randomUUID(),
+      disposition: 'needs_information',
+    },
+    { tenantId: preview.tenantId, reviewerId: reviewer.reviewerId },
+    { bearerToken: reviewer.token },
+  );
+  assert.equal(await session.refreshDeletionProgress(), true);
+  assert.equal(session.snapshot().deletion.progress.status, 'staff_follow_up_pending');
+  assert.equal(session.snapshot().deletion.receipt.status, 'pending_review');
+  interrupt = true;
+  assert.equal(await session.refreshDeletionProgress(), false);
+  assert.deepEqual(session.snapshot().deletion.progress, { phase: 'unavailable' });
+  interrupt = false;
+  assert.equal(await session.activate(b), true);
+  assert.equal(await session.checkDeletionRequest(), true);
+  assert.deepEqual(session.snapshot().deletion.progress, { phase: 'idle' });
+  assert.equal(calls.filter((entry) => entry.method === 'POST').length, 1);
 });

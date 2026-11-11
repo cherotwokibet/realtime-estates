@@ -5,16 +5,24 @@ const [tenantSlug, ...flags] = process.argv.slice(2);
 if (
   process.env.NODE_ENV !== 'development' ||
   !['realtime-estates', 'sample-homes'].includes(tenantSlug) ||
+  (flags.includes('--deletion-progress') && !flags.includes('--deletion')) ||
   (flags.includes('--deletion') && !flags.includes('--push')) ||
   (flags.includes('--lost-deletion') && !flags.includes('--deletion')) ||
   new Set(flags).size !== flags.length ||
   flags.some(
     (flag) =>
-      !['--lost-reply', '--lost-enquiry', '--push', '--deletion', '--lost-deletion'].includes(flag),
+      ![
+        '--lost-reply',
+        '--lost-enquiry',
+        '--push',
+        '--deletion',
+        '--lost-deletion',
+        '--deletion-progress',
+      ].includes(flag),
   )
 )
   throw Error(
-    'Choose an explicit synthetic development brand and optional --lost-reply, --lost-enquiry, --push, --deletion or --lost-deletion.',
+    'Choose an explicit synthetic development brand and optional --lost-reply, --lost-enquiry, --push, --deletion, --lost-deletion or --deletion-progress.',
   );
 
 const preview = await startCustomerPreview({
@@ -22,6 +30,12 @@ const preview = await startCustomerPreview({
   mobileMode: 'synthetic-mobile-customer-v1',
   ...(flags.includes('--push') ? { pushMode: 'synthetic-customer-push-v1' } : {}),
   ...(flags.includes('--deletion') ? { deletionMode: 'synthetic-customer-deletion-v1' } : {}),
+  ...(flags.includes('--deletion-progress')
+    ? {
+        deletionReviewMode: 'synthetic-admin-deletion-review-v1',
+        deletionFollowUpMode: 'synthetic-customer-deletion-follow-up-v1',
+      }
+    : {}),
   ...(flags.includes('--lost-deletion')
     ? { deletionReplyFault: 'lost-first-deletion-result-v1' }
     : {}),
@@ -47,6 +61,9 @@ console.log(
     ...(flags.includes('--push') ? { MOBILE_PUSH_MODE: 'synthetic-customer-push-v1' } : {}),
     ...(flags.includes('--deletion')
       ? { MOBILE_DELETION_MODE: 'synthetic-customer-deletion-v1' }
+      : {}),
+    ...(flags.includes('--deletion-progress')
+      ? { MOBILE_DELETION_FOLLOW_UP_MODE: 'synthetic-customer-deletion-follow-up-v1' }
       : {}),
     MOBILE_API_ORIGIN: preview.origin,
     MOBILE_ALLOW_LOOPBACK_API: 'true',

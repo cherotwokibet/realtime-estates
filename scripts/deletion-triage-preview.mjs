@@ -23,6 +23,7 @@ const preview = await startCustomerPreview({
   pushMode: 'synthetic-customer-push-v1',
   deletionMode: 'synthetic-customer-deletion-v1',
   deletionReviewMode: 'synthetic-admin-deletion-review-v1',
+  deletionFollowUpMode: 'synthetic-customer-deletion-follow-up-v1',
   ...(args.includes('--lost-result')
     ? { deletionReviewReplyFault: 'lost-first-deletion-review-v1' }
     : {}),
@@ -108,6 +109,7 @@ try {
         STAFF_PREVIEW_TOKEN: reviewer.token,
         STAFF_PREVIEW_INSTANCE: randomUUID(),
         STAFF_DELETION_TRIAGE_MODE: 'synthetic-v1',
+        STAFF_DELETION_FOLLOW_UP: 'synthetic-v1',
         STAFF_DELETION_TRIAGE_TENANT: preview.tenantId,
         STAFF_DELETION_TRIAGE_REVIEWER: reviewer.reviewerId,
       },

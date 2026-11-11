@@ -21,6 +21,7 @@ export type MobileReferenceConfig =
       customerMode?: typeof syntheticCustomerMode;
       pushMode?: 'synthetic-customer-push-v1';
       deletionMode?: 'synthetic-customer-deletion-v1';
+      deletionFollowUpMode?: 'synthetic-customer-deletion-follow-up-v1';
     }>;
 
 /** Public build configuration only. A device never receives staff credentials or a tenant override. */
@@ -44,6 +45,7 @@ export function resolveMobileReferenceConfig(
       ...(Object.hasOwn(input, 'customerMode') ? ['customerMode'] : []),
       ...(Object.hasOwn(input, 'pushMode') ? ['pushMode'] : []),
       ...(Object.hasOwn(input, 'deletionMode') ? ['deletionMode'] : []),
+      ...(Object.hasOwn(input, 'deletionFollowUpMode') ? ['deletionFollowUpMode'] : []),
     ];
     if (Reflect.ownKeys(input).length !== allowed.length) throw Error('Invalid fields');
     for (const key of Reflect.ownKeys(input))
@@ -90,6 +92,12 @@ export function resolveMobileReferenceConfig(
       (deletionMode !== 'synthetic-customer-deletion-v1' || !pushMode)
     )
       throw Error('Synthetic deletion requests require notification preferences.');
+    const deletionFollowUpMode = descriptors.deletionFollowUpMode?.value;
+    if (
+      Object.hasOwn(input, 'deletionFollowUpMode') &&
+      (deletionFollowUpMode !== 'synthetic-customer-deletion-follow-up-v1' || !deletionMode)
+    )
+      throw Error('Deletion progress requires the synthetic deletion preview.');
     const tenantSlug = resolveDemoTenantSlug(tenant);
     new RealtorApiClient({
       baseUrl: apiOrigin,
@@ -107,6 +115,7 @@ export function resolveMobileReferenceConfig(
       ...(customerMode ? { customerMode } : {}),
       ...(pushMode ? { pushMode } : {}),
       ...(deletionMode ? { deletionMode } : {}),
+      ...(deletionFollowUpMode ? { deletionFollowUpMode } : {}),
     });
   } catch {
     return Object.freeze({ mode: 'error' });

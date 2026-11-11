@@ -31,10 +31,11 @@ export function SyntheticCustomerCatalogue({
           allowLoopbackHttp: true,
           pushMode: config.pushMode,
           deletionMode: config.deletionMode,
+          deletionFollowUpMode: config.deletionFollowUpMode,
         },
         transport,
       ),
-    [tenantId, config.apiOrigin, config.pushMode, config.deletionMode],
+    [tenantId, config.apiOrigin, config.pushMode, config.deletionMode, config.deletionFollowUpMode],
   );
   const styles = useMemo(
     () => StyleSheet.create(createReferenceCatalogueStyles(getDemoTheme(config.tenantSlug))),
