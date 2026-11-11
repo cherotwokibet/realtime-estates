@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PublishedListingVideo from './PublishedListingVideo';
 import PublishedFloorPlan from './PublishedFloorPlan';
+import { SyntheticPropertyEnquiry } from './SyntheticPropertyEnquiry';
 import PublishedPhotoGallery from './PublishedPhotoGallery';
 import { CatalogueButton } from './ReferenceCatalogueButton';
 import { FavouriteDetail, FavouriteOperation, SavedProperties } from './ReferenceFavourites';
@@ -157,10 +158,23 @@ function ReferenceCatalogueSession({
           {brand.name}
         </Text>
         <Text style={s.notice}>Synthetic API preview · no real availability</Text>
-        <Text style={s.copy}>Enquiries, contact and viewing requests are disabled.</Text>
+        <Text style={s.copy}>
+          {config.customerMode
+            ? 'Local synthetic enquiry preview.'
+            : 'Enquiries, contact and viewing requests are disabled.'}
+        </Text>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
         {customerSignIn}
+        <SyntheticPropertyEnquiry
+          config={config}
+          selected={
+            !showSaved && result?.status === 'ready' && result.freshness === 'current'
+              ? selected
+              : null
+          }
+          styles={s}
+        />
         {customerSession && (
           <>
             <CatalogueButton

@@ -31,10 +31,13 @@ export async function startCustomerPreview({
   tenantSlug = 'realtime-estates',
   replyFault,
   mobileMode,
+  enquiryReplyFault,
 } = {}) {
   if (
     process.env.NODE_ENV !== 'development' ||
     !['realtime-estates', 'sample-homes'].includes(tenantSlug) ||
+    (enquiryReplyFault !== undefined &&
+      (enquiryReplyFault !== 'lost-first-enquiry-result-v1' || !mobileMode)) ||
     (mobileMode !== undefined && mobileMode !== 'synthetic-mobile-customer-v1') ||
     (replyFault !== undefined && replyFault !== 'lost-first-favourite-result-v1')
   )
@@ -170,6 +173,7 @@ export async function startCustomerPreview({
       },
     });
     let faultPending = replyFault !== undefined;
+    let enquiryFaultPending = enquiryReplyFault !== undefined;
     const api = createDevelopmentServer(async (r) => {
       const url = new URL(r.url);
       if (mobileMode && url.pathname === '/dev/mobile-customer/session') {
@@ -205,6 +209,23 @@ export async function startCustomerPreview({
         );
       }
       const result = await service(r);
+      if (
+        enquiryFaultPending &&
+        r.method === 'POST' &&
+        url.pathname === '/v1/enquiries' &&
+        result.status === 201
+      ) {
+        enquiryFaultPending = false;
+        return Response.json(
+          {
+            error: {
+              code: 'SYNTHETIC_LOST_REPLY',
+              message: 'Synthetic committed reply unavailable.',
+            },
+          },
+          { status: 503, headers: { 'Cache-Control': 'no-store' } },
+        );
+      }
       if (
         faultPending &&
         r.method === 'POST' &&
@@ -245,6 +266,20 @@ export async function startCustomerPreview({
           expiresAt,
           users,
         }),
+        enumerable: false,
+      },
+      enquiryCount: {
+        value: () =>
+          withDatabase(async () =>
+            Number(
+              (
+                await db.query(
+                  'SELECT count(*) AS total FROM app_private.enquiries WHERE tenant_id=$1',
+                  [tenantId],
+                )
+              ).rows[0].total,
+            ),
+          ),
         enumerable: false,
       },
       pause: {

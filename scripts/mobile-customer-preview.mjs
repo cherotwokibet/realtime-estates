@@ -1,19 +1,24 @@
 import { createInterface } from 'node:readline';
 import { startCustomerPreview } from '../apps/api/dev/customer-preview.mjs';
 
-const [tenantSlug, fault, extra] = process.argv.slice(2);
+const [tenantSlug, ...flags] = process.argv.slice(2);
 if (
   process.env.NODE_ENV !== 'development' ||
   !['realtime-estates', 'sample-homes'].includes(tenantSlug) ||
-  extra !== undefined ||
-  (fault !== undefined && fault !== '--lost-reply')
+  new Set(flags).size !== flags.length ||
+  flags.some((flag) => !['--lost-reply', '--lost-enquiry'].includes(flag))
 )
-  throw Error('Choose an explicit synthetic development brand and optional --lost-reply.');
+  throw Error(
+    'Choose an explicit synthetic development brand and optional --lost-reply or --lost-enquiry.',
+  );
 
 const preview = await startCustomerPreview({
   tenantSlug,
   mobileMode: 'synthetic-mobile-customer-v1',
-  ...(fault ? { replyFault: 'lost-first-favourite-result-v1' } : {}),
+  ...(flags.includes('--lost-reply') ? { replyFault: 'lost-first-favourite-result-v1' } : {}),
+  ...(flags.includes('--lost-enquiry')
+    ? { enquiryReplyFault: 'lost-first-enquiry-result-v1' }
+    : {}),
 });
 const input = createInterface({ input: process.stdin });
 let closing;
