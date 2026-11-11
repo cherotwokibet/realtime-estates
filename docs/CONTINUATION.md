@@ -1,3 +1,11 @@
+## Synthetic staff deletion triage, checkpoint 396, 11 November 2026 EAT
+
+The optional SQL proposal gives current company admins a bounded unreviewed queue and one immutable internal disposition per request. The disposition and minimal audit event commit together, and exact receipt recovery requires current authority and the original reviewer. The two provisional dispositions are ready for privacy review and needs information. Customer intake remains pending.
+
+All 11 focused database checks passed, including company isolation, revocation, exact retry and audit rollback. See docs/evidence/2026-11-11-synthetic-deletion-triage.md and deletion396-sql.txt. Task 09-3 remains open at 55/97 and 0/14 gates.
+
+Next expose the queue and disposition through the signed default-off admin API and SDK, then wire an admin screen with explicit recovery. Define follow-up, privacy approval and retention before deletion processing. Hosted concurrency and physical device verification remain pending.
+
 ## Published mobile synthetic deletion requests, checkpoint 395, 11 November 2026 EAT
 
 Private deployment appgdep_6af42c56fa6c8191a14c6e05b06afb60 succeeded from dashboard d70a832d35b82fddd6eaa1a7177596a4a2bad829. Both browser tabs showed the new checkpoint and 55/97. The before exports (33)/(34) and after exports (35)/(36) matched within each pair. All 932 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 934 notes and 27 manual checks. Three dashboard tests passed.
