@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { getDemoBrand, propertiesForCompany, resolveDemoTenantSlug } from '@realtor/demo';
 import { formatKes, kesFromMinor } from '@realtor/domain';
+import { deletionTriageConfiguration } from '../lib/deletion-triage-server';
 import { previewConfiguration } from '../lib/staff-preview-policy';
 import { getEnquiryPreviewScope } from '../lib/enquiry-preview-server';
 
@@ -44,6 +45,11 @@ function label(value: string): string {
 }
 
 export default function Admin() {
+  let deletionTriageEnabled = false;
+  try {
+    deletionTriageConfiguration(process.env);
+    deletionTriageEnabled = true;
+  } catch {}
   let operationsEnabled = false;
   try {
     if (process.env.STAFF_ENQUIRY_PREVIEW_MODE === 'synthetic-v1') getEnquiryPreviewScope('admin');
@@ -204,6 +210,7 @@ export default function Admin() {
             <p>
               Staff workspace <span aria-hidden="true">/</span> <strong>Overview</strong>
             </p>
+            {deletionTriageEnabled && <a href="/deletion-triage">Account deletion requests</a>}
             <span className="preview-pill">
               <span aria-hidden="true" />
               Read-only preview
