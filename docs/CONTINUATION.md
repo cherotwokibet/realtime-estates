@@ -1,3 +1,9 @@
+## Published mobile viewing handoff389, 11 November 2026 EAT
+
+Private deployment appgdep_6af3d529e73081919a49ea00458333fe succeeded from dashboard 4f8067d9e26cdaec8691db1b14ef37a9168d5eca. Both tabs showed the viewing handoff. The 11 November export pairs before (9)/(10) and after (11)/(12) preserved all 920 prior note occurrences and all manual task, stage, decision and risk fields. The merge produced 922 notes. Three dashboard checks passed. Source 7037241 adds the viewing request action and proves the authorized staff proposal handoff. Fifty-one mobile/API checks and Android development export passed. Actual device interaction and operator acceptance remain open. The checklist stands at 55/97 and 0/14 gates.
+
+Next verify Android runtime and assess task 09-2 when an owned device or sufficient memory is available. In parallel start the local foundation for task 09-3 by reading notification and customer policy, then implementing consent preferences and device token ownership against the existing authenticated customer boundary using synthetic identifiers. Keep real push delivery, account deletion release and provider setup gated on ownership and review.
+
 ## Mobile viewing request handoff389, 11 November 2026 EAT
 
 The synthetic mobile property detail has separate Ask about availability and Request a viewing actions. The request form explains that a realtor can follow up to propose a time. It shows a receipt reference only after the server accepts the enquiry. The existing in-memory original enquiry attempt preserves recovery if the response is lost, including when the modal is closed and reopened. The customer action enters the enquiry queue. Staff use the existing viewing workflow to assign the enquiry, record a viewing request and propose a slot.
