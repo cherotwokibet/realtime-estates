@@ -1,3 +1,9 @@
+## Published audited return to privacy review, checkpoint 402, 11 November 2026 EAT
+
+Private deployment appgdep_6af490a2e728819183a632baf98dc7b1 succeeded from dashboard ac6b51228cb3816b597fd46c0e8482329b5df036. Both browser tabs showed the new checkpoint and 55/97. The before exports (61)/(62) and after exports (63)/(64) matched within each pair. All 946 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 948 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 23d4950 passed nine focused database and signed read checks. Next expose the return and recovery through the signed admin API and SDK, then verify admin confirmation and customer progress. Physical devices, operator acceptance, privacy approval and retention remain open.
+
 ## Audited return to privacy review, checkpoint 402, 11 November 2026 EAT
 
 The synthetic SQL workflow moves an eligible request from Needs information to Ready for privacy review. Current same-company admins share ownership. It records the transition and audit together and preserves original intake and triage records. Nine focused checks passed. See docs/evidence/2026-11-11-deletion-return-review.md and deletion402-checks.txt.
