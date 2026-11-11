@@ -15,6 +15,7 @@ test('actual Expo config exposes only explicit public development settings and r
     'MOBILE_CATALOGUE_PHOTOS',
     'MOBILE_CUSTOMER_MODE',
     'MOBILE_PUSH_MODE',
+    'MOBILE_DELETION_MODE',
   ];
   const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
   const root = fileURLToPath(new URL('../', import.meta.url));
@@ -67,6 +68,11 @@ test('actual Expo config exposes only explicit public development settings and r
       }),
     );
     assert.throws(() => read({ ...push, MOBILE_PUSH_MODE: 'live' }));
+    const deletion = { ...push, MOBILE_DELETION_MODE: 'synthetic-customer-deletion-v1' };
+    assert.equal(read(deletion).extra.mobileReference.deletionMode, deletion.MOBILE_DELETION_MODE);
+    assert.throws(() => read({ ...deletion, NODE_ENV: 'production' }));
+    assert.throws(() => read({ ...customer, MOBILE_DELETION_MODE: deletion.MOBILE_DELETION_MODE }));
+    assert.throws(() => read({ MOBILE_DELETION_MODE: deletion.MOBILE_DELETION_MODE }));
     const config = read(env);
     assert.equal(config.extra.tenantSlug, 'sample-homes');
     assert.deepEqual(config.extra.mobileReference, {

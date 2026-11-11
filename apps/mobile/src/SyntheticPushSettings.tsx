@@ -11,10 +11,12 @@ type PushSnapshot = NonNullable<Extract<Snapshot, { status: 'ready' }>['push']>;
 export function SyntheticPushSettings({
   session,
   push,
+  changesBlocked,
   styles: s,
 }: {
   session: MobileCustomerSession;
   push: PushSnapshot;
+  changesBlocked: boolean;
   styles: ReturnType<typeof createReferenceCatalogueStyles>;
 }) {
   const [open, setOpen] = useState(false);
@@ -102,6 +104,7 @@ export function SyntheticPushSettings({
               </Text>
               <CatalogueButton
                 label={preferences.enabled ? 'Turn off alerts' : 'Allow transactional alerts'}
+                disabled={changesBlocked}
                 onPress={() => change('consent')}
                 styles={s}
               />
@@ -109,11 +112,13 @@ export function SyntheticPushSettings({
                 <>
                   <CatalogueButton
                     label="Register test device"
+                    disabled={changesBlocked}
                     onPress={() => change('register')}
                     styles={s}
                   />
                   <CatalogueButton
                     label="Remove this test registration"
+                    disabled={changesBlocked}
                     onPress={() => change('revoke')}
                     styles={s}
                   />

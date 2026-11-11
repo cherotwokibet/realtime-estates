@@ -20,6 +20,7 @@ export type MobileReferenceConfig =
       photoMode?: 'synthetic-native-v1';
       customerMode?: typeof syntheticCustomerMode;
       pushMode?: 'synthetic-customer-push-v1';
+      deletionMode?: 'synthetic-customer-deletion-v1';
     }>;
 
 /** Public build configuration only. A device never receives staff credentials or a tenant override. */
@@ -42,6 +43,7 @@ export function resolveMobileReferenceConfig(
       ...(Object.hasOwn(input, 'photoMode') ? ['photoMode'] : []),
       ...(Object.hasOwn(input, 'customerMode') ? ['customerMode'] : []),
       ...(Object.hasOwn(input, 'pushMode') ? ['pushMode'] : []),
+      ...(Object.hasOwn(input, 'deletionMode') ? ['deletionMode'] : []),
     ];
     if (Reflect.ownKeys(input).length !== allowed.length) throw Error('Invalid fields');
     for (const key of Reflect.ownKeys(input))
@@ -82,6 +84,12 @@ export function resolveMobileReferenceConfig(
       (pushMode !== 'synthetic-customer-push-v1' || customerMode !== syntheticCustomerMode)
     )
       throw Error('Synthetic notification settings require an owned customer preview.');
+    const deletionMode = descriptors.deletionMode?.value;
+    if (
+      Object.hasOwn(input, 'deletionMode') &&
+      (deletionMode !== 'synthetic-customer-deletion-v1' || !pushMode)
+    )
+      throw Error('Synthetic deletion requests require notification preferences.');
     const tenantSlug = resolveDemoTenantSlug(tenant);
     new RealtorApiClient({
       baseUrl: apiOrigin,
@@ -98,6 +106,7 @@ export function resolveMobileReferenceConfig(
       ...(photoMode ? { photoMode } : {}),
       ...(customerMode ? { customerMode } : {}),
       ...(pushMode ? { pushMode } : {}),
+      ...(deletionMode ? { deletionMode } : {}),
     });
   } catch {
     return Object.freeze({ mode: 'error' });

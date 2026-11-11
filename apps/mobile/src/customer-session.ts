@@ -6,6 +6,9 @@ import {
   validateCustomerPushCommand,
   type CustomerPushCommand,
   type CustomerPushPreferences,
+  type CustomerDeletionCommand,
+  type CustomerDeletionRequest,
+  validateCustomerDeletionCommand,
 } from '@realtor/domain';
 
 /** Runtime identity-provider result. Never place this in Expo extras, UI or disk storage. */
@@ -23,6 +26,7 @@ export interface MobileCustomerConfig {
   readonly apiOrigin: string;
   readonly allowLoopbackHttp?: boolean;
   readonly pushMode?: 'synthetic-customer-push-v1';
+  readonly deletionMode?: 'synthetic-customer-deletion-v1';
 }
 type Phase = 'idle' | 'busy' | 'uncertain' | 'missing' | 'settled';
 interface PushSettings {
@@ -30,6 +34,20 @@ interface PushSettings {
   pending: CustomerPushCommand | null;
   preferences: CustomerPushPreferences | null;
   conflict?: true;
+}
+interface DeletionSettings {
+  phase:
+    | 'idle'
+    | 'checking'
+    | 'available'
+    | 'sending'
+    | 'uncertain'
+    | 'missing'
+    | 'recorded'
+    | 'unavailable';
+  pending: CustomerDeletionCommand | null;
+  receipt: CustomerDeletionRequest | null;
+  alreadyPending: boolean;
 }
 interface Active {
   readonly grant: MobileCustomerGrant;
@@ -39,6 +57,7 @@ interface Active {
   pending: CustomerFavouriteCommand | null;
   receipt: CustomerFavouriteReceipt | null;
   push: PushSettings | null;
+  deletion: DeletionSettings | null;
 }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 function fields(input: unknown, required: string[], optional: string[] = []) {
@@ -66,12 +85,18 @@ export function createMobileCustomerSession(
   const config =
     input === undefined
       ? null
-      : fields(input, ['mode', 'tenantId', 'apiOrigin'], ['allowLoopbackHttp', 'pushMode']);
+      : fields(
+          input,
+          ['mode', 'tenantId', 'apiOrigin'],
+          ['allowLoopbackHttp', 'pushMode', 'deletionMode'],
+        );
   if (
     config &&
     (config.mode !== 'runtime-customer-v1' ||
       typeof config.tenantId !== 'string' ||
       !uuid.test(config.tenantId) ||
+      (config.deletionMode !== undefined &&
+        (config.deletionMode !== 'synthetic-customer-deletion-v1' || !config.pushMode)) ||
       (config.pushMode !== undefined &&
         (config.pushMode !== 'synthetic-customer-push-v1' ||
           config.allowLoopbackHttp !== true ||
@@ -113,6 +138,7 @@ export function createMobileCustomerSession(
       previous.pending = null;
       previous.receipt = null;
       previous.push = null;
+      previous.deletion = null;
       previous.controller.abort();
     }
     publish();
@@ -216,6 +242,44 @@ export function createMobileCustomerSession(
       return false;
     }
   }
+  function deletionBusy(s: Active) {
+    return s.deletion?.phase === 'checking' || s.deletion?.phase === 'sending';
+  }
+  async function runDeletion(s: Active, deletion: DeletionSettings, mode: 'check' | 'send') {
+    const command = deletion.pending;
+    const push = s.push!;
+    deletion.phase = mode === 'check' ? 'checking' : 'sending';
+    if (command) {
+      push.preferences = null;
+      push.phase = 'idle';
+      delete push.conflict;
+    }
+    publish();
+    try {
+      const receipt =
+        mode === 'check'
+          ? await s.client.getDeletionRequest(auth(s))
+          : await s.client.requestAccountDeletion(command!, auth(s));
+      if (!valid(s)) return false;
+      if (!receipt) {
+        deletion.phase = command ? 'missing' : 'available';
+        publish();
+        return command === null;
+      }
+      deletion.receipt = receipt;
+      deletion.alreadyPending = command !== null && command.requestId !== receipt.requestId;
+      deletion.pending = null;
+      deletion.phase = 'recorded';
+      await readPush(s, push);
+      return valid(s) && !deletion.alreadyPending;
+    } catch (error) {
+      refused(s, error);
+      if (!valid(s)) return false;
+      deletion.phase = command ? 'uncertain' : 'unavailable';
+      publish();
+      return false;
+    }
+  }
   return Object.freeze({
     clear,
     matches(tenantId: string, apiOrigin: string) {
@@ -244,6 +308,15 @@ export function createMobileCustomerSession(
               phase: s.phase,
               pending: s.pending,
               receipt: s.receipt,
+              ...(s.deletion
+                ? {
+                    deletion: Object.freeze({
+                      phase: s.deletion.phase,
+                      receipt: s.deletion.receipt,
+                      alreadyPending: s.deletion.alreadyPending,
+                    }),
+                  }
+                : {}),
               ...(s.push
                 ? {
                     push: Object.freeze({
@@ -322,6 +395,9 @@ export function createMobileCustomerSession(
           pending: null,
           receipt: null,
           push: config.pushMode ? { phase: 'idle', pending: null, preferences: null } : null,
+          deletion: config.deletionMode
+            ? { phase: 'idle', pending: null, receipt: null, alreadyPending: false }
+            : null,
         };
         publish();
         return true;
@@ -330,16 +406,69 @@ export function createMobileCustomerSession(
         return false;
       }
     },
+    async checkDeletionRequest() {
+      const s = current();
+      const deletion = s?.deletion;
+      if (
+        !s ||
+        !deletion ||
+        !['idle', 'unavailable', 'available', 'uncertain'].includes(deletion.phase) ||
+        s.push?.pending ||
+        s.push?.phase === 'loading'
+      )
+        return false;
+      return runDeletion(s, deletion, 'check');
+    },
+    async requestAccountDeletion(input: CustomerDeletionCommand) {
+      const s = current();
+      const deletion = s?.deletion;
+      if (
+        !s ||
+        !deletion ||
+        deletion.phase !== 'available' ||
+        s.push?.pending ||
+        s.push?.phase === 'loading'
+      )
+        return false;
+      try {
+        deletion.pending = validateCustomerDeletionCommand(input);
+      } catch {
+        return false;
+      }
+      return runDeletion(s, deletion, 'send');
+    },
+    async retryAccountDeletion() {
+      const s = current();
+      const deletion = s?.deletion;
+      return s && deletion?.phase === 'missing' ? runDeletion(s, deletion, 'send') : false;
+    },
     async loadPushPreferences() {
       const s = current();
       const push = s?.push;
-      if (!s || !push || push.pending || push.phase === 'loading') return false;
+      if (
+        !s ||
+        !push ||
+        deletionBusy(s) ||
+        s.deletion?.pending ||
+        push.pending ||
+        push.phase === 'loading'
+      )
+        return false;
       return readPush(s, push);
     },
     async changePushPreferences(input: CustomerPushCommand) {
       const s = current();
       const push = s?.push;
-      if (!s || !push || push.phase !== 'ready' || !push.preferences) return false;
+      if (
+        !s ||
+        !push ||
+        deletionBusy(s) ||
+        s.deletion?.pending ||
+        s.deletion?.receipt ||
+        push.phase !== 'ready' ||
+        !push.preferences
+      )
+        return false;
       try {
         const command = validateCustomerPushCommand(input);
         if (command.expectedVersion !== push.preferences.version) return false;

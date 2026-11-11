@@ -10,6 +10,9 @@ import {
   validateCustomerPushPreferences,
   validateCustomerPushReceipt,
   type CustomerPushCommand,
+  type CustomerDeletionCommand,
+  validateCustomerDeletionCommand,
+  validateCustomerDeletionRequest,
   type CustomerFavouriteCommand,
   type CustomerFavouriteReceipt,
   type CustomerFavouritesPage,
@@ -123,7 +126,7 @@ export class CustomerFavouritesClient {
     path: string,
     options: CustomerRequestOptions,
     validate: (v: unknown) => T,
-    command?: CustomerFavouriteCommand | CustomerPushCommand,
+    command?: CustomerFavouriteCommand | CustomerPushCommand | CustomerDeletionCommand,
   ): Promise<T> {
     const r = own(options, ['bearerToken'], ['signal']);
     if (
@@ -310,6 +313,27 @@ export class CustomerFavouritesClient {
     }
     return this.request('/v2/customer/favourite-operations/' + command.operationId, options, (v) =>
       validateCustomerFavouriteReceipt(v, command, this.scope),
+    );
+  }
+
+  async getDeletionRequest(options: CustomerRequestOptions) {
+    return this.request('/v2/customer/deletion-request', options, (value) =>
+      value === null ? null : validateCustomerDeletionRequest(value, this.scope),
+    );
+  }
+
+  async requestAccountDeletion(input: CustomerDeletionCommand, options: CustomerRequestOptions) {
+    let command: CustomerDeletionCommand;
+    try {
+      command = validateCustomerDeletionCommand(input);
+    } catch {
+      throw new CustomerApiError('validation');
+    }
+    return this.request(
+      '/v2/customer/deletion-requests/' + command.requestId,
+      options,
+      (value) => validateCustomerDeletionRequest(value, this.scope, command.requestId),
+      command,
     );
   }
 

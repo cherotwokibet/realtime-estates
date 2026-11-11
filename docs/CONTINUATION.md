@@ -1,3 +1,11 @@
+## Mobile synthetic account deletion requests, checkpoint 395, 11 November 2026 EAT
+
+The signed mobile preview now has explicit confirmation, current request status and exact retry after an empty status. A committed 503 recovers by GET and refreshes current push preferences. A competing request remains distinguishable from confirmation of the attempted ID. Account switches clear the local confirmation and receipt.
+
+All 44 mobile and 11 HTTP and SDK checks passed. The SDK build, mobile types, launcher start and quit, formatting and Android development export passed. See docs/evidence/2026-11-11-mobile-deletion-requests.md and the deletion395 logs. Device interaction and live push delivery are pending. This synthetic path records requests for review. Task 09-3 remains open at 55/97 and 0/14 gates.
+
+Next define the synthetic reviewer role and disposition boundary, then test a separate staff review transition with a scoped audit trail. Decide retention for linked enquiries, viewings, backups and provider identity before connecting any deletion worker. Run the documented device rehearsal when an owned device is available.
+
 ## Published signed synthetic deletion request, checkpoint 394, 11 November 2026 EAT
 
 Private deployment appgdep_6af41cbb4b5c819192063b9cc800c373 succeeded from dashboard 06e1bfc6c089d6dbedb557b912a79e47b6699bd4. Both browser tabs showed the new checkpoint and 55/97. The before exports (29)/(30) and after exports (31)/(32) matched within each pair. All 930 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved; after publication there are 932 notes and 27 manual checks. Three dashboard tests passed.

@@ -4,6 +4,7 @@ import { fetch as expoFetch } from 'expo/fetch';
 import { getDemoTheme } from '@realtor/demo';
 import { CatalogueButton } from './ReferenceCatalogueButton';
 import { createMobileCustomerSession } from './customer-session';
+import { SyntheticDeletionSettings } from './SyntheticDeletionSettings';
 import { SyntheticPushSettings } from './SyntheticPushSettings';
 import { ReferenceCatalogueApp } from './ReferenceCatalogueApp';
 import type { MobileReferenceConfig } from './reference-catalogue';
@@ -29,10 +30,11 @@ export function SyntheticCustomerCatalogue({
           apiOrigin: config.apiOrigin,
           allowLoopbackHttp: true,
           pushMode: config.pushMode,
+          deletionMode: config.deletionMode,
         },
         transport,
       ),
-    [tenantId, config.apiOrigin, config.pushMode],
+    [tenantId, config.apiOrigin, config.pushMode, config.deletionMode],
   );
   const styles = useMemo(
     () => StyleSheet.create(createReferenceCatalogueStyles(getDemoTheme(config.tenantSlug))),
@@ -96,9 +98,29 @@ export function SyntheticCustomerCatalogue({
           )}
           {snapshot.status === 'ready' && snapshot.push && (
             <SyntheticPushSettings
-              key={snapshot.activation}
+              key={'push-' + snapshot.activation}
               session={session}
               push={snapshot.push}
+              changesBlocked={
+                snapshot.deletion !== undefined &&
+                ['checking', 'sending', 'uncertain', 'missing', 'recorded'].includes(
+                  snapshot.deletion.phase,
+                )
+              }
+              styles={styles}
+            />
+          )}
+          {snapshot.status === 'ready' && snapshot.deletion && (
+            <SyntheticDeletionSettings
+              key={'deletion-' + snapshot.activation}
+              session={session}
+              deletion={snapshot.deletion}
+              pushBusy={
+                snapshot.push?.phase === 'loading' ||
+                snapshot.push?.phase === 'busy' ||
+                snapshot.push?.phase === 'uncertain' ||
+                snapshot.push?.phase === 'missing'
+              }
               styles={styles}
             />
           )}
