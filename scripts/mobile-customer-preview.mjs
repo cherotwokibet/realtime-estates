@@ -6,15 +6,16 @@ if (
   process.env.NODE_ENV !== 'development' ||
   !['realtime-estates', 'sample-homes'].includes(tenantSlug) ||
   new Set(flags).size !== flags.length ||
-  flags.some((flag) => !['--lost-reply', '--lost-enquiry'].includes(flag))
+  flags.some((flag) => !['--lost-reply', '--lost-enquiry', '--push'].includes(flag))
 )
   throw Error(
-    'Choose an explicit synthetic development brand and optional --lost-reply or --lost-enquiry.',
+    'Choose an explicit synthetic development brand and optional --lost-reply, --lost-enquiry or --push.',
   );
 
 const preview = await startCustomerPreview({
   tenantSlug,
   mobileMode: 'synthetic-mobile-customer-v1',
+  ...(flags.includes('--push') ? { pushMode: 'synthetic-customer-push-v1' } : {}),
   ...(flags.includes('--lost-reply') ? { replyFault: 'lost-first-favourite-result-v1' } : {}),
   ...(flags.includes('--lost-enquiry')
     ? { enquiryReplyFault: 'lost-first-enquiry-result-v1' }
@@ -34,6 +35,7 @@ console.log(
     TENANT_SLUG: tenantSlug,
     MOBILE_CATALOGUE_MODE: 'synthetic-reference-public-v1',
     MOBILE_CUSTOMER_MODE: 'synthetic-mobile-customer-v1',
+    ...(flags.includes('--push') ? { MOBILE_PUSH_MODE: 'synthetic-customer-push-v1' } : {}),
     MOBILE_API_ORIGIN: preview.origin,
     MOBILE_ALLOW_LOOPBACK_API: 'true',
     listingId: preview.listingId,

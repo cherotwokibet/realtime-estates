@@ -3,6 +3,9 @@ import {
   validateCustomerFavouriteCommand,
   type CustomerFavouriteCommand,
   type CustomerFavouriteReceipt,
+  validateCustomerPushCommand,
+  type CustomerPushCommand,
+  type CustomerPushPreferences,
 } from '@realtor/domain';
 
 /** Runtime identity-provider result. Never place this in Expo extras, UI or disk storage. */
@@ -19,8 +22,15 @@ export interface MobileCustomerConfig {
   readonly tenantId: string;
   readonly apiOrigin: string;
   readonly allowLoopbackHttp?: boolean;
+  readonly pushMode?: 'synthetic-customer-push-v1';
 }
 type Phase = 'idle' | 'busy' | 'uncertain' | 'missing' | 'settled';
+interface PushSettings {
+  phase: 'idle' | 'loading' | 'ready' | 'busy' | 'uncertain' | 'missing' | 'unavailable';
+  pending: CustomerPushCommand | null;
+  preferences: CustomerPushPreferences | null;
+  conflict?: true;
+}
 interface Active {
   readonly grant: MobileCustomerGrant;
   readonly client: CustomerFavouritesClient;
@@ -28,6 +38,7 @@ interface Active {
   phase: Phase;
   pending: CustomerFavouriteCommand | null;
   receipt: CustomerFavouriteReceipt | null;
+  push: PushSettings | null;
 }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 function fields(input: unknown, required: string[], optional: string[] = []) {
@@ -55,12 +66,17 @@ export function createMobileCustomerSession(
   const config =
     input === undefined
       ? null
-      : fields(input, ['mode', 'tenantId', 'apiOrigin'], ['allowLoopbackHttp']);
+      : fields(input, ['mode', 'tenantId', 'apiOrigin'], ['allowLoopbackHttp', 'pushMode']);
   if (
     config &&
     (config.mode !== 'runtime-customer-v1' ||
       typeof config.tenantId !== 'string' ||
-      !uuid.test(config.tenantId))
+      !uuid.test(config.tenantId) ||
+      (config.pushMode !== undefined &&
+        (config.pushMode !== 'synthetic-customer-push-v1' ||
+          config.allowLoopbackHttp !== true ||
+          typeof config.apiOrigin !== 'string' ||
+          !/^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(config.apiOrigin))))
   )
     throw Error('Customer session unavailable.');
   // Reuse SDK authority/origin validation before accepting a runtime grant.
@@ -96,6 +112,7 @@ export function createMobileCustomerSession(
     if (previous) {
       previous.pending = null;
       previous.receipt = null;
+      previous.push = null;
       previous.controller.abort();
     }
     publish();
@@ -138,6 +155,67 @@ export function createMobileCustomerSession(
       return false;
     }
   }
+  async function readPush(s: Active, push: PushSettings, conflict = false) {
+    push.phase = 'loading';
+    delete push.conflict;
+    push.preferences = null;
+    publish();
+    try {
+      const preferences = await s.client.getPushPreferences(auth(s));
+      if (!valid(s)) return false;
+      push.preferences = preferences;
+      push.phase = 'ready';
+      if (conflict) push.conflict = true;
+      publish();
+      return true;
+    } catch (error) {
+      refused(s, error);
+      if (valid(s)) {
+        push.phase = 'unavailable';
+        publish();
+      }
+      return false;
+    }
+  }
+  async function runPush(s: Active, push: PushSettings, mode: 'send' | 'recover' | 'retry') {
+    const command = push.pending!;
+    push.phase = 'busy';
+    delete push.conflict;
+    push.preferences = null;
+    publish();
+    try {
+      const receipt =
+        mode === 'recover'
+          ? await s.client.getPushOriginal(command, auth(s))
+          : await s.client.changePushPreferences(command, auth(s));
+      if (!valid(s)) return false;
+      push.pending = null;
+      // An original receipt can describe consent that has since been withdrawn.
+      const refreshed = await readPush(s, push, receipt.outcome === 'conflict');
+      return refreshed && receipt.outcome !== 'conflict';
+    } catch (error) {
+      if (
+        mode === 'recover' ||
+        (error instanceof CustomerApiError && error.kind === 'unauthenticated')
+      )
+        refused(s, error);
+      if (!valid(s)) return false;
+      if (mode === 'recover' && error instanceof CustomerApiError && error.status === 404) {
+        push.phase = 'missing';
+      } else if (
+        mode !== 'send' ||
+        !(error instanceof CustomerApiError) ||
+        error.submissionUncertain
+      ) {
+        push.phase = 'uncertain';
+      } else {
+        push.pending = null;
+        push.phase = 'unavailable';
+      }
+      publish();
+      return false;
+    }
+  }
   return Object.freeze({
     clear,
     matches(tenantId: string, apiOrigin: string) {
@@ -166,6 +244,15 @@ export function createMobileCustomerSession(
               phase: s.phase,
               pending: s.pending,
               receipt: s.receipt,
+              ...(s.push
+                ? {
+                    push: Object.freeze({
+                      phase: s.push.phase,
+                      preferences: s.push.preferences,
+                      ...(s.push.conflict ? { conflict: true as const } : {}),
+                    }),
+                  }
+                : {}),
             }
           : {
               status: config
@@ -227,13 +314,50 @@ export function createMobileCustomerSession(
           return false;
         activating = false;
         activationController = null;
-        active = { grant, client, controller, phase: 'idle', pending: null, receipt: null };
+        active = {
+          grant,
+          client,
+          controller,
+          phase: 'idle',
+          pending: null,
+          receipt: null,
+          push: config.pushMode ? { phase: 'idle', pending: null, preferences: null } : null,
+        };
         publish();
         return true;
       } catch {
         if (generation === local) clear();
         return false;
       }
+    },
+    async loadPushPreferences() {
+      const s = current();
+      const push = s?.push;
+      if (!s || !push || push.pending || push.phase === 'loading') return false;
+      return readPush(s, push);
+    },
+    async changePushPreferences(input: CustomerPushCommand) {
+      const s = current();
+      const push = s?.push;
+      if (!s || !push || push.phase !== 'ready' || !push.preferences) return false;
+      try {
+        const command = validateCustomerPushCommand(input);
+        if (command.expectedVersion !== push.preferences.version) return false;
+        push.pending = command;
+      } catch {
+        return false;
+      }
+      return runPush(s, push, 'send');
+    },
+    async recoverPushPreferences() {
+      const s = current();
+      const push = s?.push;
+      return s && push?.phase === 'uncertain' && push.pending ? runPush(s, push, 'recover') : false;
+    },
+    async retryPushPreferences() {
+      const s = current();
+      const push = s?.push;
+      return s && push?.phase === 'missing' && push.pending ? runPush(s, push, 'retry') : false;
     },
     async favourite(listingId: string) {
       const s = current();

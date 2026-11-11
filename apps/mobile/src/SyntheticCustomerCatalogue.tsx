@@ -4,6 +4,7 @@ import { fetch as expoFetch } from 'expo/fetch';
 import { getDemoTheme } from '@realtor/demo';
 import { CatalogueButton } from './ReferenceCatalogueButton';
 import { createMobileCustomerSession } from './customer-session';
+import { SyntheticPushSettings } from './SyntheticPushSettings';
 import { ReferenceCatalogueApp } from './ReferenceCatalogueApp';
 import type { MobileReferenceConfig } from './reference-catalogue';
 import { createReferenceCatalogueStyles } from './reference-theme';
@@ -27,10 +28,11 @@ export function SyntheticCustomerCatalogue({
           tenantId,
           apiOrigin: config.apiOrigin,
           allowLoopbackHttp: true,
+          pushMode: config.pushMode,
         },
         transport,
       ),
-    [tenantId, config.apiOrigin],
+    [tenantId, config.apiOrigin, config.pushMode],
   );
   const styles = useMemo(
     () => StyleSheet.create(createReferenceCatalogueStyles(getDemoTheme(config.tenantSlug))),
@@ -91,6 +93,14 @@ export function SyntheticCustomerCatalogue({
             <Text accessibilityRole="alert" style={styles.error}>
               Preview sign-in is unavailable. Check that the local preview is running.
             </Text>
+          )}
+          {snapshot.status === 'ready' && snapshot.push && (
+            <SyntheticPushSettings
+              key={snapshot.activation}
+              session={session}
+              push={snapshot.push}
+              styles={styles}
+            />
           )}
           <CatalogueButton
             label="Sign in as preview customer A"

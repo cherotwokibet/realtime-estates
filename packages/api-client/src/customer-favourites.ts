@@ -6,6 +6,10 @@ import {
   validateCustomerFavouriteState,
   validateCustomerFavouritesPage,
   type CustomerScope,
+  validateCustomerPushCommand,
+  validateCustomerPushPreferences,
+  validateCustomerPushReceipt,
+  type CustomerPushCommand,
   type CustomerFavouriteCommand,
   type CustomerFavouriteReceipt,
   type CustomerFavouritesPage,
@@ -119,7 +123,7 @@ export class CustomerFavouritesClient {
     path: string,
     options: CustomerRequestOptions,
     validate: (v: unknown) => T,
-    command?: CustomerFavouriteCommand,
+    command?: CustomerFavouriteCommand | CustomerPushCommand,
   ): Promise<T> {
     const r = own(options, ['bearerToken'], ['signal']);
     if (
@@ -306,6 +310,39 @@ export class CustomerFavouritesClient {
     }
     return this.request('/v2/customer/favourite-operations/' + command.operationId, options, (v) =>
       validateCustomerFavouriteReceipt(v, command, this.scope),
+    );
+  }
+
+  async getPushPreferences(options: CustomerRequestOptions) {
+    return this.request('/v2/customer/push-preferences', options, (value) =>
+      validateCustomerPushPreferences(value, this.scope),
+    );
+  }
+
+  async changePushPreferences(input: CustomerPushCommand, options: CustomerRequestOptions) {
+    let command: CustomerPushCommand;
+    try {
+      command = validateCustomerPushCommand(input);
+    } catch {
+      throw new CustomerApiError('validation');
+    }
+    return this.request(
+      '/v2/customer/push-operations/' + command.operationId,
+      options,
+      (value) => validateCustomerPushReceipt(value, this.scope, command.operationId, command),
+      command,
+    );
+  }
+
+  async getPushOriginal(input: CustomerPushCommand, options: CustomerRequestOptions) {
+    let command: CustomerPushCommand;
+    try {
+      command = validateCustomerPushCommand(input);
+    } catch {
+      throw new CustomerApiError('validation');
+    }
+    return this.request('/v2/customer/push-operations/' + command.operationId, options, (value) =>
+      validateCustomerPushReceipt(value, this.scope, command.operationId, command),
     );
   }
 }
