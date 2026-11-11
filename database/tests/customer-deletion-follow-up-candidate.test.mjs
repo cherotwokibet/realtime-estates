@@ -1,7 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { fixture, asActor, scalar, T, OTHER, ADMIN, AGENT } from './public-media-fixtures.mjs';
+import {
+  fixture,
+  asActor,
+  scalar,
+  T,
+  OTHER,
+  ADMIN,
+  AGENT,
+  LISTING,
+  createDraft,
+} from './public-media-fixtures.mjs';
 
 const id = (n) => '00000000-0000-4000-8000-' + String(n).padStart(12, '0');
 const primary = id(13);
@@ -347,4 +357,152 @@ test('a failed audit rolls back a hold and private decision tables stay unavaila
     [T, privacyOfficer],
   );
   await deny(() => readPrivacy(db), '42501');
+});
+
+async function setupProcessingPlan(t) {
+  const db = await setupPrivacy(t);
+  await db.exec(
+    await readFile(
+      new URL('../proposals/customer-deletion-processing-plan.sql', import.meta.url),
+      'utf8',
+    ),
+  );
+  return db;
+}
+
+function readPlan(
+  db,
+  {
+    customer = primary,
+    request = requestId,
+    operation = privacyOperation,
+    reviewer = privacyOfficer,
+    tenant = T,
+  } = {},
+) {
+  return query(
+    db,
+    'SELECT app_api.read_synthetic_deletion_processing_plan($1,$2,$3)',
+    [customer, request, operation],
+    reviewer,
+    tenant,
+  );
+}
+
+test('processing plan inventories scoped synthetic records without changing data or guessing identity links', async (t) => {
+  const db = await setupProcessingPlan(t);
+  await createDraft(db);
+  await db.query(
+    'INSERT INTO app_private.customer_favourites(tenant_id,customer_id,listing_id,version,saved) VALUES($1,$2,$3,1,true),($1,$4,$3,1,false)',
+    [T, primary, LISTING, peer],
+  );
+  await db.query(
+    "INSERT INTO app_private.customer_favourite_operations(tenant_id,customer_id,operation_id,listing_id,expected_version,requested_saved,receipt) VALUES($1,$2,$3,$4,0,true,'{}')",
+    [T, primary, id(880), LISTING],
+  );
+  await db.query(
+    'INSERT INTO app_private.customer_push_preferences(tenant_id,customer_id,version,enabled,consent_changed_at) VALUES($1,$2,1,true,now()),($3,$2,1,true,now())',
+    [T, primary, OTHER],
+  );
+  await db.query(
+    'INSERT INTO app_private.customer_push_registrations(registration_id,tenant_id,customer_id,active) VALUES($1,$2,$3,true),($4,$5,$3,true)',
+    [id(881), T, primary, id(882), OTHER],
+  );
+  await db.query(
+    "INSERT INTO app_private.customer_push_operations(tenant_id,customer_id,operation_id,command,receipt) VALUES($1,$2,$3,'{}','{}'),($4,$2,$3,'{}','{}')",
+    [T, primary, id(883), OTHER],
+  );
+  for (const [tenant, enquiry, requester] of [
+    [T, id(884), primary],
+    [T, id(885), peer],
+    [T, id(886), null],
+    [OTHER, id(887), primary],
+  ]) {
+    await db.query(
+      "INSERT INTO app_private.enquiries(tenant_id,id,idempotency_key,requested_by_id,contact_name,email,message,origin,notice_version) VALUES($1,$2,$2,$3,'Synthetic contact','same@example.invalid','Synthetic confidential detail','mobile','synthetic-v1')",
+      [tenant, enquiry, requester],
+    );
+  }
+  for (const [viewing, enquiry, requester] of [
+    [id(888), id(884), AGENT],
+    [id(889), id(885), AGENT],
+  ]) {
+    await db.query(
+      "INSERT INTO app_private.viewings(tenant_id,id,enquiry_id,listing_id,requested_by_id,status,version,preferred_slots,notes,created_at,updated_at) VALUES($1,$2,$3,$4,$5,'requested',1,'[]','Synthetic private notes','2026-11-11T16:00:00Z','2026-11-11T16:00:00Z')",
+      [T, viewing, enquiry, LISTING, requester],
+    );
+  }
+  const original = await intake(db, primary);
+  await review(db, primary, info);
+  await returnToReview(db, privacyAlternate);
+  const decision = await decidePrivacy(db);
+  const before = await scalar(db, 'SELECT count(*) FROM app_private.audit_events');
+  const plan = await readPlan(db);
+  assert.deepEqual(plan, {
+    policy: 'synthetic-deletion-processing-plan-v1',
+    decision,
+    inventory: {
+      favouriteStates: 1,
+      favouriteReceipts: 1,
+      pushPreferences: 1,
+      pushRegistrations: 1,
+      activePushRegistrations: 0,
+      pushReceipts: 1,
+      linkedEnquiries: 1,
+      linkedViewings: 1,
+      returnReceipts: 1,
+    },
+    requirements: {
+      accountScope: 'verify_identity_and_linked_memberships',
+      operationalHistory: 'review_retention_reason_and_expiry',
+      privacyEvidence: 'review_minimum_audit_and_receipt_evidence',
+      unlinkedEnquiries: 'manual_identity_review_required',
+      holds: 'verify_no_applicable_hold',
+      providers: 'verify_provider_control_and_disposition',
+      backups: 'verify_expiry_custody_and_restore_reapplication',
+    },
+  });
+  assert.deepEqual(await readPlan(db), plan);
+  assert.equal(await scalar(db, 'SELECT count(*) FROM app_private.audit_events'), before);
+  assert.equal(await scalar(db, 'SELECT count(*) FROM app_private.enquiries'), 4);
+  assert.deepEqual(await intake(db, primary), original);
+  assert.equal((await progress(db)).status, 'privacy_review_pending');
+});
+
+test('processing plan requires the exact planning decision and current reviewer authority', async (t) => {
+  const db = await setupProcessingPlan(t);
+  await intake(db, primary);
+  await review(db, primary, ready);
+  await deny(() => readPlan(db), 'P0002');
+  await decidePrivacy(db, 'hold');
+  await deny(() => readPlan(db), 'P0002');
+  await intake(db, peer);
+  await review(db, peer, ready);
+  const operation = id(899);
+  await query(
+    db,
+    'SELECT app_api.record_synthetic_deletion_privacy_decision($1,$2,$3,$4)',
+    [peer, requestId, operation, 'plan_review'],
+    privacyOfficer,
+  );
+  const valid = { customer: peer, operation };
+  assert.equal((await readPlan(db, valid)).decision.operationId, operation);
+  for (const wrong of [
+    { customer: primary },
+    { request: id(900) },
+    { operation: id(901) },
+    { reviewer: privacyAlternate },
+  ])
+    await deny(() => readPlan(db, { ...valid, ...wrong }), 'P0002');
+  for (const wrong of [
+    { reviewer: AGENT },
+    { reviewer: primary },
+    { reviewer: otherAdmin, tenant: OTHER },
+  ])
+    await deny(() => readPlan(db, { ...valid, ...wrong }), '42501');
+  await db.query(
+    'DELETE FROM app_private.synthetic_deletion_privacy_reviewers WHERE tenant_id=$1 AND reviewer_id=$2',
+    [T, privacyOfficer],
+  );
+  await deny(() => readPlan(db, valid), '42501');
 });

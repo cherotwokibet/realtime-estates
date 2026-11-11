@@ -1,3 +1,7 @@
+## 11 November 2026 EAT - checkpoint 407, read-only deletion processing plan
+
+The disposable SQL proposal inventories linked records for the exact planning decision under current reviewer authority. It identifies separate checks for retention, holds, providers and backup restore. Nine focused tests passed. See [evidence](evidence/2026-11-11-deletion-processing-plan.md). Next add an explicit signed read and strict SDK validation, then connect the admin receipt-to-plan view. Task 09-3 and production deletion remain open.
+
 ## Published admin deletion privacy review, checkpoint 406, 11 November 2026 EAT
 
 Private deployment appgdep_6af4ca6949a881919b7daead6a007fef succeeded from dashboard f2f1b2519c61eb0b253f8755650edf9f8b50fb17. Both browser tabs showed the new checkpoint and 55/97. The before exports (77)/(78) and after exports (79)/(80) matched within each pair. All 954 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 956 notes and 27 manual checks. Three dashboard tests passed.
