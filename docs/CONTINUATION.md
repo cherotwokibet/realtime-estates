@@ -1,3 +1,9 @@
+## Published read-only deletion processing plan, checkpoint 407, 11 November 2026 EAT
+
+Private deployment appgdep_6af4d6eb62cc819197a759dbda6412d8 succeeded from dashboard 383704dbd347c4c1d0516cfe30ad4a2f257d216f. Both browser tabs showed the new checkpoint and 55/97. The before exports (81)/(82) and after exports (83)/(84) matched within each pair. All 956 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 958 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 58c4ade passed nine focused tests. Next add a separately enabled signed read, strict SDK validation and the admin receipt-to-plan view. Production retention, privacy approval, provider and restore checks remain open.
+
 ## Private dashboard publication pending, checkpoint 407, 11 November 2026 EAT
 
 The Sites source commit 383704dbd347c4c1d0516cfe30ad4a2f257d216f saved as appgprj_6ac8fe39e0a48191a39634cea0928fe6~appgver_bea8c44b78608191887ea30347f64128. The publish request and two retries of the saved version returned internal errors. Sites listed the saved version without a deployment, and the browser still showed checkpoint 406. The matching before exports (81)/(82) are retained in Progress Exports. Three dashboard checks and both checkpoint evidence links passed locally.
