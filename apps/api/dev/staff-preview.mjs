@@ -591,7 +591,7 @@ async function bootstrapAs(db, company, actor, operation) {
     throw error;
   }
 }
-async function seedPublicReferenceListing(db, company, fixture) {
+export async function seedPublicReferenceListing(db, company, fixture) {
   const { listingId, slug, operationBase, referenceLocation, locationDisclosure, ...contentFacts } =
     fixture ?? {};
   const listing = listingId ?? id(Number(company.listing.slice(-3)) + 10);

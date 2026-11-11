@@ -5,6 +5,7 @@ import PublishedPhotoGallery from './PublishedPhotoGallery';
 import { CatalogueButton } from './ReferenceCatalogueButton';
 import { FavouriteDetail, FavouriteOperation, SavedProperties } from './ReferenceFavourites';
 import type { MobileCustomerSession } from './customer-session';
+import { syntheticCustomerCompanyId } from './synthetic-customer-sign-in';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { PublicSearchInput } from '@realtor/api-client';
@@ -63,19 +64,18 @@ function CatalogueCard({
 export function ReferenceCatalogueApp({
   config,
   customerSession,
+  customerSignIn,
 }: {
   config: Extract<MobileReferenceConfig, { mode: 'synthetic-reference-public-v1' }>;
   customerSession?: MobileCustomerSession;
+  customerSignIn?: React.ReactNode;
 }) {
-  // Fixed IDs of the two owned synthetic catalogue companies.
-  const companyId =
-    config.tenantSlug === 'sample-homes'
-      ? '00000000-0000-4000-8000-000000000002'
-      : '00000000-0000-4000-8000-000000000001';
+  const companyId = syntheticCustomerCompanyId(config.tenantSlug);
   return (
     <ReferenceCatalogueSession
       key={`${config.tenantSlug}:${config.apiOrigin}`}
       config={config}
+      customerSignIn={customerSignIn}
       customerSession={
         customerSession?.matches(companyId, config.apiOrigin) ? customerSession : undefined
       }
@@ -85,9 +85,11 @@ export function ReferenceCatalogueApp({
 function ReferenceCatalogueSession({
   config,
   customerSession,
+  customerSignIn,
 }: {
   config: Extract<MobileReferenceConfig, { mode: 'synthetic-reference-public-v1' }>;
   customerSession?: MobileCustomerSession;
+  customerSignIn?: React.ReactNode;
 }) {
   const [showSaved, setShowSaved] = useState(false);
   const brand = getDemoBrand(config.tenantSlug);
@@ -158,6 +160,7 @@ function ReferenceCatalogueSession({
         <Text style={s.copy}>Enquiries, contact and viewing requests are disabled.</Text>
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.page}>
+        {customerSignIn}
         {customerSession && (
           <>
             <CatalogueButton

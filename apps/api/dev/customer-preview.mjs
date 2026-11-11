@@ -1,4 +1,5 @@
 /** Owned synthetic customer fixture. Keys/tokens live only in memory and child server environment. */
+import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
@@ -9,6 +10,8 @@ import {
   T,
   OTHER,
   LISTING,
+  ADMIN,
+  AGENT,
 } from '../../../database/tests/public-media-fixtures.mjs';
 import { createApiService } from '../dist/service.js';
 import { createIdentityVerifier, parseBearerHeader } from '../dist/auth.js';
@@ -24,20 +27,32 @@ const stop = (s) =>
     s.closeAllConnections();
     s.close(resolve);
   });
-export async function startCustomerPreview({ tenantSlug = 'realtime-estates', replyFault } = {}) {
+export async function startCustomerPreview({
+  tenantSlug = 'realtime-estates',
+  replyFault,
+  mobileMode,
+} = {}) {
   if (
     process.env.NODE_ENV !== 'development' ||
     !['realtime-estates', 'sample-homes'].includes(tenantSlug) ||
+    (mobileMode !== undefined && mobileMode !== 'synthetic-mobile-customer-v1') ||
     (replyFault !== undefined && replyFault !== 'lost-first-favourite-result-v1')
   )
     throw Error('Explicit supported development customer preview required.');
   const db = await fixture(),
     servers = [];
+  let databaseTail = Promise.resolve();
+  function withDatabase(operation) {
+    const result = databaseTail.then(operation);
+    databaseTail = result.catch(() => {});
+    return result;
+  }
   let closed = false;
   const close = async () => {
     if (closed) return;
     closed = true;
     for (const s of servers.reverse()) await stop(s);
+    await databaseTail;
     await db.close();
   };
   try {
@@ -64,6 +79,38 @@ export async function startCustomerPreview({ tenantSlug = 'realtime-estates', re
       if (!foreignSavedFixture) throw Error('Synthetic positive isolation fixture failed.');
     }
     const tenantId = tenantSlug === 'sample-homes' ? OTHER : T;
+    let nativeListingId = null;
+    if (mobileMode) {
+      const { REFERENCE_PREVIEW_CATALOGUE, seedPublicReferenceListing } =
+        await import('./staff-preview.mjs');
+      for (const file of [
+        'listing-reference-draft.sql',
+        'listing-reference-catalogue-install.sql',
+        'listing-reference-read.sql',
+        'listing-reference-moderation.sql',
+      ]) {
+        await db.exec(
+          await readFile(new URL('../../../database/proposals/' + file, import.meta.url), 'utf8'),
+        );
+      }
+      await db.query('SELECT app_private.install_synthetic_reference_catalogue(0,$1::jsonb)', [
+        JSON.stringify(REFERENCE_PREVIEW_CATALOGUE),
+      ]);
+      const agent = tenantId === T ? AGENT : id(21);
+      if (tenantId === OTHER)
+        await db.query(
+          "INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'agent')",
+          [OTHER, agent],
+        );
+      const base = tenantId === T ? 400 : 500;
+      await seedPublicReferenceListing(db, {
+        id: tenantId,
+        agent,
+        admin: tenantId === T ? ADMIN : id(20),
+        listing: id(base),
+      });
+      nativeListingId = id(base + 10);
+    }
     const { privateKey, publicKey } = await generateKeyPair('RS256');
     const kid = 'synthetic-customer-preview-v1',
       jwk = { ...(await exportJWK(publicKey)), kid, alg: 'RS256', use: 'sig' };
@@ -86,6 +133,15 @@ export async function startCustomerPreview({ tenantSlug = 'realtime-estates', re
     });
     const issued = Math.floor(Date.now() / 1000),
       expiresAt = new Date((issued + 900) * 1000).toISOString();
+    const sign = (subject, start, end) =>
+      new SignJWT({ synthetic: true })
+        .setProtectedHeader({ alg: 'RS256', kid, typ: 'JWT' })
+        .setIssuer(issuer)
+        .setAudience('synthetic-customer-preview-v1')
+        .setSubject(subject)
+        .setIssuedAt(start)
+        .setExpirationTime(end)
+        .sign(privateKey);
     const users = [];
     for (const [n, label] of [
       [13, 'Synthetic Customer A'],
@@ -94,27 +150,60 @@ export async function startCustomerPreview({ tenantSlug = 'realtime-estates', re
       users.push({
         id: id(n),
         label,
-        bearerToken: await new SignJWT({ synthetic: true })
-          .setProtectedHeader({ alg: 'RS256', kid, typ: 'JWT' })
-          .setIssuer(issuer)
-          .setAudience('synthetic-customer-preview-v1')
-          .setSubject(id(n))
-          .setIssuedAt(issued)
-          .setExpirationTime(issued + 900)
-          .sign(privateKey),
+        bearerToken: await sign(id(n), issued, issued + 900),
       });
     const service = createApiService({
       tenantId,
       privacyNoticeVersion: 'synthetic-customer-preview-v1',
+      ...(mobileMode
+        ? {
+            referenceDraftMode: 'synthetic-reference-draft-v1',
+            referenceModerationMode: 'synthetic-reference-transition-v1',
+          }
+        : {}),
       customerFavouritesMode: 'synthetic-customer-favourites-v1',
       verifyAuthorization: (r) =>
         verify(parseBearerHeader(r.headers.get('authorization') ?? undefined)),
       database: {
-        transaction: ({ tenantId, actorId }, fn) => asActor(db, tenantId, actorId, () => fn(db)),
+        transaction: ({ tenantId, actorId }, fn) =>
+          withDatabase(() => asActor(db, tenantId, actorId, () => fn(db))),
       },
     });
     let faultPending = replyFault !== undefined;
     const api = createDevelopmentServer(async (r) => {
+      const url = new URL(r.url);
+      if (mobileMode && url.pathname === '/dev/mobile-customer/session') {
+        const headers = { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
+        const persona = r.headers.get('x-realtor-preview-customer');
+        if (
+          r.method !== 'POST' ||
+          r.url !== origin + '/dev/mobile-customer/session' ||
+          r.headers.has('origin') ||
+          r.headers.has('sec-fetch-site') ||
+          r.headers.has('authorization') ||
+          r.headers.has('cookie') ||
+          (persona !== 'a' && persona !== 'b')
+        )
+          return Response.json({ error: 'Preview sign-in unavailable.' }, { status: 404, headers });
+        if ((await r.arrayBuffer()).byteLength !== 0)
+          return Response.json({ error: 'Preview sign-in unavailable.' }, { status: 404, headers });
+        const start = Math.floor(Date.now() / 1000);
+        const end = Math.min(start + 120, issued + 900);
+        if (end <= start)
+          return Response.json({ error: 'Preview expired.' }, { status: 410, headers });
+        const customerId = id(persona === 'a' ? 13 : 14);
+        return Response.json(
+          {
+            policy: 'runtime-customer-grant-v1',
+            tenantId,
+            customerId,
+            generation: randomUUID(),
+            expiresAt: new Date(end * 1000).toISOString(),
+            bearerToken: await sign(customerId, start, end),
+          },
+          { headers },
+        );
+      }
       const result = await service(r);
       if (
         faultPending &&
@@ -141,7 +230,7 @@ export async function startCustomerPreview({ tenantSlug = 'realtime-estates', re
       origin,
       tenantId,
       tenantSlug,
-      listingId: tenantId === T ? LISTING : null,
+      listingId: nativeListingId ?? (tenantId === T ? LISTING : null),
       foreignSavedFixture,
       expiresAt,
       close,
@@ -160,25 +249,31 @@ export async function startCustomerPreview({ tenantSlug = 'realtime-estates', re
       },
       pause: {
         value: () =>
-          db.query(
-            "UPDATE app_private.listings SET publication_status='paused' WHERE tenant_id=$1 AND id=$2",
-            [tenantId, LISTING],
+          withDatabase(() =>
+            db.query(
+              "UPDATE app_private.listings SET publication_status='paused' WHERE tenant_id=$1 AND id=$2",
+              [tenantId, nativeListingId ?? LISTING],
+            ),
           ),
         enumerable: false,
       },
       resume: {
         value: () =>
-          db.query(
-            "UPDATE app_private.listings SET publication_status='published' WHERE tenant_id=$1 AND id=$2",
-            [tenantId, LISTING],
+          withDatabase(() =>
+            db.query(
+              "UPDATE app_private.listings SET publication_status='published' WHERE tenant_id=$1 AND id=$2",
+              [tenantId, nativeListingId ?? LISTING],
+            ),
           ),
         enumerable: false,
       },
       revoke: {
         value: () =>
-          db.query(
-            'UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',
-            [tenantId, id(13)],
+          withDatabase(() =>
+            db.query(
+              'UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',
+              [tenantId, id(13)],
+            ),
           ),
         enumerable: false,
       },

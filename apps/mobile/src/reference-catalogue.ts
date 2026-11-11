@@ -4,6 +4,7 @@ import {
   type PublicSearchInput,
 } from '@realtor/api-client';
 import { resolveDemoTenantSlug, type DemoTenantSlug } from '@realtor/demo';
+import { syntheticCustomerMode } from './synthetic-customer-sign-in.ts';
 import { formatKes, kesFromMinor } from '@realtor/domain';
 
 export type MobileReferenceConfig =
@@ -17,6 +18,7 @@ export type MobileReferenceConfig =
       videoMode?: 'synthetic-listing-video-publication-v1';
       floorPlanMode?: 'synthetic-floor-plan-publication-v1';
       photoMode?: 'synthetic-native-v1';
+      customerMode?: typeof syntheticCustomerMode;
     }>;
 
 /** Public build configuration only. A device never receives staff credentials or a tenant override. */
@@ -37,6 +39,7 @@ export function resolveMobileReferenceConfig(
       ...(Object.hasOwn(input, 'videoMode') ? ['videoMode'] : []),
       ...(Object.hasOwn(input, 'floorPlanMode') ? ['floorPlanMode'] : []),
       ...(Object.hasOwn(input, 'photoMode') ? ['photoMode'] : []),
+      ...(Object.hasOwn(input, 'customerMode') ? ['customerMode'] : []),
     ];
     if (Reflect.ownKeys(input).length !== allowed.length) throw Error('Invalid fields');
     for (const key of Reflect.ownKeys(input))
@@ -63,6 +66,14 @@ export function resolveMobileReferenceConfig(
     const photoMode = descriptors.photoMode?.value;
     if (Object.hasOwn(input, 'photoMode') && photoMode !== 'synthetic-native-v1')
       throw Error('Invalid photo mode');
+    const customerMode = descriptors.customerMode?.value;
+    if (
+      Object.hasOwn(input, 'customerMode') &&
+      (customerMode !== syntheticCustomerMode ||
+        !allowLoopbackHttp ||
+        !/^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}$/.test(apiOrigin))
+    )
+      throw Error('Synthetic customer sign-in requires an owned loopback preview.');
     const tenantSlug = resolveDemoTenantSlug(tenant);
     new RealtorApiClient({
       baseUrl: apiOrigin,
@@ -77,6 +88,7 @@ export function resolveMobileReferenceConfig(
       ...(videoMode ? { videoMode } : {}),
       ...(floorPlanMode ? { floorPlanMode } : {}),
       ...(photoMode ? { photoMode } : {}),
+      ...(customerMode ? { customerMode } : {}),
     });
   } catch {
     return Object.freeze({ mode: 'error' });

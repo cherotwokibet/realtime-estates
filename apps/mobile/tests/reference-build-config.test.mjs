@@ -13,6 +13,7 @@ test('actual Expo config exposes only explicit public development settings and r
     'MOBILE_CATALOGUE_VIDEO',
     'MOBILE_CATALOGUE_FLOOR_PLAN',
     'MOBILE_CATALOGUE_PHOTOS',
+    'MOBILE_CUSTOMER_MODE',
   ];
   const original = Object.fromEntries(keys.map((key) => [key, process.env[key]]));
   const root = fileURLToPath(new URL('../', import.meta.url));
@@ -43,6 +44,16 @@ test('actual Expo config exposes only explicit public development settings and r
     );
     assert.throws(() => read({ MOBILE_CATALOGUE_PHOTOS: 'synthetic-native-v1' }));
     assert.throws(() => read({ ...env, MOBILE_CATALOGUE_PHOTOS: 'live' }));
+    const customer = {
+      ...env,
+      MOBILE_API_ORIGIN: 'http://127.0.0.1:3137',
+      MOBILE_ALLOW_LOOPBACK_API: 'true',
+      MOBILE_CUSTOMER_MODE: 'synthetic-mobile-customer-v1',
+    };
+    assert.equal(read(customer).extra.mobileReference.customerMode, customer.MOBILE_CUSTOMER_MODE);
+    assert.throws(() => read({ ...customer, NODE_ENV: 'production' }));
+    assert.throws(() => read({ ...customer, MOBILE_API_ORIGIN: 'https://synthetic.invalid' }));
+    assert.throws(() => read({ MOBILE_CUSTOMER_MODE: customer.MOBILE_CUSTOMER_MODE }));
     const config = read(env);
     assert.equal(config.extra.tenantSlug, 'sample-homes');
     assert.deepEqual(config.extra.mobileReference, {

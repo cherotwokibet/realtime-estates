@@ -3,6 +3,7 @@ import {
   AccessibilityInfo,
   Image,
   Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -24,6 +25,7 @@ import { formatKes, kesFromMinor } from '@realtor/domain';
 import { resolveMobileReferenceConfig } from './reference-catalogue';
 import { ReferenceCatalogueApp } from './ReferenceCatalogueApp';
 import type { MobileCustomerSession } from './customer-session';
+import { SyntheticCustomerCatalogue } from './SyntheticCustomerCatalogue';
 
 const tenantSlug = resolveDemoTenantSlug(Constants.expoConfig?.extra?.tenantSlug);
 const brand = getDemoBrand(tenantSlug);
@@ -260,8 +262,11 @@ export default function App() {
         <Text accessibilityRole="alert">The property catalogue is not configured correctly.</Text>
       </SafeAreaView>
     );
-  if (referenceConfig.mode === 'synthetic-reference-public-v1')
+  if (referenceConfig.mode === 'synthetic-reference-public-v1') {
+    if (__DEV__ && Platform.OS !== 'web' && referenceConfig.customerMode && !customerSession)
+      return <SyntheticCustomerCatalogue config={referenceConfig} />;
     return <ReferenceCatalogueApp config={referenceConfig} customerSession={customerSession} />;
+  }
   return <DemoApp />;
 }
 function DemoApp() {
