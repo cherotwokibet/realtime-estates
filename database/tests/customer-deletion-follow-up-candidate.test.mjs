@@ -216,3 +216,135 @@ test('failed return audit leaves the request in follow-up and another admin cann
   await deny(() => originalReturn(db, secondAdmin), 'P0002');
   await deny(() => returnToReview(db, secondAdmin), '23505');
 });
+const privacyOperation = id(870);
+const privacyOfficer = id(32);
+const privacyAlternate = id(33);
+const decidePrivacy = (
+  db,
+  decision = 'plan_review',
+  actor = privacyOfficer,
+  op = privacyOperation,
+) =>
+  query(
+    db,
+    'SELECT app_api.record_synthetic_deletion_privacy_decision($1,$2,$3,$4)',
+    [primary, requestId, op, decision],
+    actor,
+  );
+const readPrivacy = (db, actor = privacyOfficer) =>
+  query(
+    db,
+    'SELECT app_api.read_synthetic_deletion_privacy_decision($1,$2,$3)',
+    [primary, requestId, privacyOperation],
+    actor,
+  );
+
+async function setupPrivacy(t) {
+  const db = await setup(t);
+  await db.exec(
+    await readFile(
+      new URL('../proposals/customer-deletion-privacy-decisions.sql', import.meta.url),
+      'utf8',
+    ),
+  );
+  for (const actor of [privacyOfficer, privacyAlternate]) {
+    await db.query(
+      "INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'admin')",
+      [T, actor],
+    );
+  }
+  for (const actor of [ADMIN, privacyOfficer, privacyAlternate]) {
+    await db.query(
+      'INSERT INTO app_private.synthetic_deletion_privacy_reviewers(tenant_id,reviewer_id) VALUES($1,$2)',
+      [T, actor],
+    );
+  }
+  return db;
+}
+
+test('only an independent designated company reviewer records and recovers a planning decision', async (t) => {
+  const db = await setupPrivacy(t);
+  const intakeReceipt = await intake(db, primary);
+  await deny(() => decidePrivacy(db), '23514');
+  await review(db, primary, info);
+  await deny(() => decidePrivacy(db), '23514');
+  await returnToReview(db, privacyAlternate);
+  await deny(() => decidePrivacy(db, 'plan_review', ADMIN), '42501');
+  await deny(() => decidePrivacy(db, 'plan_review', privacyAlternate), '42501');
+  await deny(() => decidePrivacy(db, 'plan_review', otherAdmin), '42501');
+  await deny(() => decidePrivacy(db, 'plan_review', primary), '42501');
+  await deny(() => decidePrivacy(db, 'delete'), '23514');
+  const receipt = await decidePrivacy(db);
+  assert.equal(receipt.decision, 'plan_review');
+  assert.equal(receipt.retentionProfile, 'synthetic-retention-review-v1');
+  assert.equal(receipt.reviewerId, privacyOfficer);
+  assert.deepEqual(await decidePrivacy(db), receipt);
+  assert.deepEqual(await readPrivacy(db), receipt);
+  await deny(() => readPrivacy(db, privacyAlternate), 'P0002');
+  await deny(() => decidePrivacy(db, 'hold'), '23505');
+  await deny(() => decidePrivacy(db, 'plan_review', privacyOfficer, id(871)), '23505');
+  assert.deepEqual(await intake(db, primary), intakeReceipt);
+  assert.equal(
+    (await query(db, 'SELECT app_api.customer_account()', [], primary)).customerId,
+    primary,
+  );
+  assert.equal((await progress(db)).status, 'privacy_review_pending');
+  const audit = await db.query(
+    "SELECT actor_id,object_id,summary FROM app_private.audit_events WHERE action='customer.deletion_privacy_decided'",
+  );
+  assert.deepEqual(audit.rows, [
+    {
+      actor_id: privacyOfficer,
+      object_id: privacyOperation,
+      summary: { decision: 'plan_review', retentionProfile: 'synthetic-retention-review-v1' },
+    },
+  ]);
+  await deny(
+    () => db.query("UPDATE app_private.synthetic_deletion_privacy_decisions SET decision='hold'"),
+    '23514',
+  );
+  await db.query(
+    'DELETE FROM app_private.synthetic_deletion_privacy_reviewers WHERE tenant_id=$1 AND reviewer_id=$2',
+    [T, privacyOfficer],
+  );
+  await deny(() => readPrivacy(db), '42501');
+  await deny(() => decidePrivacy(db), '42501');
+});
+
+test('a failed audit rolls back a hold and private decision tables stay unavailable to runtime', async (t) => {
+  const db = await setupPrivacy(t);
+  await intake(db, primary);
+  await review(db, primary, ready);
+  await deny(
+    () =>
+      query(
+        db,
+        'SELECT * FROM app_private.synthetic_deletion_privacy_decisions',
+        [],
+        privacyOfficer,
+      ),
+    '42501',
+  );
+  await db.exec(`
+    CREATE FUNCTION app_private.reject_privacy_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      IF NEW.action = 'customer.deletion_privacy_decided' THEN
+        RAISE EXCEPTION 'Synthetic audit failure' USING ERRCODE = '23514';
+      END IF;
+      RETURN NEW;
+    END $$;
+    CREATE TRIGGER reject_privacy_audit BEFORE INSERT ON app_private.audit_events
+      FOR EACH ROW EXECUTE FUNCTION app_private.reject_privacy_audit();
+  `);
+  await deny(() => decidePrivacy(db, 'hold'), '23514');
+  await deny(() => readPrivacy(db), 'P0002');
+  await db.exec('DROP TRIGGER reject_privacy_audit ON app_private.audit_events');
+  const held = await decidePrivacy(db, 'hold');
+  assert.equal(held.decision, 'hold');
+  assert.equal((await progress(db)).status, 'privacy_review_pending');
+  await db.query(
+    'UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',
+    [T, privacyOfficer],
+  );
+  await deny(() => readPrivacy(db), '42501');
+});

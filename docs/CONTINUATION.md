@@ -1,3 +1,9 @@
+## Synthetic privacy decision and retention boundary, checkpoint 404, 11 November 2026 EAT
+
+The disposable SQL proposal lets an independent designated company admin record a hold or advance a request to processing-plan review. It records the decision and audit together and preserves original intake. Seven focused checks passed. See docs/evidence/2026-11-11-synthetic-privacy-decision.md and deletion404-checks.txt.
+
+Next add the designated reviewer queue and signed decision and recovery contracts. The documented retention profile is a fixture boundary. Production approval, retention, holds, provider control and restore checks remain open. Task 09-3 remains open at 55/97 and 0/14 gates.
+
 ## Published signed return to privacy review, checkpoint 403, 11 November 2026 EAT
 
 Private deployment appgdep_6af49ef2253c8191a39d2923a29bc172 succeeded from dashboard 8958ddff0981c867f8c5e20e6cc2b31152c9177a. Both browser tabs showed the new checkpoint and 55/97. The before exports (65)/(66) and after exports (67)/(68) matched within each pair. All 948 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 950 notes and 27 manual checks. Three dashboard tests passed.
