@@ -1,0 +1,7 @@
+# Synthetic restore exercise for account deletion
+
+12 November 2026 EAT, checkpoint 410. The disposable PGlite fixture started with notification consent enabled and one active registration. It captured a snapshot before the deletion request and another after intake, triage and the planning decision.
+
+The earlier restore had no deletion request and restored consent and the registration to their earlier enabled state. That database stayed offline. The later restore preserved pending privacy review, disabled consent, zero active registrations, the original intake and planning receipts, and the exact plan. It rejected fresh notification opt-in and registration while deletion was pending. The historical registration receipt still replayed without changing current consent, and the same synthetic customer in the other company retained its separate preferences.
+
+[Seventeen focused tests](deletion410-checks.txt) passed. The two restores loaded actual disposable snapshots. The exercise did not replay changes onto the old snapshot or verify a provider backup. Before reopening service from a pre-intake snapshot, the recovery procedure needs a protected source of committed privacy changes through a known cutoff and a verification pass against current consent, registrations and original receipts. Next define and test that recovery boundary with synthetic data. Production processing, provider recovery and task 09-3 remain open.

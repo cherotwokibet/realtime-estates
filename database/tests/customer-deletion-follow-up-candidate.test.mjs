@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
 import {
   fixture,
   asActor,
@@ -505,4 +506,66 @@ test('processing plan requires the exact planning decision and current reviewer 
     [T, privacyOfficer],
   );
   await deny(() => readPlan(db, valid), '42501');
+});
+
+test('snapshot cutoff controls whether restore preserves deletion, consent withdrawal and original decisions', async (t) => {
+  const db = await setupProcessingPlan(t);
+  const prefs = (database, tenant = T) =>
+    query(database, 'SELECT app_api.read_customer_push_preferences()', [], primary, tenant);
+  const device = id(920);
+  const consentOp = id(921);
+  const registerOp = id(922);
+  const push = (database, tenant, ...args) =>
+    query(
+      database,
+      'SELECT app_api.change_customer_push_preferences($1,$2,$3,$4,$5)',
+      args,
+      primary,
+      tenant,
+    );
+  const restore = async (snapshot) => {
+    const database = await PGlite.create({ loadDataDir: snapshot });
+    t.after(() => database.close());
+    return database;
+  };
+
+  await push(db, T, consentOp, 0, 'consent', true, null);
+  const registration = await push(db, T, registerOp, 1, 'register', null, device);
+  await push(db, OTHER, consentOp, 0, 'consent', true, null);
+  const otherPreferences = await prefs(db, OTHER);
+  const beforeIntake = await db.dumpDataDir();
+  const original = await intake(db, primary);
+  await review(db, primary, ready);
+  const decision = await decidePrivacy(db);
+  const plan = await readPlan(db);
+  const currentPreferences = await prefs(db);
+  const afterDecision = await db.dumpDataDir();
+  assert.equal(currentPreferences.enabled, false);
+  assert.equal(currentPreferences.activeDevices, 0);
+  assert.equal(currentPreferences.consentChangedAt, original.requestedAt);
+
+  // The old restore stays offline. It lacks the withdrawal and would expose stale consent.
+  const older = await restore(beforeIntake);
+  assert.equal(await progress(older), null);
+  assert.equal((await prefs(older)).enabled, true);
+  assert.equal((await prefs(older)).activeDevices, 1);
+  await deny(() => readPlan(older), 'P0002');
+
+  // A later authoritative snapshot includes the original records and current state.
+  const current = await restore(afterDecision);
+  assert.deepEqual(await prefs(current), currentPreferences);
+  assert.deepEqual(await prefs(current, OTHER), otherPreferences);
+  assert.equal(await progress(current, primary, OTHER), null);
+  assert.equal((await progress(current)).status, 'privacy_review_pending');
+  assert.deepEqual(await readPrivacy(current), decision);
+  assert.deepEqual(await readPlan(current), plan);
+  assert.deepEqual(await intake(current, primary), original);
+  assert.deepEqual(await push(current, T, registerOp, 1, 'register', null, device), registration);
+  await deny(() => push(current, T, id(923), 3, 'consent', true, null), '42501');
+  await deny(() => push(current, T, id(924), 3, 'register', null, device), '42501');
+  assert.deepEqual(await prefs(current), currentPreferences);
+  const audits = await current.query(
+    "SELECT count(*)::int AS count FROM app_private.audit_events WHERE action='customer.deletion_privacy_decided'",
+  );
+  assert.equal(audits.rows[0].count, 1);
 });
