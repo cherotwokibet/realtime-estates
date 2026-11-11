@@ -268,6 +268,19 @@ export async function startCustomerPreview({
         }),
         enumerable: false,
       },
+      viewingStaff: {
+        value: async () => {
+          if (!mobileMode) throw Error('The mobile preview is required.');
+          const adminId = tenantId === T ? ADMIN : id(20);
+          const agentId = tenantId === T ? AGENT : id(21);
+          return Object.freeze({
+            agentId,
+            admin: Object.freeze({ bearerToken: await sign(adminId, issued, issued + 900) }),
+            agent: Object.freeze({ bearerToken: await sign(agentId, issued, issued + 900) }),
+          });
+        },
+        enumerable: false,
+      },
       enquiryCount: {
         value: () =>
           withDatabase(async () =>

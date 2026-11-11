@@ -11,6 +11,7 @@ import { prepareSyntheticMobileEnquiry } from './property-enquiry';
 type Draft = {
   listingId: string;
   title: string;
+  question: 'availability' | 'viewing';
   attempt: PublicEnquiryAttempt | null;
 };
 export function SyntheticPropertyEnquiry({
@@ -24,7 +25,6 @@ export function SyntheticPropertyEnquiry({
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [question, setQuestion] = useState<'availability' | 'viewing'>('availability');
   const [acknowledged, setAcknowledged] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [, refresh] = useState(0);
@@ -53,7 +53,7 @@ export function SyntheticPropertyEnquiry({
         attempt = prepareSyntheticMobileEnquiry(
           config,
           draft.listingId,
-          question,
+          draft.question,
           randomUUID(),
           expoFetch as unknown as typeof fetch,
         );
@@ -67,7 +67,12 @@ export function SyntheticPropertyEnquiry({
           : attempt.submit({ signal: controller.signal });
       refresh((value) => value + 1);
       await result;
-      if (mounted.current) setFeedback('Your synthetic enquiry was received.');
+      if (mounted.current)
+        setFeedback(
+          draft.question === 'viewing'
+            ? 'Your viewing request was received. A realtor can follow up to arrange a time.'
+            : 'Your synthetic enquiry was received.',
+        );
     } catch {
       if (mounted.current)
         setFeedback(
@@ -84,55 +89,58 @@ export function SyntheticPropertyEnquiry({
     active.current?.abort();
     setOpen(false);
   }
+  function begin(question: Draft['question']) {
+    if (!selected || locked) return;
+    setDraft({
+      listingId: selected.property.id,
+      title: selected.property.title,
+      question,
+      attempt: null,
+    });
+    setAcknowledged(false);
+    setFeedback('');
+    setOpen(true);
+  }
+  const viewing = draft?.question === 'viewing';
   return (
     <View>
-      {(selected || draft) && (
+      {locked ? (
         <CatalogueButton
-          label={locked ? 'Resume property enquiry' : 'Test a property enquiry'}
-          onPress={() => {
-            if (!locked && selected) {
-              setDraft({
-                listingId: selected.property.id,
-                title: selected.property.title,
-                attempt: null,
-              });
-              setAcknowledged(false);
-              setFeedback('');
-              setQuestion('availability');
-            }
-            setOpen(true);
-          }}
+          label={viewing ? 'Resume viewing request' : 'Resume property enquiry'}
+          onPress={() => setOpen(true)}
           styles={s}
         />
+      ) : (
+        selected && (
+          <>
+            <CatalogueButton
+              label="Ask about availability"
+              onPress={() => begin('availability')}
+              styles={s}
+            />
+            <CatalogueButton
+              label="Request a viewing"
+              onPress={() => begin('viewing')}
+              styles={s}
+            />
+          </>
+        )
       )}
       <Modal visible={open} animationType="slide" onRequestClose={close}>
         <SafeAreaView style={s.root}>
           <ScrollView contentContainerStyle={s.page}>
             <Text accessibilityRole="header" style={s.title}>
-              Property enquiry
+              {viewing ? 'Request a viewing' : 'Property enquiry'}
             </Text>
             <Text style={s.heading}>{draft?.title}</Text>
             <Text style={s.copy}>
               This preview uses fictional contact details and stores the enquiry in the local test
               database.
             </Text>
+            {viewing && <Text style={s.copy}>A realtor can follow up to propose a time.</Text>}
             <Text style={s.copy}>Synthetic Mobile Customer · mobile-customer@example.invalid</Text>
             {!locked && (
               <>
-                <CatalogueButton
-                  label={
-                    question === 'availability'
-                      ? '✓ Ask about availability'
-                      : 'Ask about availability'
-                  }
-                  onPress={() => setQuestion('availability')}
-                  styles={s}
-                />
-                <CatalogueButton
-                  label={question === 'viewing' ? '✓ Ask about a viewing' : 'Ask about a viewing'}
-                  onPress={() => setQuestion('viewing')}
-                  styles={s}
-                />
                 <Pressable
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked: acknowledged }}
@@ -158,11 +166,22 @@ export function SyntheticPropertyEnquiry({
             )}
             {status !== 'received' && (
               <CatalogueButton
-                label={status === 'uncertain' ? 'Retry original enquiry' : 'Send synthetic enquiry'}
+                label={
+                  status === 'uncertain'
+                    ? 'Retry original request'
+                    : viewing
+                      ? 'Send viewing request'
+                      : 'Send synthetic enquiry'
+                }
                 onPress={() => void submit()}
                 disabled={!acknowledged || status === 'sending'}
                 styles={s}
               />
+            )}
+            {status === 'received' && (
+              <Text selectable style={s.copy}>
+                Reference {draft?.attempt?.state.receipt?.id}
+              </Text>
             )}
             {status === 'received' && (
               <CatalogueButton
