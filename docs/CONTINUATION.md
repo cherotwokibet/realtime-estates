@@ -1,3 +1,9 @@
+## Published admin deletion triage browser journey, checkpoint 398, 11 November 2026 EAT
+
+Private deployment appgdep_6af457b94bc881918d2dd754a9655154 succeeded from dashboard 158b73c37769c8a6b2de170c29cf86efbb773214. Both browser tabs showed the new checkpoint and 55/97. The before exports (45)/(46) and after exports (47)/(48) matched within each pair. All 938 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 940 notes and 27 manual checks. Three dashboard tests passed.
+
+Source ef0954b passed the local browser journey, two boundary tests, admin typecheck and the local production build. The browser recovered a committed decision after a simulated 503, then cleared the queue when reviewer access was revoked. Next define the synthetic follow-up queue, ownership and customer-visible status. Physical device, operator and deletion processing verification remain pending.
+
 ## Admin deletion triage browser journey, checkpoint 398, 11 November 2026 EAT
 
 The opted-in admin page now connects the company queue, disposition confirmation and exact receipt recovery through the signed BFF. A local browser verified a committed 503, successful recovery by GET, removal of the reviewed request and row clearance after reviewer revocation. Two boundary tests, admin typecheck and the local production build passed. See docs/evidence/2026-11-11-admin-deletion-triage.md and deletion398 evidence. The pending command is held for the open page.
