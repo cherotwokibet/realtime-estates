@@ -1,3 +1,9 @@
+## Published admin and mobile deletion progress views, checkpoint 401, 11 November 2026 EAT
+
+Private deployment appgdep_6af48146e7e08191a282684a9c3f422f succeeded from dashboard dae210f7988c7c5c494f51fb9358db0efd18bb3f. Both browser tabs showed the new checkpoint and 55/97. The before exports (57)/(58) and after exports (59)/(60) matched within each pair. All 944 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 946 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 577b835 passed seven focused checks, local admin browser verification, admin and mobile typechecks, the admin build and Android development export. Next implement an audited return-to-review transition and decide staff ownership. Physical devices, operator acceptance, privacy approval and retention remain open.
+
 ## Admin deletion follow-up and mobile progress, checkpoint 401, 11 November 2026 EAT
 
 The opted-in admin view now reads both staff follow-up queues. A local browser verified separate outcome rows and clearance after reviewer revocation. The mobile preview shows current progress separately from the intake receipt. The signed loopback test verified refresh after staff triage, stale progress clearance on failure and account switching. Seven focused checks, admin and mobile types, the local admin build and Android development export passed. See docs/evidence/2026-11-11-deletion-progress-views.md and deletion401 evidence.
