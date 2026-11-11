@@ -1,3 +1,9 @@
+## Published synthetic mobile sign-in387, 11 November 2026 EAT
+
+Private deployment appgdep_6af3b6d6fc808191916f6cf4c20e85f3 succeeded from dashboard 08dee6c0e88cc064f020c8adb1939de0117bd6fb. Both tabs showed the new checkpoint. The 11 November export pairs before (1)/(2) and after (3)/(4) preserved all 916 prior note occurrences and all manual task, stage, decision and risk fields. The merge produced 918 notes. Three dashboard checks and repository integrity passed. Windows automatic Git housekeeping paused after the dashboard commit, so the housekeeping command was interrupted and publication resumed from the verified commit. Source 4ae6ad5 adds loopback synthetic mobile sign-in, 48 passing checks and an Android development bundle. Device interaction and the broad task 09-2 remain open. The checklist stands at 55/97 and 0/14 launch gates.
+
+Next verify the connected screen on an owned device when host capacity permits. While that evidence is pending, reuse the existing public enquiry submission and receipt contract for the mobile property enquiry form. Verify a synthetic enquiry against the same owned listing, then advance viewing requests.
+
 ## Native synthetic sign-in387, 11 November 2026 EAT
 
 The Android and iOS development catalogue can select either of two synthetic customers and use the same approved property stock and favourites API. The optional mode uses an owned loopback server and short-lived signed grants in memory. The preview origin and mode are the only added build configuration. The fixture binds to 127.0.0.1, rejects browser-origin requests, and requires an explicit development mode and predefined persona. Existing catalogue session checks verify company and signed account before displaying private results.
