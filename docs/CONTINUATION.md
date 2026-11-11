@@ -1,3 +1,9 @@
+## Private dashboard publication pending, checkpoint 407, 11 November 2026 EAT
+
+The Sites source commit 383704dbd347c4c1d0516cfe30ad4a2f257d216f saved as appgprj_6ac8fe39e0a48191a39634cea0928fe6~appgver_bea8c44b78608191887ea30347f64128. The publish request and two retries of the saved version returned internal errors. Sites listed the saved version without a deployment, and the browser still showed checkpoint 406. The matching before exports (81)/(82) are retained in Progress Exports. Three dashboard checks and both checkpoint evidence links passed locally.
+
+Next retry private deployment of this saved version, without uploading a duplicate. Verify the new headline and compare both browser exports with the before pair. Resume signed processing-plan read and strict SDK work locally while publication is pending.
+
 ## 11 November 2026 EAT - checkpoint 407, read-only deletion processing plan
 
 The disposable SQL proposal inventories linked records for the exact planning decision under current reviewer authority. It identifies separate checks for retention, holds, providers and backup restore. Nine focused tests passed. See [evidence](evidence/2026-11-11-deletion-processing-plan.md). Next add an explicit signed read and strict SDK validation, then connect the admin receipt-to-plan view. Task 09-3 and production deletion remain open.
