@@ -1,3 +1,9 @@
+## Published synthetic privacy decision, checkpoint 404, 11 November 2026 EAT
+
+Private deployment appgdep_6af4ac1df83c81918a0ce245216d57f9 succeeded from dashboard 83c58ce7d2865c186a4b41ab8714bac846aee4c3. Both browser tabs showed the new checkpoint and 55/97. The before exports (69)/(70) and after exports (71)/(72) matched within each pair. All 950 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 952 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 705cab7 passed seven focused checks for the synthetic decision, audit and existing follow-up behavior. Next add designated reviewer queue and signed decision and receipt contracts. Production retention, privacy approval, provider and restore checks remain open.
+
 ## Synthetic privacy decision and retention boundary, checkpoint 404, 11 November 2026 EAT
 
 The disposable SQL proposal lets an independent designated company admin record a hold or advance a request to processing-plan review. It records the decision and audit together and preserves original intake. Seven focused checks passed. See docs/evidence/2026-11-11-synthetic-privacy-decision.md and deletion404-checks.txt.
