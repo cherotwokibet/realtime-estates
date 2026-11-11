@@ -1,0 +1,7 @@
+# Admin deletion privacy review, 11 November 2026
+
+The synthetic admin workspace has a dedicated queue for designated independent reviewers. The server supplies the reviewer credential separately from the triage credential. The browser requires an explicit decision and confirmation for the selected request, clears confirmation after a decision change and retains the exact command while checking an uncertain reply. Reviewers can record a hold or advance a request to processing-plan review.
+
+A local browser against the signed loopback API and disposable database verified two eligible requests, disabled save before confirmation, confirmation reset after a decision change, recovery of a processing-plan decision after a simulated committed 503, a separate hold, queue removal for both requests and denial after revocation. The admin production build and [11 focused tests](deletion406-checks.txt) passed. Browser evidence is available for the [uncertain response](deletion406-uncertain.png), [recovered decision](deletion406-recovered.png) and [revoked access](deletion406-revoked.png).
+
+Next define and test a read-only synthetic processing plan that inventories affected records, records retention or hold reasons and explicitly identifies provider and backup steps that require separate evidence. This checkpoint is a disposable reviewer preview. Production approval, deletion execution, provider confirmation, restore and operator/device verification remain open. Task 09-3 remains incomplete.

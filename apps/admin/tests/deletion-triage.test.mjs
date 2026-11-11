@@ -116,3 +116,116 @@ test('deletion review forwards only server authority and refuses a receipt from 
     502,
   );
 });
+
+test('privacy boundary requires explicit reviewer configuration and forwards only its separate signed identity', async () => {
+  const privacyScope = {
+    ...scope,
+    STAFF_DELETION_PRIVACY_MODE: 'synthetic-v1',
+    STAFF_DELETION_PRIVACY_REVIEWER: reviewer,
+    STAFF_DELETION_PRIVACY_TOKEN: 'synthetic.privacy.test',
+  };
+  const route = '/api/deletion-privacy';
+  const path = route + '/' + customer + '/' + instance + '/' + reviewer;
+  const forbid = () => assert.fail('Unexpected upstream request');
+  const call = (req, operation, env, fetcher) =>
+    deletionTriageBoundary(req, operation, env, fetcher, 'privacy');
+  for (const env of [
+    scope,
+    { ...privacyScope, STAFF_DELETION_PRIVACY_TOKEN: '' },
+    { ...privacyScope, NODE_ENV: 'production' },
+  ]) {
+    assert.equal((await call(request(route), undefined, env, forbid)).status, 403);
+  }
+  assert.equal(
+    (
+      await call(
+        request(route, { headers: { authorization: 'Bearer caller' } }),
+        undefined,
+        privacyScope,
+        forbid,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await call(
+        request(route + '?disposition=ready_for_privacy_review'),
+        undefined,
+        privacyScope,
+        forbid,
+      )
+    ).status,
+    400,
+  );
+  const submit = (input) =>
+    request(path, {
+      method: 'POST',
+      body: JSON.stringify(input),
+      headers: { 'content-type': 'application/json', origin },
+    });
+  assert.equal(
+    (
+      await call(
+        submit({ ...target, decision: 'hold', reviewerId: reviewer }),
+        target,
+        privacyScope,
+        forbid,
+      )
+    ).status,
+    400,
+  );
+  assert.equal(
+    (
+      await call(
+        submit({ ...target, decision: 'hold', operationId: instance }),
+        target,
+        privacyScope,
+        forbid,
+      )
+    ).status,
+    400,
+  );
+
+  const apiRoute = '/v2/staff/customer-deletion-privacy';
+  const apiPath = apiRoute + '/' + customer + '/requests/' + instance + '/decisions/' + reviewer;
+  const decision = { ...target, decision: 'hold' };
+  let receiptReviewer = reviewer;
+  const upstream = async (url, init) => {
+    const parsed = new URL(url);
+    assert.equal(new Headers(init.headers).get('authorization'), 'Bearer synthetic.privacy.test');
+    if (parsed.pathname === apiRoute) {
+      assert.equal(parsed.searchParams.get('limit'), '1');
+      return Response.json({
+        policy: 'synthetic-deletion-privacy-queue-v1',
+        tenantId: tenant,
+        reviewerId: reviewer,
+        items: [],
+        hasMore: false,
+      });
+    }
+    assert.equal(parsed.pathname, apiPath);
+    if (init.method === 'POST') assert.deepEqual(JSON.parse(init.body), decision);
+    else assert.equal(init.method, 'GET');
+    return Response.json({
+      policy: 'synthetic-deletion-privacy-decision-v1',
+      retentionProfile: 'synthetic-retention-review-v1',
+      tenantId: tenant,
+      reviewerId: receiptReviewer,
+      ...decision,
+      decidedAt: '2026-11-11T18:00:00.000Z',
+    });
+  };
+  assert.equal(
+    (await call(request(route + '?limit=1'), undefined, privacyScope, upstream)).status,
+    200,
+  );
+  const recorded = await call(submit(decision), target, privacyScope, upstream);
+  const recovered = await call(request(path), target, privacyScope, upstream);
+  assert.equal(recorded.status, 200);
+  assert.equal(recovered.status, 200);
+  assert.equal(recovered.headers.get('cache-control'), 'no-store');
+  assert.deepEqual(await recorded.json(), await recovered.json());
+  receiptReviewer = customer;
+  assert.equal((await call(request(path), target, privacyScope, upstream)).status, 502);
+});

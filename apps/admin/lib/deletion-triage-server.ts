@@ -2,6 +2,8 @@ import 'server-only';
 import { ApiClientError, RealtorApiClient } from '@realtor/api-client';
 import {
   validateCustomerDeletionReviewCommand,
+  validateDeletionPrivacyCommand,
+  type DeletionPrivacyCommand,
   validateCustomerDeletionReviewTarget,
   type CustomerDeletionReviewTarget,
   type CustomerDeletionDisposition,
@@ -35,6 +37,24 @@ export function deletionTriageConfiguration(env: Readonly<Record<string, string 
   };
 }
 
+export function deletionPrivacyConfiguration(env: Readonly<Record<string, string | undefined>>) {
+  const config = previewConfiguration({
+    ...env,
+    STAFF_PREVIEW_TOKEN: env.STAFF_DELETION_PRIVACY_TOKEN,
+  });
+  const tenantId = env.STAFF_DELETION_TRIAGE_TENANT;
+  const reviewerId = env.STAFF_DELETION_PRIVACY_REVIEWER;
+  if (
+    env.STAFF_DELETION_PRIVACY_MODE !== 'synthetic-v1' ||
+    !tenantId ||
+    !reviewerId ||
+    !uuid.test(tenantId) ||
+    !uuid.test(reviewerId)
+  )
+    throw Error('Deletion privacy preview is unavailable.');
+  return { ...config, scope: { tenantId, reviewerId } };
+}
+
 const reply = (status: number, body: unknown) =>
   Response.json(body, {
     status,
@@ -46,11 +66,14 @@ export async function deletionTriageBoundary(
   operation?: CustomerDeletionReviewTarget,
   env: Readonly<Record<string, string | undefined>> = process.env,
   fetcher: typeof fetch = fetch,
-  action: 'triage' | 'return' = 'triage',
+  action: 'triage' | 'return' | 'privacy' = 'triage',
 ) {
   let config: ReturnType<typeof deletionTriageConfiguration>;
   try {
-    config = deletionTriageConfiguration(env);
+    config =
+      action === 'privacy'
+        ? { ...deletionPrivacyConfiguration(env), followUp: false }
+        : deletionTriageConfiguration(env);
     assertPreviewRequest(request, config.instanceId);
     request.headers.forEach((_value, name) => {
       if (
@@ -93,6 +116,7 @@ export async function deletionTriageBoundary(
   });
   const options = { bearerToken: config.bearerToken, signal: request.signal };
   let command: CustomerDeletionReviewCommand | undefined;
+  let privacyCommand: DeletionPrivacyCommand | undefined;
   let submittedReturn = false;
   try {
     if (!operation) {
@@ -105,6 +129,7 @@ export async function deletionTriageBoundary(
         else if (key === 'after' && filters.after === undefined && uuid.test(value))
           filters.after = value;
         else if (
+          action !== 'privacy' &&
           key === 'disposition' &&
           outcome === undefined &&
           (value === 'ready_for_privacy_review' || value === 'needs_information')
@@ -112,6 +137,8 @@ export async function deletionTriageBoundary(
           outcome = value;
         else return reply(400, { error: 'INVALID_TRIAGE_REQUEST' });
       }
+      if (action === 'privacy')
+        return reply(200, await api.listDeletionPrivacyQueue(filters, config.scope, options));
       if (outcome) {
         if (!config.followUp) return reply(404, { error: 'TRIAGE_UNAVAILABLE' });
         return reply(
@@ -133,21 +160,25 @@ export async function deletionTriageBoundary(
           2048,
           AbortSignal.any([request.signal, AbortSignal.timeout(5000)]),
         );
-        const submitted =
-          action === 'return'
-            ? validateCustomerDeletionReviewTarget(input)
-            : validateCustomerDeletionReviewCommand(input);
+        if (action === 'privacy') privacyCommand = validateDeletionPrivacyCommand(input);
+        if (action === 'triage') command = validateCustomerDeletionReviewCommand(input);
+        const submitted = command ?? privacyCommand ?? validateCustomerDeletionReviewTarget(input);
         if (
           submitted.customerId !== target.customerId ||
           submitted.requestId !== target.requestId ||
           submitted.operationId !== target.operationId
         )
           throw Error();
-        if ('disposition' in submitted) command = submitted as CustomerDeletionReviewCommand;
-        else submittedReturn = true;
+        submittedReturn = action === 'return';
       }
     } catch {
       return reply(400, { error: 'INVALID_TRIAGE_REQUEST' });
+    }
+    if (action === 'privacy') {
+      const receipt = privacyCommand
+        ? await api.recordDeletionPrivacyDecision(privacyCommand, config.scope, options)
+        : await api.getDeletionPrivacyDecision(target, config.scope, options);
+      return reply(200, receipt);
     }
     if (action === 'return') {
       const receipt = submittedReturn
@@ -165,7 +196,7 @@ export async function deletionTriageBoundary(
       {
         error: 'TRIAGE_UNAVAILABLE',
         submissionUncertain:
-          (!!command || submittedReturn) &&
+          (!!command || !!privacyCommand || submittedReturn) &&
           (!(error instanceof ApiClientError) || error.submissionUncertain),
       },
     );

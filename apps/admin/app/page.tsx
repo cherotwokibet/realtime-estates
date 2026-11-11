@@ -1,7 +1,10 @@
 import type { CSSProperties } from 'react';
 import { getDemoBrand, propertiesForCompany, resolveDemoTenantSlug } from '@realtor/demo';
 import { formatKes, kesFromMinor } from '@realtor/domain';
-import { deletionTriageConfiguration } from '../lib/deletion-triage-server';
+import {
+  deletionPrivacyConfiguration,
+  deletionTriageConfiguration,
+} from '../lib/deletion-triage-server';
 import { previewConfiguration } from '../lib/staff-preview-policy';
 import { getEnquiryPreviewScope } from '../lib/enquiry-preview-server';
 
@@ -49,6 +52,11 @@ export default function Admin() {
   try {
     deletionTriageConfiguration(process.env);
     deletionTriageEnabled = true;
+  } catch {}
+  let deletionPrivacyEnabled = false;
+  try {
+    deletionPrivacyConfiguration(process.env);
+    deletionPrivacyEnabled = true;
   } catch {}
   let operationsEnabled = false;
   try {
@@ -211,6 +219,7 @@ export default function Admin() {
               Staff workspace <span aria-hidden="true">/</span> <strong>Overview</strong>
             </p>
             {deletionTriageEnabled && <a href="/deletion-triage">Account deletion requests</a>}
+            {deletionPrivacyEnabled && <a href="/deletion-privacy">Deletion privacy review</a>}
             <span className="preview-pill">
               <span aria-hidden="true" />
               Read-only preview

@@ -1,3 +1,7 @@
+## 11 November 2026 EAT - checkpoint 406, admin deletion privacy review
+
+The synthetic admin browser verified explicit confirmation and reset, recovery after a committed 503, a separate hold, both requests leaving the queue and denial after revocation. Eleven focused tests and the admin build passed. See [evidence](evidence/2026-11-11-admin-privacy-review.md). Next define a read-only synthetic processing plan covering affected records, retention and holds, providers and backups. Task 09-3 remains open.
+
 ## Published signed synthetic privacy queue, checkpoint 405, 11 November 2026 EAT
 
 Private deployment appgdep_6af4bbef4f808191a0248320a542bf78 succeeded from dashboard 7901fdd5e5d89425ac2b4bce890f49855be9d761. Both browser tabs showed the new checkpoint and 55/97. The before exports (73)/(74) and after exports (75)/(76) matched within each pair. All 952 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 954 notes and 27 manual checks. Three dashboard tests passed.
