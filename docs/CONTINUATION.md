@@ -1,3 +1,9 @@
+## Published admin deletion privacy review, checkpoint 406, 11 November 2026 EAT
+
+Private deployment appgdep_6af4ca6949a881919b7daead6a007fef succeeded from dashboard f2f1b2519c61eb0b253f8755650edf9f8b50fb17. Both browser tabs showed the new checkpoint and 55/97. The before exports (77)/(78) and after exports (79)/(80) matched within each pair. All 954 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 956 notes and 27 manual checks. Three dashboard tests passed.
+
+Source b8d7e70 passed eleven focused tests, the admin build and the local browser journey. Next define a read-only synthetic processing plan covering affected records, retention and holds, providers and backups. Production retention, privacy approval, provider and restore checks remain open.
+
 ## 11 November 2026 EAT - checkpoint 406, admin deletion privacy review
 
 The synthetic admin browser verified explicit confirmation and reset, recovery after a committed 503, a separate hold, both requests leaving the queue and denial after revocation. Eleven focused tests and the admin build passed. See [evidence](evidence/2026-11-11-admin-privacy-review.md). Next define a read-only synthetic processing plan covering affected records, retention and holds, providers and backups. Task 09-3 remains open.
