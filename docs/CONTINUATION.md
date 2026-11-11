@@ -1,3 +1,9 @@
+## Published mobile enquiry388, 11 November 2026 EAT
+
+Private deployment appgdep_6af3c55304588191b3886f5609a120cc succeeded from dashboard b825fb42c4a906fa99f38dbe7b884693b8b025b9. Both tabs showed the enquiry checkpoint. The 11 November export pairs before (5)/(6) and after (7)/(8) preserved all 918 prior note occurrences and all manual task, stage, decision and risk fields. The merge produced 920 notes. Three dashboard checks passed. Source a41aa9d adds synthetic property enquiries with 50 passing mobile/API checks, Android development export and launcher proof. Device interaction and broad task 09-2 remain open. The checklist stands at 55/97 and 0/14 gates.
+
+Next review customer viewing authority before implementing the native request journey. The existing SDK requestViewingV2 is a staff-authenticated POST to /v2/staff/enquiries/{id}/viewings, so customer UI needs a customer-scoped request contract or the existing enquiry-based viewing intent. Read domain/API/database viewing policies and keep staff bearer tokens confined to staff workflows. Then implement the appropriate customer action and its original-operation recovery. Actual supported-runtime UI checks are also pending host capacity or a connected device.
+
 ## Mobile property enquiry388, 11 November 2026 EAT
 
 The connected mobile development catalogue now offers a property enquiry modal. Customers can choose an availability question or a question about a possible viewing, acknowledge the preview notice and send a synthetic enquiry. Fictional contact details and predefined messages keep this owned fixture within the current synthetic-data scope.
