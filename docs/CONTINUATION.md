@@ -1,3 +1,9 @@
+## Published Realtime browser rehearsal and operator walkthrough, checkpoint 432, 12 November 2026 EAT
+
+Private deployment appgdep_6af6122d3d1481918038357b69c135c5 succeeded from dashboard 07519331667877a64d8627fa821896e0071061cc. Both browser tabs showed the new checkpoint and 55/97. The before exports (181)/(182) and after exports (183)/(184) matched within each pair. All 1006 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 1008 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 7adaf0f records the observed Realtime browser journey and exact-price boundary evidence. Both brands have browser evidence. Next collect operator feedback with the walkthrough and resolve any blockers. Tasks 12-3 and 12-7 remain open.
+
 ## 12 November 2026 EAT - checkpoint 432, Realtime browser rehearsal
 
 Realtime completed the synthetic browser flow through a confirmed viewing. Both brands now have listing-to-viewing browser evidence. The Realtime run also verified the inclusive and strict minimum-price boundaries. See [operator walkthrough and evidence](evidence/2026-11-12-realtime-operator-walkthrough.md). Next run the walkthrough with a Realtime operator and address handoff friction before acceptance. Tasks 12-3 and 12-7 remain open.
