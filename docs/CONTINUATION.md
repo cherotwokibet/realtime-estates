@@ -1,3 +1,9 @@
+## Published mobile offline catalogue expiry, checkpoint 429, 12 November 2026 EAT
+
+Private deployment appgdep_6af60449aaf4819182362451cec48cb0 succeeded from dashboard 0214c16cc90f8fcf9a17c8e78ac04b3f8b76456b. Both browser tabs showed the new checkpoint and 55/97. The before exports (169)/(170) and after exports (171)/(172) matched within each pair. All 1000 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 1002 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 83fdc79 passed 53 mobile tests and type checking. Next verify expiry while viewing the list and after backgrounding the app on a test device, then check fresh recovery. Tasks 09-4 and 09-5 remain open.
+
 ## 12 November 2026 EAT - checkpoint 429, mobile offline catalogue expiry
 
 The previous public response clears at its original five-minute deadline, including when returning from the background. All 53 mobile tests, type checking and the Android development bundle passed. See [evidence](evidence/2026-11-12-mobile-offline-expiry.md). Next exercise disconnect, on-screen and background expiry, and recovery on a test device. Tasks 09-4 and 09-5 remain open.
