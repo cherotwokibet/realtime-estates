@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import {
+  captureSyntheticDeletionReview,
+  replaySyntheticDeletionReview,
+} from '../test-helpers/synthetic-deletion-review-replay.mjs';
 import { PGlite } from '@electric-sql/pglite';
 import {
   fixture,
@@ -568,4 +572,56 @@ test('snapshot cutoff controls whether restore preserves deletion, consent withd
     "SELECT count(*)::int AS count FROM app_private.audit_events WHERE action='customer.deletion_privacy_decided'",
   );
   assert.equal(audits.rows[0].count, 1);
+});
+
+test('offline restore recovers later review receipts and audit facts together', async (t) => {
+  const db = await setupProcessingPlan(t);
+  const original = await intake(db, primary);
+  const snapshot = await db.dumpDataDir();
+  const triage = await review(db, primary, info);
+  const returned = await returnToReview(db, privacyAlternate);
+  const decision = await decidePrivacy(db);
+  const plan = await readPlan(db);
+  const bundle = await captureSyntheticDeletionReview(db, T, primary, requestId);
+  const restored = await PGlite.create({ loadDataDir: snapshot });
+  t.after(() => restored.close());
+  assert.equal((await progress(restored)).status, 'pending_review');
+  await assert.rejects(
+    () => replaySyntheticDeletionReview(restored, { ...bundle, requestId: id(901) }),
+    /exact intake/,
+  );
+
+  await restored.exec(`
+    CREATE FUNCTION app_private.reject_review_replay_audit() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      IF NEW.action = 'customer.deletion_privacy_decided' THEN
+        RAISE EXCEPTION 'Synthetic replay audit failure';
+      END IF;
+      RETURN NEW;
+    END $$;
+    CREATE TRIGGER reject_review_replay_audit BEFORE INSERT ON app_private.audit_events
+      FOR EACH ROW EXECUTE FUNCTION app_private.reject_review_replay_audit();
+  `);
+  await assert.rejects(() => replaySyntheticDeletionReview(restored, bundle), /audit failure/);
+  assert.deepEqual(
+    (await captureSyntheticDeletionReview(restored, T, primary, requestId)).records,
+    [null, null, null],
+  );
+  assert.equal((await progress(restored)).status, 'pending_review');
+  await restored.exec('DROP TRIGGER reject_review_replay_audit ON app_private.audit_events');
+
+  await replaySyntheticDeletionReview(restored, bundle);
+  await replaySyntheticDeletionReview(restored, bundle);
+  assert.deepEqual(await captureSyntheticDeletionReview(restored, T, primary, requestId), bundle);
+  const changed = structuredClone(bundle);
+  changed.records[2].audit.correlation_id = 'different-audit-reference';
+  await assert.rejects(() => replaySyntheticDeletionReview(restored, changed), /diverges/);
+  assert.deepEqual(await captureSyntheticDeletionReview(restored, T, primary, requestId), bundle);
+  assert.deepEqual(await intake(restored, primary), original);
+  assert.deepEqual(await review(restored, primary, info), triage);
+  assert.deepEqual(await originalReturn(restored, privacyAlternate), returned);
+  assert.deepEqual(await readPrivacy(restored), decision);
+  assert.deepEqual(await readPlan(restored), plan);
+  assert.equal((await progress(restored)).status, 'privacy_review_pending');
+  assert.equal(await progress(restored, primary, OTHER), null);
 });
