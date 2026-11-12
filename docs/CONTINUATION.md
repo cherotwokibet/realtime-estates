@@ -1,3 +1,9 @@
+## Published offline deletion intake replay, checkpoint 411, 12 November 2026 EAT
+
+Private deployment appgdep_6af503023fe88191a1ef9fa58ce14451 succeeded from dashboard 5137dbd898bd13a02355b52de28e371fecec338e. Both browser tabs showed the new checkpoint and 55/97. The before exports (97)/(98) and after exports (99)/(100) matched within each pair. All 964 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 966 notes and 27 manual checks. Three dashboard tests passed.
+
+Source bc51281 passed fourteen focused checks. The disposable replay restored the original intake and notification withdrawal, with exact repeat, conflict refusal and rollback. Next define the protected export and cutoff verification and recover later review decisions. Production recovery and task 09-3 remain open.
+
 ## 12 November 2026 EAT - checkpoint 411, offline synthetic deletion intake replay
 
 An owner-only disposable replay recovered the exact deletion intake and notification withdrawal on its immediate pre-intake snapshot. Fourteen focused tests passed, including rollback, conflict refusal and identical replay. See [evidence](evidence/2026-11-12-synthetic-intake-replay.md). Next define protected export and cutoff verification and recover later review decisions. Task 09-3 and production recovery remain open.
