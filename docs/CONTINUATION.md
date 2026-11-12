@@ -1,3 +1,9 @@
+## Published property app links and website fallback, checkpoint 422, 12 November 2026 EAT
+
+Private deployment appgdep_6af5a194a9388191b8247c51eae6e071 succeeded from dashboard 736fae9667f07355a8f2a6f3dcaa72b084f2b18e. Both browser tabs showed the new checkpoint and 55/97. The before exports (141)/(142) and after exports (143)/(144) matched within each pair. All 986 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 988 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 589b92b passed nine focused tests, the Next build, both local association routes, a linked listing HTML fallback, and Expo configuration checks. Next implement native cold-start and foreground link handling with a fresh property read. Host, signing and OS device evidence remains open.
+
 ## 12 November 2026 EAT - checkpoint 422, property app links and website fallback
 
 The synthetic web and Expo configurations now share property link associations. Nine focused tests, the Next production build, local HTTP fallback smoke and Expo configuration checks passed. ADB showed no connected devices. See [evidence](evidence/2026-11-12-property-app-link-associations.md). Next implement cold-start and foreground URL handling with a fresh property read. Use an authorized host, signing identities and devices to verify installed and uninstalled behavior. No checklist or launch gate advancement.
