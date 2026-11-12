@@ -6,6 +6,11 @@ import {
   loadMobileReferenceCatalogue,
   searchMobileReferenceItems,
 } from '../dist/tests/src/reference-catalogue.js';
+import {
+  linkedPropertyId,
+  listenForPropertyLinks,
+  readLinkedProperty,
+} from '../dist/tests/src/property-links.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const input = {
   mode: 'synthetic-reference-public-v1',
@@ -240,4 +245,161 @@ test('mobile keeps empty success distinct from failure and warns when its bounde
   assert.equal(full.status, 'ready');
   assert.equal(full.items.length, 100);
   assert.equal(full.mayBeTruncated, true);
+});
+
+const publicOrigin = 'https://catalogue.synthetic.invalid';
+const shared = (propertyId) => publicOrigin + '/properties/' + propertyId;
+
+test('property links accept the configured origin and an exact canonical listing path', () => {
+  assert.equal(linkedPropertyId(publicOrigin, shared(id(100))), id(100));
+  for (const invalid of [
+    null,
+    'http://catalogue.synthetic.invalid/properties/' + id(100),
+    'https://other.synthetic.invalid/properties/' + id(100),
+    'https://catalogue.synthetic.invalid:443/properties/' + id(100),
+    'https://catalogue.synthetic.invalid.evil.invalid/properties/' + id(100),
+    'https://user@catalogue.synthetic.invalid/properties/' + id(100),
+    publicOrigin + '/hidden/../properties/' + id(100),
+    publicOrigin + '/properties/%30' + id(100).slice(1),
+    shared(id(100)) + '?source=unknown',
+    shared(id(100)) + '#extra',
+    shared(id(100)) + '/',
+    shared(id(100)) + '\n',
+  ])
+    assert.equal(linkedPropertyId(publicOrigin, invalid), null, invalid);
+  assert.equal(
+    resolveMobileReferenceConfig(
+      { ...input, propertyLinkOrigin: publicOrigin },
+      'sample-homes',
+      true,
+    ).propertyLinkOrigin,
+    publicOrigin,
+  );
+  assert.equal(
+    resolveMobileReferenceConfig(
+      { ...input, propertyLinkOrigin: 'http://catalogue.synthetic.invalid' },
+      'sample-homes',
+      true,
+    ).mode,
+    'error',
+  );
+});
+
+test('shared property reads use the exact anonymous search with no cache or stale fallback', async () => {
+  const signal = new AbortController().signal;
+  let calls = 0;
+  const request =
+    (items, total = items.length) =>
+    async (url, init) => {
+      calls++;
+      const target = new URL(url);
+      assert.equal(target.origin, 'https://synthetic.invalid');
+      assert.equal(target.pathname, '/v3/properties/search');
+      assert.equal(target.searchParams.get('id'), id(100));
+      assert.equal(target.searchParams.get('limit'), '1');
+      assert.equal(init.signal.aborted, false);
+      assert.equal(init.cache, 'no-store');
+      assert.equal(new Headers(init.headers).has('authorization'), false);
+      return Response.json({
+        policy: 'synthetic-reference-search-v1',
+        items,
+        total,
+        limit: 1,
+        offset: 0,
+        sort: 'catalogue',
+        hasMore: total > 1,
+        maxOffset: 10000,
+      });
+    };
+  const found = await readLinkedProperty(config(), id(100), signal, request([property()]));
+  assert.equal(found.status, 'found');
+  assert.equal(found.item.property.title, property().title);
+  assert.deepEqual(await readLinkedProperty(config(), id(100), signal, request([])), {
+    status: 'unavailable',
+  });
+  assert.deepEqual(
+    await readLinkedProperty(config(), id(100), signal, request([{ ...property(), id: id(101) }])),
+    { status: 'error' },
+  );
+  assert.deepEqual(await readLinkedProperty(config(), id(100), signal, request([property()], 2)), {
+    status: 'error',
+  });
+  assert.deepEqual(
+    await readLinkedProperty(config(), id(100), signal, async () => {
+      throw Error('offline');
+    }),
+    { status: 'error' },
+  );
+  assert.equal(calls, 4);
+});
+
+function nativeLinks() {
+  const initial = Promise.withResolvers();
+  let listener;
+  const calls = [];
+  const states = [];
+  const source = {
+    getInitialURL: () => initial.promise,
+    addEventListener(type, fn) {
+      assert.equal(type, 'url');
+      listener = fn;
+      return {
+        remove: () => {
+          listener = undefined;
+        },
+      };
+    },
+  };
+  const control = listenForPropertyLinks(
+    source,
+    publicOrigin,
+    (id, signal) => {
+      const response = Promise.withResolvers();
+      calls.push({ id, signal, response });
+      return response.promise;
+    },
+    (state) => states.push(state),
+  );
+  return { initial, states, calls, control, send: (url) => listener?.({ url }) };
+}
+
+test('cold-start and foreground events resolve only the newest request', async () => {
+  const { initial, states, calls, control, send } = nativeLinks();
+  send('https://other.synthetic.invalid/properties/' + id(102));
+  initial.resolve(shared(id(100)));
+  await initial.promise;
+  assert.deepEqual(
+    calls.map((call) => call.id),
+    [id(100)],
+  );
+  send(shared(id(101)));
+  assert.equal(calls[0].signal.aborted, true);
+  calls[1].response.resolve({ status: 'unavailable' });
+  await calls[1].response.promise;
+  calls[0].response.resolve({ status: 'found', item: { old: true } });
+  await calls[0].response.promise;
+  assert.deepEqual(states, [
+    { status: 'loading', id: id(100) },
+    { status: 'loading', id: id(101) },
+    { status: 'unavailable', id: id(101) },
+  ]);
+  control.stop();
+});
+
+test('a late initial URL cannot override a foreground link or a dismissed read', async () => {
+  const { initial, states, calls, control, send } = nativeLinks();
+  send(shared(id(101)));
+  initial.resolve(shared(id(100)));
+  await initial.promise;
+  assert.equal(calls.length, 1);
+  control.dismiss();
+  assert.equal(calls[0].signal.aborted, true);
+  calls[0].response.resolve({ status: 'unavailable' });
+  await calls[0].response.promise;
+  assert.equal(states.at(-1), null);
+  send(shared(id(102)));
+  control.stop();
+  assert.equal(calls[1].signal.aborted, true);
+  send(shared(id(100)));
+  assert.equal(calls.length, 2);
 });

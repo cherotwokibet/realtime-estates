@@ -5,7 +5,7 @@ import {
 } from '@realtor/api-client';
 import { resolveDemoTenantSlug, type DemoTenantSlug } from '@realtor/demo';
 import { syntheticCustomerMode } from './synthetic-customer-sign-in.ts';
-import { formatKes, kesFromMinor } from '@realtor/domain';
+import { formatKes, kesFromMinor, propertyLinkOrigin } from '@realtor/domain';
 
 export type MobileReferenceConfig =
   | Readonly<{ mode: 'demo' }>
@@ -15,6 +15,7 @@ export type MobileReferenceConfig =
       tenantSlug: DemoTenantSlug;
       apiOrigin: string;
       allowLoopbackHttp: boolean;
+      propertyLinkOrigin?: string;
       videoMode?: 'synthetic-listing-video-publication-v1';
       floorPlanMode?: 'synthetic-floor-plan-publication-v1';
       photoMode?: 'synthetic-native-v1';
@@ -39,6 +40,7 @@ export function resolveMobileReferenceConfig(
       'mode',
       'apiOrigin',
       'allowLoopbackHttp',
+      ...(Object.hasOwn(input, 'propertyLinkOrigin') ? ['propertyLinkOrigin'] : []),
       ...(Object.hasOwn(input, 'videoMode') ? ['videoMode'] : []),
       ...(Object.hasOwn(input, 'floorPlanMode') ? ['floorPlanMode'] : []),
       ...(Object.hasOwn(input, 'photoMode') ? ['photoMode'] : []),
@@ -60,6 +62,12 @@ export function resolveMobileReferenceConfig(
       typeof allowLoopbackHttp !== 'boolean'
     )
       throw Error('Invalid configuration');
+    let linkOrigin: string | undefined;
+    if (Object.hasOwn(input, 'propertyLinkOrigin')) {
+      const value: unknown = descriptors.propertyLinkOrigin?.value;
+      if (typeof value !== 'string') throw Error('Invalid property link origin');
+      linkOrigin = propertyLinkOrigin(value).origin;
+    }
     const videoMode = descriptors.videoMode?.value;
     if (Object.hasOwn(input, 'videoMode') && videoMode !== 'synthetic-listing-video-publication-v1')
       throw Error('Invalid video mode');
@@ -109,6 +117,7 @@ export function resolveMobileReferenceConfig(
       tenantSlug,
       apiOrigin: new URL(apiOrigin).origin,
       allowLoopbackHttp,
+      ...(linkOrigin ? { propertyLinkOrigin: linkOrigin } : {}),
       ...(videoMode ? { videoMode } : {}),
       ...(floorPlanMode ? { floorPlanMode } : {}),
       ...(photoMode ? { photoMode } : {}),

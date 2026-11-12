@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 423, opening shared properties on mobile
+
+The connected synthetic mobile catalogue handles startup and foreground property links with an exact anonymous lookup. All 48 mobile tests, type checking, Expo public configuration and the Android development bundle passed. ADB showed no connected devices. See [evidence](evidence/2026-11-12-mobile-property-links.md). Next verify cold and warm installed-app handoff, uninstalled browser fallback and withdrawn listings on a controlled HTTPS host with authorized signing identities. Task 09-4 and all launch gates remain open.
+
 ## Published property app links and website fallback, checkpoint 422, 12 November 2026 EAT
 
 Private deployment appgdep_6af5a194a9388191b8247c51eae6e071 succeeded from dashboard 736fae9667f07355a8f2a6f3dcaa72b084f2b18e. Both browser tabs showed the new checkpoint and 55/97. The before exports (141)/(142) and after exports (143)/(144) matched within each pair. All 986 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 988 notes and 27 manual checks. Three dashboard tests passed.

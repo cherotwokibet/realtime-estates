@@ -8,7 +8,16 @@ import { FavouriteDetail, FavouriteOperation, SavedProperties } from './Referenc
 import type { MobileCustomerSession } from './customer-session';
 import { syntheticCustomerCompanyId } from './synthetic-customer-sign-in';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Linking,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import type { PublicSearchInput } from '@realtor/api-client';
 import { getDemoBrand, getDemoTheme } from '@realtor/demo';
 import { formatKes } from '@realtor/domain';
@@ -26,6 +35,12 @@ import {
   mobileReferenceSearchSummary,
   type MobileReferenceFilters,
 } from './reference-search';
+
+import {
+  listenForPropertyLinks,
+  readLinkedProperty,
+  type PropertyLinkState,
+} from './property-links';
 
 type CatalogueStyles = ReturnType<typeof createReferenceCatalogueStyles>;
 function CatalogueCard({
@@ -74,7 +89,7 @@ export function ReferenceCatalogueApp({
   const companyId = syntheticCustomerCompanyId(config.tenantSlug);
   return (
     <ReferenceCatalogueSession
-      key={`${config.tenantSlug}:${config.apiOrigin}`}
+      key={`${config.tenantSlug}:${config.apiOrigin}:${config.propertyLinkOrigin ?? ''}`}
       config={config}
       customerSignIn={customerSignIn}
       customerSession={
@@ -105,7 +120,33 @@ function ReferenceCatalogueSession({
   });
   const [filterError, setFilterError] = useState('');
   const [search, setSearch] = useState<PublicSearchInput>({ offset: 0 });
-  const [selected, setSelected] = useState<MobileReferenceItem | null>(null);
+  const [browseSelected, setSelected] = useState<MobileReferenceItem | null>(null);
+  const [link, setLink] = useState<PropertyLinkState | null>(null);
+  const linkController = useRef<ReturnType<typeof listenForPropertyLinks> | null>(null);
+  const selected = link ? (link.status === 'found' ? link.item : null) : browseSelected;
+  const currentProperty = link
+    ? link.status === 'found'
+    : result?.status === 'ready' && result.freshness === 'current';
+  useEffect(() => {
+    if (Platform.OS === 'web' || !config.propertyLinkOrigin) return;
+    const controller = listenForPropertyLinks(
+      Linking,
+      config.propertyLinkOrigin,
+      (id, signal) => readLinkedProperty(config, id, signal),
+      (value) => {
+        setLink(value);
+        if (value?.status === 'loading') {
+          setShowSaved(false);
+          setSelected(null);
+        }
+      },
+    );
+    linkController.current = controller;
+    return () => {
+      controller.stop();
+      linkController.current = null;
+    };
+  }, [config]);
   const [restored, setRestored] = useState(false);
   const [storageNotice, setStorageNotice] = useState('');
   const mounted = useRef(true);
@@ -168,24 +209,186 @@ function ReferenceCatalogueSession({
         {customerSignIn}
         <SyntheticPropertyEnquiry
           config={config}
-          selected={
-            !showSaved && result?.status === 'ready' && result.freshness === 'current'
-              ? selected
-              : null
-          }
+          selected={!showSaved && currentProperty ? selected : null}
           styles={s}
         />
-        {customerSession && (
-          <>
+        {customerSession && !link && (
+          <CatalogueButton
+            label={showSaved ? 'Browse properties' : 'Saved properties'}
+            onPress={() => setShowSaved(!showSaved)}
+            styles={s}
+          />
+        )}
+        {customerSession && <FavouriteOperation session={customerSession} styles={s} />}
+        {!link && !showSaved && storageNotice !== '' && (
+          <Text accessibilityLiveRegion="polite" style={s.notice}>
+            {storageNotice}
+          </Text>
+        )}
+        {!link && !showSaved && result?.status === 'ready' && result.freshness === 'previous' && (
+          <View>
+            <Text accessibilityRole="alert" style={s.error}>
+              Could not refresh. Showing the previous public response loaded at{' '}
+              {new Date(result.loadedAt).toISOString()}. Counts, prices and availability have not
+              been rechecked. This response is kept only in this app session. Reconnect and retry
+              before changing result pages.
+            </Text>
             <CatalogueButton
-              label={showSaved ? 'Browse properties' : 'Saved properties'}
-              onPress={() => setShowSaved(!showSaved)}
+              label="Retry current search"
+              onPress={() => setRequest((value) => value + 1)}
               styles={s}
             />
-            <FavouriteOperation session={customerSession} styles={s} />
-          </>
+            <CatalogueButton
+              label="Clear previous response"
+              onPress={() => {
+                activeRead.current?.abort();
+                readSession.clear();
+                setSelected(null);
+                setResult({ status: 'error' });
+              }}
+              styles={s}
+            />
+          </View>
         )}
-        {customerSession && showSaved ? (
+        {selected && !showSaved ? (
+          <View style={[s.card, s.cardSelected]}>
+            <CatalogueButton
+              label="← Back to results"
+              accessibilityLabel="Back to property results"
+              onPress={() => {
+                if (link) linkController.current?.dismiss();
+                else setSelected(null);
+              }}
+              styles={s}
+            />
+            <Text accessibilityRole="header" style={s.title}>
+              {selected.property.title}
+            </Text>
+            <Text style={s.copy}>{selected.location}</Text>
+            <Text style={s.price}>
+              {selected.base}
+              {selected.property.rentPeriod ? ` / ${selected.property.rentPeriod}` : ''}
+            </Text>
+            {customerSession && currentProperty && (
+              <FavouriteDetail
+                session={customerSession}
+                listingId={selected.property.id}
+                styles={s}
+              />
+            )}
+            {config.photoMode ? (
+              <PublishedPhotoGallery
+                key={`photos:${config.tenantSlug}:${config.apiOrigin}:${selected.property.id}:${selected.property.revision}:${selected.property.reference.revisionVersion}`}
+                config={config}
+                property={selected.property}
+              />
+            ) : (
+              <Text style={s.notice}>
+                Property photos unavailable in this metadata-only preview.
+              </Text>
+            )}
+            <Text style={s.copy}>{selected.property.description}</Text>
+            {config.floorPlanMode && (
+              <PublishedFloorPlan
+                key={`floor:${config.tenantSlug}:${config.apiOrigin}:${selected.property.id}:${selected.property.revision}:${selected.property.reference.revisionVersion}`}
+                config={config}
+                property={selected.property}
+              />
+            )}
+            {config.videoMode && (
+              <PublishedListingVideo
+                key={`${config.tenantSlug}:${config.apiOrigin}:${selected.property.id}:${selected.property.revision}:${selected.property.reference.revisionVersion}`}
+                config={config}
+                property={selected.property}
+              />
+            )}
+            <Text style={s.copy}>
+              {selected.property.propertyType} ·{' '}
+              {selected.property.bedrooms === null
+                ? 'Bedrooms not applicable'
+                : selected.property.bedrooms === 0
+                  ? 'Open-plan room'
+                  : `${selected.property.bedrooms} bedrooms`}
+            </Text>
+            <Text style={s.copy}>
+              Private bathrooms: {selected.property.privateBathrooms ?? 'Not supplied'} · Shared
+              bathrooms: {selected.property.sharedBathrooms ?? 'Not supplied'}
+            </Text>
+            <Text accessibilityRole="header" style={s.heading}>
+              Features & amenities
+            </Text>
+            {selected.amenities === null ? (
+              <Text style={s.copy}>Not supplied</Text>
+            ) : selected.amenities.length === 0 ? (
+              <Text style={s.copy}>No amenities selected in the approved listing.</Text>
+            ) : (
+              selected.amenities.map((amenity) => (
+                <Text key={amenity.id} style={s.copy}>
+                  {amenity.label}
+                </Text>
+              ))
+            )}
+            <Text accessibilityRole="header" style={s.heading}>
+              Price & costs
+            </Text>
+            {selected.property.pricing.charges.map((charge) => (
+              <Text key={charge.id} style={s.copy}>
+                {charge.name}:{' '}
+                {charge.amountStatus === 'known' ? formatKes(charge.amount) : 'Quote required'} ·{' '}
+                {charge.mandatory ? 'Mandatory' : 'Optional'} ·{' '}
+                {charge.classification === 'refundable_deposit' ? 'Refundable deposit' : 'Fee'} ·{' '}
+                {charge.timing === 'one_off' ? 'One-off' : `Per ${selected.property.rentPeriod}`}
+              </Text>
+            ))}
+            {selected.property.pricing.charges.length === 0 && (
+              <Text style={s.copy}>No named charges supplied.</Text>
+            )}
+            {selected.recurring !== null && (
+              <Text style={s.copy}>
+                Known recurring subtotal: {selected.recurring} / {selected.property.rentPeriod}
+              </Text>
+            )}
+            <Text style={s.copy}>Known initial subtotal: {selected.initial}</Text>
+            <Text style={s.notice}>
+              {selected.property.pricing.mandatoryAmountsComplete
+                ? 'Declared mandatory amounts supplied.'
+                : 'Mandatory costs remain unresolved; the known subtotal is not an all-in quote.'}{' '}
+              Confirm actual costs independently. Initial subtotal includes one base/first period
+              and known mandatory charges and refundable deposits; lease duration and prorating are
+              not included.
+            </Text>
+            <Text style={s.notice}>
+              Only the public area is shown. No exact address or map pin is displayed. Synthetic
+              details do not establish real availability.
+            </Text>
+          </View>
+        ) : link ? (
+          <View>
+            {link.status === 'loading' ? (
+              <Text accessibilityLiveRegion="polite" style={s.copy}>
+                Opening shared property…
+              </Text>
+            ) : (
+              <Text accessibilityRole="alert" style={s.error}>
+                {link.status === 'unavailable'
+                  ? 'This property is no longer available.'
+                  : 'The shared property could not be loaded.'}
+              </Text>
+            )}
+            {link.status === 'error' && (
+              <CatalogueButton
+                label="Try again"
+                onPress={() => linkController.current?.retry(link.id)}
+                styles={s}
+              />
+            )}
+            <CatalogueButton
+              label="Back to property results"
+              onPress={() => linkController.current?.dismiss()}
+              styles={s}
+            />
+          </View>
+        ) : customerSession && showSaved ? (
           <SavedProperties
             session={customerSession}
             knownProperties={
@@ -199,11 +402,6 @@ function ReferenceCatalogueSession({
           />
         ) : (
           <>
-            {storageNotice !== '' && (
-              <Text accessibilityLiveRegion="polite" style={s.notice}>
-                {storageNotice}
-              </Text>
-            )}
             {!selected && restored && (
               <View>
                 <ReferenceSearchForm filters={filters} onChange={setFilters} styles={s} />
@@ -278,31 +476,6 @@ function ReferenceCatalogueSession({
                 styles={s}
               />
             )}
-            {result?.status === 'ready' && result.freshness === 'previous' && (
-              <View>
-                <Text accessibilityRole="alert" style={s.error}>
-                  Could not refresh. Showing the previous public response loaded at{' '}
-                  {new Date(result.loadedAt).toISOString()}. Counts, prices and availability have
-                  not been rechecked. This response is kept only in this app session. Reconnect and
-                  retry before changing result pages.
-                </Text>
-                <CatalogueButton
-                  label="Retry current search"
-                  onPress={() => setRequest((value) => value + 1)}
-                  styles={s}
-                />
-                <CatalogueButton
-                  label="Clear previous response"
-                  onPress={() => {
-                    activeRead.current?.abort();
-                    readSession.clear();
-                    setSelected(null);
-                    setResult({ status: 'error' });
-                  }}
-                  styles={s}
-                />
-              </View>
-            )}
             {result?.status === 'error' && (
               <View>
                 <Text accessibilityRole="alert" style={[s.copy, s.error]}>
@@ -315,206 +488,86 @@ function ReferenceCatalogueSession({
                 />
               </View>
             )}
-            {result?.status === 'ready' &&
-              (selected ? (
-                <View style={[s.card, s.cardSelected]}>
-                  <CatalogueButton
-                    label="← Back to results"
-                    accessibilityLabel="Back to property results"
-                    onPress={() => setSelected(null)}
-                    styles={s}
-                  />
-                  <Text accessibilityRole="header" style={s.title}>
-                    {selected.property.title}
-                  </Text>
-                  <Text style={s.copy}>{selected.location}</Text>
-                  <Text style={s.price}>
-                    {selected.base}
-                    {selected.property.rentPeriod ? ` / ${selected.property.rentPeriod}` : ''}
-                  </Text>
-                  {customerSession && result.freshness === 'current' && (
-                    <FavouriteDetail
-                      session={customerSession}
-                      listingId={selected.property.id}
-                      styles={s}
-                    />
-                  )}
-                  {config.photoMode ? (
-                    <PublishedPhotoGallery
-                      key={`photos:${config.tenantSlug}:${config.apiOrigin}:${selected.property.id}:${selected.property.revision}:${selected.property.reference.revisionVersion}`}
-                      config={config}
-                      property={selected.property}
-                    />
-                  ) : (
-                    <Text style={s.notice}>
-                      Property photos unavailable in this metadata-only preview.
-                    </Text>
-                  )}
-                  <Text style={s.copy}>{selected.property.description}</Text>
-                  {config.floorPlanMode && (
-                    <PublishedFloorPlan
-                      key={`floor:${config.tenantSlug}:${config.apiOrigin}:${selected.property.id}:${selected.property.revision}:${selected.property.reference.revisionVersion}`}
-                      config={config}
-                      property={selected.property}
-                    />
-                  )}
-                  {config.videoMode && (
-                    <PublishedListingVideo
-                      key={`${config.tenantSlug}:${config.apiOrigin}:${selected.property.id}:${selected.property.revision}:${selected.property.reference.revisionVersion}`}
-                      config={config}
-                      property={selected.property}
-                    />
-                  )}
-                  <Text style={s.copy}>
-                    {selected.property.propertyType} ·{' '}
-                    {selected.property.bedrooms === null
-                      ? 'Bedrooms not applicable'
-                      : selected.property.bedrooms === 0
-                        ? 'Open-plan room'
-                        : `${selected.property.bedrooms} bedrooms`}
-                  </Text>
-                  <Text style={s.copy}>
-                    Private bathrooms: {selected.property.privateBathrooms ?? 'Not supplied'} ·
-                    Shared bathrooms: {selected.property.sharedBathrooms ?? 'Not supplied'}
-                  </Text>
-                  <Text accessibilityRole="header" style={s.heading}>
-                    Features & amenities
-                  </Text>
-                  {selected.amenities === null ? (
-                    <Text style={s.copy}>Not supplied</Text>
-                  ) : selected.amenities.length === 0 ? (
-                    <Text style={s.copy}>No amenities selected in the approved listing.</Text>
-                  ) : (
-                    selected.amenities.map((amenity) => (
-                      <Text key={amenity.id} style={s.copy}>
-                        {amenity.label}
-                      </Text>
-                    ))
-                  )}
-                  <Text accessibilityRole="header" style={s.heading}>
-                    Price & costs
-                  </Text>
-                  {selected.property.pricing.charges.map((charge) => (
-                    <Text key={charge.id} style={s.copy}>
-                      {charge.name}:{' '}
-                      {charge.amountStatus === 'known'
-                        ? formatKes(charge.amount)
-                        : 'Quote required'}{' '}
-                      · {charge.mandatory ? 'Mandatory' : 'Optional'} ·{' '}
-                      {charge.classification === 'refundable_deposit'
-                        ? 'Refundable deposit'
-                        : 'Fee'}{' '}
-                      ·{' '}
-                      {charge.timing === 'one_off'
-                        ? 'One-off'
-                        : `Per ${selected.property.rentPeriod}`}
-                    </Text>
-                  ))}
-                  {selected.property.pricing.charges.length === 0 && (
-                    <Text style={s.copy}>No named charges supplied.</Text>
-                  )}
-                  {selected.recurring !== null && (
+            {result?.status === 'ready' && (
+              <View>
+                <Text accessibilityRole="header" style={s.title}>
+                  Explore approved listings
+                </Text>
+                <Text accessibilityLiveRegion="polite" style={s.copy}>
+                  {result.freshness === 'previous' ? 'Previously loaded: ' : ''}
+                  {result.searchPage?.total ?? shown.length} matching synthetic properties
+                </Text>
+                <Text style={s.notice}>
+                  Applied filters: {mobileReferenceSearchSummary(search)}
+                </Text>
+                {result.searchPage && (
+                  <View>
                     <Text style={s.copy}>
-                      Known recurring subtotal: {selected.recurring} /{' '}
-                      {selected.property.rentPeriod}
+                      {shown.length ? result.searchPage.offset + 1 : 0}–
+                      {result.searchPage.offset + shown.length} of {result.searchPage.total}
                     </Text>
-                  )}
-                  <Text style={s.copy}>Known initial subtotal: {selected.initial}</Text>
-                  <Text style={s.notice}>
-                    {selected.property.pricing.mandatoryAmountsComplete
-                      ? 'Declared mandatory amounts supplied.'
-                      : 'Mandatory costs remain unresolved; the known subtotal is not an all-in quote.'}{' '}
-                    Confirm actual costs independently. Initial subtotal includes one base/first
-                    period and known mandatory charges and refundable deposits; lease duration and
-                    prorating are not included.
-                  </Text>
-                  <Text style={s.notice}>
-                    Only the public area is shown. No exact address or map pin is displayed.
-                    Synthetic details do not establish real availability.
-                  </Text>
-                </View>
-              ) : (
-                <View>
-                  <Text accessibilityRole="header" style={s.title}>
-                    Explore approved listings
-                  </Text>
-                  <Text accessibilityLiveRegion="polite" style={s.copy}>
-                    {result.freshness === 'previous' ? 'Previously loaded: ' : ''}
-                    {result.searchPage?.total ?? shown.length} matching synthetic properties
-                  </Text>
-                  <Text style={s.notice}>
-                    Applied filters: {mobileReferenceSearchSummary(search)}
-                  </Text>
-                  {result.searchPage && (
-                    <View>
-                      <Text style={s.copy}>
-                        {shown.length ? result.searchPage.offset + 1 : 0}–
-                        {result.searchPage.offset + shown.length} of {result.searchPage.total}
-                      </Text>
-                      {result.searchPage.offset > 0 && (
+                    {result.searchPage.offset > 0 && (
+                      <CatalogueButton
+                        label="Previous search page"
+                        disabled={result.freshness === 'previous'}
+                        onPress={() => {
+                          setResult(null);
+                          setSearch({
+                            ...search,
+                            offset: Math.max(0, (search.offset ?? 0) - 24),
+                          });
+                        }}
+                        styles={s}
+                      />
+                    )}
+                    {result.searchPage.hasMore &&
+                      result.searchPage.offset + 24 <= result.searchPage.maxOffset && (
                         <CatalogueButton
-                          label="Previous search page"
+                          label="Next search page"
                           disabled={result.freshness === 'previous'}
                           onPress={() => {
                             setResult(null);
-                            setSearch({
-                              ...search,
-                              offset: Math.max(0, (search.offset ?? 0) - 24),
-                            });
+                            setSearch({ ...search, offset: (search.offset ?? 0) + 24 });
                           }}
                           styles={s}
                         />
                       )}
-                      {result.searchPage.hasMore &&
-                        result.searchPage.offset + 24 <= result.searchPage.maxOffset && (
-                          <CatalogueButton
-                            label="Next search page"
-                            disabled={result.freshness === 'previous'}
-                            onPress={() => {
-                              setResult(null);
-                              setSearch({ ...search, offset: (search.offset ?? 0) + 24 });
-                            }}
-                            styles={s}
-                          />
-                        )}
-                      {result.searchPage.hasMore &&
-                        result.searchPage.offset + 24 > result.searchPage.maxOffset && (
-                          <Text style={s.copy}>
-                            Narrow your search to see more matching properties within the paging
-                            limit.
-                          </Text>
-                        )}
-                    </View>
-                  )}
-                  {result.mayBeTruncated && (
-                    <Text style={s.notice}>
-                      This is a bounded page. Additional properties may exist; search covers only
-                      the loaded page.
+                    {result.searchPage.hasMore &&
+                      result.searchPage.offset + 24 > result.searchPage.maxOffset && (
+                        <Text style={s.copy}>
+                          Narrow your search to see more matching properties within the paging
+                          limit.
+                        </Text>
+                      )}
+                  </View>
+                )}
+                {result.mayBeTruncated && (
+                  <Text style={s.notice}>
+                    This is a bounded page. Additional properties may exist; search covers only the
+                    loaded page.
+                  </Text>
+                )}
+                {shown.length === 0 && <Text style={s.copy}>No properties match this search.</Text>}
+                {shown.map((item) => (
+                  <CatalogueCard
+                    key={item.property.id}
+                    label={`View ${item.property.title}, ${item.base}${item.property.rentPeriod ? ` per ${item.property.rentPeriod}` : ''}`}
+                    onPress={() => setSelected(item)}
+                    styles={s}
+                  >
+                    <Text accessibilityRole="header" style={s.heading}>
+                      {item.property.title}
                     </Text>
-                  )}
-                  {shown.length === 0 && (
-                    <Text style={s.copy}>No properties match this search.</Text>
-                  )}
-                  {shown.map((item) => (
-                    <CatalogueCard
-                      key={item.property.id}
-                      label={`View ${item.property.title}, ${item.base}${item.property.rentPeriod ? ` per ${item.property.rentPeriod}` : ''}`}
-                      onPress={() => setSelected(item)}
-                      styles={s}
-                    >
-                      <Text accessibilityRole="header" style={s.heading}>
-                        {item.property.title}
-                      </Text>
-                      <Text style={s.copy}>{item.location}</Text>
-                      <Text style={s.price}>
-                        {item.base}
-                        {item.property.rentPeriod ? ` / ${item.property.rentPeriod}` : ''}
-                      </Text>
-                      <Text style={s.notice}>View details and additional costs →</Text>
-                    </CatalogueCard>
-                  ))}
-                </View>
-              ))}
+                    <Text style={s.copy}>{item.location}</Text>
+                    <Text style={s.price}>
+                      {item.base}
+                      {item.property.rentPeriod ? ` / ${item.property.rentPeriod}` : ''}
+                    </Text>
+                    <Text style={s.notice}>View details and additional costs →</Text>
+                  </CatalogueCard>
+                ))}
+              </View>
+            )}
           </>
         )}
       </ScrollView>

@@ -20,6 +20,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   if (mode !== undefined) {
     const candidate = {
       mode,
+      ...(links ? { propertyLinkOrigin: links.origin } : {}),
       ...(process.env.MOBILE_CATALOGUE_VIDEO !== undefined
         ? { videoMode: process.env.MOBILE_CATALOGUE_VIDEO }
         : {}),
