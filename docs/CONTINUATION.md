@@ -1,3 +1,9 @@
+## Published durable synthetic push jobs, checkpoint 416, 12 November 2026 EAT
+
+Private deployment appgdep_6af54a5980388191a40353432925636a succeeded from dashboard 3ea62b52e95da91711e0895c0300b6b6d5c6c055. Both browser tabs showed the new checkpoint and 55/97. The before exports (117)/(118) and after exports (119)/(120) matched within each pair. All 974 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 976 notes and 27 manual checks. Three dashboard tests passed.
+
+Source bbd7f9c passed twelve focused checks for durable jobs, rollback, retry and suppression. Next connect a synthetic viewing event and suppress obsolete notifications when it changes. Device, provider and production deletion evidence remain open for task 09-3.
+
 ## 12 November 2026 EAT - checkpoint 416, durable synthetic push jobs
 
 The disposable queue preserved due jobs across restore and committed each synthetic capture with its completion. Twelve focused checks passed, including rollback, retry and suppression after withdrawal or deletion. See [evidence](evidence/2026-11-12-synthetic-push-jobs.md). Next connect one synthetic viewing event and suppress obsolete notifications when the viewing changes. Device, provider and production deletion evidence remain open for task 09-3.
