@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 432, Realtime browser rehearsal
+
+Realtime completed the synthetic browser flow through a confirmed viewing. Both brands now have listing-to-viewing browser evidence. The Realtime run also verified the inclusive and strict minimum-price boundaries. See [operator walkthrough and evidence](evidence/2026-11-12-realtime-operator-walkthrough.md). Next run the walkthrough with a Realtime operator and address handoff friction before acceptance. Tasks 12-3 and 12-7 remain open.
+
 ## Published web and admin browser rehearsal, checkpoint 431, 12 November 2026 EAT
 
 Private deployment appgdep_6af60d776ac88191a657785831c78091 succeeded from dashboard 80fd7079bf8cea923abe88d1b1f5c4fdc0397354. Both browser tabs showed the new checkpoint and 55/97. The before exports (177)/(178) and after exports (179)/(180) matched within each pair. All 1004 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 1006 notes and 27 manual checks. Three dashboard tests passed.
