@@ -415,7 +415,21 @@ test('bounded push worker rolls back one failed capture, runs unrelated jobs and
   const workerSql = 'SELECT * FROM app_private.run_due_synthetic_customer_push($1,$2,$3)';
   const batch = async (at, limit, tenant = T) =>
     (await db.query(workerSql, [tenant, at, limit])).rows;
+  const summarySql = 'SELECT app_private.read_synthetic_customer_push_queue($1,$2)';
+  const summary = (at, tenant = T) => scalar(db, summarySql, [tenant, at]);
   const result = (operation, outcome) => ({ operation_id: id(operation), outcome });
+  await rejects(() => call(db, summarySql, [T, due]), '42501');
+  await rejects(() => summary(null), '23514');
+  assert.deepEqual(await summary(due), {
+    due: 3,
+    scheduled: 1,
+    waitingForRetry: 0,
+    captured: 0,
+    suppressed: 0,
+    oldestDueAgeSeconds: 0,
+    oldestRetryAgeSeconds: null,
+    nextRetryAt: null,
+  });
   await rejects(() => call(db, workerSql, [T, due, 2]), '42501');
   for (const limit of [0, 51, null]) await rejects(() => batch(due, limit), '23514');
   await db.exec(`
@@ -433,6 +447,37 @@ test('bounded push worker rolls back one failed capture, runs unrelated jobs and
   assert.deepEqual(await batch(due, 2), [result(890, 'retry_scheduled'), result(891, 'captured')]);
   assert.deepEqual(await batch(due, 2), [result(892, 'captured')]);
   assert.deepEqual(await batch(due, 2), []);
+  const halfway = '2026-11-12T09:00:30Z';
+  const waiting = {
+    due: 0,
+    scheduled: 1,
+    waitingForRetry: 1,
+    captured: 2,
+    suppressed: 0,
+    oldestDueAgeSeconds: null,
+    oldestRetryAgeSeconds: 30,
+    nextRetryAt: '2026-11-12T09:01:00.000Z',
+  };
+  assert.deepEqual(await summary(halfway), waiting);
+  assert.deepEqual(await summary(halfway), waiting);
+  assert.deepEqual(await summary(retry), {
+    ...waiting,
+    due: 1,
+    waitingForRetry: 0,
+    oldestDueAgeSeconds: 60,
+    oldestRetryAgeSeconds: 60,
+    nextRetryAt: null,
+  });
+  assert.deepEqual(await summary(halfway, OTHER), {
+    due: 1,
+    scheduled: 0,
+    waitingForRetry: 0,
+    captured: 0,
+    suppressed: 0,
+    oldestDueAgeSeconds: 30,
+    oldestRetryAgeSeconds: null,
+    nextRetryAt: null,
+  });
   assert.deepEqual(
     (
       await db.query(
@@ -448,6 +493,17 @@ test('bounded push worker rolls back one failed capture, runs unrelated jobs and
   assert.deepEqual(await batch(retry, 2), []);
   assert.deepEqual(await batch(future, 2), [result(893, 'captured')]);
   assert.deepEqual(await batch(future, 2, OTHER), [result(894, 'consent_off')]);
+  assert.deepEqual(await summary(future), {
+    due: 0,
+    scheduled: 0,
+    waitingForRetry: 0,
+    captured: 4,
+    suppressed: 0,
+    oldestDueAgeSeconds: null,
+    oldestRetryAgeSeconds: null,
+    nextRetryAt: null,
+  });
+  assert.equal((await summary(future, OTHER)).suppressed, 1);
   assert.equal(
     await scalar(
       db,

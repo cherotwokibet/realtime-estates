@@ -173,10 +173,45 @@ BEGIN
   END LOOP;
 END $$;
 
+-- Company aggregates for offline operator review. No recipient or registration identifiers.
+CREATE FUNCTION app_private.read_synthetic_customer_push_queue(p_tenant uuid, p_as_of timestamptz)
+RETURNS jsonb LANGUAGE plpgsql STABLE SET search_path = pg_catalog AS $$
+DECLARE summary jsonb;
+BEGIN
+  IF p_tenant IS NULL OR p_as_of IS NULL OR NOT isfinite(p_as_of) THEN
+    RAISE EXCEPTION 'Invalid synthetic queue summary scope' USING ERRCODE = '23514';
+  END IF;
+
+  WITH queue AS (
+    SELECT job.due_at, job.retry_after, attempt.outcome,
+      job.finished_operation_id IS NULL AS unfinished
+    FROM app_private.synthetic_customer_push_jobs job
+    LEFT JOIN app_private.synthetic_customer_push_attempts attempt
+      ON attempt.tenant_id = job.tenant_id AND attempt.operation_id = job.finished_operation_id
+    WHERE job.tenant_id = p_tenant
+  )
+  SELECT jsonb_build_object(
+    'due', count(*) FILTER (WHERE unfinished AND due_at <= p_as_of
+      AND (retry_after IS NULL OR retry_after <= p_as_of)),
+    'scheduled', count(*) FILTER (WHERE unfinished AND due_at > p_as_of),
+    'waitingForRetry', count(*) FILTER (WHERE unfinished AND due_at <= p_as_of AND retry_after > p_as_of),
+    'captured', count(*) FILTER (WHERE outcome = 'captured'),
+    'suppressed', count(*) FILTER (WHERE outcome <> 'captured'),
+    'oldestDueAgeSeconds', floor(extract(epoch FROM p_as_of - min(due_at) FILTER (
+      WHERE unfinished AND due_at <= p_as_of AND (retry_after IS NULL OR retry_after <= p_as_of)))),
+    'oldestRetryAgeSeconds', floor(extract(epoch FROM p_as_of - min(due_at) FILTER (
+      WHERE unfinished AND due_at <= p_as_of AND retry_after IS NOT NULL))),
+    'nextRetryAt', app_private.enquiry_utc(min(retry_after) FILTER (
+      WHERE unfinished AND due_at <= p_as_of AND retry_after > p_as_of))
+  ) INTO summary FROM queue;
+  RETURN summary;
+END $$;
+
 REVOKE ALL ON FUNCTION
   app_private.enqueue_synthetic_viewing_push(uuid, uuid, uuid, uuid),
   app_private.enqueue_synthetic_customer_push(uuid, uuid, uuid, uuid, bigint, timestamptz, uuid),
   app_private.run_synthetic_customer_push(uuid, uuid, timestamptz),
-  app_private.run_due_synthetic_customer_push(uuid, timestamptz, integer)
+  app_private.run_due_synthetic_customer_push(uuid, timestamptz, integer),
+  app_private.read_synthetic_customer_push_queue(uuid, timestamptz)
   FROM PUBLIC, api_runtime, media_coordinator, media_maintenance;
 COMMIT;

@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 419, synthetic push queue summary
+
+The offline summary reports company-scoped due, scheduled, retry, captured and suppressed jobs with age and next retry. Fourteen focused checks passed, including the cooldown boundary and company isolation. See [evidence](evidence/2026-11-12-synthetic-push-queue-summary.md). Next connect a signed synthetic admin preview using its server clock. Task 09-3 remains open.
+
 ## Published bounded synthetic push worker, checkpoint 418, 12 November 2026 EAT
 
 Private deployment appgdep_6af56777734c81919e3b55689f01a67b succeeded from dashboard c71026d30bae6e42e2d3a4bb3dc67598d1111f35. Both browser tabs showed the new checkpoint and 55/97. The before exports (125)/(126) and after exports (127)/(128) matched within each pair. All 978 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 980 notes and 27 manual checks. Three dashboard tests passed.
