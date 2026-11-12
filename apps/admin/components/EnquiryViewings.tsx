@@ -25,7 +25,7 @@ import {
   prepareViewingConfirmationAttempt,
   type ViewingConfirmationAttempt,
 } from '../lib/viewing-confirmation-attempt';
-import { formatEnquiryTime, fromNairobiInput } from '../lib/enquiry-model';
+import { formatEnquiryTime, fromNairobiInput, toNairobiInput } from '../lib/enquiry-model';
 import type { EnquiryReadGuard } from '../lib/enquiry-read-guard';
 import type { ViewingPropertyChoice, ViewingPropertyPage } from '../lib/viewing-properties';
 
@@ -810,8 +810,12 @@ export default function EnquiryViewings({
                     {formatEnquiryTime(selected.schedule.proposedSlot?.endAt ?? null)}
                   </p>
                   <p>
-                    Proposal recorded: {formatEnquiryTime(selected.updatedAt)}. This confirmation
-                    cannot change the slot.
+                    Proposal recorded at{' '}
+                    <time dateTime={selected.updatedAt}>
+                      {toNairobiInput(selected.updatedAt).replace('T', ' ')} EAT (UTC+03:00)
+                    </time>
+                    . Enter the actual phone agreement time between that timestamp and now. The
+                    proposed slot stays fixed.
                   </p>
                   <label>
                     Phone agreement time · Nairobi

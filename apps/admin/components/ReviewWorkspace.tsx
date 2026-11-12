@@ -594,6 +594,18 @@ export default function ReviewWorkspace({
                     <dd>{review.decidedBy ?? 'Not recorded'}</dd>
                   </div>
                 </dl>
+                {review.state === 'pending' && !busy && !hasNotes && (
+                  <p className="draft-help">
+                    <a
+                      href={`/listings/${review.listingId}/controls`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open availability and publication (new tab)
+                    </a>
+                    . After saving availability, return here and select Check latest review.
+                  </p>
+                )}
                 <p className="draft-help">{knownPublication(review)}</p>
                 {review.decisionReason && (
                   <div className="review-private">

@@ -1,3 +1,7 @@
+## 13 November 2026 EAT - checkpoint 433, operator handoff fixes
+
+Added direct availability controls from pending reviews and showed the exact Nairobi proposal timestamp on the viewing confirmation form. The local Realtime browser verified the review handoff and all 616 admin checks passed. [Evidence and next steps](evidence/2026-11-13-pilot-review-handoff.md). Next browser-retest confirmation with a fractional proposal timestamp and collect Realtime operator feedback. Tasks 12-3 and 12-7 remain open.
+
 ## Published Realtime browser rehearsal and operator walkthrough, checkpoint 432, 12 November 2026 EAT
 
 Private deployment appgdep_6af6122d3d1481918038357b69c135c5 succeeded from dashboard 07519331667877a64d8627fa821896e0071061cc. Both browser tabs showed the new checkpoint and 55/97. The before exports (181)/(182) and after exports (183)/(184) matched within each pair. All 1006 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 1008 notes and 27 manual checks. Three dashboard tests passed.
