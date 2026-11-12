@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { RealtorApiClient } from '@realtor/api-client';
 import { startStaffPreview } from '../../api/dev/staff-preview.mjs';
 import {
   loadMobileReferenceCatalogue,
@@ -9,22 +11,26 @@ import {
   createCatalogueLoader,
   resolveCatalogueConfig,
 } from '../../web/dist/tests/lib/catalogue.js';
+import { linkedPropertyId, readLinkedProperty } from '../dist/tests/src/property-links.js';
 import { browseCatalogue } from '../../web/dist/tests/lib/catalogue-browse.js';
-test('mobile adapter reads the real anonymous HTTP/SQL approved historical projection for two fixed companies', async () => {
+test('mobile adapter reads the real anonymous HTTP/SQL approved historical projection and shared links for two fixed companies', async () => {
   const rows = [];
   for (const tenantSlug of ['realtime-estates', 'sample-homes']) {
     const preview = await startStaffPreview({
       port: 0,
       tenantSlug,
+      actor: 'admin',
       referenceDraftMode: 'synthetic-reference-draft-v1',
       referenceModerationMode: 'synthetic-reference-transition-v1',
       referencePublicMode: 'synthetic-reference-public-v1',
     });
     try {
+      const publicOrigin = 'https://' + tenantSlug + '.synthetic.invalid';
       const config = resolveMobileReferenceConfig(
         {
           mode: 'synthetic-reference-public-v1',
           apiOrigin: preview.origin,
+          propertyLinkOrigin: publicOrigin,
           allowLoopbackHttp: true,
         },
         tenantSlug,
@@ -90,7 +96,56 @@ test('mobile adapter reads the real anonymous HTTP/SQL approved historical proje
       assert.equal(empty.searchPage.total, 0);
       assert.ok(!JSON.stringify(result).includes('PRIVATE SYNTHETIC STAFF FIXTURE ADDRESS'));
       assert.ok(!JSON.stringify(result).includes(preview.bearerToken));
-      rows.push(item.property.id);
+      const listingId = item.property.id;
+      const url = publicOrigin + '/properties/' + listingId;
+      const linkedId = linkedPropertyId(config.propertyLinkOrigin, url);
+      assert.equal(linkedId, listingId);
+      const readLink = (id) => readLinkedProperty(config, id, new AbortController().signal);
+      const open = await readLink(linkedId);
+      assert.equal(open.status, 'found');
+      assert.deepEqual(open.item, item);
+
+      if (rows[0]) {
+        assert.deepEqual(await readLink(rows[0]), { status: 'unavailable' });
+        assert.equal((await web.detail(rows[0])).status, 'not_found');
+      }
+      const sdk = new RealtorApiClient({
+        baseUrl: preview.origin,
+        allowLoopbackHttp: true,
+        privacyNoticeVersion: 'synthetic-property-link-check',
+      });
+      const staff = { bearerToken: preview.bearerToken };
+      const listing = await sdk.getReviewV2(listingId, item.property.revision, staff);
+      const paused = await sdk.controlListingV2(
+        {
+          kind: 'set_publication',
+          publicationStatus: 'paused',
+          listingId,
+          expectedListingVersion: listing.listingVersion,
+          operationId: randomUUID(),
+        },
+        staff,
+      );
+      assert.equal(paused.decision.outcome, 'applied');
+      assert.deepEqual(await readLink(linkedId), { status: 'unavailable' });
+      assert.equal((await web.detail(linkedId)).status, 'not_found');
+
+      const restored = await sdk.controlListingV2(
+        {
+          kind: 'set_publication',
+          publicationStatus: 'published',
+          listingId,
+          expectedListingVersion: paused.decision.result.listingVersion,
+          operationId: randomUUID(),
+        },
+        staff,
+      );
+      assert.equal(restored.decision.outcome, 'applied');
+      const reopened = await readLink(linkedId);
+      assert.equal(reopened.status, 'found');
+      assert.deepEqual(reopened.item, item);
+      assert.equal((await web.detail(linkedId)).status, 'found');
+      rows.push(listingId);
     } finally {
       // Release this database before allocating the next company's preview.
       await preview.close();

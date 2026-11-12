@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 424, shared links after publication changes
+
+Both synthetic companies passed a signed pause and republish journey. A fresh mobile lookup and the web detail loader withheld the paused listing and reopened the same URL after republishing. Ten focused tests passed. See [evidence](evidence/2026-11-12-shared-property-publication.md). Next install the synthetic preview when a test device or emulator can run, check cold and warm intent delivery, then verify OS association and the uninstalled browser fallback with an authorized host and signing identities. Task 09-4 remains open.
+
 ## Published opening shared properties on mobile, checkpoint 423, 12 November 2026 EAT
 
 Private deployment appgdep_6af5b051993881918e09cb0ad8ae59f3 succeeded from dashboard 49e85466bb33f40bd7d5400b3ec3fc2b8ad52f4c. Both browser tabs showed the new checkpoint and 55/97. The before exports (145)/(146) and after exports (147)/(148) matched within each pair. All 988 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 990 notes and 27 manual checks. Three dashboard tests passed.
