@@ -1,3 +1,9 @@
+## Published web and admin browser rehearsal, checkpoint 431, 12 November 2026 EAT
+
+Private deployment appgdep_6af60d776ac88191a657785831c78091 succeeded from dashboard 80fd7079bf8cea923abe88d1b1f5c4fdc0397354. Both browser tabs showed the new checkpoint and 55/97. The before exports (177)/(178) and after exports (179)/(180) matched within each pair. All 1004 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 1006 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 32b505c passed eight launcher tests. Sample Homes completed the browser journey through a confirmed viewing. Next repeat the Realtime browser rehearsal, resolve operator handoff friction and prepare operator testing. Tasks 12-3 and 12-7 remain open.
+
 ## 12 November 2026 EAT - checkpoint 431, web and admin browser rehearsal
 
 The shared pilot launcher starts web and admin together. Sample Homes passed the browser journey from a new draft and four photos through publication, web enquiry, assignment and a confirmed viewing. Eight launcher tests passed. See [rehearsal instructions and evidence](evidence/2026-11-12-web-admin-pilot-browser.md). Next repeat the browser rehearsal for Realtime, then prepare operator testing and fix the handoff friction surfaced in the run. Tasks 12-3 and 12-7 remain open.
