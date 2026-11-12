@@ -320,3 +320,66 @@ test('synthetic sender captures once and suppresses stale consent, foreign regis
     1,
   );
 });
+
+test('durable synthetic push jobs recover retries and recheck current eligibility after scheduling', async (t) => {
+  const db = await setup(t);
+  for (const file of ['synthetic-customer-push-capture.sql', 'synthetic-customer-push-jobs.sql']) {
+    await db.exec(await readFile(new URL('../proposals/' + file, import.meta.url), 'utf8'));
+  }
+  const due = '2026-11-12T08:00:00Z';
+  const early = '2026-11-12T07:59:59Z';
+  const enqueueSql = 'SELECT app_private.enqueue_synthetic_customer_push($1,$2,$3,$4,$5,$6)';
+  const runSql = 'SELECT app_private.run_synthetic_customer_push($1,$2,$3)';
+  const enqueue = (operation, version, at = due) =>
+    scalar(db, enqueueSql, [T, customer, id(operation), device, version, at]);
+  const run = (operation, asOf = due, database = db, tenant = T) =>
+    scalar(database, runSql, [tenant, id(operation), asOf]);
+  const attempts = (database) =>
+    scalar(database, 'SELECT count(*)::int FROM app_private.synthetic_customer_push_attempts');
+  await push(db, 801, 0, 'consent', true, null);
+  await push(db, 802, 1, 'register', null, device);
+  await rejects(() => call(db, enqueueSql, [T, customer, id(890), device, 2, due]), '42501');
+  assert.equal(await enqueue(890, 2), true);
+  assert.equal(await enqueue(890, 2), false);
+  await rejects(() => enqueue(890, 1), '23505');
+  await rejects(() => enqueue(890, 2, early), '23505');
+  await rejects(() => run(890, due, db, OTHER), 'P0002');
+  await rejects(() => call(db, runSql, [T, id(890), due]), '42501');
+  assert.equal(await run(890, early), 'not_due');
+  assert.equal(await attempts(db), 0);
+
+  const pending = await PGlite.create({ loadDataDir: await db.dumpDataDir() });
+  t.after(() => pending.close());
+  await rejects(
+    () =>
+      pending.transaction(async (tx) => {
+        assert.equal(await run(890, due, tx), 'captured');
+        throw Object.assign(Error('Abort before commit'), { code: 'ABORTED' });
+      }),
+    'ABORTED',
+  );
+  assert.equal(await attempts(pending), 0);
+  assert.equal(await run(890, due, pending), 'captured');
+  const committed = await PGlite.create({ loadDataDir: await pending.dumpDataDir() });
+  t.after(() => committed.close());
+  assert.equal(await run(890, due, committed), 'captured');
+  assert.equal(await attempts(committed), 1);
+
+  await enqueue(891, 2);
+  await push(db, 803, 2, 'consent', false, null);
+  assert.equal(await run(891), 'consent_off');
+  await push(db, 804, 3, 'consent', true, null);
+  await push(db, 805, 4, 'register', null, device);
+  assert.equal(await run(891), 'consent_off');
+  await enqueue(892, 5);
+  await submit(db);
+  assert.equal(await run(892), 'deletion_pending');
+  assert.equal(await run(892), 'deletion_pending');
+  assert.equal(
+    await scalar(
+      db,
+      "SELECT count(*)::int FROM app_private.synthetic_customer_push_attempts WHERE outcome='captured'",
+    ),
+    0,
+  );
+});
