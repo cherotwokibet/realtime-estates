@@ -1,3 +1,9 @@
+## Published sharing properties from mobile, checkpoint 425, 12 November 2026 EAT
+
+Private deployment appgdep_6af5cb8efe8c8191898a8d0273ca52a7 succeeded from dashboard e2257746b7058a977f095bfa4722ea6c12ffac86. Both browser tabs showed the new checkpoint and 55/97. The before exports (153)/(154) and after exports (155)/(156) matched within each pair. All 992 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 994 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 9f6ae8f passed all 49 mobile tests, type checking and the Android development bundle. Next verify the system share sheet, installed cold and warm link delivery, OS association and the browser fallback on authorized devices and a controlled host. Task 09-4 remains open.
+
 ## 12 November 2026 EAT - checkpoint 425, sharing properties from mobile
 
 Current approved listings in the connected synthetic mobile preview can share the canonical company URL. All 49 mobile tests, type checking and the Android development bundle passed. See [evidence](evidence/2026-11-12-mobile-share-property.md). Next verify the system share sheet, cold and warm link delivery, OS association and web fallback on authorized devices and a controlled HTTPS host. Task 09-4 remains open.
