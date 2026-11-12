@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { generateKeyPairSync } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
+import {
+  signSyntheticIntakeExport,
+  syntheticSnapshotHash,
+  verifySyntheticIntakeExport,
+} from '../test-helpers/synthetic-intake-export.mjs';
 import { fixture, asActor, scalar, T, OTHER, ADMIN } from './public-media-fixtures.mjs';
 
 const id = (n) => '00000000-0000-4000-8000-' + String(n).padStart(12, '0');
@@ -142,20 +148,47 @@ test('offline intake recovery restores exact withdrawal and receipt and refuses 
   const registration = await push(db, 802, 1, 'register', null, device);
   await push(db, 805, 0, 'consent', true, null, customer, OTHER);
   const otherPrefs = await prefs(db, customer, OTHER);
+  const clock = () =>
+    scalar(
+      db,
+      `SELECT to_char(clock_timestamp() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+    );
+  const snapshotCutoff = await clock();
   const snapshot = await db.dumpDataDir();
   const original = await submit(db);
   const withdrawn = await prefs(db);
   const originalTime = await scalar(
     db,
-    'SELECT requested_at::text FROM app_private.customer_deletion_requests WHERE tenant_id=$1 AND customer_id=$2',
+    `SELECT to_char(requested_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')
+      FROM app_private.customer_deletion_requests WHERE tenant_id=$1 AND customer_id=$2`,
     [T, customer],
   );
+  const expected = {
+    tenantId: T,
+    customerId: customer,
+    requestId,
+    snapshotSha256: await syntheticSnapshotHash(snapshot),
+    snapshotCutoff,
+    recoveryCutoff: await clock(),
+  };
+  const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+  const bundle = signSyntheticIntakeExport(
+    { ...expected, requestedAt: originalTime, priorVersion: 2 },
+    privateKey,
+  );
+  const verified = verifySyntheticIntakeExport(bundle, publicKey, expected);
   const restored = await PGlite.create({ loadDataDir: snapshot });
   t.after(() => restored.close());
 
   const sql = 'SELECT app_private.replay_synthetic_deletion_intake($1,$2,$3,$4,$5)';
   const replay = (parameters) => scalar(restored, sql, parameters);
-  const committed = [T, customer, requestId, originalTime, 2];
+  const committed = [
+    verified.tenantId,
+    verified.customerId,
+    verified.requestId,
+    verified.requestedAt,
+    verified.priorVersion,
+  ];
   const before = await prefs(restored);
   assert.equal(before.enabled, true);
   assert.equal(before.activeDevices, 1);
@@ -187,4 +220,43 @@ test('offline intake recovery restores exact withdrawal and receipt and refuses 
   assert.deepEqual(await push(restored, 802, 1, 'register', null, device), registration);
   await rejects(() => push(restored, 803, 3, 'consent', true, null), '42501');
   assert.deepEqual(await prefs(restored), withdrawn);
+});
+
+test('synthetic intake export verifies the trusted key, exact snapshot, target and cutoff before replay', () => {
+  const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+  const expected = {
+    tenantId: T,
+    customerId: customer,
+    requestId,
+    snapshotSha256: 'a'.repeat(64),
+    snapshotCutoff: '2026-11-12T00:00:00.000000Z',
+    recoveryCutoff: '2026-11-12T00:00:02.000000Z',
+  };
+  const facts = { ...expected, requestedAt: '2026-11-12T00:00:01.000001Z', priorVersion: 2 };
+  const bundle = signSyntheticIntakeExport(facts, privateKey);
+  assert.deepEqual(verifySyntheticIntakeExport(bundle, publicKey, expected), facts);
+  for (const wrong of [
+    { tenantId: OTHER },
+    { customerId: peer },
+    { requestId: id(701) },
+    { snapshotSha256: 'b'.repeat(64) },
+    { snapshotCutoff: facts.requestedAt },
+    { recoveryCutoff: facts.requestedAt },
+  ]) {
+    assert.throws(() => verifySyntheticIntakeExport(bundle, publicKey, { ...expected, ...wrong }));
+  }
+  const otherKey = generateKeyPairSync('ed25519').publicKey;
+  assert.throws(() => verifySyntheticIntakeExport(bundle, otherKey, expected));
+  const tampered = Buffer.from(bundle.body);
+  tampered[tampered.length - 2] = 51;
+  assert.throws(() =>
+    verifySyntheticIntakeExport({ ...bundle, body: tampered }, publicKey, expected),
+  );
+  for (const requestedAt of [
+    expected.snapshotCutoff,
+    '2026-11-12T00:00:02.000001Z',
+    '2026-11-31T00:00:01.000001Z',
+  ])
+    assert.throws(() => signSyntheticIntakeExport({ ...facts, requestedAt }, privateKey));
+  assert.throws(() => signSyntheticIntakeExport({ ...facts, priorVersion: 0 }, privateKey));
 });
