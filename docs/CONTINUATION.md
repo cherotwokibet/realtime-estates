@@ -1,3 +1,9 @@
+## Published synthetic admin notification queue, checkpoint 421, 12 November 2026 EAT
+
+Private deployment appgdep_6af590d907408191b7eb1afbc3f81b7f succeeded from dashboard 33f86532c264b68f81847d457c437d0ef01def7a. Both browser tabs showed the new checkpoint and 55/97. The before exports (137)/(138) and after exports (139)/(140) matched within each pair. All 984 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 986 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 30cd2bb passed the signed HTTP regression and admin build. The local browser verified refreshed counts and access revocation. Next check owned Android access, or review app links and fallback while device access is pending. Task 09-3 remains open.
+
 ## 12 November 2026 EAT - checkpoint 421, admin notification queue
 
 The local browser verified initial queue counts, fresh counts after the synthetic worker ran and removal after access revocation. The signed HTTP regression and admin build passed. See [evidence](evidence/2026-11-12-admin-push-queue.md). Next check owned Android access and exercise consent withdrawal and pending deletion, or review app link association and fallback while device access is pending. Task 09-3 remains open.
