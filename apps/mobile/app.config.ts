@@ -59,6 +59,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       throw Error('Invalid synthetic mobile catalogue configuration.');
     extra.mobileReference = candidate;
   } else if (
+    links ||
     process.env.MOBILE_CATALOGUE_VIDEO !== undefined ||
     process.env.MOBILE_CATALOGUE_FLOOR_PLAN !== undefined ||
     process.env.MOBILE_CATALOGUE_PHOTOS !== undefined ||
