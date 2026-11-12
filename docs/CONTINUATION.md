@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 428, mobile offline catalogue response handling
+
+A temporary failure can still show a recent labelled response. Access denial, redirects and invalid replies clear the previous catalogue and a subsequent disconnect cannot restore it. All 51 mobile tests and type checking passed. See [evidence](evidence/2026-11-12-mobile-offline-response.md). Next verify disconnect, denial and recovery on a device with the connected synthetic catalogue. Tasks 09-4 and 09-5 remain open.
+
 ## Published generated native property link configuration, checkpoint 427, 12 November 2026 EAT
 
 Private deployment appgdep_6af5e792a5c88191aaa855ed179f291c succeeded from dashboard 58b62f0cdb9a1842a0e0e6ba41f0f2396b88fa10. Both browser tabs showed the new checkpoint and 55/97. The before exports (161)/(162) and after exports (163)/(164) matched within each pair. All 996 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 998 notes and 27 manual checks. Three dashboard tests passed.

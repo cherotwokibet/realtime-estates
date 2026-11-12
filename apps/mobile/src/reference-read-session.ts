@@ -70,7 +70,12 @@ export function createMobileReferenceReadSession(
         previous = { key, result: value, loadedAt: time };
         return Object.freeze({ ...value, freshness: 'current', loadedAt: time });
       }
-      if (previous && time >= previous.loadedAt && time - previous.loadedAt <= maxAgeMs)
+      if (
+        value.retryable &&
+        previous &&
+        time >= previous.loadedAt &&
+        time - previous.loadedAt <= maxAgeMs
+      )
         return Object.freeze({
           ...previous.result,
           freshness: 'previous',

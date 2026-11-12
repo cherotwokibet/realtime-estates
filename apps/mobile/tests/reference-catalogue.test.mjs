@@ -200,11 +200,16 @@ test('mobile errors, private additions and cancellation never substitute demo st
     { status: 'error' },
   );
   assert.equal(calls, 0);
+  assert.deepEqual(
+    await loadMobileReferenceCatalogue(config(), {
+      fetch: async () => {
+        calls++;
+        throw Error('PRIVATE details');
+      },
+    }),
+    { status: 'error', retryable: true },
+  );
   for (const fetch of [
-    async () => {
-      calls++;
-      throw Error('PRIVATE details');
-    },
     async () => {
       calls++;
       return new Response('', { status: 503 });

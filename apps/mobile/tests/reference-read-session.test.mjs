@@ -194,3 +194,43 @@ test('input is detached before I/O; accessors, unknown fields and malformed repl
   assert.equal((await session.read(JSON.parse('{"__proto__":"unsupported"}'))).status, 'error');
   assert.equal(calls, 1);
 });
+
+const apiFailure = (status) =>
+  Response.json(
+    {
+      error: { code: 'SERVICE_UNAVAILABLE', message: 'Synthetic service response.' },
+      requestId: '00000000-0000-4000-8000-000000000001',
+    },
+    { status },
+  );
+
+test('a temporary API failure preserves a recent result but an access denial or invalid response clears it', async () => {
+  for (const failure of [
+    () => apiFailure(401),
+    () => apiFailure(403),
+    () => apiFailure(404),
+    () => page({ items: ['invalid listing'] }),
+    () => Response.redirect('https://synthetic.invalid/sign-in'),
+  ]) {
+    let calls = 0;
+    const session = createMobileReferenceReadSession(scope, {
+      fetch: async () => {
+        switch (++calls) {
+          case 1:
+            return page();
+          case 2:
+            return apiFailure(503);
+          case 3:
+            return failure();
+          default:
+            throw Error('offline again');
+        }
+      },
+    });
+    assert.equal((await session.read(query)).freshness, 'current');
+    assert.equal((await session.read(query)).freshness, 'previous');
+    assert.deepEqual(await session.read(query), { status: 'error' });
+    assert.deepEqual(await session.read(query), { status: 'error' });
+    assert.equal(calls, 4);
+  }
+});

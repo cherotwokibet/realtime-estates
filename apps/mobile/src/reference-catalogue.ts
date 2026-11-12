@@ -1,4 +1,5 @@
 import {
+  ApiClientError,
   RealtorApiClient,
   type SyntheticReferencePublicPropertyV3,
   type PublicSearchInput,
@@ -140,7 +141,7 @@ export interface MobileReferenceItem {
   readonly amenities: readonly Readonly<{ id: string; label: string }>[] | null;
 }
 export type MobileReferenceResult =
-  | Readonly<{ status: 'error' }>
+  | Readonly<{ status: 'error'; retryable?: true }>
   | Readonly<{
       status: 'ready';
       items: readonly MobileReferenceItem[];
@@ -209,7 +210,16 @@ export async function loadMobileReferenceCatalogue(
           }
         : {}),
     });
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof ApiClientError &&
+      (error.kind === 'NETWORK' ||
+        error.kind === 'TIMEOUT' ||
+        (error.kind === 'HTTP' &&
+          error.status !== undefined &&
+          [408, 429, 500, 502, 503, 504].includes(error.status)))
+    )
+      return Object.freeze({ status: 'error', retryable: true });
     return Object.freeze({ status: 'error' });
   }
 }
