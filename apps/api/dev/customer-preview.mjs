@@ -37,6 +37,7 @@ export async function startCustomerPreview({
   deletionFollowUpMode,
   deletionPrivacyMode,
   deletionProcessingPlanMode,
+  pushQueueSummaryMode,
   deletionPrivacyReplyFault,
   deletionReviewReplyFault,
   deletionReturnReplyFault,
@@ -50,6 +51,8 @@ export async function startCustomerPreview({
       (enquiryReplyFault !== 'lost-first-enquiry-result-v1' || !mobileMode)) ||
     (deletionReplyFault !== undefined &&
       (deletionReplyFault !== 'lost-first-deletion-result-v1' || !deletionMode)) ||
+    (pushQueueSummaryMode !== undefined &&
+      (pushQueueSummaryMode !== 'synthetic-push-queue-summary-v1' || !deletionMode)) ||
     (deletionProcessingPlanMode !== undefined &&
       (deletionProcessingPlanMode !== 'synthetic-deletion-processing-plan-v1' ||
         !deletionPrivacyMode)) ||
@@ -130,6 +133,26 @@ export async function startCustomerPreview({
       "INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'customer'),($3,$4,'customer'),($3,$2,'customer')",
       [T, id(14), OTHER, id(13)],
     );
+    if (pushQueueSummaryMode) {
+      for (const name of ['synthetic-customer-push-capture', 'synthetic-customer-push-jobs']) {
+        await db.exec(
+          await readFile(
+            new URL('../../../database/proposals/' + name + '.sql', import.meta.url),
+            'utf8',
+          ),
+        );
+      }
+      for (const [tenant, operation, due] of [
+        [T, id(44001), "statement_timestamp() - interval '2 minutes'"],
+        [T, id(44002), "statement_timestamp() + interval '10 minutes'"],
+        [OTHER, id(44003), "statement_timestamp() - interval '5 minutes'"],
+      ]) {
+        await db.query(
+          'SELECT app_private.enqueue_synthetic_customer_push($1,$2,$3,$4,0,' + due + ')',
+          [tenant, id(13), operation, id(44004)],
+        );
+      }
+    }
     if (deletionFollowUpMode)
       await db.exec(
         await readFile(
@@ -262,6 +285,7 @@ export async function startCustomerPreview({
       deletionFollowUpMode,
       deletionPrivacyMode,
       deletionProcessingPlanMode,
+      pushQueueSummaryMode,
       verifyAuthorization: (r) =>
         verify(parseBearerHeader(r.headers.get('authorization') ?? undefined)),
       database: {
@@ -470,6 +494,24 @@ export async function startCustomerPreview({
                 db.query(
                   'DELETE FROM app_private.synthetic_deletion_privacy_reviewers WHERE tenant_id=$1 AND reviewer_id=$2',
                   [tenantId, id(25)],
+                ),
+              ),
+          };
+        },
+        enumerable: false,
+      },
+      pushQueueStaff: {
+        value: async () => {
+          if (!pushQueueSummaryMode) throw Error('Push queue fixture is unavailable.');
+          const adminId = tenantId === T ? ADMIN : id(20);
+          return {
+            token: await sign(adminId, issued, issued + 900),
+            agentToken: await sign(AGENT, issued, issued + 900),
+            revoke: () =>
+              withDatabase(() =>
+                db.query(
+                  'UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',
+                  [tenantId, adminId],
                 ),
               ),
           };

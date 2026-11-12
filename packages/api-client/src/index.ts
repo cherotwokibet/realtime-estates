@@ -109,6 +109,7 @@ import {
   validateDeletionPrivacyQueue,
   validateDeletionPrivacyReceipt,
   validateDeletionProcessingPlan,
+  validateSyntheticPushQueueSummary,
   type DeletionPrivacyCommand,
   type CustomerDeletionDisposition,
   validateCustomerDeletionReviewTarget,
@@ -4292,6 +4293,20 @@ export class RealtorApiClient {
     return this.deletionPrivacyOperation(target, scope, options, 'GET');
   }
 
+  async getSyntheticPushQueueSummary(tenantId: string, options: StaffRequestOptions) {
+    const expected = uuid(tenantId, 'VALIDATION', 'Company ID');
+    const value = await this.request(
+      '/v2/staff/synthetic-push-queue-summary',
+      'GET',
+      uploadOptions(options),
+    );
+    try {
+      return validateSyntheticPushQueueSummary(value, expected);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Invalid synthetic push queue summary.');
+    }
+  }
+
   async getDeletionProcessingPlan(
     input: CustomerDeletionReviewTarget,
     scope: { readonly tenantId: string; readonly reviewerId: string },
@@ -6728,6 +6743,7 @@ export class RealtorApiClient {
     const listingReport =
       deletionTriage ||
       deletionFollowUp ||
+      path === '/v2/staff/synthetic-push-queue-summary' ||
       /^\/v2\/staff\/customer-deletion-privacy(?:\?limit=[1-9]\d?(?:&after=[0-9a-f-]{36})?|\/[0-9a-f-]{36}\/requests\/[0-9a-f-]{36}\/decisions\/[0-9a-f-]{36}(?:\/processing-plan)?)$/.test(
         path,
       ) ||

@@ -55,6 +55,7 @@ import {
   validateDeletionPrivacyQueue,
   validateDeletionPrivacyReceipt,
   validateDeletionProcessingPlan,
+  validateSyntheticPushQueueSummary,
   validateListingReportDecisionReceipt,
   validateListingReportQueue,
   validateCompanySettingsCommand,
@@ -217,6 +218,7 @@ export interface ApiServiceOptions {
   readonly deletionFollowUpMode?: 'synthetic-customer-deletion-follow-up-v1';
   readonly deletionPrivacyMode?: 'synthetic-deletion-privacy-v1';
   readonly deletionProcessingPlanMode?: 'synthetic-deletion-processing-plan-v1';
+  readonly pushQueueSummaryMode?: 'synthetic-push-queue-summary-v1';
   /** Isolated private video metadata preparation; no provider/public delivery or schema installation. */
   readonly listingVideoMode?: 'synthetic-private-listing-video-v1';
   readonly listingVideoPublicationMode?: 'synthetic-listing-video-publication-v1';
@@ -1748,6 +1750,12 @@ export function createApiService(
     throw Error('Unsupported deletion processing plan mode.');
   const deletionProcessingPlanEnabled =
     options.deletionProcessingPlanMode === 'synthetic-deletion-processing-plan-v1';
+  if (
+    options.pushQueueSummaryMode !== undefined &&
+    (options.pushQueueSummaryMode !== 'synthetic-push-queue-summary-v1' ||
+      !options.customerDeletionMode)
+  )
+    throw Error('Unsupported synthetic push queue summary mode.');
   const customerHandler = options.customerFavouritesMode
     ? createCustomerFavouritesHttpCandidate({
         mode: options.customerFavouritesMode,
@@ -2933,6 +2941,46 @@ export function createApiService(
           },
         );
         return response(intent ? 202 : 200, value, correlationId);
+      }
+      if (path === '/v2/staff/synthetic-push-queue-summary') {
+        if (
+          options.pushQueueSummaryMode !== 'synthetic-push-queue-summary-v1' ||
+          process.env.NODE_ENV !== 'development'
+        )
+          throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+        if (method !== 'GET')
+          throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Method unavailable.', { Allow: 'GET' });
+        if (
+          request.url.includes('?') ||
+          request.url.includes('#') ||
+          request.body !== null ||
+          headerNames(request.headers).some(
+            (name) =>
+              [
+                'content-type',
+                'content-length',
+                'content-encoding',
+                'transfer-encoding',
+                'cookie',
+                'range',
+              ].includes(name) ||
+              name.startsWith('x-') ||
+              name.startsWith('if-'),
+          )
+        )
+          throw new HttpError(400, 'INVALID_INPUT', 'Invalid queue summary request.');
+        const actorId = (await identity(request, true))!;
+        const value = await options.database.transaction(
+          { tenantId, actorId, correlationId },
+          async (query) => {
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            const result = await query.query(
+              'SELECT app_api.read_synthetic_push_queue_summary() AS result',
+            );
+            return validateSyntheticPushQueueSummary(scalar(result, 'result'), tenantId);
+          },
+        );
+        return response(200, value, correlationId);
       }
       const deletionFollowUp = path === '/v2/staff/customer-deletion-follow-up';
       const privacyQueue = path === '/v2/staff/customer-deletion-privacy';

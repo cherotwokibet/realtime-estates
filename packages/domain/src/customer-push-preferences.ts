@@ -173,3 +173,57 @@ export function validateCustomerPushReceipt(
     return invalid();
   return Object.freeze({ policy: row.policy, command, outcome, preferences });
 }
+
+export function validateSyntheticPushQueueSummary(value: unknown, expectedTenantId: string) {
+  const row = record(value, [
+    'policy',
+    'tenantId',
+    'asOf',
+    'due',
+    'scheduled',
+    'waitingForRetry',
+    'captured',
+    'suppressed',
+    'oldestDueAgeSeconds',
+    'oldestRetryAgeSeconds',
+    'nextRetryAt',
+  ]);
+  const count = (input: unknown) =>
+    typeof input === 'number' && Number.isSafeInteger(input) && input >= 0 ? input : invalid();
+  const timestamp = (input: unknown) => {
+    if (typeof input !== 'string' || !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(input))
+      return invalid();
+    const date = new Date(input);
+    return Number.isFinite(date.getTime()) && date.toISOString() === input ? input : invalid();
+  };
+  if (row.policy !== 'synthetic-push-queue-summary-v1' || uuid(row.tenantId) !== expectedTenantId)
+    return invalid();
+  const asOf = timestamp(row.asOf);
+  const due = count(row.due);
+  const waitingForRetry = count(row.waitingForRetry);
+  const oldestDueAgeSeconds =
+    row.oldestDueAgeSeconds === null ? null : count(row.oldestDueAgeSeconds);
+  const oldestRetryAgeSeconds =
+    row.oldestRetryAgeSeconds === null ? null : count(row.oldestRetryAgeSeconds);
+  const nextRetryAt = row.nextRetryAt === null ? null : timestamp(row.nextRetryAt);
+  if (
+    (due === 0) !== (oldestDueAgeSeconds === null) ||
+    (waitingForRetry === 0) !== (nextRetryAt === null) ||
+    (waitingForRetry > 0 && oldestRetryAgeSeconds === null) ||
+    (nextRetryAt !== null && nextRetryAt <= asOf)
+  )
+    return invalid();
+  return Object.freeze({
+    policy: row.policy,
+    tenantId: expectedTenantId,
+    asOf,
+    due,
+    scheduled: count(row.scheduled),
+    waitingForRetry,
+    captured: count(row.captured),
+    suppressed: count(row.suppressed),
+    oldestDueAgeSeconds,
+    oldestRetryAgeSeconds,
+    nextRetryAt,
+  });
+}

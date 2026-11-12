@@ -207,6 +207,21 @@ BEGIN
   RETURN summary;
 END $$;
 
+CREATE FUNCTION app_api.read_synthetic_push_queue_summary()
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog AS $$
+DECLARE
+  company uuid := app_private.context_tenant();
+  as_of timestamptz := date_trunc('milliseconds', statement_timestamp());
+BEGIN
+  PERFORM app_private.assert_staff(ARRAY['admin']);
+  RETURN app_private.read_synthetic_customer_push_queue(company, as_of) || jsonb_build_object(
+    'policy', 'synthetic-push-queue-summary-v1', 'tenantId', company,
+    'asOf', app_private.enquiry_utc(as_of)
+  );
+END $$;
+REVOKE ALL ON FUNCTION app_api.read_synthetic_push_queue_summary() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION app_api.read_synthetic_push_queue_summary() TO api_runtime;
+
 REVOKE ALL ON FUNCTION
   app_private.enqueue_synthetic_viewing_push(uuid, uuid, uuid, uuid),
   app_private.enqueue_synthetic_customer_push(uuid, uuid, uuid, uuid, bigint, timestamptz, uuid),
