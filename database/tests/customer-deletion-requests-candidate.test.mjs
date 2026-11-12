@@ -260,3 +260,63 @@ test('synthetic intake export verifies the trusted key, exact snapshot, target a
     assert.throws(() => signSyntheticIntakeExport({ ...facts, requestedAt }, privateKey));
   assert.throws(() => signSyntheticIntakeExport({ ...facts, priorVersion: 0 }, privateKey));
 });
+
+test('synthetic sender captures once and suppresses stale consent, foreign registrations and pending deletion', async (t) => {
+  const db = await setup(t);
+  await db.exec(
+    await readFile(
+      new URL('../proposals/synthetic-customer-push-capture.sql', import.meta.url),
+      'utf8',
+    ),
+  );
+  const sql = 'SELECT app_private.capture_synthetic_customer_push($1,$2,$3,$4,$5)';
+  const capture = (operation, version, registration = device, actor = customer, tenant = T) =>
+    scalar(db, sql, [tenant, actor, id(operation), registration, version]);
+  await rejects(() => call(db, sql, [T, customer, id(870), device, 0]), '42501');
+  assert.equal(await capture(870, 0), 'consent_off');
+  await push(db, 801, 0, 'consent', true, null);
+  await push(db, 802, 1, 'register', null, device);
+  assert.equal(await capture(870, 0), 'consent_off');
+  assert.equal(await capture(871, 2), 'captured');
+  assert.equal(await capture(871, 2), 'captured');
+  await rejects(() => capture(871, 1), '23505');
+
+  await push(db, 803, 0, 'consent', true, null, peer);
+  await push(db, 803, 0, 'consent', true, null, customer, OTHER);
+  assert.equal(await capture(872, 1, device, peer), 'registration_unavailable');
+  assert.equal(await capture(872, 1, device, customer, OTHER), 'registration_unavailable');
+  await push(db, 804, 2, 'consent', false, null);
+  assert.equal(await capture(873, 2), 'consent_off');
+  await push(db, 805, 3, 'consent', true, null);
+  assert.equal(await capture(874, 4), 'registration_unavailable');
+  await push(db, 806, 4, 'register', null, device);
+  assert.equal(await capture(875, 2), 'stale_preferences');
+  assert.equal(await capture(873, 2), 'consent_off');
+
+  await submit(db);
+  assert.equal(await capture(876, 5), 'deletion_pending');
+  assert.equal(await capture(871, 2), 'captured');
+  await db.query(
+    'UPDATE app_private.memberships SET active=false,revoked_at=now() WHERE tenant_id=$1 AND user_id=$2',
+    [T, peer],
+  );
+  assert.equal(await capture(877, 1, device, peer), 'customer_unavailable');
+  assert.equal(await capture(878, 1, device, id(999)), 'customer_unavailable');
+  await db.query('UPDATE app_private.tenants SET enabled=false WHERE id=$1', [OTHER]);
+  assert.equal(await capture(878, 1, device, customer, OTHER), 'customer_unavailable');
+
+  assert.equal(
+    await scalar(
+      db,
+      "SELECT count(*)::int FROM app_private.synthetic_customer_push_attempts WHERE outcome='captured'",
+    ),
+    1,
+  );
+  assert.equal(
+    await scalar(
+      db,
+      "SELECT count(*)::int FROM app_private.synthetic_customer_push_attempts WHERE outcome='deletion_pending'",
+    ),
+    1,
+  );
+});
