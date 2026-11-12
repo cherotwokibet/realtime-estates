@@ -1,3 +1,9 @@
+## Published web and admin pilot first, checkpoint 430, 12 November 2026 EAT
+
+Private deployment appgdep_6af609e762f0819192974686f8f6f78e succeeded from dashboard d36ad0202345db7692ec56034598ffebd9f5640f. Both browser tabs showed the new checkpoint and 55/97. The before exports (173)/(174) and after exports (175)/(176) matched within each pair. All 1002 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 1004 notes and 27 manual checks. Three dashboard tests passed.
+
+Source da1dc77 passed six pilot and journey checks and one gallery regression. Next connect both browser launchers to a single pilot instance, rehearse the listing-to-viewing journey and prepare operator testing. Tasks 05-6, 10-6, 12-3 and 12-7 remain open.
+
 ## 12 November 2026 EAT - checkpoint 430, web and admin pilot first
 
 Boniface approved changing the delivery order. Prioritize one operator-ready web and admin journey from listing creation to confirmed viewing. Run mobile device verification in a batch when a device and controlled host are available. Both synthetic companies passed the local pilot journey through HTTP, signed staff and real synthetic photo processing. Six journey checks and the public gallery regression passed. See [pilot evidence and rehearsal steps](evidence/2026-11-12-web-admin-pilot.md). Next connect both browser launchers to one pilot instance, rehearse the operator steps, and record blockers before asking an operator to test. Tasks 05-6, 10-6, 12-3 and 12-7 remain open.
