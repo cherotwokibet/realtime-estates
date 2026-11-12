@@ -7,7 +7,9 @@ const companyIndex = (slug) => {
 export function journeyFixtureSelection(value, expected) {
   if (value === undefined) return undefined;
   if (
-    !['public-search-v1', 'public-load-v1', 'enquiry-queue-v1'].includes(value) ||
+    !['public-search-v1', 'public-load-v1', 'enquiry-queue-v1', 'web-admin-pilot-v1'].includes(
+      value,
+    ) ||
     (expected && value !== expected)
   )
     throw Error('Choose the exact compatible synthetic journey fixture or omit it.');

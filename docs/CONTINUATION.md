@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 430, web and admin pilot first
+
+Boniface approved changing the delivery order. Prioritize one operator-ready web and admin journey from listing creation to confirmed viewing. Run mobile device verification in a batch when a device and controlled host are available. Both synthetic companies passed the local pilot journey through HTTP, signed staff and real synthetic photo processing. Six journey checks and the public gallery regression passed. See [pilot evidence and rehearsal steps](evidence/2026-11-12-web-admin-pilot.md). Next connect both browser launchers to one pilot instance, rehearse the operator steps, and record blockers before asking an operator to test. Tasks 05-6, 10-6, 12-3 and 12-7 remain open.
+
 ## Published mobile offline catalogue expiry, checkpoint 429, 12 November 2026 EAT
 
 Private deployment appgdep_6af60449aaf4819182362451cec48cb0 succeeded from dashboard 0214c16cc90f8fcf9a17c8e78ac04b3f8b76456b. Both browser tabs showed the new checkpoint and 55/97. The before exports (169)/(170) and after exports (171)/(172) matched within each pair. All 1000 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 1002 notes and 27 manual checks. Three dashboard tests passed.

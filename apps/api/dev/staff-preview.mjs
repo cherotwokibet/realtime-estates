@@ -207,6 +207,13 @@ function configuration({
     throw new StaffPreviewConfigurationError('Unsupported synthetic branch reply fault.');
   journeyFixtureSelection(journeyFixture);
   if (
+    journeyFixture === 'web-admin-pilot-v1' &&
+    (!nativeUploads || enquiryPreview !== 'synthetic-v1' || enquiryCatalogue !== 'synthetic-v1')
+  )
+    throw new StaffPreviewConfigurationError(
+      'The web and admin pilot requires native media and explicit synthetic enquiry modes.',
+    );
+  if (
     listingVideoReplyFault !== undefined &&
     (listingVideoReplyFault !== 'invalid-first-video-v1' ||
       listingVideoMode !== 'synthetic-private-listing-video-v1')
@@ -428,7 +435,9 @@ function configuration({
     );
   if (
     enquiryPreview !== undefined &&
-    (nativeUploads !== undefined || seedAcceptedMedia || seedPendingReviews)
+    ((nativeUploads !== undefined && journeyFixture !== 'web-admin-pilot-v1') ||
+      seedAcceptedMedia ||
+      seedPendingReviews)
   )
     throw new StaffPreviewConfigurationError(
       'Enquiry preview does not combine with image or pending-review fixtures.',
@@ -1270,7 +1279,7 @@ export async function startStaffPreview(options = {}) {
         );
       }
     }
-    if (enquiryCatalogue) await seedEnquiryCatalogue(db);
+    if (enquiryCatalogue && journeyFixture !== 'web-admin-pilot-v1') await seedEnquiryCatalogue(db);
     if (enquiryPreview) await seedEnquiries(db);
     if (journeyFixture === 'enquiry-queue-v1') {
       const enquiries = await seedEnquiryJourney(
@@ -1979,7 +1988,11 @@ export async function startStaffPreview(options = {}) {
           }
           return response;
         }
-        if (enquiryPreview) {
+        if (
+          enquiryPreview &&
+          (journeyFixture !== 'web-admin-pilot-v1' ||
+            !/^\/v2\/staff\/(?:listings|reviews)(?:\/|$)/.test(url.pathname))
+        ) {
           if (
             enquiryCatalogue &&
             (url.pathname === '/v2/properties' || url.pathname === '/v2/properties/search')
