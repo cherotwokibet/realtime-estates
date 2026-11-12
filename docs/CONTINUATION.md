@@ -1,3 +1,9 @@
+## Published offline deletion review recovery, checkpoint 413, 12 November 2026 EAT
+
+Private deployment appgdep_6af51faaa04c81919d29ec252307b535 succeeded from dashboard cbd7fb2d2b5d778c5bb7dc2fddaa650285edbe68. Both browser tabs showed the new checkpoint and 55/97. The before exports (105)/(106) and after exports (107)/(108) matched within each pair. All 968 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 970 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 13c0857 passed sixteen focused checks. The offline fixture preserved original review receipts and audit facts, including safe repeat and rollback. Next sign and verify the intake and review records together before combined replay. Production recovery and task 09-3 remain open.
+
 ## 12 November 2026 EAT - checkpoint 413, offline synthetic deletion review recovery
 
 The disposable restore now preserves original triage, return and planning receipts and audit facts in one transaction. Sixteen focused checks passed, including rollback on the final audit write and exact repeat. See [evidence](evidence/2026-11-12-offline-deletion-review-recovery.md). Next sign and verify the later records in the same export as intake and exercise combined replay from one pre-intake snapshot. Task 09-3 and production recovery remain open.
