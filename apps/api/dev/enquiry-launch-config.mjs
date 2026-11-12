@@ -21,8 +21,17 @@ export function enquiryLaunchConfiguration(env, args = []) {
       (!/^[1-9]\d{3,4}$/.test(apiPort) || Number(apiPort) < 1024 || Number(apiPort) > 65535))
   )
     throw Error('Choose an enquiry API port of 0 or from 1024 to 65535.');
-  const webPort = args.includes('--web') ? '3002' : undefined;
-  const journeyFixture = journeyFixtureSelection(env.ENQUIRY_JOURNEY_FIXTURE, 'enquiry-queue-v1');
+  const pilot = args.includes('--pilot');
+  if (
+    pilot &&
+    (args.some((arg) => !['--pilot', '--web'].includes(arg)) ||
+      env.ENQUIRY_JOURNEY_FIXTURE !== undefined)
+  )
+    throw Error('The web and admin pilot uses its own fixture without other preview flags.');
+  const webPort = pilot || args.includes('--web') ? '3002' : undefined;
+  const journeyFixture = pilot
+    ? 'web-admin-pilot-v1'
+    : journeyFixtureSelection(env.ENQUIRY_JOURNEY_FIXTURE, 'enquiry-queue-v1');
   if (uiPort === webPort || apiPort === uiPort || apiPort === webPort)
     throw Error('Enquiry API, admin and public web ports must be separate.');
   return Object.freeze({

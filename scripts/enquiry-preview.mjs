@@ -1,6 +1,10 @@
 /** Disposable synthetic enquiry UI. Tokens are server-only and never logged. */
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+import { mkdtemp } from 'node:fs/promises';
+import { homedir, tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import {
   assertEnquiryLaunchAvailable,
@@ -8,6 +12,9 @@ import {
 } from '../apps/api/dev/enquiry-launch-config.mjs';
 
 const launch = enquiryLaunchConfiguration(process.env, process.argv.slice(2));
+const pilot = launch.journeyFixture === 'web-admin-pilot-v1';
+if (pilot && process.platform !== 'win32')
+  throw Error('The current pilot photo processor requires Windows.');
 if (
   [
     '--invalid-first-viewing-reply',
@@ -20,10 +27,11 @@ if (
   throw new Error('Choose one synthetic viewing reply fault.');
 const root = fileURLToPath(new URL('../', import.meta.url));
 const next = fileURLToPath(new URL('../node_modules/next/dist/bin/next', import.meta.url));
-let preview, child, webChild, closing;
+let preview, child, webChild, input, closing;
 async function stop() {
   return (closing ??= (async () => {
     try {
+      input?.close();
       for (const running of [child, webChild])
         if (running && running.exitCode === null && running.signalCode === null) {
           const exited = new Promise((resolve) => running.once('exit', resolve));
@@ -54,6 +62,25 @@ try {
     port: Number(launch.apiPort),
     tenantSlug: process.env.TENANT_SLUG ?? 'realtime-estates',
     enquiryPreview: 'synthetic-v1',
+    ...(pilot
+      ? {
+          actor: 'admin',
+          nativeUploads: {
+            mode: 'synthetic-native-v1',
+            rootDirectory: await mkdtemp(join(tmpdir(), 'realtor-pilot-browser-')),
+            powerShellPath: join(
+              homedir(),
+              '.cache',
+              'codex-runtimes',
+              'codex-primary-runtime',
+              'dependencies',
+              'native',
+              'powershell',
+              'pwsh.exe',
+            ),
+          },
+        }
+      : {}),
     ...(launch.journeyFixture ? { journeyFixture: launch.journeyFixture } : {}),
     ...(process.argv.includes('--reminder-capture')
       ? { reminderCaptureMode: 'capture-only-v1' }
@@ -95,6 +122,13 @@ try {
       'Explicit enquiry journey fixture: 60 synthetic admin leads and 53 assigned-agent leads; no real prospects.',
     );
   const { admin, agent } = preview.enquiryStaff;
+  const inherited = pilot
+    ? Object.fromEntries(
+        Object.entries(process.env).filter(
+          ([key]) => !/^(?:STAFF_|WEB_|ALLOW_LOOPBACK_API$|API_ORIGIN$)/i.test(key),
+        ),
+      )
+    : process.env;
   child = spawn(
     process.execPath,
     [next, 'dev', 'apps/admin', '-p', launch.uiPort, '-H', '127.0.0.1'],
@@ -102,14 +136,13 @@ try {
       cwd: root,
       stdio: 'inherit',
       env: {
-        ...process.env,
+        ...inherited,
         NODE_ENV: 'development',
         TENANT_SLUG: preview.tenantSlug,
-        // Disable unrelated staff/media launch contexts inherited from a prior shell.
-        STAFF_PREVIEW_MODE: '',
-        STAFF_PREVIEW_TOKEN: '',
-        STAFF_PREVIEW_INSTANCE: '',
-        STAFF_PREVIEW_MEDIA: '',
+        STAFF_PREVIEW_MODE: pilot ? 'synthetic' : '',
+        STAFF_PREVIEW_TOKEN: pilot ? admin.bearerToken : '',
+        STAFF_PREVIEW_INSTANCE: pilot ? randomUUID() : '',
+        STAFF_PREVIEW_MEDIA: pilot ? 'synthetic' : '',
         STAFF_ENQUIRY_PREVIEW_MODE: 'synthetic-v1',
         STAFF_REMINDER_CAPTURE_MODE: process.argv.includes('--reminder-capture')
           ? 'capture-only-v1'
@@ -133,10 +166,10 @@ try {
     if (!closing) process.exitCode = code ?? 1;
     void stop();
   });
-  if (process.argv.includes('--web')) {
+  if (launch.webPort) {
     // No staff credentials are inherited by the public web process.
     const publicEnv = Object.fromEntries(
-      Object.entries(process.env).filter(([key]) => !key.startsWith('STAFF_')),
+      Object.entries(inherited).filter(([key]) => !/^STAFF_/i.test(key)),
     );
     webChild = spawn(
       process.execPath,
@@ -152,6 +185,12 @@ try {
           WEB_CATALOGUE_DATA: 'synthetic',
           API_ORIGIN: preview.origin,
           ALLOW_LOOPBACK_API: 'true',
+          ...(pilot
+            ? {
+                WEB_CATALOGUE_SEARCH: 'public-search-v1',
+                WEB_PUBLIC_MEDIA_MODE: 'synthetic-native-v1',
+              }
+            : {}),
           WEB_ENQUIRY_PROPERTY_MODE: 'synthetic-v1',
           WEB_ENQUIRY_PREVIEW_MODE: 'synthetic-v1',
           WEB_ENQUIRY_API_ORIGIN: preview.origin,
@@ -169,6 +208,15 @@ try {
       void stop();
     });
     console.log(`Synthetic public website enquiry: http://127.0.0.1:${launch.webPort}/enquire`);
+  }
+  if (pilot) {
+    console.log(`Pilot listing creation: http://127.0.0.1:${launch.uiPort}/listings/new`);
+    console.log(`Pilot moderation: http://127.0.0.1:${launch.uiPort}/reviews`);
+    console.log(`Pilot public catalogue: http://127.0.0.1:${launch.webPort}/`);
+    input = createInterface({ input: process.stdin });
+    input.on('line', (line) => {
+      if (line.trim() === 'quit') void stop();
+    });
   }
   for (const signal of ['SIGINT', 'SIGTERM'])
     process.once(signal, () => {

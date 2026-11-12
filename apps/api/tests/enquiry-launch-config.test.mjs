@@ -147,3 +147,20 @@ test('an unrelated web dev lock does not block admin-only startup', async (t) =>
   );
   assert.equal(await readFile(join(directory, 'lock'), 'utf8'), 'existing public preview');
 });
+
+test('the pilot starts both browser apps and rejects other fixture or fault settings', () => {
+  assert.deepEqual(
+    enquiryLaunchConfiguration({ ENQUIRY_UI_PORT: '3071', ENQUIRY_API_PORT: '0' }, ['--pilot']),
+    {
+      uiPort: '3071',
+      apiPort: '0',
+      webPort: '3002',
+      journeyFixture: 'web-admin-pilot-v1',
+    },
+  );
+  assert.throws(() =>
+    enquiryLaunchConfiguration({ ENQUIRY_JOURNEY_FIXTURE: 'enquiry-queue-v1' }, ['--pilot']),
+  );
+  assert.throws(() => enquiryLaunchConfiguration({}, ['--pilot', '--invalid-first-viewing-reply']));
+  assert.throws(() => enquiryLaunchConfiguration({ ENQUIRY_UI_PORT: '3002' }, ['--pilot']));
+});
