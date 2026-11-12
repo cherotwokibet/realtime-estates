@@ -9,6 +9,7 @@ import {
 import {
   linkedPropertyId,
   listenForPropertyLinks,
+  propertyShareUrl,
   readLinkedProperty,
 } from '../dist/tests/src/property-links.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -402,4 +403,26 @@ test('a late initial URL cannot override a foreground link or a dismissed read',
   assert.equal(calls[1].signal.aborted, true);
   send(shared(id(100)));
   assert.equal(calls.length, 2);
+});
+
+test('sharing emits a canonical link for the configured company and refuses invalid origins or IDs', () => {
+  for (const company of ['realtime-estates', 'sample-homes']) {
+    const origin = 'https://' + company + '.synthetic.invalid';
+    const listing = id(100);
+    const url = propertyShareUrl(origin, listing);
+    assert.equal(url, origin + '/properties/' + listing);
+    assert.equal(linkedPropertyId(origin, url), listing);
+  }
+  for (const origin of [
+    undefined,
+    'http://catalogue.synthetic.invalid',
+    publicOrigin + '/account',
+    publicOrigin + '?token=synthetic',
+    'https://127.0.0.1',
+  ]) {
+    assert.equal(propertyShareUrl(origin, id(100)), null);
+  }
+  for (const listing of ['unknown', id(100) + '?token=synthetic', id(100) + '\n']) {
+    assert.equal(propertyShareUrl(publicOrigin, listing), null);
+  }
 });

@@ -11,7 +11,11 @@ import {
   createCatalogueLoader,
   resolveCatalogueConfig,
 } from '../../web/dist/tests/lib/catalogue.js';
-import { linkedPropertyId, readLinkedProperty } from '../dist/tests/src/property-links.js';
+import {
+  linkedPropertyId,
+  propertyShareUrl,
+  readLinkedProperty,
+} from '../dist/tests/src/property-links.js';
 import { browseCatalogue } from '../../web/dist/tests/lib/catalogue-browse.js';
 test('mobile adapter reads the real anonymous HTTP/SQL approved historical projection and shared links for two fixed companies', async () => {
   const rows = [];
@@ -97,7 +101,8 @@ test('mobile adapter reads the real anonymous HTTP/SQL approved historical proje
       assert.ok(!JSON.stringify(result).includes('PRIVATE SYNTHETIC STAFF FIXTURE ADDRESS'));
       assert.ok(!JSON.stringify(result).includes(preview.bearerToken));
       const listingId = item.property.id;
-      const url = publicOrigin + '/properties/' + listingId;
+      const url = propertyShareUrl(config.propertyLinkOrigin, listingId);
+      assert.equal(url, publicOrigin + '/properties/' + listingId);
       const linkedId = linkedPropertyId(config.propertyLinkOrigin, url);
       assert.equal(linkedId, listingId);
       const readLink = (id) => readLinkedProperty(config, id, new AbortController().signal);

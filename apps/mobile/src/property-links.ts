@@ -1,4 +1,4 @@
-import { propertyLinkPathPrefix } from '@realtor/domain';
+import { propertyLinkOrigin, propertyLinkPathPrefix } from '@realtor/domain';
 import {
   loadMobileReferenceCatalogue,
   type MobileReferenceConfig,
@@ -13,6 +13,18 @@ export function linkedPropertyId(origin: string, url: string | null): string | n
   if (!url?.startsWith(prefix)) return null;
   const id = url.slice(prefix.length);
   return id.length === 36 && uuid.test(id) ? id : null;
+}
+
+/** The share sheet receives only the public listing URL, with no account or tracking fields. */
+export function propertyShareUrl(origin: string | undefined, id: string): string | null {
+  if (!origin) return null;
+  try {
+    const canonical = propertyLinkOrigin(origin).origin;
+    const url = canonical + propertyLinkPathPrefix + id;
+    return linkedPropertyId(canonical, url) === id ? url : null;
+  } catch {
+    return null;
+  }
 }
 
 type PropertyLinkResult =

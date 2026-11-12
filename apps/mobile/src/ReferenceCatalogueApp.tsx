@@ -14,6 +14,7 @@ import {
   Pressable,
   SafeAreaView,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -38,6 +39,7 @@ import {
 
 import {
   listenForPropertyLinks,
+  propertyShareUrl,
   readLinkedProperty,
   type PropertyLinkState,
 } from './property-links';
@@ -74,6 +76,43 @@ function CatalogueCard({
     >
       {children}
     </Pressable>
+  );
+}
+
+function SharePropertyButton({ url, styles: s }: { url: string; styles: CatalogueStyles }) {
+  const sharing = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function openShareSheet() {
+    if (sharing.current) return;
+    sharing.current = true;
+    setBusy(true);
+    setFailed(false);
+    try {
+      await Share.share(Platform.OS === 'ios' ? { url } : { message: url });
+    } catch {
+      setFailed(true);
+    } finally {
+      sharing.current = false;
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <CatalogueButton
+        label="Share property"
+        onPress={() => void openShareSheet()}
+        disabled={busy}
+        styles={s}
+      />
+      {failed && (
+        <Text accessibilityRole="alert" style={s.error}>
+          The property link couldn’t be shared. Try again.
+        </Text>
+      )}
+    </>
   );
 }
 
@@ -127,6 +166,10 @@ function ReferenceCatalogueSession({
   const currentProperty = link
     ? link.status === 'found'
     : result?.status === 'ready' && result.freshness === 'current';
+  const shareUrl =
+    selected && currentProperty && Platform.OS !== 'web'
+      ? propertyShareUrl(config.propertyLinkOrigin, selected.property.id)
+      : null;
   useEffect(() => {
     if (Platform.OS === 'web' || !config.propertyLinkOrigin) return;
     const controller = listenForPropertyLinks(
@@ -269,6 +312,7 @@ function ReferenceCatalogueSession({
               {selected.base}
               {selected.property.rentPeriod ? ` / ${selected.property.rentPeriod}` : ''}
             </Text>
+            {shareUrl && <SharePropertyButton key={shareUrl} url={shareUrl} styles={s} />}
             {customerSession && currentProperty && (
               <FavouriteDetail
                 session={customerSession}

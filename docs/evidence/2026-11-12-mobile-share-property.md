@@ -1,0 +1,7 @@
+# Share an approved property from mobile
+
+Checkpoint 425, 12 November 2026 EAT. The connected synthetic mobile preview offers **Share property** on a current approved listing. It passes the canonical HTTPS URL to the native share sheet as a URL on iOS and as text on Android. The payload contains only the public company origin and listing ID. The action is hidden when the catalogue has no configured link origin or only has a previous offline response. [React Native Share](https://reactnative.dev/docs/share)
+
+All 49 mobile tests, mobile type checking and the Android development bundle passed. The URL tests checked both synthetic brands and rejected missing origins, unexpected paths, non-HTTPS links and malformed listing IDs. The two-brand HTTP and SQL integration test reopened the generated link, then verified the result after signed pause and republish through mobile and the web lookup.
+
+ADB listed no device and free host RAM was about 1 GiB. The emulator stayed off. The share sheet, installed app handoff and OS association still need a device run. Next, install the synthetic preview on an authorized Android device or emulator and use the share sheet to copy and reopen the link with the app closed and running. Check cancellation and retry, then confirm host association and the browser fallback with the app absent. Repeat on iOS when signing and a device are available. Task 09-4 remains open at 55 of 97 verified and 0 of 14 launch gates.
