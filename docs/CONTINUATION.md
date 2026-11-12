@@ -1,3 +1,9 @@
+## Published shared links after publication changes, checkpoint 424, 12 November 2026 EAT
+
+Private deployment appgdep_6af5bd02b09481918db114b23e67e64a succeeded from dashboard d29632825f767047201c3b7d92bd0565a59458c0. Both browser tabs showed the new checkpoint and 55/97. The before exports (149)/(150) and after exports (151)/(152) matched within each pair. All 990 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 992 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 27f6353 passed ten focused checks. Both synthetic brands reopened the same shared URL after a signed pause and republish. Fresh mobile and web lookups withheld the paused listing. Next verify installed cold and warm link delivery and the browser fallback on authorized devices and a controlled host. If the emulator still cannot run, add a native Share property action that emits the canonical URL for a current approved listing. Task 09-4 remains open.
+
 ## 12 November 2026 EAT - checkpoint 424, shared links after publication changes
 
 Both synthetic companies passed a signed pause and republish journey. A fresh mobile lookup and the web detail loader withheld the paused listing and reopened the same URL after republishing. Ten focused tests passed. See [evidence](evidence/2026-11-12-shared-property-publication.md). Next install the synthetic preview when a test device or emulator can run, check cold and warm intent delivery, then verify OS association and the uninstalled browser fallback with an authorized host and signing identities. Task 09-4 remains open.
