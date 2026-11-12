@@ -1,3 +1,9 @@
+## Published generated native property link configuration, checkpoint 427, 12 November 2026 EAT
+
+Private deployment appgdep_6af5e792a5c88191aaa855ed179f291c succeeded from dashboard 58b62f0cdb9a1842a0e0e6ba41f0f2396b88fa10. Both browser tabs showed the new checkpoint and 55/97. The before exports (161)/(162) and after exports (163)/(164) matched within each pair. All 996 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 998 notes and 27 manual checks. Three dashboard tests passed.
+
+Source d805165 passed 50 mobile tests and type checking. Expo introspection verified the scoped Android manifest filter and iOS entitlement for both synthetic brands. Next verify host association and installed routing on authorized devices. Task 09-4 remains open.
+
 ## 12 November 2026 EAT - checkpoint 427, generated native property link configuration
 
 The mobile build refuses a link origin without a connected catalogue. Expo generated the expected Android manifest filter and iOS entitlement for both synthetic brands, and neither association with links disabled. All 50 mobile tests and type checking passed. See [evidence](evidence/2026-11-12-native-property-link-config.md). Next verify the authorized host and signed app on devices. Task 09-4 remains open.
