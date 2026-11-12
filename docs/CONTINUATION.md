@@ -1,3 +1,9 @@
+## Published signed synthetic push queue summary, checkpoint 420, 12 November 2026 EAT
+
+Private deployment appgdep_6af58356eb988191b4db83aa3180f035 succeeded from dashboard ae8dd5b083eb31881a8b443363896818a8dbc177. Both browser tabs showed the new checkpoint and 55/97. The before exports (133)/(134) and after exports (135)/(136) matched within each pair. All 982 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 984 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 9291386 passed eleven focused checks and domain, SDK and API builds. Next connect the admin screen and verify refresh and revocation in a browser. Device, provider and production deletion evidence remain open for task 09-3.
+
 ## 12 November 2026 EAT - checkpoint 420, signed synthetic push queue summary
 
 A signed GET exposes queue aggregates to a current admin for the configured company using the database clock. Eleven focused checks and domain, SDK and API builds passed. See [evidence](evidence/2026-11-12-signed-push-queue-summary.md). Next connect a synthetic admin screen and verify refresh and access revocation in the browser. Task 09-3 remains open.
