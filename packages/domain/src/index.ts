@@ -49,3 +49,4 @@ export * from './customer-deletion-request.js';
 export * from './admin-audit.js';
 
 export * from './floor-plan.js';
+export * from './property-app-links.js';

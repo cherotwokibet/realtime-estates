@@ -1,4 +1,5 @@
 import type { ConfigContext, ExpoConfig } from 'expo/config';
+import { propertyLinkOrigin, propertyLinkPathPrefix, previewApplicationId } from '@realtor/domain';
 import { getDemoBrand, resolveDemoTenantSlug } from '@realtor/demo';
 import { resolveMobileReferenceConfig } from './src/reference-catalogue.ts';
 
@@ -6,10 +7,11 @@ import { resolveMobileReferenceConfig } from './src/reference-catalogue.ts';
 export default ({ config }: ConfigContext): ExpoConfig => {
   const tenantSlug = resolveDemoTenantSlug(process.env.TENANT_SLUG);
   const brand = getDemoBrand(tenantSlug);
-  // Preview identifiers remain tenant-specific and collision-free: each tenant slug segment
-  // becomes its own valid Java/iOS reverse-DNS segment instead of deleting separators.
-  const tenantIdentifier = tenantSlug.split('-').join('.');
-  const applicationId = `com.boniface.realtor.preview.${tenantIdentifier}`;
+  const applicationId = previewApplicationId(tenantSlug);
+  const links =
+    process.env.MOBILE_PROPERTY_LINK_ORIGIN === undefined
+      ? undefined
+      : propertyLinkOrigin(process.env.MOBILE_PROPERTY_LINK_ORIGIN);
   const icon = `./assets/icons/${tenantSlug}.png`;
   const adaptiveIcon = `./assets/icons/${tenantSlug}-foreground.png`;
   const mode = process.env.MOBILE_CATALOGUE_MODE;
@@ -77,13 +79,38 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       ...config.android,
       package: applicationId,
+      ...(links
+        ? {
+            intentFilters: [
+              ...(config.android?.intentFilters ?? []),
+              {
+                action: 'VIEW',
+                autoVerify: true,
+                category: ['BROWSABLE', 'DEFAULT'],
+                data: [
+                  { scheme: 'https', host: links.hostname, pathPrefix: propertyLinkPathPrefix },
+                ],
+              },
+            ],
+          }
+        : {}),
       adaptiveIcon: {
         ...config.android?.adaptiveIcon,
         foregroundImage: adaptiveIcon,
         backgroundColor: brand.primary,
       },
     },
-    ios: { ...config.ios, bundleIdentifier: applicationId },
+    ios: {
+      ...config.ios,
+      bundleIdentifier: applicationId,
+      ...(links
+        ? {
+            associatedDomains: [
+              ...new Set([...(config.ios?.associatedDomains ?? []), 'applinks:' + links.hostname]),
+            ],
+          }
+        : {}),
+    },
     extra,
   };
 };
