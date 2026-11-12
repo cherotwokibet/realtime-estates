@@ -1,3 +1,9 @@
+## Published mobile offline catalogue response handling, checkpoint 428, 12 November 2026 EAT
+
+Private deployment appgdep_6af5f69c1b608191b81801230a8a3561 succeeded from dashboard fab8e9434c93792093a89587b720bec561f3bee3. Both browser tabs showed the new checkpoint and 55/97. The before exports (165)/(166) and after exports (167)/(168) matched within each pair. All 998 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 1000 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 24dd30c passed 51 mobile tests and type checking. Next verify disconnect, denial and recovery on an installed device. The hosted link and share-sheet checks from task 09-4 also remain open. Task 09-5 remains open.
+
 ## 12 November 2026 EAT - checkpoint 428, mobile offline catalogue response handling
 
 A temporary failure can still show a recent labelled response. Access denial, redirects and invalid replies clear the previous catalogue and a subsequent disconnect cannot restore it. All 51 mobile tests and type checking passed. See [evidence](evidence/2026-11-12-mobile-offline-response.md). Next verify disconnect, denial and recovery on a device with the connected synthetic catalogue. Tasks 09-4 and 09-5 remain open.
