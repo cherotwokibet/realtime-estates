@@ -1,0 +1,7 @@
+# Offline synthetic deletion intake replay
+
+12 November 2026 EAT, checkpoint 411. The disposable restore proposal reapplies one committed deletion intake to its immediate pre-intake snapshot. The database owner supplies the original request ID and full database timestamp for an exact tenant and customer, together with the prior consent version. The proposal requires that version to be enabled in the restored copy. It withdraws consent, deactivates current registrations and inserts the original request in one transaction.
+
+The fixture restores a real PGlite snapshot, applies the committed intake, compares the recovered receipt and current preferences with the authoritative fixture, and verifies that identical replay changes nothing. A divergent prior version, different request and runtime caller are refused. A simulated insert failure rolls back consent and device changes. The other company's preferences and the historical registration receipt are preserved. [Fourteen focused tests](deletion411-checks.txt) passed.
+
+This exercise covers one enabled-consent intake and assumes a trusted source in the same snapshot lineage. It does not authenticate an external replay bundle, prove a recovery cutoff, reconcile later triage and planning decisions, or handle older snapshots with intervening consent changes. Next define the protected export and cutoff verification and reconcile later decisions in the disposable fixture. Production processing, provider recovery and task 09-3 remain open.

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
 import { fixture, asActor, scalar, T, OTHER, ADMIN } from './public-media-fixtures.mjs';
 
 const id = (n) => '00000000-0000-4000-8000-' + String(n).padStart(12, '0');
@@ -127,4 +128,63 @@ test('intake for default-off account keeps default preference state and blocks f
   assert.deepEqual(await prefs(db), before);
   await rejects(() => push(db, 801, 0, 'consent', true, null), '42501');
   assert.deepEqual(await prefs(db), before);
+});
+
+test('offline intake recovery restores exact withdrawal and receipt and refuses a divergent snapshot', async (t) => {
+  const db = await setup(t);
+  await db.exec(
+    await readFile(
+      new URL('../proposals/customer-deletion-intake-restore.sql', import.meta.url),
+      'utf8',
+    ),
+  );
+  await push(db, 801, 0, 'consent', true, null);
+  const registration = await push(db, 802, 1, 'register', null, device);
+  await push(db, 805, 0, 'consent', true, null, customer, OTHER);
+  const otherPrefs = await prefs(db, customer, OTHER);
+  const snapshot = await db.dumpDataDir();
+  const original = await submit(db);
+  const withdrawn = await prefs(db);
+  const originalTime = await scalar(
+    db,
+    'SELECT requested_at::text FROM app_private.customer_deletion_requests WHERE tenant_id=$1 AND customer_id=$2',
+    [T, customer],
+  );
+  const restored = await PGlite.create({ loadDataDir: snapshot });
+  t.after(() => restored.close());
+
+  const sql = 'SELECT app_private.replay_synthetic_deletion_intake($1,$2,$3,$4,$5)';
+  const replay = (parameters) => scalar(restored, sql, parameters);
+  const committed = [T, customer, requestId, originalTime, 2];
+  const before = await prefs(restored);
+  assert.equal(before.enabled, true);
+  assert.equal(before.activeDevices, 1);
+  assert.equal(await read(restored), null);
+  await rejects(() => call(restored, sql, committed), '42501');
+  await rejects(() => replay([T, customer, requestId, originalTime, 1]), '23514');
+  assert.deepEqual(await prefs(restored), before);
+  assert.equal(await read(restored), null);
+
+  await restored.exec(`
+    CREATE FUNCTION app_private.test_restore_abort() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN RAISE EXCEPTION 'Fixture restore failure' USING ERRCODE='23514'; END $$;
+    CREATE TRIGGER test_restore_abort BEFORE INSERT ON app_private.customer_deletion_requests
+      FOR EACH ROW EXECUTE FUNCTION app_private.test_restore_abort();
+  `);
+  await rejects(() => replay(committed), '23514');
+  assert.deepEqual(await prefs(restored), before);
+  assert.equal(await read(restored), null);
+  await restored.exec('DROP TRIGGER test_restore_abort ON app_private.customer_deletion_requests');
+
+  assert.equal(await replay(committed), true);
+  assert.equal(await replay(committed), false);
+  await rejects(() => replay([T, customer, id(701), originalTime, 2]), '23505');
+  assert.deepEqual(await read(restored), original);
+  assert.deepEqual(await submit(restored), original);
+  assert.deepEqual(await prefs(restored), withdrawn);
+  assert.deepEqual(await prefs(restored, customer, OTHER), otherPrefs);
+  assert.equal(await read(restored, customer, OTHER), null);
+  assert.deepEqual(await push(restored, 802, 1, 'register', null, device), registration);
+  await rejects(() => push(restored, 803, 3, 'consent', true, null), '42501');
+  assert.deepEqual(await prefs(restored), withdrawn);
 });
