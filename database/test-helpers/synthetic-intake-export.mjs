@@ -1,5 +1,6 @@
 import { createHash, sign, verify } from 'node:crypto';
 
+const combinedPolicy = 'synthetic-deletion-recovery-v1';
 const policy = 'synthetic-deletion-intake-recovery-v1';
 const fields = [
   'tenantId',
@@ -25,9 +26,10 @@ function canonicalTime(value) {
   return Number.isFinite(time.getTime()) && time.toISOString() === milliseconds;
 }
 
-function encode(facts) {
-  if (!facts || Object.keys(facts).length !== fields.length) bad();
-  for (const field of fields) if (!Object.hasOwn(facts, field)) bad();
+function encode(facts, marker = policy) {
+  const signedFields = marker === combinedPolicy ? [...fields, 'reviewSha256'] : fields;
+  if (!facts || Object.keys(facts).length !== signedFields.length) bad();
+  for (const field of signedFields) if (!Object.hasOwn(facts, field)) bad();
   const {
     tenantId,
     customerId,
@@ -42,6 +44,8 @@ function encode(facts) {
     ![tenantId, customerId, requestId].every((id) => typeof id === 'string' && uuid.test(id)) ||
     typeof snapshotSha256 !== 'string' ||
     !digest.test(snapshotSha256) ||
+    (marker === combinedPolicy &&
+      (typeof facts.reviewSha256 !== 'string' || !digest.test(facts.reviewSha256))) ||
     ![snapshotCutoff, recoveryCutoff, requestedAt].every(canonicalTime) ||
     !(snapshotCutoff < requestedAt && requestedAt <= recoveryCutoff) ||
     !Number.isSafeInteger(priorVersion) ||
@@ -50,7 +54,10 @@ function encode(facts) {
   )
     bad();
   return Buffer.from(
-    JSON.stringify({ policy, ...Object.fromEntries(fields.map((field) => [field, facts[field]])) }),
+    JSON.stringify({
+      policy: marker,
+      ...Object.fromEntries(signedFields.map((field) => [field, facts[field]])),
+    }),
   );
 }
 
@@ -66,6 +73,10 @@ export function signSyntheticIntakeExport(facts, privateKey) {
 }
 
 export function verifySyntheticIntakeExport(bundle, publicKey, expected) {
+  return verifyExport(bundle, publicKey, expected, policy);
+}
+
+function verifyExport(bundle, publicKey, expected, requiredPolicy) {
   const { body, signature } = bundle;
   if (
     !Buffer.isBuffer(body) ||
@@ -78,8 +89,8 @@ export function verifySyntheticIntakeExport(bundle, publicKey, expected) {
     bad();
   const { policy: marker, ...facts } = JSON.parse(body.toString('utf8'));
   if (
-    marker !== policy ||
-    !encode(facts).equals(body) ||
+    marker !== requiredPolicy ||
+    !encode(facts, requiredPolicy).equals(body) ||
     facts.tenantId !== expected.tenantId ||
     facts.customerId !== expected.customerId ||
     facts.requestId !== expected.requestId ||
@@ -89,4 +100,64 @@ export function verifySyntheticIntakeExport(bundle, publicKey, expected) {
   )
     bad();
   return Object.freeze(facts);
+}
+
+function validateReview(review, intake) {
+  if (
+    review.tenantId !== intake.tenantId ||
+    review.customerId !== intake.customerId ||
+    review.requestId !== intake.requestId ||
+    !Array.isArray(review.records) ||
+    review.records.length !== 3 ||
+    review.records.includes(undefined)
+  )
+    bad();
+  const [triage, returned, decision] = review.records;
+  if ((returned || decision) && !triage) bad();
+  if (returned && triage.row.disposition !== 'needs_information') bad();
+  if (decision && !returned && triage.row.disposition !== 'ready_for_privacy_review') bad();
+
+  let prior = intake.requestedAt;
+  const timestampFields = ['reviewed_at', 'returned_at', 'decided_at'];
+  for (const [index, record] of review.records.entries()) {
+    if (record === null) continue;
+    const { row, audit } = record;
+    const timestamp = row[timestampFields[index]];
+    const auditTime = audit.occurred_at;
+    if (
+      !canonicalTime(timestamp) ||
+      !canonicalTime(auditTime) ||
+      timestamp < prior ||
+      timestamp > intake.recoveryCutoff ||
+      auditTime < intake.requestedAt ||
+      auditTime > intake.recoveryCutoff
+    )
+      bad();
+    prior = timestamp;
+  }
+}
+
+export function signSyntheticDeletionExport(intake, review, privateKey) {
+  validateReview(review, intake);
+  const reviewBytes = Buffer.from(JSON.stringify(review));
+  if (reviewBytes.length > 8192) bad();
+  const body = encode(
+    { ...intake, reviewSha256: createHash('sha256').update(reviewBytes).digest('hex') },
+    combinedPolicy,
+  );
+  return { body, signature: sign(null, body, privateKey), reviewBytes };
+}
+
+export function verifySyntheticDeletionExport(bundle, publicKey, expected) {
+  const { reviewSha256, ...intake } = verifyExport(bundle, publicKey, expected, combinedPolicy);
+  const { reviewBytes } = bundle;
+  if (
+    !Buffer.isBuffer(reviewBytes) ||
+    reviewBytes.length > 8192 ||
+    createHash('sha256').update(reviewBytes).digest('hex') !== reviewSha256
+  )
+    bad();
+  const review = JSON.parse(reviewBytes.toString('utf8'));
+  validateReview(review, intake);
+  return { intake, review };
 }

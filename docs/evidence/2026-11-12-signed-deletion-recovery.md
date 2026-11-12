@@ -1,0 +1,7 @@
+# Signed synthetic deletion recovery
+
+12 November 2026 EAT, checkpoint 414. One signed export binds the original intake, snapshot hash and cutoffs to the triage, return and planning records and their audits. Database timestamps are encoded in UTC with microsecond precision before signing. The restore verifies the expected company, customer, request, snapshot and cutoff, checks that review timestamps fit the recovery window, then applies intake and review changes in one transaction.
+
+The exercise restored the original receipt, disabled notification consent and registrations, and recovered all three review receipts, the plan and audit facts from a pre-intake snapshot. It rejected altered review bytes, a mismatched snapshot and an out-of-window decision. A simulated final audit failure left consent, the registration and intake at their pre-replay state. Repeating the valid export preserved the same receipts and audits.
+
+[Sixteen focused checks](deletion414-checks.txt) passed. The initial combined test exposed different database timestamp formatting and passed after explicit UTC normalization. The exercise uses a quiescent synthetic source and an ephemeral signing key. Production capture, key custody, storage and provider recovery still require verification. Next trace task 09-3 evidence and continue local work on notification delivery eligibility, using a synthetic sender. Production processing remains open.

@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 414, signed synthetic deletion recovery
+
+A signed export restored intake, withdrawn consent, review receipts and audit facts in one transaction from a pre-intake snapshot. Sixteen focused checks passed, including tamper refusal and rollback. See [evidence](evidence/2026-11-12-signed-deletion-recovery.md). Next trace task 09-3 evidence and verify notification eligibility with a synthetic sender. Production recovery and task 09-3 remain open.
+
 ## Published offline deletion review recovery, checkpoint 413, 12 November 2026 EAT
 
 Private deployment appgdep_6af51faaa04c81919d29ec252307b535 succeeded from dashboard cbd7fb2d2b5d778c5bb7dc2fddaa650285edbe68. Both browser tabs showed the new checkpoint and 55/97. The before exports (105)/(106) and after exports (107)/(108) matched within each pair. All 968 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 970 notes and 27 manual checks. Three dashboard tests passed.
