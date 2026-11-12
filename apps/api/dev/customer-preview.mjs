@@ -506,6 +506,13 @@ export async function startCustomerPreview({
           const adminId = tenantId === T ? ADMIN : id(20);
           return {
             token: await sign(adminId, issued, issued + 900),
+            runDue: () =>
+              withDatabase(() =>
+                db.query(
+                  'SELECT * FROM app_private.run_due_synthetic_customer_push($1,statement_timestamp(),10)',
+                  [tenantId],
+                ),
+              ),
             agentToken: await sign(AGENT, issued, issued + 900),
             revoke: () =>
               withDatabase(() =>

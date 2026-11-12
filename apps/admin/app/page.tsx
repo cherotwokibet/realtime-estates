@@ -1,3 +1,4 @@
+import { pushQueueConfiguration } from '../lib/push-queue-preview-server';
 import type { CSSProperties } from 'react';
 import { getDemoBrand, propertiesForCompany, resolveDemoTenantSlug } from '@realtor/demo';
 import { formatKes, kesFromMinor } from '@realtor/domain';
@@ -52,6 +53,11 @@ export default function Admin() {
   try {
     deletionTriageConfiguration(process.env);
     deletionTriageEnabled = true;
+  } catch {}
+  let pushQueueEnabled = false;
+  try {
+    pushQueueConfiguration(process.env);
+    pushQueueEnabled = true;
   } catch {}
   let deletionPrivacyEnabled = false;
   try {
@@ -219,6 +225,7 @@ export default function Admin() {
               Staff workspace <span aria-hidden="true">/</span> <strong>Overview</strong>
             </p>
             {deletionTriageEnabled && <a href="/deletion-triage">Account deletion requests</a>}
+            {pushQueueEnabled && <a href="/push-queue">Notification queue</a>}
             {deletionPrivacyEnabled && <a href="/deletion-privacy">Deletion privacy review</a>}
             <span className="preview-pill">
               <span aria-hidden="true" />

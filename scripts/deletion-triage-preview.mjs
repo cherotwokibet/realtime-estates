@@ -12,17 +12,23 @@ import { startCustomerPreview } from '../apps/api/dev/customer-preview.mjs';
 const args = process.argv.slice(2);
 if (
   process.env.NODE_ENV !== 'development' ||
-  args.some((arg) => !['--lost-result', '--lost-return', '--lost-privacy'].includes(arg)) ||
+  args.some(
+    (arg) => !['--lost-result', '--lost-return', '--lost-privacy', '--push-queue'].includes(arg),
+  ) ||
   args.length > 1
 )
-  throw Error('Run in development with optional --lost-result or --lost-return or --lost-privacy.');
+  throw Error(
+    'Run in development with optional --lost-result or --lost-return or --lost-privacy or --push-queue.',
+  );
 if (existsSync(new URL('../apps/admin/.next/dev/lock', import.meta.url)))
   throw Error('The admin development directory is occupied.');
 
 const privacy = args.includes('--lost-privacy');
+const pushQueue = args.includes('--push-queue');
 const preview = await startCustomerPreview({
   pushMode: 'synthetic-customer-push-v1',
   deletionMode: 'synthetic-customer-deletion-v1',
+  ...(pushQueue ? { pushQueueSummaryMode: 'synthetic-push-queue-summary-v1' } : {}),
   deletionReviewMode: 'synthetic-admin-deletion-review-v1',
   deletionFollowUpMode: 'synthetic-customer-deletion-follow-up-v1',
   ...(privacy
@@ -82,6 +88,7 @@ try {
   const port = '3139';
   const origin = 'http://127.0.0.1:' + port;
   const reviewer = await preview.deletionReviewStaff();
+  const queueStaff = pushQueue ? await preview.pushQueueStaff() : undefined;
   const privacyReviewer = privacy ? await preview.deletionPrivacyStaff() : undefined;
   const api = new RealtorApiClient({
     baseUrl: preview.origin,
@@ -136,7 +143,9 @@ try {
         TENANT_SLUG: preview.tenantSlug,
         STAFF_PREVIEW_MODE: 'synthetic',
         STAFF_PREVIEW_API_ORIGIN: preview.origin,
-        STAFF_PREVIEW_TOKEN: reviewer.token,
+        STAFF_PREVIEW_TOKEN: queueStaff?.token ?? reviewer.token,
+        STAFF_PUSH_QUEUE_MODE: pushQueue ? 'synthetic-v1' : '',
+        STAFF_PUSH_QUEUE_TENANT: preview.tenantId,
         STAFF_PREVIEW_INSTANCE: randomUUID(),
         STAFF_DELETION_TRIAGE_MODE: 'synthetic-v1',
         STAFF_DELETION_FOLLOW_UP: 'synthetic-v1',
@@ -159,8 +168,12 @@ try {
     commands = commands
       .then(async () => {
         if (line === 'quit') await stop();
+        if (line === 'run-due' && queueStaff) {
+          await queueStaff.runDue();
+          console.log('Due synthetic push jobs processed.');
+        }
         if (line === 'revoke') {
-          await (privacyReviewer ?? reviewer).revoke();
+          await (queueStaff ?? privacyReviewer ?? reviewer).revoke();
           console.log('Synthetic reviewer access revoked.');
         }
       })
@@ -173,7 +186,7 @@ try {
   console.log(
     'Synthetic deletion preview ' +
       origin +
-      (privacy ? '/deletion-privacy' : '/deletion-triage') +
+      (pushQueue ? '/push-queue' : privacy ? '/deletion-privacy' : '/deletion-triage') +
       '. Use revoke or quit.',
   );
 } catch (error) {
