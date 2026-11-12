@@ -9,6 +9,7 @@ import type { MobileCustomerSession } from './customer-session';
 import { syntheticCustomerCompanyId } from './synthetic-customer-sign-in';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
+  AppState,
   Linking,
   Platform,
   Pressable,
@@ -25,6 +26,7 @@ import { formatKes } from '@realtor/domain';
 import { type MobileReferenceConfig, type MobileReferenceItem } from './reference-catalogue';
 import {
   createMobileReferenceReadSession,
+  watchPreviousCatalogueExpiry,
   type MobileReferenceReadResult,
 } from './reference-read-session';
 import { createReferenceCatalogueStyles } from './reference-theme';
@@ -162,7 +164,13 @@ function ReferenceCatalogueSession({
   const [browseSelected, setSelected] = useState<MobileReferenceItem | null>(null);
   const [link, setLink] = useState<PropertyLinkState | null>(null);
   const linkController = useRef<ReturnType<typeof listenForPropertyLinks> | null>(null);
-  const selected = link ? (link.status === 'found' ? link.item : null) : browseSelected;
+  const selected = link
+    ? link.status === 'found'
+      ? link.item
+      : null
+    : result?.status === 'ready'
+      ? browseSelected
+      : null;
   const currentProperty = link
     ? link.status === 'found'
     : result?.status === 'ready' && result.freshness === 'current';
@@ -234,6 +242,21 @@ function ReferenceCatalogueSession({
     };
   }, [readSession, request, search, restored]);
   useEffect(() => () => readSession.clear(), [readSession]);
+  useEffect(() => {
+    if (result?.status !== 'ready' || result.freshness !== 'previous') return;
+    const watcher = watchPreviousCatalogueExpiry(result, () => {
+      setResult((current) =>
+        current === result ? { status: 'error', reason: 'expired' } : current,
+      );
+    });
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') watcher.check();
+    });
+    return () => {
+      subscription.remove();
+      watcher.stop();
+    };
+  }, [result]);
   const shown = result?.status === 'ready' ? result.items : [];
   return (
     <SafeAreaView style={s.root}>
@@ -523,7 +546,9 @@ function ReferenceCatalogueSession({
             {result?.status === 'error' && (
               <View>
                 <Text accessibilityRole="alert" style={[s.copy, s.error]}>
-                  The property catalogue could not be loaded.
+                  {result.reason === 'expired'
+                    ? 'The previous property results have expired. Try again to refresh.'
+                    : 'The property catalogue could not be loaded.'}
                 </Text>
                 <CatalogueButton
                   label="Try again"

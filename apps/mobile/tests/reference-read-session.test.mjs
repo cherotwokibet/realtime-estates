@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createMobileReferenceReadSession } from '../dist/tests/src/reference-read-session.js';
+import {
+  createMobileReferenceReadSession,
+  watchPreviousCatalogueExpiry,
+} from '../dist/tests/src/reference-read-session.js';
 const scope = {
   mode: 'synthetic-reference-public-v1',
   tenantSlug: 'sample-homes',
@@ -72,7 +75,7 @@ test('different query or page discards the one-response fallback instead of show
 });
 test('fallback expires without refreshing its age on failures and refuses a backwards or broken clock', async () => {
   for (const failure of [
-    () => 1101,
+    () => 1100,
     () => 999,
     () => NaN,
     () => {
@@ -233,4 +236,64 @@ test('a temporary API failure preserves a recent result but an access denial or 
     assert.deepEqual(await session.read(query), { status: 'error' });
     assert.equal(calls, 4);
   }
+});
+
+test('a displayed previous result expires at its original deadline without another read', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let time = 1000;
+  let calls = 0;
+  const session = createMobileReferenceReadSession(scope, {
+    now: () => time,
+    maxAgeMs: 100,
+    fetch: async () => {
+      if (++calls === 1) return page();
+      throw Error('offline');
+    },
+  });
+  await session.read(query);
+  time = 1060;
+  const previous = await session.read(query);
+  assert.equal(previous.freshness, 'previous');
+  assert.equal(previous.expiresAt, 1100);
+  let expired = 0;
+  const watcher = watchPreviousCatalogueExpiry(
+    previous,
+    () => expired++,
+    () => time,
+  );
+  time = 1099;
+  t.mock.timers.tick(39);
+  assert.equal(expired, 0);
+  time = 1100;
+  t.mock.timers.tick(1);
+  assert.equal(expired, 1);
+  watcher.check();
+  assert.equal(expired, 1);
+  assert.equal(calls, 2);
+});
+
+test('foreground rechecks expire a previous result after suspension or clock rollback', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const previous = { loadedAt: 1000, expiresAt: 1100 };
+  for (const resumedAt of [1101, 999]) {
+    let time = 1040;
+    let expired = 0;
+    const watcher = watchPreviousCatalogueExpiry(
+      previous,
+      () => expired++,
+      () => time,
+    );
+    time = resumedAt;
+    watcher.check();
+    assert.equal(expired, 1);
+    t.mock.timers.tick(100);
+    assert.equal(expired, 1);
+  }
+  const replaced = watchPreviousCatalogueExpiry(
+    previous,
+    () => assert.fail('replaced result expired'),
+    () => 1040,
+  );
+  replaced.stop();
+  t.mock.timers.tick(100);
 });

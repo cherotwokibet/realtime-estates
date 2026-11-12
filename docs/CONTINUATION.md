@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 429, mobile offline catalogue expiry
+
+The previous public response clears at its original five-minute deadline, including when returning from the background. All 53 mobile tests, type checking and the Android development bundle passed. See [evidence](evidence/2026-11-12-mobile-offline-expiry.md). Next exercise disconnect, on-screen and background expiry, and recovery on a test device. Tasks 09-4 and 09-5 remain open.
+
 ## Published mobile offline catalogue response handling, checkpoint 428, 12 November 2026 EAT
 
 Private deployment appgdep_6af5f69c1b608191b81801230a8a3561 succeeded from dashboard fab8e9434c93792093a89587b720bec561f3bee3. Both browser tabs showed the new checkpoint and 55/97. The before exports (165)/(166) and after exports (167)/(168) matched within each pair. All 998 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 1000 notes and 27 manual checks. Three dashboard tests passed.
