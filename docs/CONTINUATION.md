@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 426, preflight for hosted property links
+
+The web workspace now verifies anonymous association responses, the selected signing identities and the canonical listing fallback before a device run. All 12 focused tests passed. See [evidence and invocation](evidence/2026-11-12-property-link-host-preflight.md). Next run the preflight with an authorized HTTPS host and signing identities, then verify native share, installed cold and warm delivery, withdrawn links and the uninstalled fallback. ADB had no connected device. Task 09-4 remains open.
+
 ## Published sharing properties from mobile, checkpoint 425, 12 November 2026 EAT
 
 Private deployment appgdep_6af5cb8efe8c8191898a8d0273ca52a7 succeeded from dashboard e2257746b7058a977f095bfa4722ea6c12ffac86. Both browser tabs showed the new checkpoint and 55/97. The before exports (153)/(154) and after exports (155)/(156) matched within each pair. All 992 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 994 notes and 27 manual checks. Three dashboard tests passed.
