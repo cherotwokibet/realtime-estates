@@ -1,3 +1,9 @@
+## Published signed intake recovery export, checkpoint 412, 12 November 2026 EAT
+
+Private deployment appgdep_6af51058e308819182668b9990fbed2a succeeded from dashboard 3e0dc2ac924b5bdee9477ef3f70c2b007eeef56e. Both browser tabs showed the new checkpoint and 55/97. The before exports (101)/(102) and after exports (103)/(104) matched within each pair. All 966 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 968 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 9097bc6 passed fifteen focused checks. The offline replay used a signed export bound to the exact snapshot, request and cutoffs. Next recover later review decisions and audit records. Production recovery and task 09-3 remain open.
+
 ## 12 November 2026 EAT - checkpoint 412, signed synthetic intake recovery export
 
 The disposable restore fixture now verifies a signed export against the exact snapshot bytes, trusted key, scope and approved cutoffs before replaying the original intake. Fifteen focused tests passed. See [evidence](evidence/2026-11-12-signed-intake-recovery-export.md). Next recover later triage, return and planning decisions and audit records in the offline fixture. Task 09-3 and production recovery remain open.
