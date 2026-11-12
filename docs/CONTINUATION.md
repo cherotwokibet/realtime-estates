@@ -1,3 +1,9 @@
+## Published synthetic push eligibility, checkpoint 415, 12 November 2026 EAT
+
+Private deployment appgdep_6af53c4f2e788191bcfa392c80c29a88 succeeded from dashboard f765c1facafeab17dc39c97bced5483282f3703f. Both browser tabs showed the new checkpoint and 55/97. The before exports (113)/(114) and after exports (115)/(116) matched within each pair. All 972 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 974 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 4690703 passed eleven focused checks. The disposable sender gated capture on current consent, registration and deletion state. Next add durable synthetic jobs and retry checks. Device, provider and production deletion evidence remain open for task 09-3.
+
 ## 12 November 2026 EAT - checkpoint 415, synthetic push eligibility
 
 The disposable sender recorded one capture only for a current opted-in customer and active registration. Eleven focused checks passed, including suppression after opt-out or deletion intake, foreign registration refusal, and exact replay. See [evidence](evidence/2026-11-12-synthetic-push-eligibility.md). Next add durable synthetic jobs and retry checks. Device, provider and production deletion evidence remain open for task 09-3.
