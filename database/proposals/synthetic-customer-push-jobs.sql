@@ -10,6 +10,7 @@ CREATE TABLE app_private.synthetic_customer_push_jobs (
   preference_version bigint NOT NULL CHECK (preference_version BETWEEN 0 AND 9007199254740991),
   due_at timestamptz NOT NULL CHECK (isfinite(due_at)),
   viewing_admission_id uuid,
+  retry_after timestamptz CHECK (isfinite(retry_after)),
   finished_operation_id uuid CHECK (finished_operation_id = operation_id),
   PRIMARY KEY (tenant_id, operation_id),
   FOREIGN KEY (tenant_id, customer_id) REFERENCES app_private.memberships (tenant_id, user_id),
@@ -19,6 +20,9 @@ CREATE TABLE app_private.synthetic_customer_push_jobs (
   FOREIGN KEY (tenant_id, finished_operation_id)
     REFERENCES app_private.synthetic_customer_push_attempts (tenant_id, operation_id)
 );
+CREATE INDEX synthetic_customer_push_jobs_due
+  ON app_private.synthetic_customer_push_jobs (tenant_id, due_at, operation_id)
+  WHERE finished_operation_id IS NULL;
 ALTER TABLE app_private.synthetic_customer_push_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_private.synthetic_customer_push_jobs FORCE ROW LEVEL SECURITY;
 CREATE POLICY owner_only ON app_private.synthetic_customer_push_jobs TO realtor_owner
@@ -93,7 +97,7 @@ BEGIN
       p_tenant, job.customer_id, p_operation, job.registration_id, job.preference_version
     );
   END IF;
-  UPDATE app_private.synthetic_customer_push_jobs SET finished_operation_id = p_operation
+  UPDATE app_private.synthetic_customer_push_jobs SET finished_operation_id = p_operation, retry_after = NULL
     WHERE tenant_id = p_tenant AND operation_id = p_operation;
   RETURN result;
 END $$;
@@ -136,9 +140,43 @@ BEGIN
   );
 END $$;
 
+-- One offline worker pass. A failed attempt rolls back its capture before recording the retry.
+CREATE FUNCTION app_private.run_due_synthetic_customer_push(
+  p_tenant uuid, p_as_of timestamptz, p_limit integer
+) RETURNS TABLE (operation_id uuid, outcome text)
+LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+DECLARE selected_operation uuid;
+BEGIN
+  IF p_tenant IS NULL OR p_as_of IS NULL OR NOT isfinite(p_as_of)
+    OR p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 50 THEN
+    RAISE EXCEPTION 'Invalid synthetic worker batch' USING ERRCODE = '23514';
+  END IF;
+
+  FOR selected_operation IN
+    SELECT job.operation_id FROM app_private.synthetic_customer_push_jobs job
+    WHERE job.tenant_id = p_tenant AND job.finished_operation_id IS NULL
+      AND job.due_at <= p_as_of AND (job.retry_after IS NULL OR job.retry_after <= p_as_of)
+    ORDER BY job.due_at, job.operation_id
+    LIMIT p_limit
+    FOR UPDATE SKIP LOCKED
+  LOOP
+    operation_id := selected_operation;
+    BEGIN
+      outcome := app_private.run_synthetic_customer_push(p_tenant, selected_operation, p_as_of);
+    EXCEPTION WHEN OTHERS THEN
+      UPDATE app_private.synthetic_customer_push_jobs job
+        SET retry_after = p_as_of + interval '1 minute'
+        WHERE job.tenant_id = p_tenant AND job.operation_id = selected_operation;
+      outcome := 'retry_scheduled';
+    END;
+    RETURN NEXT;
+  END LOOP;
+END $$;
+
 REVOKE ALL ON FUNCTION
   app_private.enqueue_synthetic_viewing_push(uuid, uuid, uuid, uuid),
   app_private.enqueue_synthetic_customer_push(uuid, uuid, uuid, uuid, bigint, timestamptz, uuid),
-  app_private.run_synthetic_customer_push(uuid, uuid, timestamptz)
+  app_private.run_synthetic_customer_push(uuid, uuid, timestamptz),
+  app_private.run_due_synthetic_customer_push(uuid, timestamptz, integer)
   FROM PUBLIC, api_runtime, media_coordinator, media_maintenance;
 COMMIT;

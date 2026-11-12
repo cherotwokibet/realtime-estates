@@ -383,3 +383,76 @@ test('durable synthetic push jobs recover retries and recheck current eligibilit
     0,
   );
 });
+
+test('bounded push worker rolls back one failed capture, runs unrelated jobs and retries after cooldown', async (t) => {
+  const db = await setup(t);
+  for (const name of ['synthetic-customer-push-capture', 'synthetic-customer-push-jobs']) {
+    await db.exec(
+      await readFile(new URL('../proposals/' + name + '.sql', import.meta.url), 'utf8'),
+    );
+  }
+  await push(db, 801, 0, 'consent', true, null);
+  await push(db, 802, 1, 'register', null, device);
+  const due = '2026-11-12T09:00:00Z';
+  const retry = '2026-11-12T09:01:00Z';
+  const future = '2026-11-12T09:02:00Z';
+  for (const [operation, at, tenant] of [
+    [891, due, T],
+    [890, due, T],
+    [892, due, T],
+    [893, future, T],
+    [894, due, OTHER],
+  ]) {
+    await scalar(db, 'SELECT app_private.enqueue_synthetic_customer_push($1,$2,$3,$4,$5,$6)', [
+      tenant,
+      customer,
+      id(operation),
+      device,
+      2,
+      at,
+    ]);
+  }
+  const workerSql = 'SELECT * FROM app_private.run_due_synthetic_customer_push($1,$2,$3)';
+  const batch = async (at, limit, tenant = T) =>
+    (await db.query(workerSql, [tenant, at, limit])).rows;
+  const result = (operation, outcome) => ({ operation_id: id(operation), outcome });
+  await rejects(() => call(db, workerSql, [T, due, 2]), '42501');
+  for (const limit of [0, 51, null]) await rejects(() => batch(due, limit), '23514');
+  await db.exec(`
+    CREATE FUNCTION app_private.reject_synthetic_push_completion() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      IF NEW.operation_id = '00000000-0000-4000-8000-000000000890'
+        AND NEW.finished_operation_id IS NOT NULL THEN
+        RAISE EXCEPTION 'Synthetic completion failure';
+      END IF;
+      RETURN NEW;
+    END $$;
+    CREATE TRIGGER reject_synthetic_push_completion BEFORE UPDATE ON app_private.synthetic_customer_push_jobs
+      FOR EACH ROW EXECUTE FUNCTION app_private.reject_synthetic_push_completion();
+  `);
+  assert.deepEqual(await batch(due, 2), [result(890, 'retry_scheduled'), result(891, 'captured')]);
+  assert.deepEqual(await batch(due, 2), [result(892, 'captured')]);
+  assert.deepEqual(await batch(due, 2), []);
+  assert.deepEqual(
+    (
+      await db.query(
+        'SELECT operation_id FROM app_private.synthetic_customer_push_attempts ORDER BY operation_id',
+      )
+    ).rows,
+    [{ operation_id: id(891) }, { operation_id: id(892) }],
+  );
+  await db.exec(
+    'DROP TRIGGER reject_synthetic_push_completion ON app_private.synthetic_customer_push_jobs',
+  );
+  assert.deepEqual(await batch(retry, 2), [result(890, 'captured')]);
+  assert.deepEqual(await batch(retry, 2), []);
+  assert.deepEqual(await batch(future, 2), [result(893, 'captured')]);
+  assert.deepEqual(await batch(future, 2, OTHER), [result(894, 'consent_off')]);
+  assert.equal(
+    await scalar(
+      db,
+      "SELECT count(*)::int FROM app_private.synthetic_customer_push_attempts WHERE outcome='captured'",
+    ),
+    4,
+  );
+});

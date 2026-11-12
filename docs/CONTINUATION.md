@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 418, bounded synthetic push worker
+
+The offline worker runs due jobs in company-scoped batches and retries an individual failure after one minute. Fourteen focused checks passed, including rollback after capture and progress on unrelated jobs. See [evidence](evidence/2026-11-12-synthetic-push-worker.md). Next expose synthetic queue counts and retry age for operator review. Task 09-3 remains open.
+
 ## Published synthetic viewing push queue, checkpoint 417, 12 November 2026 EAT
 
 Private deployment appgdep_6af558965af88191b665a871e10b1d74 succeeded from dashboard d6be9a976d46c97048f938c3222a86f17a008421. Both browser tabs showed the new checkpoint and 55/97. The before exports (121)/(122) and after exports (123)/(124) matched within each pair. All 976 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 978 notes and 27 manual checks. Three dashboard tests passed.
