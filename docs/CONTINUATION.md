@@ -1,3 +1,9 @@
+## Published opening shared properties on mobile, checkpoint 423, 12 November 2026 EAT
+
+Private deployment appgdep_6af5b051993881918e09cb0ad8ae59f3 succeeded from dashboard 49e85466bb33f40bd7d5400b3ec3fc2b8ad52f4c. Both browser tabs showed the new checkpoint and 55/97. The before exports (145)/(146) and after exports (147)/(148) matched within each pair. All 988 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 990 notes and 27 manual checks. Three dashboard tests passed.
+
+Source 1ad92d3 passed all 48 mobile tests, type checking, Expo public configuration and the Android development bundle. ADB showed no connected devices. Local Pixel_10_Pro and Pixel_10a emulator profiles are available for a forced intent smoke check. Next verify cold and warm routing there, then verify operating-system association, uninstalled browser fallback and unpublished listings using an authorized host and signing identities. Task 09-4 remains open.
+
 ## 12 November 2026 EAT - checkpoint 423, opening shared properties on mobile
 
 The connected synthetic mobile catalogue handles startup and foreground property links with an exact anonymous lookup. All 48 mobile tests, type checking, Expo public configuration and the Android development bundle passed. ADB showed no connected devices. See [evidence](evidence/2026-11-12-mobile-property-links.md). Next verify cold and warm installed-app handoff, uninstalled browser fallback and withdrawn listings on a controlled HTTPS host with authorized signing identities. Task 09-4 and all launch gates remain open.
