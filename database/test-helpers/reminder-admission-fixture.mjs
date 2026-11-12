@@ -33,7 +33,7 @@ async function actor(db, user, work, tenant = T) {
     throw error;
   }
 }
-async function fixture() {
+async function fixture(customerId = null) {
   const db = new PGlite();
   try {
     await applyTestMigrations(db);
@@ -50,6 +50,12 @@ async function fixture() {
         'INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,$3)',
         [T, user, role],
       );
+    if (customerId) {
+      await db.query(
+        "INSERT INTO app_private.memberships(tenant_id,user_id,role) VALUES($1,$2,'customer')",
+        [T, customerId],
+      );
+    }
     const content = {
       title: 'Synthetic reminder studio',
       description: 'Fictional reminder admission fixture.',
@@ -94,8 +100,8 @@ async function fixture() {
       db.query('SELECT app_api.decide_revision($1,1,$2,true)', [L, pending]),
     );
     await db.query(
-      "INSERT INTO app_private.enquiries(tenant_id,id,idempotency_key,assigned_agent_id,contact_name,email,message,origin,notice_version,status) VALUES($1,$2,$2,$3,'Synthetic reminder','synthetic@example.invalid','Fictional reminder interest','staff','synthetic-v1','assigned')",
-      [T, E, U],
+      "INSERT INTO app_private.enquiries(tenant_id,id,idempotency_key,assigned_agent_id,requested_by_id,contact_name,email,message,origin,notice_version,status) VALUES($1,$2,$2,$3,$4,'Synthetic reminder','synthetic@example.invalid','Fictional reminder interest','staff','synthetic-v1','assigned')",
+      [T, E, U, customerId],
     );
     const requested = await actor(db, U, () =>
         scalar(

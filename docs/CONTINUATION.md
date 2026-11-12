@@ -1,3 +1,7 @@
+## 12 November 2026 EAT - checkpoint 417, synthetic viewing push queue
+
+An admitted viewing now queues a synthetic push for its signed customer. The runner captured one current reminder and suppressed a later job after cancellation. Twenty focused checks passed. See [evidence](evidence/2026-11-12-synthetic-viewing-push.md). Next add bounded due-job selection and test independent retry. Task 09-3 remains open pending device, provider and production deletion evidence.
+
 ## Published durable synthetic push jobs, checkpoint 416, 12 November 2026 EAT
 
 Private deployment appgdep_6af54a5980388191a40353432925636a succeeded from dashboard 3ea62b52e95da91711e0895c0300b6b6d5c6c055. Both browser tabs showed the new checkpoint and 55/97. The before exports (117)/(118) and after exports (119)/(120) matched within each pair. All 974 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 976 notes and 27 manual checks. Three dashboard tests passed.

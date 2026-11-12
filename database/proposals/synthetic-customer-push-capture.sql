@@ -10,7 +10,7 @@ CREATE TABLE app_private.synthetic_customer_push_attempts (
   preference_version bigint NOT NULL,
   outcome text NOT NULL CHECK (outcome IN (
     'captured', 'deletion_pending', 'customer_unavailable', 'consent_off',
-    'stale_preferences', 'registration_unavailable'
+    'stale_preferences', 'registration_unavailable', 'viewing_obsolete'
   )),
   PRIMARY KEY (tenant_id, operation_id),
   FOREIGN KEY (tenant_id, customer_id) REFERENCES app_private.memberships (tenant_id, user_id)
