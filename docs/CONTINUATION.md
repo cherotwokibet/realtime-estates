@@ -1,3 +1,7 @@
+## 13 November 2026 EAT - checkpoint 434, viewing agreement browser verification
+
+The Realtime agent browser rejected an agreement one millisecond before the proposal and accepted the exact proposal timestamp. A fresh read showed the same slot confirmed at version 3. All 28 focused checks passed. The [operator walkthrough](evidence/2026-11-12-realtime-operator-walkthrough.md) reflects the current controls. Next, run it with a Realtime operator and record feedback. Tasks 12-3 and 12-7 remain open.
+
 ## Published pilot review and viewing handoffs, checkpoint 433, 13 November 2026 EAT
 
 Private deployment appgdep_6af64aef628481919644fd3e1f84e3c3 succeeded from dashboard 4738950067e2f4def0e99c77f9e1eaa5b89a98c8. Both browser tabs showed the new checkpoint and 55/97. The before exports (185)/(186) and after exports (187)/(188) matched within each pair. All 1008 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 1010 notes and 27 manual checks. Three dashboard tests passed.
