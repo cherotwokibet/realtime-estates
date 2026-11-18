@@ -1,3 +1,9 @@
+## Published mobile connected search and offline expiry, checkpoint 443, 18 November 2026 EAT
+
+Private dashboard deployment appgdep_6afdd50190708191b514862414fb52b0 succeeded from dashboard 03dfa3312470bc4b0e6ab8dcca7e5f6799469a1d. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source 166a931 tests mobile search filters and prior-response expiry across both connected company fixtures. Next verify the Android screen and actual network interruption, and continue the Realtime operator walkthrough.
+
 ## 18 November 2026 EAT - checkpoint 443, mobile connected search and offline expiry
 
 The mobile form and catalogue session passed the connected HTTP search cases for both companies, including exact studio bedrooms and combined price and room criteria. For the same query, connection loss offered the previous result until its expiry. The integrated test and 28 focused mobile checks passed. Next verify the installed Android flow and continue the Realtime operator walkthrough. [Evidence](evidence/2026-11-18-mobile-connected-search.md)
