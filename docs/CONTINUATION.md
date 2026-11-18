@@ -1,3 +1,9 @@
+## 18 November 2026 EAT - checkpoint 444, hosted browser identity foundation
+
+Implemented a shared OIDC code/S256 provider client, encrypted PostgreSQL login/session store, explicit hosted configuration and default-off authentication routes in web/admin. Complete API suite passed 411 tests with zero skips; both production builds passed. Actual local production servers returned the intended generic no-store 503 on all eight routes without provider settings. No hosted provider, browser/device or launch acceptance is implied. Whole checklist remains 55/97 and 0/14 gates. [Evidence](evidence/2026-11-18-hosted-browser-identity.md) and [configuration/limits](hosted-browser-identity.md).
+
+Exact next: connect the shared authenticated-session reader to existing customer and staff server adapters, add usable navigation and cache clearing, and test current membership plus logout/in-flight races. Existing preview bridges remain synthetic; /auth sessions do not yet authorize those operations. Continue this local work while controlled staging host/PostgreSQL/compatible identity project evidence is pending. No matching provider variables were present in this session; this is not proof that Boniface lacks accounts. Do not provision paid resources or change billing. Separately remediate the whole-monorepo audit's 11 mobile-toolchain transitive advisories (8 moderate, 3 high) with appropriate mobile regression; API/web/admin production audit returned zero. Keep old live/vendor resources and KES 10,000 baseline intact.
+
 ## 18 November 2026 EAT - delivery priority correction
 
 Boniface raised that 57% after more than a month is too slow. Recent checkpoints added narrow local verification while whole deliverables remained open. Resume by working toward complete deliverables and resolving their real dependencies.
