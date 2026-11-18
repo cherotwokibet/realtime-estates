@@ -152,6 +152,15 @@ export function configuredBrowserIdentityRuntime(
     return current;
   }
   return Object.freeze({
+    async authenticateSession(request: Request) {
+      try {
+        const instance = configured();
+        if (!instance || !('authenticateSession' in instance)) throw new AuthenticationError();
+        return await instance.authenticateSession(request);
+      } catch {
+        throw new AuthenticationError();
+      }
+    },
     async handle(request: Request): Promise<Response> {
       try {
         const instance = configured();

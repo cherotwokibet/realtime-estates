@@ -23,12 +23,17 @@ type Row = { listingId: string; version: string; available: boolean };
 export default function CustomerAccount({
   candidate,
   tenantId,
+  mode = 'synthetic',
 }: {
   tenantId: string;
   candidate: null | { id: string; title: string };
+  mode?: 'synthetic' | 'hosted';
 }) {
   const gate = useRef(new CustomerViewGate()),
-    channel = useRef<BroadcastChannel | null>(null);
+    channel = useRef<BroadcastChannel | null>(null),
+    authChannel = useRef<BroadcastChannel | null>(null);
+  const validateSession = (value: unknown) =>
+    validateBrowserSession(value, tenantId, Date.now(), mode);
   const [session, setSession] = useState<Session | null>(null),
     [rows, setRows] = useState<Row[]>([]),
     [summaries, setSummaries] = useState<Summary[]>([]),
@@ -86,9 +91,15 @@ export default function CustomerAccount({
     }
   }
   async function read(signal: AbortSignal, ticket: number, existing?: Session) {
-    const next = validateBrowserSession(existing ?? (await api('/session', signal)), tenantId);
+    const next = validateSession(existing ?? (await api('/session', signal)));
     if (!gate.current.current(ticket)) return;
-    if (next.policy !== 'customer-browser-session-v1' || !Array.isArray(next.choices))
+    if (
+      next.policy !==
+        (mode === 'hosted'
+          ? 'hosted-customer-browser-session-v1'
+          : 'customer-browser-session-v1') ||
+      !Array.isArray(next.choices)
+    )
       throw Error();
     setSession(next);
     setMissing(false);
@@ -136,6 +147,16 @@ export default function CustomerAccount({
   useEffect(() => {
     void refresh();
     if (typeof BroadcastChannel !== 'undefined') {
+      if (mode === 'hosted') {
+        authChannel.current = new BroadcastChannel('realtor-hosted-auth-v1');
+        authChannel.current.onmessage = (e) => {
+          if (e.data?.type === 'auth-changed') {
+            blocked.current = false;
+            clear();
+            void refresh();
+          }
+        };
+      }
       const c = new BroadcastChannel('realtor-customer:' + window.location.origin);
       channel.current = c;
       c.onmessage = (e) => {
@@ -165,10 +186,12 @@ export default function CustomerAccount({
     return () => {
       gate.current.invalidate();
       channel.current?.close();
+      authChannel.current?.close();
+      authChannel.current = null;
       window.removeEventListener('focus', check);
       window.removeEventListener('pageshow', show);
     };
-  }, [tenantId, candidate?.id]);
+  }, [tenantId, candidate?.id, mode]);
   useEffect(() => {
     if (!session?.account) return;
     const timer = setTimeout(
@@ -182,13 +205,14 @@ export default function CustomerAccount({
     return () => clearTimeout(timer);
   }, [session?.account?.generation]);
   async function login(userId: string) {
+    if (mode !== 'synthetic') return;
     blocked.current = false;
     clear();
     setBusy(true);
     setError('');
     const t = gate.current.begin();
     try {
-      const next = validateBrowserSession(await api('/sign-in', t.signal, { userId }), tenantId);
+      const next = validateSession(await api('/sign-in', t.signal, { userId }));
       if (!gate.current.current(t.version)) return;
       channel.current?.postMessage('changed');
       await read(t.signal, t.version, next);
@@ -206,11 +230,13 @@ export default function CustomerAccount({
     setBusy(true);
     setError('');
     channel.current?.postMessage('signed-out');
+    authChannel.current?.postMessage({ type: 'auth-changed' });
     const t = gate.current.begin();
     try {
       await api('/sign-out', t.signal, {}, csrf);
       channel.current?.postMessage('signed-out');
-      await read(t.signal, t.version);
+      authChannel.current?.postMessage({ type: 'auth-changed' });
+      if (mode === 'synthetic') await read(t.signal, t.version);
     } catch {
       if (gate.current.current(t.version))
         setError(
@@ -281,7 +307,7 @@ export default function CustomerAccount({
         );
       if (kind === 'save') {
         try {
-          const next = validateBrowserSession(await api('/session', t.signal), tenantId);
+          const next = validateSession(await api('/session', t.signal));
           if (gate.current.current(t.version)) setSession(next);
         } catch {
           if (gate.current.current(t.version))
@@ -311,9 +337,16 @@ export default function CustomerAccount({
       setRows([...rows, ...page.items]);
       setSummaries([...summaries, ...checked.summaries]);
       setHasMore(page.hasMore);
-    } catch {
-      if (gate.current.current(t.version))
-        setError('More saved homes could not be loaded. Try refreshing.');
+    } catch (e) {
+      if (gate.current.current(t.version)) {
+        if ([401, 403].includes((e as { status?: number }).status ?? 0)) {
+          blocked.current = true;
+          clear();
+          setBusy(false);
+          channel.current?.postMessage('signed-out');
+          setError('Your account access ended. Please sign in again.');
+        } else setError('More saved homes could not be loaded. Try refreshing.');
+      }
     } finally {
       if (gate.current.current(t.version)) setBusy(false);
     }
@@ -322,9 +355,15 @@ export default function CustomerAccount({
     <section className="customer-account" aria-busy={busy}>
       <p className="eyebrow">YOUR SAVED HOMES</p>
       <h1>Keep the places you want to revisit.</h1>
-      <p>
-        Synthetic test accounts only. These choices do not create real accounts or send messages.
-      </p>
+      {mode === 'synthetic' ? (
+        <p>
+          Synthetic test accounts only. These choices do not create real accounts or send messages.
+        </p>
+      ) : (
+        <p>
+          Save homes to revisit them later. <Link href="/sign-in">Manage sign-in</Link>
+        </p>
+      )}
       {busy && <p role="status">Loading your account…</p>}
       {error && <p role="alert">{error}</p>}
       <button

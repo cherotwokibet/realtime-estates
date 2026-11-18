@@ -1,5 +1,6 @@
 import CustomerAccount from '../../components/CustomerAccount';
 import { customerBridge } from '../../lib/customer-runtime';
+import { hostedCustomer } from '../../lib/hosted-customer-runtime';
 import { loadProperty } from '../../lib/catalogue-server';
 import {
   ConnectedPublicHeader,
@@ -19,17 +20,26 @@ export default async function Account({
     if (r.mode !== 'error' && r.status === 'found')
       candidate = { id: r.property.id, title: r.property.title };
   }
-  const bridge = customerBridge();
+  const bridge = process.env.HOSTED_CUSTOMER_API_ORIGIN === undefined ? customerBridge() : null;
+  let hosted: ReturnType<typeof hostedCustomer> = null;
+  try {
+    hosted = hostedCustomer();
+  } catch {
+    /* Invalid hosted setup stays unavailable. */
+  }
   return (
     <>
       <ConnectedPublicHeader />
       <main id="main" tabIndex={-1} className="container detail-page">
-        {bridge ? (
+        {hosted ? (
+          <CustomerAccount candidate={candidate} tenantId={hosted.tenantId} mode="hosted" />
+        ) : bridge ? (
           <CustomerAccount candidate={candidate} tenantId={bridge.tenantId} />
         ) : (
           <>
             <h1>Customer accounts are unavailable here.</h1>
             <p>You can continue browsing public properties.</p>
+            <a href="/sign-in">Sign in</a>
           </>
         )}
       </main>

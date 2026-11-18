@@ -125,6 +125,11 @@ export function createBrowserSignInClient(
       },
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     });
+    // A denied session has no authority. Allow deliberate re-authentication; retain uncertainty for outages.
+    if (path === '/auth/session' && body === undefined && response.status === 401) {
+      await response.body?.cancel().catch(() => {});
+      return { account: null, csrf: null };
+    }
     if (!response.ok) throw new SignInError();
     const reader = response.body?.getReader();
     if (!reader) throw new SignInError();

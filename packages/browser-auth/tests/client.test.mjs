@@ -19,6 +19,22 @@ const config = {
   apiKey: 'AIza' + 'x'.repeat(35),
   appId: '1:123456:web:abcdef123456',
 };
+test('denied session clears authority and permits reauthentication while an outage stays uncertain', async () => {
+  for (const status of [401, 503]) {
+    const client = createBrowserSignInClient(
+      () => {
+        throw Error('not needed');
+      },
+      async () =>
+        Response.json(
+          { error: status === 401 ? 'SIGN_IN_FAILED' : 'SIGN_IN_UNAVAILABLE' },
+          { status },
+        ),
+    );
+    if (status === 401) assert.deepEqual(await client.getSession(), { account: null, csrf: null });
+    else await assert.rejects(client.getSession());
+  }
+});
 function fixture({ lost = false, badReply = false, disposeFailure = false } = {}) {
   const calls = [],
     events = [];

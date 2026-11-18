@@ -273,6 +273,17 @@ export function createFirebaseBrowserIdentity(
   return Object.freeze({
     handle,
     authenticate,
+    async authenticateSession(request: Request) {
+      const identity = await authenticate(request);
+      const value = await rawSession(request);
+      if (!value || value.accessToken !== identity.accessToken) throw new Refused();
+      return Object.freeze({
+        ...identity,
+        csrf: value.csrf,
+        expiresAt: value.expiresAt,
+        generation: hash(scope + '|' + cookie(request, sessionCookie)),
+      });
+    },
     applicationOrigin: origin.origin,
     tenantId: c.tenantId,
   });

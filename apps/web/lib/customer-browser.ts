@@ -11,7 +11,7 @@ export interface BrowserAccount extends CustomerScope {
   readonly expiresAt: string;
 }
 export interface BrowserSession {
-  readonly policy: 'customer-browser-session-v1';
+  readonly policy: 'customer-browser-session-v1' | 'hosted-customer-browser-session-v1';
   readonly account: BrowserAccount | null;
   readonly csrf: string | null;
   readonly pending: CustomerFavouriteCommand | null;
@@ -66,14 +66,21 @@ export function validateBrowserSession(
   v: unknown,
   tenantId: string,
   now = Date.now(),
+  mode: 'synthetic' | 'hosted' = 'synthetic',
 ): BrowserSession {
   const r = row(v, ['policy', 'account', 'csrf', 'pending', 'choices']);
-  if (r.policy !== 'customer-browser-session-v1' || !uuid.test(tenantId)) return bad();
+  const policy =
+    mode === 'hosted' ? 'hosted-customer-browser-session-v1' : 'customer-browser-session-v1';
+  if (r.policy !== policy || !uuid.test(tenantId)) return bad();
   const choices = array(r.choices, 4).map((v) => {
     const c = row(v, ['id', 'label']);
     return Object.freeze({ id: id(c.id), label: label(c.label) });
   });
-  if (!choices.length || new Set(choices.map((c) => c.id)).size !== choices.length) return bad();
+  if (
+    (mode === 'hosted' ? choices.length !== 0 : !choices.length) ||
+    new Set(choices.map((c) => c.id)).size !== choices.length
+  )
+    return bad();
   let account: BrowserAccount | null = null;
   if (r.account !== null) {
     const a = row(r.account, ['tenantId', 'customerId', 'label', 'generation', 'expiresAt']);
@@ -85,15 +92,15 @@ export function validateBrowserSession(
       !Number.isFinite(Date.parse(a.expiresAt)) ||
       new Date(a.expiresAt).toISOString() !== a.expiresAt ||
       Date.parse(a.expiresAt) <= now ||
-      Date.parse(a.expiresAt) > now + 600000
+      Date.parse(a.expiresAt) > now + (mode === 'hosted' ? 3600000 : 600000)
     )
       return bad();
     const customerId = id(a.customerId),
-      name = label(a.label);
+      name = mode === 'hosted' ? (a.label === 'Your account' ? a.label : bad()) : label(a.label);
     if (
-      !choices.some((c) => c.id === customerId && c.label === name) ||
+      (mode === 'synthetic' && !choices.some((c) => c.id === customerId && c.label === name)) ||
       typeof r.csrf !== 'string' ||
-      !hex.test(r.csrf)
+      !(mode === 'hosted' ? /^[A-Za-z0-9_-]{43}$/ : hex).test(r.csrf)
     )
       return bad();
     account = Object.freeze({
@@ -106,7 +113,7 @@ export function validateBrowserSession(
   } else if (r.csrf !== null || r.pending !== null) return bad();
   const pending = r.pending === null ? null : validateCustomerFavouriteCommand(r.pending);
   return Object.freeze({
-    policy: 'customer-browser-session-v1',
+    policy,
     account,
     csrf: r.csrf as string | null,
     pending,

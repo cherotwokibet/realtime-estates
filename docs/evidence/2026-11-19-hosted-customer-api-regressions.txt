@@ -1,0 +1,43 @@
+✔ hosted routes stay unavailable by default and do not disclose credentials on configuration failures (21.6635ms)
+✔ hosted configuration requires separate TLS database credentials and excludes preview configuration or test exceptions (0.6843ms)
+✔ Firebase route configuration selects a fixed project/company without OIDC fallback or emulator/preview settings (2.4145ms)
+✔ durable encrypted identity records survive adapter restart, atomic consume and shared logout (2044.5289ms)
+✔ ciphertext swap, modified expiry, wrong encryption key and malformed keys fail closed (1241.591ms)
+✔ signed provider login, opaque session, re-verification and logout revoke across instances (171.7907ms)
+✔ provider response refuses nonce and consumes transaction (16.4763ms)
+✔ provider response refuses audience and consumes transaction (11.0813ms)
+✔ provider response refuses api-audience and consumes transaction (49.5543ms)
+✔ provider response refuses signature and consumes transaction (28.8846ms)
+✔ provider response refuses missing-id and consumes transaction (15.1965ms)
+✔ provider response refuses redirect and consumes transaction (14.2506ms)
+✔ missing browser binding, duplicate state, wrong company, expiry and concurrent callback replay are denied (46.6166ms)
+✔ cross-origin mutations and wrong Host cannot begin login or read sessions (0.7589ms)
+✔ complete signed login persists through independent SQL-backed instances and logout revokes the old cookie (1796.5836ms)
+✔ SQL-backed logout prevents callback resurrection before-session-issue (1276.1822ms)
+✔ SQL-backed logout prevents callback resurrection after-session-issue (1171.0503ms)
+✔ unsafe endpoint configuration and production loopback exception are rejected before network (0.6352ms)
+✔ Firebase SDK policy and SQL binding exchange into an opaque session, recheck revocation and shared logout (2380.7887ms)
+✔ Firebase exchange denies unverified/revoked bindings, old authentication and wrong project, without a session (4601.5998ms)
+✔ Firebase exchange guards forged state, duplicate JSON, oversized body, company scope and cross-origin requests (1373.8158ms)
+✔ Firebase logout blocks pending exchange before-issue (1221.3771ms)
+✔ Firebase logout blocks pending exchange after-issue (1106.512ms)
+✔ Firebase policy requires revocation checking and explicit actor mapping, ignoring company and role claims (2.2111ms)
+✔ wrong project, unverified email, anonymous, tenant mismatch and invalid times refuse before mapping (1.4549ms)
+✔ disabled/revoked SDK failures and unmapped actors deny with no SDK diagnostics (0.5404ms)
+✔ Firebase Identity Platform tenant is explicitly pinned and emulator activation cannot bypass verification (0.4763ms)
+✔ actual Firebase Admin SDK refuses an HS256 token before credential lookup or actor mapping (3.5022ms)
+✔ actual SQL bindings isolate project/auth-tenant/UID and immediately reflect revocation (2943.6242ms)
+✔ lost committed save survives identity/BFF/store recreation; recovery/settle add no second mutation (3123.0412ms)
+✔ only explicit missing-original recovery permits one retry of the retained bytes (2116.4648ms)
+✔ current SQL membership and authenticated actor scope protect retained originals; logout works after membership revocation (2229.0934ms)
+✔ logout during an in-flight private response suppresses its data while retaining the committed original (2734.7888ms)
+✔ origin, posted identity, CSRF, duplicate keys and synthetic account selection cannot start a hosted write (1909.7276ms)
+✔ SQL reservation is exclusive, payloads are sealed and actor/company/ciphertext swapping is refused (1874.3122ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 38271.1603
