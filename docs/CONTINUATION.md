@@ -1,3 +1,7 @@
+## 18 November 2026 EAT - checkpoint 441, stable Android rehearsal address
+
+The mobile preview supports an explicit loopback API port for repeated tests with one USB forwarding setup. The launcher test verified port collision refusal, continued operation of the original preview, clean quit and fresh catalogue at the same address after restart. All five focused tests passed. No Android device was connected. Next run both installed-device scenarios and the Realtime operator walkthrough. [Evidence](evidence/2026-11-18-mobile-preview-fixed-port.md)
+
 ## Published mobile pause rehearsal, checkpoint 440, 18 November 2026 EAT
 
 Private dashboard deployment appgdep_6afd715a08048191a239082dece7ed75 succeeded from dashboard b99c4b04992006beea32e8075732b1e65b9a6050. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.

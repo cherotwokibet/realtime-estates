@@ -25,8 +25,13 @@ if (
     'Choose an explicit synthetic development brand and optional --lost-reply, --lost-enquiry, --push, --deletion, --lost-deletion or --deletion-progress.',
   );
 
+const portSetting = process.env.MOBILE_PREVIEW_API_PORT;
+if (portSetting !== undefined && !/^(0|[1-9][0-9]{3,4})$/.test(portSetting))
+  throw Error('Choose a mobile preview API port of 0 or from 1024 to 65535.');
+
 const preview = await startCustomerPreview({
   tenantSlug,
+  apiPort: Number(portSetting ?? 0),
   mobileMode: 'synthetic-mobile-customer-v1',
   ...(flags.includes('--push') ? { pushMode: 'synthetic-customer-push-v1' } : {}),
   ...(flags.includes('--deletion') ? { deletionMode: 'synthetic-customer-deletion-v1' } : {}),

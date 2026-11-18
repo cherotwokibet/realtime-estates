@@ -17,10 +17,10 @@ import { createApiService } from '../dist/service.js';
 import { createIdentityVerifier, parseBearerHeader } from '../dist/auth.js';
 import { createDevelopmentServer } from '../dist/http.js';
 const id = (n) => '00000000-0000-4000-8000-' + String(n).padStart(12, '0');
-const listen = (s) =>
+const listen = (s, port = 0) =>
   new Promise((resolve, reject) => {
     s.once('error', reject);
-    s.listen(0, '127.0.0.1', () => resolve('http://127.0.0.1:' + s.address().port));
+    s.listen(port, '127.0.0.1', () => resolve('http://127.0.0.1:' + s.address().port));
   });
 const stop = (s) =>
   new Promise((resolve) => {
@@ -29,6 +29,7 @@ const stop = (s) =>
   });
 export async function startCustomerPreview({
   tenantSlug = 'realtime-estates',
+  apiPort = 0,
   replyFault,
   mobileMode,
   pushMode,
@@ -76,6 +77,8 @@ export async function startCustomerPreview({
     (replyFault !== undefined && replyFault !== 'lost-first-favourite-result-v1')
   )
     throw Error('Explicit supported development customer preview required.');
+  if (!Number.isInteger(apiPort) || (apiPort !== 0 && (apiPort < 1024 || apiPort > 65535)))
+    throw Error('Choose a customer preview API port of 0 or from 1024 to 65535.');
   const db = await fixture(),
     servers = [];
   let databaseTail = Promise.resolve();
@@ -448,7 +451,7 @@ export async function startCustomerPreview({
       return result;
     });
     servers.push(api);
-    const origin = await listen(api);
+    const origin = await listen(api, apiPort);
     const result = {
       origin,
       tenantId,

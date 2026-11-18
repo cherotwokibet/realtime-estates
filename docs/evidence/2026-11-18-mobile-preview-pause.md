@@ -4,11 +4,11 @@ Checkpoint 440, 18 November 2026 EAT. The local mobile customer preview accepts 
 
 The subprocess test started the actual launcher, found the listing through the mobile catalogue client, sent `pause`, checked that a fresh read no longer included the listing, then sent `quit` and observed exit status zero. All three mobile enquiry checks passed. Android Debug Bridge listed no connected device, so the screen test remains pending.
 
-For the device session, use a Windows terminal at the platform root. Set `$env:NODE_ENV = 'development'` and start `node scripts/mobile-customer-preview.mjs realtime-estates --lost-enquiry`. In a second terminal, apply the printed mobile settings to the installed development build and reverse the API port over USB using `adb -s DEVICE_SERIAL reverse tcp:PORT tcp:PORT`, substituting the connected device serial and the port from the printed API origin.
+For the device session, use a Windows terminal at the platform root. Set `$env:NODE_ENV = 'development'` and choose a free port with `$env:MOBILE_PREVIEW_API_PORT = '3137'`. Start `node scripts/mobile-customer-preview.mjs realtime-estates --lost-enquiry`. In a second terminal, apply the printed mobile settings to the installed development build and reverse the API port over USB using `adb -s DEVICE_SERIAL reverse tcp:PORT tcp:PORT`, substituting the connected device serial and the port from the printed API origin.
 
 1. Open the listing and submit a fictional enquiry. Confirm the simulated lost reply offers Retry original request.
 2. Type `pause` in the preview terminal and wait for confirmation. Retry the original request and record the receipt.
-3. Restart the fixture without the lost-reply flag for the separate refusal check. Open a fresh enquiry form, pause the listing in the preview terminal and then send the enquiry. Verify the unavailable message, absence of a send action and Back to properties.
-4. Type `quit` in the preview terminal when finished. Record the device, app build and observed results before accepting the mobile task.
+3. Quit and restart the fixture on the same port without the lost-reply flag for the separate refusal check. The app API address and USB forwarding can stay in place across the restart. Open a fresh enquiry form, pause the listing in the preview terminal and then send the enquiry. Verify the unavailable message, absence of a send action and Back to properties.
+4. Type `quit` in the preview terminal when finished and remove the USB mapping with `adb -s DEVICE_SERIAL reverse --remove tcp:PORT`. Record the device, app build and observed results before accepting the mobile task.
 
 [Local test output](pilot440-checks.txt)

@@ -124,45 +124,71 @@ test('mobile enquiry preparation rejects disabled or foreign configuration and i
 });
 
 test(
-  'the mobile preview terminal pauses the listing in its own catalogue and quits',
+  'the mobile preview pauses its listing and can restart on the same loopback port',
   { timeout: 30_000 },
   async (t) => {
     const launcher = fileURLToPath(
       new URL('../../../scripts/mobile-customer-preview.mjs', import.meta.url),
     );
-    const child = spawn(process.execPath, [launcher, 'realtime-estates'], {
-      env: { ...process.env, NODE_ENV: 'development' },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    const exited = once(child, 'exit');
-    const output = createInterface({ input: child.stdout });
-    t.after(() => {
-      output.close();
-      if (child.exitCode === null && child.signalCode === null) child.kill();
-    });
-    let stderr = '';
-    child.stderr.setEncoding('utf8').on('data', (chunk) => {
-      stderr += chunk;
-    });
-    const lines = output[Symbol.asyncIterator]();
-    const ready = await lines.next();
-    assert.equal(ready.done, false, stderr);
-    const preview = JSON.parse(ready.value);
+    async function launch(port, flags = []) {
+      const child = spawn(process.execPath, [launcher, 'realtime-estates', ...flags], {
+        env: { ...process.env, NODE_ENV: 'development', MOBILE_PREVIEW_API_PORT: port },
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      const exited = once(child, 'exit');
+      const output = createInterface({ input: child.stdout });
+      t.after(() => {
+        output.close();
+        if (child.exitCode === null && child.signalCode === null) child.kill();
+      });
+      let stderr = '';
+      child.stderr.setEncoding('utf8').on('data', (chunk) => {
+        stderr += chunk;
+      });
+      const lines = output[Symbol.asyncIterator]();
+      const ready = await lines.next();
+      return { child, exited, lines, ready, stderr: () => stderr };
+    }
+
+    const first = await launch('0', ['--lost-enquiry']);
+    assert.equal(first.ready.done, false, first.stderr());
+    const preview = JSON.parse(first.ready.value);
+    const port = new URL(preview.MOBILE_API_ORIGIN).port;
     const config = {
       mode: preview.MOBILE_CATALOGUE_MODE,
       tenantSlug: preview.TENANT_SLUG,
       apiOrigin: preview.MOBILE_API_ORIGIN,
       allowLoopbackHttp: preview.MOBILE_ALLOW_LOOPBACK_API === 'true',
     };
+
+    const collision = await launch(port);
+    assert.equal(collision.ready.done, true, collision.stderr());
+    assert.deepEqual(await collision.exited, [1, null], collision.stderr());
+    assert.match(collision.stderr(), /EADDRINUSE/);
     const before = await loadMobileReferenceCatalogue(config);
     assert.equal(before.status, 'ready');
     assert.ok(before.items.some(({ property }) => property.id === preview.listingId));
-    child.stdin.write('pause\n');
-    assert.equal((await lines.next()).value, 'The synthetic listing is paused.', stderr);
+
+    first.child.stdin.write('pause\n');
+    assert.equal(
+      (await first.lines.next()).value,
+      'The synthetic listing is paused.',
+      first.stderr(),
+    );
     const after = await loadMobileReferenceCatalogue(config);
     assert.equal(after.status, 'ready');
     assert.ok(after.items.every(({ property }) => property.id !== preview.listingId));
-    child.stdin.write('quit\n');
-    assert.deepEqual(await exited, [0, null], stderr);
+    first.child.stdin.write('quit\n');
+    assert.deepEqual(await first.exited, [0, null], first.stderr());
+
+    const second = await launch(port);
+    assert.equal(second.ready.done, false, second.stderr());
+    const restarted = JSON.parse(second.ready.value);
+    assert.equal(restarted.MOBILE_API_ORIGIN, preview.MOBILE_API_ORIGIN);
+    const reset = await loadMobileReferenceCatalogue(config);
+    assert.equal(reset.status, 'ready');
+    assert.ok(reset.items.some(({ property }) => property.id === restarted.listingId));
+    second.child.stdin.write('quit\n');
+    assert.deepEqual(await second.exited, [0, null], second.stderr());
   },
 );
