@@ -1,3 +1,13 @@
+## 18 November 2026 EAT - delivery priority correction
+
+Boniface raised that 57% after more than a month is too slow. Recent checkpoints added narrow local verification while whole deliverables remained open. Resume by working toward complete deliverables and resolving their real dependencies.
+
+The immediate technical priority is the production identity and deployment path under tasks 04-3, 04-5 and 05-1. First inspect the existing configuration and available controlled provider accounts without changing billing or buying services. Identify the smallest staging deployment that can support the existing web/admin pilot and production identity. Complete authorized local configuration and implementation while account evidence is pending.
+
+Keep the existing Realtime operator walkthrough and Android rehearsal ready. An Android device and a Realtime operator are separate dependencies for those checks. Do not make either a prerequisite for independent deployment, identity or platform operations work. Batch small regression work with the deliverable it verifies. Publish meaningful feature completion, blocker resolution or a reviewable milestone, rather than issuing a new checkpoint for each small test addition.
+
+The full platform checklist stays at 55/97 until its deliverables meet their evidence requirements. Payments and growth modules retain their existing deferral. KES 10,000 per realtor per month remains the recurring baseline. Next inspect the current identity/configuration boundary and account inventory, implement the available staging prerequisites, and record specific external dependencies.
+
 ## Published mobile connected search and offline expiry, checkpoint 443, 18 November 2026 EAT
 
 Private dashboard deployment appgdep_6afdd50190708191b514862414fb52b0 succeeded from dashboard 03dfa3312470bc4b0e6ab8dcca7e5f6799469a1d. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
