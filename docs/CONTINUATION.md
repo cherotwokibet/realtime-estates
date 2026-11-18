@@ -1,3 +1,9 @@
+## Published cancellation-safe provider sessions, checkpoint 445, 18 November 2026 EAT
+
+Private dashboard deployment appgdep_6afdf85cc49881919b380330b13b6368 succeeded from dashboard b157ee704cd355b3ef919d2163eeed6392326639. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source 2e831b53825c9acf52fb19b7cb588c9d3f47f3a1 makes callback issuance conditional on a live login claim and requires its authority marker on session reads. Logout before and after issuance passed signed local HTTP/SQL tests. All 31 focused checks and both production builds passed. Next connect customer/staff adapters and navigation, with durable retained-operation state rather than enabling the existing in-memory synthetic bridges. Hosted provider, real PostgreSQL concurrency and full account lifecycle remain open.
+
 ## 18 November 2026 EAT - checkpoint 445, cancellation-safe provider session issuance
 
 Provider callback/session issuance now checks a live one-use login claim and retains its issuance marker. Logout cancels pending issuance and invalidates a linked session; reads deny physically retained orphans without markers. Signed local HTTP/SQL tests cover logout before and after issuance, forged-state refusal without burning the valid attempt, cleanup and replay. All 31 focused checks and both production builds passed. The current-source full API suite was not rerun; checkpoint 444 retains the earlier 411-test result. [Evidence](evidence/2026-11-18-identity-cancellation.md).
