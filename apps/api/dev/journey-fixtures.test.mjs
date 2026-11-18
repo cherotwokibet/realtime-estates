@@ -3,6 +3,11 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { RealtorApiClient } from '@realtor/api-client';
 import { startStaffPreview, ENQUIRY_PREVIEW_FIXTURES } from './staff-preview.mjs';
+import { createMobileReferenceReadSession } from '../../mobile/src/reference-read-session.ts';
+import {
+  emptyMobileReferenceFilters,
+  prepareMobileReferenceSearch,
+} from '../../mobile/src/reference-search.ts';
 
 const id = (number) => `00000000-0000-4000-8000-${String(number).padStart(12, '0')}`;
 const publicModes = {
@@ -231,6 +236,54 @@ test('anonymous public journey stock supports real 12/12/8 pages, exact cents, g
       assert.ok(studio.items.some((row) => row.id === bedrooms.studio));
       assert.ok(studio.items.every((row) => row.bedrooms === 0));
       assert.ok(!studio.items.some((row) => row.id === bedrooms.land));
+      const mobileConfig = {
+        mode: 'synthetic-reference-public-v1',
+        tenantSlug: company,
+        apiOrigin: preview.origin,
+        allowLoopbackHttp: true,
+      };
+      let online = true;
+      let now = 1000;
+      const mobile = createMobileReferenceReadSession(mobileConfig, {
+        now: () => now,
+        maxAgeMs: 1000,
+        fetch: (url, init) =>
+          online ? fetch(url, init) : Promise.reject(new TypeError('Synthetic connection loss')),
+      });
+      const form = { ...emptyMobileReferenceFilters, ...monthly, type: 'studio', beds: '0' };
+      const exactStudio = prepareMobileReferenceSearch(form);
+      assert.equal(exactStudio.status, 'ready');
+      const filtered = await mobile.read(exactStudio.input);
+      assert.equal(filtered.freshness, 'current');
+      assert.ok(filtered.items.some(({ property }) => property.id === bedrooms.studio));
+      assert.ok(filtered.items.every(({ property }) => property.bedrooms === 0));
+
+      const groupedPrice = prepareMobileReferenceSearch({
+        ...emptyMobileReferenceFilters,
+        ...monthly,
+        beds: '7',
+        bedsMode: 'at_least',
+        min: '20000.00',
+        minMode: 'over',
+        max: '20000.02',
+        privateBaths: '1',
+        sharedBaths: '1',
+      });
+      assert.equal(groupedPrice.status, 'ready');
+      const exact = await mobile.read(groupedPrice.input);
+      assert.equal(exact.freshness, 'current');
+      assert.deepEqual(
+        exact.items.map(({ property }) => property.id),
+        [bedrooms.nine],
+      );
+      online = false;
+      const previous = await mobile.read(groupedPrice.input);
+      assert.equal(previous.freshness, 'previous');
+      assert.deepEqual(previous.items, exact.items);
+      now = 2000;
+      assert.equal((await mobile.read(groupedPrice.input)).status, 'error');
+      assert.equal((await mobile.read(exactStudio.input)).status, 'error');
+
       const declared = await api.searchSyntheticReferencePropertiesV3({
         beds: '0',
         bedsMode: 'at_least',
