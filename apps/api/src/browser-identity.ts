@@ -15,6 +15,7 @@ export interface BrowserIdentityConfig {
   readonly allowLoopbackHttpForTests?: boolean;
 }
 export interface LoginTransaction {
+  readonly state: string;
   readonly verifier: string;
   readonly nonce: string;
   readonly expiresAt: number;
@@ -26,13 +27,20 @@ export interface BrowserIdentitySession {
   readonly expiresAt: number;
 }
 /** Every key includes the trusted application/company scope. Implement expiry in the store too.
- * takeLogin MUST atomically delete and return one unexpired transaction (including across replicas).
+ * claimLogin and completeLogin MUST be atomic across replicas. Cancellation must revoke an
+ * already-issued session as well as prevent a pending callback from issuing a new one.
  * Store credentials encrypted at rest; never expose these methods through browser routes.
  */
 export interface BrowserIdentityStore {
   putLogin(key: string, value: LoginTransaction): Promise<void>;
-  takeLogin(key: string, now: number): Promise<LoginTransaction | null>;
-  putSession(key: string, value: BrowserIdentitySession): Promise<void>;
+  claimLogin(key: string, state: string, now: number): Promise<LoginTransaction | null>;
+  completeLogin(
+    loginKey: string,
+    sessionKey: string,
+    value: BrowserIdentitySession,
+    now: number,
+  ): Promise<boolean>;
+  cancelLogin(key: string): Promise<void>;
   getSession(key: string, now: number): Promise<BrowserIdentitySession | null>;
   deleteSession(key: string): Promise<void>;
 }
@@ -185,7 +193,10 @@ export function createBrowserIdentity(
           state = random(),
           verifier = oidc.randomPKCECodeVerifier(),
           nonce = oidc.randomNonce();
-        await store.putLogin(key('login', binding + '|' + state), {
+        const previousLogin = cookie(request, loginCookie);
+        if (previousLogin) await store.cancelLogin(key('login', previousLogin));
+        await store.putLogin(key('login', binding), {
+          state,
           verifier,
           nonce,
           expiresAt: now() + 300_000,
@@ -208,8 +219,10 @@ export function createBrowserIdentity(
         const previous = cookie(request, sessionCookie);
         if (!binding || states.length !== 1 || !opaque.test(states[0]!))
           throw new BrowserIdentityError();
-        const tx = await store.takeLogin(key('login', binding + '|' + states[0]), now());
-        if (!tx || tx.expiresAt <= now()) throw new BrowserIdentityError();
+        const loginKey = key('login', binding);
+        const tx = await store.claimLogin(loginKey, states[0]!, now());
+        if (!tx || tx.expiresAt <= now() || tx.state !== states[0])
+          throw new BrowserIdentityError();
         const tokens = await oidc.authorizationCodeGrant(config, url, {
           pkceCodeVerifier: tx.verifier,
           expectedState: states[0],
@@ -231,13 +244,20 @@ export function createBrowserIdentity(
         const ttl = Math.floor((expiresAt - now()) / 1000);
         if (ttl < 1) throw new BrowserIdentityError();
         const id = random();
-        await store.putSession(key('session', id), {
-          actorId: identity.actorId,
-          accessToken: tokens.access_token,
-          csrf: random(),
-          expiresAt,
-        });
+        const completed = await store.completeLogin(
+          loginKey,
+          key('session', id),
+          {
+            actorId: identity.actorId,
+            accessToken: tokens.access_token,
+            csrf: random(),
+            expiresAt,
+          },
+          now(),
+        );
+        if (!completed) throw new BrowserIdentityError();
         if (previous) await store.deleteSession(key('session', previous));
+        if (!(await store.getSession(key('session', id), now()))) throw new BrowserIdentityError();
         return response(
           303,
           null,
@@ -263,6 +283,8 @@ export function createBrowserIdentity(
         const s = await session(request);
         if (s && request.headers.get('x-csrf-token') !== s.csrf) throw new BrowserIdentityError();
         const id = cookie(request, sessionCookie);
+        const pendingLogin = cookie(request, loginCookie);
+        if (pendingLogin) await store.cancelLogin(key('login', pendingLogin));
         if (id) await store.deleteSession(key('session', id));
         return response(200, { account: null }, [
           cookieHeader(sessionCookie, '', 0),
@@ -283,6 +305,9 @@ export function createBrowserIdentity(
       if (!s) throw new BrowserIdentityError();
       const identity = await verifyAccess(s.accessToken);
       if (identity.actorId !== s.actorId) throw new BrowserIdentityError();
+      const current = await session(request);
+      if (!current || current.csrf !== s.csrf || current.accessToken !== s.accessToken)
+        throw new BrowserIdentityError();
       return Object.freeze({ ...identity, accessToken: s.accessToken });
     },
   });

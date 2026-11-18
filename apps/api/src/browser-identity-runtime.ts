@@ -23,8 +23,11 @@ export function readBrowserIdentityEnvironment(env: Environment): {
   if (env.BROWSER_IDENTITY_CONFIG === undefined) return null;
   if (
     !['staging', 'production'].includes(env.APP_ENV ?? '') ||
-    env.WEB_CUSTOMER_PREVIEW_CONFIG ||
-    env.STAFF_PREVIEW_CONFIG
+    Object.entries(env).some(
+      ([name, value]) =>
+        value !== undefined &&
+        (name === 'WEB_CUSTOMER_PREVIEW_CONFIG' || name.startsWith('STAFF_PREVIEW_')),
+    )
   )
     throw Error('Hosted identity requires an explicit isolated deployment.');
   const raw = env.BROWSER_IDENTITY_CONFIG;

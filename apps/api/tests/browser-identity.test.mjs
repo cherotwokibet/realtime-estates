@@ -88,15 +88,25 @@ function setup(overrides = {}, shared) {
     sessions = shared?.sessions ?? new Map();
   const store = {
     async putLogin(k, v) {
-      login.set(k, v);
+      login.set(k, { value: v, claimed: false, issued: null });
     },
-    async takeLogin(k, now) {
+    async claimLogin(k, state, now) {
       const v = login.get(k);
-      login.delete(k);
-      return v?.expiresAt > now ? v : null;
+      if (!v || v.claimed || v.value.state !== state || v.value.expiresAt <= now) return null;
+      v.claimed = true;
+      return v.value;
     },
-    async putSession(k, v) {
-      sessions.set(k, v);
+    async completeLogin(k, sessionKey, value, now) {
+      const v = login.get(k);
+      if (!v || !v.claimed || v.issued || v.value.expiresAt <= now) return false;
+      v.issued = sessionKey;
+      sessions.set(sessionKey, value);
+      return true;
+    },
+    async cancelLogin(k) {
+      const v = login.get(k);
+      if (v?.issued) sessions.delete(v.issued);
+      login.delete(k);
     },
     async getSession(k, now) {
       const v = sessions.get(k);
@@ -121,7 +131,10 @@ function setup(overrides = {}, shared) {
     ...overrides,
   };
   return {
-    bridge: createBrowserIdentity(config, shared?.store ?? store, { now: () => clock }),
+    bridge: createBrowserIdentity(config, shared?.store ?? store, {
+      now: () => clock,
+      transport: shared?.transport,
+    }),
     login,
     sessions,
     expire() {
@@ -206,7 +219,7 @@ for (const mode of ['nonce', 'audience', 'api-audience', 'signature', 'missing-i
     assert.equal(reply.status, 401);
     assert.deepEqual(await reply.json(), { error: 'SIGN_IN_FAILED' });
     assert.equal(f.sessions.size, 0);
-    assert.equal(f.login.size, 0);
+    assert.ok([...f.login.values()].every((x) => x.claimed));
     assert.equal((await callback(f, start)).status, 401);
   });
 }
@@ -225,6 +238,14 @@ test('missing browser binding, duplicate state, wrong company, expiry and concur
   );
   const other = setup({ tenantId: '00000000-0000-4000-8000-000000000002' }, f);
   assert.equal((await callback(other, start)).status, 401);
+  assert.equal(
+    (
+      await f.bridge.handle(
+        request('/auth/callback?state=' + 'x'.repeat(43), 'GET', { cookie: start.cookie }),
+      )
+    ).status,
+    401,
+  );
   const results = await Promise.all([callback(f, start), callback(f, start)]);
   assert.deepEqual(results.map((x) => x.status).sort(), [303, 401]);
   const fresh = setup(),
@@ -290,11 +311,83 @@ test('complete signed login persists through independent SQL-backed instances an
       200,
     );
     await assert.rejects(second.bridge.authenticate(request('/private', 'GET', { cookie })));
-    assert.equal((await db.query('SELECT * FROM identity.browser_state')).rows.length, 0);
+    assert.equal(
+      (await db.query("SELECT * FROM identity.browser_state WHERE kind='session'")).rows.length,
+      0,
+    );
   } finally {
     await db.close();
   }
 });
+for (const position of ['before-session-issue', 'after-session-issue']) {
+  test('SQL-backed logout prevents callback resurrection ' + position, async () => {
+    const db = new PGlite();
+    let release;
+    const held = new Promise((r) => {
+      release = r;
+    });
+    let arrived;
+    const reached = new Promise((r) => {
+      arrived = r;
+    });
+    try {
+      await db.exec(
+        await readFile(
+          new URL('../../../database/proposals/browser-identity-state.sql', import.meta.url),
+          'utf8',
+        ),
+      );
+      const store = createPostgresBrowserIdentityStore(db, '01'.repeat(32));
+      const wrapped = {
+        ...store,
+        async completeLogin(...args) {
+          const result = await store.completeLogin(...args);
+          if (position === 'after-session-issue') {
+            arrived();
+            await held;
+          }
+          return result;
+        },
+      };
+      const f = setup(
+        {},
+        {
+          store: wrapped,
+          transport: async (...args) => {
+            const response = await fetch(...args);
+            if (String(args[0]).endsWith('/token') && position === 'before-session-issue') {
+              arrived();
+              await held;
+            }
+            return response;
+          },
+        },
+      );
+      const start = await begin(f),
+        pending = callback(f, start);
+      await reached;
+      assert.equal(
+        (
+          await f.bridge.handle(
+            request('/auth/logout', 'POST', { origin: app, cookie: start.cookie }),
+          )
+        ).status,
+        200,
+      );
+      release();
+      const result = await pending;
+      assert.equal(result.status, 401);
+      assert.equal(
+        (await db.query("SELECT * FROM identity.browser_state WHERE kind='session'")).rows.length,
+        0,
+      );
+      assert.equal((await callback(f, start)).status, 401);
+    } finally {
+      release();
+      await db.close();
+    }
+  });
+}
 test('unsafe endpoint configuration and production loopback exception are rejected before network', () => {
   for (const overrides of [
     { tokenEndpoint: 'https://attacker.example/token' },

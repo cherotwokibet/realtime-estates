@@ -53,6 +53,12 @@ test('hosted configuration requires separate TLS database credentials and exclud
   assert.throws(() =>
     readBrowserIdentityEnvironment({ ...env, WEB_CUSTOMER_PREVIEW_CONFIG: 'preview' }),
   );
+  for (const name of [
+    'STAFF_PREVIEW_API_ORIGIN',
+    'STAFF_PREVIEW_ACTOR',
+    'WEB_CUSTOMER_PREVIEW_CONFIG',
+  ])
+    assert.throws(() => readBrowserIdentityEnvironment({ ...env, [name]: '' }));
   const c = JSON.parse(env.BROWSER_IDENTITY_CONFIG);
   c.allowLoopbackHttpForTests = true;
   assert.throws(() =>

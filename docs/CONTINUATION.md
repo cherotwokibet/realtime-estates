@@ -1,3 +1,9 @@
+## 18 November 2026 EAT - checkpoint 445, cancellation-safe provider session issuance
+
+Provider callback/session issuance now checks a live one-use login claim and retains its issuance marker. Logout cancels pending issuance and invalidates a linked session; reads deny physically retained orphans without markers. Signed local HTTP/SQL tests cover logout before and after issuance, forged-state refusal without burning the valid attempt, cleanup and replay. All 31 focused checks and both production builds passed. The current-source full API suite was not rerun; checkpoint 444 retains the earlier 411-test result. [Evidence](evidence/2026-11-18-identity-cancellation.md).
+
+Exact next remains customer/staff adapter integration with the shared authenticated-session reader, usable sign-in/logout navigation, cross-tab cache clearing and current membership checks. Hosted projects/provider verification, multi-connection PostgreSQL races, account lifecycle and upstream revocation remain open. The standalone identity SQL proposal changed (claimed/state_hash/issued_session_key and runtime UPDATE permission); it is not an accepted migration and must not be silently applied over the previous proposal. Whole checklist stays 55/97, 0/14 gates. No vendor/live/billing changes. The 11 mobile-toolchain advisories remain pending.
+
 ## Published hosted browser identity foundation, checkpoint 444, 18 November 2026 EAT
 
 Private dashboard deployment appgdep_6afdf532e1408191be839e32c8e7412b succeeded from dashboard 231079680ecd46475c101735b578fa7e02596027. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.

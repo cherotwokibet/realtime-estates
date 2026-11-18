@@ -1,0 +1,39 @@
+✔ real RS256 signature yields only immutable verified subject identity, ignoring role/company claims (88.0226ms)
+✔ bearer header parser rejects missing, duplicate and malformed credentials (1.9247ms)
+✔ expired, future and overlong-lifetime claims fail closed (13.408ms)
+✔ wrong issuer, audience and malformed subject are denied despite valid signature (7.3229ms)
+✔ issuer, audience, subject, expiry and issued-at are required (22.1669ms)
+✔ counterfeit signature, unknown key and absent key ID are denied (5.8068ms)
+✔ HS256 algorithm confusion and unsigned/malformed tokens are denied (3.6656ms)
+✔ token-supplied key URL does not change the trusted JWKS endpoint (3.2173ms)
+✔ unavailable/malformed/redirecting JWKS endpoints deny without following redirects (18.9864ms)
+✔ trusted configuration is captured, not mutable through caller object (14.959ms)
+✔ missing/untrusted identity configuration is rejected before any key fetch (0.4656ms)
+✔ explicit loopback HTTP exception is rejected in production mode (0.1295ms)
+✔ hostname resolves only configured company and does not grant membership (0.7284ms)
+✔ tenant configuration rejects host collisions, wildcards, duplicate IDs and invalid input (0.2007ms)
+✔ hosted routes stay unavailable by default and do not disclose credentials on configuration failures (21.2269ms)
+✔ hosted configuration requires separate TLS database credentials and excludes preview configuration or test exceptions (0.5848ms)
+✔ durable encrypted identity records survive adapter restart, atomic consume and shared logout (1583.6252ms)
+✔ ciphertext swap, modified expiry, wrong encryption key and malformed keys fail closed (1057.0025ms)
+✔ signed provider login, opaque session, re-verification and logout revoke across instances (95.5833ms)
+✔ provider response refuses nonce and consumes transaction (13.9113ms)
+✔ provider response refuses audience and consumes transaction (16.3459ms)
+✔ provider response refuses api-audience and consumes transaction (30.7739ms)
+✔ provider response refuses signature and consumes transaction (33.3965ms)
+✔ provider response refuses missing-id and consumes transaction (19.8161ms)
+✔ provider response refuses redirect and consumes transaction (13.6258ms)
+✔ missing browser binding, duplicate state, wrong company, expiry and concurrent callback replay are denied (49.8671ms)
+✔ cross-origin mutations and wrong Host cannot begin login or read sessions (0.8514ms)
+✔ complete signed login persists through independent SQL-backed instances and logout revokes the old cookie (1586.0364ms)
+✔ SQL-backed logout prevents callback resurrection before-session-issue (1080.7892ms)
+✔ SQL-backed logout prevents callback resurrection after-session-issue (1050.1155ms)
+✔ unsafe endpoint configuration and production loopback exception are rejected before network (0.5283ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 31
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7554.4852
