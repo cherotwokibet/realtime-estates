@@ -1,3 +1,9 @@
+## Published pilot launcher and framework patch, checkpoint 436, 18 November 2026 EAT
+
+Private dashboard deployment appgdep_6afd38bec8ec8191a9f7c6fc3df74c20 succeeded from dashboard 5a04f59f90b35953d9f4afdc3dddca449c82d234. The web and admin production builds also passed locally. Three dashboard tests passed. Local replay preserved all 1012 notes and manual fields from the last saved browser export. The deployed browser merge is pending verification. The tracker shows 55 of 97 verified deliverables.
+
+Source efe18b1 updates Next.js and accepts an explicit Windows PowerShell path. Next run the Realtime operator walkthrough and record assisted steps and defects.
+
 ## 18 November 2026 EAT - checkpoint 436, pilot launcher and Next.js patch
 
 The synthetic launcher accepts an explicit PowerShell executable. Updated web and admin to Next.js 16.4.6 after the installed version stopped the preview. Both Realtime HTTP routes responded with the expected company name and the launcher exited cleanly. The 8 launcher checks and all 753 web and admin tests passed. Next run the updated walkthrough with a Realtime operator. Tasks 12-3 and 12-7 remain open. [Evidence](evidence/2026-11-18-pilot-launcher-patch.md)
