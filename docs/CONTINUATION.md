@@ -1,3 +1,9 @@
+## Published shared Firebase client sign-in, checkpoint 449, 18 November 2026 EAT
+
+Private dashboard deployment appgdep_6afe1011438c8191b2d39dcb817b5a74 succeeded from dashboard f962e7712e5effcbfec141ea013e0903a99ffc15. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source 78ac540ffe014efa11b2a383c580d9a3cae94046 adds maintained Google/email-password screens for web/admin with one-time ID-token exchange, SDK memory cleanup, session recovery and logout. Eight package tests, two production builds, four production HTTP/SSR profiles and the lockfile dry run passed. These are local synthetic checks, not live Google login/browser/hosted SQL proof. Customer/staff private adapters, durable original-operation state, full cache clearing/navigation and regional/keyless hosting cost review remain next. Billing stays disabled; 11 existing mobile-toolchain advisories remain. No gates or additional full deliverables accepted.
+
 ## 18 November 2026 EAT — shared Firebase client sign-in, checkpoint 449
 
 Implemented one maintained Google/email-password sign-in component and client used at web/admin /sign-in. The Firebase SDK uses in-memory persistence and is signed out/deleted after exchange; application sessions stay in HttpOnly cookies. The client sends a fresh ID token and browser-bound state once, then reads session metadata. An uncertain acknowledgement requires an explicit session check rather than replaying the exchange. Labelled controls, expiry/foreground refresh and sign-in-screen cross-tab invalidation are included. The existing private customer/staff screens do not yet consume that invalidation or hosted identity; no full account lifecycle, private application integration or navigation acceptance is claimed.
