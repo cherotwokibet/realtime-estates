@@ -1,3 +1,9 @@
+## Published two-company search boundaries, checkpoint 442, 18 November 2026 EAT
+
+Private dashboard deployment appgdep_6afd9ac8bcd081918a06bed63c901aa4 succeeded from dashboard 8c21fd1ff767c85a9a1bfdba1f47cededf9c2662. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source 2d14c49 adds seven exact search queries per company to the integrated pilot. Next verify the filters during the Realtime operator walkthrough and run the mobile journeys on an installed Android device.
+
 ## 18 November 2026 EAT - checkpoint 442, two-brand search boundaries
 
 Both company pilots now verify the exact KES 20,000.01 price, inclusive and strict minimums, and the studio, bedroom and rental-period boundaries over local HTTP search. Three pilot checks and 55 web catalogue checks passed. Next run the filter steps with a Realtime operator and verify the mobile journeys on an installed Android device. [Evidence](evidence/2026-11-18-pilot-search-boundaries.md)
