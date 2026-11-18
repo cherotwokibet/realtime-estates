@@ -1,3 +1,5 @@
+19 November 2026 reference review: [Google Cloud cost comparison](google-cloud-cost-review.md) records verified default-region USD rates and explicit calculation assumptions. It is not a selected-region quote or spending approval; first-client dedicated managed SQL may exceed the existing external allowance. Billing remains disabled.
+
 # Solo delivery and KES 10,000 service baseline
 
 18 November 2026 provider update: Boniface selected Google Cloud/Firebase. The target is Firebase Authentication, Cloud Run, Cloud SQL PostgreSQL and private Cloud Storage; see [current delivery target](google-cloud-firebase.md). The older candidate prices below remain dated comparisons, not the selected stack's verified cost. The new staging Firebase/Google Cloud project and two web app registrations now exist with billing independently verified disabled; auth-only deployment reported success. No billable runtime/database/storage deployment or spending occurred. Obtain the selected-region service/backup/email estimate within the existing allocation before billable setup; do not assume promotional credits or a free Cloud SQL instance.
