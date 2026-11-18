@@ -1,7 +1,7 @@
 /** Actual synthetic PNG upload/codec/attachment/moderation fixture; no privileged SQL seeding. */
 import { randomUUID } from 'node:crypto';
 import { RealtorApiClient } from '../../../packages/api-client/dist/index.js';
-import { syntheticPng } from '../../../packages/media/tests/fixtures.mjs';
+import { syntheticGalleryPng } from '../../../packages/media/tests/fixtures.mjs';
 export async function publishNativeGallery(
   preview,
   { listingId = preview.listingId, author = preview.bearerToken, reviewer = author } = {},
@@ -34,12 +34,7 @@ export async function publishNativeGallery(
         Authorization: `Bearer ${author}`,
         'Content-Type': 'application/octet-stream',
       },
-      body: syntheticPng(320 + n * 8, 240, (x, y) => [
-        (x * 2 + n * 53) % 256,
-        (y * 3 + n * 31) % 256,
-        (x + y + n * 23) % 256,
-        255,
-      ]),
+      body: syntheticGalleryPng(n),
     });
     if (result.status !== 200 || (await result.json()).state !== 'verified')
       throw Error('Actual public-gallery image conversion failed.');

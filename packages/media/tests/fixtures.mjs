@@ -48,6 +48,15 @@ export function syntheticPng(width = 16, height = 12, pixel, extra = []) {
   ]);
 }
 
+export function syntheticGalleryPng(index) {
+  return syntheticPng(320 + index * 8, 240, (x, y) => [
+    (x * 2 + index * 53) % 256,
+    (y * 3 + index * 31) % 256,
+    (x + y + index * 23) % 256,
+    255,
+  ]);
+}
+
 // Complete PNG container with forged dimensions but tiny data. Used ONLY to prove
 // header bounds reject before allocation; it is not advertised as a valid large image.
 export function dimensionHeaderPng(width, height) {

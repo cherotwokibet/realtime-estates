@@ -1,3 +1,7 @@
+## 18 November 2026 EAT - checkpoint 435, synthetic pilot photos
+
+The Realtime walkthrough now includes a command that prepares four distinct synthetic PNGs in a new folder. The command was run twice and the native gallery and both signed journeys passed four local checks. Next, Boniface and a Realtime operator can run the walkthrough and record assisted steps and defects. Tasks 12-3 and 12-7 remain open. [Evidence](evidence/2026-11-18-pilot-photo-fixtures.md)
+
 ## Published Realtime viewing agreement browser verification, checkpoint 434, 13 November 2026 EAT
 
 Private deployment appgdep_6af6584c8cd8819183605682ee08ff7c succeeded from dashboard 0481339c1be466d17e686e3c84fde6e801da576d. Both browser tabs showed the new checkpoint and 55/97. The before exports (189)/(190) and after exports (191)/(192) matched within each pair. All 1010 prior note occurrences and manual task, stage, gate, decision and risk fields were preserved. The updated browser shows 1012 notes and 27 manual checks. Three dashboard tests passed.
