@@ -1,3 +1,7 @@
+## 18 November 2026 EAT - checkpoint 442, two-brand search boundaries
+
+Both company pilots now verify the exact KES 20,000.01 price, inclusive and strict minimums, and the studio, bedroom and rental-period boundaries over local HTTP search. Three pilot checks and 55 web catalogue checks passed. Next run the filter steps with a Realtime operator and verify the mobile journeys on an installed Android device. [Evidence](evidence/2026-11-18-pilot-search-boundaries.md)
+
 ## Published stable Android rehearsal address, checkpoint 441, 18 November 2026 EAT
 
 Private dashboard deployment appgdep_6afd7fe5e1088191b5d9616c6c54e648 succeeded from dashboard 01f462ae3f37e9c9bd1882c40620685a545af443. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.

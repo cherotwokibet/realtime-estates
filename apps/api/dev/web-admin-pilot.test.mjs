@@ -109,14 +109,26 @@ test(
             author: agent.bearerToken,
             reviewer: admin.bearerToken,
           });
-          const discovery = await web.list({
-            purpose: 'rent',
-            period: 'month',
-            type: 'studio',
-            beds: '0',
-          });
-          assert.equal(discovery.mode, 'connected');
-          assert.ok(discovery.items.some(({ id }) => id === listingId));
+          const studioSearch = { purpose: 'rent', period: 'month', type: 'studio', beds: '0' };
+          for (const [label, filters, expected] of [
+            ['exact minimum and maximum', { min: '20000.01', max: '20000.01' }, true],
+            ['strict minimum at the price', { min: '20000.01', minMode: 'over' }, false],
+            ['strict minimum one cent below the price', { min: '20000.00', minMode: 'over' }, true],
+            ['maximum one cent below the price', { max: '20000.00' }, false],
+            ['one bedroom', { beds: '1' }, false],
+            ['bedsitter instead of studio', { type: 'bedsitter' }, false],
+            ['daily rather than monthly rent', { period: 'day' }, false],
+          ]) {
+            const discovery = await web.list({ ...studioSearch, ...filters });
+            assert.equal(discovery.mode, 'connected', label);
+            assert.ok(discovery.searchPage, label);
+            assert.equal(discovery.filters.error, null, label);
+            assert.equal(
+              discovery.items.some(({ id }) => id === listingId),
+              expected,
+              label,
+            );
+          }
           const detail = await web.detail(listingId);
           assert.equal(detail.status, 'found');
           assert.equal(property.title, title);
@@ -246,12 +258,7 @@ test(
           );
           assert.equal(paused.decision.outcome, 'applied');
           assert.equal((await web.detail(listingId)).status, 'not_found');
-          const pausedResults = await web.list({
-            purpose: 'rent',
-            period: 'month',
-            type: 'studio',
-            beds: '0',
-          });
+          const pausedResults = await web.list(studioSearch);
           assert.equal(pausedResults.mode, 'connected');
           assert.ok(!pausedResults.items.some(({ id }) => id === listingId));
           assert.equal(
