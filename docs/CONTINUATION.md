@@ -1,3 +1,9 @@
+## Published Google Cloud and Firebase adoption, checkpoint 446, 18 November 2026 EAT
+
+Private dashboard deployment appgdep_6afdfb8cd5a48191b72f88bca066a4aa succeeded from dashboard 3c6263a6f14f1c03e46ca56bd9d646d676c91ec5. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source b7b58a2017aaabb51d8c63a0f75f2f26b67d0927 adds Firebase Admin verification and active subject-to-actor SQL bindings. API compilation and 37 focused checks passed; no live Firebase verification is claimed. Boniface subsequently confirmed a NEW staging project and authorized creation. He reports sign-in in the in-app consoles. The official Firebase integration was discovered but installation/connection is not yet confirmed; it has been suggested. No project was created and no billing changed. Local Firebase browser exchange implementation continues toward checkpoint 447.
+
 ## 18 November 2026 EAT - checkpoint 446, Google Cloud/Firebase selected
 
 Boniface selected Google Cloud/Firebase with best-judgment implementation approval. Current target: Firebase Authentication, Cloud Run Node services, Cloud SQL PostgreSQL and private Cloud Storage, retaining the maintained platform and SQL isolation. Do not use the generic OIDC endpoint configuration as a Firebase login; its same-origin trust restriction is deliberately unchanged. Added Firebase Admin 14.5.1 verification and an explicit active UID-to-internal-actor SQL binding proposal/resolver. API compilation and 37 focused tests passed. Firebase policy tests use injected SDK results plus an actual SDK HS256 refusal and actual local SQL binding/revocation; no real provider account/token verification is claimed. [Evidence](evidence/2026-11-18-firebase-selection.md) and [target/limits](google-cloud-firebase.md).
