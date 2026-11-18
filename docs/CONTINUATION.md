@@ -1,3 +1,7 @@
+## 18 November 2026 EAT - checkpoint 440, mobile pause rehearsal control
+
+The mobile preview now pauses the catalogue listing in its own database from the terminal. A subprocess test verified that the listing disappears from a fresh catalogue read and the launcher exits on quit. All three focused tests passed. Android Debug Bridge found no connected device. Next connect an authorized Android device and run the two enquiry scenarios in the rehearsal steps. The Realtime operator walkthrough is also pending. [Evidence and commands](evidence/2026-11-18-mobile-preview-pause.md)
+
 ## Published mobile enquiry availability, checkpoint 439, 18 November 2026 EAT
 
 Private dashboard deployment appgdep_6afd63ac03088191b4c6687bc7517524 succeeded from dashboard cbcde214479331d476523172f8d3e8545915d0a2. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.

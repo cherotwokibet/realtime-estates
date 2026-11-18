@@ -46,10 +46,12 @@ const preview = await startCustomerPreview({
 });
 const input = createInterface({ input: process.stdin });
 let closing;
+let pendingPause;
 function stop() {
   if (!closing) {
-    closing = preview.close();
+    closing = Promise.resolve(pendingPause).then(() => preview.close());
     input.close();
+    process.stdin.destroy();
   }
   return closing;
 }
@@ -72,7 +74,18 @@ console.log(
   }),
 );
 input.on('line', (line) => {
-  if (line === 'quit') void stop();
+  const command = line.trim();
+  if (command === 'quit') {
+    void stop();
+  } else if (command === 'pause' && !closing && !pendingPause) {
+    pendingPause = preview
+      .pause()
+      .then(() => console.log('The synthetic listing is paused.'))
+      .catch(() => console.error('The synthetic listing could not be paused.'))
+      .finally(() => {
+        pendingPause = undefined;
+      });
+  }
 });
 input.on('close', () => void stop());
 for (const signal of ['SIGINT', 'SIGTERM']) process.once(signal, () => void stop());
