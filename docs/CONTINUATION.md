@@ -1,3 +1,9 @@
+## Published hosted browser identity foundation, checkpoint 444, 18 November 2026 EAT
+
+Private dashboard deployment appgdep_6afdf532e1408191be839e32c8e7412b succeeded from dashboard 231079680ecd46475c101735b578fa7e02596027. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source 6bcb493a0555822ef5da482264bccbc514f07ff8 implements shared OIDC code/S256 sign-in, encrypted PostgreSQL browser state and default-off web/admin routes. All 411 API tests and both production builds passed; actual local production servers refused all eight unconfigured authentication endpoints. Next connect provider sessions to customer/staff adapters while controlled staging account evidence is pending. Hosted provider/browser/device verification and full account lifecycle remain open. Whole-monorepo mobile dependency advisories remain unresolved.
+
 ## 18 November 2026 EAT - checkpoint 444, hosted browser identity foundation
 
 Implemented a shared OIDC code/S256 provider client, encrypted PostgreSQL login/session store, explicit hosted configuration and default-off authentication routes in web/admin. Complete API suite passed 411 tests with zero skips; both production builds passed. Actual local production servers returned the intended generic no-store 503 on all eight routes without provider settings. No hosted provider, browser/device or launch acceptance is implied. Whole checklist remains 55/97 and 0/14 gates. [Evidence](evidence/2026-11-18-hosted-browser-identity.md) and [configuration/limits](hosted-browser-identity.md).
