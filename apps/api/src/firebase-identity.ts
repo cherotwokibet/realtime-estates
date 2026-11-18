@@ -24,11 +24,14 @@ const compact = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
  * Explicit active subject mapping is required: Firebase UIDs are not PostgreSQL actor UUIDs.
  * Tenant/company permissions still come from current restricted SQL membership.
  */
-export function createFirebaseIdentityVerifier(
+export interface FirebaseVerifiedToken extends VerifiedIdentity {
+  readonly expiresAt: number;
+}
+export function createFirebaseTokenVerifier(
   input: FirebaseIdentityConfig,
   resolveActor: FirebaseActorResolver,
   options: { verifier?: TokenVerifier; now?: () => number } = {},
-): (token: string, requireRecentSignIn?: boolean) => Promise<VerifiedIdentity> {
+): (token: string, requireRecentSignIn?: boolean) => Promise<FirebaseVerifiedToken> {
   const projectId = input.projectId,
     authTenantId = input.authTenantId ?? null;
   if (
@@ -99,10 +102,22 @@ export function createFirebaseIdentityVerifier(
         Object.freeze({ projectId, authTenantId, uid: decoded.uid }),
       );
       if (typeof actorId !== 'string' || !uuid.test(actorId)) throw new AuthenticationError();
-      return Object.freeze({ actorId });
+      return Object.freeze({ actorId, expiresAt: decoded.exp * 1000 });
     } catch {
       throw new AuthenticationError();
     }
+  };
+}
+
+export function createFirebaseIdentityVerifier(
+  input: FirebaseIdentityConfig,
+  resolveActor: FirebaseActorResolver,
+  options: { verifier?: TokenVerifier; now?: () => number } = {},
+): (token: string, requireRecentSignIn?: boolean) => Promise<VerifiedIdentity> {
+  const verify = createFirebaseTokenVerifier(input, resolveActor, options);
+  return async (token, recent = false) => {
+    const { actorId } = await verify(token, recent);
+    return Object.freeze({ actorId });
   };
 }
 

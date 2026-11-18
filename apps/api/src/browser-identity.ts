@@ -298,6 +298,8 @@ export function createBrowserIdentity(
   }
   return Object.freeze({
     handle,
+    tenantId: c.tenantId,
+    applicationOrigin: c.applicationOrigin,
     /** Use only on the server. Re-verifies expiry/signature; SQL must check current membership. */
     async authenticate(request: Request): Promise<VerifiedIdentity & { accessToken: string }> {
       if (new URL(request.url).origin !== origin.origin) throw new BrowserIdentityError();
