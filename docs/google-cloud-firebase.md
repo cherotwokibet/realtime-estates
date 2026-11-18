@@ -44,3 +44,9 @@ The new staging project will be one Firebase-enabled Google Cloud project, with 
 ## Native management connection follow-up
 
 The official Firebase management tools are now exposed. Their environment initially pointed at the obsolete OneDrive directory; it has been corrected to the relocated maintained workspace. The native environment reported no authenticated user or active project. An official Firebase login flow is pending; its one-time code must be completed through firebase_login. This replaces the earlier local CLI sign-in request. Project creation is already authorized; do not ask for installation, CLI setup or creation permission again. No project, billing link, Analytics property or Gemini consent was created by this connection check.
+
+## Actual controlled staging, checkpoint 448
+
+Native authentication and project creation succeeded. The active project is boniface-realtor-staging (144079064698), independently read ACTIVE with billing disabled. Two WEB app registrations are ACTIVE; infra/google-cloud/staging.apps.json records their IDs. Auth-only deployment job 1795032367763 returned success for Google/email-password with anonymous disabled. No application sign-in or provider-config readback is claimed. This section supersedes the earlier pending-connection/project statements, which remain chronological history. .firebaserc and firebase.json select only the new project; rte-realtor-dev remains untouched.
+
+Continue client sign-in/BFF integration and cost/keyless hosting preparation. Do not repeat account login or creation permission requests. Cloud Run, Cloud SQL, storage/backup, managed secrets and application deployment remain unprovisioned by this session. Billing remains unlinked; the project is not a passed hosted pilot or release gate.
