@@ -1,3 +1,7 @@
+## 18 November 2026 EAT - checkpoint 437, listing pause in the integrated pilot
+
+Both synthetic companies passed the extended local pilot. Pausing hid the listing and its public photo, blocked a fresh enquiry, preserved the exact original enquiry receipt, and kept the existing viewing confirmed. All three pilot checks passed. Next run the updated walkthrough with a Realtime operator and verify the pause through the browser. Tasks 12-3 and 12-7 remain open. [Evidence](evidence/2026-11-18-pilot-paused-listing.md)
+
 ## Published pilot launcher and framework patch, checkpoint 436, 18 November 2026 EAT
 
 Private dashboard deployment appgdep_6afd38bec8ec8191a9f7c6fc3df74c20 succeeded from dashboard 5a04f59f90b35953d9f4afdc3dddca449c82d234. The web and admin production builds also passed locally. Three dashboard tests passed. Local replay preserved all 1012 notes and manual fields from the last saved browser export. The deployed browser merge is pending verification. The tracker shows 55 of 97 verified deliverables.

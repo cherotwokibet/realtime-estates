@@ -150,7 +150,7 @@ test(
             API_ORIGIN: preview.origin,
           });
           const key = randomUUID();
-          const submit = () =>
+          const submit = (attemptKey = key) =>
             handleSyntheticEnquiry(
               new Request('http://127.0.0.1:3000/api/enquiry-intake', {
                 method: 'POST',
@@ -158,7 +158,7 @@ test(
                   host: '127.0.0.1:3000',
                   origin: 'http://127.0.0.1:3000',
                   'x-preview-instance': intake.instanceId,
-                  'idempotency-key': key,
+                  'idempotency-key': attemptKey,
                   'content-type': 'application/json',
                 },
                 body: JSON.stringify(form),
@@ -232,6 +232,42 @@ test(
           assert.equal(confirmed.result.status, 'confirmed');
           const viewing = await api.getViewingV2(enquiryId, requested.viewingId, admin);
           assert.equal(viewing.schedule.status, 'confirmed');
+
+          const listing = await api.getStaffListingV2(listingId, admin);
+          const paused = await api.controlListingV2(
+            {
+              operationId: randomUUID(),
+              kind: 'set_publication',
+              listingId,
+              expectedListingVersion: listing.version,
+              publicationStatus: 'paused',
+            },
+            admin,
+          );
+          assert.equal(paused.decision.outcome, 'applied');
+          assert.equal((await web.detail(listingId)).status, 'not_found');
+          const pausedResults = await web.list({
+            purpose: 'rent',
+            period: 'month',
+            type: 'studio',
+            beds: '0',
+          });
+          assert.equal(pausedResults.mode, 'connected');
+          assert.ok(!pausedResults.items.some(({ id }) => id === listingId));
+          assert.equal(
+            (await fetch(publicGalleryImageUrl(preview, property, property.photos[0]))).status,
+            404,
+          );
+
+          const unavailable = await submit(randomUUID());
+          assert.equal(unavailable.status, 404);
+          const original = await submit();
+          assert.equal(original.status, 201);
+          assert.deepEqual(await original.json(), { id: enquiryId });
+          assert.equal(
+            (await api.getViewingV2(enquiryId, requested.viewingId, admin)).schedule.status,
+            'confirmed',
+          );
 
           // Both companies' baseline records exist inside each preview database.
           const foreignTenant = tenantSlug === 'sample-homes' ? 'realtime-estates' : 'sample-homes';
