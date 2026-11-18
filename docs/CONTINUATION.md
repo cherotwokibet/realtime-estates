@@ -1,3 +1,9 @@
+## Published paused-listing pilot verification, checkpoint 437, 18 November 2026 EAT
+
+Private dashboard deployment appgdep_6afd474dcba881918245ea20db354c78 succeeded from dashboard e55b18d245dcbedb97c75fef227ca62014ae3c4c. Three dashboard tests passed. Local replay preserved all 1012 notes and manual fields from the last saved browser export. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables and zero accepted gates.
+
+Source 806c4d7 verifies search, detail, photo, fresh enquiry, receipt recovery and confirmed viewing after a publication pause. Next run the revised Realtime walkthrough with an operator and record assisted steps and defects.
+
 ## 18 November 2026 EAT - checkpoint 437, listing pause in the integrated pilot
 
 Both synthetic companies passed the extended local pilot. Pausing hid the listing and its public photo, blocked a fresh enquiry, preserved the exact original enquiry receipt, and kept the existing viewing confirmed. All three pilot checks passed. Next run the updated walkthrough with a Realtime operator and verify the pause through the browser. Tasks 12-3 and 12-7 remain open. [Evidence](evidence/2026-11-18-pilot-paused-listing.md)
