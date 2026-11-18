@@ -1,3 +1,9 @@
+## 18 November 2026 EAT - Firebase native tools now available; official sign-in pending
+
+The Firebase plugin connection event completed and native management tools are now exposed. firebase_get_environment returned no authenticated user, no active project and a stale old OneDrive project directory. firebase_update_environment corrected the directory to C:/Users/BONIFACE/Realtime System/RealEstate/realtor-platform under existing relocation authorization. No project was created or selected and billing remains N/A.
+
+Started the official firebase_login flow. Its live URL/session identifier are provided only in chat/session memory; do not persist the URL, code or credentials in source/evidence. The native tool expects the user's ONE-TIME authorization code to complete this flow. This supersedes the earlier local PowerShell sign-in request: do not ask the user to install Firebase or repeat CLI setup. After the user supplies the official one-time code, call firebase_login with authCode, verify the authenticated environment, and create the already-authorized fresh staging project using the proposed name/ID (check for existing/collision results and record the returned actual identity). No repeat creation-permission question is needed. Keep billing unlinked, Gemini/Analytics unenabled, and vendor/live resources untouched. Then continue client sign-in/BFF integration and hosted adapter/cost review. No new code test or provider-token acceptance pass is claimed by this tool setup.
+
 ## Published Firebase browser exchange and staging authorization, checkpoint 447, 18 November 2026 EAT
 
 Private dashboard deployment appgdep_6afe014f5c1081918c6169325a61cdb2 succeeded from dashboard 60e237a5f46e4e7fd7807bbec5b98c76d825c633. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
