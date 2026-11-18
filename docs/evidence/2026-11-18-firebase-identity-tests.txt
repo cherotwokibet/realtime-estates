@@ -1,0 +1,45 @@
+✔ real RS256 signature yields only immutable verified subject identity, ignoring role/company claims (108.5111ms)
+✔ bearer header parser rejects missing, duplicate and malformed credentials (1.8883ms)
+✔ expired, future and overlong-lifetime claims fail closed (21.2394ms)
+✔ wrong issuer, audience and malformed subject are denied despite valid signature (13.2442ms)
+✔ issuer, audience, subject, expiry and issued-at are required (16.4932ms)
+✔ counterfeit signature, unknown key and absent key ID are denied (5.292ms)
+✔ HS256 algorithm confusion and unsigned/malformed tokens are denied (1.2276ms)
+✔ token-supplied key URL does not change the trusted JWKS endpoint (6.5879ms)
+✔ unavailable/malformed/redirecting JWKS endpoints deny without following redirects (32.1284ms)
+✔ trusted configuration is captured, not mutable through caller object (2.746ms)
+✔ missing/untrusted identity configuration is rejected before any key fetch (0.5997ms)
+✔ explicit loopback HTTP exception is rejected in production mode (0.1719ms)
+✔ hostname resolves only configured company and does not grant membership (0.7763ms)
+✔ tenant configuration rejects host collisions, wildcards, duplicate IDs and invalid input (0.1916ms)
+✔ hosted routes stay unavailable by default and do not disclose credentials on configuration failures (20.0827ms)
+✔ hosted configuration requires separate TLS database credentials and excludes preview configuration or test exceptions (0.5279ms)
+✔ durable encrypted identity records survive adapter restart, atomic consume and shared logout (1543.8677ms)
+✔ ciphertext swap, modified expiry, wrong encryption key and malformed keys fail closed (1015.9425ms)
+✔ signed provider login, opaque session, re-verification and logout revoke across instances (128.6301ms)
+✔ provider response refuses nonce and consumes transaction (18.2806ms)
+✔ provider response refuses audience and consumes transaction (6.0201ms)
+✔ provider response refuses api-audience and consumes transaction (41.2523ms)
+✔ provider response refuses signature and consumes transaction (32.9443ms)
+✔ provider response refuses missing-id and consumes transaction (16.9912ms)
+✔ provider response refuses redirect and consumes transaction (16.5434ms)
+✔ missing browser binding, duplicate state, wrong company, expiry and concurrent callback replay are denied (51.7282ms)
+✔ cross-origin mutations and wrong Host cannot begin login or read sessions (1.6904ms)
+✔ complete signed login persists through independent SQL-backed instances and logout revokes the old cookie (1533.3216ms)
+✔ SQL-backed logout prevents callback resurrection before-session-issue (1064.0354ms)
+✔ SQL-backed logout prevents callback resurrection after-session-issue (1051.235ms)
+✔ unsafe endpoint configuration and production loopback exception are rejected before network (0.5594ms)
+✔ Firebase policy requires revocation checking and explicit actor mapping, ignoring company and role claims (2.2379ms)
+✔ wrong project, unverified email, anonymous, tenant mismatch and invalid times refuse before mapping (1.2085ms)
+✔ disabled/revoked SDK failures and unmapped actors deny with no SDK diagnostics (0.434ms)
+✔ Firebase Identity Platform tenant is explicitly pinned and emulator activation cannot bypass verification (0.3042ms)
+✔ actual Firebase Admin SDK refuses an HS256 token before credential lookup or actor mapping (2.1045ms)
+✔ actual SQL bindings isolate project/auth-tenant/UID and immediately reflect revocation (1531.6383ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9412.675

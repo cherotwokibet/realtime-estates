@@ -1,5 +1,7 @@
 # Hosted browser identity integration
 
+Provider decision, 18 November 2026: Boniface selected Google Cloud/Firebase. The OIDC implementation below remains a locally verified alternative, not a Firebase login configuration. Continue with the [Firebase-specific adapter and delivery target](google-cloud-firebase.md); retain the encrypted SQL session lifecycle and cancellation authority.
+
 18 November 2026. Tasks 04-3, 04-5 and 05-1 remain open. The implementation now includes a shared OIDC code/S256 provider client, encrypted PostgreSQL browser state, and Node route mounts in both web and admin. This is a deployment prerequisite with executable local integration evidence. It is not a hosted pilot, completed account lifecycle or release acceptance.
 
 ## Implemented boundary

@@ -1,5 +1,7 @@
 # Solo delivery and KES 10,000 service baseline
 
+18 November 2026 provider update: Boniface selected Google Cloud/Firebase. The target is Firebase Authentication, Cloud Run, Cloud SQL PostgreSQL and private Cloud Storage; see [current delivery target](google-cloud-firebase.md). The older candidate prices below remain dated comparisons, not the selected stack's verified cost. No provisioning or spending occurred. Obtain the selected-region service/backup/email estimate within the existing allocation before billable setup; do not assume promotional credits or a free Cloud SQL instance.
+
 Recorded 9 October 2026. Boniface confirmed he will build with Codex himself and asked us to work with KES 10,000 per realtor per month for everything. This document treats that as the total recurring client service price. No customer sale, payment, provider purchase or commercial contract has occurred.
 
 ## Confirmed constraints and proposed allocations
