@@ -68,16 +68,18 @@ try {
           nativeUploads: {
             mode: 'synthetic-native-v1',
             rootDirectory: await mkdtemp(join(tmpdir(), 'realtor-pilot-browser-')),
-            powerShellPath: join(
-              homedir(),
-              '.cache',
-              'codex-runtimes',
-              'codex-primary-runtime',
-              'dependencies',
-              'native',
-              'powershell',
-              'pwsh.exe',
-            ),
+            powerShellPath:
+              process.env.REALTOR_TEST_POWERSHELL ??
+              join(
+                homedir(),
+                '.cache',
+                'codex-runtimes',
+                'codex-primary-runtime',
+                'dependencies',
+                'native',
+                'powershell',
+                'pwsh.exe',
+              ),
           },
         }
       : {}),

@@ -8,6 +8,8 @@ The guest enquiry reached the admin inbox for the published listing. The admin a
 
 For the operator session, use the same Windows launcher and local routes as [checkpoint 431](2026-11-12-web-admin-pilot-browser.md), with the company set to `realtime-estates`. From the platform root, run `node scripts/pilot-photos.mjs` to create four distinct synthetic PNGs. Open the printed folder in the upload picker and select the files one at a time. Each invocation creates a new folder. Keep the admin inbox and agent workspace in separate tabs. Use fictional details throughout.
 
+If the Windows machine uses its own PowerShell installation, set `$env:REALTOR_TEST_POWERSHELL` to the absolute path of its trusted `pwsh.exe` before starting the pilot. This also lets you run the pilot from a regular terminal.
+
 1. Create a listing and save its public facts and price. Add four test photos. After each attach, read the gallery and adopt the new saved version.
 2. Submit for review. Open the pending revision in Reviews. Follow the availability and publication link, confirm availability, then return to Reviews and select Check latest review. Inspect and approve the pending revision. Confirm the public property shows the exact price and expected gallery without the private address.
 3. Submit a public property enquiry. In the admin inbox, locate the matching enquiry and assign the first synthetic agent. Confirm the saved assignment. In the agent tab, find that enquiry and record a viewing request.
