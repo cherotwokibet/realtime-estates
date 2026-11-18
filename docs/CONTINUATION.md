@@ -1,3 +1,7 @@
+## 18 November 2026 EAT - checkpoint 438, unavailable property enquiries
+
+The property enquiry form now explains that the listing has stopped taking enquiries and links to the catalogue after a definite unavailable response. An uncertain submission retains its original recovery option. Both synthetic pilots and all 14 focused checks passed. Both production builds passed locally. Next verify the stale form in the Realtime operator walkthrough. [Evidence](evidence/2026-11-18-paused-enquiry-feedback.md)
+
 ## Published paused-listing pilot verification, checkpoint 437, 18 November 2026 EAT
 
 Private dashboard deployment appgdep_6afd474dcba881918245ea20db354c78 succeeded from dashboard e55b18d245dcbedb97c75fef227ca62014ae3c4c. Three dashboard tests passed. Local replay preserved all 1012 notes and manual fields from the last saved browser export. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables and zero accepted gates.

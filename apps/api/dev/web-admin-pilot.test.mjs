@@ -261,6 +261,7 @@ test(
 
           const unavailable = await submit(randomUUID());
           assert.equal(unavailable.status, 404);
+          assert.equal((await unavailable.json()).error.code, 'NOT_FOUND');
           const original = await submit();
           assert.equal(original.status, 201);
           assert.deepEqual(await original.json(), { id: enquiryId });

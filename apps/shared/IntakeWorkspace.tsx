@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import {
+  ApiClientError,
   RealtorApiClient,
   createEnquiryProxyTransport,
   type PublicEnquiryAttempt,
@@ -91,23 +92,39 @@ export default function IntakeWorkspace({
           `Synthetic enquiry saved. Reference: ${receipt.id}. No message was sent and no viewing was booked.`,
         );
       }
-    } catch {
+    } catch (error) {
       if (alive.current) {
         const uncertain = attempt.current?.state.status === 'uncertain';
-        setStatus(uncertain ? 'uncertain' : 'editing');
-        setFeedback(
-          uncertain
-            ? 'We could not confirm the result. Keep this page open and retry the original enquiry to recover it safely.'
-            : 'Check your name, email, message and notice acknowledgement, then try again.',
-        );
-        if (!uncertain) attempt.current = null;
+        if (uncertain) {
+          setStatus('uncertain');
+          setFeedback(
+            'We could not confirm the result. Keep this page open and retry the original enquiry to recover it safely.',
+          );
+        } else {
+          attempt.current = null;
+          if (
+            listingId !== null &&
+            error instanceof ApiClientError &&
+            error.kind === 'HTTP' &&
+            error.status === 404 &&
+            error.serverCode === 'NOT_FOUND'
+          ) {
+            setStatus('unavailable');
+            setFeedback('This property is no longer available for enquiries.');
+          } else {
+            setStatus('editing');
+            setFeedback(
+              'Check your name, email, message and notice acknowledgement, then try again.',
+            );
+          }
+        }
       }
     } finally {
       busy.current = false;
       controller.current = null;
     }
   }
-  const locked = ['sending', 'uncertain', 'received'].includes(status);
+  const locked = ['sending', 'uncertain', 'received', 'unavailable'].includes(status);
   return (
     <section className="intake-card">
       <p className="enq-eyebrow">SYNTHETIC GUEST ENQUIRY</p>
@@ -191,6 +208,7 @@ export default function IntakeWorkspace({
           Retry original enquiry
         </button>
       )}
+      {status === 'unavailable' && <a href="/">Back to the catalogue</a>}
       {status === 'received' && showInbox && (
         <a href="/enquiries/admin">Open the synthetic admin inbox →</a>
       )}
