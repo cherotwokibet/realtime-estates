@@ -1,3 +1,9 @@
+## Published unavailable property enquiry feedback, checkpoint 438, 18 November 2026 EAT
+
+Private dashboard deployment appgdep_6afd5477da848191a39d5d5e05822e63 succeeded from dashboard dd3271c8ed5ee3e4ab498f1c82621a8a2238693b. Three dashboard tests passed. Local replay preserved all 1012 notes and manual fields from the last saved browser export. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source 8bcd141 updates the stale enquiry form and records two production builds and 14 focused checks. Next verify the message, link and continued viewing in the Realtime operator walkthrough.
+
 ## 18 November 2026 EAT - checkpoint 438, unavailable property enquiries
 
 The property enquiry form now explains that the listing has stopped taking enquiries and links to the catalogue after a definite unavailable response. An uncertain submission retains its original recovery option. Both synthetic pilots and all 14 focused checks passed. Both production builds passed locally. Next verify the stale form in the Realtime operator walkthrough. [Evidence](evidence/2026-11-18-paused-enquiry-feedback.md)
