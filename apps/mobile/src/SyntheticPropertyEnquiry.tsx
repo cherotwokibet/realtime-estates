@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, SafeAreaView, ScrollView, Text, View } from 'react-native';
 import { fetch as expoFetch } from 'expo/fetch';
 import { randomUUID } from 'expo-crypto';
-import type { PublicEnquiryAttempt } from '@realtor/api-client';
+import { ApiClientError, type PublicEnquiryAttempt } from '@realtor/api-client';
 import type { MobileReferenceConfig, MobileReferenceItem } from './reference-catalogue';
 import type { createReferenceCatalogueStyles } from './reference-theme';
 import { CatalogueButton } from './ReferenceCatalogueButton';
@@ -27,6 +27,7 @@ export function SyntheticPropertyEnquiry({
   const [draft, setDraft] = useState<Draft | null>(null);
   const [acknowledged, setAcknowledged] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [unavailable, setUnavailable] = useState(false);
   const [, refresh] = useState(0);
   const active = useRef<AbortController | null>(null);
   const mounted = useRef(true);
@@ -42,7 +43,7 @@ export function SyntheticPropertyEnquiry({
   if (!config.customerMode) return null;
 
   async function submit() {
-    if (!draft || active.current || !acknowledged) return;
+    if (!draft || active.current || !acknowledged || unavailable) return;
     let attempt = draft.attempt;
     try {
       if (!attempt || attempt.state.status === 'rejected') {
@@ -73,13 +74,25 @@ export function SyntheticPropertyEnquiry({
             ? 'Your viewing request was received. A realtor can follow up to arrange a time.'
             : 'Your synthetic enquiry was received.',
         );
-    } catch {
-      if (mounted.current)
-        setFeedback(
-          attempt?.state.status === 'uncertain'
-            ? 'The result is unconfirmed. Retry the original enquiry to check its receipt.'
-            : 'The enquiry could not be saved. Reload the property and try again.',
-        );
+    } catch (error) {
+      if (mounted.current) {
+        if (attempt?.state.status === 'uncertain') {
+          setFeedback(
+            'The result is unconfirmed. Retry the original enquiry to check its receipt.',
+          );
+        } else if (
+          attempt?.state.status === 'rejected' &&
+          error instanceof ApiClientError &&
+          error.kind === 'HTTP' &&
+          error.status === 404 &&
+          error.serverCode === 'NOT_FOUND'
+        ) {
+          setUnavailable(true);
+          setFeedback('This property is no longer available for enquiries.');
+        } else {
+          setFeedback('The enquiry could not be saved. Reload the property and try again.');
+        }
+      }
     } finally {
       active.current = null;
       if (mounted.current) refresh((value) => value + 1);
@@ -99,6 +112,7 @@ export function SyntheticPropertyEnquiry({
     });
     setAcknowledged(false);
     setFeedback('');
+    setUnavailable(false);
     setOpen(true);
   }
   const viewing = draft?.question === 'viewing';
@@ -139,7 +153,7 @@ export function SyntheticPropertyEnquiry({
             </Text>
             {viewing && <Text style={s.copy}>A realtor can follow up to propose a time.</Text>}
             <Text style={s.copy}>Synthetic Mobile Customer · mobile-customer@example.invalid</Text>
-            {!locked && (
+            {!locked && !unavailable && (
               <>
                 <Pressable
                   accessibilityRole="checkbox"
@@ -164,7 +178,7 @@ export function SyntheticPropertyEnquiry({
                 Saving the enquiry…
               </Text>
             )}
-            {status !== 'received' && (
+            {status !== 'received' && !unavailable && (
               <CatalogueButton
                 label={
                   status === 'uncertain'

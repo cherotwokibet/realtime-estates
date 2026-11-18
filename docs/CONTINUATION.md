@@ -1,3 +1,7 @@
+## 18 November 2026 EAT - checkpoint 439, mobile property enquiry availability
+
+A paused property now gets a specific message on mobile and the current form stops offering another send. Recovery stays available for uncertain submissions. Both synthetic companies passed the local guest HTTP scenario, eight focused checks passed, and mobile typechecking and Android bundle export passed. Next verify the form on an installed Android device and continue the Realtime operator walkthrough. [Evidence](evidence/2026-11-18-mobile-paused-enquiry.md)
+
 ## Published unavailable property enquiry feedback, checkpoint 438, 18 November 2026 EAT
 
 Private dashboard deployment appgdep_6afd5477da848191a39d5d5e05822e63 succeeded from dashboard dd3271c8ed5ee3e4ab498f1c82621a8a2238693b. Three dashboard tests passed. Local replay preserved all 1012 notes and manual fields from the last saved browser export. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.

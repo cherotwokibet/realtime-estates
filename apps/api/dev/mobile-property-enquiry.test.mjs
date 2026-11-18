@@ -70,7 +70,11 @@ test('mobile property enquiry recovers a committed receipt after pause with one 
           randomUUID(),
           transport,
         );
-        await assert.rejects(() => unavailable.submit());
+        await assert.rejects(() => unavailable.submit(), {
+          kind: 'HTTP',
+          status: 404,
+          serverCode: 'NOT_FOUND',
+        });
         assert.equal(unavailable.state.status, 'rejected');
         assert.equal(await preview.enquiryCount(), 1);
       } finally {
