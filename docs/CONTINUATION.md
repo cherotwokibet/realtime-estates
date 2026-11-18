@@ -1,3 +1,9 @@
+## Published operator pilot photos, checkpoint 435, 18 November 2026 EAT
+
+Private dashboard deployment appgdep_6afd2918803881919475fb560c2e1ad0 succeeded from dashboard 6f66f9fb6fff9f1444616724e9d523cbe5828880. Three dashboard tests passed. Replaying the last saved browser export locally preserved all 1012 note occurrences and the manual tracker fields. Browser verification of the deployed merge is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source 5c3e583 prepares the synthetic upload photos. Next run the updated Realtime walkthrough with an operator and record assisted steps and defects.
+
 ## 18 November 2026 EAT - checkpoint 435, synthetic pilot photos
 
 The Realtime walkthrough now includes a command that prepares four distinct synthetic PNGs in a new folder. The command was run twice and the native gallery and both signed journeys passed four local checks. Next, Boniface and a Realtime operator can run the walkthrough and record assisted steps and defects. Tasks 12-3 and 12-7 remain open. [Evidence](evidence/2026-11-18-pilot-photo-fixtures.md)
