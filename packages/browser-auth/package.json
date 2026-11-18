@@ -1,0 +1,32 @@
+{
+  "name": "@realtor/browser-auth",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/SignInPanel.d.ts",
+      "import": "./dist/SignInPanel.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "firebase": "13.4.0",
+    "react": "19.2.3"
+  },
+  "devDependencies": {
+    "react-dom": "19.2.3"
+  }
+}

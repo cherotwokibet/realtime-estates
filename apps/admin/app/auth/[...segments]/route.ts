@@ -1,7 +1,7 @@
-import { configuredBrowserIdentityRoutes } from '@realtor/api/dist/browser-identity-runtime.js';
+import { hostedIdentity } from '../../../lib/hosted-identity';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-const handle = configuredBrowserIdentityRoutes();
+const handle = hostedIdentity.handle;
 export const GET = handle;
 export const POST = handle;
