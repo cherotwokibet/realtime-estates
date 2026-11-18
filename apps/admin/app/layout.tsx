@@ -7,7 +7,10 @@ import './creation.css';
 import './component-theme.css';
 import { getDemoThemeCss, resolveDemoTenantSlug } from '@realtor/demo';
 export const metadata = {
-  title: 'Staff workspace preview',
+  title:
+    process.env.HOSTED_STAFF_API_ORIGIN !== undefined
+      ? 'Staff workspace'
+      : 'Staff workspace preview',
   robots: { index: false, follow: false },
 };
 export default function Layout({ children }: { children: React.ReactNode }) {

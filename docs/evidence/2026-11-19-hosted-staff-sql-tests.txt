@@ -1,0 +1,22 @@
+✔ shared original store reads the previous customer ciphertext format without migrating or rewriting retained commands (1826.1809ms)
+✔ lost committed save survives identity/BFF/store recreation; recovery/settle add no second mutation (2310.3082ms)
+✔ only explicit missing-original recovery permits one retry of the retained bytes (1623.3456ms)
+✔ current SQL membership and authenticated actor scope protect retained originals; logout works after membership revocation (1591.3815ms)
+✔ logout during an in-flight private response suppresses its data while retaining the committed original (1466.0924ms)
+✔ origin, posted identity, CSRF, duplicate keys and synthetic account selection cannot start a hosted write (1935.8609ms)
+✔ SQL reservation is exclusive, payloads are sealed and actor/company/ciphertext swapping is refused (1858.537ms)
+✔ membership revoked while a saved-homes response is pending suppresses the returned rows (1828.8ms)
+✔ hosted branch lost acknowledgement survives recreation; original recovery and settlement cause one SQL change (5312.5468ms)
+✔ a missing original permits only one deliberate retry of the retained branch bytes (3267.643ms)
+✔ current SQL admin policy denies agents/customers, isolates peer originals and permits logout after revocation (2359.9906ms)
+✔ logout and membership revocation during asynchronous replies suppress branch data (1719.8587ms)
+✔ scope mismatch, posted roles, CSRF, preview headers and malformed commands do not forward writes (1635.4596ms)
+✔ sealed staff originals reject table/actor swaps and ordinary API-role reads, with one atomic reservation (1675.7764ms)
+ℹ tests 14
+ℹ suites 0
+ℹ pass 14
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 33129.9626

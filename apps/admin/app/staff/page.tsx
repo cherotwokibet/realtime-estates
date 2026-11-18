@@ -1,8 +1,10 @@
 import StaffDirectoryWorkspace from '../../components/StaffDirectoryWorkspace.tsx';
 import { loadStaffDirectoryWorkspace } from '../../lib/staff-directory-server.ts';
 import './staff.css';
+import HostedStaffEntry from '../../components/HostedStaffEntry';
 export const dynamic = 'force-dynamic';
 export default async function Staff() {
+  if (process.env.HOSTED_STAFF_API_ORIGIN !== undefined) return <HostedStaffEntry />;
   let data: Awaited<ReturnType<typeof loadStaffDirectoryWorkspace>> | null = null;
   try {
     data = await loadStaffDirectoryWorkspace();

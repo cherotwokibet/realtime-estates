@@ -1,4 +1,6 @@
 import { pushQueueConfiguration } from '../lib/push-queue-preview-server';
+import HostedStaffEntry from '../components/HostedStaffEntry';
+export const dynamic = 'force-dynamic';
 import type { CSSProperties } from 'react';
 import { getDemoBrand, propertiesForCompany, resolveDemoTenantSlug } from '@realtor/demo';
 import { formatKes, kesFromMinor } from '@realtor/domain';
@@ -49,6 +51,7 @@ function label(value: string): string {
 }
 
 export default function Admin() {
+  if (process.env.HOSTED_STAFF_API_ORIGIN !== undefined) return <HostedStaffEntry />;
   let deletionTriageEnabled = false;
   try {
     deletionTriageConfiguration(process.env);

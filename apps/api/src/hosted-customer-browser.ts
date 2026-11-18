@@ -1,9 +1,9 @@
-import { CustomerApiError, CustomerFavouritesClient } from '@realtor/api-client';
 import {
-  parseCustomerFavouriteJson,
-  validateCustomerFavouriteCommand,
-  DomainError,
-} from '@realtor/domain';
+  BrowserRequestError as Refused,
+  readHostedBrowserJson as body,
+} from './hosted-browser-request.js';
+import { CustomerApiError, CustomerFavouritesClient } from '@realtor/api-client';
+import { validateCustomerFavouriteCommand, DomainError } from '@realtor/domain';
 import type { CustomerOriginals } from './customer-browser-originals.js';
 import { AuthenticationError } from './auth.js';
 export interface HostedCustomerSession {
@@ -18,14 +18,6 @@ interface Identity {
   authenticateSession(request: Request): Promise<HostedCustomerSession>;
   handle(request: Request): Promise<Response>;
 }
-class Refused extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-  ) {
-    super(code);
-  }
-}
 const id = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const reply = (status: number, value: unknown) =>
   Response.json(value, {
@@ -37,46 +29,7 @@ const reply = (status: number, value: unknown) =>
       'X-Content-Type-Options': 'nosniff',
     },
   });
-async function body(r: Request) {
-  if (
-    r.headers.get('content-type') !== 'application/json' ||
-    r.headers.has('content-encoding') ||
-    r.headers.has('transfer-encoding')
-  )
-    throw new Refused(400, 'INVALID_REQUEST');
-  const length = r.headers.get('content-length');
-  if (length !== null && (!/^(0|[1-9][0-9]{0,3})$/.test(length) || Number(length) > 2048))
-    throw new Refused(400, 'INVALID_REQUEST');
-  const reader = r.body?.getReader();
-  if (!reader) throw new Refused(400, 'INVALID_REQUEST');
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const deadline = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => reject(new Refused(408, 'INVALID_REQUEST')), 5000);
-  });
-  try {
-    const chunks: Uint8Array[] = [];
-    let n = 0;
-    while (true) {
-      const next = await Promise.race([reader.read(), deadline]);
-      if (next.done) break;
-      n += next.value.length;
-      if (n > 2048) throw new Refused(400, 'INVALID_REQUEST');
-      chunks.push(next.value);
-    }
-    if (length !== null && Number(length) !== n) throw new Refused(400, 'INVALID_REQUEST');
-    const bytes = new Uint8Array(n);
-    let at = 0;
-    for (const c of chunks) {
-      bytes.set(c, at);
-      at += c.length;
-    }
-    return parseCustomerFavouriteJson(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-  } finally {
-    clearTimeout(timer);
-    void reader.cancel().catch(() => {});
-    reader.releaseLock();
-  }
-}
+
 function exact(v: unknown, names: string[]): Record<string, unknown> {
   if (
     !v ||

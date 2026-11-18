@@ -27,12 +27,13 @@ for (const app of ['web', 'admin']) {
     'unconfigured',
     'identity',
     ...(app === 'web' ? ['customer', 'customer-invalid'] : []),
+    ...(app === 'admin' ? ['staff', 'staff-invalid'] : []),
   ]) {
     const configured = profile !== 'unconfigured';
     const env = { ...process.env, NODE_ENV: 'production' };
     for (const name of Object.keys(env)) {
       if (
-        /^(FIREBASE_|BROWSER_IDENTITY_|STAFF_PREVIEW_|WEB_CUSTOMER_PREVIEW_CONFIG|HOSTED_CUSTOMER_)/.test(
+        /^(FIREBASE_|BROWSER_IDENTITY_|STAFF_PREVIEW_|WEB_CUSTOMER_PREVIEW_CONFIG|HOSTED_CUSTOMER_|HOSTED_STAFF_)/.test(
           name,
         )
       )
@@ -52,6 +53,11 @@ for (const app of ['web', 'admin']) {
       if (profile.startsWith('customer'))
         env.HOSTED_CUSTOMER_API_ORIGIN =
           profile === 'customer' ? 'https://synthetic-api.example' : 'http://127.0.0.1:1';
+      if (profile.startsWith('staff')) {
+        env.HOSTED_STAFF_API_ORIGIN =
+          profile === 'staff' ? 'https://synthetic-api.example' : 'http://127.0.0.1:1';
+        env.PRIVACY_NOTICE_VERSION = 'synthetic-staff-v1';
+      }
     }
     const address = await port();
     const child = spawn(
@@ -117,6 +123,23 @@ for (const app of ['web', 'admin']) {
         configured ? { error: 'SIGN_IN_FAILED' } : { error: 'SIGN_IN_UNAVAILABLE' },
       );
       assert.doesNotMatch(logs, /synthetic-database-secret|postgres:\/\//);
+      if (profile.startsWith('staff')) {
+        for (const path of ['/', '/staff']) {
+          const staffPage = await fetch(`http://127.0.0.1:${address}${path}`);
+          assert.equal(staffPage.status, 200);
+          const view = await staffPage.text();
+          assert.match(
+            view,
+            profile === 'staff'
+              ? /Branch administration/
+              : /Staff administration is unavailable here/,
+          );
+          assert.doesNotMatch(view, /Synthetic local preview|synthetic-database-secret/);
+        }
+        const privateResponse = await fetch(`http://127.0.0.1:${address}/api/hosted-staff/session`);
+        assert.equal(privateResponse.status, profile === 'staff' ? 403 : 503);
+        assert.equal(privateResponse.headers.get('cache-control'), 'no-store');
+      }
       if (profile.startsWith('customer')) {
         const account = await fetch(`http://127.0.0.1:${address}/account`);
         assert.equal(account.status, 200);
@@ -146,5 +169,5 @@ for (const app of ['web', 'admin']) {
   }
 }
 console.log(
-  '6 production HTTP/SSR profiles passed; no browser/provider/hosted SQL verification claimed.',
+  '8 production HTTP/SSR profiles passed; no browser/provider/hosted SQL verification claimed.',
 );
