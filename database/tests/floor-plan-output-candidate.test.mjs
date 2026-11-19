@@ -224,11 +224,19 @@ test('expired processing lease and audit failure cannot leave an accepted partia
     'ALTER TABLE app_private.synthetic_floor_plan_leases DISABLE TRIGGER immutable_floor_plan_lease',
   );
   await f.db.query(
-    "UPDATE app_private.synthetic_floor_plan_leases SET claimed_at=clock_timestamp()-interval '6 minutes',expires_at=clock_timestamp()-interval '1 minute' WHERE request_id=$1",
+    "UPDATE app_private.synthetic_floor_plan_leases SET claimed_at=statement_timestamp()-interval '6 minutes',expires_at=statement_timestamp()-interval '1 minute' WHERE request_id=$1",
     [f.request],
   );
   await f.db.exec(
     'ALTER TABLE app_private.synthetic_floor_plan_leases ENABLE TRIGGER immutable_floor_plan_lease',
+  );
+  assert.equal(
+    await scalar(
+      f.db,
+      "SELECT expires_at=claimed_at+interval '5 minutes' AND expires_at<clock_timestamp() FROM app_private.synthetic_floor_plan_leases WHERE request_id=$1",
+      [f.request],
+    ),
+    true,
   );
   await denied(() => f.seal(), '23514');
   assert.equal((await count(f.db)).outputs, 0);
