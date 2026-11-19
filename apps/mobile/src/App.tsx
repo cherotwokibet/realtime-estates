@@ -26,6 +26,8 @@ import { resolveMobileReferenceConfig } from './reference-catalogue';
 import { ReferenceCatalogueApp } from './ReferenceCatalogueApp';
 import type { MobileCustomerSession } from './customer-session';
 import { SyntheticCustomerCatalogue } from './SyntheticCustomerCatalogue';
+import { readNativeFirebaseConfig } from './native-firebase-config';
+import { FirebaseCustomerAccount } from './FirebaseCustomerAccount';
 
 const tenantSlug = resolveDemoTenantSlug(Constants.expoConfig?.extra?.tenantSlug);
 const brand = getDemoBrand(tenantSlug);
@@ -256,6 +258,23 @@ export const MobileCustomerSessionContext = createContext<MobileCustomerSession 
 );
 export default function App() {
   const customerSession = useContext(MobileCustomerSessionContext);
+  let firebaseConfig;
+  try {
+    firebaseConfig = readNativeFirebaseConfig(Constants.expoConfig?.extra?.nativeFirebase);
+    if (
+      firebaseConfig &&
+      (referenceConfig.mode !== 'demo' || customerSession || Platform.OS === 'web')
+    )
+      throw Error();
+  } catch {
+    return (
+      <SafeAreaView>
+        <Text accessibilityRole="alert">Account sign-in is not configured correctly.</Text>
+      </SafeAreaView>
+    );
+  }
+  if (firebaseConfig)
+    return <FirebaseCustomerAccount key={JSON.stringify(firebaseConfig)} config={firebaseConfig} />;
   if (referenceConfig.mode === 'error')
     return (
       <SafeAreaView>

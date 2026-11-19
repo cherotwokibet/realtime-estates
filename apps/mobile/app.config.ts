@@ -2,6 +2,7 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
 import { propertyLinkOrigin, propertyLinkPathPrefix, previewApplicationId } from '@realtor/domain';
 import { getDemoBrand, resolveDemoTenantSlug } from '@realtor/demo';
 import { resolveMobileReferenceConfig } from './src/reference-catalogue.ts';
+import { readNativeFirebaseConfig } from './src/native-firebase-config.ts';
 
 /** Build-time synthetic tenant configuration. No signing keys or provider secrets belong here. */
 export default ({ config }: ConfigContext): ExpoConfig => {
@@ -17,6 +18,21 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const mode = process.env.MOBILE_CATALOGUE_MODE;
   const extra: Record<string, unknown> = { ...config.extra, tenantSlug };
   delete extra.mobileReference;
+  delete extra.nativeFirebase;
+  if (process.env.MOBILE_FIREBASE_CUSTOMER_CONFIG !== undefined) {
+    if (mode !== undefined || links)
+      throw Error('Native account and synthetic catalogue modes must be separate.');
+    try {
+      if (process.env.MOBILE_FIREBASE_CUSTOMER_CONFIG.length > 4096) throw Error();
+      const native = readNativeFirebaseConfig(
+        JSON.parse(process.env.MOBILE_FIREBASE_CUSTOMER_CONFIG),
+      );
+      if (!native) throw Error();
+      extra.nativeFirebase = native;
+    } catch {
+      throw Error('Invalid native account configuration.');
+    }
+  }
   if (mode !== undefined) {
     const candidate = {
       mode,
