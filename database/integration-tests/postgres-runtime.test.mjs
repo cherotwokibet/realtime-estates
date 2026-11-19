@@ -5,6 +5,7 @@ import pg from 'pg';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 import { PostgresTransactionDatabase } from '../../apps/api/dist/database.js';
 import { verifyIdentityPostgres } from './postgres-identity-rehearsal.mjs';
+import { verifyPostgresTlsStartup } from './postgres-tls-startup.mjs';
 const id = (n) => '00000000-0000-4000-8000-' + String(n).padStart(12, '0');
 const T = id(1),
   OTHER = id(2),
@@ -399,6 +400,12 @@ test('real PostgreSQL TCP runtime isolates transactions and serializes concurren
           otherTenant: OTHER,
           id,
         });
+      },
+    );
+    await t.test(
+      'certificate-verified PostgreSQL and standalone production API bootstrap',
+      async (tlsTest) => {
+        await verifyPostgresTlsStartup(tlsTest, owner, ownerUrl, { tenant: T });
       },
     );
   } finally {

@@ -144,4 +144,5 @@ jobs:
         run: node --test database/integration-tests/postgres-runtime.test.mjs
         env:
           REALTOR_POSTGRES_TEST_POLICY: owned-disposable-ci-v1
+          REALTOR_POSTGRES_TEST_CONTAINER: ${{ job.services.postgres.id }}
           REALTOR_POSTGRES_TEST_URL: postgresql://postgres:synthetic-ci-admin-only@127.0.0.1:5432/realtor_synthetic_ci
