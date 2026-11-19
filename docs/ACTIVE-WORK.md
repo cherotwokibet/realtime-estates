@@ -6,7 +6,7 @@ The ten-case native journey now crosses TWO actual owned-loopback HTTP envelopes
 
 Separate Linux20 real PostgreSQL tests and actual API image TLS/resource/health/shutdown passed. API481 passes/3 skips, database477 passes/1 skip and other logged skips remain explicit. Exact source/run/results: evidence/2026-11-19-native-customer-gateway466.md, gateway466-* and ci466-*. Setup: native-customer-gateway.md. Billing/plan/credits/provider accounts/vendor/live/exports remain unchanged; paid staging approval is pending. Preserve55/97 full tasks/all14 gates,KES10,000 baseline and1012 notes/manual fields.
 
-Next free implementation: prove the selected gateway profile through an actual compiled Next server, including canonical host/protocol, malformed settings and controlled synthetic authority without Google network or production bypass. Actual ADC/IAM/managed SQL/provider/device/UAT/restore/cutover stay open. Private checkpoint466 publication is pending; preserve notes/manual fields and record its deployment receipt after success.
+Next free implementation: prove the selected gateway profile through an actual compiled Next server, including canonical host/protocol, malformed settings and controlled synthetic authority without Google network or production bypass. Actual ADC/IAM/managed SQL/provider/device/UAT/restore/cutover stay open. Private checkpoint466 published successfully: deployment appgdep_6aff44efba688191ab6b175f78e073bb, dashboard 339dd5f996876719b4fae2a13e1ea52f7162df7b. Three dashboard tests and saved-export replay preserved all1012 notes/manual fields. Deployed-browser verification remains pending. Continue the selected-profile Next gateway proof above.
 
 ## Native customer gateway in progress — checkpoint466, 19 November2026 EAT
 
