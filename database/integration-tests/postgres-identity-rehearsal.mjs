@@ -179,14 +179,28 @@ export async function verifyIdentityPostgres(
       'production identity wrapper refuses newly unsafe grants before a payload query',
       async () => {
         const customer = stores.get('customer');
+        const payload =
+          'INSERT INTO identity.customer_browser_originals(tenant_id,actor_id,operation_id,sealed) VALUES($1,$2,$3,$4)';
+        const values = [tenant, actor, id(9981), 'x'.repeat(40)];
+        const assertNoWrite = async () =>
+          assert.equal(
+            (
+              await owner.query(
+                'SELECT count(*)::int AS n FROM identity.customer_browser_originals WHERE operation_id=$1',
+                [id(9981)],
+              )
+            ).rows[0].n,
+            0,
+          );
         await owner.query(
           'GRANT SELECT ON identity.staff_browser_originals TO staging_ci_identity_customer',
         );
         try {
           await assert.rejects(
-            customer.query('SELECT 7 AS payload', []),
+            customer.query(payload, values),
             (e) => e.message === 'Identity database is unavailable.',
           );
+          await assertNoWrite();
         } finally {
           await owner.query(
             'REVOKE SELECT ON identity.staff_browser_originals FROM staging_ci_identity_customer',
@@ -195,9 +209,10 @@ export async function verifyIdentityPostgres(
         await owner.query('GRANT api_runtime TO staging_ci_identity_customer');
         try {
           await assert.rejects(
-            customer.query('SELECT 7 AS payload', []),
+            customer.query(payload, values),
             (e) => e.message === 'Identity database is unavailable.',
           );
+          await assertNoWrite();
         } finally {
           await owner.query('REVOKE api_runtime FROM staging_ci_identity_customer');
         }
