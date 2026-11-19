@@ -21,6 +21,14 @@ for (const service of ['api', 'web', 'admin']) {
     report.services[service].inventorySha256,
   );
   const manifest = JSON.parse(bytes);
+  assert.ok(
+    manifest.files.every(
+      (file) =>
+        !file.path.includes('native-gateway-preload') &&
+        !file.path.includes('smoke-native-customer-gateway'),
+    ),
+    'Synthetic gateway fixture must never enter deployment packages',
+  );
   assert.equal(
     manifest.entry,
     service === 'api' ? 'apps/api/dist/hosted-index.js' : 'apps/' + service + '/server.js',
@@ -85,6 +93,16 @@ process.stdout.write(
     maxBuffer: 4 * 1024 * 1024,
   }),
 );
+process.stdout.write(
+  execFileSync(process.execPath, [resolve(root, 'scripts/smoke-native-customer-gateway.mjs')], {
+    cwd: root,
+    env,
+    encoding: 'utf8',
+    windowsHide: true,
+    timeout: 240000,
+    maxBuffer: 4 * 1024 * 1024,
+  }),
+);
 const receipt = {
   source,
   detached,
@@ -96,6 +114,8 @@ const receipt = {
   materializedLinks: true,
   serverModuleImportsPassed: ['api', 'web', 'admin'],
   localHttpProfilesPassed: 14,
+  syntheticNativeGatewayProfilesPassed: 5,
+  syntheticNativeGatewayPreloadExcluded: true,
   apiPositiveDatabaseStartupVerified: false,
   linuxContainerVerified: false,
   liveDeploymentVerified: false,

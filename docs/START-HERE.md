@@ -1,3 +1,9 @@
+## Billing decision and configured gateway work — checkpoint467, 19 November2026 EAT
+
+Boniface explicitly answered “Keep billing disabled” to the proposed synthetic Iowa staging budget. This supersedes prior pending spending approval: do not enable billing, provision paid runtimes/SQL/storage, use credits or request the same approval again. Continue useful local/CI work. Actual managed staging remains unprovisioned by instruction, not authorized spending awaiting action.
+
+Current work: verify selected native gateway settings through an actual production Next server using an isolated child-only synthetic Firebase/IAM preload and owned-loopback backend. No production verifier bypass or real provider/network/paid setup is selected. Inspect compiled-server canonical Host/protocol behavior, malformed settings, request refusal before authority/invocation and DTO/header sanitization. All new proof remains pending until run; previous466 source/tests remain the verified baseline. Preserve55/97 full tasks/all14 gates/1012 notes and old live/vendor/export resources.
+
 ## Native customer gateway verified — checkpoint466, 19 November2026 EAT
 
 Source21ac36daa22187ec88920ea9703b52db1b824b9d passed complete seven-job CI44588380279, all four regression groups/types/formatting/Android export/Linux runtime. Mobile94/94 local/remote and focused23/23 passed with0 skips. Android bundled690 modules, not an installed device result. The default-off Next customer gateway verifies strict Firebase subject authority before private invocation, rejects cookie/actor/workload spoofing, bounds JSON/requests/deadlines and sanitizes responses without write replay. The private API retains live SQL actor/company membership authority. No real configuration was enabled.

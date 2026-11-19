@@ -1,3 +1,5 @@
+19 November2026 decision: Boniface explicitly selected “Keep billing disabled” for boniface-realtor-staging. Do not enable billing or provision the proposed paid Iowa services. Earlier pending-approval estimates are historical comparisons; they are not authorization. Continue local/CI implementation and verification within existing resources.
+
 19 November 2026 reference review: [Google Cloud cost comparison](google-cloud-cost-review.md) records verified default-region USD rates and explicit calculation assumptions. It is not a selected-region quote or spending approval; first-client dedicated managed SQL may exceed the existing external allowance. Billing remains disabled.
 
 # Solo delivery and KES 10,000 service baseline

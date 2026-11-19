@@ -1,3 +1,9 @@
+## Billing decision and configured gateway work — checkpoint467, 19 November2026 EAT
+
+Boniface explicitly answered “Keep billing disabled” to the proposed synthetic Iowa staging budget. This supersedes prior pending spending approval: do not enable billing, provision paid runtimes/SQL/storage, use credits or request the same approval again. Continue useful local/CI work. Actual managed staging remains unprovisioned by instruction, not authorized spending awaiting action.
+
+Current work: verify selected native gateway settings through an actual production Next server using an isolated child-only synthetic Firebase/IAM preload and owned-loopback backend. No production verifier bypass or real provider/network/paid setup is selected. Inspect compiled-server canonical Host/protocol behavior, malformed settings, request refusal before authority/invocation and DTO/header sanitization. All new proof remains pending until run; previous466 source/tests remain the verified baseline. Preserve55/97 full tasks/all14 gates/1012 notes and old live/vendor/export resources.
+
 ## Published native customer gateway and composed SQL journey, checkpoint 466, 19 November 2026 EAT
 
 Private dashboard deployment appgdep_6aff44efba688191ab6b175f78e073bb succeeded from dashboard 339dd5f996876719b4fae2a13e1ea52f7162df7b. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.

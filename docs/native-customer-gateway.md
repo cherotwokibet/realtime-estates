@@ -1,5 +1,7 @@
 # Native customer gateway
 
+Checkpoint467 local update: the production Next adapter now requires an exact configured Host and single HTTPS X-Forwarded-Proto, rejects a conflicting X-Forwarded-Host, and reconstructs only its configured public origin. Next supplies its internal listener URL to the route handler; using that URL directly caused a reproduced403 for valid requests. The actual compiled Next smoke suite now covers five synthetic profiles, including command body forwarding and original lookup. Full current-source CI remains pending. Boniface explicitly selected KEEP BILLING DISABLED; earlier pending budget language below is historical, not permission to provision.
+
 Checkpoint466, 19 November2026. Source21ac36daa22187ec88920ea9703b52db1b824b9d adds a default-off Node Next route at /v2/customer/[...segments]. It is a candidate for controlled staging. No actual gateway configuration or deployment was enabled. Existing browser session and synthetic preview modes remain separate.
 
 ## Server configuration
