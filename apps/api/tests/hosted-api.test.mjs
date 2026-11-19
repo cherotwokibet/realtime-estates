@@ -1,3 +1,4 @@
+import { createCloudRunInvocationTransport } from '../dist/cloud-run-invocation.js';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
@@ -335,6 +336,21 @@ test('listening production adapter bounds envelopes, ignores forged proxy routin
     );
     for (const [path, opts, status] of [
       ['/v2/customer/account', { headers: { 'x-actor-id': ADMIN } }, 400],
+      [
+        '/v2/customer/account',
+        { headers: { 'x-serverless-authorization': 'Bearer google.workload.signature' } },
+        401,
+      ],
+      [
+        '/v2/customer/account',
+        {
+          headers: {
+            authorization: 'Bearer google.workload.signature',
+            'x-serverless-authorization': 'Bearer customer.payload.signature',
+          },
+        },
+        401,
+      ],
       ['/v2/staff/../staff/session', {}, 400],
       ['/v2/customer/%61ccount', {}, 400],
       ['/v2/staff/invitation-requests', {}, 404],
@@ -351,7 +367,7 @@ test('listening production adapter bounds envelopes, ignores forged proxy routin
       assert.equal((await wire(server, path, opts)).status, status);
     let posts = 0,
       lost = true;
-    const transport = async (url, options) => {
+    const wireTransport = async (url, options) => {
       const r = await wire(server, new URL(url).pathname + new URL(url).search, options);
       if (options.method === 'POST') {
         posts++;
@@ -363,6 +379,33 @@ test('listening production adapter bounds envelopes, ignores forged proxy routin
       }
       return r;
     };
+    const runOrigin = 'https://synthetic-api-123456.africa-south1.run.app';
+    let serviceCalls = 0;
+    const transport = createCloudRunInvocationTransport(
+      { policy: 'cloud-run-invocation-v1', audience: runOrigin },
+      {
+        client: async () => ({
+          getRequestHeaders: async () =>
+            new Headers({ authorization: 'Bearer google.workload.signature' }),
+        }),
+        transport: async (request) => {
+          assert.equal(
+            request.headers.get('x-serverless-authorization'),
+            'Bearer google.workload.signature',
+          );
+          assert.match(
+            request.headers.get('authorization'),
+            /^Bearer (customer|admin)\.payload\.signature$/,
+          );
+          serviceCalls++;
+          return wireTransport(request.url, {
+            method: request.method,
+            headers: Object.fromEntries(request.headers),
+            ...(request.body ? { body: await request.text() } : {}),
+          });
+        },
+      },
+    );
     const origin = 'https://synthetic-web.example',
       cookies = new Map();
     const identity = createFirebaseBrowserIdentity(
@@ -418,7 +461,7 @@ test('listening production adapter bounds envelopes, ignores forged proxy routin
       saved: true,
     };
     let customer = createHostedCustomerBrowser(
-      { applicationOrigin: origin, apiOrigin: config.applicationOrigin, tenantId: T },
+      { applicationOrigin: origin, apiOrigin: runOrigin, tenantId: T },
       auth,
       createCustomerOriginals(f.db, '04'.repeat(32)),
       transport,
@@ -431,7 +474,7 @@ test('listening production adapter bounds envelopes, ignores forged proxy routin
     assert.equal((await customer.handle(customerReq('favourite', c))).status, 503);
     assert.equal(posts, 1);
     customer = createHostedCustomerBrowser(
-      { applicationOrigin: origin, apiOrigin: config.applicationOrigin, tenantId: T },
+      { applicationOrigin: origin, apiOrigin: runOrigin, tenantId: T },
       auth,
       createCustomerOriginals(f.db, '04'.repeat(32)),
       transport,
@@ -450,7 +493,7 @@ test('listening production adapter bounds envelopes, ignores forged proxy routin
       reason: 'Synthetic hosted pilot verification.',
     };
     const staff = createHostedStaffBrowser(
-      { ...config, applicationOrigin: origin, apiOrigin: config.applicationOrigin },
+      { ...config, applicationOrigin: origin, apiOrigin: runOrigin },
       auth,
       createStaffOriginals(f.db, '05'.repeat(32)),
       transport,
@@ -464,6 +507,7 @@ test('listening production adapter bounds envelopes, ignores forged proxy routin
     assert.equal(posts, 2);
     assert.equal((await staff.handle(staffReq('original'))).status, 200);
     assert.equal(posts, 2);
+    assert.ok(serviceCalls >= 6);
   } finally {
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));

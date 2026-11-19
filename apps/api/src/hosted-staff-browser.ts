@@ -59,6 +59,7 @@ export function createHostedStaffBrowser(
           throw new Refused(403, 'ORIGIN_REFUSED');
         for (const h of [
           'authorization',
+          'x-serverless-authorization',
           'x-role',
           'x-actor-id',
           'x-tenant-id',

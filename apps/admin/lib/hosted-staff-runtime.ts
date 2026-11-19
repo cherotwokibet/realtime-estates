@@ -1,3 +1,4 @@
+import { configuredHostedApiTransport } from '@realtor/api/dist/cloud-run-invocation.js';
 import 'server-only';
 import { readFirebaseBrowserEnvironment } from '@realtor/api/dist/browser-identity-runtime.js';
 import { createStaffOriginals } from '@realtor/api/dist/staff-browser-originals.js';
@@ -22,6 +23,7 @@ export function hostedStaff() {
     },
     hostedIdentity,
     createStaffOriginals(hostedIdentity.database, settings.encryptionKey),
+    configuredHostedApiTransport(process.env, origin.origin, settings.config.projectId),
   );
   return instance;
 }

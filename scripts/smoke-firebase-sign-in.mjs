@@ -26,14 +26,18 @@ for (const app of ['web', 'admin']) {
   for (const profile of [
     'unconfigured',
     'identity',
-    ...(app === 'web' ? ['customer', 'customer-invalid', 'customer-iam'] : []),
-    ...(app === 'admin' ? ['staff', 'staff-invalid', 'staff-iam'] : []),
+    ...(app === 'web'
+      ? ['customer', 'customer-invalid', 'customer-iam', 'customer-run', 'customer-run-invalid']
+      : []),
+    ...(app === 'admin'
+      ? ['staff', 'staff-invalid', 'staff-iam', 'staff-run', 'staff-run-invalid']
+      : []),
   ]) {
     const configured = profile !== 'unconfigured';
     const env = { ...process.env, NODE_ENV: 'production' };
     for (const name of Object.keys(env)) {
       if (
-        /^(FIREBASE_|BROWSER_IDENTITY_|STAFF_PREVIEW_|WEB_CUSTOMER_PREVIEW_CONFIG|HOSTED_CUSTOMER_|HOSTED_STAFF_)/.test(
+        /^(FIREBASE_|BROWSER_IDENTITY_|STAFF_PREVIEW_|WEB_CUSTOMER_PREVIEW_CONFIG|HOSTED_CUSTOMER_|HOSTED_STAFF_|HOSTED_API_INVOCATION_)/.test(
           name,
         )
       )
@@ -51,14 +55,16 @@ for (const app of ['web', 'admin']) {
         'postgres://synthetic:synthetic-database-secret@127.0.0.1:1/identity?sslmode=verify-full';
       env.BROWSER_IDENTITY_STORAGE_KEY = 'ec'.repeat(32);
       if (profile.startsWith('customer'))
-        env.HOSTED_CUSTOMER_API_ORIGIN =
-          profile !== 'customer-invalid' ? 'https://synthetic-api.example' : 'http://127.0.0.1:1';
+        env.HOSTED_CUSTOMER_API_ORIGIN = !profile.endsWith('-invalid')
+          ? 'https://synthetic-api.example'
+          : 'http://127.0.0.1:1';
       if (profile.startsWith('staff')) {
-        env.HOSTED_STAFF_API_ORIGIN =
-          profile !== 'staff-invalid' ? 'https://synthetic-api.example' : 'http://127.0.0.1:1';
+        env.HOSTED_STAFF_API_ORIGIN = !profile.endsWith('-invalid')
+          ? 'https://synthetic-api.example'
+          : 'http://127.0.0.1:1';
         env.PRIVACY_NOTICE_VERSION = 'synthetic-staff-v1';
       }
-      if (profile.endsWith('-iam')) {
+      if (profile.endsWith('-iam') || profile.includes('-run')) {
         delete env.BROWSER_IDENTITY_DATABASE_URL;
         delete env.GOOGLE_APPLICATION_CREDENTIALS;
         for (const name of Object.keys(env)) if (name.startsWith('PG')) delete env[name];
@@ -71,6 +77,15 @@ for (const app of ['web', 'admin']) {
           ipType: 'PRIVATE',
         });
       }
+    }
+    if (profile.includes('-run')) {
+      const target = 'https://synthetic-api-123456.africa-south1.run.app';
+      env[app === 'web' ? 'HOSTED_CUSTOMER_API_ORIGIN' : 'HOSTED_STAFF_API_ORIGIN'] = target;
+      if (!profile.endsWith('-invalid'))
+        env.HOSTED_API_INVOCATION_CONFIG = JSON.stringify({
+          policy: 'cloud-run-invocation-v1',
+          audience: target,
+        });
     }
     const address = await port();
     const child = spawn(
@@ -143,14 +158,14 @@ for (const app of ['web', 'admin']) {
           const view = await staffPage.text();
           assert.match(
             view,
-            profile !== 'staff-invalid'
+            !profile.endsWith('-invalid')
               ? /Branch administration/
               : /Staff administration is unavailable here/,
           );
           assert.doesNotMatch(view, /Synthetic local preview|synthetic-database-secret/);
         }
         const privateResponse = await fetch(`http://127.0.0.1:${address}/api/hosted-staff/session`);
-        assert.equal(privateResponse.status, profile !== 'staff-invalid' ? 403 : 503);
+        assert.equal(privateResponse.status, !profile.endsWith('-invalid') ? 403 : 503);
         assert.equal(privateResponse.headers.get('cache-control'), 'no-store');
       }
       if (profile.startsWith('customer')) {
@@ -163,12 +178,12 @@ for (const app of ['web', 'admin']) {
         );
         assert.match(
           view,
-          profile !== 'customer-invalid'
+          !profile.endsWith('-invalid')
             ? /Manage sign-in/
             : /Customer accounts are unavailable here/,
         );
         const privateResponse = await fetch(`http://127.0.0.1:${address}/api/customer/session`);
-        assert.equal(privateResponse.status, profile !== 'customer-invalid' ? 403 : 503);
+        assert.equal(privateResponse.status, !profile.endsWith('-invalid') ? 403 : 503);
         assert.equal(privateResponse.headers.get('cache-control'), 'no-store');
       }
       console.log(
@@ -184,5 +199,5 @@ for (const app of ['web', 'admin']) {
   }
 }
 console.log(
-  '10 production HTTP/SSR profiles passed; no browser/provider/hosted SQL verification claimed.',
+  '14 production HTTP/SSR profiles passed; no browser/provider/hosted SQL verification claimed.',
 );

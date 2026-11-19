@@ -76,6 +76,7 @@ export function createHostedCustomerBrowser(
           throw new Refused(403, 'ORIGIN_REFUSED');
         for (const h of [
           'authorization',
+          'x-serverless-authorization',
           'x-actor-id',
           'x-tenant-id',
           'x-role',

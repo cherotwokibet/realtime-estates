@@ -1,3 +1,5 @@
+19 November 2026: checkpoint 454 implements local private Cloud Run API invocation for web/admin, preserving Firebase user authority separately. See [invocation constraints](cloud-run-invocation.md). Actual IAM grants, ingress, token refresh and hosted acceptance remain pending; billing is disabled.
+
 19 November 2026: checkpoint 453 implements local shared Cloud SQL IAM connection composition and browser SQL privilege attestation. See [setup constraints](cloud-sql-iam.md). Earlier pending-composition notes are superseded; actual Cloud SQL provisioning/login, managed roles, private invocation and deployment acceptance remain pending. Billing is disabled.
 
 # Google Cloud and Firebase delivery target

@@ -1,3 +1,4 @@
+import { configuredHostedApiTransport } from '@realtor/api/dist/cloud-run-invocation.js';
 import 'server-only';
 import { readFirebaseBrowserEnvironment } from '@realtor/api/dist/browser-identity-runtime.js';
 import { createCustomerOriginals } from '@realtor/api/dist/customer-browser-originals.js';
@@ -35,7 +36,7 @@ export function hostedCustomer() {
     },
     hostedIdentity,
     createCustomerOriginals(hostedIdentity.database, settings.encryptionKey),
-    fetch,
+    configuredHostedApiTransport(process.env, apiOrigin.origin, settings.config.projectId),
     async (id) => {
       const r = await loadProperty(id);
       return r.mode !== 'error' && r.status === 'found'
