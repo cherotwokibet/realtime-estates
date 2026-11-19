@@ -1,3 +1,9 @@
+## 19 November 2026 — managed migration-role review
+
+Actual PostgreSQL 17.12 CI now verifies the 37 migrations and branch proposal plus ordinary-login TCP isolation/concurrency. Its migration connection is the disposable server superuser; this does not prove a Cloud SQL bootstrap account can apply the same order. Google documents that Cloud SQL does not expose PostgreSQL SUPERUSER and uses limited administration roles. PostgreSQL 17 documents that a non-superuser CREATEROLE principal receives administration authority on roles it creates, but SET/INHERIT membership is not automatically supplied by default. The controlled migration principal must therefore have reviewed SET authority for the new non-login owner (for example an explicit grant or reviewed createrole_self_grant=set setting) before owner-switching migrations. Do not grant this to API/browser runtime logins or silently remove the role checks. No such setting/grant was applied to a managed instance here.
+
+References: [Cloud SQL database users/system roles](https://docs.cloud.google.com/sql/docs/postgres/users) and [PostgreSQL 17 createrole_self_grant](https://www.postgresql.org/docs/17/runtime-config-client.html#GUC-CREATEROLE-SELF-GRANT). Managed IAM designation-role attributes/membership and bootstrap grant capabilities still require actual controlled-instance inspection; the current strict runtime attestations remain unchanged. Paid staging approval is pending separately.
+
 # Staging Cloud SQL IAM connections
 
 This is implemented local connection composition, not a deployment receipt. Billing is disabled. Obtain a reviewed selected-region quote and resolve the existing paid-plan restriction before provisioning billable services.

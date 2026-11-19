@@ -39,3 +39,12 @@ test('workflow runs every isolated test group and gates the required result on m
   assert.match(text, /TESTS_RESULT: \$\{\{ needs.tests.result \}\}/);
   assert.doesNotMatch(text, /continue-on-error:/);
 });
+
+test('preview isolation compiles the imported web test helpers before dev HTTP tests', () => {
+  const commands = groupCommands(script, 'previews-mobile-media');
+  assert.ok(
+    commands.indexOf('npm run test:compile --workspace=@realtor/web') <
+      commands.indexOf('node --test --test-concurrency=1 apps/api/dev/*.test.mjs'),
+  );
+  assert.ok(commands.includes('npm run test:compile --workspace=@realtor/web'));
+});

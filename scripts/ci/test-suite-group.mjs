@@ -44,7 +44,10 @@ export function planTestGroups(script) {
 export function groupCommands(script, name) {
   if (!suiteNames.includes(name)) throw Error('Unknown CI test group.');
   const plan = planTestGroups(script);
-  return [...plan.prepare, ...plan.groups[name]];
+  // The pilot test imports compiled web helpers even when its Windows-only body is skipped.
+  const prerequisites =
+    name === 'previews-mobile-media' ? ['npm run test:compile --workspace=@realtor/web'] : [];
+  return [...plan.prepare, ...prerequisites, ...plan.groups[name]];
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const { scripts } = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
