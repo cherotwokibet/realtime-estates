@@ -8,7 +8,7 @@ Initialff874cf/run44527415993 was superseded by keyboard/scroll layout source405
 
 Next free implementation: add bounded native saved-property list/read navigation using the existing server-scoped customer favourites protocol and new native session. Validate list pagination, company/actor scope and logout/late-response clearing. Keep hosted accounts separate from synthetic property IDs. Actual gateway, verified-email/revocation, ADC/IAM/managed SQL and device/UAT/restore/cutover acceptance still require controlled staging and the pending paid-resource decision.
 
-Publish private462 from dashboard46d4639/baseline real-firebase-auth-lifecycle-461 after the three dashboard tests and saved-export replay. Deployed-browser verification remains pending.
+Published private checkpoint462 successfully: deployment appgdep_6afef50a1e30819182cc27b26202412f, dashboard 1b454e6634a4478db5374e03cb729d3ac3dd4626. Three dashboard tests passed; saved-export replay preserved all1012 notes/manual fields. Deployed-browser verification remains pending. Continue with the native saved-property list above.
 
 ## Native Firebase account screen in progress — checkpoint462, 19 November 2026 EAT
 
