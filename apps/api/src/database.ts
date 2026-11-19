@@ -42,6 +42,7 @@ export async function assertSafeRuntimeConnection(client: TransactionQuery): Pro
   const result =
     await client.query(`SELECT current_user AS "currentUser",session_user AS "sessionUser",
     r.rolsuper AS "superuser",r.rolbypassrls AS "bypassRls",r.rolinherit AS "inheritsRoles",
+    r.rolcreatedb OR r.rolcreaterole OR r.rolreplication AS "canAdminister",
     pg_has_role(session_user,'realtor_owner','MEMBER') AS "ownerMember",
     pg_has_role(session_user,'api_runtime','MEMBER') AS "runtimeMember",
     EXISTS(SELECT 1 FROM pg_roles member WHERE member.rolname NOT IN (session_user,'api_runtime')
@@ -51,7 +52,7 @@ export async function assertSafeRuntimeConnection(client: TransactionQuery): Pro
     EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
       WHERE n.nspname IN ('app_private','app_api') AND pg_has_role(session_user,c.relowner,'MEMBER')) AS "tableOwner",
     has_schema_privilege(session_user,'app_private','CREATE') OR has_schema_privilege(session_user,'app_api','CREATE') AS "canCreateInApp",
-    (SELECT rolsuper OR rolbypassrls OR rolcanlogin OR rolinherit FROM pg_roles WHERE rolname='api_runtime') AS "unsafeRuntime",
+    (SELECT rolsuper OR rolbypassrls OR rolcanlogin OR rolinherit OR rolcreatedb OR rolcreaterole OR rolreplication FROM pg_roles WHERE rolname='api_runtime') AS "unsafeRuntime",
     pg_has_role('api_runtime','realtor_owner','MEMBER') AS "runtimeOwnsData"
     FROM pg_roles r WHERE r.rolname=session_user`);
   const flags = result.rows[0];
@@ -61,6 +62,7 @@ export async function assertSafeRuntimeConnection(client: TransactionQuery): Pro
     flags.superuser !== false ||
     flags.bypassRls !== false ||
     flags.inheritsRoles !== false ||
+    flags.canAdminister !== false ||
     flags.ownerMember !== false ||
     flags.runtimeMember !== true ||
     flags.otherRoleMembership !== false ||

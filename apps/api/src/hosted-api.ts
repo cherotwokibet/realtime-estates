@@ -4,6 +4,7 @@ import { createApiService } from './service.js';
 import { createFirebaseIdentityVerifier, type FirebaseActorResolver } from './firebase-identity.js';
 import { parseBearerHeader, AuthenticationError, type VerifiedIdentity } from './auth.js';
 import type { TransactionDatabase } from './database.js';
+import { readHostedDatabaseEnvironment } from './hosted-database.js';
 export interface HostedApiConfig {
   readonly policy: 'realtor-staging-api-v1';
   readonly projectId: string;
@@ -77,22 +78,15 @@ export function readHostedApiEnvironment(env: Readonly<Record<string, string | u
   const config = validateHostedApiConfig(JSON.parse(env.HOSTED_API_CONFIG));
   if (env.GOOGLE_CLOUD_PROJECT !== config.projectId)
     throw Error('Staging API project does not match.');
-  const raw = env.HOSTED_API_DATABASE_URL ?? '',
-    u = new URL(raw);
-  if (
-    !['postgres:', 'postgresql:'].includes(u.protocol) ||
-    !u.hostname ||
-    !!u.hash ||
-    !u.username ||
-    !u.password ||
-    u.searchParams.getAll('sslmode').length !== 1 ||
-    u.searchParams.get('sslmode') !== 'verify-full' ||
-    [...u.searchParams.keys()].some((k) => k !== 'sslmode')
-  )
-    throw Error('Dedicated TLS-verified API database required.');
+  const databaseConfig = readHostedDatabaseEnvironment(env, 'HOSTED_API', config.projectId);
   const port = Number(env.PORT ?? 8080);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw Error('Invalid API port.');
-  return Object.freeze({ config, databaseUrl: u.href, port });
+  return Object.freeze({
+    config,
+    databaseConfig,
+    databaseUrl: databaseConfig.kind === 'tls-url' ? databaseConfig.connectionString : undefined,
+    port,
+  });
 }
 /** Verified Firebase subject lookup, under the API's attested role and fixed company context. */
 export function createFirebaseApiActorResolver(

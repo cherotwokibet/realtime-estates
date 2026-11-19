@@ -1,3 +1,5 @@
+19 November 2026: checkpoint 453 implements local shared Cloud SQL IAM connection composition and browser SQL privilege attestation. See [setup constraints](cloud-sql-iam.md). Earlier pending-composition notes are superseded; actual Cloud SQL provisioning/login, managed roles, private invocation and deployment acceptance remain pending. Billing is disabled.
+
 # Google Cloud and Firebase delivery target
 
 18 November 2026. Boniface selected Google Cloud/Firebase and authorized routine implementation choices using our best judgment. This supersedes the earlier unselected provider candidates as the current technical target. It does not authorize spending, changing plans, using credits, changing vendor resources, or production cutover. The old live system remains available.

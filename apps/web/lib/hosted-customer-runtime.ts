@@ -1,5 +1,4 @@
 import 'server-only';
-import { Pool } from 'pg';
 import { readFirebaseBrowserEnvironment } from '@realtor/api/dist/browser-identity-runtime.js';
 import { createCustomerOriginals } from '@realtor/api/dist/customer-browser-originals.js';
 import { createHostedCustomerBrowser } from '@realtor/api/dist/hosted-customer-browser.js';
@@ -28,17 +27,6 @@ export function hostedCustomer() {
     apiOrigin.origin !== process.env.HOSTED_CUSTOMER_API_ORIGIN
   )
     throw Error('Hosted customer HTTPS API origin required.');
-  const pool = new Pool({
-    connectionString: settings.databaseUrl,
-    max: 3,
-    connectionTimeoutMillis: 5000,
-    idleTimeoutMillis: 30000,
-    statement_timeout: 5000,
-    query_timeout: 5000,
-  });
-  pool.on('error', () => {
-    /* Credential-bearing database diagnostics never enter logs. */
-  });
   instance = createHostedCustomerBrowser(
     {
       applicationOrigin: settings.config.applicationOrigin,
@@ -46,7 +34,7 @@ export function hostedCustomer() {
       apiOrigin: apiOrigin.origin,
     },
     hostedIdentity,
-    createCustomerOriginals(pool, settings.encryptionKey),
+    createCustomerOriginals(hostedIdentity.database, settings.encryptionKey),
     fetch,
     async (id) => {
       const r = await loadProperty(id);

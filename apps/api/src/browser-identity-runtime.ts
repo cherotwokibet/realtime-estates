@@ -1,4 +1,5 @@
-import { Pool } from 'pg';
+import { readHostedDatabaseEnvironment, type HostedDatabaseConfig } from './hosted-database.js';
+import { createIdentityDatabase, type IdentityProfile } from './identity-database.js';
 import { AuthenticationError } from './auth.js';
 import { createBrowserIdentity, type BrowserIdentityConfig } from './browser-identity.js';
 import { createPostgresBrowserIdentityStore } from './browser-identity-store.js';
@@ -26,7 +27,8 @@ const names = [
 /** Explicit hosted configuration only. Default-off and independent of disposable preview credentials. */
 export function readBrowserIdentityEnvironment(env: Environment): {
   config: BrowserIdentityConfig;
-  databaseUrl: string;
+  databaseUrl?: string;
+  databaseConfig: HostedDatabaseConfig;
   encryptionKey: string;
 } | null {
   if (env.BROWSER_IDENTITY_CONFIG === undefined) return null;
@@ -53,26 +55,21 @@ export function readBrowserIdentityEnvironment(env: Environment): {
     throw Error('Invalid hosted identity configuration.');
   return { config: Object.freeze({ ...parsed }), ...readIdentityStorageEnvironment(env) };
 }
-export function readIdentityStorageEnvironment(env: Environment) {
-  const url = new URL(env.BROWSER_IDENTITY_DATABASE_URL ?? '');
-  if (
-    !['postgres:', 'postgresql:'].includes(url.protocol) ||
-    !url.username ||
-    !url.password ||
-    !url.hostname ||
-    url.searchParams.getAll('sslmode').length !== 1 ||
-    url.searchParams.get('sslmode') !== 'verify-full' ||
-    [...url.searchParams.keys()].some((name) => name !== 'sslmode')
-  )
-    throw Error('A dedicated TLS-verified identity database connection is required.');
+export function readIdentityStorageEnvironment(env: Environment, projectId?: string) {
+  const databaseConfig = readHostedDatabaseEnvironment(env, 'BROWSER_IDENTITY', projectId);
   const encryptionKey = env.BROWSER_IDENTITY_STORAGE_KEY ?? '';
   if (!/^[0-9a-f]{64}$/.test(encryptionKey)) throw Error('Invalid identity storage key.');
-  return { databaseUrl: url.href, encryptionKey };
+  return {
+    databaseConfig,
+    databaseUrl: databaseConfig.kind === 'tls-url' ? databaseConfig.connectionString : undefined,
+    encryptionKey,
+  };
 }
 
 export function readFirebaseBrowserEnvironment(env: Environment): {
   config: FirebaseBrowserIdentityConfig;
-  databaseUrl: string;
+  databaseUrl?: string;
+  databaseConfig: HostedDatabaseConfig;
   encryptionKey: string;
 } | null {
   if (env.FIREBASE_BROWSER_CONFIG === undefined) return null;
@@ -101,13 +98,18 @@ export function readFirebaseBrowserEnvironment(env: Environment): {
     (config.authTenantId !== undefined && typeof config.authTenantId !== 'string')
   )
     throw Error('Invalid Firebase browser configuration.');
-  return { config: Object.freeze({ ...config }), ...readIdentityStorageEnvironment(env) };
+  return {
+    config: Object.freeze({ ...config }),
+    ...readIdentityStorageEnvironment(env, config.projectId),
+  };
 }
 
 /** Mount in each web/admin Node deployment. Provider tokens never enter client components. */
 export function configuredBrowserIdentityRuntime(
   environment: () => Environment = () => process.env,
+  profile: IdentityProfile = 'auth',
 ) {
+  let storage: ReturnType<typeof createIdentityDatabase> | undefined;
   let current:
     | ReturnType<typeof createBrowserIdentity>
     | ReturnType<typeof createFirebaseBrowserIdentity>
@@ -119,15 +121,14 @@ export function configuredBrowserIdentityRuntime(
       const settings = firebase ?? readBrowserIdentityEnvironment(env);
       if (!settings) return null;
       // Validate every URL and provider setting before allocating a database pool.
-      let pool: Pool | undefined;
       const database = {
         async query(sql: string, values: unknown[]) {
-          if (!pool) throw Error('Identity database unavailable.');
-          return pool.query(sql, values);
+          if (!storage) throw Error('Identity database unavailable.');
+          return storage.query(sql, values);
         },
       };
       const store = createPostgresBrowserIdentityStore(database, settings.encryptionKey);
-      current = firebase
+      const instance = firebase
         ? createFirebaseBrowserIdentity(
             firebase.config,
             store,
@@ -137,21 +138,21 @@ export function configuredBrowserIdentityRuntime(
             ),
           )
         : createBrowserIdentity(settings.config as BrowserIdentityConfig, store);
-      pool = new Pool({
-        connectionString: settings.databaseUrl,
-        max: 3,
-        connectionTimeoutMillis: 5000,
-        idleTimeoutMillis: 30000,
-        statement_timeout: 5000,
-        query_timeout: 5000,
-      });
-      pool.on('error', () => {
-        /* Request errors are generic; never log credential-bearing errors. */
-      });
+      storage = createIdentityDatabase(settings.databaseConfig, profile);
+      current = instance;
     }
     return current;
   }
   return Object.freeze({
+    database: Object.freeze({
+      async query(sql: string, values: unknown[]) {
+        if (!configured() || !storage) throw Error('Identity database unavailable.');
+        return storage.query(sql, values);
+      },
+    }),
+    async close() {
+      await storage?.close();
+    },
     async authenticateSession(request: Request) {
       try {
         const instance = configured();

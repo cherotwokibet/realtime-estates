@@ -1293,6 +1293,7 @@ test('failed rollback destroys pooled connection rather than returning contamina
     superuser: false,
     bypassRls: false,
     inheritsRoles: false,
+    canAdminister: false,
     ownerMember: false,
     runtimeMember: true,
     otherRoleMembership: false,

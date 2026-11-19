@@ -1,5 +1,4 @@
 import 'server-only';
-import { Pool } from 'pg';
 import { readFirebaseBrowserEnvironment } from '@realtor/api/dist/browser-identity-runtime.js';
 import { createStaffOriginals } from '@realtor/api/dist/staff-browser-originals.js';
 import { createHostedStaffBrowser } from '@realtor/api/dist/hosted-staff-browser.js';
@@ -14,17 +13,6 @@ export function hostedStaff() {
   const origin = new URL(process.env.HOSTED_STAFF_API_ORIGIN);
   if (origin.origin !== process.env.HOSTED_STAFF_API_ORIGIN || origin.protocol !== 'https:')
     throw Error('Hosted HTTPS API required.');
-  const pool = new Pool({
-    connectionString: settings.databaseUrl,
-    max: 3,
-    connectionTimeoutMillis: 5000,
-    idleTimeoutMillis: 30000,
-    statement_timeout: 5000,
-    query_timeout: 5000,
-  });
-  pool.on('error', () => {
-    /* Never log credential-bearing errors. */
-  });
   instance = createHostedStaffBrowser(
     {
       applicationOrigin: settings.config.applicationOrigin,
@@ -33,7 +21,7 @@ export function hostedStaff() {
       privacyNoticeVersion: notice,
     },
     hostedIdentity,
-    createStaffOriginals(pool, settings.encryptionKey),
+    createStaffOriginals(hostedIdentity.database, settings.encryptionKey),
   );
   return instance;
 }

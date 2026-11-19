@@ -26,8 +26,8 @@ for (const app of ['web', 'admin']) {
   for (const profile of [
     'unconfigured',
     'identity',
-    ...(app === 'web' ? ['customer', 'customer-invalid'] : []),
-    ...(app === 'admin' ? ['staff', 'staff-invalid'] : []),
+    ...(app === 'web' ? ['customer', 'customer-invalid', 'customer-iam'] : []),
+    ...(app === 'admin' ? ['staff', 'staff-invalid', 'staff-iam'] : []),
   ]) {
     const configured = profile !== 'unconfigured';
     const env = { ...process.env, NODE_ENV: 'production' };
@@ -52,11 +52,24 @@ for (const app of ['web', 'admin']) {
       env.BROWSER_IDENTITY_STORAGE_KEY = 'ec'.repeat(32);
       if (profile.startsWith('customer'))
         env.HOSTED_CUSTOMER_API_ORIGIN =
-          profile === 'customer' ? 'https://synthetic-api.example' : 'http://127.0.0.1:1';
+          profile !== 'customer-invalid' ? 'https://synthetic-api.example' : 'http://127.0.0.1:1';
       if (profile.startsWith('staff')) {
         env.HOSTED_STAFF_API_ORIGIN =
-          profile === 'staff' ? 'https://synthetic-api.example' : 'http://127.0.0.1:1';
+          profile !== 'staff-invalid' ? 'https://synthetic-api.example' : 'http://127.0.0.1:1';
         env.PRIVACY_NOTICE_VERSION = 'synthetic-staff-v1';
+      }
+      if (profile.endsWith('-iam')) {
+        delete env.BROWSER_IDENTITY_DATABASE_URL;
+        delete env.GOOGLE_APPLICATION_CREDENTIALS;
+        for (const name of Object.keys(env)) if (name.startsWith('PG')) delete env[name];
+        env.K_SERVICE = 'synthetic-' + app;
+        env.GOOGLE_CLOUD_PROJECT = projectId;
+        env.BROWSER_IDENTITY_CLOUD_SQL_CONFIG = JSON.stringify({
+          instanceConnectionName: projectId + ':africa-south1:synthetic-test',
+          database: 'realtor',
+          serviceAccount: 'synthetic-web@' + projectId + '.iam.gserviceaccount.com',
+          ipType: 'PRIVATE',
+        });
       }
     }
     const address = await port();
@@ -130,14 +143,14 @@ for (const app of ['web', 'admin']) {
           const view = await staffPage.text();
           assert.match(
             view,
-            profile === 'staff'
+            profile !== 'staff-invalid'
               ? /Branch administration/
               : /Staff administration is unavailable here/,
           );
           assert.doesNotMatch(view, /Synthetic local preview|synthetic-database-secret/);
         }
         const privateResponse = await fetch(`http://127.0.0.1:${address}/api/hosted-staff/session`);
-        assert.equal(privateResponse.status, profile === 'staff' ? 403 : 503);
+        assert.equal(privateResponse.status, profile !== 'staff-invalid' ? 403 : 503);
         assert.equal(privateResponse.headers.get('cache-control'), 'no-store');
       }
       if (profile.startsWith('customer')) {
@@ -150,10 +163,12 @@ for (const app of ['web', 'admin']) {
         );
         assert.match(
           view,
-          profile === 'customer' ? /Manage sign-in/ : /Customer accounts are unavailable here/,
+          profile !== 'customer-invalid'
+            ? /Manage sign-in/
+            : /Customer accounts are unavailable here/,
         );
         const privateResponse = await fetch(`http://127.0.0.1:${address}/api/customer/session`);
-        assert.equal(privateResponse.status, profile === 'customer' ? 403 : 503);
+        assert.equal(privateResponse.status, profile !== 'customer-invalid' ? 403 : 503);
         assert.equal(privateResponse.headers.get('cache-control'), 'no-store');
       }
       console.log(
@@ -169,5 +184,5 @@ for (const app of ['web', 'admin']) {
   }
 }
 console.log(
-  '8 production HTTP/SSR profiles passed; no browser/provider/hosted SQL verification claimed.',
+  '10 production HTTP/SSR profiles passed; no browser/provider/hosted SQL verification claimed.',
 );

@@ -1,0 +1,16 @@
+✔ database transport selects only explicit matching-project IAM or verified TLS; rejects credentials and fallbacks (3.1264ms)
+✔ API and Firebase browser environment readers accept the same explicit IAM transport without a password URL (0.9288ms)
+✔ lazy IAM pool initializes once under concurrent demand and never passes driver credentials or host overrides (1.9458ms)
+✔ TLS mode preserves the exact verified URL and never constructs a Cloud SQL connector (0.2251ms)
+✔ failed IAM initialization closes its connector, sanitizes errors and creates no fallback pool (0.7668ms)
+✔ closing during IAM initialization disposes the late connector without creating a driver pool (0.3014ms)
+✔ a connection arriving after shutdown is destroyed before it can execute a query (0.2747ms)
+✔ unused pool disposal does not contact Google, and partial driver construction is cleaned up (0.2942ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 695.9148

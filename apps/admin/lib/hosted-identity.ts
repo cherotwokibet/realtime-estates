@@ -4,7 +4,7 @@ import {
   readFirebaseBrowserEnvironment,
 } from '@realtor/api/dist/browser-identity-runtime.js';
 import { readFirebaseWebConfig } from '@realtor/browser-auth/config';
-export const hostedIdentity = configuredBrowserIdentityRuntime();
+export const hostedIdentity = configuredBrowserIdentityRuntime(undefined, 'staff');
 export function hostedWebIdentityConfig() {
   try {
     const settings = readFirebaseBrowserEnvironment(process.env);
