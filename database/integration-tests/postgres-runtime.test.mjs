@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import pg from 'pg';
 import { applyTestMigrations } from '../test-helpers/migrations.mjs';
 import { PostgresTransactionDatabase } from '../../apps/api/dist/database.js';
+import { verifyIdentityPostgres } from './postgres-identity-rehearsal.mjs';
 const id = (n) => '00000000-0000-4000-8000-' + String(n).padStart(12, '0');
 const T = id(1),
   OTHER = id(2),
@@ -387,6 +388,17 @@ test('real PostgreSQL TCP runtime isolates transactions and serializes concurren
         } finally {
           client.release();
         }
+      },
+    );
+    await t.test(
+      'standalone browser identity proposals and real runtime grants',
+      async (identityTest) => {
+        await verifyIdentityPostgres(identityTest, owner, ownerUrl, database, {
+          tenant: T,
+          actor: ADMIN,
+          otherTenant: OTHER,
+          id,
+        });
       },
     );
   } finally {
