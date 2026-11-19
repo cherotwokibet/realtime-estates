@@ -1,8 +1,10 @@
+import { propertyLinkOrigin } from '@realtor/domain';
 export interface NativeFirebaseConfig {
   readonly mode: 'firebase-native-customer-v1';
   readonly tenantId: string;
   /** Reviewed public Firebase-authorized customer gateway, never a private Cloud Run IAM URL. */
   readonly apiOrigin: string;
+  readonly propertyLinkOrigin?: string;
   readonly firebase: Readonly<{
     apiKey: string;
     projectId: string;
@@ -29,7 +31,19 @@ function record(value: unknown, keys: string[]): Record<string, unknown> {
 export function readNativeFirebaseConfig(value: unknown): NativeFirebaseConfig | null {
   if (value === undefined) return null;
   try {
-    const c = record(value, ['mode', 'tenantId', 'apiOrigin', 'firebase']);
+    const c = record(value, [
+      'mode',
+      'tenantId',
+      'apiOrigin',
+      'firebase',
+      ...(value && Object.hasOwn(value, 'propertyLinkOrigin') ? ['propertyLinkOrigin'] : []),
+    ]);
+    if (Object.hasOwn(c, 'propertyLinkOrigin') && typeof c.propertyLinkOrigin !== 'string')
+      return fail();
+    const links =
+      typeof c.propertyLinkOrigin === 'string'
+        ? propertyLinkOrigin(c.propertyLinkOrigin).origin
+        : undefined;
     const f = record(c.firebase, ['apiKey', 'projectId', 'authDomain', 'appId']);
     if (
       c.mode !== 'firebase-native-customer-v1' ||
@@ -63,6 +77,7 @@ export function readNativeFirebaseConfig(value: unknown): NativeFirebaseConfig |
       mode: c.mode,
       tenantId: c.tenantId,
       apiOrigin: c.apiOrigin,
+      ...(links ? { propertyLinkOrigin: links } : {}),
       firebase: Object.freeze({
         apiKey: f.apiKey,
         projectId: f.projectId,

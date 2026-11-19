@@ -546,15 +546,29 @@ export function createMobileCustomerSession(
         return null;
       }
     },
-    async list(page: { readonly limit?: number; readonly after?: string } = {}) {
+    async list(
+      page: { readonly limit?: number; readonly after?: string } = {},
+      signal?: AbortSignal,
+    ) {
       const s = current();
-      if (!s) return null;
+      if (!s || signal?.aborted) return null;
+      const controller = new AbortController();
+      const stop = () => controller.abort();
+      s.controller.signal.addEventListener('abort', stop, { once: true });
+      signal?.addEventListener('abort', stop, { once: true });
+      if (s.controller.signal.aborted || signal?.aborted) stop();
       try {
-        const value = await s.client.listFavourites(auth(s), page);
-        return valid(s) ? value : null;
+        const value = await s.client.listFavourites(
+          { bearerToken: s.grant.bearerToken, signal: controller.signal },
+          page,
+        );
+        return valid(s) && !controller.signal.aborted ? value : null;
       } catch (error) {
         refused(s, error);
         return null;
+      } finally {
+        s.controller.signal.removeEventListener('abort', stop);
+        signal?.removeEventListener('abort', stop);
       }
     },
     async save(input: CustomerFavouriteCommand) {
