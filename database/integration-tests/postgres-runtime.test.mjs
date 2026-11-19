@@ -53,9 +53,79 @@ test('real PostgreSQL TCP runtime isolates transactions and serializes concurren
       0,
       'Refuse a database containing existing application schemas.',
     );
-    await applyTestMigrations({ exec: (sql) => owner.query(sql) });
-    await owner.query(
-      await readFile(new URL('../proposals/staff-branches.sql', import.meta.url), 'utf8'),
+    await t.test(
+      'migration bootstrap needs explicit SET authority and works without superuser',
+      async () => {
+        await owner.query(
+          "CREATE ROLE staging_ci_migration LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB CREATEROLE NOREPLICATION PASSWORD 'synthetic-ci-migration-only'; GRANT CREATE ON DATABASE realtor_synthetic_ci TO staging_ci_migration;",
+        );
+        const migrationUrl = new URL(ownerUrl);
+        migrationUrl.username = 'staging_ci_migration';
+        migrationUrl.password = 'synthetic-ci-migration-only';
+        const migration = new pg.Client({
+          connectionString: migrationUrl.href,
+          connectionTimeoutMillis: 5000,
+        });
+        try {
+          await migration.connect();
+          const attributes = (
+            await migration.query(
+              'SELECT rolsuper,rolbypassrls,rolcreatedb,rolcreaterole,rolreplication,rolinherit FROM pg_roles WHERE rolname=current_user',
+            )
+          ).rows[0];
+          assert.deepEqual(attributes, {
+            rolsuper: false,
+            rolbypassrls: false,
+            rolcreatedb: false,
+            rolcreaterole: true,
+            rolreplication: false,
+            rolinherit: false,
+          });
+          await migration.query("SET createrole_self_grant = ''");
+          await assert.rejects(
+            applyTestMigrations(
+              { exec: (sql) => migration.query(sql) },
+              { through: '0001_foundation.sql' },
+            ),
+            (e) => e.code === '42501',
+            'Default non-superuser administration must not silently confer owner SET authority.',
+          );
+          await migration.query('ROLLBACK');
+          assert.equal(
+            (
+              await owner.query(
+                "SELECT count(*)::int AS n FROM pg_roles WHERE rolname IN ('realtor_owner','api_runtime')",
+              )
+            ).rows[0].n,
+            0,
+          );
+          // Session-local, migration-only grant policy: no runtime principal is altered.
+          await migration.query("SET createrole_self_grant = 'set'");
+          await applyTestMigrations({ exec: (sql) => migration.query(sql) });
+          await migration.query(
+            await readFile(new URL('../proposals/staff-branches.sql', import.meta.url), 'utf8'),
+          );
+          assert.equal(
+            (await migration.query('SELECT session_user,current_user')).rows[0].current_user,
+            'staging_ci_migration',
+          );
+          assert.equal(
+            (
+              await owner.query(
+                "SELECT pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname='app_private'",
+              )
+            ).rows[0].owner,
+            'realtor_owner',
+          );
+          await migration.query('RESET createrole_self_grant');
+        } finally {
+          await migration.end();
+          // This disposable migration login must not become an application login.
+          await owner.query(
+            'REVOKE realtor_owner,api_runtime,media_coordinator FROM staging_ci_migration; ALTER ROLE staging_ci_migration NOLOGIN NOCREATEROLE;',
+          );
+        }
+      },
     );
     await owner.query(
       "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'ci-first','Synthetic CI first'),($2,'ci-second','Synthetic CI second')",
