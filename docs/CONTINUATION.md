@@ -1,3 +1,9 @@
+## Bounded live Firebase Auth lifecycle rehearsal — checkpoint461, 19 November 2026 EAT
+
+Implemented an explicit manual-only public REST rehearsal for owned boniface-realtor-staging with a fresh billing-disabled readback, fixed project/app allowlist, verified HTTPS, one synthetic email/password account and at most14 public requests. Password/ID/refresh tokens stay in process memory. Lookup must match the newly created UID and email before self-deletion. Failed/ambiguous creation uses at most one same-account recovery, never another signup; provider quota/security refusal stops. No email/SMS, billable deployment, admin credentials or production verification bypass. Genuine Google signatures/project claims will be checked with public certificate verification; production still requires verified email and revocation checking.
+
+Six injected safeguard cases passed locally, including quota stop, foreign-account deletion refusal, signature-failure cleanup and ambiguous-response recovery; injected tests explicitly cannot claim live provider proof. Eighteen existing CI/package guards passed. The live provider rehearsal and complete source CI are PENDING. Next: run once with fresh native billing-disabled evidence, record exact sanitized outcome/cleanup, inspect complete CI, then update/publish private checkpoint461 preserving1012 notes and55/97 full tasks/all14 gates. Paid staging approval remains pending.
+
 ## Published actual API image PostgreSQL TLS bootstrap, checkpoint 460, 19 November 2026 EAT
 
 Private dashboard deployment appgdep_6afeda65a24c8191a6170209ee37d1d3 succeeded from dashboard 15aebdca215fe3018dd0dc9b2a800286ab336a84. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.

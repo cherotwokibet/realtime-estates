@@ -73,6 +73,9 @@ jobs:
         if: steps.scope.outputs.verify == 'true'
       - run: npm run format:check
         if: steps.scope.outputs.verify == 'true'
+      - name: Check manual Firebase rehearsal safeguards without provider requests
+        run: node --test scripts/firebase-auth-provider-rehearsal.test.mjs
+        if: steps.scope.outputs.verify == 'true'
       # Isolated runners do not share compiled output. Build dependencies before the final workspace checks.
       - run: npm run build:packages
         if: steps.scope.outputs.verify == 'true'
