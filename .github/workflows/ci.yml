@@ -10,7 +10,42 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      verify: ${{ steps.scope.outputs.verify }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - id: scope
+        run: node scripts/ci/plan.mjs
+  tests:
+    name: Tests (${{ matrix.suite }})
+    needs: plan
+    if: needs.plan.outputs.verify == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        suite: [domain-api, sdk-database, web-admin, previews-mobile-media]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: node scripts/ci/test-suite-group.mjs '${{ matrix.suite }}'
   verify:
+    needs: [plan, tests]
+    if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -22,7 +57,13 @@ jobs:
         id: scope
         run: node scripts/ci/plan.mjs
       - name: Check conservative verification planning
-        run: node --test scripts/ci/plan.test.mjs
+        run: node --test scripts/ci/plan.test.mjs scripts/ci/test-suite-group.test.mjs
+      - name: Require every test group before typechecks and builds
+        env:
+          PLAN_RESULT: ${{ needs.plan.result }}
+          EXPECT_TESTS: ${{ needs.plan.outputs.verify }}
+          TESTS_RESULT: ${{ needs.tests.result }}
+        run: node -e "if(process.env.PLAN_RESULT!=='success'||!['true','false'].includes(process.env.EXPECT_TESTS)||(process.env.EXPECT_TESTS==='true'?process.env.TESTS_RESULT!=='success':process.env.TESTS_RESULT!=='skipped'))process.exit(1)"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7, Node 24 runtime
         if: steps.scope.outputs.verify == 'true'
         with:
@@ -32,9 +73,11 @@ jobs:
         if: steps.scope.outputs.verify == 'true'
       - run: npm run format:check
         if: steps.scope.outputs.verify == 'true'
-      - run: npm test
+      # Isolated runners do not share compiled output. Build dependencies before the final workspace checks.
+      - run: npm run build:packages
         if: steps.scope.outputs.verify == 'true'
-      # npm test already builds all shared packages. Do not repeat that wrapper.
+      - run: npm run build --workspace=@realtor/api
+        if: steps.scope.outputs.verify == 'true'
       - run: npm run typecheck --workspaces --if-present
         if: steps.scope.outputs.verify == 'true'
       - run: npm run build --workspace=@realtor/web
@@ -45,6 +88,8 @@ jobs:
         if: steps.scope.outputs.mobile == 'true'
   runtime-packages:
     name: Linux staging runtime verification
+    needs: plan
+    if: needs.plan.outputs.verify == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -64,4 +109,39 @@ jobs:
           node scripts/stage-runtime-packages.mjs > "$RUNNER_TEMP/runtime-packages.json"
           bundle=$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).directory" "$RUNNER_TEMP/runtime-packages.json")
           node scripts/verify-runtime-packages.mjs "$bundle"
+          node scripts/verify-runtime-containers.mjs "$bundle"
           cat "$RUNNER_TEMP/runtime-packages.json" >> "$GITHUB_STEP_SUMMARY"
+          cat "$bundle/container-verification.json" >> "$GITHUB_STEP_SUMMARY"
+  postgres-runtime:
+    name: PostgreSQL TCP isolation and concurrency
+    needs: plan
+    if: needs.plan.outputs.verify == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-bookworm@sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b
+        env:
+          POSTGRES_DB: realtor_synthetic_ci
+          POSTGRES_PASSWORD: synthetic-ci-admin-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d realtor_synthetic_ci"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:packages
+      - run: npm run build --workspace=@realtor/api
+      - name: Verify real disposable PostgreSQL connections
+        run: node --test database/integration-tests/postgres-runtime.test.mjs
+        env:
+          REALTOR_POSTGRES_TEST_POLICY: owned-disposable-ci-v1
+          REALTOR_POSTGRES_TEST_URL: postgresql://postgres:synthetic-ci-admin-only@127.0.0.1:5432/realtor_synthetic_ci

@@ -167,7 +167,7 @@ test('workflow preserves required verify result, concurrency, pinned actions, ca
   assert.match(workflow, /timeout-minutes: 30/);
   assert.match(workflow, /persist-credentials: false/);
   assert.match(workflow, /cache: npm/);
-  assert.match(workflow, /run: npm test/);
+  assert.match(workflow, /run: node scripts\/ci\/test-suite-group\.mjs/);
   assert.match(workflow, /typecheck --workspaces --if-present/);
   assert.doesNotMatch(workflow, /paths-ignore:|schedule:|pull_request_target:|continue-on-error:/);
   const verifyJob = workflow.split('\n  runtime-packages:')[0];
