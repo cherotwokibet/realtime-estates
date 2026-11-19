@@ -1,5 +1,15 @@
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
-import { AppState, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  AppState,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+} from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import { createFirebaseMobileSignIn } from './firebase-customer-sign-in';
 import { firebaseNativePasswordProvider } from './firebase-native-provider';
@@ -35,89 +45,94 @@ export function FirebaseCustomerAccount({ config }: { config: NativeFirebaseConf
   };
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.content}>
-        <Text accessibilityRole="header" style={styles.heading}>
-          Your account
-        </Text>
-        {phase === 'ready' ? (
-          <>
-            <Text accessibilityLiveRegion="polite">
-              You are signed in. For your privacy, this session ends after five minutes or when you
-              leave the app.
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              style={styles.button}
-              onPress={() => {
-                client.signOut();
-                setPassword('');
-              }}
-            >
-              <Text style={styles.buttonText}>Sign out</Text>
-            </Pressable>
-          </>
-        ) : (
-          <>
-            <Text>Sign in with your verified email account.</Text>
-            <Text accessibilityLabel="Email">Email</Text>
-            <TextInput
-              accessibilityLabel="Email address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-              textContentType="emailAddress"
-              autoComplete="email"
-              maxLength={320}
-              value={email}
-              onChangeText={setEmail}
-              editable={phase !== 'signing_in'}
-              style={styles.input}
-            />
-            <Text>Password</Text>
-            <TextInput
-              accessibilityLabel="Password"
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType="password"
-              autoComplete="current-password"
-              maxLength={4096}
-              value={password}
-              onChangeText={setPassword}
-              editable={phase !== 'signing_in'}
-              style={styles.input}
-            />
-            {phase === 'unavailable' && (
-              <Text accessibilityRole="alert">
-                Sign-in could not be completed. Check your account details and connection, then try
-                again.
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Text accessibilityRole="header" style={styles.heading}>
+            Your account
+          </Text>
+          {phase === 'ready' ? (
+            <>
+              <Text accessibilityLiveRegion="polite">
+                You are signed in. For your privacy, this session ends after five minutes or when
+                you leave the app.
               </Text>
-            )}
-            {phase === 'signing_in' ? (
-              <>
-                <Text accessibilityLiveRegion="polite">Signing in…</Text>
-                <Pressable
-                  accessibilityRole="button"
-                  style={styles.button}
-                  onPress={client.signOut}
-                >
-                  <Text style={styles.buttonText}>Cancel</Text>
-                </Pressable>
-              </>
-            ) : (
               <Pressable
                 accessibilityRole="button"
-                accessibilityState={{ disabled: !email || !password }}
-                disabled={!email || !password}
                 style={styles.button}
-                onPress={submit}
+                onPress={() => {
+                  client.signOut();
+                  setPassword('');
+                }}
               >
-                <Text style={styles.buttonText}>Sign in</Text>
+                <Text style={styles.buttonText}>Sign out</Text>
               </Pressable>
-            )}
-          </>
-        )}
-      </View>
+            </>
+          ) : (
+            <>
+              <Text>Sign in with your verified email account.</Text>
+              <Text accessibilityLabel="Email">Email</Text>
+              <TextInput
+                accessibilityLabel="Email address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                autoComplete="email"
+                maxLength={320}
+                value={email}
+                onChangeText={setEmail}
+                editable={phase !== 'signing_in'}
+                style={styles.input}
+              />
+              <Text>Password</Text>
+              <TextInput
+                accessibilityLabel="Password"
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                textContentType="password"
+                autoComplete="current-password"
+                maxLength={4096}
+                value={password}
+                onChangeText={setPassword}
+                editable={phase !== 'signing_in'}
+                style={styles.input}
+              />
+              {phase === 'unavailable' && (
+                <Text accessibilityRole="alert">
+                  Sign-in could not be completed. Check your account details and connection, then
+                  try again.
+                </Text>
+              )}
+              {phase === 'signing_in' ? (
+                <>
+                  <Text accessibilityLiveRegion="polite">Signing in…</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    style={styles.button}
+                    onPress={client.signOut}
+                  >
+                    <Text style={styles.buttonText}>Cancel</Text>
+                  </Pressable>
+                </>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: !email || !password }}
+                  disabled={!email || !password}
+                  style={styles.button}
+                  onPress={submit}
+                >
+                  <Text style={styles.buttonText}>Sign in</Text>
+                </Pressable>
+              )}
+            </>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
