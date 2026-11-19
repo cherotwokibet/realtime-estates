@@ -8,7 +8,7 @@ This public signature-only test deliberately uses an unverified account and does
 
 Next free implementation: add an opt-in native Firebase email/password adapter using in-memory credentials/session state, authoritative server account binding and logout/expiry cleanup; test its cancellation/race behavior and Android export without claiming a device or hosted-provider pass. Strict verified-email/revocation and actual Cloud Run/Cloud SQL acceptance still need controlled identities and the pending paid-staging decision. No repeated live signup probe.
 
-Publish461 from private dashboard15aebdc/baseline api-image-tls-bootstrap-460, run dashboard tests and replay the last saved export before deployment. Deployed-browser verification remains pending.
+Published private checkpoint461 successfully: deployment appgdep_6afee5ecb274819185a202d6ba16e9cb, dashboard 46d463908b240b71444455c398dfd97604072068. Three dashboard tests passed; replay preserved all1012 saved notes/manual fields. Deployed-browser verification remains pending. Continue with the native Firebase adapter above; do not repeat the live signup probe.
 
 ## Actual API image startup over PostgreSQL TLS — checkpoint460, 19 November 2026 EAT
 
