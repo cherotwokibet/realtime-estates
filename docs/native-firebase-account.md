@@ -1,5 +1,7 @@
 # Native Firebase account mode
 
+Latest checkpoint466 adds a default-off customer-only gateway candidate, shared strict subject checks and a composed two-HTTP-envelope native/API/SQL journey. Mobile94/94 and all seven CI jobs passed; selected-profile Next proxy/host behavior, actual Google authority/workload/database and device acceptance remain open. Read [gateway setup and limits](native-customer-gateway.md) and [checkpoint466 evidence](evidence/2026-11-19-native-customer-gateway466.md). Earlier checkpoint sections below are dated implementation history.
+
 Checkpoint462, 19 November2026. The default mobile build remains the existing preview. The new native account screen is an explicit account-only mode; it does not connect hosted identity to the synthetic property catalogue. A reviewed public Firebase-authorized customer gateway and a verified account with an active company binding are required. A private Cloud Run endpoint protected with a service IAM audience is not such a gateway. Do not put a service identity/key in the app to reach it.
 
 ## Configuration and flow
