@@ -8,7 +8,7 @@ Actual public gateway/website ownership/DNS/TLS, native provider login, handset/
 
 Next free implementation: add explicit native favourite removal using the currently displayed version, fresh operation IDs and the existing idempotent command/original-receipt recovery flow. Test conflicts, lost acknowledgements, cancellation and logout without blindly resubmitting uncertain writes. Keep real public gateway/website/provider/device, verified-email/revocation, ADC/IAM/managed SQL, UAT/restore/cutover and pending paid-staging approval separate.
 
-Publish private463 from dashboard1b454e6/baseline native-firebase-account-462 after dashboard tests and saved-export replay. Deployed-browser verification remains pending.
+Published private checkpoint463 successfully: deployment appgdep_6aff1f9f102c8191b42be8a023d86658, dashboard ecfe167a3af78739c79fc6e6791708f261f61c08. Three dashboard tests passed; saved-export replay preserved all1012 notes/manual fields. Deployed-browser verification remains pending. Continue with native favourite removal and uncertain-write recovery above.
 
 ## Native saved-property list in progress — checkpoint463, 19 November2026 EAT
 
