@@ -334,6 +334,6 @@ export async function verifyPostgresTlsStartup(t, owner, ownerUrl, { tenant }) {
     },
   );
   t.diagnostic(
-    'Standalone production API bootstrap verified against owned TLS PostgreSQL; Cloud Run, workload ADC, IAM and provider sign-in are not verified.',
+    'Owned compiled API/TLS rehearsal completed; inspect individual subtest outcomes above. Cloud Run, workload ADC, IAM and provider sign-in are not verified.',
   );
 }
