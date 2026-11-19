@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 // Production HTTP/SSR verification only. No provider, browser, real credentials or database.
 const root = fileURLToPath(new URL('../', import.meta.url));
+const runtimeRoot = process.env.REALTOR_RUNTIME_PACKAGE_DIR;
 const projectId = 'realtor-synthetic-staging';
 const config = {
   projectId,
@@ -88,18 +89,22 @@ for (const app of ['web', 'admin']) {
         });
     }
     const address = await port();
+    env.PORT = String(address);
+    env.HOSTNAME = '127.0.0.1';
     const child = spawn(
       process.execPath,
-      [
-        resolve(root, 'node_modules/next/dist/bin/next'),
-        'start',
-        '-p',
-        String(address),
-        '-H',
-        '127.0.0.1',
-      ],
+      runtimeRoot
+        ? [resolve(runtimeRoot, app, 'apps', app, 'server.js')]
+        : [
+            resolve(root, 'node_modules/next/dist/bin/next'),
+            'start',
+            '-p',
+            String(address),
+            '-H',
+            '127.0.0.1',
+          ],
       {
-        cwd: resolve(root, 'apps', app),
+        cwd: runtimeRoot ? resolve(runtimeRoot, app) : resolve(root, 'apps', app),
         env,
         windowsHide: true,
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -129,6 +134,13 @@ for (const app of ['web', 'admin']) {
       assert.ok(response, 'Production server did not become ready.');
       assert.equal(response.status, 200);
       const html = await response.text();
+      if (runtimeRoot) {
+        const asset = html.match(/(?:src|href)="(\/_next\/static\/[^"]+)"/);
+        assert.ok(asset, 'Packaged sign-in must include a static asset.');
+        const resource = await fetch('http://127.0.0.1:' + address + asset[1]);
+        assert.equal(resource.status, 200);
+        assert.ok((await resource.arrayBuffer()).byteLength > 0);
+      }
       assert.match(html, /name="robots" content="noindex, nofollow"/);
       if (configured) {
         assert.match(html, /Continue with Google/);
