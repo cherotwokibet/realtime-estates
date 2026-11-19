@@ -72,7 +72,7 @@ async function body(request: Request): Promise<unknown> {
   }
 }
 /** Host-resolved tenant and verifier are server-owned. This handler never installs its isolated SQL. */
-export function createCustomerFavouritesHttpCandidate(options: {
+export interface CustomerFavouritesCandidateOptions {
   mode: 'synthetic-customer-favourites-v1';
   pushMode?: 'synthetic-customer-push-v1';
   deletionMode?: 'synthetic-customer-deletion-v1';
@@ -80,7 +80,30 @@ export function createCustomerFavouritesHttpCandidate(options: {
   tenantId: string;
   database: TransactionDatabase;
   verifyAuthorization: (request: Request) => Promise<{ readonly actorId: string }>;
-}) {
+}
+export type HostedCustomerFavouritesOptions = Pick<
+  CustomerFavouritesCandidateOptions,
+  'tenantId' | 'database' | 'verifyAuthorization'
+>;
+/** Explicit hosted core: no preview extensions or startup/migration side effects. */
+export function createHostedCustomerFavourites(options: HostedCustomerFavouritesOptions) {
+  if (Object.keys(options).sort().join(',') !== 'database,tenantId,verifyAuthorization')
+    throw Error('Invalid hosted customer configuration.');
+  return createCustomerFavouritesHandler(
+    { ...options, mode: 'synthetic-customer-favourites-v1' },
+    true,
+  );
+}
+/** Existing preview entry remains forbidden in production. */
+export function createCustomerFavouritesHttpCandidate(options: CustomerFavouritesCandidateOptions) {
+  if (process.env.NODE_ENV === 'production')
+    throw Error('Unsupported customer favourites configuration.');
+  return createCustomerFavouritesHandler(options, false);
+}
+function createCustomerFavouritesHandler(
+  options: CustomerFavouritesCandidateOptions,
+  hosted: boolean,
+) {
   if (
     options.mode !== 'synthetic-customer-favourites-v1' ||
     (options.pushMode !== undefined && options.pushMode !== 'synthetic-customer-push-v1') ||
@@ -91,7 +114,7 @@ export function createCustomerFavouritesHttpCandidate(options: {
     (options.deletionFollowUpMode !== undefined &&
       (options.deletionFollowUpMode !== 'synthetic-customer-deletion-follow-up-v1' ||
         !options.deletionMode)) ||
-    process.env.NODE_ENV === 'production' ||
+    (!hosted && process.env.NODE_ENV === 'production') ||
     !validId(options.tenantId)
   )
     throw Error('Unsupported customer favourites configuration.');
@@ -105,7 +128,7 @@ export function createCustomerFavouritesHttpCandidate(options: {
   return async (request: Request, requestId: string = randomUUID()): Promise<Response> => {
     let pushRoute = false;
     try {
-      if (process.env.NODE_ENV === 'production')
+      if (!hosted && process.env.NODE_ENV === 'production')
         return json(
           404,
           { error: { code: 'NOT_FOUND', message: 'Route unavailable.' } },

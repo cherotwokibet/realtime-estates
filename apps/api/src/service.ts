@@ -231,6 +231,8 @@ export interface ApiServiceOptions {
   readonly staffMembershipMode?: 'synthetic-existing-members-v1';
   /** Isolated capture/revoke candidate only; no mail, secret or membership acceptance. */
   readonly staffInvitationMode?: 'synthetic-capture-only-v1';
+  /** Explicit branch-only protocol. Does not enable invitation or membership candidates. */
+  readonly staffBranchMode?: 'hosted-staff-branches-v1';
   /** Local synthetic capture/review only; omission keeps every report route unavailable. */
   readonly publicReportMode?: 'synthetic-listing-report-v1';
   readonly reportLimiter?: EnquiryLimiter;
@@ -1652,6 +1654,12 @@ export function createApiService(
     throw Error('Staff invitation candidates require explicit non-production mode.');
   const staffInvitationsEnabled = options.staffInvitationMode === 'synthetic-capture-only-v1';
   if (
+    options.staffBranchMode !== undefined &&
+    options.staffBranchMode !== 'hosted-staff-branches-v1'
+  )
+    throw Error('Unsupported hosted branch policy.');
+  const staffBranchesEnabled = options.staffBranchMode === 'hosted-staff-branches-v1';
+  if (
     options.publicReportMode !== undefined &&
     options.publicReportMode !== 'synthetic-listing-report-v1'
   )
@@ -2677,7 +2685,7 @@ export function createApiService(
         return response(200, value, correlationId);
       }
       if (path.startsWith('/v2/staff/branches/')) {
-        if (!staffInvitationsEnabled)
+        if (!staffInvitationsEnabled && !staffBranchesEnabled)
           throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
         const operationRoute = /^\/v2\/staff\/branches\/operations\/([0-9a-f-]{36})$/.exec(path);
         const branchRoute = /^\/v2\/staff\/branches\/([0-9a-f-]{36})$/.exec(path);
@@ -2760,7 +2768,7 @@ export function createApiService(
         return response(200, value, correlationId);
       }
       if (path === '/v2/staff/branches' || path === '/v2/staff/invitation-requests') {
-        if (!staffInvitationsEnabled)
+        if (!staffInvitationsEnabled && !(path === '/v2/staff/branches' && staffBranchesEnabled))
           throw new HttpError(404, 'NOT_FOUND', 'Route is unavailable.');
         if (
           request.url.includes('#') ||

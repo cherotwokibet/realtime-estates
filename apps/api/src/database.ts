@@ -139,6 +139,10 @@ export async function createPostgresDatabase(
     idleTimeoutMillis: 30000,
     ...config,
   });
+  pool.on('error', () => {
+    // Idle connection failures must not become uncaught credential-bearing diagnostics.
+    // Requests still run the connection/role checks and return their normal generic failures.
+  });
   const adapter: DatabasePool = {
     async connect() {
       const client = await pool.connect();
