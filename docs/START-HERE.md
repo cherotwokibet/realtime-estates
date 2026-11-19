@@ -10,7 +10,7 @@ Real public gateway/website/provider/device/accessibility/network, verified-emai
 
 Next free implementation: add a narrowly scoped public native customer gateway using the existing private API invocation boundary. Allow only reviewed customer routes and a fixed target; refuse cookie/actor/workload-header spoofing, bound bodies/responses, preserve user authority separately from server IAM and handle failures without replaying writes. Read apps/web/AGENTS.md and the matching installed Next route-handler guide before editing web routes. Do not embed Cloud Run IAM credentials in the app or claim actual gateway/provider/device/ADC/IAM acceptance before controlled staging. Paid staging approval remains pending.
 
-Publish private465 from dashboard95b659b/baseline native-favourite-removal-464 after dashboard tests and saved-export replay. Deployed-browser verification remains pending.
+Published private checkpoint465 successfully: deployment appgdep_6aff36fee6548191b38790957ad40c00, dashboard 0da15c38e09ce4bbfe33e78c087d9755ac99f34e. Three dashboard tests passed; saved-export replay preserved all1012 notes/manual fields. Native09-1/09-2 evidence now records partial local integration without checking either task. Deployed-browser verification remains pending. Continue with the narrowly scoped public native gateway above.
 
 ## Native removal and recovery verified — checkpoint464, 19 November2026 EAT
 
