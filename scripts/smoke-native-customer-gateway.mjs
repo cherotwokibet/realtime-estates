@@ -226,6 +226,11 @@ try {
     );
   } else {
     const positive = await call();
+    if (positive.status !== 200) {
+      const evidence = await readFile(telemetry, 'utf8');
+      console.error('Synthetic child telemetry: ' + evidence.replace(/,"token":"[^"]+"/g, ''));
+      console.error('Synthetic child logs: ' + logs);
+    }
     assert.equal(
       positive.status,
       200,

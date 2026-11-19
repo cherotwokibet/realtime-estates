@@ -19,6 +19,7 @@ const auth = `exports.getAuth=()=>({verifyIdToken:async(token,revoked)=>{
  const now=Math.floor(Date.now()/1000);
  return {uid:'synthetic-customer',sub:'synthetic-customer',aud:'${project}',iss:'https://securetoken.google.com/${project}',iat:now,auth_time:now,exp:now+3600,email:'synthetic@example.invalid',email_verified:token!=='unverified.user.signature',firebase:{sign_in_provider:'password'}};
 }});`;
+const app = `exports.getApps=()=>[];exports.applicationDefault=()=>({getAccessToken:async()=>{throw Error('Real credentials unavailable in synthetic fixture');}});exports.initializeApp=(options,name)=>({options,name});`;
 const iam = `exports.GoogleAuth=class{async getIdTokenClient(audience){
  if(audience!=='${target}')throw Error('Foreign audience');
  return {getRequestHeaders:async()=>{globalThis.__nativeSmokeRecord({kind:'iam'});return new Headers({Authorization:'Bearer synthetic.service.signature'});}};
@@ -26,22 +27,30 @@ const iam = `exports.GoogleAuth=class{async getIdTokenClient(audience){
 globalThis.__nativeSmokeRecord = record;
 registerHooks({
   resolve(specifier, context, next) {
-    if (specifier === 'firebase-admin/auth' || specifier === 'google-auth-library')
-      return { url: 'synthetic-native-smoke:' + specifier, shortCircuit: true };
+    // Next standalone assigns deterministic hashed aliases to external SDK packages.
+    const firebase = /^firebase-admin(?:-[a-f0-9]{16})?\/(auth|app)$/.exec(specifier);
+    if (firebase)
+      return { url: 'synthetic-native-smoke:firebase-admin/' + firebase[1], shortCircuit: true };
+    if (/^google-auth-library(?:-[a-f0-9]{16})?$/.test(specifier))
+      return { url: 'synthetic-native-smoke:google-auth-library', shortCircuit: true };
     return next(specifier, context);
   },
   load(url, context, next) {
     if (
       url.startsWith('synthetic-native-smoke:') ||
-      /\/firebase-admin\/lib\/auth\/index\.js$/.test(url) ||
-      /\/google-auth-library\/build\/src\/index\.js$/.test(url)
+      /\/firebase-admin(?:-[a-f0-9]{16})?\/lib\/(auth|app)\/index\.js$/.test(url) ||
+      /\/google-auth-library(?:-[a-f0-9]{16})?\/build\/src\/index\.js$/.test(url)
     )
       return {
         format: 'commonjs',
         source:
-          url.endsWith('firebase-admin/auth') || /\/firebase-admin\/lib\/auth\/index\.js$/.test(url)
+          url.endsWith('firebase-admin/auth') ||
+          /\/firebase-admin(?:-[a-f0-9]{16})?\/lib\/auth\/index\.js$/.test(url)
             ? auth
-            : iam,
+            : url.endsWith('firebase-admin/app') ||
+                /\/firebase-admin(?:-[a-f0-9]{16})?\/lib\/app\/index\.js$/.test(url)
+              ? app
+              : iam,
         shortCircuit: true,
       };
     return next(url, context);

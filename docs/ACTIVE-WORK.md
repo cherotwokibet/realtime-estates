@@ -1,3 +1,7 @@
+## Detached gateway fixture corrected — checkpoint467, 19 November2026 EAT
+
+Initial source d43fb17763f4b0c66aa02076d0cbea8becdd016a / CI44598220032 failed the new detached runtime profile with401, while ordinary Next passed. Reproduced this locally against the assembled standalone package: Next renames external SDKs to deterministic hashed aliases, bypassing the fixture's exact-name hooks. Corrected the CHILD-ONLY synthetic hook to recognize tightly matched Firebase/Google SDK aliases; all five assembled-package profiles now pass locally. No production authority/verifier guard was weakened. Initial failure log ci467-runtime-first.txt is retained; final replacement current-source CI is pending. Billing remains expressly disabled.
+
 ## Production Next gateway regression fixed locally — checkpoint467, 19 November2026 EAT
 
 Reproduced the original compiled source refusing a valid canonical public Host/HTTPS request403: Next exposes an internal listener URL to route handlers. The adapter now reconstructs ONLY the configured origin after exact Host and HTTPS forwarded-protocol checks; conflicting forwarded hosts are refused. Customer-only core route/identity/body checks stay unchanged. An actual production Next server passed five synthetic profiles: selected configuration (12 account/header/authority/command/original cases), malformed JSON, missing invocation settings, wrong company and preview contamination. Local focused23/23 and web TypeScript/build passed. No deployed Google ingress/TLS/authority/IAM/SQL/device acceptance is claimed.
