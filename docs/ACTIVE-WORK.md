@@ -8,7 +8,7 @@ Actual native provider/public gateway/website/device/accessibility/network, veri
 
 Next free implementation: exercise the native customer journey through the maintained hosted API handler and isolated SQL rather than transport-only replies: account binding, saved-list read, removal, dropped committed acknowledgement, original receipt recovery and foreign/revoked membership refusal. Explicitly inject synthetic Firebase authority and retain actual gateway/provider/ADC/IAM/device/UAT/restore/cutover limits. Paid staging approval remains pending.
 
-Publish private464 from dashboardecfe167/baseline native-saved-properties-463 after dashboard tests and saved-export replay. Deployed-browser verification remains pending.
+Published private checkpoint464 successfully: deployment appgdep_6aff25c367808191bdd92feb8eb7ac47, dashboard 95b659b5e3ace3bdf6315591fff156d14994c752. Three dashboard tests passed; saved-export replay preserved all1012 notes/manual fields. Deployed-browser verification remains pending. Continue with the native/hosted-handler/SQL journey above.
 
 ## Native saved-property removal in progress — checkpoint464, 19 November2026 EAT
 
