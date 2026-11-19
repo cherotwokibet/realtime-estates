@@ -1,0 +1,449 @@
+2026-11-19T05:06:46.4221565Z Current runner version: '2.338.2'
+2026-11-19T05:06:46.4272484Z ##[group]Runner Image Provisioner
+2026-11-19T05:06:46.4273543Z Hosted Compute Agent
+2026-11-19T05:06:46.4274370Z Version: 20261111.635
+2026-11-19T05:06:46.4275133Z Commit: b8a594ea514ff44cadb5342986c68b1eac6e22ed
+2026-11-19T05:06:46.4276198Z Build Date: 2026-11-11T01:49:01Z
+2026-11-19T05:06:46.4277120Z Worker ID: {d27c47c4-4204-44ef-a54e-69fb950ff639}
+2026-11-19T05:06:46.4278000Z Region: westus3
+2026-11-19T05:06:46.4278750Z Cloud: Azure
+2026-11-19T05:06:46.4279400Z ##[endgroup]
+2026-11-19T05:06:46.4301658Z ##[group]Operating System
+2026-11-19T05:06:46.4302474Z Ubuntu
+2026-11-19T05:06:46.4303104Z 24.04.5
+2026-11-19T05:06:46.4303795Z LTS
+2026-11-19T05:06:46.4304451Z ##[endgroup]
+2026-11-19T05:06:46.4305611Z ##[group]Runner Image
+2026-11-19T05:06:46.4306567Z Image: ubuntu-24.04
+2026-11-19T05:06:46.4307337Z Version: 20261116.376.1
+2026-11-19T05:06:46.4309049Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261116.376/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-19T05:06:46.4311441Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261116.376
+2026-11-19T05:06:46.4312753Z ##[endgroup]
+2026-11-19T05:06:46.4314124Z ##[group]GITHUB_TOKEN Permissions
+2026-11-19T05:06:46.4316825Z Contents: read
+2026-11-19T05:06:46.4317610Z Metadata: read
+2026-11-19T05:06:46.4318410Z ##[endgroup]
+2026-11-19T05:06:46.4341184Z Secret source: Actions
+2026-11-19T05:06:46.4342436Z Cache mode: write
+2026-11-19T05:06:46.4343570Z Prepare workflow directory
+2026-11-19T05:06:46.4929029Z Prepare all required actions
+2026-11-19T05:06:46.5021365Z Getting action download info
+2026-11-19T05:06:46.8403821Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-11-19T05:06:46.9678274Z Download action repository 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1' (SHA:949feb2413d6458794dcd2491c4babbbce0c15c1)
+2026-11-19T05:06:47.2400290Z Complete job name: PostgreSQL TCP isolation and concurrency
+2026-11-19T05:06:47.2888430Z ##[group]Checking docker version
+2026-11-19T05:06:47.2898998Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+2026-11-19T05:06:47.3636936Z '1.48'
+2026-11-19T05:06:47.3648367Z Docker daemon API version: '1.48'
+2026-11-19T05:06:47.3648990Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+2026-11-19T05:06:47.3833296Z '1.48'
+2026-11-19T05:06:47.3859719Z Docker client API version: '1.48'
+2026-11-19T05:06:47.3864478Z ##[endgroup]
+2026-11-19T05:06:47.3867916Z ##[group]Clean up resources from previous jobs
+2026-11-19T05:06:47.3873685Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=74ea45"
+2026-11-19T05:06:47.4055503Z ##[command]/usr/bin/docker network prune --force --filter "label=74ea45"
+2026-11-19T05:06:47.4225876Z ##[endgroup]
+2026-11-19T05:06:47.4226311Z ##[group]Create local container network
+2026-11-19T05:06:47.4235604Z ##[command]/usr/bin/docker network create --label 74ea45 github_network_daffeed5680341a1ad708165123cc420
+2026-11-19T05:06:47.5127335Z 1e7912d9a7ace6fccf71b2df8a8498ea317fc41f44258997ba736701520ef84f
+2026-11-19T05:06:47.5134784Z ##[endgroup]
+2026-11-19T05:06:47.5164002Z ##[group]Starting postgres service container
+2026-11-19T05:06:47.5188747Z ##[command]/usr/bin/docker pull postgres:17-bookworm@sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b
+2026-11-19T05:06:48.2207947Z docker.io/library/postgres@sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b: Pulling from library/postgres
+2026-11-19T05:06:48.4356821Z dd051e1b8c92: Pulling fs layer
+2026-11-19T05:06:48.4357804Z 61898df8215c: Pulling fs layer
+2026-11-19T05:06:48.4358637Z c786e7ff3265: Pulling fs layer
+2026-11-19T05:06:48.4359454Z ae002ce57fa8: Pulling fs layer
+2026-11-19T05:06:48.4360603Z 6d9261669255: Pulling fs layer
+2026-11-19T05:06:48.4361628Z 790213b31cb1: Pulling fs layer
+2026-11-19T05:06:48.4362531Z b8f9f793b6b5: Pulling fs layer
+2026-11-19T05:06:48.4363753Z 2394d9fec7ad: Pulling fs layer
+2026-11-19T05:06:48.4364716Z db77f2c04c86: Pulling fs layer
+2026-11-19T05:06:48.4365615Z 46cf366c2af5: Pulling fs layer
+2026-11-19T05:06:48.4366517Z a0fed06a709c: Pulling fs layer
+2026-11-19T05:06:48.4367481Z 1efe74d974fe: Pulling fs layer
+2026-11-19T05:06:48.4368478Z 593598a92ca5: Pulling fs layer
+2026-11-19T05:06:48.4369503Z ae002ce57fa8: Waiting
+2026-11-19T05:06:48.4370664Z 6d9261669255: Waiting
+2026-11-19T05:06:48.4371583Z 790213b31cb1: Waiting
+2026-11-19T05:06:48.4372497Z b8f9f793b6b5: Waiting
+2026-11-19T05:06:48.4373391Z 2394d9fec7ad: Waiting
+2026-11-19T05:06:48.4374260Z db77f2c04c86: Waiting
+2026-11-19T05:06:48.4375119Z 46cf366c2af5: Waiting
+2026-11-19T05:06:48.4376106Z a0fed06a709c: Waiting
+2026-11-19T05:06:48.4377273Z 1efe74d974fe: Waiting
+2026-11-19T05:06:48.4378351Z 593598a92ca5: Waiting
+2026-11-19T05:06:48.6243332Z 61898df8215c: Verifying Checksum
+2026-11-19T05:06:48.6245969Z 61898df8215c: Download complete
+2026-11-19T05:06:48.6364688Z c786e7ff3265: Verifying Checksum
+2026-11-19T05:06:48.6373844Z c786e7ff3265: Download complete
+2026-11-19T05:06:48.7008990Z dd051e1b8c92: Verifying Checksum
+2026-11-19T05:06:48.7011252Z dd051e1b8c92: Download complete
+2026-11-19T05:06:48.8811602Z ae002ce57fa8: Download complete
+2026-11-19T05:06:48.9133011Z 6d9261669255: Verifying Checksum
+2026-11-19T05:06:48.9133801Z 6d9261669255: Download complete
+2026-11-19T05:06:48.9143292Z 790213b31cb1: Verifying Checksum
+2026-11-19T05:06:48.9143949Z 790213b31cb1: Download complete
+2026-11-19T05:06:49.0704475Z b8f9f793b6b5: Verifying Checksum
+2026-11-19T05:06:49.0705057Z b8f9f793b6b5: Download complete
+2026-11-19T05:06:49.0936023Z 2394d9fec7ad: Verifying Checksum
+2026-11-19T05:06:49.0936947Z 2394d9fec7ad: Download complete
+2026-11-19T05:06:49.2635643Z 46cf366c2af5: Verifying Checksum
+2026-11-19T05:06:49.2636922Z 46cf366c2af5: Download complete
+2026-11-19T05:06:49.3108002Z a0fed06a709c: Verifying Checksum
+2026-11-19T05:06:49.3109064Z a0fed06a709c: Download complete
+2026-11-19T05:06:49.4909145Z 1efe74d974fe: Verifying Checksum
+2026-11-19T05:06:49.4911547Z 1efe74d974fe: Download complete
+2026-11-19T05:06:49.5381733Z db77f2c04c86: Verifying Checksum
+2026-11-19T05:06:49.5382628Z db77f2c04c86: Download complete
+2026-11-19T05:06:49.5444240Z 593598a92ca5: Verifying Checksum
+2026-11-19T05:06:49.5444894Z 593598a92ca5: Download complete
+2026-11-19T05:06:50.2389746Z dd051e1b8c92: Pull complete
+2026-11-19T05:06:54.0636767Z 61898df8215c: Pull complete
+2026-11-19T05:06:54.3262870Z c786e7ff3265: Pull complete
+2026-11-19T05:06:54.4037411Z ae002ce57fa8: Pull complete
+2026-11-19T05:06:54.9756397Z 6d9261669255: Pull complete
+2026-11-19T05:06:55.0856585Z 790213b31cb1: Pull complete
+2026-11-19T05:06:55.1056736Z b8f9f793b6b5: Pull complete
+2026-11-19T05:06:55.1262003Z 2394d9fec7ad: Pull complete
+2026-11-19T05:07:01.0631667Z db77f2c04c86: Pull complete
+2026-11-19T05:07:01.0941935Z 46cf366c2af5: Pull complete
+2026-11-19T05:07:01.1082173Z a0fed06a709c: Pull complete
+2026-11-19T05:07:01.1291801Z 1efe74d974fe: Pull complete
+2026-11-19T05:07:01.1400200Z 593598a92ca5: Pull complete
+2026-11-19T05:07:01.1463228Z Digest: sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b
+2026-11-19T05:07:01.1469908Z Status: Downloaded newer image for postgres@sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b
+2026-11-19T05:07:01.1479948Z docker.io/library/postgres:17-bookworm@sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b
+2026-11-19T05:07:01.1538132Z ##[command]/usr/bin/docker create --name 79bdcc7db234415892515a161d75027d_postgres17bookwormsha256837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b_6aabb5 --label 74ea45 --network github_network_daffeed5680341a1ad708165123cc420 --network-alias postgres -p 5432:5432 --health-cmd "pg_isready -U postgres -d realtor_synthetic_ci" --health-interval 5s --health-timeout 5s --health-retries 12 -e "POSTGRES_DB=realtor_synthetic_ci" -e "POSTGRES_PASSWORD=synthetic-ci-admin-only" -e GITHUB_ACTIONS=true -e CI=true postgres:17-bookworm@sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b
+2026-11-19T05:07:01.1863983Z d469fcad19291daca189d461b02bd7ab449804a694d4c64f33a55eab24c12924
+2026-11-19T05:07:01.1889313Z ##[command]/usr/bin/docker start d469fcad19291daca189d461b02bd7ab449804a694d4c64f33a55eab24c12924
+2026-11-19T05:07:01.4605150Z d469fcad19291daca189d461b02bd7ab449804a694d4c64f33a55eab24c12924
+2026-11-19T05:07:01.4614403Z ##[command]/usr/bin/docker ps --all --filter id=d469fcad19291daca189d461b02bd7ab449804a694d4c64f33a55eab24c12924 --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+2026-11-19T05:07:01.4799648Z d469fcad19291daca189d461b02bd7ab449804a694d4c64f33a55eab24c12924 Up Less than a second (health: starting)
+2026-11-19T05:07:01.4834233Z ##[command]/usr/bin/docker port d469fcad19291daca189d461b02bd7ab449804a694d4c64f33a55eab24c12924
+2026-11-19T05:07:01.5055772Z 5432/tcp -> 0.0.0.0:5432
+2026-11-19T05:07:01.5072241Z 5432/tcp -> [::]:5432
+2026-11-19T05:07:01.5113275Z ##[endgroup]
+2026-11-19T05:07:01.5123481Z ##[group]Waiting for all services to be ready
+2026-11-19T05:07:01.5137749Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" d469fcad19291daca189d461b02bd7ab449804a694d4c64f33a55eab24c12924
+2026-11-19T05:07:01.5325411Z starting
+2026-11-19T05:07:01.5393870Z postgres service is starting, waiting 2 seconds before checking again.
+2026-11-19T05:07:03.5401697Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" d469fcad19291daca189d461b02bd7ab449804a694d4c64f33a55eab24c12924
+2026-11-19T05:07:03.5543024Z starting
+2026-11-19T05:07:03.5557422Z postgres service is starting, waiting 4 seconds before checking again.
+2026-11-19T05:07:07.7002705Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" d469fcad19291daca189d461b02bd7ab449804a694d4c64f33a55eab24c12924
+2026-11-19T05:07:07.7149723Z healthy
+2026-11-19T05:07:07.7171605Z postgres service is healthy.
+2026-11-19T05:07:07.7172542Z ##[endgroup]
+2026-11-19T05:07:07.7408261Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+2026-11-19T05:07:07.7408767Z with:
+2026-11-19T05:07:07.7408944Z   persist-credentials: false
+2026-11-19T05:07:07.7409182Z   repository: cherotwokibet/realtime-estates
+2026-11-19T05:07:07.7411436Z   token: ***
+2026-11-19T05:07:07.7411611Z   ssh-strict: true
+2026-11-19T05:07:07.7411782Z   ssh-user: git
+2026-11-19T05:07:07.7411939Z   clean: true
+2026-11-19T05:07:07.7412113Z   sparse-checkout-cone-mode: true
+2026-11-19T05:07:07.7412327Z   fetch-depth: 1
+2026-11-19T05:07:07.7412492Z   fetch-tags: false
+2026-11-19T05:07:07.7412658Z   show-progress: true
+2026-11-19T05:07:07.7412825Z   lfs: false
+2026-11-19T05:07:07.7412980Z   submodules: false
+2026-11-19T05:07:07.7413147Z   set-safe-directory: true
+2026-11-19T05:07:07.7413346Z   allow-unsafe-pr-checkout: false
+2026-11-19T05:07:07.7413705Z ##[endgroup]
+2026-11-19T05:07:07.9774197Z Syncing repository: cherotwokibet/realtime-estates
+2026-11-19T05:07:07.9803265Z ##[group]Getting Git version info
+2026-11-19T05:07:07.9808172Z Working directory is '/home/runner/work/realtime-estates/realtime-estates'
+2026-11-19T05:07:07.9895191Z [command]/usr/bin/git version
+2026-11-19T05:07:08.0051224Z git version 2.56.1
+2026-11-19T05:07:08.0120838Z ##[endgroup]
+2026-11-19T05:07:08.0170968Z Temporarily overriding HOME='/home/runner/work/_temp/7f54b93f-0fb1-498f-9099-a0bb9c9e38c2' before making global git config changes
+2026-11-19T05:07:08.0172122Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-19T05:07:08.0181076Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/realtime-estates/realtime-estates
+2026-11-19T05:07:08.0182955Z Deleting the contents of '/home/runner/work/realtime-estates/realtime-estates'
+2026-11-19T05:07:08.0183931Z ##[group]Determining repository object format
+2026-11-19T05:07:08.0184561Z ##[endgroup]
+2026-11-19T05:07:08.0185926Z ##[group]Initializing the repository
+2026-11-19T05:07:08.0186823Z [command]/usr/bin/git init /home/runner/work/realtime-estates/realtime-estates
+2026-11-19T05:07:08.0316587Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-19T05:07:08.0317521Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-19T05:07:08.0318270Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-19T05:07:08.0318835Z hint: call:
+2026-11-19T05:07:08.0319144Z hint:
+2026-11-19T05:07:08.0319654Z hint: 	git config --global init.defaultBranch <name>
+2026-11-19T05:07:08.0320331Z hint:
+2026-11-19T05:07:08.0320788Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-19T05:07:08.0321499Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-19T05:07:08.0322054Z hint:
+2026-11-19T05:07:08.0322387Z hint: 	git branch -m <name>
+2026-11-19T05:07:08.0322751Z hint:
+2026-11-19T05:07:08.0323264Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-19T05:07:08.0324191Z Initialized empty Git repository in /home/runner/work/realtime-estates/realtime-estates/.git/
+2026-11-19T05:07:08.0345138Z [command]/usr/bin/git remote add origin https://github.com/cherotwokibet/realtime-estates
+2026-11-19T05:07:08.0428448Z ##[endgroup]
+2026-11-19T05:07:08.0429021Z ##[group]Disabling automatic garbage collection
+2026-11-19T05:07:08.0462284Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-19T05:07:08.0545106Z ##[endgroup]
+2026-11-19T05:07:08.0545951Z ##[group]Setting up auth
+2026-11-19T05:07:08.0546620Z Removing SSH command configuration
+2026-11-19T05:07:08.0552335Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-19T05:07:08.0645789Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-19T05:07:08.1060375Z Removing HTTP extra header
+2026-11-19T05:07:08.1066973Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-19T05:07:08.1122696Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-19T05:07:08.1335412Z Removing includeIf entries pointing to credentials config files
+2026-11-19T05:07:08.1336260Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-19T05:07:08.1384389Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-19T05:07:08.1617206Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-372cfcf6-c80b-42a0-b8d7-73d0f590bcb0.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-19T05:07:08.1664366Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path /home/runner/work/_temp/git-credentials-372cfcf6-c80b-42a0-b8d7-73d0f590bcb0.config
+2026-11-19T05:07:08.1706516Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-372cfcf6-c80b-42a0-b8d7-73d0f590bcb0.config
+2026-11-19T05:07:08.1751334Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-372cfcf6-c80b-42a0-b8d7-73d0f590bcb0.config
+2026-11-19T05:07:08.1791780Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-372cfcf6-c80b-42a0-b8d7-73d0f590bcb0.config
+2026-11-19T05:07:08.1831397Z ##[endgroup]
+2026-11-19T05:07:08.1832074Z ##[group]Fetching the repository
+2026-11-19T05:07:08.1838178Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +7718aaaf4f9e1949f461b9bcb77bf4126369ec6d:refs/remotes/origin/main
+2026-11-19T05:07:10.0180962Z From https://github.com/cherotwokibet/realtime-estates
+2026-11-19T05:07:10.0181566Z  * [new ref]         7718aaaf4f9e1949f461b9bcb77bf4126369ec6d -> origin/main
+2026-11-19T05:07:10.0203661Z [command]/usr/bin/git branch --list --remote origin/main
+2026-11-19T05:07:10.0235607Z   origin/main
+2026-11-19T05:07:10.0250739Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-11-19T05:07:10.0276313Z 7718aaaf4f9e1949f461b9bcb77bf4126369ec6d
+2026-11-19T05:07:10.0300848Z ##[endgroup]
+2026-11-19T05:07:10.0301739Z ##[group]Determining the checkout info
+2026-11-19T05:07:10.0302720Z ##[endgroup]
+2026-11-19T05:07:10.0306423Z [command]/usr/bin/git sparse-checkout disable
+2026-11-19T05:07:10.0365931Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-19T05:07:10.0412189Z ##[group]Checking out the ref
+2026-11-19T05:07:10.0413118Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-11-19T05:07:10.2702318Z Switched to a new branch 'main'
+2026-11-19T05:07:10.2715588Z branch 'main' set up to track 'origin/main'.
+2026-11-19T05:07:10.2718964Z ##[endgroup]
+2026-11-19T05:07:10.2790629Z [command]/usr/bin/git log -1 --format=%H
+2026-11-19T05:07:10.2821138Z 7718aaaf4f9e1949f461b9bcb77bf4126369ec6d
+2026-11-19T05:07:10.2844791Z ##[group]Removing auth
+2026-11-19T05:07:10.2845200Z Removing SSH command configuration
+2026-11-19T05:07:10.2845787Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-19T05:07:10.2872637Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-19T05:07:10.3097939Z Removing HTTP extra header
+2026-11-19T05:07:10.3105282Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-19T05:07:10.3144535Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-19T05:07:10.3381781Z Removing includeIf entries pointing to credentials config files
+2026-11-19T05:07:10.3382516Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-19T05:07:10.3423193Z includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path
+2026-11-19T05:07:10.3432325Z includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path
+2026-11-19T05:07:10.3461943Z includeif.gitdir:/github/workspace/.git.path
+2026-11-19T05:07:10.3465486Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-19T05:07:10.3504383Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path
+2026-11-19T05:07:10.3505469Z /home/runner/work/_temp/git-credentials-372cfcf6-c80b-42a0-b8d7-73d0f590bcb0.config
+2026-11-19T05:07:10.3507480Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-372cfcf6\-c80b\-42a0\-b8d7\-73d0f590bcb0\.config
+2026-11-19T05:07:10.3561286Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path
+2026-11-19T05:07:10.3587639Z /home/runner/work/_temp/git-credentials-372cfcf6-c80b-42a0-b8d7-73d0f590bcb0.config
+2026-11-19T05:07:10.3602112Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-372cfcf6\-c80b\-42a0\-b8d7\-73d0f590bcb0\.config
+2026-11-19T05:07:10.3660746Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-19T05:07:10.3694378Z /github/runner_temp/git-credentials-372cfcf6-c80b-42a0-b8d7-73d0f590bcb0.config
+2026-11-19T05:07:10.3701404Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-372cfcf6\-c80b\-42a0\-b8d7\-73d0f590bcb0\.config
+2026-11-19T05:07:10.3741780Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-19T05:07:10.3773464Z /github/runner_temp/git-credentials-372cfcf6-c80b-42a0-b8d7-73d0f590bcb0.config
+2026-11-19T05:07:10.3781624Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-372cfcf6\-c80b\-42a0\-b8d7\-73d0f590bcb0\.config
+2026-11-19T05:07:10.3821956Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-19T05:07:10.4057312Z Removing credentials config '/home/runner/work/_temp/git-credentials-372cfcf6-c80b-42a0-b8d7-73d0f590bcb0.config'
+2026-11-19T05:07:10.4065618Z ##[endgroup]
+2026-11-19T05:07:10.4299542Z ##[group]Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+2026-11-19T05:07:10.4299852Z with:
+2026-11-19T05:07:10.4300282Z   node-version: 24.19.0
+2026-11-19T05:07:10.4300472Z   cache: npm
+2026-11-19T05:07:10.4300641Z   check-latest: false
+2026-11-19T05:07:10.4302549Z   token: ***
+2026-11-19T05:07:10.4302725Z   package-manager-cache: true
+2026-11-19T05:07:10.4302922Z ##[endgroup]
+2026-11-19T05:07:10.5434064Z Attempting to download 24.19.0...
+2026-11-19T05:07:11.5802290Z Acquiring 24.19.0 - x64 from https://github.com/actions/node-versions/releases/download/24.19.0-30872449280/node-24.19.0-linux-x64.tar.gz
+2026-11-19T05:07:12.1829161Z Extracting ...
+2026-11-19T05:07:12.1956216Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/9fd126fd-882e-4a6b-a736-42fde6ffabfb -f /home/runner/work/_temp/25a491de-a3cc-49ce-a4f8-e4ba1754014f
+2026-11-19T05:07:13.3150756Z Adding to the cache ...
+2026-11-19T05:07:17.0344413Z ##[group]Environment details
+2026-11-19T05:07:17.2721521Z node: v24.19.0
+2026-11-19T05:07:17.2722203Z npm: 11.17.0
+2026-11-19T05:07:17.2722606Z yarn: 1.22.22
+2026-11-19T05:07:17.2723271Z ##[endgroup]
+2026-11-19T05:07:17.2737177Z [command]/opt/hostedtoolcache/node/24.19.0/x64/bin/npm config get cache
+2026-11-19T05:07:17.3610534Z /home/runner/.npm
+2026-11-19T05:07:17.5705268Z Cache hit for: node-cache-Linux-x64-npm-cd83c9fb8e004976935150ae0b681e272fe6e035cb6b0a5a5a830acaabe7cd1b
+2026-11-19T05:07:18.8228707Z Received 50331648 of 296720845 (17.0%), 48.0 MBs/sec
+2026-11-19T05:07:19.8281164Z Received 213909504 of 296720845 (72.1%), 102.0 MBs/sec
+2026-11-19T05:07:20.4002977Z Received 296720845 of 296720845 (100.0%), 109.8 MBs/sec
+2026-11-19T05:07:20.4003747Z Cache Size: ~283 MB (296720845 B)
+2026-11-19T05:07:20.4069434Z [command]/usr/bin/tar -xf /home/runner/work/_temp/f863c604-472f-41e7-9a4a-4cc6ce72ddac/cache.tzst -P -C /home/runner/work/realtime-estates/realtime-estates --use-compress-program unzstd
+2026-11-19T05:07:21.1320168Z Cache restored successfully
+2026-11-19T05:07:21.1444857Z Cache restored from key: node-cache-Linux-x64-npm-cd83c9fb8e004976935150ae0b681e272fe6e035cb6b0a5a5a830acaabe7cd1b
+2026-11-19T05:07:21.1788114Z ##[group]Run npm ci --no-audit --no-fund
+2026-11-19T05:07:21.1788444Z [36;1mnpm ci --no-audit --no-fund[0m
+2026-11-19T05:07:21.1810913Z shell: /usr/bin/bash -e {0}
+2026-11-19T05:07:21.1811135Z ##[endgroup]
+2026-11-19T05:07:28.2109531Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-11-19T05:07:28.7352551Z npm warn deprecated uuid@7.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-11-19T05:07:37.3916399Z 
+2026-11-19T05:07:37.3917264Z added 716 packages in 16s
+2026-11-19T05:07:37.3926314Z npm warn allow-scripts 2 packages have install scripts not yet covered by allowScripts:
+2026-11-19T05:07:37.3927939Z npm warn allow-scripts   @firebase/util@1.15.3 (postinstall: node ./postinstall.js)
+2026-11-19T05:07:37.3929291Z npm warn allow-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+2026-11-19T05:07:37.3943982Z npm warn allow-scripts
+2026-11-19T05:07:37.3945185Z npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+2026-11-19T05:07:37.5521439Z ##[group]Run npm run build:packages
+2026-11-19T05:07:37.5521721Z [36;1mnpm run build:packages[0m
+2026-11-19T05:07:37.5540382Z shell: /usr/bin/bash -e {0}
+2026-11-19T05:07:37.5540709Z ##[endgroup]
+2026-11-19T05:07:37.6504447Z 
+2026-11-19T05:07:37.6505158Z > realtor-platform@0.1.0 build:packages
+2026-11-19T05:07:37.6507200Z > npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/demo && npm run build --workspace=@realtor/api-client && npm run build --workspace=@realtor/media && npm run build --workspace=@realtor/browser-auth
+2026-11-19T05:07:37.6508591Z 
+2026-11-19T05:07:37.7826464Z 
+2026-11-19T05:07:37.7847730Z > @realtor/domain@0.1.0 build
+2026-11-19T05:07:37.7860792Z > tsc -p tsconfig.json
+2026-11-19T05:07:37.7870299Z 
+2026-11-19T05:07:40.4002590Z 
+2026-11-19T05:07:40.4003569Z > @realtor/demo@0.1.0 build
+2026-11-19T05:07:40.4004377Z > tsc -p tsconfig.json
+2026-11-19T05:07:40.4009919Z 
+2026-11-19T05:07:41.6259939Z 
+2026-11-19T05:07:41.6261369Z > @realtor/api-client@0.1.0 build
+2026-11-19T05:07:41.6261943Z > tsc -p tsconfig.json
+2026-11-19T05:07:41.6262585Z 
+2026-11-19T05:07:44.6731291Z 
+2026-11-19T05:07:44.6732228Z > @realtor/media@0.1.0 build
+2026-11-19T05:07:44.6733160Z > tsc -p tsconfig.json
+2026-11-19T05:07:44.6733750Z 
+2026-11-19T05:07:47.0510794Z 
+2026-11-19T05:07:47.0511834Z > @realtor/browser-auth@0.1.0 build
+2026-11-19T05:07:47.0512291Z > tsc -p tsconfig.json
+2026-11-19T05:07:47.0512472Z 
+2026-11-19T05:07:48.5651577Z ##[group]Run npm run build --workspace=@realtor/api
+2026-11-19T05:07:48.5652090Z [36;1mnpm run build --workspace=@realtor/api[0m
+2026-11-19T05:07:48.5672304Z shell: /usr/bin/bash -e {0}
+2026-11-19T05:07:48.5672529Z ##[endgroup]
+2026-11-19T05:07:48.6740748Z 
+2026-11-19T05:07:48.6741377Z > @realtor/api@0.1.0 build
+2026-11-19T05:07:48.6741812Z > tsc -p tsconfig.json
+2026-11-19T05:07:48.6742011Z 
+2026-11-19T05:07:51.4518288Z ##[group]Run node --test database/integration-tests/postgres-runtime.test.mjs
+2026-11-19T05:07:51.4518758Z [36;1mnode --test database/integration-tests/postgres-runtime.test.mjs[0m
+2026-11-19T05:07:51.4537617Z shell: /usr/bin/bash -e {0}
+2026-11-19T05:07:51.4537842Z env:
+2026-11-19T05:07:51.4538061Z   REALTOR_POSTGRES_TEST_POLICY: owned-disposable-ci-v1
+2026-11-19T05:07:51.4538664Z   REALTOR_POSTGRES_TEST_URL: ***127.0.0.1:5432/realtor_synthetic_ci
+2026-11-19T05:07:51.4538959Z ##[endgroup]
+2026-11-19T05:07:51.7840971Z ▶ real PostgreSQL TCP runtime isolates transactions and serializes concurrent originals
+2026-11-19T05:07:51.7847002Z   ✔ same original on two connections commits one operation/audit and returns the same receipt (18.121237ms)
+2026-11-19T05:07:51.7921349Z   ✔ different originals with one expected version produce one applied and one conflict (8.455198ms)
+2026-11-19T05:07:51.7966153Z   ✔ changed facts cannot reuse a committed original (4.416615ms)
+2026-11-19T05:07:51.8021455Z   ✔ application failure rolls back the SQL mutation and original (5.316866ms)
+2026-11-19T05:07:51.8113921Z   ✔ current company/actor and membership revocation deny recovery without exposing an original (9.366906ms)
+2026-11-19T05:07:51.8163485Z   ✔ pooled connections clear transaction role/context after successful and failed requests (1.4884ms)
+2026-11-19T05:07:51.8196886Z ✔ real PostgreSQL TCP runtime isolates transactions and serializes concurrent originals (277.307988ms)
+2026-11-19T05:07:51.8198456Z ℹ Real PostgreSQL server version 17.12 (Debian 17.12-1.pgdg12+1)
+2026-11-19T05:07:51.8281331Z ℹ tests 7
+2026-11-19T05:07:51.8290890Z ℹ suites 0
+2026-11-19T05:07:51.8291466Z ℹ pass 7
+2026-11-19T05:07:51.8291925Z ℹ fail 0
+2026-11-19T05:07:51.8292931Z ℹ cancelled 0
+2026-11-19T05:07:51.8293401Z ℹ skipped 0
+2026-11-19T05:07:51.8293836Z ℹ todo 0
+2026-11-19T05:07:51.8294330Z ℹ duration_ms 345.465687
+2026-11-19T05:07:51.8399131Z Post job cleanup.
+2026-11-19T05:07:51.9388951Z Cache hit occurred on the primary key node-cache-Linux-x64-npm-cd83c9fb8e004976935150ae0b681e272fe6e035cb6b0a5a5a830acaabe7cd1b, not saving cache.
+2026-11-19T05:07:51.9508751Z Post job cleanup.
+2026-11-19T05:07:52.0260895Z [command]/usr/bin/git version
+2026-11-19T05:07:52.0322603Z git version 2.56.1
+2026-11-19T05:07:52.0385000Z Temporarily overriding HOME='/home/runner/work/_temp/612bd8a6-38b2-4a04-8f2b-9bd372de37fc' before making global git config changes
+2026-11-19T05:07:52.0386285Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-19T05:07:52.0387450Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/realtime-estates/realtime-estates
+2026-11-19T05:07:52.0423307Z Removing SSH command configuration
+2026-11-19T05:07:52.0424176Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-19T05:07:52.0497179Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-19T05:07:52.0824271Z Removing HTTP extra header
+2026-11-19T05:07:52.0825220Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-19T05:07:52.0884329Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-19T05:07:52.1212669Z Removing includeIf entries pointing to credentials config files
+2026-11-19T05:07:52.1235046Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-19T05:07:52.1331811Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-19T05:07:52.1681502Z Print service container logs: 79bdcc7db234415892515a161d75027d_postgres17bookwormsha256837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b_6aabb5
+2026-11-19T05:07:52.1685347Z ##[command]/usr/bin/docker logs --details d469fcad19291daca189d461b02bd7ab449804a694d4c64f33a55eab24c12924
+2026-11-19T05:07:52.1824232Z  initdb: warning: enabling "trust" authentication for local connections
+2026-11-19T05:07:52.1824838Z  The files belonging to this database system will be owned by user "postgres".
+2026-11-19T05:07:52.1827248Z  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-11-19T05:07:52.1828057Z  This user must also own the server process.
+2026-11-19T05:07:52.1828566Z  
+2026-11-19T05:07:52.1829063Z  The database cluster will be initialized with locale "en_US.utf8".
+2026-11-19T05:07:52.1829732Z  The default database encoding has accordingly been set to "UTF8".
+2026-11-19T05:07:52.1830725Z  The default text search configuration will be set to "english".
+2026-11-19T05:07:52.1831228Z  
+2026-11-19T05:07:52.1831584Z  Data page checksums are disabled.
+2026-11-19T05:07:52.1831982Z  
+2026-11-19T05:07:52.1832468Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+2026-11-19T05:07:52.1833040Z  creating subdirectories ... ok
+2026-11-19T05:07:52.1833566Z  selecting dynamic shared memory implementation ... posix
+2026-11-19T05:07:52.1834089Z  selecting default "max_connections" ... 100
+2026-11-19T05:07:52.1834586Z  selecting default "shared_buffers" ... 128MB
+2026-11-19T05:07:52.1835052Z  selecting default time zone ... Etc/UTC
+2026-11-19T05:07:52.1835521Z  creating configuration files ... ok
+2026-11-19T05:07:52.1835999Z  running bootstrap script ... ok
+2026-11-19T05:07:52.1836502Z  performing post-bootstrap initialization ... ok
+2026-11-19T05:07:52.1836973Z  syncing data to disk ... ok
+2026-11-19T05:07:52.1837637Z  
+2026-11-19T05:07:52.1837948Z  
+2026-11-19T05:07:52.1838360Z  Success. You can now start the database server using:
+2026-11-19T05:07:52.1838823Z  
+2026-11-19T05:07:52.1839239Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
+2026-11-19T05:07:52.1839695Z  
+2026-11-19T05:07:52.1840750Z  waiting for server to start....2026-11-19 05:07:02.745 UTC [48] LOG:  starting PostgreSQL 17.12 (Debian 17.12-1.pgdg12+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+2026-11-19T05:07:52.1842165Z  2026-11-19 05:07:03.166 UTC [1] LOG:  starting PostgreSQL 17.12 (Debian 17.12-1.pgdg12+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+2026-11-19T05:07:52.1843137Z  2026-11-19 05:07:02.745 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-11-19T05:07:52.1843855Z  2026-11-19 05:07:02.748 UTC [51] LOG:  database system was shut down at 2026-11-19 05:07:01 UTC
+2026-11-19T05:07:52.1844486Z  2026-11-19 05:07:02.752 UTC [48] LOG:  database system is ready to accept connections
+2026-11-19T05:07:52.1844937Z   done
+2026-11-19T05:07:52.1845170Z  server started
+2026-11-19T05:07:52.1845410Z  CREATE DATABASE
+2026-11-19T05:07:52.1845641Z  
+2026-11-19T05:07:52.1845854Z  
+2026-11-19T05:07:52.1846238Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+2026-11-19T05:07:52.1846711Z  
+2026-11-19T05:07:52.1847026Z  2026-11-19 05:07:02.940 UTC [48] LOG:  received fast shutdown request
+2026-11-19T05:07:52.1847678Z  waiting for server to shut down....2026-11-19 05:07:02.941 UTC [48] LOG:  aborting any active transactions
+2026-11-19T05:07:52.1848506Z  2026-11-19 05:07:02.943 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+2026-11-19T05:07:52.1849145Z  2026-11-19 05:07:02.945 UTC [49] LOG:  shutting down
+2026-11-19T05:07:52.1849622Z  2026-11-19 05:07:02.945 UTC [49] LOG:  checkpoint starting: shutdown immediate
+2026-11-19T05:07:52.1851604Z  2026-11-19 05:07:03.126 UTC [49] LOG:  checkpoint complete: wrote 930 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.141 s, sync=0.039 s, total=0.182 s; sync files=301, longest=0.031 s, average=0.001 s; distance=4311 kB, estimate=4311 kB; lsn=0/192EF08, redo lsn=0/192EF08
+2026-11-19T05:07:52.1852486Z  2026-11-19 05:07:03.133 UTC [48] LOG:  database system is shut down
+2026-11-19T05:07:52.1852750Z   done
+2026-11-19T05:07:52.1852905Z  server stopped
+2026-11-19T05:07:52.1853069Z  
+2026-11-19T05:07:52.1853276Z  PostgreSQL init process complete; ready for start up.
+2026-11-19T05:07:52.1853522Z  
+2026-11-19T05:07:52.1853769Z  2026-11-19 05:07:03.167 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-11-19T05:07:52.1854139Z  2026-11-19 05:07:03.167 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-11-19T05:07:52.1854546Z  2026-11-19 05:07:03.169 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-11-19T05:07:52.1854980Z  2026-11-19 05:07:03.174 UTC [64] LOG:  database system was shut down at 2026-11-19 05:07:03 UTC
+2026-11-19T05:07:52.1855388Z  2026-11-19 05:07:03.180 UTC [1] LOG:  database system is ready to accept connections
+2026-11-19T05:07:52.1855732Z  2026-11-19 05:07:51.793 UTC [146] ERROR:  Operation conflict
+2026-11-19T05:07:52.1856223Z  2026-11-19 05:07:51.793 UTC [146] CONTEXT:  PL/pgSQL function app_api.save_staff_branch(uuid,uuid,bigint,text,boolean,text) line 23 at RAISE
+2026-11-19T05:07:52.1856803Z  2026-11-19 05:07:51.793 UTC [146] STATEMENT:  SELECT app_api.save_staff_branch($1,$2,$3,$4,$5,$6) AS record
+2026-11-19T05:07:52.1857175Z  2026-11-19 05:07:51.803 UTC [146] ERROR:  Access denied
+2026-11-19T05:07:52.1857561Z  2026-11-19 05:07:51.803 UTC [146] CONTEXT:  PL/pgSQL function app_private.assert_staff(text[]) line 2 at RAISE
+2026-11-19T05:07:52.1857993Z  	SQL statement "SELECT app_private.assert_staff(ARRAY['admin'])"
+2026-11-19T05:07:52.1858370Z  	PL/pgSQL function app_api.read_staff_branch_operation(uuid) line 2 at PERFORM
+2026-11-19T05:07:52.1859074Z  2026-11-19 05:07:51.803 UTC [146] STATEMENT:  SELECT app_api.read_staff_branch_operation($1)
+2026-11-19T05:07:52.1859449Z  2026-11-19 05:07:51.806 UTC [146] ERROR:  Access denied
+2026-11-19T05:07:52.1859823Z  2026-11-19 05:07:51.806 UTC [146] CONTEXT:  PL/pgSQL function app_private.assert_staff(text[]) line 2 at RAISE
+2026-11-19T05:07:52.1860632Z  	SQL statement "SELECT app_private.assert_staff(ARRAY['admin'])"
+2026-11-19T05:07:52.1861002Z  	PL/pgSQL function app_api.read_staff_branch_operation(uuid) line 2 at PERFORM
+2026-11-19T05:07:52.1861407Z  2026-11-19 05:07:51.806 UTC [146] STATEMENT:  SELECT app_api.read_staff_branch_operation($1)
+2026-11-19T05:07:52.1861867Z  2026-11-19 05:07:51.811 UTC [146] ERROR:  permission denied for schema app_private at character 15
+2026-11-19T05:07:52.1862308Z  2026-11-19 05:07:51.811 UTC [146] STATEMENT:  SELECT * FROM app_private.staff_branch_operations
+2026-11-19T05:07:52.1867113Z Stop and remove container: 79bdcc7db234415892515a161d75027d_postgres17bookwormsha256837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b_6aabb5
+2026-11-19T05:07:52.1871867Z ##[command]/usr/bin/docker rm --force d469fcad19291daca189d461b02bd7ab449804a694d4c64f33a55eab24c12924
+2026-11-19T05:07:52.5328122Z d469fcad19291daca189d461b02bd7ab449804a694d4c64f33a55eab24c12924
+2026-11-19T05:07:52.5343652Z Remove container network: github_network_daffeed5680341a1ad708165123cc420
+2026-11-19T05:07:52.5346974Z ##[command]/usr/bin/docker network rm github_network_daffeed5680341a1ad708165123cc420
+2026-11-19T05:07:52.5991209Z github_network_daffeed5680341a1ad708165123cc420
+2026-11-19T05:07:52.6047147Z Cleaning up orphan processes
