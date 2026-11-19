@@ -82,159 +82,633 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
-  adminModeration325: {"path":"docs/evidence/audit325-maintained4.txt","counts":[20],"environment":"Fresh domain, API and SDK builds. Signed maintained v2 draft save, submission and both decisions verify exact attribution, denial without mutation, stale decision and public snapshot outcomes.","commit":"c34f18fddd66cdc8f935f9ed7674e18800e4d4bb","observedDate":"2026-11-04"},
-  adminCommands323: {"path":"docs/evidence/audit323-maintained5.txt","counts":[19],"environment":"Fresh domain, API and SDK builds with seven new signed HTTP command scenarios. Settings approval and both listing control kinds verify attribution, replay, permission denials and rollback after audit insertion failure. Disposable PostgreSQL-compatible fixture.","commit":"28cf23b37209eb191f017db2cd561487904f14ca","observedDate":"2026-11-03"},
-  adminAuditScreen321: {"path":"docs/evidence/audit321-maintained4.txt","counts":[6,2],"environment":"Fresh domain/API/SDK builds/admin compile. Server3/signed RS256-JWKS-HTTP loader integration3/SSR2, overlapping fulladmin. Original26-event traversal/filter/revocation and positive foreign-history second company; exact host/authority/production/default-off fences. Actual browser separately recorded. No every-action/native/device/hosted production acceptance.","commit":"ec3a4cb298c4623284fc9fc0d725a614300b218d","observedDate":"2026-11-03"},
-  adminAuditDatabase321: {"path":"docs/evidence/audit321-database-full.txt","counts":[411],"environment":"Full maintained database suite including command receipts/audit/original/replay/denial and least-privilege catalogue checks. Disposable PGlite; no hosted race/snapshot/load or every reachable UI dispatcher coverage claim.","commit":"ec3a4cb298c4623284fc9fc0d725a614300b218d","observedDate":"2026-11-03"},
-  adminAuditAdmin321: {"path":"docs/evidence/audit321-admin-final6.txt","counts":[530,48],"environment":"Entire maintained admin server530 and SSR48 after final page-size selector correction. Overlaps focused5; no device/provider/global Back cache acceptance.","commit":"ec3a4cb298c4623284fc9fc0d725a614300b218d","observedDate":"2026-11-03"},
-  adminAuditBuild321: {"path":"docs/evidence/audit321-admin-final-build5.txt","counts":null,"environment":"Final Next16.4.2 full admin production build and TypeScript includes dynamic/audit. Page and API remain explicitly synthetic development-only; generated next-env restored. No production activation or native device claim.","commit":"ec3a4cb298c4623284fc9fc0d725a614300b218d","observedDate":"2026-11-03"},
-  adminAudit319: {"path":"docs/evidence/audit319-maintained4.txt","counts":[12],"environment":"Fresh domain/API/SDK builds and focused domain2/API3/SDK3/signed RS256-JWKS-HTTP restricted SQL1/database3. Actual settings command/replay yields one event; current role/company/foreign/signature/audience denials and no-store bounded strict cancellation. Isolated/default-off, no UI/production/all-actions acceptance.","commit":"f8c214b13f716e8e5a58718b3580f5577c62ddb2","observedDate":"2026-11-03"},
-  adminAuditDomain319: {"path":"docs/evidence/audit319-domain-full.txt","counts":[356],"environment":"Entire maintained domain suite, includes new2 audit contracts; overlaps focused12.","commit":"f8c214b13f716e8e5a58718b3580f5577c62ddb2","observedDate":"2026-11-03"},
-  adminAuditApi319: {"path":"docs/evidence/audit319-api-full.txt","counts":[363],"environment":"Entire maintained compiled API suite, includes new3 audit boundaries; overlaps focused12.","commit":"f8c214b13f716e8e5a58718b3580f5577c62ddb2","observedDate":"2026-11-03"},
-  adminAuditSdk319: {"path":"docs/evidence/audit319-sdk-full5.txt","counts":[346],"environment":"Entire maintained shared SDK suite, new3 audit checks registered in normal npm test. Includes bounded no-store duplicate/foreign refusal and stalled/late cancellation; overlaps focused12.","commit":"f8c214b13f716e8e5a58718b3580f5577c62ddb2","observedDate":"2026-11-03"},
-  adminAudit317: {"path":"docs/evidence/audit317-database.txt","counts":[3],"environment":"Isolated metadata SQL candidate in disposable maintained-migration PGlite; restricted runtime current admin/company authority, cursor and bigint projection, private payload exclusion, append-only denials. Seeded audit events, not every command or signed HTTP/UI/production acceptance.08-7 remains open.","commit":"dfb81fce71c421eb9615b92034bc624b2c8295e2","observedDate":"2026-11-03"},
-  customerMaintain315: {"path":"docs/evidence/customer315-maintained10.txt","counts":[13],"environment":"Maintained fresh domain/API/SDK builds, web compile, customer session7/browser contract4/owned signed preview2. Counts overlap full web127. Exact Host adapter, session/CSRF/expiry/original-retention and deliberate same-op retry, stale generation/decoder and positive foreign saved fixture. No provider/device/global logout acceptance.","commit":"54d292a25aeec670838d64293204e39e3724a526","observedDate":"2026-11-03"},
-  customerWeb315: {"path":"docs/evidence/customer315-web-full7.txt","counts":[127],"environment":"Entire maintained public web suite including11 customer session/browser checks. Real browser proof separately dated; no native device or real identity provider.","commit":"54d292a25aeec670838d64293204e39e3724a526","observedDate":"2026-11-03"},
-  customerBuild315: {"path":"docs/evidence/customer315-web-build8.txt","counts":null,"environment":"Full Next16.4.2 web production build and TypeScript, includes account and customer route. Synthetic accounts remain default-off and production-unavailable; no deployment activation.","commit":"54d292a25aeec670838d64293204e39e3724a526","observedDate":"2026-11-03"},
-  customerBrowser315: {"path":"docs/evidence/2026-11-03-customer-account-acceptance.md","counts":null,"environment":"Actual local customer browser sign-in, lost committed save/reload/original recovery, exact price, unavailable removal, A/B separation, cross-tab logout/revocation clearing and SampleHomes empty with positive foreign fixture. Desktop1280 only; requested390 override did not apply and was reset. No physical/native/narrow/provider/operator/hosted gate.","commit":"54d292a25aeec670838d64293204e39e3724a526","observedDate":"2026-11-03"},
+  adminModeration325: {
+    path: 'docs/evidence/audit325-maintained4.txt',
+    counts: [20],
+    environment:
+      'Fresh domain, API and SDK builds. Signed maintained v2 draft save, submission and both decisions verify exact attribution, denial without mutation, stale decision and public snapshot outcomes.',
+    commit: 'c34f18fddd66cdc8f935f9ed7674e18800e4d4bb',
+    observedDate: '2026-11-04',
+  },
+  adminCommands323: {
+    path: 'docs/evidence/audit323-maintained5.txt',
+    counts: [19],
+    environment:
+      'Fresh domain, API and SDK builds with seven new signed HTTP command scenarios. Settings approval and both listing control kinds verify attribution, replay, permission denials and rollback after audit insertion failure. Disposable PostgreSQL-compatible fixture.',
+    commit: '28cf23b37209eb191f017db2cd561487904f14ca',
+    observedDate: '2026-11-03',
+  },
+  adminAuditScreen321: {
+    path: 'docs/evidence/audit321-maintained4.txt',
+    counts: [6, 2],
+    environment:
+      'Fresh domain/API/SDK builds/admin compile. Server3/signed RS256-JWKS-HTTP loader integration3/SSR2, overlapping fulladmin. Original26-event traversal/filter/revocation and positive foreign-history second company; exact host/authority/production/default-off fences. Actual browser separately recorded. No every-action/native/device/hosted production acceptance.',
+    commit: 'ec3a4cb298c4623284fc9fc0d725a614300b218d',
+    observedDate: '2026-11-03',
+  },
+  adminAuditDatabase321: {
+    path: 'docs/evidence/audit321-database-full.txt',
+    counts: [411],
+    environment:
+      'Full maintained database suite including command receipts/audit/original/replay/denial and least-privilege catalogue checks. Disposable PGlite; no hosted race/snapshot/load or every reachable UI dispatcher coverage claim.',
+    commit: 'ec3a4cb298c4623284fc9fc0d725a614300b218d',
+    observedDate: '2026-11-03',
+  },
+  adminAuditAdmin321: {
+    path: 'docs/evidence/audit321-admin-final6.txt',
+    counts: [530, 48],
+    environment:
+      'Entire maintained admin server530 and SSR48 after final page-size selector correction. Overlaps focused5; no device/provider/global Back cache acceptance.',
+    commit: 'ec3a4cb298c4623284fc9fc0d725a614300b218d',
+    observedDate: '2026-11-03',
+  },
+  adminAuditBuild321: {
+    path: 'docs/evidence/audit321-admin-final-build5.txt',
+    counts: null,
+    environment:
+      'Final Next16.4.2 full admin production build and TypeScript includes dynamic/audit. Page and API remain explicitly synthetic development-only; generated next-env restored. No production activation or native device claim.',
+    commit: 'ec3a4cb298c4623284fc9fc0d725a614300b218d',
+    observedDate: '2026-11-03',
+  },
+  adminAudit319: {
+    path: 'docs/evidence/audit319-maintained4.txt',
+    counts: [12],
+    environment:
+      'Fresh domain/API/SDK builds and focused domain2/API3/SDK3/signed RS256-JWKS-HTTP restricted SQL1/database3. Actual settings command/replay yields one event; current role/company/foreign/signature/audience denials and no-store bounded strict cancellation. Isolated/default-off, no UI/production/all-actions acceptance.',
+    commit: 'f8c214b13f716e8e5a58718b3580f5577c62ddb2',
+    observedDate: '2026-11-03',
+  },
+  adminAuditDomain319: {
+    path: 'docs/evidence/audit319-domain-full.txt',
+    counts: [356],
+    environment:
+      'Entire maintained domain suite, includes new2 audit contracts; overlaps focused12.',
+    commit: 'f8c214b13f716e8e5a58718b3580f5577c62ddb2',
+    observedDate: '2026-11-03',
+  },
+  adminAuditApi319: {
+    path: 'docs/evidence/audit319-api-full.txt',
+    counts: [363],
+    environment:
+      'Entire maintained compiled API suite, includes new3 audit boundaries; overlaps focused12.',
+    commit: 'f8c214b13f716e8e5a58718b3580f5577c62ddb2',
+    observedDate: '2026-11-03',
+  },
+  adminAuditSdk319: {
+    path: 'docs/evidence/audit319-sdk-full5.txt',
+    counts: [346],
+    environment:
+      'Entire maintained shared SDK suite, new3 audit checks registered in normal npm test. Includes bounded no-store duplicate/foreign refusal and stalled/late cancellation; overlaps focused12.',
+    commit: 'f8c214b13f716e8e5a58718b3580f5577c62ddb2',
+    observedDate: '2026-11-03',
+  },
+  adminAudit317: {
+    path: 'docs/evidence/audit317-database.txt',
+    counts: [3],
+    environment:
+      'Isolated metadata SQL candidate in disposable maintained-migration PGlite; restricted runtime current admin/company authority, cursor and bigint projection, private payload exclusion, append-only denials. Seeded audit events, not every command or signed HTTP/UI/production acceptance.08-7 remains open.',
+    commit: 'dfb81fce71c421eb9615b92034bc624b2c8295e2',
+    observedDate: '2026-11-03',
+  },
+  customerMaintain315: {
+    path: 'docs/evidence/customer315-maintained10.txt',
+    counts: [13],
+    environment:
+      'Maintained fresh domain/API/SDK builds, web compile, customer session7/browser contract4/owned signed preview2. Counts overlap full web127. Exact Host adapter, session/CSRF/expiry/original-retention and deliberate same-op retry, stale generation/decoder and positive foreign saved fixture. No provider/device/global logout acceptance.',
+    commit: '54d292a25aeec670838d64293204e39e3724a526',
+    observedDate: '2026-11-03',
+  },
+  customerWeb315: {
+    path: 'docs/evidence/customer315-web-full7.txt',
+    counts: [127],
+    environment:
+      'Entire maintained public web suite including11 customer session/browser checks. Real browser proof separately dated; no native device or real identity provider.',
+    commit: '54d292a25aeec670838d64293204e39e3724a526',
+    observedDate: '2026-11-03',
+  },
+  customerBuild315: {
+    path: 'docs/evidence/customer315-web-build8.txt',
+    counts: null,
+    environment:
+      'Full Next16.4.2 web production build and TypeScript, includes account and customer route. Synthetic accounts remain default-off and production-unavailable; no deployment activation.',
+    commit: '54d292a25aeec670838d64293204e39e3724a526',
+    observedDate: '2026-11-03',
+  },
+  customerBrowser315: {
+    path: 'docs/evidence/2026-11-03-customer-account-acceptance.md',
+    counts: null,
+    environment:
+      'Actual local customer browser sign-in, lost committed save/reload/original recovery, exact price, unavailable removal, A/B separation, cross-tab logout/revocation clearing and SampleHomes empty with positive foreign fixture. Desktop1280 only; requested390 override did not apply and was reset. No physical/native/narrow/provider/operator/hosted gate.',
+    commit: '54d292a25aeec670838d64293204e39e3724a526',
+    observedDate: '2026-11-03',
+  },
 
-  customerSigned313: {"path":"docs/evidence/customer313-maintained4.txt","counts":[9],"environment":"Maintained fresh-build customer composition: signed RS256/JWKS/HTTP/shared SDK/restricted SQL3, API boundaries2, SDK4. Lost/malformed committed reply→uncertain→GET of original, trace POST/GET only; both companies/current membership, signature/authority/default-off/production refusals. No customer browser/session/cache/provider/device/hosted race.","commit":"02cf28c5788dbda08c06355869a7c76a7f5160be","observedDate":"2026-11-03"},
-  customerApi313: {"path":"docs/evidence/customer313-api-full.txt","counts":[360],"environment":"Full maintained compiled API suite after default-off customer handler integration. Includes customer boundary checks, not customer UI/provider deployment.","commit":"02cf28c5788dbda08c06355869a7c76a7f5160be","observedDate":"2026-11-03"},
-  customerSdk313: {"path":"docs/evidence/customer313-sdk-full.txt","counts":[343],"environment":"Full maintained shared SDK suite including new customer file4 checks. Scope binding, no-store/omit/redirect-error, bounded stalled-body/late-response cancellation and no automatic retry. Focused checks overlap; no actual browser cache/logout proof.","commit":"02cf28c5788dbda08c06355869a7c76a7f5160be","observedDate":"2026-11-03"},
+  customerSigned313: {
+    path: 'docs/evidence/customer313-maintained4.txt',
+    counts: [9],
+    environment:
+      'Maintained fresh-build customer composition: signed RS256/JWKS/HTTP/shared SDK/restricted SQL3, API boundaries2, SDK4. Lost/malformed committed reply→uncertain→GET of original, trace POST/GET only; both companies/current membership, signature/authority/default-off/production refusals. No customer browser/session/cache/provider/device/hosted race.',
+    commit: '02cf28c5788dbda08c06355869a7c76a7f5160be',
+    observedDate: '2026-11-03',
+  },
+  customerApi313: {
+    path: 'docs/evidence/customer313-api-full.txt',
+    counts: [360],
+    environment:
+      'Full maintained compiled API suite after default-off customer handler integration. Includes customer boundary checks, not customer UI/provider deployment.',
+    commit: '02cf28c5788dbda08c06355869a7c76a7f5160be',
+    observedDate: '2026-11-03',
+  },
+  customerSdk313: {
+    path: 'docs/evidence/customer313-sdk-full.txt',
+    counts: [343],
+    environment:
+      'Full maintained shared SDK suite including new customer file4 checks. Scope binding, no-store/omit/redirect-error, bounded stalled-body/late-response cancellation and no automatic retry. Focused checks overlap; no actual browser cache/logout proof.',
+    commit: '02cf28c5788dbda08c06355869a7c76a7f5160be',
+    observedDate: '2026-11-03',
+  },
 
-  customerDomain311: {"path":"docs/evidence/customer311-domain-full.txt","counts":[354],"environment":"Full shared domain suite with strict customer favourite command/account/state/receipt/page contracts. Four focused checks overlap.","commit":"6fa76114b7b3de36e8896a5b98bd45ec2dc2be25","observedDate":"2026-11-03"},
-  customerSql311: {"path":"docs/evidence/customer311-focused5.txt","counts":[9],"environment":"Local restricted SQL5 and shared contracts4. Current customer/tenant isolation,100 quota, versioned originals, dynamic availability/removal, snapshot export into fresh engine and forced receipt rollback. No signed HTTP/UI/cache/provider/hosted race or on-disk crash pass.","commit":"6fa76114b7b3de36e8896a5b98bd45ec2dc2be25","observedDate":"2026-11-03"},
+  customerDomain311: {
+    path: 'docs/evidence/customer311-domain-full.txt',
+    counts: [354],
+    environment:
+      'Full shared domain suite with strict customer favourite command/account/state/receipt/page contracts. Four focused checks overlap.',
+    commit: '6fa76114b7b3de36e8896a5b98bd45ec2dc2be25',
+    observedDate: '2026-11-03',
+  },
+  customerSql311: {
+    path: 'docs/evidence/customer311-focused5.txt',
+    counts: [9],
+    environment:
+      'Local restricted SQL5 and shared contracts4. Current customer/tenant isolation,100 quota, versioned originals, dynamic availability/removal, snapshot export into fresh engine and forced receipt rollback. No signed HTTP/UI/cache/provider/hosted race or on-disk crash pass.',
+    commit: '6fa76114b7b3de36e8896a5b98bd45ec2dc2be25',
+    observedDate: '2026-11-03',
+  },
 
-  secondBrand309: {"path":"docs/evidence/brand309-final3.txt","counts":[3],"environment":"Maintained local signed two-company synthetic composition and Expo configuration. Capture-only notification records; no provider/native device/hosted launch.","commit":"c1aa64dbffa2f9766a1befc61aa154aecc62325b","observedDate":"2026-11-03"},
-  secondBrandBrowser309: {"path":"docs/evidence/2026-11-03-second-brand-acceptance.md","counts":null,"environment":"Actual local browser DOM identity/contact/stock/foreign unavailable proof. Screenshot API unavailable; no visual/device pass.","commit":"c1aa64dbffa2f9766a1befc61aa154aecc62325b","observedDate":"2026-11-03"},
+  secondBrand309: {
+    path: 'docs/evidence/brand309-final3.txt',
+    counts: [3],
+    environment:
+      'Maintained local signed two-company synthetic composition and Expo configuration. Capture-only notification records; no provider/native device/hosted launch.',
+    commit: 'c1aa64dbffa2f9766a1befc61aa154aecc62325b',
+    observedDate: '2026-11-03',
+  },
+  secondBrandBrowser309: {
+    path: 'docs/evidence/2026-11-03-second-brand-acceptance.md',
+    counts: null,
+    environment:
+      'Actual local browser DOM identity/contact/stock/foreign unavailable proof. Screenshot API unavailable; no visual/device pass.',
+    commit: 'c1aa64dbffa2f9766a1befc61aa154aecc62325b',
+    observedDate: '2026-11-03',
+  },
 
-  floorRequest307: {"path":"docs/evidence/floor307-media-full.txt","counts":[218],"commit":"2ca53233aae60518cab1f96b07ad54f07a55fafe","observedDate":"2026-11-03","environment":"Full maintained media after separate immutable floor-plan intent/source facade. Real durable close/reopen, exact binding/bytes/receipts, lost source acknowledgement read recovery/no retry and missing source/no repair, descriptor/snapshot/singleflight/close checks. Focused5 overlaps. Local metadata/storage only; no current authorization, worker permit, SQL attachment or end-to-end photo-count acceptance."},
-  floorWorker305: {"path":"docs/evidence/floor305-media-full.txt","counts":[213],"commit":"bd482c2a81eec6963774758c2a72f8d89cb7cd7a","observedDate":"2026-11-03","environment":"Full maintained media suite after fixed floor-plan worker/shared bounded file I/O and separate lossless byte readback. Includes actual owned Windows child success/extra role argument exit1, empty-job barrier, real line pixels, photo-manifest boundary rejection. Focused8 overlaps; no application floor-plan admission/attachment/UI or production sandbox claim."},
-  floorMedia302: {"path":"docs/evidence/floor302-media-full.txt","counts":[210],"commit":"fabdf7ea063824a9d96451457e104cbfa3c0e986","observedDate":"2026-11-03","environment":"Full maintained media suite after shared fixed-role codec refactor; new lossless raster floor-plan tests overlap. No connected floor-plan processing/attachment/UI claim."},
-  videoSuccessor302: {"path":"docs/evidence/video302-successor-sql.txt","counts":[2],"commit":"fabdf7ea063824a9d96451457e104cbfa3c0e986","observedDate":"2026-11-03","environment":"Restricted sequential PGlite: guarded successor does not copy private video; private null preserves prior public video until successor approval; newly approved null removes current public video while old immutable capture remains. No new browser/hosted race pass."},
-  approvedVideoDomain294: {"path": "docs/evidence/video294-domain-full.txt", "counts": [350], "commit": "f1ef5db7ea58c455885c046e84cad69a5069b980", "observedDate": "2026-11-03", "environment": "Full shared domain, including strict approved public video projection."},
-  approvedVideoSdk294: {"path": "docs/evidence/video294-sdk-full2.txt", "counts": [339], "commit": "f1ef5db7ea58c455885c046e84cad69a5069b980", "observedDate": "2026-11-03", "environment": "Full maintained SDK including anonymous video/no authority/no-store/target/version response checks."},
-  approvedVideoApi294: {"path": "docs/evidence/video294-api-full.txt", "counts": [358], "commit": "f1ef5db7ea58c455885c046e84cad69a5069b980", "observedDate": "2026-11-03", "environment": "Full compiled API regression. New publication routes separately exercised by signed composition."},
-  approvedVideoAdmin295: {"path": "docs/evidence/video295-admin.txt", "counts": [527, 46], "commit": "6a8af1516764f245cec2dfb2a48d51aaa56d6e48", "observedDate": "2026-11-03", "environment": "Full admin and rendered UI; reviewer before/after context authority and metadata rendering. Counts overlap focused checks."},
-  approvedVideoWeb296: {"path": "docs/evidence/video296-web-full.txt", "counts": [116], "commit": "1f9e654929e143789e8371ccb79addc19604327d", "observedDate": "2026-11-03", "environment": "Full web suite and separately dated typecheck; approved-only detail, no provider embed, explicit no-referrer anchor."},
-  approvedVideoNative297: {"path": "docs/evidence/video297-mobile-full.txt", "counts": [27], "commit": "854cbba74f66e1b4c095e9d607f0d2f06962ca8b", "observedDate": "2026-11-03", "environment": "Native model/config suite; opt-in, cancellation/version and user-triggered canonical navigation. No rendered/device pass."},
-  approvedVideoNativeTypes297: {"path": "docs/evidence/video297-mobile-types.txt", "counts": null, "commit": "854cbba74f66e1b4c095e9d607f0d2f06962ca8b", "observedDate": "2026-11-03", "environment": "Full mobile TypeScript check, including actual RN component. No Android/iOS export or device run."},
-  approvedVideoReference298: {"path": "docs/evidence/video298-reference-full.txt", "counts": [21], "commit": "8fd3d2bdca96e0bb6097b6d3bd9de39bf8f6ecc3", "observedDate": "2026-11-03", "environment": "Full maintained signed reference HTTP/JWKS/SDK/restricted SQL composition, including non-null reviewed video approval and anonymous public read. Not hosted races."},
-  approvedVideoSql298: {"path": "docs/evidence/video298-sql.txt", "counts": [5], "commit": "8fd3d2bdca96e0bb6097b6d3bd9de39bf8f6ecc3", "observedDate": "2026-11-03", "environment": "Private/publication candidate SQL: atomic capture and forced rollback; raw/immutable denial, eligibility/other-company/pending/stale/reviewer role, legacy no-backfill, private replay/removal. Sequential PGlite only."},
-  approvedVideoAdminBuild298: {"path": "docs/evidence/video298-admin-build.txt", "counts": null, "commit": "8fd3d2bdca96e0bb6097b6d3bd9de39bf8f6ecc3", "observedDate": "2026-11-03", "environment": "Full current admin Next production build; no production activation."},
-  approvedVideoWebBuild298: {"path": "docs/evidence/video298-web-build.txt", "counts": null, "commit": "8fd3d2bdca96e0bb6097b6d3bd9de39bf8f6ecc3", "observedDate": "2026-11-03", "environment": "Full current web Next production build; no production activation."},
-  approvedVideoBrowser298: {"path": "docs/evidence/2026-11-03-approved-video-flow.md", "counts": null, "commit": "8fd3d2bdca96e0bb6097b6d3bd9de39bf8f6ecc3", "observedDate": "2026-11-03", "environment": "Actual reviewer metadata/pending7 approval200/version8 and anonymous public detail after reload; previously unpublished unavailable. Public390 viewport/client375 no overflow, keyboard link/privacy attributes/no embed/provider resources. Reviewer desktop only; synthetic photo metadata, no native/provider/device/operator pass."},
+  floorRequest307: {
+    path: 'docs/evidence/floor307-media-full.txt',
+    counts: [218],
+    commit: '2ca53233aae60518cab1f96b07ad54f07a55fafe',
+    observedDate: '2026-11-03',
+    environment:
+      'Full maintained media after separate immutable floor-plan intent/source facade. Real durable close/reopen, exact binding/bytes/receipts, lost source acknowledgement read recovery/no retry and missing source/no repair, descriptor/snapshot/singleflight/close checks. Focused5 overlaps. Local metadata/storage only; no current authorization, worker permit, SQL attachment or end-to-end photo-count acceptance.',
+  },
+  floorWorker305: {
+    path: 'docs/evidence/floor305-media-full.txt',
+    counts: [213],
+    commit: 'bd482c2a81eec6963774758c2a72f8d89cb7cd7a',
+    observedDate: '2026-11-03',
+    environment:
+      'Full maintained media suite after fixed floor-plan worker/shared bounded file I/O and separate lossless byte readback. Includes actual owned Windows child success/extra role argument exit1, empty-job barrier, real line pixels, photo-manifest boundary rejection. Focused8 overlaps; no application floor-plan admission/attachment/UI or production sandbox claim.',
+  },
+  floorMedia302: {
+    path: 'docs/evidence/floor302-media-full.txt',
+    counts: [210],
+    commit: 'fabdf7ea063824a9d96451457e104cbfa3c0e986',
+    observedDate: '2026-11-03',
+    environment:
+      'Full maintained media suite after shared fixed-role codec refactor; new lossless raster floor-plan tests overlap. No connected floor-plan processing/attachment/UI claim.',
+  },
+  videoSuccessor302: {
+    path: 'docs/evidence/video302-successor-sql.txt',
+    counts: [2],
+    commit: 'fabdf7ea063824a9d96451457e104cbfa3c0e986',
+    observedDate: '2026-11-03',
+    environment:
+      'Restricted sequential PGlite: guarded successor does not copy private video; private null preserves prior public video until successor approval; newly approved null removes current public video while old immutable capture remains. No new browser/hosted race pass.',
+  },
+  approvedVideoDomain294: {
+    path: 'docs/evidence/video294-domain-full.txt',
+    counts: [350],
+    commit: 'f1ef5db7ea58c455885c046e84cad69a5069b980',
+    observedDate: '2026-11-03',
+    environment: 'Full shared domain, including strict approved public video projection.',
+  },
+  approvedVideoSdk294: {
+    path: 'docs/evidence/video294-sdk-full2.txt',
+    counts: [339],
+    commit: 'f1ef5db7ea58c455885c046e84cad69a5069b980',
+    observedDate: '2026-11-03',
+    environment:
+      'Full maintained SDK including anonymous video/no authority/no-store/target/version response checks.',
+  },
+  approvedVideoApi294: {
+    path: 'docs/evidence/video294-api-full.txt',
+    counts: [358],
+    commit: 'f1ef5db7ea58c455885c046e84cad69a5069b980',
+    observedDate: '2026-11-03',
+    environment:
+      'Full compiled API regression. New publication routes separately exercised by signed composition.',
+  },
+  approvedVideoAdmin295: {
+    path: 'docs/evidence/video295-admin.txt',
+    counts: [527, 46],
+    commit: '6a8af1516764f245cec2dfb2a48d51aaa56d6e48',
+    observedDate: '2026-11-03',
+    environment:
+      'Full admin and rendered UI; reviewer before/after context authority and metadata rendering. Counts overlap focused checks.',
+  },
+  approvedVideoWeb296: {
+    path: 'docs/evidence/video296-web-full.txt',
+    counts: [116],
+    commit: '1f9e654929e143789e8371ccb79addc19604327d',
+    observedDate: '2026-11-03',
+    environment:
+      'Full web suite and separately dated typecheck; approved-only detail, no provider embed, explicit no-referrer anchor.',
+  },
+  approvedVideoNative297: {
+    path: 'docs/evidence/video297-mobile-full.txt',
+    counts: [27],
+    commit: '854cbba74f66e1b4c095e9d607f0d2f06962ca8b',
+    observedDate: '2026-11-03',
+    environment:
+      'Native model/config suite; opt-in, cancellation/version and user-triggered canonical navigation. No rendered/device pass.',
+  },
+  approvedVideoNativeTypes297: {
+    path: 'docs/evidence/video297-mobile-types.txt',
+    counts: null,
+    commit: '854cbba74f66e1b4c095e9d607f0d2f06962ca8b',
+    observedDate: '2026-11-03',
+    environment:
+      'Full mobile TypeScript check, including actual RN component. No Android/iOS export or device run.',
+  },
+  approvedVideoReference298: {
+    path: 'docs/evidence/video298-reference-full.txt',
+    counts: [21],
+    commit: '8fd3d2bdca96e0bb6097b6d3bd9de39bf8f6ecc3',
+    observedDate: '2026-11-03',
+    environment:
+      'Full maintained signed reference HTTP/JWKS/SDK/restricted SQL composition, including non-null reviewed video approval and anonymous public read. Not hosted races.',
+  },
+  approvedVideoSql298: {
+    path: 'docs/evidence/video298-sql.txt',
+    counts: [5],
+    commit: '8fd3d2bdca96e0bb6097b6d3bd9de39bf8f6ecc3',
+    observedDate: '2026-11-03',
+    environment:
+      'Private/publication candidate SQL: atomic capture and forced rollback; raw/immutable denial, eligibility/other-company/pending/stale/reviewer role, legacy no-backfill, private replay/removal. Sequential PGlite only.',
+  },
+  approvedVideoAdminBuild298: {
+    path: 'docs/evidence/video298-admin-build.txt',
+    counts: null,
+    commit: '8fd3d2bdca96e0bb6097b6d3bd9de39bf8f6ecc3',
+    observedDate: '2026-11-03',
+    environment: 'Full current admin Next production build; no production activation.',
+  },
+  approvedVideoWebBuild298: {
+    path: 'docs/evidence/video298-web-build.txt',
+    counts: null,
+    commit: '8fd3d2bdca96e0bb6097b6d3bd9de39bf8f6ecc3',
+    observedDate: '2026-11-03',
+    environment: 'Full current web Next production build; no production activation.',
+  },
+  approvedVideoBrowser298: {
+    path: 'docs/evidence/2026-11-03-approved-video-flow.md',
+    counts: null,
+    commit: '8fd3d2bdca96e0bb6097b6d3bd9de39bf8f6ecc3',
+    observedDate: '2026-11-03',
+    environment:
+      'Actual reviewer metadata/pending7 approval200/version8 and anonymous public detail after reload; previously unpublished unavailable. Public390 viewport/client375 no overflow, keyboard link/privacy attributes/no embed/provider resources. Reviewer desktop only; synthetic photo metadata, no native/provider/device/operator pass.',
+  },
 
-  videoAuthorAdmin290: {"path": "docs/evidence/video290-admin-final1.txt", "counts": [525, 44], "commit": "516d72e69f203b63bfb6ed97677ffa66f936f202", "observedDate": "2026-11-03", "environment": "Full admin libraries/BFF/controllers plus rendered UI. Video checks overlap focused and signed records; no physical device acceptance."},
-  videoAuthorReference290: {"path": "docs/evidence/video290-reference-final1.txt", "counts": [18], "commit": "516d72e69f203b63bfb6ed97677ffa66f936f202", "observedDate": "2026-11-03", "environment": "Full maintained signed reference composition, including two new video cases; actual HTTP/JWKS/SDK/restricted SQL, not hosted concurrency."},
-  videoAuthorFocused290: {"path": "docs/evidence/video290-focused1.txt", "counts": [10], "commit": "516d72e69f203b63bfb6ed97677ffa66f936f202", "observedDate": "2026-11-03", "environment": "Video retained original and browser BFF transport checks. Overlaps full admin525."},
-  videoAuthorBuild290: {"path": "docs/evidence/video290-next-final1.txt", "counts": null, "commit": "516d72e69f203b63bfb6ed97677ffa66f936f202", "observedDate": "2026-11-03", "environment": "Full current admin Next production build, including video page and save/recover routes. No production deployment."},
-  videoAuthorFormat290: {"path": "docs/evidence/video290-format-final2.txt", "counts": null, "commit": "516d72e69f203b63bfb6ed97677ffa66f936f202", "observedDate": "2026-11-03", "environment": "Changed code formatting passed after test-config formatting correction; no runtime behavior change."},
-  videoAuthorBrowser290: {"path": "docs/evidence/2026-11-03-private-video-author.md", "counts": null, "commit": "516d72e69f203b63bfb6ed97677ffa66f936f202", "observedDate": "2026-11-03", "environment": "Actual owned Next browser: committed-reply loss502, reload/SAME original, explicit recovery200, fresh removal200 and version5/None.390px geometry/keyboard inspected. Earlier compiler OOM interrupted fixture is not a recovery pass. Adopted revision only; no reviewer/public/native/provider/floorplan acceptance."},
+  videoAuthorAdmin290: {
+    path: 'docs/evidence/video290-admin-final1.txt',
+    counts: [525, 44],
+    commit: '516d72e69f203b63bfb6ed97677ffa66f936f202',
+    observedDate: '2026-11-03',
+    environment:
+      'Full admin libraries/BFF/controllers plus rendered UI. Video checks overlap focused and signed records; no physical device acceptance.',
+  },
+  videoAuthorReference290: {
+    path: 'docs/evidence/video290-reference-final1.txt',
+    counts: [18],
+    commit: '516d72e69f203b63bfb6ed97677ffa66f936f202',
+    observedDate: '2026-11-03',
+    environment:
+      'Full maintained signed reference composition, including two new video cases; actual HTTP/JWKS/SDK/restricted SQL, not hosted concurrency.',
+  },
+  videoAuthorFocused290: {
+    path: 'docs/evidence/video290-focused1.txt',
+    counts: [10],
+    commit: '516d72e69f203b63bfb6ed97677ffa66f936f202',
+    observedDate: '2026-11-03',
+    environment:
+      'Video retained original and browser BFF transport checks. Overlaps full admin525.',
+  },
+  videoAuthorBuild290: {
+    path: 'docs/evidence/video290-next-final1.txt',
+    counts: null,
+    commit: '516d72e69f203b63bfb6ed97677ffa66f936f202',
+    observedDate: '2026-11-03',
+    environment:
+      'Full current admin Next production build, including video page and save/recover routes. No production deployment.',
+  },
+  videoAuthorFormat290: {
+    path: 'docs/evidence/video290-format-final2.txt',
+    counts: null,
+    commit: '516d72e69f203b63bfb6ed97677ffa66f936f202',
+    observedDate: '2026-11-03',
+    environment:
+      'Changed code formatting passed after test-config formatting correction; no runtime behavior change.',
+  },
+  videoAuthorBrowser290: {
+    path: 'docs/evidence/2026-11-03-private-video-author.md',
+    counts: null,
+    commit: '516d72e69f203b63bfb6ed97677ffa66f936f202',
+    observedDate: '2026-11-03',
+    environment:
+      'Actual owned Next browser: committed-reply loss502, reload/SAME original, explicit recovery200, fresh removal200 and version5/None.390px geometry/keyboard inspected. Earlier compiler OOM interrupted fixture is not a recovery pass. Adopted revision only; no reviewer/public/native/provider/floorplan acceptance.',
+  },
 
-  videoDomain287: {"path":"docs/evidence/video287-domain-final.txt","counts":[349],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Full current domain; six new private-video validation/original/state checks overlap the full suite."},
-  videoSdk287: {"path":"docs/evidence/video287-sdk-final.txt","counts":[337],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Full current SDK unit suite; four new video snapshot/uncertainty/GET/no-store checks overlap. No automatic write retry."},
-  videoApi287: {"path":"docs/evidence/video287-api-final.txt","counts":[358],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Full current compiled API suite; three new default-off/context/input/response checks overlap."},
-  videoSql287: {"path":"docs/evidence/video287-sql-final4.txt","counts":[3],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Restricted synthetic private-video candidate SQL: exact replay/clear/stale denial, assignment/company/revocation, logical rollback, raw table denial, decided-revision/public preservation. No hosted races or durable host restart."},
-  videoSigned287: {"path":"docs/evidence/video287-signed-final4.txt","counts":[2],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Actual loopback signed HTTP/JWKS/SDK/restricted SQL: consumed committed reply/loss, explicit GET same original, deliberate replay/stale conflict/clear; invalid signature/unknown target/omitted mode refused. No application browser or provider request."},
-  videoPreview287: {"path":"docs/evidence/video287-preview-final.txt","counts":[13],"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Existing ordinary signed staff preview/session/protocol compatibility; no provider or new native device acceptance."},
-  videoTypes287: {"path":"docs/evidence/video287-types-final.txt","counts":null,"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"All eight workspace typechecks on current shared exports and SDK/API changes. No new production Next build."},
-  videoFormat287: {"path":"docs/evidence/video287-format-final.txt","counts":null,"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Changed TypeScript/JavaScript formatting check passed; SQL proposal not handled by Prettier."},
-  videoEvidence287: {"path":"docs/evidence/2026-11-03-private-listing-video.md","counts":null,"commit":"2741c500454d92356bb8b2e356ffeaac6ace39b4","observedDate":"2026-11-03","environment":"Connected default-off private-video preparation only. Author browser retention/BFF/UI, review/approved public/native display and floor-plan assets remain incomplete.06-4 and all gates stay open."},
-  catalogueAudit284: { path: 'docs/evidence/2026-11-03-catalogue-implementation-acceptance.md', counts: null, commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60', observedDate: '2026-11-03', environment: 'Literal06-1 local synthetic implementation review. Complete listed data capabilities mapped to connected maintained paths and dated browser evidence. Only local build06-1 accepted; deployment controller/schema rollout, complete release cases and all14 gates remain open. No new application code or browser/device test.' },
-  catalogueBuild284: { path: 'docs/evidence/catalogue284-builds.txt', counts: null, commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60', observedDate: '2026-11-03', environment: 'Fresh shared domain, SDK and API compilation. No new Next production build or provider deployment.' },
-  catalogueDomain284: { path: 'docs/evidence/catalogue284-domain.txt', counts: [343], commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60', observedDate: '2026-11-03', environment: 'Fresh full shared domain regression, including exact KES, catalogue hierarchy/amenity selection and complete property validation. Overlaps focused checks.' },
-  catalogueSdk284: { path: 'docs/evidence/catalogue284-sdk.txt', counts: [333], commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60', observedDate: '2026-11-03', environment: 'Fresh full SDK unit regression; strict saved data and command/recovery contracts. Separate service composition listed independently.' },
-  catalogueApi284: { path: 'docs/evidence/catalogue284-api.txt', counts: [355], commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60', observedDate: '2026-11-03', environment: 'Fresh full compiled API suite. Synthetic restricted fixtures; not hosted pool/concurrency evidence.' },
-  catalogueSql284: { path: 'docs/evidence/catalogue284-sql.txt', counts: [73], commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60', observedDate: '2026-11-03', environment: 'Seven reference SQL/admission files with current reviewed defaults through0037 and six opt-in proposals. Restricted PGlite, plus labelled query-adapter admission-policy checks. No installed deployment controller or hosted races.' },
-  catalogueComposition284: { path: 'docs/evidence/catalogue284-composition.txt', counts: [34], commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60', observedDate: '2026-11-03', environment: 'Four current reference combined-draft/moderation/creation/successor SDK/API service-integration files. Synthetic SQL originals, exact context, rollback and authority/recovery checks; not provider/native-device acceptance.' },
-  catalogueWeb284: { path: 'docs/evidence/catalogue284-web.txt', counts: [114], commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60', observedDate: '2026-11-03', environment: 'Fresh full public web test compilation and model/contract suite. No fresh browser or full production build.' },
-  catalogueMobile284: { path: 'docs/evidence/catalogue284-mobile.txt', counts: [24], commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60', observedDate: '2026-11-03', environment: 'Fresh full native model/preview suite and test compilation including shared web compile. No emulator, physical Android/iOS, export or operator test.' },
-  submissionAdmin281: {"path":"docs/evidence/submission281-admin-final5.txt","counts":[515,42],"commit":"435c49c48eb1377996b835c42dbd9a5a62db082b","observedDate":"2026-11-03","environment":"Full admin library/BFF/model515 and rendered42 regression on the connected author transition source. Counts overlap focused retention."},
-  submissionReference281: {"path":"docs/evidence/submission281-reference-final3.txt","counts":[16],"commit":"435c49c48eb1377996b835c42dbd9a5a62db082b","observedDate":"2026-11-03","environment":"Signed reference composition group includes new author loader/client/BFF through real loopback HTTP/RS256/JWKS/PGlite. Lost committed withdrawal/original read/fresh resubmission and no-photo nonwrite refusal verified."},
-  submissionRetention281: {"path":"docs/evidence/submission281-retention-final2.txt","counts":[18],"commit":"435c49c48eb1377996b835c42dbd9a5a62db082b","observedDate":"2026-11-03","environment":"Focused author/reviewer original storage tests;7 new author checks plus11 existing retention checks overlap full admin515. Includes reciprocal preparation locks and durable nonwrite refusal."},
-  submissionBrowser281: {"path":"docs/evidence/2026-11-03-reference-submission.md","counts":null,"commit":"435c49c48eb1377996b835c42dbd9a5a62db082b","observedDate":"2026-11-03","environment":"Actual assigned-agent Next/browser: pending withdrawal502, SAME original after reload, explicit recovery200/draft5, fresh submit200/pending6/unpublished; no-photo422 refusal survives reload and explicit acknowledgement, unchanged draft3;390px focus/wrapping. Synthetic metadata photos only."},
-  submissionBuild281: {"path":"docs/evidence/submission281-next-final4.txt","counts":null,"commit":"435c49c48eb1377996b835c42dbd9a5a62db082b","observedDate":"2026-11-03","environment":"Current full admin production build including dynamic /drafts/[id]/[revision]/submission. No production/provider deployment or stage gate inferred."},
+  videoDomain287: {
+    path: 'docs/evidence/video287-domain-final.txt',
+    counts: [349],
+    commit: '2741c500454d92356bb8b2e356ffeaac6ace39b4',
+    observedDate: '2026-11-03',
+    environment:
+      'Full current domain; six new private-video validation/original/state checks overlap the full suite.',
+  },
+  videoSdk287: {
+    path: 'docs/evidence/video287-sdk-final.txt',
+    counts: [337],
+    commit: '2741c500454d92356bb8b2e356ffeaac6ace39b4',
+    observedDate: '2026-11-03',
+    environment:
+      'Full current SDK unit suite; four new video snapshot/uncertainty/GET/no-store checks overlap. No automatic write retry.',
+  },
+  videoApi287: {
+    path: 'docs/evidence/video287-api-final.txt',
+    counts: [358],
+    commit: '2741c500454d92356bb8b2e356ffeaac6ace39b4',
+    observedDate: '2026-11-03',
+    environment:
+      'Full current compiled API suite; three new default-off/context/input/response checks overlap.',
+  },
+  videoSql287: {
+    path: 'docs/evidence/video287-sql-final4.txt',
+    counts: [3],
+    commit: '2741c500454d92356bb8b2e356ffeaac6ace39b4',
+    observedDate: '2026-11-03',
+    environment:
+      'Restricted synthetic private-video candidate SQL: exact replay/clear/stale denial, assignment/company/revocation, logical rollback, raw table denial, decided-revision/public preservation. No hosted races or durable host restart.',
+  },
+  videoSigned287: {
+    path: 'docs/evidence/video287-signed-final4.txt',
+    counts: [2],
+    commit: '2741c500454d92356bb8b2e356ffeaac6ace39b4',
+    observedDate: '2026-11-03',
+    environment:
+      'Actual loopback signed HTTP/JWKS/SDK/restricted SQL: consumed committed reply/loss, explicit GET same original, deliberate replay/stale conflict/clear; invalid signature/unknown target/omitted mode refused. No application browser or provider request.',
+  },
+  videoPreview287: {
+    path: 'docs/evidence/video287-preview-final.txt',
+    counts: [13],
+    commit: '2741c500454d92356bb8b2e356ffeaac6ace39b4',
+    observedDate: '2026-11-03',
+    environment:
+      'Existing ordinary signed staff preview/session/protocol compatibility; no provider or new native device acceptance.',
+  },
+  videoTypes287: {
+    path: 'docs/evidence/video287-types-final.txt',
+    counts: null,
+    commit: '2741c500454d92356bb8b2e356ffeaac6ace39b4',
+    observedDate: '2026-11-03',
+    environment:
+      'All eight workspace typechecks on current shared exports and SDK/API changes. No new production Next build.',
+  },
+  videoFormat287: {
+    path: 'docs/evidence/video287-format-final.txt',
+    counts: null,
+    commit: '2741c500454d92356bb8b2e356ffeaac6ace39b4',
+    observedDate: '2026-11-03',
+    environment:
+      'Changed TypeScript/JavaScript formatting check passed; SQL proposal not handled by Prettier.',
+  },
+  videoEvidence287: {
+    path: 'docs/evidence/2026-11-03-private-listing-video.md',
+    counts: null,
+    commit: '2741c500454d92356bb8b2e356ffeaac6ace39b4',
+    observedDate: '2026-11-03',
+    environment:
+      'Connected default-off private-video preparation only. Author browser retention/BFF/UI, review/approved public/native display and floor-plan assets remain incomplete.06-4 and all gates stay open.',
+  },
+  catalogueAudit284: {
+    path: 'docs/evidence/2026-11-03-catalogue-implementation-acceptance.md',
+    counts: null,
+    commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60',
+    observedDate: '2026-11-03',
+    environment:
+      'Literal06-1 local synthetic implementation review. Complete listed data capabilities mapped to connected maintained paths and dated browser evidence. Only local build06-1 accepted; deployment controller/schema rollout, complete release cases and all14 gates remain open. No new application code or browser/device test.',
+  },
+  catalogueBuild284: {
+    path: 'docs/evidence/catalogue284-builds.txt',
+    counts: null,
+    commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60',
+    observedDate: '2026-11-03',
+    environment:
+      'Fresh shared domain, SDK and API compilation. No new Next production build or provider deployment.',
+  },
+  catalogueDomain284: {
+    path: 'docs/evidence/catalogue284-domain.txt',
+    counts: [343],
+    commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60',
+    observedDate: '2026-11-03',
+    environment:
+      'Fresh full shared domain regression, including exact KES, catalogue hierarchy/amenity selection and complete property validation. Overlaps focused checks.',
+  },
+  catalogueSdk284: {
+    path: 'docs/evidence/catalogue284-sdk.txt',
+    counts: [333],
+    commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60',
+    observedDate: '2026-11-03',
+    environment:
+      'Fresh full SDK unit regression; strict saved data and command/recovery contracts. Separate service composition listed independently.',
+  },
+  catalogueApi284: {
+    path: 'docs/evidence/catalogue284-api.txt',
+    counts: [355],
+    commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60',
+    observedDate: '2026-11-03',
+    environment:
+      'Fresh full compiled API suite. Synthetic restricted fixtures; not hosted pool/concurrency evidence.',
+  },
+  catalogueSql284: {
+    path: 'docs/evidence/catalogue284-sql.txt',
+    counts: [73],
+    commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60',
+    observedDate: '2026-11-03',
+    environment:
+      'Seven reference SQL/admission files with current reviewed defaults through0037 and six opt-in proposals. Restricted PGlite, plus labelled query-adapter admission-policy checks. No installed deployment controller or hosted races.',
+  },
+  catalogueComposition284: {
+    path: 'docs/evidence/catalogue284-composition.txt',
+    counts: [34],
+    commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60',
+    observedDate: '2026-11-03',
+    environment:
+      'Four current reference combined-draft/moderation/creation/successor SDK/API service-integration files. Synthetic SQL originals, exact context, rollback and authority/recovery checks; not provider/native-device acceptance.',
+  },
+  catalogueWeb284: {
+    path: 'docs/evidence/catalogue284-web.txt',
+    counts: [114],
+    commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60',
+    observedDate: '2026-11-03',
+    environment:
+      'Fresh full public web test compilation and model/contract suite. No fresh browser or full production build.',
+  },
+  catalogueMobile284: {
+    path: 'docs/evidence/catalogue284-mobile.txt',
+    counts: [24],
+    commit: '38ae2a22707bbf078a878cbd2c2ece20df45aa60',
+    observedDate: '2026-11-03',
+    environment:
+      'Fresh full native model/preview suite and test compilation including shared web compile. No emulator, physical Android/iOS, export or operator test.',
+  },
+  submissionAdmin281: {
+    path: 'docs/evidence/submission281-admin-final5.txt',
+    counts: [515, 42],
+    commit: '435c49c48eb1377996b835c42dbd9a5a62db082b',
+    observedDate: '2026-11-03',
+    environment:
+      'Full admin library/BFF/model515 and rendered42 regression on the connected author transition source. Counts overlap focused retention.',
+  },
+  submissionReference281: {
+    path: 'docs/evidence/submission281-reference-final3.txt',
+    counts: [16],
+    commit: '435c49c48eb1377996b835c42dbd9a5a62db082b',
+    observedDate: '2026-11-03',
+    environment:
+      'Signed reference composition group includes new author loader/client/BFF through real loopback HTTP/RS256/JWKS/PGlite. Lost committed withdrawal/original read/fresh resubmission and no-photo nonwrite refusal verified.',
+  },
+  submissionRetention281: {
+    path: 'docs/evidence/submission281-retention-final2.txt',
+    counts: [18],
+    commit: '435c49c48eb1377996b835c42dbd9a5a62db082b',
+    observedDate: '2026-11-03',
+    environment:
+      'Focused author/reviewer original storage tests;7 new author checks plus11 existing retention checks overlap full admin515. Includes reciprocal preparation locks and durable nonwrite refusal.',
+  },
+  submissionBrowser281: {
+    path: 'docs/evidence/2026-11-03-reference-submission.md',
+    counts: null,
+    commit: '435c49c48eb1377996b835c42dbd9a5a62db082b',
+    observedDate: '2026-11-03',
+    environment:
+      'Actual assigned-agent Next/browser: pending withdrawal502, SAME original after reload, explicit recovery200/draft5, fresh submit200/pending6/unpublished; no-photo422 refusal survives reload and explicit acknowledgement, unchanged draft3;390px focus/wrapping. Synthetic metadata photos only.',
+  },
+  submissionBuild281: {
+    path: 'docs/evidence/submission281-next-final4.txt',
+    counts: null,
+    commit: '435c49c48eb1377996b835c42dbd9a5a62db082b',
+    observedDate: '2026-11-03',
+    environment:
+      'Current full admin production build including dynamic /drafts/[id]/[revision]/submission. No production/provider deployment or stage gate inferred.',
+  },
 
-  catalogueBrowser278: {"path":"docs/evidence/2026-11-03-catalogue-workflow.md","counts":null,"commit":"32d08cf217fc8d3ab2c67e7dd9d3edd49884dbe9","observedDate":"2026-11-03","environment":"Actual owned catalogue creation, complete property/reference review-revise-send, committed-reply loss/reload/same-original recovery and exact-price/current-ID readback; fixed fee form verified at390px. No submission/withdrawal UI, default-schema or production release acceptance."},
-  catalogueRendered278: {"path":"docs/evidence/catalogue278-rendered-tests.txt","counts":[39],"commit":"32d08cf217fc8d3ab2c67e7dd9d3edd49884dbe9","observedDate":"2026-11-03","environment":"Current rendered admin UI/page regression after fee label/grid correction; test TypeScript compilation also passed. Not the full admin library suite or production build."},
+  catalogueBrowser278: {
+    path: 'docs/evidence/2026-11-03-catalogue-workflow.md',
+    counts: null,
+    commit: '32d08cf217fc8d3ab2c67e7dd9d3edd49884dbe9',
+    observedDate: '2026-11-03',
+    environment:
+      'Actual owned catalogue creation, complete property/reference review-revise-send, committed-reply loss/reload/same-original recovery and exact-price/current-ID readback; fixed fee form verified at390px. No submission/withdrawal UI, default-schema or production release acceptance.',
+  },
+  catalogueRendered278: {
+    path: 'docs/evidence/catalogue278-rendered-tests.txt',
+    counts: [39],
+    commit: '32d08cf217fc8d3ab2c67e7dd9d3edd49884dbe9',
+    observedDate: '2026-11-03',
+    environment:
+      'Current rendered admin UI/page regression after fee label/grid correction; test TypeScript compilation also passed. Not the full admin library suite or production build.',
+  },
 
   recipientDomain275: {
-  "path": "docs/evidence/recipient275-domain.txt",
-  "counts": [
-    343
-  ],
-  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
-  "observedDate": "2026-11-02",
-  "environment": "Full shared domain including strict identity-only recipient session. No membership inferred from identity."
-},
+    path: 'docs/evidence/recipient275-domain.txt',
+    counts: [343],
+    commit: 'd4e9b3ccf1ec694ddc1b8b7816585418d6abf342',
+    observedDate: '2026-11-02',
+    environment:
+      'Full shared domain including strict identity-only recipient session. No membership inferred from identity.',
+  },
   recipientSdk275: {
-  "path": "docs/evidence/recipient275-sdk.txt",
-  "counts": [
-    333
-  ],
-  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
-  "observedDate": "2026-11-02",
-  "environment": "Full SDK regression including bounded no-store recipient session read."
-},
+    path: 'docs/evidence/recipient275-sdk.txt',
+    counts: [333],
+    commit: 'd4e9b3ccf1ec694ddc1b8b7816585418d6abf342',
+    observedDate: '2026-11-02',
+    environment: 'Full SDK regression including bounded no-store recipient session read.',
+  },
   recipientAdmin275: {
-  "path": "docs/evidence/recipient275-admin-final2.txt",
-  "counts": [
-    504,
-    39
-  ],
-  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
-  "observedDate": "2026-11-02",
-  "environment": "Full admin library/BFF/controller and rendered UI regression. No actual device/operator acceptance."
-},
+    path: 'docs/evidence/recipient275-admin-final2.txt',
+    counts: [504, 39],
+    commit: 'd4e9b3ccf1ec694ddc1b8b7816585418d6abf342',
+    observedDate: '2026-11-02',
+    environment:
+      'Full admin library/BFF/controller and rendered UI regression. No actual device/operator acceptance.',
+  },
   recipientApi275: {
-  "path": "docs/evidence/recipient275-api.txt",
-  "counts": [
-    355
-  ],
-  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
-  "observedDate": "2026-11-02",
-  "environment": "Full compiled API regression including signed nonmember recipient session without SQL grant."
-},
+    path: 'docs/evidence/recipient275-api.txt',
+    counts: [355],
+    commit: 'd4e9b3ccf1ec694ddc1b8b7816585418d6abf342',
+    observedDate: '2026-11-02',
+    environment:
+      'Full compiled API regression including signed nonmember recipient session without SQL grant.',
+  },
   recipientFocused275: {
-  "path": "docs/evidence/recipient275-focused.txt",
-  "counts": [22],
-  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
-  "observedDate": "2026-11-02",
-  "environment": "Combined22 focused checks comprise7 domain,7 SDK and8 HTTP; all overlap their full suites."
-},
+    path: 'docs/evidence/recipient275-focused.txt',
+    counts: [22],
+    commit: 'd4e9b3ccf1ec694ddc1b8b7816585418d6abf342',
+    observedDate: '2026-11-02',
+    environment:
+      'Combined22 focused checks comprise7 domain,7 SDK and8 HTTP; all overlap their full suites.',
+  },
   recipientConnected275: {
-  "path": "docs/evidence/recipient275-connected-final2.txt",
-  "counts": [
-    12
-  ],
-  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
-  "observedDate": "2026-11-02",
-  "environment": "6 BFF plus3 retained-controller units overlap admin504;3 actual signed HTTP/JWKS/PGlite compositions prove grant, wrong recipient refusal, lost committed reply and replay after revocation without reactivation."
-},
+    path: 'docs/evidence/recipient275-connected-final2.txt',
+    counts: [12],
+    commit: 'd4e9b3ccf1ec694ddc1b8b7816585418d6abf342',
+    observedDate: '2026-11-02',
+    environment:
+      '6 BFF plus3 retained-controller units overlap admin504;3 actual signed HTTP/JWKS/PGlite compositions prove grant, wrong recipient refusal, lost committed reply and replay after revocation without reactivation.',
+  },
   recipientPreview275: {
-  "path": "docs/evidence/recipient275-preview.txt",
-  "counts": [
-    22
-  ],
-  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
-  "observedDate": "2026-11-02",
-  "environment": "Existing disposable preview and owned child lifecycle checks. Synthetic only."
-},
+    path: 'docs/evidence/recipient275-preview.txt',
+    counts: [22],
+    commit: 'd4e9b3ccf1ec694ddc1b8b7816585418d6abf342',
+    observedDate: '2026-11-02',
+    environment: 'Existing disposable preview and owned child lifecycle checks. Synthetic only.',
+  },
   recipientBrowser275: {
-  "path": "docs/evidence/2026-11-02-invitation-recipient-acceptance.md",
-  "counts": null,
-  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
-  "observedDate": "2026-11-02",
-  "environment": "Actual owned Next/browser: separate verified recipient, committed reply loss, GET-only recovery/reload, used state, admin revocation, existing inactive member refusal,390px wrapping/focus. No physical device/provider/hosted races or actual browser expiry pass."
-},
+    path: 'docs/evidence/2026-11-02-invitation-recipient-acceptance.md',
+    counts: null,
+    commit: 'd4e9b3ccf1ec694ddc1b8b7816585418d6abf342',
+    observedDate: '2026-11-02',
+    environment:
+      'Actual owned Next/browser: separate verified recipient, committed reply loss, GET-only recovery/reload, used state, admin revocation, existing inactive member refusal,390px wrapping/focus. No physical device/provider/hosted races or actual browser expiry pass.',
+  },
   recipientBuild275: {
-  "path": "docs/evidence/recipient275-next-final.txt",
-  "counts": null,
-  "commit": "d4e9b3ccf1ec694ddc1b8b7816585418d6abf342",
-  "observedDate": "2026-11-02",
-  "environment": "Current complete admin production build including recipient acceptance page and guarded session/operation routes; no production deployment."
-},
+    path: 'docs/evidence/recipient275-next-final.txt',
+    counts: null,
+    commit: 'd4e9b3ccf1ec694ddc1b8b7816585418d6abf342',
+    observedDate: '2026-11-02',
+    environment:
+      'Current complete admin production build including recipient acceptance page and guarded session/operation routes; no production deployment.',
+  },
 
   staffIssueDomain272: {
     path: 'docs/evidence/staff-issue272-domain.txt',
@@ -1223,7 +1697,10 @@ const reviewed = [
   [
     2,
     'partial',
-    ['videoSql287', 'videoApi287', 'videoSigned287',
+    [
+      'videoSql287',
+      'videoApi287',
+      'videoSigned287',
       'api212',
       'signed212',
       'admin212',
@@ -1260,7 +1737,19 @@ const reviewed = [
   [
     3,
     'partial',
-    ['videoAuthorReference290', 'videoAuthorBrowser290', 'videoSql287', 'videoSigned287', 'api212', 'signed212', 'sdk212', 'media213', 'staffSql248', 'staffApi248', 'staffSigned248'],
+    [
+      'videoAuthorReference290',
+      'videoAuthorBrowser290',
+      'videoSql287',
+      'videoSigned287',
+      'api212',
+      'signed212',
+      'sdk212',
+      'media213',
+      'staffSql248',
+      'staffApi248',
+      'staffSigned248',
+    ],
     'Current company/assignment checks, exact operation recovery and raw viewing-table denial.',
     'Exports, subscriptions and full production pooled/storage isolation are not accepted.',
     'Implement and test scoped export/session/job paths, then rerun the complete two-company matrix.',
@@ -1276,7 +1765,39 @@ const reviewed = [
   [
     5,
     'partial',
-    ['floorRequest307', 'floorWorker305', 'floorMedia302', 'videoSuccessor302', 'approvedVideoDomain294', 'approvedVideoSdk294', 'approvedVideoApi294', 'approvedVideoAdmin295', 'approvedVideoWeb296', 'approvedVideoNative297', 'approvedVideoNativeTypes297', 'approvedVideoReference298', 'approvedVideoSql298', 'approvedVideoAdminBuild298', 'approvedVideoWebBuild298', 'approvedVideoBrowser298', 'videoAuthorAdmin290', 'videoAuthorFocused290', 'videoAuthorReference290', 'videoAuthorBuild290', 'videoAuthorFormat290', 'videoAuthorBrowser290', 'videoSdk287', 'videoSql287', 'videoSigned287', 'videoEvidence287', 'media216', 'signed216', 'admin216', 'browser216', 'database215'],
+    [
+      'floorRequest307',
+      'floorWorker305',
+      'floorMedia302',
+      'videoSuccessor302',
+      'approvedVideoDomain294',
+      'approvedVideoSdk294',
+      'approvedVideoApi294',
+      'approvedVideoAdmin295',
+      'approvedVideoWeb296',
+      'approvedVideoNative297',
+      'approvedVideoNativeTypes297',
+      'approvedVideoReference298',
+      'approvedVideoSql298',
+      'approvedVideoAdminBuild298',
+      'approvedVideoWebBuild298',
+      'approvedVideoBrowser298',
+      'videoAuthorAdmin290',
+      'videoAuthorFocused290',
+      'videoAuthorReference290',
+      'videoAuthorBuild290',
+      'videoAuthorFormat290',
+      'videoAuthorBrowser290',
+      'videoSdk287',
+      'videoSql287',
+      'videoSigned287',
+      'videoEvidence287',
+      'media216',
+      'signed216',
+      'admin216',
+      'browser216',
+      'database215',
+    ],
     'Actual browser Cancel at third upload preserved two photos and recovered the original confirmed stop. Live original-instance retirement/drain, exact authorized incomplete workspace cleanup, verified/reference protection and uncertainty guards passed locally.',
     'Production provider retention/schedule/alerts, hosted process isolation and actual Android/iOS/operator interruption journeys remain open.',
     'Verify staged provider lifecycle and actual devices; historical journals never grant new cleanup authority.',
@@ -1300,7 +1821,28 @@ const reviewed = [
   [
     8,
     'partial',
-    ['domain212', 'api212', 'sdk212', 'admin212', 'catalogueBrowser278', 'catalogueRendered278', 'submissionAdmin281', 'submissionReference281', 'submissionRetention281', 'submissionBrowser281', 'submissionBuild281', 'catalogueAudit284', 'catalogueBuild284', 'catalogueDomain284', 'catalogueSdk284', 'catalogueApi284', 'catalogueSql284', 'catalogueComposition284', 'catalogueWeb284', 'catalogueMobile284'],
+    [
+      'domain212',
+      'api212',
+      'sdk212',
+      'admin212',
+      'catalogueBrowser278',
+      'catalogueRendered278',
+      'submissionAdmin281',
+      'submissionReference281',
+      'submissionRetention281',
+      'submissionBrowser281',
+      'submissionBuild281',
+      'catalogueAudit284',
+      'catalogueBuild284',
+      'catalogueDomain284',
+      'catalogueSdk284',
+      'catalogueApi284',
+      'catalogueSql284',
+      'catalogueComposition284',
+      'catalogueWeb284',
+      'catalogueMobile284',
+    ],
     'Positive exact minor-unit, purpose/period and client/server validation have executed coverage.',
     'Current combined exact-price/fees/reference browser save and recovery278 and connected author submit/withdraw281 are verified. Literal local catalogue build06-1 accepted after criterion mapping and fresh domain343/SDK333/API355/SQL73/composition34/web114/native-model24 checks284. Controlled configuration/schema admission and rollback, normalized import and complete create/edit/UI/direct-bypass release combinations remain open.',
     'Implement controlled release admission/upgrade and execute the complete boundary/import matrix; local build acceptance does not close this release case.',
@@ -1332,7 +1874,20 @@ const reviewed = [
   [
     12,
     'partial',
-    ['domain212', 'api217', 'sdk212', 'admin212', 'operations212', 'browser217', 'web217', 'catalogueAudit284', 'catalogueDomain284', 'catalogueComposition284', 'catalogueWeb284', 'catalogueMobile284'],
+    [
+      'domain212',
+      'api217',
+      'sdk212',
+      'admin212',
+      'operations212',
+      'browser217',
+      'web217',
+      'catalogueAudit284',
+      'catalogueDomain284',
+      'catalogueComposition284',
+      'catalogueWeb284',
+      'catalogueMobile284',
+    ],
     'Exact fee/period/quote-required contract, submitted review and connected public named fees/deposit/initial subtotals are verified locally, including320px disclosure.',
     'Local normalized authoring/fees build accepted284; full actual native fee disclosure and normalized import/release boundary acceptance remain open.',
     'Repeat all known/unknown fee cases through normalized authoring and actual native devices.',
@@ -1340,7 +1895,17 @@ const reviewed = [
   [
     13,
     'partial',
-    ['domain212', 'api212', 'signed212', 'search210', 'catalogueAudit284', 'catalogueDomain284', 'catalogueApi284', 'catalogueSql284', 'catalogueComposition284'],
+    [
+      'domain212',
+      'api212',
+      'signed212',
+      'search210',
+      'catalogueAudit284',
+      'catalogueDomain284',
+      'catalogueApi284',
+      'catalogueSql284',
+      'catalogueComposition284',
+    ],
     'Canonical types/purpose and synthetic public/ordinary staff data are validated.',
     'Local normalized catalogue implementation accepted284; normal deployment/schema promotion and complete all-type import/unknown-type handling remain unaccepted.',
     'Verify controlled deployment promotion/rollback and all-type import/display scenarios against the release candidate.',
@@ -1388,7 +1953,23 @@ const reviewed = [
   [
     19,
     'partial',
-    ['videoDomain287', 'videoSdk287', 'videoApi287', 'videoSql287', 'videoEvidence287', 'videoTypes287', 'videoFormat287', 'videoPreview287', 'media216', 'signed217', 'admin216', 'browser216', 'api217', 'database217', 'browser217'],
+    [
+      'videoDomain287',
+      'videoSdk287',
+      'videoApi287',
+      'videoSql287',
+      'videoEvidence287',
+      'videoTypes287',
+      'videoFormat287',
+      'videoPreview287',
+      'media216',
+      'signed217',
+      'admin216',
+      'browser216',
+      'api217',
+      'database217',
+      'browser217',
+    ],
     'Actual codec format/metadata/corrupt/dimension/byte caps and upload recovery passed. Public bytes now require current approved/fresh publication and matching native seals before/after I/O; four actual anonymous WebPs decoded and pause denied later access.',
     'Production object provider access and actual device interruption/oversized-selection matrix remain open.',
     'Verify deployed object isolation and complete invalid/oversized device selections with approved test bytes.',
@@ -1538,8 +2119,21 @@ const entries = cases.map((item, index) => {
   if ([2, 3, 19, 30, 35].includes(number))
     evidence.push('authorizationReview223', 'authInventory223', 'authRoles223', 'authStorage223');
   if ([19, 35].includes(number)) evidence.push('browserReport223', 'signedReport223');
-  if ([2,3,4].includes(number)) evidence.push('customerDomain311','customerSql311','customerSigned313','customerApi313','customerSdk313');
-  if([2,3,4,11,28].includes(number))evidence.push('customerMaintain315','customerWeb315','customerBuild315','customerBrowser315');
+  if ([2, 3, 4].includes(number))
+    evidence.push(
+      'customerDomain311',
+      'customerSql311',
+      'customerSigned313',
+      'customerApi313',
+      'customerSdk313',
+    );
+  if ([2, 3, 4, 11, 28].includes(number))
+    evidence.push(
+      'customerMaintain315',
+      'customerWeb315',
+      'customerBuild315',
+      'customerBrowser315',
+    );
   evidence.forEach((key) => assert.ok(executions[key], `Missing evidence ${key}`));
   const originalFinding =
     index > 0 && index < 25
@@ -1559,7 +2153,17 @@ const entries = cases.map((item, index) => {
   };
 });
 const fixes = [
-  {"id":"FIX-278-01","cases":["AC-008","AC-011"],"problem":"Reference creation/editing fee labels and native controls ran together at390px, obscuring exact amounts and classifications despite no page overflow.","status":"retested_in_stated_environment","evidence":"catalogueBrowser278","before":"docs/evidence/catalogue278-narrow.jpg","remaining":"After correction all5 fee text/select controls are separate48px-high rows within the narrow client width in both creation and editing. Physical device/AT/operator acceptance and reference submission workflow remain open."},
+  {
+    id: 'FIX-278-01',
+    cases: ['AC-008', 'AC-011'],
+    problem:
+      'Reference creation/editing fee labels and native controls ran together at390px, obscuring exact amounts and classifications despite no page overflow.',
+    status: 'retested_in_stated_environment',
+    evidence: 'catalogueBrowser278',
+    before: 'docs/evidence/catalogue278-narrow.jpg',
+    remaining:
+      'After correction all5 fee text/select controls are separate48px-high rows within the narrow client width in both creation and editing. Physical device/AT/operator acceptance and reference submission workflow remain open.',
+  },
   {
     id: 'FIX-261-01',
     cases: ['AC-002', 'AC-030'],

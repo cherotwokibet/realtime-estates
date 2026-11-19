@@ -31,12 +31,9 @@ Remaining closure work: turn this family inventory into an exact command/dispatc
 
 3 November2026 checkpoint321: Full maintained database411/411 and admin530+48 pass; connected SSR audit screen plus signed integration8 checks pass, final production build/typecheck pass. Media attachment policy is confirmed:0006 emits media.attached with exact original tenant/requester/listing/version/correlation, and media-attachment.test.mjs asserts original facts and replay suppression. No full per-dispatcher/UI-route closure is inferred from aggregate suites. See docs/evidence/2026-11-03-admin-audit-screen.md.
 
-
 Checkpoint 323 adds signed HTTP evidence for company settings approval and both listing controls. The tests verify exact actor, tenant, record, version, request correlation and audit facts, and confirm that denial, replay and failed audit insertion preserve the appropriate business state. See docs/evidence/2026-11-04-admin-command-verification.md for exact coverage.
 
-
 Checkpoint 325 verifies signed v2 save, submit, approve and reject commands with exact audit attribution, persisted-state comparisons and stale decision replay. Withdrawal and guarded allocation remain separate checks. See docs/evidence/2026-11-04-admin-moderation-verification.md.
-
 
 Checkpoint 328 combines signed allocation and reference withdrawal integration evidence with exact SQL assertions for listing.created, revision.saved, revision.started, revision.withdrawn and revision.synthetic_reference_withdraw. An exact withdrawal replay returns the original result and preserves the two attributable events. The focused SQL suite passed 36 checks. Next are enquiry and staff mutation paths.
 

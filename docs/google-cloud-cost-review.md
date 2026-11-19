@@ -6,11 +6,11 @@ Google's default Iowa (us-central1) tables currently list shared-core micro at $
 
 At 730 hours, with a hypothetical 10 GiB SSD plus 10 GiB used backups:
 
-| Reference configuration | Compute USD/month | Storage + backups USD/month | Reference subtotal USD/month |
-| --- | ---: | ---: | ---: |
-| Shared micro, evaluation only | 7.665 | 2.500 | 10.165 |
-| Shared small, evaluation only | 25.550 | 2.500 | 28.050 |
-| Dedicated 1 vCPU + 3.75 GiB, single-zone | 49.312 | 2.500 | 51.812 |
+| Reference configuration                  | Compute USD/month | Storage + backups USD/month | Reference subtotal USD/month |
+| ---------------------------------------- | ----------------: | --------------------------: | ---------------------------: |
+| Shared micro, evaluation only            |             7.665 |                       2.500 |                       10.165 |
+| Shared small, evaluation only            |            25.550 |                       2.500 |                       28.050 |
+| Dedicated 1 vCPU + 3.75 GiB, single-zone |            49.312 |                       2.500 |                       51.812 |
 
 These are our calculations from the cited rates, excluding taxes, FX/card charges, transfer, replicas, PITR log growth, application hosting and independent backup exports. They do not verify Johannesburg or Belgium rates, minimum deployable shape, capacity, performance or production availability acceptance.
 
