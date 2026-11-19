@@ -139,14 +139,21 @@ test('real PostgreSQL TCP runtime isolates transactions and serializes concurren
           await migration.query('RESET createrole_self_grant');
           migrationsReady = true;
         } finally {
-          await migration.end();
           // This disposable migration login must not become an application login.
+          // Remove grants recorded under the creator before its bootstrap-admin grants.
+          await migration.query('ROLLBACK');
           for (const role of ['realtor_owner', 'api_runtime', 'media_coordinator']) {
             if ((await owner.query('SELECT 1 FROM pg_roles WHERE rolname=$1', [role])).rowCount) {
-              // Owned disposable CI only: remove the creator's dependent self-grant too.
+              await migration.query(
+                'REVOKE ' +
+                  role +
+                  ' FROM staging_ci_migration GRANTED BY staging_ci_migration CASCADE',
+              );
+              // Owned disposable CI only: remove remaining bootstrap-admin grants.
               await owner.query('REVOKE ' + role + ' FROM staging_ci_migration CASCADE');
             }
           }
+          await migration.end();
           await owner.query('ALTER ROLE staging_ci_migration NOLOGIN NOCREATEROLE');
           assert.equal(
             (
