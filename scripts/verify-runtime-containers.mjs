@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
 import { createServer } from 'node:net';
 import { inside, verifyRuntimeInventory } from './stage-runtime-packages.mjs';
+import { verifyApiContainerBootstrap } from './verify-api-container-bootstrap.mjs';
 if (process.env.GITHUB_ACTIONS !== 'true' || process.platform !== 'linux')
   throw Error('Owned Linux CI container verification required.');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..'),
@@ -190,6 +191,7 @@ for (const service of ['web', 'admin']) {
     }
   }
 }
+const apiBootstrap = await verifyApiContainerBootstrap(images.api, report.sourceCommit);
 const receipt = {
   sourceCommit: report.sourceCommit,
   platform: 'linux',
@@ -197,7 +199,8 @@ const receipt = {
   nonRootSdkImportsPassed: ['api', 'web', 'admin'],
   configuredContainerHttpProfilesPassed: 2,
   apiMissingConfigRefused: true,
-  apiPositiveDatabaseStartupVerified: false,
+  apiPositiveDatabaseStartupVerified: apiBootstrap.apiPositiveDatabaseStartupVerified,
+  apiBootstrap,
   linuxContainerVerified: true,
   liveDeploymentVerified: false,
 };

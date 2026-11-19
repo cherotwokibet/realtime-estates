@@ -336,4 +336,21 @@ export async function verifyPostgresTlsStartup(t, owner, ownerUrl, { tenant }) {
   t.diagnostic(
     'Owned compiled API/TLS rehearsal completed; inspect individual subtest outcomes above. Cloud Run, workload ADC, IAM and provider sign-in are not verified.',
   );
+  // Fixture configuration only, not a pass receipt. CI must require the test step to succeed.
+  await writeFile(
+    join(runnerTemp, 'realtor-ci-tls-context.json'),
+    JSON.stringify(
+      {
+        policy: 'owned-disposable-postgres-tls-v1',
+        sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+        containerId: container,
+        caFile: join(directory, 'ca.crt'),
+        apiDatabaseUrl: url.href,
+        tenantId: tenant,
+      },
+      null,
+      2,
+    ) + '\n',
+    { mode: 0o600, flag: 'wx' },
+  );
 }

@@ -92,32 +92,6 @@ jobs:
     if: needs.plan.outputs.verify == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
-        with:
-          node-version: '24.19.0'
-          cache: npm
-      - run: npm ci --no-audit --no-fund
-      - run: npm run build:web
-      - run: node --test scripts/stage-runtime-packages.test.mjs
-      - name: Assemble and verify detached Linux runtimes
-        shell: bash
-        run: |
-          node scripts/stage-runtime-packages.mjs > "$RUNNER_TEMP/runtime-packages.json"
-          bundle=$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).directory" "$RUNNER_TEMP/runtime-packages.json")
-          node scripts/verify-runtime-packages.mjs "$bundle"
-          node scripts/verify-runtime-containers.mjs "$bundle"
-          cat "$RUNNER_TEMP/runtime-packages.json" >> "$GITHUB_STEP_SUMMARY"
-          cat "$bundle/container-verification.json" >> "$GITHUB_STEP_SUMMARY"
-  postgres-runtime:
-    name: PostgreSQL TCP isolation and concurrency
-    needs: plan
-    if: needs.plan.outputs.verify == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
     services:
       postgres:
         image: postgres:17-bookworm@sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b
@@ -138,11 +112,23 @@ jobs:
           node-version: '24.19.0'
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npm run build:packages
-      - run: npm run build --workspace=@realtor/api
+      - run: npm run build:web
+      - run: node --test scripts/stage-runtime-packages.test.mjs
       - name: Verify real disposable PostgreSQL connections
         run: node --test database/integration-tests/postgres-runtime.test.mjs
         env:
           REALTOR_POSTGRES_TEST_POLICY: owned-disposable-ci-v1
           REALTOR_POSTGRES_TEST_CONTAINER: ${{ job.services.postgres.id }}
           REALTOR_POSTGRES_TEST_URL: postgresql://postgres:synthetic-ci-admin-only@127.0.0.1:5432/realtor_synthetic_ci
+      - name: Assemble and verify detached Linux runtimes
+        env:
+          REALTOR_POSTGRES_TEST_POLICY: owned-disposable-ci-v1
+          REALTOR_POSTGRES_TEST_CONTAINER: ${{ job.services.postgres.id }}
+        shell: bash
+        run: |
+          node scripts/stage-runtime-packages.mjs > "$RUNNER_TEMP/runtime-packages.json"
+          bundle=$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).directory" "$RUNNER_TEMP/runtime-packages.json")
+          node scripts/verify-runtime-packages.mjs "$bundle"
+          node scripts/verify-runtime-containers.mjs "$bundle"
+          cat "$RUNNER_TEMP/runtime-packages.json" >> "$GITHUB_STEP_SUMMARY"
+          cat "$bundle/container-verification.json" >> "$GITHUB_STEP_SUMMARY"

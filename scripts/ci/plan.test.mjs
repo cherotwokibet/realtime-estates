@@ -180,3 +180,31 @@ test('workflow preserves required verify result, concurrency, pinned actions, ca
   for (const target of ['web', 'admin', 'mobile'])
     assert.ok(workflow.includes('if: steps.scope.outputs.' + target + " == 'true'"));
 });
+
+test('combined integration job retains real SQL tests before packaging and the positive API image check', () => {
+  const workflow = readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  const runtime = workflow.slice(workflow.indexOf('\n  runtime-packages:'));
+  assert.equal((workflow.match(/services:\n\s+postgres:/g) ?? []).length, 1);
+  assert.equal(
+    (
+      workflow.match(
+        /run: node --test database\/integration-tests\/postgres-runtime\.test\.mjs/g,
+      ) ?? []
+    ).length,
+    1,
+  );
+  assert.ok(
+    runtime.indexOf('run: node --test database/integration-tests/postgres-runtime.test.mjs') <
+      runtime.indexOf('node scripts/stage-runtime-packages.mjs'),
+  );
+  assert.match(runtime, /REALTOR_POSTGRES_TEST_CONTAINER: \$\{\{ job\.services\.postgres\.id \}\}/);
+  assert.doesNotMatch(workflow, /\n  postgres-runtime:/);
+  const containers = readFileSync(
+    new URL('../verify-runtime-containers.mjs', import.meta.url),
+    'utf8',
+  );
+  assert.match(
+    containers,
+    /await verifyApiContainerBootstrap\(images\.api, report\.sourceCommit\)/,
+  );
+});
