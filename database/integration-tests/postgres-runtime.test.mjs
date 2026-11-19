@@ -143,10 +143,27 @@ test('real PostgreSQL TCP runtime isolates transactions and serializes concurren
           // This disposable migration login must not become an application login.
           for (const role of ['realtor_owner', 'api_runtime', 'media_coordinator']) {
             if ((await owner.query('SELECT 1 FROM pg_roles WHERE rolname=$1', [role])).rowCount) {
-              await owner.query('REVOKE ' + role + ' FROM staging_ci_migration');
+              // Owned disposable CI only: remove the creator's dependent self-grant too.
+              await owner.query('REVOKE ' + role + ' FROM staging_ci_migration CASCADE');
             }
           }
           await owner.query('ALTER ROLE staging_ci_migration NOLOGIN NOCREATEROLE');
+          assert.equal(
+            (
+              await owner.query(
+                "SELECT count(*)::int AS n FROM pg_auth_members WHERE member='staging_ci_migration'::regrole",
+              )
+            ).rows[0].n,
+            0,
+          );
+          assert.deepEqual(
+            (
+              await owner.query(
+                "SELECT rolcanlogin,rolcreaterole FROM pg_roles WHERE rolname='staging_ci_migration'",
+              )
+            ).rows[0],
+            { rolcanlogin: false, rolcreaterole: false },
+          );
         }
       },
     );
