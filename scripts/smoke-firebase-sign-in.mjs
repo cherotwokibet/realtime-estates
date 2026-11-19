@@ -163,6 +163,23 @@ for (const app of ['web', 'admin']) {
         configured ? { error: 'SIGN_IN_FAILED' } : { error: 'SIGN_IN_UNAVAILABLE' },
       );
       assert.doesNotMatch(logs, /synthetic-database-secret|postgres:\/\//);
+      if (app === 'web') {
+        // No native profile is selected: neither a bearer nor a browser cookie may enable ingress.
+        for (const headers of [
+          {},
+          { Authorization: 'Bearer synthetic.user.signature', Cookie: 'session=synthetic' },
+        ]) {
+          const native = await fetch(`http://127.0.0.1:${address}/v2/customer/account`, {
+            headers,
+          });
+          assert.equal(native.status, 404);
+          assert.equal(native.headers.get('cache-control'), 'no-store');
+          assert.equal(native.headers.get('set-cookie'), null);
+          assert.deepEqual(await native.json(), {
+            error: { code: 'CUSTOMER_REQUEST_UNAVAILABLE' },
+          });
+        }
+      }
       if (profile.startsWith('staff')) {
         for (const path of ['/', '/staff']) {
           const staffPage = await fetch(`http://127.0.0.1:${address}${path}`);

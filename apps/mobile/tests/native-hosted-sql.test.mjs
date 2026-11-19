@@ -16,7 +16,12 @@ import {
   createFirebaseApiActorResolver,
 } from '../../api/dist/hosted-api.js';
 import { createHostedApiServer } from '../../api/dist/hosted-http.js';
-import { createFirebaseIdentityVerifier } from '../../api/dist/firebase-identity.js';
+import {
+  createFirebaseIdentityVerifier,
+  createFirebaseSubjectVerifier,
+} from '../../api/dist/firebase-identity.js';
+import { createNativeCustomerGateway } from '../../api/dist/native-customer-gateway.js';
+import { createCloudRunInvocationTransport } from '../../api/dist/cloud-run-invocation.js';
 import { PostgresTransactionDatabase } from '../../api/dist/database.js';
 import { createFirebaseMobileSignIn } from '../dist/tests/src/firebase-customer-sign-in.js';
 import { createNativeSavedProperties } from '../dist/tests/src/native-saved-properties.js';
@@ -29,13 +34,14 @@ const api = {
   policy: 'realtor-staging-api-v1',
   projectId: 'realtor-synthetic-staging',
   tenantId: T,
-  applicationOrigin: 'https://native-api.synthetic.invalid',
+  applicationOrigin: 'https://synthetic-native-123456.us-central1.run.app',
   privacyNoticeVersion: 'synthetic-native-v1',
 };
+const gatewayOrigin = 'https://native-gateway.synthetic.invalid';
 const nativeConfig = {
   mode: 'firebase-native-customer-v1',
   tenantId: T,
-  apiOrigin: api.applicationOrigin,
+  apiOrigin: gatewayOrigin,
   firebase: {
     projectId: api.projectId,
     authDomain: api.projectId + '.firebaseapp.com',
@@ -48,7 +54,7 @@ process.env.NODE_ENV = 'production';
 
 test('native customer protocol reaches the maintained HTTP envelope, hosted API and isolated SQL', async (t) => {
   const db = await fixture();
-  let server, client, saved;
+  let server, privateServer, client, saved;
   let operation = 9000,
     seed = 5000,
     generation = 8000;
@@ -112,17 +118,17 @@ test('native customer protocol reaches the maintained HTTP envelope, hosted API 
       );
     });
   }
-  async function wire(url, init = {}) {
+  async function wire(url, init = {}, privateLeg = false) {
     const target = new URL(url);
-    assert.equal(target.origin, api.applicationOrigin);
+    assert.equal(target.origin, privateLeg ? api.applicationOrigin : gatewayOrigin);
     assert.ok(target.pathname.startsWith('/v2/customer/'));
     assert.equal(init.credentials ?? 'omit', 'omit');
-    wireCalls.push({ method: init.method ?? 'GET', path: target.pathname });
+    if (!privateLeg) wireCalls.push({ method: init.method ?? 'GET', path: target.pathname });
     return new Promise((resolve, reject) => {
       const request = httpRequest(
         {
           hostname: '127.0.0.1',
-          port: server.address().port,
+          port: (privateLeg ? privateServer : server).address().port,
           path: target.pathname + target.search,
           method: init.method ?? 'GET',
           signal: init.signal,
@@ -218,37 +224,73 @@ test('native customer protocol reaches the maintained HTTP envelope, hosted API 
       'CREATE ROLE native_journey_api LOGIN NOINHERIT;GRANT api_runtime TO native_journey_api;SET SESSION AUTHORIZATION native_journey_api;',
     );
     await database.checkConnection();
+    const verifierOptions = {
+      verifier: {
+        async verifyIdToken(token, checkRevoked) {
+          providerChecked++;
+          assert.equal(checkRevoked, true);
+          const uid = configTokens.get(token);
+          if (!uid || authority === 'revoked') throw Error('Synthetic authority refusal');
+          const now = Math.floor(Date.now() / 1000);
+          return {
+            uid,
+            sub: uid,
+            aud: authority === 'foreign-project' ? 'foreign-project' : api.projectId,
+            iss: 'https://securetoken.google.com/' + api.projectId,
+            iat: now,
+            auth_time: now,
+            exp: now + 3600,
+            email_verified: authority !== 'unverified',
+            email: 'synthetic@example.invalid',
+            firebase: { sign_in_provider: 'password' },
+          };
+        },
+      },
+    };
     const verify = createFirebaseIdentityVerifier(
       api,
       createFirebaseApiActorResolver(database, T),
+      verifierOptions,
+    );
+    const privateHandler = createHostedApiHandler(api, database, verify);
+    privateServer = createHostedApiServer(api.applicationOrigin, privateHandler);
+    privateServer.listen(0, '127.0.0.1');
+    await once(privateServer, 'listening');
+    const invocation = createCloudRunInvocationTransport(
+      { policy: 'cloud-run-invocation-v1', audience: api.applicationOrigin },
       {
-        verifier: {
-          async verifyIdToken(token, checkRevoked) {
-            providerChecked++;
-            assert.equal(checkRevoked, true);
-            const uid = configTokens.get(token);
-            if (!uid || authority === 'revoked') throw Error('Synthetic authority refusal');
-            const now = Math.floor(Date.now() / 1000);
-            return {
-              uid,
-              sub: uid,
-              aud: authority === 'foreign-project' ? 'foreign-project' : api.projectId,
-              iss: 'https://securetoken.google.com/' + api.projectId,
-              iat: now,
-              auth_time: now,
-              exp: now + 3600,
-              email_verified: authority !== 'unverified',
-              email: 'synthetic@example.invalid',
-              firebase: { sign_in_provider: 'password' },
-            };
-          },
+        client: async () => ({
+          getRequestHeaders: async () =>
+            new Headers({ Authorization: 'Bearer synthetic.gateway.signature' }),
+        }),
+        transport: async (request) => {
+          assert.equal(
+            request.headers.get('x-serverless-authorization'),
+            'Bearer synthetic.gateway.signature',
+          );
+          assert.ok(configTokens.has(request.headers.get('authorization')?.slice(7)));
+          // The real private HTTP envelope strips workload routing headers before the domain handler.
+          const headers = Object.fromEntries(request.headers);
+          const body = request.method === 'POST' ? await request.text() : undefined;
+          return wire(
+            request.url,
+            { method: request.method, headers, body, signal: request.signal },
+            true,
+          );
         },
       },
     );
-    server = createHostedApiServer(
-      api.applicationOrigin,
-      createHostedApiHandler(api, database, verify),
+    const gateway = createNativeCustomerGateway(
+      {
+        policy: 'native-customer-gateway-v1',
+        projectId: api.projectId,
+        tenantId: T,
+        applicationOrigin: gatewayOrigin,
+        apiOrigin: api.applicationOrigin,
+      },
+      { transport: invocation, verifySubject: createFirebaseSubjectVerifier(api, verifierOptions) },
     );
+    server = createHostedApiServer(gatewayOrigin, gateway);
     server.listen(0, '127.0.0.1');
     await once(server, 'listening');
     client = createFirebaseMobileSignIn(nativeConfig, {
@@ -343,7 +385,7 @@ test('native customer protocol reaches the maintained HTTP envelope, hosted API 
         );
         const changed = { ...command, expectedVersion: '0' };
         const refused = await wire(
-          api.applicationOrigin + '/v2/customer/favourite-operations/' + command.operationId,
+          gatewayOrigin + '/v2/customer/favourite-operations/' + command.operationId,
           {
             method: 'POST',
             headers: {
@@ -426,10 +468,9 @@ test('native customer protocol reaches the maintained HTTP envelope, hosted API 
         assert.equal(await login('peer.native.signature'), true);
         assert.equal(await saved.first(), true);
         assert.equal(saved.snapshot().page.items.length, 0);
-        const denied = await wire(
-          api.applicationOrigin + '/v2/customer/favourite-operations/' + original,
-          { headers: { Authorization: 'Bearer peer.native.signature' } },
-        );
+        const denied = await wire(gatewayOrigin + '/v2/customer/favourite-operations/' + original, {
+          headers: { Authorization: 'Bearer peer.native.signature' },
+        });
         assert.equal(denied.status, 404);
         assert.ok(!(await denied.text()).includes(original));
         assert.equal(await login('foreign.native.signature'), false);
@@ -490,7 +531,7 @@ test('native customer protocol reaches the maintained HTTP envelope, hosted API 
       'HTTP envelope refuses forged authority before verification and no token enters SQL originals',
       async () => {
         const before = providerChecked;
-        const denied = await wire(api.applicationOrigin + '/v2/customer/account', {
+        const denied = await wire(gatewayOrigin + '/v2/customer/account', {
           headers: { Authorization: 'Bearer customer.native.signature', 'x-actor-id': CUSTOMER },
         });
         assert.equal(denied.status, 400);
@@ -514,6 +555,8 @@ test('native customer protocol reaches the maintained HTTP envelope, hosted API 
         transport: 'owned-loopback-http',
         database: 'PGlite',
         authority: 'explicitly-injected',
+        gateway: 'customer-only',
+        privateInvocation: 'injected-service-credential',
         wireRequests: wireCalls.length,
         injectedProviderChecks: providerChecked,
         realTlsVerified: false,
@@ -524,9 +567,10 @@ test('native customer protocol reaches the maintained HTTP envelope, hosted API 
   } finally {
     saved?.dispose();
     client?.dispose();
-    if (server) {
-      server.closeAllConnections();
-      await new Promise((resolve) => server.close(resolve));
+    for (const listener of [server, privateServer]) {
+      if (!listener) continue;
+      listener.closeAllConnections();
+      await new Promise((resolve) => listener.close(resolve));
     }
     await db.close();
   }

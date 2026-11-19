@@ -1,3 +1,11 @@
+## Native customer gateway in progress — checkpoint466, 19 November2026 EAT
+
+Implemented a default-off Next customer gateway with fixed HTTPS private target, strict shared Firebase subject verification before workload credential acquisition, customer-only route/method/query allowlist, no cookie/actor/workload-header authority, bounded JSON and deadlines, sanitized responses and no write replay. The existing private API still resolves live SQL actor/company membership. No deployment configuration was enabled.
+
+Local focused gateway/Firebase/invocation tests passed23/23. The native SQL journey now traverses TWO actual owned-loopback HTTP envelopes, the gateway, injected service-identity transport, private API and PGlite: ten cases passed,33 front requests and61 explicitly injected provider checks. Test metadata maps declared HTTPS to plain loopback HTTP; no real TLS/Firebase/Cloud Run IAM/ADC/managed SQL/native-device claim. The first composition bypassed the private HTTP envelope and failed; corrected the fixture to use that actual envelope, which strips routing credentials before customer DTO handling. No production guard was relaxed.
+
+Pending: full mobile tests, formatting and current-source seven-job CI including Next production default-off ingress checks, Android bundle and Linux runtime evidence. Then update canonical partial evidence, preserve55/97 full tasks/all14 gates/1012 notes, publish private466 and persist exact next steps. Paid staging approval remains pending; old live/vendor resources and exports remain unchanged.
+
 ## Native HTTP/API/SQL journey verified — checkpoint465, 19 November2026 EAT
 
 Source23ef0acb1f537f587da865c7f57b3cec1bc11860 passed complete seven-job Actions run44577912787: all four canonical groups, types, formatting, Android export and Linux/PostgreSQL/image checks. Mobile94/94 passed locally and remotely without skips. Android JavaScript export bundled690 modules, not an installed APK/device pass. The new ten-case suite (parent plus nine scenarios) made33 owned-loopback HTTP requests and32 injected authority checks. Native controllers reach the actual maintained HTTP envelope/hosted API and stored SQL functions over PGlite via PostgresTransactionDatabase.

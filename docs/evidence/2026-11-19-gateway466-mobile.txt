@@ -1,0 +1,120 @@
+
+> realtor-platform@0.1.0 test:mobile
+> npm run test --workspace=@realtor/mobile
+
+
+> @realtor/mobile@0.1.0 test
+> npm run build --workspace=@realtor/api && npm run test:compile --workspace=@realtor/web && tsc -p tsconfig.tests.json && node --test --test-concurrency=1 tests/*.test.mjs
+
+
+> @realtor/api@0.1.0 build
+> tsc -p tsconfig.json
+
+
+> @realtor/web@0.1.0 test:compile
+> tsc -p tsconfig.tests.json
+
+✔ native session is off by default and invalid grants/config never dispatch or invoke accessors (3.1001ms)
+✔ native account validation precedes private reads; snapshots omit credentials and exact scope is validated (23.6054ms)
+✔ lost committed reply freezes one operation until original GET and explicit settlement; no automatic retry (2.0621ms)
+✔ missing original enables only deliberate retry of exact retained command and blocks concurrent writes (1.3267ms)
+✔ switch and logout abort active work and suppress late account/private replies (2.0418ms)
+✔ session expiry and server revocation clear pending private state without resurrecting it (136.8319ms)
+✔ native view subscribers observe command and expiry transitions within the configured catalogue (216.6061ms)
+✔ public native config is default-off and rejects credentials, getters, foreign keys and insecure origins (2.2618ms)
+✔ actual Expo opt-in exposes only public config and refuses mixing synthetic catalogue or credential extras (355.1115ms)
+✔ protected account binding is rechecked before activation; snapshots never expose token/password and logout clears (20.8704ms)
+✔ unverified, expired or malformed credentials and cleanup errors refuse before private requests (1.1961ms)
+✔ foreign company, redirected/malformed/cached responses, missing membership and changing actor refuse activation (3.1487ms)
+✔ cancelled provider completion cannot reactivate after a subsequent login (6.5078ms)
+✔ cancelled native transport ignoring AbortSignal settles and discards late body without reactivation (1.6017ms)
+✔ timeout or caller abort settles even a hung provider; disposable client cannot sign in again (43.5703ms)
+✔ oversized or stalled account bodies settle without keeping private session state (48.4642ms)
+✔ token expiry clears the activated account rather than silently refreshing in the background (352.5872ms)
+✔ removal uses only a current visible row/version and fresh ID, including an unavailable saved listing (27.5734ms)
+✔ lost acknowledgement blocks all new commands/retries until original receipt GET and explicit settlement (2.6431ms)
+✔ missing original permits only explicit retry with byte-identical command and URL; concurrent requests refuse (2.5969ms)
+✔ conflict is never announced as removal; continue refreshes before another versioned command (0.9625ms)
+✔ malformed/foreign receipt remains uncertain and never leads to a blind second POST (3.6408ms)
+✔ definite rejection requires reload, while authorization refusal clears the account (2.8711ms)
+✔ leaving the view preserves an in-flight write and its later recovery without resubmission (0.7711ms)
+✔ logout/account switch cancels local write state; old replies and stale actions cannot alter the new account (4.5453ms)
+✔ read-only construction never enables mutation and disposed controllers cannot retry retained commands (1.1833ms)
+▶ native customer protocol reaches the maintained HTTP envelope, hosted API and isolated SQL
+  ✔ modeled API login attests and cannot read raw favourite or identity tables (10.9367ms)
+  ✔ native login resolves the real SQL binding and reads actual published saved rows (69.4025ms)
+  ✔ dropped committed acknowledgement recovers the exact SQL original without a second mutation (59.5253ms)
+  ✔ pre-dispatch loss gets a genuine missing original and explicit identical retry commits once (51.5604ms)
+  ✔ a concurrent SQL version change produces conflict without overwriting current facts (45.6232ms)
+  ✔ peer and foreign-company identities cannot recover another account original (48.0818ms)
+  ✔ current SQL membership or binding revocation refuses the next read and clears native state (75.6303ms)
+  ✔ strict server checks reject unverified/revoked/foreign-project authority despite client metadata (24.1417ms)
+  ✔ HTTP envelope refuses forged authority before verification and no token enters SQL originals (4.3242ms)
+✔ native customer protocol reaches the maintained HTTP envelope, hosted API and isolated SQL (2537.8384ms)
+ℹ {"transport":"owned-loopback-http","database":"PGlite","authority":"explicitly-injected","gateway":"customer-only","privateInvocation":"injected-service-credential","wireRequests":33,"injectedProviderChecks":61,"realTlsVerified":false,"realFirebaseVerified":false,"managedDatabaseVerified":false}
+✔ inactive sessions do not read; one bounded page uses only validated server cursors and first/reload navigation (26.8001ms)
+✔ first page resets cursor while keeping only the current page and no credential in snapshot (3.8047ms)
+✔ foreign accounts, malformed pagination, duplicate/out-of-order IDs and oversized pages refuse without stale data (5.3844ms)
+✔ cursor overlap fails and reload retries that exact page without retaining the previous page (1.2676ms)
+✔ property navigation is current-page available-only and contains no auth, scope, cursor or tracking fields (1.2337ms)
+✔ trusted public link configuration rejects accessors, credentials, paths and foreign schemes (0.693ms)
+✔ leaving the page cancels only its read and late ignored transport replies cannot repopulate it (5.6576ms)
+✔ logout and account switch discard private list/cursors and late replies from the old account (2.8847ms)
+✔ expiry clears the page and cancels pending reads with deterministic timer advancement (2.8123ms)
+✔ timeout and transport/authorization errors distinguish retryable view failure from session refusal (43.0074ms)
+✔ read cancellation is isolated from another list read on the same account (1.2636ms)
+✔ disposing a list cancels its outstanding read and permanently prevents further reads or links (1.3583ms)
+✔ mobile floor-plan build mode is default-off/development-only and rejects identity, accessors and unsupported flags (1.1183ms)
+✔ mobile renders only verified anonymous bytes as exact in-memory data URI using injected native SHA256 (24.9305ms)
+✔ mobile off/pre-cancelled do zero I/O and explicit absence never requests image (1.5386ms)
+✔ mobile changed version, altered bytes, interrupted digest and stale completion expose no image or retry (4.7712ms)
+✔ mobile photo mode is strict, default-off, development-only and rejects accessors/authority extras (1.204ms)
+✔ selected mobile photo uses exact configured anonymous target and owns decoded fixture bytes only (22.7503ms)
+✔ off, empty, pre-cancelled, invalid target, duplicate key and descriptor aliases never dispatch (0.634ms)
+✔ denied, malformed headers, overflow, truncated and altered framing expose no image and never retry (2.6485ms)
+✔ uncooperative late transport and stalled body cancel without a late image or retry (26.7591ms)
+✔ owned URI encoding preserves bounded chunk boundaries and cancellation across a large synthetic byte array (53.4435ms)
+✔ native video is explicit build opt-in, development-only and refuses extra authority (1.2006ms)
+✔ native metadata loading never opens provider and explicit action opens canonical URL only (25.1695ms)
+✔ default off and pre-cancelled video do no I/O; late cancelled and mismatched-version responses expose no link (1.7519ms)
+✔ actual Expo config exposes only explicit public development settings and refuses production or orphan flags (442.9186ms)
+✔ Expo generates scoped native property links only for connected catalogue builds (3441.8788ms)
+✔ mobile configuration defaults to demo only when absent and refuses malformed, production, credential or private configuration (2.2361ms)
+✔ mobile read crosses the real SDK once anonymously, preserves exact cents and original references, and searches only public location (80.2702ms)
+✔ mobile distinguishes legacy unknown, approved empty amenities, sale no recurring period and unresolved quote (2.8664ms)
+✔ mobile errors, private additions and cancellation never substitute demo stock or retry (2.1888ms)
+✔ mobile keeps empty success distinct from failure and warns when its bounded page may be incomplete (22.3076ms)
+✔ property links accept the configured origin and an exact canonical listing path (0.6041ms)
+✔ shared property reads use the exact anonymous search with no cache or stale fallback (4.6523ms)
+✔ cold-start and foreground events resolve only the newest request (0.8419ms)
+✔ a late initial URL cannot override a foreground link or a dismissed read (0.2183ms)
+✔ sharing emits a canonical link for the configured company and refuses invalid origins or IDs (0.331ms)
+✔ mobile adapter reads the real anonymous HTTP/SQL approved historical projection and shared links for two fixed companies (4868.4409ms)
+✔ one anonymous read per attempt; failed refresh offers an explicit timestamped previous response (29.1804ms)
+✔ different query or page discards the one-response fallback instead of showing mismatched stock (1.5709ms)
+✔ fallback expires without refreshing its age on failures and refuses a backwards or broken clock (4.1437ms)
+✔ clear invalidates an in-flight result and prevents it repopulating the fallback (0.6206ms)
+✔ a superseded response cannot replace the latest successful search (0.8394ms)
+✔ cancellation offers no cached fallback and late fetch completion cannot refill it (0.7363ms)
+✔ input is detached before I/O; accessors, unknown fields and malformed replies do not become a cache (0.5223ms)
+✔ a temporary API failure preserves a recent result but an access denial or invalid response clears it (4.5251ms)
+✔ a displayed previous result expires at its original deadline without another read (1.1235ms)
+✔ foreground rechecks expire a previous result after suspension or clock rollback (0.4554ms)
+✔ saved filters survive a fresh controller while companies and API origins remain separate (3.7349ms)
+✔ corrupt, oversized, mismatched and future or private fields are discarded before reuse (1.4567ms)
+✔ a late save cannot overwrite a later clear across controller remounts (0.4444ms)
+✔ storage failures stay contained and do not poison later operations (0.5309ms)
+✔ a stalled restore returns unavailable without applying late saved filters (14.561ms)
+✔ timed-out writes remain ordered before clear even after both UI waits end (32.7461ms)
+✔ connected mobile filters cross the anonymous SDK with exact cents, open-plan and bathroom criteria (28.6273ms)
+✔ mobile rejects incomparable prices and malformed boundaries before replacing applied filters (0.4195ms)
+✔ reference native controls share both configured company themes and accessible component states (2.5902ms)
+✔ reference native focus preserves pressed colors with a shared outer ring and contrasting gap (0.2619ms)
+ℹ tests 94
+ℹ suites 0
+ℹ pass 94
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16413.2505

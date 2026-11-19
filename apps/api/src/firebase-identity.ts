@@ -27,11 +27,15 @@ const compact = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 export interface FirebaseVerifiedToken extends VerifiedIdentity {
   readonly expiresAt: number;
 }
-export function createFirebaseTokenVerifier(
+export interface FirebaseVerifiedSubject {
+  readonly subject: FirebaseSubject;
+  readonly expiresAt: number;
+}
+/** Shared signature/project/email/revocation checks, without inventing an application actor. */
+export function createFirebaseSubjectVerifier(
   input: FirebaseIdentityConfig,
-  resolveActor: FirebaseActorResolver,
   options: { verifier?: TokenVerifier; now?: () => number } = {},
-): (token: string, requireRecentSignIn?: boolean) => Promise<FirebaseVerifiedToken> {
+): (token: string, requireRecentSignIn?: boolean) => Promise<FirebaseVerifiedSubject> {
   const projectId = input.projectId,
     authTenantId = input.authTenantId ?? null;
   if (
@@ -98,11 +102,28 @@ export function createFirebaseTokenVerifier(
         (requireRecentSignIn && seconds - decoded.auth_time > 300)
       )
         throw new AuthenticationError();
-      const actorId = await resolveActor(
-        Object.freeze({ projectId, authTenantId, uid: decoded.uid }),
-      );
+      return Object.freeze({
+        subject: Object.freeze({ projectId, authTenantId, uid: decoded.uid }),
+        expiresAt: decoded.exp * 1000,
+      });
+    } catch {
+      throw new AuthenticationError();
+    }
+  };
+}
+
+export function createFirebaseTokenVerifier(
+  input: FirebaseIdentityConfig,
+  resolveActor: FirebaseActorResolver,
+  options: { verifier?: TokenVerifier; now?: () => number } = {},
+): (token: string, requireRecentSignIn?: boolean) => Promise<FirebaseVerifiedToken> {
+  const verify = createFirebaseSubjectVerifier(input, options);
+  return async (token, recent = false) => {
+    try {
+      const verified = await verify(token, recent);
+      const actorId = await resolveActor(verified.subject);
       if (typeof actorId !== 'string' || !uuid.test(actorId)) throw new AuthenticationError();
-      return Object.freeze({ actorId, expiresAt: decoded.exp * 1000 });
+      return Object.freeze({ actorId, expiresAt: verified.expiresAt });
     } catch {
       throw new AuthenticationError();
     }
