@@ -42,57 +42,115 @@ export function NativeSavedProperties({
         Saved properties
       </Text>
       {button('Back to account', close)}
-      {state.phase === 'loading' && (
-        <Text accessibilityLiveRegion="polite">Loading saved properties…</Text>
+      {state.operation === 'busy' && (
+        <Text accessibilityLiveRegion="polite">Checking your saved property change…</Text>
       )}
-      {state.phase === 'unavailable' && (
-        <Text accessibilityRole="alert">Your saved properties could not be loaded. Try again.</Text>
-      )}
-      {(state.phase === 'idle' || state.phase === 'unavailable') &&
-        button('Reload saved properties', () => {
-          void controller.reload();
-        })}
-      {state.phase === 'ready' && (
+      {state.operation === 'uncertain' && (
         <>
-          <Text accessibilityLiveRegion="polite">Page {state.pageNumber}</Text>
-          {state.page?.items.length === 0 && (
-            <Text>
-              {state.pageNumber === 1
-                ? 'You have no saved properties.'
-                : 'No saved properties on this page.'}
-            </Text>
-          )}
-          {state.page?.items.map((item, index) => (
-            <View key={item.listingId} style={styles.card}>
-              <Text accessibilityRole="header">
-                Saved property {(state.pageNumber - 1) * 20 + index + 1}
-              </Text>
-              {!item.available && <Text>This property is no longer available.</Text>}
-              {item.available && !controller.propertyUrl(item.listingId) && (
-                <Text>Property details are unavailable right now.</Text>
-              )}
-              {item.available &&
-                controller.propertyUrl(item.listingId) &&
-                button('View property ' + ((state.pageNumber - 1) * 20 + index + 1), () =>
-                  open(item.listingId),
-                )}
-            </View>
-          ))}
-          {state.pageNumber > 1 &&
-            button('First saved properties page', () => {
-              void controller.first();
-            })}
-          {state.page?.hasMore &&
-            button('Next saved properties page', () => {
-              void controller.next();
-            })}
-          {button('Refresh saved properties', () => {
+          <Text accessibilityLiveRegion="polite">
+            We could not confirm the change. Check its status before trying again.
+          </Text>
+          {button('Check change status', () => {
+            void controller.recoverRemoval(revision);
+          })}
+        </>
+      )}
+      {state.operation === 'missing' && (
+        <>
+          <Text accessibilityLiveRegion="polite">
+            The change has not been recorded. You can retry it.
+          </Text>
+          {button('Retry saved property change', () => {
+            void controller.retryRemoval(revision);
+          })}
+        </>
+      )}
+      {(state.operation === 'removed' || state.operation === 'conflict') && (
+        <>
+          <Text accessibilityLiveRegion="polite">
+            {state.operation === 'conflict'
+              ? 'The saved status changed. Continue to refresh it.'
+              : 'Property removed from saved properties.'}
+          </Text>
+          {button('Continue to saved properties', () => {
+            void controller.continueRemoval(revision);
+          })}
+        </>
+      )}
+      {state.operation === 'rejected' && (
+        <>
+          <Text accessibilityRole="alert">
+            The change could not be completed. Reload saved properties before trying again.
+          </Text>
+          {button('Reload saved properties', () => {
             void controller.reload();
           })}
         </>
       )}
-      {openError === revision && (
-        <Text accessibilityRole="alert">The property could not be opened. Try again.</Text>
+      {state.operation === 'none' && (
+        <>
+          {state.phase === 'loading' && (
+            <Text accessibilityLiveRegion="polite">Loading saved properties…</Text>
+          )}
+          {state.phase === 'unavailable' && (
+            <Text accessibilityRole="alert">
+              Your saved properties could not be loaded. Try again.
+            </Text>
+          )}
+          {(state.phase === 'idle' || state.phase === 'unavailable') &&
+            button('Reload saved properties', () => {
+              void controller.reload();
+            })}
+          {state.phase === 'ready' && (
+            <>
+              <Text accessibilityLiveRegion="polite">Page {state.pageNumber}</Text>
+              {state.page?.items.length === 0 && (
+                <Text>
+                  {state.pageNumber === 1
+                    ? 'You have no saved properties.'
+                    : 'No saved properties on this page.'}
+                </Text>
+              )}
+              {state.page?.items.map((item, index) => (
+                <View key={item.listingId} style={styles.card}>
+                  <Text accessibilityRole="header">
+                    Saved property {(state.pageNumber - 1) * 20 + index + 1}
+                  </Text>
+                  {!item.available && <Text>This property is no longer available.</Text>}
+                  {item.available && !controller.propertyUrl(item.listingId) && (
+                    <Text>Property details are unavailable right now.</Text>
+                  )}
+                  {item.available &&
+                    controller.propertyUrl(item.listingId) &&
+                    button('View property ' + ((state.pageNumber - 1) * 20 + index + 1), () =>
+                      open(item.listingId),
+                    )}
+                  {state.removalEnabled &&
+                    button(
+                      'Remove saved property ' + ((state.pageNumber - 1) * 20 + index + 1),
+                      () => {
+                        void controller.remove(item.listingId, revision);
+                      },
+                    )}
+                </View>
+              ))}
+              {state.pageNumber > 1 &&
+                button('First saved properties page', () => {
+                  void controller.first();
+                })}
+              {state.page?.hasMore &&
+                button('Next saved properties page', () => {
+                  void controller.next();
+                })}
+              {button('Refresh saved properties', () => {
+                void controller.reload();
+              })}
+            </>
+          )}
+          {openError === revision && (
+            <Text accessibilityRole="alert">The property could not be opened. Try again.</Text>
+          )}
+        </>
       )}
     </View>
   );

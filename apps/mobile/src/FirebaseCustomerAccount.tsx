@@ -27,7 +27,7 @@ export function FirebaseCustomerAccount({ config }: { config: NativeFirebaseConf
   const [email, setEmail] = useState(''),
     [password, setPassword] = useState('');
   const [saved] = useState(() =>
-    createNativeSavedProperties(client.session, config.propertyLinkOrigin),
+    createNativeSavedProperties(client.session, config.propertyLinkOrigin, 12000, randomUUID),
   );
   const [savedActivation, setSavedActivation] = useState<number | null>(null);
   useSyncExternalStore(client.subscribe, client.revision, client.revision);

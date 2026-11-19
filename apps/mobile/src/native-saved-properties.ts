@@ -11,6 +11,7 @@ export function createNativeSavedProperties(
   session: MobileCustomerSession,
   links?: string,
   timeoutMs = 12000,
+  operationId?: () => string,
 ) {
   const origin = links === undefined ? null : propertyLinkOrigin(links).origin;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 30000)
@@ -23,6 +24,8 @@ export function createNativeSavedProperties(
     disposed = false,
     revision = 0,
     observed = session.revision();
+  let removalFailed = false,
+    viewGeneration = 0;
   const listeners = new Set<() => void>();
   const publish = () => {
     revision++;
@@ -39,6 +42,7 @@ export function createNativeSavedProperties(
   }
   const unsubscribe = session.subscribe(() => {
     observed = session.revision();
+    removalFailed = false;
     reset();
     publish();
   });
@@ -61,6 +65,7 @@ export function createNativeSavedProperties(
     if (!scope || pending) return false;
     const controller = new AbortController();
     pending = controller;
+    removalFailed = false;
     page = null;
     after = cursor;
     pageNumber = number;
@@ -114,11 +119,91 @@ export function createNativeSavedProperties(
     revision: () => revision,
     snapshot() {
       const active = ready();
+      const account = session.snapshot();
+      const operation =
+        account.status !== 'ready'
+          ? 'none'
+          : account.phase === 'settled'
+            ? account.receipt?.outcome === 'conflict' || account.receipt?.saved
+              ? 'conflict'
+              : 'removed'
+            : account.phase === 'idle'
+              ? removalFailed
+                ? 'rejected'
+                : 'none'
+              : account.phase;
       return Object.freeze({
         phase: active ? phase : 'idle',
         page: active ? page : null,
         pageNumber: active ? pageNumber : 1,
+        operation,
+        removalEnabled: operationId !== undefined,
       });
+    },
+    async remove(listingId: string, expectedRevision: number) {
+      const scope = ready();
+      if (
+        !operationId ||
+        !scope ||
+        pending ||
+        removalFailed ||
+        expectedRevision !== revision ||
+        phase !== 'ready'
+      )
+        return false;
+      const item = page?.items.find((row) => row.listingId === listingId);
+      if (!item) return false;
+      const localView = viewGeneration;
+      try {
+        const accepted = await session.save({
+          policy: 'customer-favourite-command-v1',
+          operationId: operationId(),
+          listingId: item.listingId,
+          expectedVersion: item.version,
+          saved: false,
+        });
+        const current = session.snapshot();
+        if (
+          !accepted &&
+          !disposed &&
+          viewGeneration === localView &&
+          current.status === 'ready' &&
+          current.activation === scope.activation &&
+          current.phase === 'idle'
+        ) {
+          removalFailed = true;
+          publish();
+        }
+        return accepted;
+      } catch {
+        if (!disposed && viewGeneration === localView && session.snapshot().status === 'ready') {
+          removalFailed = true;
+          publish();
+        }
+        return false;
+      }
+    },
+    recoverRemoval(expectedRevision: number) {
+      const state = session.snapshot();
+      return !disposed &&
+        revision === expectedRevision &&
+        state.status === 'ready' &&
+        state.phase === 'uncertain'
+        ? session.recover()
+        : Promise.resolve(false);
+    },
+    retryRemoval(expectedRevision: number) {
+      const state = session.snapshot();
+      return !disposed &&
+        revision === expectedRevision &&
+        state.status === 'ready' &&
+        state.phase === 'missing'
+        ? session.retry()
+        : Promise.resolve(false);
+    },
+    async continueRemoval(expectedRevision: number) {
+      if (disposed || revision !== expectedRevision || !session.settle()) return false;
+      return read(null, 1);
     },
     first: () => read(null, 1),
     reload: () => read(after, pageNumber),
@@ -144,12 +229,16 @@ export function createNativeSavedProperties(
       return origin + propertyLinkPathPrefix + listingId;
     },
     hide() {
+      viewGeneration++;
+      removalFailed = false;
       reset();
       publish();
     },
     dispose() {
       if (disposed) return;
       disposed = true;
+      viewGeneration++;
+      removalFailed = false;
       reset();
       unsubscribe();
       publish();
