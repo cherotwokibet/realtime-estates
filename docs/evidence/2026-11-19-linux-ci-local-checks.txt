@@ -1,0 +1,110 @@
+✔ formatting preserves immutable source evidence and deterministic generated indexes while keeping application code checked (2.3673ms)
+✔ all documentation/evidence formats and one-shot tracker scripts avoid application runners (1.559ms)
+✔ runtime code always requires the full tests/types with only affected frontend production builds (0.3283ms)
+✔ shared packages, lockfiles, workflow/planner changes and unknown/ambiguous paths fail closed to full verification (0.2732ms)
+✔ real Git diff includes every commit and deleted runtime paths, not only the final documentation commit (822.3677ms)
+✔ real documentation-only Git diff skips bundles while absent/unrelated/unknown events require full checks (546.9984ms)
+✔ renaming runtime content into documentation cannot bypass full tests (527.4204ms)
+✖ workflow preserves required verify result, concurrency, pinned actions, cache, full tests/types and explicit manual full run (2.6098ms)
+✔ runtime path policy refuses private configuration, source data, traversal and signing material (1.3115ms)
+✔ runtime tree materializes internal junctions without links and verifies exact copied bytes (28.5931ms)
+✔ external directory links and cycles cannot enter a runtime package (8.7465ms)
+✔ environment files and complete private keys refuse rather than being silently copied (36.9481ms)
+✔ verification rejects changed bytes, extra files, missing entries and runtime links (23.9354ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 12
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2006.2986
+
+✖ failing tests:
+
+test at scripts\ci\plan.test.mjs:163:1
+✖ workflow preserves required verify result, concurrency, pinned actions, cache, full tests/types and explicit manual full run (2.6098ms)
+  AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /run: npm run build:web|run: npm run typecheck\s*$/m. Input:
+
+  'name: Foundation checks\n' +
+    'on:\n' +
+    '  push:\n' +
+    '    branches: [main]\n' +
+    '  pull_request:\n' +
+    '  workflow_dispatch:\n' +
+    'permissions:\n' +
+    '  contents: read\n' +
+    'concurrency:\n' +
+    '  group: ${{ github.workflow }}-${{ github.ref }}\n' +
+    '  cancel-in-progress: true\n' +
+    'jobs:\n' +
+    '  verify:\n' +
+    '    runs-on: ubuntu-24.04\n' +
+    '    timeout-minutes: 30\n' +
+    '    steps:\n' +
+    '      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, Node 24 runtime\n' +
+    '        with:\n' +
+    '          persist-credentials: false\n' +
+    '          fetch-depth: 2\n' +
+    '      - name: Select verification from the complete available Git diff\n' +
+    '        id: scope\n' +
+    '        run: node scripts/ci/plan.mjs\n' +
+    '      - name: Check conservative verification planning\n' +
+    '        run: node --test scripts/ci/plan.test.mjs\n' +
+    '      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7, Node 24 runtime\n' +
+    "        if: steps.scope.outputs.verify == 'true'\n" +
+    '        with:\n' +
+    "          node-version: '24.19.0'\n" +
+    '          cache: npm\n' +
+    '      - run: npm ci --no-audit --no-fund\n' +
+    "        if: steps.scope.outputs.verify == 'true'\n" +
+    '      - run: npm run format:check\n' +
+    "        if: steps.scope.outputs.verify == 'true'\n" +
+    '      - run: npm test\n' +
+    "        if: steps.scope.outputs.verify == 'true'\n" +
+    '      # npm test already builds all shared packages. Do not repeat that wrapper.\n' +
+    '      - run: npm run typecheck --workspaces --if-present\n' +
+    "        if: steps.scope.outputs.verify == 'true'\n" +
+    '      - run: npm run build --workspace=@realtor/web\n' +
+    "        if: steps.scope.outputs.web == 'true'\n" +
+    '      - run: npm run build --workspace=@realtor/admin\n' +
+    "        if: steps.scope.outputs.admin == 'true'\n" +
+    '      - run: npm run export:android --workspace=@realtor/mobile\n' +
+    "        if: steps.scope.outputs.mobile == 'true'\n" +
+    '  runtime-packages:\n' +
+    '    name: Linux staging runtime verification\n' +
+    '    runs-on: ubuntu-24.04\n' +
+    '    timeout-minutes: 20\n' +
+    '    steps:\n' +
+    '      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n' +
+    '        with:\n' +
+    '          persist-credentials: false\n' +
+    '      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1\n' +
+    '        with:\n' +
+    "          node-version: '24.19.0'\n" +
+    '          cache: npm\n' +
+    '      - run: npm ci --no-audit --no-fund\n' +
+    '      - run: npm run build:web\n' +
+    '      - run: node --test scripts/stage-runtime-packages.test.mjs\n' +
+    '      - name: Assemble and verify detached Linux runtimes\n' +
+    '        shell: bash\n' +
+    '        run: |\n' +
+    '          node scripts/stage-runtime-packages.mjs > "$RUNNER_TEMP/runtime-packages.json"\n' +
+    `          bundle=$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).directory" "$RUNNER_TEMP/runtime-packages.json")\n` +
+    '          node scripts/verify-runtime-packages.mjs "$bundle"\n' +
+    '          cat "$RUNNER_TEMP/runtime-packages.json" >> "$GITHUB_STEP_SUMMARY"\n'
+
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/scripts/ci/plan.test.mjs:173:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'name: Foundation checks\non:\n  push:\n    branches: [main]\n  pull_request:\n  workflow_dispatch:\npermissions:\n  contents: read\nconcurrency:\n  group: ${{ github.workflow }}-${{ github.ref }}\n  cancel-in-progress: true\njobs:\n  verify:\n    runs-on: ubuntu-24.04\n    timeout-minutes: 30\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7, Node 24 runtime\n        with:\n          persist-credentials: false\n          fetch-depth: 2\n      - name: Select verification from the complete available Git diff\n        id: scope\n        run: node scripts/ci/plan.mjs\n      - name: Check conservative verification planning\n        run: node --test scripts/ci/plan.test.mjs\n      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7, Node 24 runtime\n        if: steps.scope.outputs.verify == \'true\'\n        with:\n          node-version: \'24.19.0\'\n          cache: npm\n      - run: npm ci --no-audit --no-fund\n        if: steps.scope.outputs.verify == \'true\'\n      - run: npm run format:check\n        if: steps.scope.outputs.verify == \'true\'\n      - run: npm test\n        if: steps.scope.outputs.verify == \'true\'\n      # npm test already builds all shared packages. Do not repeat that wrapper.\n      - run: npm run typecheck --workspaces --if-present\n        if: steps.scope.outputs.verify == \'true\'\n      - run: npm run build --workspace=@realtor/web\n        if: steps.scope.outputs.web == \'true\'\n      - run: npm run build --workspace=@realtor/admin\n        if: steps.scope.outputs.admin == \'true\'\n      - run: npm run export:android --workspace=@realtor/mobile\n        if: steps.scope.outputs.mobile == \'true\'\n  runtime-packages:\n    name: Linux staging runtime verification\n    runs-on: ubuntu-24.04\n    timeout-minutes: 20\n    steps:\n      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n          persist-credentials: false\n      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1\n        with:\n          node-version: \'24.19.0\'\n          cache: npm\n      - run: npm ci --no-audit --no-fund\n      - run: npm run build:web\n      - run: node --test scripts/stage-runtime-packages.test.mjs\n      - name: Assemble and verify detached Linux runtimes\n        shell: bash\n        run: |\n          node scripts/stage-runtime-packages.mjs > "$RUNNER_TEMP/runtime-packages.json"\n          bundle=$(node -p "JSON.parse(require(\'fs\').readFileSync(process.argv[1],\'utf8\')).directory" "$RUNNER_TEMP/runtime-packages.json")\n          node scripts/verify-runtime-packages.mjs "$bundle"\n          cat "$RUNNER_TEMP/runtime-packages.json" >> "$GITHUB_STEP_SUMMARY"\n',
+    expected: /run: npm run build:web|run: npm run typecheck\s*$/m,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }

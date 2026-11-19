@@ -170,7 +170,11 @@ test('workflow preserves required verify result, concurrency, pinned actions, ca
   assert.match(workflow, /run: npm test/);
   assert.match(workflow, /typecheck --workspaces --if-present/);
   assert.doesNotMatch(workflow, /paths-ignore:|schedule:|pull_request_target:|continue-on-error:/);
-  assert.doesNotMatch(workflow, /run: npm run build:web|run: npm run typecheck\s*$/m);
+  const verifyJob = workflow.split('\n  runtime-packages:')[0];
+  assert.doesNotMatch(verifyJob, /run: npm run build:web|run: npm run typecheck\s*$/m);
+  assert.match(workflow, /name: Linux staging runtime verification/);
+  assert.match(workflow, /node scripts\/stage-runtime-packages\.mjs/);
+  assert.match(workflow, /node scripts\/verify-runtime-packages\.mjs/);
   const actions = [...workflow.matchAll(/uses: ([^\s]+)/g)].map((m) => m[1]);
   assert.ok(actions.every((a) => /@[0-9a-f]{40}$/.test(a)));
   for (const target of ['web', 'admin', 'mobile'])

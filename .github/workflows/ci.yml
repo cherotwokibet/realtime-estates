@@ -43,3 +43,25 @@ jobs:
         if: steps.scope.outputs.admin == 'true'
       - run: npm run export:android --workspace=@realtor/mobile
         if: steps.scope.outputs.mobile == 'true'
+  runtime-packages:
+    name: Linux staging runtime verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build:web
+      - run: node --test scripts/stage-runtime-packages.test.mjs
+      - name: Assemble and verify detached Linux runtimes
+        shell: bash
+        run: |
+          node scripts/stage-runtime-packages.mjs > "$RUNNER_TEMP/runtime-packages.json"
+          bundle=$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).directory" "$RUNNER_TEMP/runtime-packages.json")
+          node scripts/verify-runtime-packages.mjs "$bundle"
+          cat "$RUNNER_TEMP/runtime-packages.json" >> "$GITHUB_STEP_SUMMARY"
