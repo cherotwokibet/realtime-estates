@@ -141,27 +141,36 @@ test('real PostgreSQL TCP runtime isolates transactions and serializes concurren
         } finally {
           // This disposable migration login must not become an application login.
           // Remove grants recorded under the creator before its bootstrap-admin grants.
-          await migration.query('ROLLBACK');
-          for (const role of ['realtor_owner', 'api_runtime', 'media_coordinator']) {
-            if ((await owner.query('SELECT 1 FROM pg_roles WHERE rolname=$1', [role])).rowCount) {
-              await migration.query(
-                'REVOKE ' +
-                  role +
-                  ' FROM staging_ci_migration GRANTED BY staging_ci_migration CASCADE',
-              );
-              // Owned disposable CI only: remove remaining bootstrap-admin grants.
-              await owner.query('REVOKE ' + role + ' FROM staging_ci_migration CASCADE');
+          try {
+            await migration.query('ROLLBACK');
+            for (const role of [
+              'realtor_owner',
+              'api_runtime',
+              'media_coordinator',
+              'media_maintenance',
+            ]) {
+              if ((await owner.query('SELECT 1 FROM pg_roles WHERE rolname=$1', [role])).rowCount) {
+                await migration.query(
+                  'REVOKE ' +
+                    role +
+                    ' FROM staging_ci_migration GRANTED BY staging_ci_migration CASCADE',
+                );
+                // Owned disposable CI only: remove remaining bootstrap-admin grants.
+                await owner.query('REVOKE ' + role + ' FROM staging_ci_migration CASCADE');
+              }
             }
+          } finally {
+            await migration.end();
           }
-          await migration.end();
           await owner.query('ALTER ROLE staging_ci_migration NOLOGIN NOCREATEROLE');
-          assert.equal(
+          assert.deepEqual(
             (
               await owner.query(
-                "SELECT count(*)::int AS n FROM pg_auth_members WHERE member='staging_ci_migration'::regrole",
+                "SELECT roleid::regrole::text AS role,grantor::regrole::text AS grantor FROM pg_auth_members WHERE member='staging_ci_migration'::regrole ORDER BY role,grantor",
               )
-            ).rows[0].n,
-            0,
+            ).rows,
+            [],
+            'Every migration membership, including maintenance, must be removed.',
           );
           assert.deepEqual(
             (
