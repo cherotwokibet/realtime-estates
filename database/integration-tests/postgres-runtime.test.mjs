@@ -53,8 +53,9 @@ test('real PostgreSQL TCP runtime isolates transactions and serializes concurren
       0,
       'Refuse a database containing existing application schemas.',
     );
+    let migrationsReady = false;
     await t.test(
-      'migration bootstrap needs explicit SET authority and works without superuser',
+      'migration bootstrap needs explicit SET and INHERIT authority and works without superuser',
       async () => {
         await owner.query(
           "CREATE ROLE staging_ci_migration LOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS NOCREATEDB CREATEROLE NOREPLICATION PASSWORD 'synthetic-ci-migration-only'; GRANT CREATE ON DATABASE realtor_synthetic_ci TO staging_ci_migration;",
@@ -101,6 +102,24 @@ test('real PostgreSQL TCP runtime isolates transactions and serializes concurren
           );
           // Session-local, migration-only grant policy: no runtime principal is altered.
           await migration.query("SET createrole_self_grant = 'set'");
+          await assert.rejects(
+            applyTestMigrations(
+              { exec: (sql) => migration.query(sql) },
+              { through: '0001_foundation.sql' },
+            ),
+            (e) => e.code === '42501' && e.message === 'permission denied for schema app_private',
+            'SET alone cannot grant owner schema privileges before the role switch.',
+          );
+          await migration.query('ROLLBACK');
+          assert.equal(
+            (
+              await owner.query(
+                "SELECT count(*)::int AS n FROM pg_roles WHERE rolname IN ('realtor_owner','api_runtime')",
+              )
+            ).rows[0].n,
+            0,
+          );
+          await migration.query("SET createrole_self_grant = 'set,inherit'");
           await applyTestMigrations({ exec: (sql) => migration.query(sql) });
           await migration.query(
             await readFile(new URL('../proposals/staff-branches.sql', import.meta.url), 'utf8'),
@@ -118,14 +137,22 @@ test('real PostgreSQL TCP runtime isolates transactions and serializes concurren
             'realtor_owner',
           );
           await migration.query('RESET createrole_self_grant');
+          migrationsReady = true;
         } finally {
           await migration.end();
           // This disposable migration login must not become an application login.
-          await owner.query(
-            'REVOKE realtor_owner,api_runtime,media_coordinator FROM staging_ci_migration; ALTER ROLE staging_ci_migration NOLOGIN NOCREATEROLE;',
-          );
+          for (const role of ['realtor_owner', 'api_runtime', 'media_coordinator']) {
+            if ((await owner.query('SELECT 1 FROM pg_roles WHERE rolname=$1', [role])).rowCount) {
+              await owner.query('REVOKE ' + role + ' FROM staging_ci_migration');
+            }
+          }
+          await owner.query('ALTER ROLE staging_ci_migration NOLOGIN NOCREATEROLE');
         }
       },
+    );
+    assert.ok(
+      migrationsReady,
+      'Restricted migration bootstrap failed; do not run runtime cases on a partial schema.',
     );
     await owner.query(
       "INSERT INTO app_private.tenants(id,slug,display_name) VALUES($1,'ci-first','Synthetic CI first'),($2,'ci-second','Synthetic CI second')",
