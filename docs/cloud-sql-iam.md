@@ -1,3 +1,7 @@
+## Checkpoint460 URL-mode image update — 19 November 2026
+
+The actual non-root API image now passes positive startup with certificate-verified PostgreSQL TLS at512MiB/oneCPU, privileged-login refusal, four health-envelope cases and clean SQL-session drain. Exact current source/image proof is docs/evidence/2026-11-19-ci460-container-receipt-ac59de6.json; complete run44510580197 passed. This supersedes the earlier API-image limitation in historical notes below. It verifies the owned CI URL transport, not real Cloud SQL IAM designation roles, workload ADC, managed migration/rollback or a hosted provider session. Paid staging approval remains pending and billing remains disabled.
+
 ## Compiled API startup with verified PostgreSQL TLS — checkpoint459, 19 November 2026 EAT
 
 Source aaf413ce5856ed66c44eaa1c1d311bb6f1079bb3 passed complete required Actions run44501173324: all four canonical regression groups, workspace types and Linux production/runtime/container verification. Twenty real PostgreSQL17.12 tests passed with zero failures/skips, retaining the fifteen restricted bootstrap/identity/TCP cases and adding four TLS/API scenarios plus their group. Seventeen local planner/coverage/package guards and a whole-repository format check passed.
