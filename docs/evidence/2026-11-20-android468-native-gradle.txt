@@ -1,0 +1,37 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+  repositories {
+    google()
+    mavenCentral()
+  }
+  dependencies {
+    classpath('com.android.tools.build:gradle')
+    classpath('com.facebook.react:react-native-gradle-plugin')
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+  }
+}
+
+allprojects {
+  repositories {
+    google()
+    mavenCentral()
+    maven { url 'https://www.jitpack.io' }
+  }
+}
+
+// Owned review build only: short, unique CMake caches avoid Ninja's Windows MAX_PATH limit.
+allprojects { target ->
+    ['com.android.application', 'com.android.library'].each { androidPlugin ->
+        target.pluginManager.withPlugin(androidPlugin) {
+            def suffix = java.security.MessageDigest.getInstance('SHA-256').digest(target.path.getBytes('UTF-8')).encodeHex().toString().substring(0, 8)
+            def android = target.extensions.getByName('android')
+            android.defaultConfig.externalNativeBuild.cmake.arguments.addAll(['-DCMAKE_JOB_POOLS=review_compile=1;review_link=1', '-DCMAKE_JOB_POOL_COMPILE=review_compile', '-DCMAKE_JOB_POOL_LINK=review_link'])
+            android.externalNativeBuild.cmake.buildStagingDirectory = new File('C:/Users/BONIFACE/Realtime System/RealEstate/_native468', suffix)
+        }
+    }
+}
+
+apply plugin: "expo-root-project"
+apply plugin: "com.facebook.react.rootproject"
+

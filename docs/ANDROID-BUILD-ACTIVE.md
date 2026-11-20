@@ -1,0 +1,7 @@
+# Android review APK built and verified
+
+Checkpoint468,20 November2026 EAT. No build process remains active. Final build log: evidence/2026-11-20-android468-build-final.txt; BUILD SUCCESSFUL,277 actionable tasks (25 executed,252 up-to-date on final retry). Initial C++/Java/Kotlin/690-module bundle work is retained in build-short-early.txt. Final settings: cached Temurin17.0.21+9,Gradle9.3.1,768MiB heap/512MiB metaspace,1 worker, no parallel or file watcher, one-compiler/link CMake pools and short workspace caches. Application's65 files and lockfile matched source41c6b4a; generated-only Gradle/Metro adapters are retained as evidence.
+
+APK inspection PASSED: aapt package/ARM64/min24/target36, apksigner v2 debug certificate, release-mode non-debuggable Android package, embedded Hermes bytecode and synthetic-only app.config with hosted account mode off. Artifact and ZIP download/byte counts/SHA256: evidence/2026-11-20-android468-artifact.json. APK remains in .staging-artifacts/deliverables. ZIP round-trip preserves APK signature/hash. NO installation, emulator, device UI, provider or live-service result is claimed; ADB had0 devices. Billing remains disabled. Never use this debug signing for production or change old vendor/live/signing resources.
+
+Publish private checkpoint468 with the ZIP download, source/build/verification receipts and three dashboard tests/export replay; preserve1012 notes/manual fields and55/97 full tasks/all14 open gates. Current local APK is a concrete internal review artifact; full task/device/launch acceptance stays separate.

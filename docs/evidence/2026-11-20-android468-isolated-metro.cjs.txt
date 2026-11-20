@@ -1,0 +1,6 @@
+const { getDefaultConfig } = require('expo/metro-config');
+const config = getDefaultConfig(__dirname);
+// Isolated copy: dependencies stay in the maintained workspace; application source is unchanged.
+config.watchFolders = [...new Set([...config.watchFolders, "C:\\Users\\BONIFACE\\Realtime System\\RealEstate\\realtor-platform\\packages", "C:\\Users\\BONIFACE\\Realtime System\\RealEstate\\realtor-platform\\node_modules"])];
+config.resolver.nodeModulesPaths = [...new Set([...config.resolver.nodeModulesPaths, "C:\\Users\\BONIFACE\\Realtime System\\RealEstate\\realtor-platform\\node_modules"])];
+module.exports = config;
