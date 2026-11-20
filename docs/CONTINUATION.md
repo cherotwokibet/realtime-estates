@@ -1,3 +1,9 @@
+## Native enquiry/viewing drafts in progress — checkpoint469,20 November2026 EAT
+
+Adding a usable local draft flow to the DEFAULT synthetic preview: property details → enquiry type/message/optional preferred viewing day → explicit local-only confirmation → Profile review/removal. No contact, server receipt, submission or booking is fabricated; no network/storage API exists in the draft model. Hosted identity/reference modes remain separate and unchanged. Drafts clear on background/unmount, stale handles cannot resurrect them, saved snapshots are immutable and repeated taps return one original. Demo aliases are not treated as hosted listing UUIDs. Eight focused controller cases and mobile TypeScript passed locally; full mobile/CI/new APK results are PENDING. APK468 remains immutable/available; do not claim469 is packaged until actually built/verified.
+
+Billing explicitly remains disabled; no EAS purchase, plan/credit, provider/live/vendor/signing or export changes. Preserve55/97 tasks/all14 gates/1012 notes. Complete meaningful checks/current-source CI, refresh the isolated native source with exact provenance, build/inspect a new hash-named review APK, retain468 and publish469 with actual proof. Device/UI acceptance remains unrun until an owned device is exercised.
+
 ## Published installable ARM64 Android preview, checkpoint 468, 20 November 2026 EAT
 
 Private dashboard deployment appgdep_6b00a07dddcc819181105e9c59a831e8 succeeded from dashboard 41141c9753387741b40b86f86852a2e40964a661. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.

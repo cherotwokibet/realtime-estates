@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   AccessibilityInfo,
+  AppState,
   Image,
   Modal,
   Platform,
@@ -13,6 +14,13 @@ import {
   View,
 } from 'react-native';
 import Constants from 'expo-constants';
+import { randomUUID } from 'expo-crypto';
+import {
+  createDemoEnquiryDrafts,
+  DemoDraftError,
+  type DemoEnquiryHandle,
+} from './demo-enquiry-drafts';
+import { DemoEnquiryForm } from './DemoEnquiryForm';
 import {
   getDemoBrand,
   getDemoTheme,
@@ -289,6 +297,24 @@ export default function App() {
   return <DemoApp />;
 }
 function DemoApp() {
+  const [draftStore] = useState(() => createDemoEnquiryDrafts(tenantSlug, randomUUID));
+  const [drafts, setDrafts] = useState(draftStore.snapshot());
+  const [draftHandle, setDraftHandle] = useState<DemoEnquiryHandle | null>(null);
+  const [draftError, setDraftError] = useState('');
+  useEffect(() => {
+    const listener = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') {
+        draftStore.clear();
+        setDrafts(draftStore.snapshot());
+        setDraftHandle(null);
+        setDraftError('');
+      }
+    });
+    return () => {
+      listener.remove();
+      draftStore.clear();
+    };
+  }, [draftStore]);
   const [tab, setTab] = useState<Tab>('Home');
   const [filters, setFilters] = useState<Filters>(emptyFilters);
   const [draftFilters, setDraftFilters] = useState<Filters>(emptyFilters);
@@ -527,15 +553,48 @@ function DemoApp() {
               <View style={s.divider} />
               <Text style={s.inputLabel}>Account and activity</Text>
               <Text style={s.copy}>
-                Sign-in, enquiry receipts and viewing updates will appear here when the protected
-                service is connected.
+                Live sign-in and enquiry receipts need the protected service. Demo drafts below stay
+                in this preview and are never submitted.
               </Text>
+            </View>
+            <View style={s.profileCard}>
+              <Text accessibilityRole="header" style={s.sectionTitle}>
+                Demo enquiry drafts ({drafts.length})
+              </Text>
+              {!drafts.length && (
+                <Text style={s.copy}>
+                  Open a property to prepare an availability question or viewing preference.
+                </Text>
+              )}
+              {drafts.map((draft) => (
+                <View key={draft.id} style={s.infoBox}>
+                  <Text style={s.inputLabel}>{draft.listingTitle}</Text>
+                  <Text style={s.copy}>
+                    {draft.kind === 'viewing'
+                      ? `Viewing preference: ${draft.preferredDay} (Nairobi)`
+                      : 'Availability question'}
+                  </Text>
+                  <Text style={s.copy}>{draft.message}</Text>
+                  <Text style={s.disclosure}>Local draft only. Nothing sent or booked.</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove demo draft for ${draft.listingTitle}`}
+                    onPress={() => {
+                      draftStore.remove(draft.id);
+                      setDrafts(draftStore.snapshot());
+                    }}
+                    style={s.closeButton}
+                  >
+                    <Text style={{ color: brand.primary }}>Remove draft</Text>
+                  </Pressable>
+                </View>
+              ))}
             </View>
             <View style={s.infoBox}>
               <Text style={s.infoTitle}>Preview privacy</Text>
               <Text style={s.copy}>
-                Search and saved choices stay in memory for this session. No enquiry, booking or
-                contact information is submitted.
+                Search and saved choices stay in memory for this session. Demo enquiry drafts clear
+                when this app backgrounds. Nothing is submitted or booked.
               </Text>
             </View>
           </>
@@ -604,87 +663,126 @@ function DemoApp() {
       <Modal
         visible={selected !== null}
         animationType="slide"
-        onRequestClose={() => setSelected(null)}
+        onRequestClose={() => {
+          if (draftHandle) setDraftHandle(null);
+          else setSelected(null);
+        }}
         accessibilityViewIsModal
       >
         <SafeAreaView style={s.safe}>
-          {selected && (
-            <>
-              <View style={s.detailHeader}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Close property details"
-                  onPress={() => setSelected(null)}
-                  style={s.closeButton}
-                >
-                  <Text style={[s.textButtonText, { color: brand.primary }]}>← Back</Text>
-                </Pressable>
-                <Text style={s.detailHeaderText}>Property details</Text>
-              </View>
-              <ScrollView contentContainerStyle={s.detailPage}>
-                <Image
-                  source={photoFor(selected)}
-                  style={s.detailPhoto}
-                  accessibilityLabel="Reused AI-generated room concept, not a photograph of this listing"
-                />
-                <View style={s.detailBody}>
-                  <Text style={[s.purpose, { color: brand.primary }]}>
-                    SYNTHETIC LISTING · AI CONCEPT IMAGE
-                  </Text>
-                  <Text accessibilityRole="header" style={s.detailTitle}>
-                    {selected.title}
-                  </Text>
-                  <Text style={s.location}>
-                    {selected.neighbourhood} · {selected.county}
-                  </Text>
-                  <Text style={s.detailPrice}>
-                    {money(selected)}
-                    <Text style={s.period}>
-                      {selected.rentalPeriod ? ` / ${selected.rentalPeriod}` : ''}
-                    </Text>
-                  </Text>
-                  <View style={s.specs}>
-                    <Text style={s.specText}>{roomLabel(selected)}</Text>
-                    <Text style={s.specText}>{bathLabel(selected)}</Text>
-                    <Text style={s.specText}>{selected.areaSqm} m²</Text>
-                  </View>
-                  <Text style={s.copy}>{selected.description}</Text>
-                  <Text accessibilityRole="header" style={s.sectionTitle}>
-                    Features
-                  </Text>
-                  {selected.amenities.map((amenity) => (
-                    <Text key={amenity} style={s.feature}>
-                      ✓ {amenity}
-                    </Text>
-                  ))}
-                  <Text style={s.copy}>
-                    Additional fees: no amounts supplied for this synthetic example. The displayed
-                    base price is not an all-in quote.
-                  </Text>
-                  <View style={s.infoBox}>
-                    <Text style={s.infoTitle}>Explore the experience</Text>
-                    <Text style={s.copy}>
-                      This image concept is reused across demo records and does not document this
-                      property's type or room count. Enquiries, contact and viewing requests are not
-                      connected.
-                    </Text>
-                  </View>
+          {selected &&
+            (draftHandle ? (
+              <DemoEnquiryForm
+                handle={draftHandle}
+                primary={brand.primary}
+                onBack={() => setDraftHandle(null)}
+                onSaved={() => setDrafts(draftStore.snapshot())}
+                onReview={() => {
+                  setDraftHandle(null);
+                  setSelected(null);
+                  chooseTab('Profile');
+                }}
+              />
+            ) : (
+              <>
+                <View style={s.detailHeader}>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityState={{ selected: savedIds.includes(selected.id) }}
-                    onPress={() => toggleSaved(selected)}
-                    style={[s.primary, { backgroundColor: brand.primary }]}
+                    accessibilityLabel="Close property details"
+                    onPress={() => setSelected(null)}
+                    style={s.closeButton}
                   >
-                    <Text style={s.primaryText}>
-                      {savedIds.includes(selected.id)
-                        ? 'Remove from shortlist'
-                        : 'Save for this session'}
-                    </Text>
+                    <Text style={[s.textButtonText, { color: brand.primary }]}>← Back</Text>
                   </Pressable>
+                  <Text style={s.detailHeaderText}>Property details</Text>
                 </View>
-              </ScrollView>
-            </>
-          )}
+                <ScrollView contentContainerStyle={s.detailPage}>
+                  <Image
+                    source={photoFor(selected)}
+                    style={s.detailPhoto}
+                    accessibilityLabel="Reused AI-generated room concept, not a photograph of this listing"
+                  />
+                  <View style={s.detailBody}>
+                    <Text style={[s.purpose, { color: brand.primary }]}>
+                      SYNTHETIC LISTING · AI CONCEPT IMAGE
+                    </Text>
+                    <Text accessibilityRole="header" style={s.detailTitle}>
+                      {selected.title}
+                    </Text>
+                    <Text style={s.location}>
+                      {selected.neighbourhood} · {selected.county}
+                    </Text>
+                    <Text style={s.detailPrice}>
+                      {money(selected)}
+                      <Text style={s.period}>
+                        {selected.rentalPeriod ? ` / ${selected.rentalPeriod}` : ''}
+                      </Text>
+                    </Text>
+                    <View style={s.specs}>
+                      <Text style={s.specText}>{roomLabel(selected)}</Text>
+                      <Text style={s.specText}>{bathLabel(selected)}</Text>
+                      <Text style={s.specText}>{selected.areaSqm} m²</Text>
+                    </View>
+                    <Text style={s.copy}>{selected.description}</Text>
+                    <Text accessibilityRole="header" style={s.sectionTitle}>
+                      Features
+                    </Text>
+                    {selected.amenities.map((amenity) => (
+                      <Text key={amenity} style={s.feature}>
+                        ✓ {amenity}
+                      </Text>
+                    ))}
+                    <Text style={s.copy}>
+                      Additional fees: no amounts supplied for this synthetic example. The displayed
+                      base price is not an all-in quote.
+                    </Text>
+                    <View style={s.infoBox}>
+                      <Text style={s.infoTitle}>Explore the experience</Text>
+                      <Text style={s.copy}>
+                        This image concept is reused across demo records and does not document this
+                        property's type or room count. Demo enquiries save only a local draft; no
+                        message or viewing request is sent.
+                      </Text>
+                    </View>
+                    {!!draftError && (
+                      <Text accessibilityRole="alert" style={s.copy}>
+                        {draftError}
+                      </Text>
+                    )}
+                    <Pressable
+                      accessibilityRole="button"
+                      onPress={() => {
+                        try {
+                          setDraftError('');
+                          setDraftHandle(draftStore.begin(selected.id));
+                        } catch (e) {
+                          setDraftError(
+                            e instanceof DemoDraftError
+                              ? e.message
+                              : 'The demo draft could not be opened.',
+                          );
+                        }
+                      }}
+                      style={[s.primary, { backgroundColor: brand.primary }]}
+                    >
+                      <Text style={s.primaryText}>Prepare demo enquiry</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: savedIds.includes(selected.id) }}
+                      onPress={() => toggleSaved(selected)}
+                      style={[s.primary, { backgroundColor: brand.primary }]}
+                    >
+                      <Text style={s.primaryText}>
+                        {savedIds.includes(selected.id)
+                          ? 'Remove from shortlist'
+                          : 'Save for this session'}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </ScrollView>
+              </>
+            ))}
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
