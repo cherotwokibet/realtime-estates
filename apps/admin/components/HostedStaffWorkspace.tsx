@@ -125,8 +125,9 @@ export default function HostedStaffWorkspace({ tenantId }: { tenantId: string })
       channel.current.onmessage = (e) => {
         const effect = authChangeEffect(e.data);
         if (effect === 'ignore') return;
+        const mayRecheck = effect === 'recheck' && !blocked.current;
         lock('Sign-in changed in another tab. Refresh to verify access.');
-        if (effect === 'recheck') void refresh();
+        if (mayRecheck) void refresh();
       };
     }
     const focus = () => {

@@ -65,8 +65,7 @@ export default function SignInPanel({
       if (live(version)) {
         setCurrent(value);
         setUncertain(false);
-        if (notify)
-          channel.current?.postMessage(authChange(value.account ? 'signed-in' : 'signed-out'));
+        if (notify && !value.account) channel.current?.postMessage(authChange('signed-out'));
       }
     } catch {
       if (live(version)) {
@@ -87,8 +86,9 @@ export default function SignInPanel({
       channel.current.onmessage = (event) => {
         const effect = authChangeEffect(event.data);
         if (effect === 'ignore') return;
+        const mayRecheck = effect === 'recheck' && !blocked.current;
         lock('Sign-in changed in another tab. Check your sign-in to continue.');
-        if (effect === 'recheck') void refresh();
+        if (mayRecheck) void refresh();
       };
     }
     const foreground = () => {

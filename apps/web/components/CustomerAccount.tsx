@@ -154,11 +154,15 @@ export default function CustomerAccount({
         authChannel.current.onmessage = (e) => {
           const effect = authChangeEffect(e.data);
           if (effect === 'ignore') return;
-          blocked.current = effect !== 'recheck';
+          const mayRecheck = effect === 'recheck' && !blocked.current;
+          blocked.current = true;
           clear();
           setBusy(false);
           setError('Sign-in changed in another tab. Refresh to verify access.');
-          if (effect === 'recheck') void refresh();
+          if (mayRecheck) {
+            blocked.current = false;
+            void refresh();
+          }
         };
       }
       const c = new BroadcastChannel('realtor-customer:' + window.location.origin);

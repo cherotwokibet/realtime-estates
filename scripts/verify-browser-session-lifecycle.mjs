@@ -381,9 +381,21 @@ try {
           : kind === 'staff'
             ? 'Refresh branches and retained action'
             : 'Check sign-in';
+      const clearedPeerReads = a.reads();
       await b.click(refresh);
       await until(b.visible, 'deliberate recheck');
-      // A legacy notification must invalidate; a successful sign-in requests an authoritative GET.
+      await pause(250);
+      assert.equal(
+        a.reads(),
+        clearedPeerReads,
+        'a deliberate check in one tab must not automatically reopen a cleared peer',
+      );
+      assert.equal(
+        await a.visible(),
+        false,
+        'cleared peer remains locked until its own deliberate check',
+      );
+      // A notification never unlocks a cleared tab. Explicit recheck is local to its caller.
       await a.evaljs(
         `(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed'});c.close();})()`,
       );
@@ -394,8 +406,24 @@ try {
       await a.evaljs(
         `(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signed-in'});c.close();})()`,
       );
-      await until(b.visible, 'authoritative recheck after sign-in notification');
+      await pause(250);
+      assert.equal(
+        await b.visible(),
+        false,
+        'sign-in notification must not unlock an invalidated tab',
+      );
+      assert.equal(b.reads(), reads, 'cleared tab does not automatically recheck');
+      await b.click(refresh);
+      await until(b.visible, 'explicit recheck after sign-in notification');
       assert.ok(b.reads() > reads);
+      const activeReads = b.reads();
+      await a.evaljs(
+        `(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signed-in'});c.close();})()`,
+      );
+      await until(
+        async () => b.reads() > activeReads && (await b.visible()),
+        'active view rechecks changed authority',
+      );
       {
         model.hold = true;
         await b.click(refresh);
@@ -433,7 +461,7 @@ try {
         app +
           '/' +
           kind +
-          ': expiry clears private state without automatic restoration; legacy messages fail closed; explicit recheck works',
+          ': expiry and sign-in notifications cannot unlock cleared views; legacy messages fail closed; explicit checks are local',
       );
     }
   }
