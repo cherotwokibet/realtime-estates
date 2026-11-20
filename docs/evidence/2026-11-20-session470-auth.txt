@@ -1,0 +1,26 @@
+
+> @realtor/browser-auth@0.1.0 test
+> npm run build && node --test tests/*.test.mjs
+
+
+> @realtor/browser-auth@0.1.0 build
+> tsc -p tsconfig.json
+
+✔ denied session clears authority and permits reauthentication while an outage stays uncertain (12.5127ms)
+✔ Google and password exchange only ID token/state, clear SDK state and confirm the server session (15.8814ms)
+✔ lost/malformed exchange acknowledgement recovers only by GET, without a second send (6.1563ms)
+✔ cancellation before provider completion prevents the exchange and disposes the late SDK result (0.9635ms)
+✔ simultaneous sign-in does not create another SDK instance or bootstrap (2.105ms)
+✔ malformed/expired/oversized server metadata never becomes a signed-in view (2.6159ms)
+✔ public Firebase config pins project/default auth domain and refuses server fields (1.6651ms)
+✔ shared sign-in screen renders labelled controls with no token, ID or configuration in its markup (24.5889ms)
+✔ auth notifications distinguish invalidation from a request to recheck server authority (6.462ms)
+✔ client exchange and lost acknowledgement join actual SQL authority, scoped cookies and server logout (5711.9ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6946.0058
