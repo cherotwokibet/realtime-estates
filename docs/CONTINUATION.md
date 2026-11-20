@@ -1,3 +1,11 @@
+## Next whole-deliverable priority — 20 November2026 EAT
+
+Boniface challenged the unchanged57% after APK469. Canonical count is55/97;56 accepted whole items rounds to58%. Do not change weighting, denominator, deferred rows or evidence standards to manufacture that increase. APK/draft delivery remains real but partial for09-1/09-2.
+
+Prioritize05-7: finish/verify private-cache and subscription clearing on logout, cross-tab/session expiry and late-response suppression across the maintained customer, hosted staff, sign-in and native lifecycle boundaries. Existing CustomerAccount/HostedStaffWorkspace/SignInPanel have broadcast/expiry/invalidation code and current native controller tests exist. Customer315 browser proof covered only local customer tabs; it explicitly did NOT close global05-7. Complete the missing whole-app matrix, fix any defects, execute actual browser proof with controlled synthetic authority and appropriate native lifecycle evidence, and audit against AC-004 before marking done. Do not infer real provider/device/hosted acceptance from mocked transport or test counts. If any criterion remains unmet, leave the item open and say exactly what is missing. Other rows needing billing/rights/operator/device/cutover cannot be asserted complete from local drafts.
+
+Keep billing explicitly DISABLED; do not re-ask the spending decision or buy/use credits. Existing APK469 and private dashboard remain the latest verified deliverable. Preserve55/97 until actual acceptance, all14 gates,1012 notes and vendor/live/export resources. No new checkpoint or dashboard publication is justified by this priority note alone.
+
 ## Published native enquiry and viewing drafts, checkpoint 469, 20 November 2026 EAT
 
 Private dashboard deployment appgdep_6b00a7d1ccd08191a6229f07f7f148d8 succeeded from dashboard 5dc16eef4cfe56b3b44337f5f53689e7bdebe8ae. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
