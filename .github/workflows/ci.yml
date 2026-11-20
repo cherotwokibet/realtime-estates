@@ -116,6 +116,8 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm run build:web
+      - name: Verify actual browser logout and expiry against synthetic authority
+        run: node scripts/verify-browser-session-lifecycle.mjs
       - run: node --test scripts/stage-runtime-packages.test.mjs
       - name: Verify real disposable PostgreSQL connections
         run: node --test database/integration-tests/postgres-runtime.test.mjs

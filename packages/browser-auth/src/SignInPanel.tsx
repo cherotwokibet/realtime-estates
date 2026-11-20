@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { authChange, authChangeEffect } from './events.js';
 import type { FirebaseWebConfig } from './config.js';
 import {
   createBrowserSignInClient,
@@ -21,6 +22,7 @@ export default function SignInPanel({
   const active = useRef<AbortController | null>(null),
     epoch = useRef(0),
     working = useRef(true),
+    blocked = useRef(false),
     channel = useRef<BroadcastChannel | null>(null);
   const [current, setCurrent] = useState<BrowserSession | null>(null),
     [busy, setBusy] = useState(true),
@@ -41,7 +43,20 @@ export default function SignInPanel({
   function live(version: number) {
     return epoch.current === version && !active.current?.signal.aborted;
   }
+  function lock(message: string) {
+    blocked.current = true;
+    epoch.current++;
+    active.current?.abort();
+    working.current = false;
+    setCurrent(null);
+    setEmail('');
+    setPassword('');
+    setBusy(false);
+    setUncertain(true);
+    setMessage(message);
+  }
   async function refresh(notify = false) {
+    blocked.current = false;
     const { controller, version } = start();
     setCurrent(null);
     setPassword('');
@@ -50,7 +65,8 @@ export default function SignInPanel({
       if (live(version)) {
         setCurrent(value);
         setUncertain(false);
-        if (notify) channel.current?.postMessage({ type: 'auth-changed' });
+        if (notify)
+          channel.current?.postMessage(authChange(value.account ? 'signed-in' : 'signed-out'));
       }
     } catch {
       if (live(version)) {
@@ -69,14 +85,15 @@ export default function SignInPanel({
     if (typeof BroadcastChannel !== 'undefined') {
       channel.current = new BroadcastChannel('realtor-hosted-auth-v1');
       channel.current.onmessage = (event) => {
-        if (event.data?.type === 'auth-changed') {
-          setEmail('');
-          void refresh();
-        }
+        const effect = authChangeEffect(event.data);
+        if (effect === 'ignore') return;
+        lock('Sign-in changed in another tab. Check your sign-in to continue.');
+        if (effect === 'recheck') void refresh();
       };
     }
     const foreground = () => {
-      if (document.visibilityState === 'visible' && !working.current) void refresh();
+      if (document.visibilityState === 'visible' && !working.current && !blocked.current)
+        void refresh();
     };
     document.addEventListener('visibilitychange', foreground);
     void refresh();
@@ -92,8 +109,7 @@ export default function SignInPanel({
     if (!current?.account) return;
     const timer = setTimeout(
       () => {
-        setCurrent(null);
-        void refresh();
+        lock('Your session expired. Check your sign-in to continue.');
       },
       Math.max(0, Date.parse(current.account.expiresAt) - Date.now()),
     );
@@ -110,7 +126,7 @@ export default function SignInPanel({
         setCurrent(value);
         setEmail('');
         setUncertain(false);
-        channel.current?.postMessage({ type: 'auth-changed' });
+        channel.current?.postMessage(authChange('signed-in'));
       }
     } catch (error) {
       if (live(version)) {
@@ -132,18 +148,20 @@ export default function SignInPanel({
   }
   async function logout() {
     if (working.current || !current) return;
+    blocked.current = true;
+    setUncertain(true);
     const value = current,
       { controller, version } = start();
     setCurrent(null);
     setEmail('');
     setPassword('');
-    channel.current?.postMessage({ type: 'auth-changed' });
+    channel.current?.postMessage(authChange('signing-out'));
     try {
       const next = await client.current!.logout(value, controller.signal);
       if (live(version)) {
         setCurrent(next);
         setUncertain(false);
-        channel.current?.postMessage({ type: 'auth-changed' });
+        channel.current?.postMessage(authChange('signed-out'));
       }
     } catch {
       if (live(version)) {

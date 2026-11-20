@@ -1,4 +1,5 @@
 'use client';
+import { authChange, authChangeEffect } from '@realtor/browser-auth/events';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -48,6 +49,7 @@ export default function CustomerAccount({
     gate.current.invalidate();
     setSession(null);
     setRows([]);
+    setHasMore(false);
     setSummaries([]);
     setReceipt(null);
     setCandidate(null);
@@ -150,11 +152,13 @@ export default function CustomerAccount({
       if (mode === 'hosted') {
         authChannel.current = new BroadcastChannel('realtor-hosted-auth-v1');
         authChannel.current.onmessage = (e) => {
-          if (e.data?.type === 'auth-changed') {
-            blocked.current = false;
-            clear();
-            void refresh();
-          }
+          const effect = authChangeEffect(e.data);
+          if (effect === 'ignore') return;
+          blocked.current = effect !== 'recheck';
+          clear();
+          setBusy(false);
+          setError('Sign-in changed in another tab. Refresh to verify access.');
+          if (effect === 'recheck') void refresh();
         };
       }
       const c = new BroadcastChannel('realtor-customer:' + window.location.origin);
@@ -165,7 +169,7 @@ export default function CustomerAccount({
           clear();
           setBusy(false);
           setError('Signed out in another tab. Refresh when you want to sign in again.');
-        } else if (e.data === 'changed') {
+        } else if (e.data === 'changed' && (mode === 'synthetic' || !blocked.current)) {
           blocked.current = false;
           clear();
           void refresh();
@@ -196,6 +200,7 @@ export default function CustomerAccount({
     if (!session?.account) return;
     const timer = setTimeout(
       () => {
+        blocked.current = true;
         clear();
         setBusy(false);
         setError('Your session expired. Refresh to sign in again.');
@@ -230,12 +235,13 @@ export default function CustomerAccount({
     setBusy(true);
     setError('');
     channel.current?.postMessage('signed-out');
-    authChannel.current?.postMessage({ type: 'auth-changed' });
+    authChannel.current?.postMessage(authChange('signing-out'));
     const t = gate.current.begin();
     try {
       await api('/sign-out', t.signal, {}, csrf);
       channel.current?.postMessage('signed-out');
-      authChannel.current?.postMessage({ type: 'auth-changed' });
+      if (gate.current.current(t.version))
+        authChannel.current?.postMessage(authChange('signed-out'));
       if (mode === 'synthetic') await read(t.signal, t.version);
     } catch {
       if (gate.current.current(t.version))

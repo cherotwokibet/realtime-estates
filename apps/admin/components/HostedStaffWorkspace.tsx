@@ -1,4 +1,5 @@
 'use client';
+import { authChange, authChangeEffect } from '@realtor/browser-auth/events';
 import { useEffect, useRef, useState } from 'react';
 import {
   parseStaffInvitationJson,
@@ -15,6 +16,7 @@ export default function HostedStaffWorkspace({ tenantId }: { tenantId: string })
   const active = useRef<AbortController | null>(null),
     version = useRef(0),
     working = useRef(true),
+    blocked = useRef(false),
     channel = useRef<BroadcastChannel | null>(null);
   const [session, setSession] = useState<HostedStaffSession | null>(null),
     [rows, setRows] = useState<readonly StaffBranchCurrent[]>([]),
@@ -78,7 +80,18 @@ export default function HostedStaffWorkspace({ tenantId }: { tenantId: string })
     if (!response.ok) throw { status: response.status };
     return data;
   }
+  function lock(message: string) {
+    blocked.current = true;
+    version.current++;
+    active.current?.abort();
+    working.current = false;
+    clear();
+    setBusy(false);
+    setUncertain(true);
+    setMessage(message);
+  }
   async function refresh() {
+    blocked.current = false;
     const { signal, ticket } = begin();
     clear();
     setMessage('');
@@ -110,17 +123,17 @@ export default function HostedStaffWorkspace({ tenantId }: { tenantId: string })
     if (typeof BroadcastChannel !== 'undefined') {
       channel.current = new BroadcastChannel('realtor-hosted-auth-v1');
       channel.current.onmessage = (e) => {
-        if (e.data?.type === 'auth-changed') {
-          clear();
-          void refresh();
-        }
+        const effect = authChangeEffect(e.data);
+        if (effect === 'ignore') return;
+        lock('Sign-in changed in another tab. Refresh to verify access.');
+        if (effect === 'recheck') void refresh();
       };
     }
     const focus = () => {
-        if (!working.current) void refresh();
+        if (!working.current && !blocked.current) void refresh();
       },
       show = (e: PageTransitionEvent) => {
-        if (e.persisted) void refresh();
+        if (e.persisted && !blocked.current) void refresh();
       };
     const visibility = () => {
       if (document.visibilityState === 'hidden') {
@@ -130,7 +143,7 @@ export default function HostedStaffWorkspace({ tenantId }: { tenantId: string })
         setBusy(false);
         clear();
         setUncertain(true);
-      } else if (!working.current) void refresh();
+      } else if (!working.current && !blocked.current) void refresh();
     };
     window.addEventListener('focus', focus);
     window.addEventListener('pageshow', show);
@@ -149,8 +162,7 @@ export default function HostedStaffWorkspace({ tenantId }: { tenantId: string })
     if (!session) return;
     const timer = setTimeout(
       () => {
-        clear();
-        void refresh();
+        lock('Your session expired. Refresh to verify access.');
       },
       Math.max(0, Date.parse(session.account.expiresAt) - Date.now()),
     );
@@ -194,9 +206,7 @@ export default function HostedStaffWorkspace({ tenantId }: { tenantId: string })
       if (!live(ticket)) return;
       const status = (e as { status?: number }).status;
       if (status === 401 || status === 403) {
-        clear();
-        setUncertain(true);
-        setMessage('Staff access ended. Sign in again.');
+        lock('Staff access ended. Sign in again.');
       } else if (kind === 'original' && status === 404) {
         setMissing(true);
         setMessage(
@@ -246,16 +256,17 @@ export default function HostedStaffWorkspace({ tenantId }: { tenantId: string })
   }
   async function logout() {
     if (working.current || !session) return;
+    blocked.current = true;
     const csrf = session.csrf,
       { signal, ticket } = begin();
     clear();
     setUncertain(true);
-    channel.current?.postMessage({ type: 'auth-changed' });
+    channel.current?.postMessage(authChange('signing-out'));
     try {
       const r = await call('sign-out', signal, {}, csrf);
       if (JSON.stringify(r) !== '{"signedOut":true}') throw Error();
       if (live(ticket)) setMessage('Signed out.');
-      channel.current?.postMessage({ type: 'auth-changed' });
+      if (live(ticket)) channel.current?.postMessage(authChange('signed-out'));
     } catch {
       if (live(ticket))
         setMessage('Sign-out could not be confirmed. Private details have been cleared.');
