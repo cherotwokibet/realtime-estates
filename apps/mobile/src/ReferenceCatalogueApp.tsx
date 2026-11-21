@@ -1,3 +1,4 @@
+import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PublishedListingVideo from './PublishedListingVideo';
 import PublishedFloorPlan from './PublishedFloorPlan';
@@ -13,7 +14,6 @@ import {
   Linking,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
   Share,
   StyleSheet,

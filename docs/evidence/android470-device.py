@@ -34,6 +34,24 @@ elif act=='tap':
  assert len(matches)==1,f'Expected one exact visible target {needle}: {len(matches)}'
  vals=list(map(int,re.findall(r'\d+',matches[0].get('bounds',''))));assert len(vals)==4
  print(run('shell','input','tap',str((vals[0]+vals[2])//2),str((vals[1]+vals[3])//2)).decode())
+elif act=='scroll':
+ xml=ET.fromstring((out/'latest.xml').read_bytes())
+ nodes=[n for n in xml.iter('node') if n.get('scrollable')=='true' and n.get('package')==package]
+ assert nodes,'No observed app scroll container'
+ candidates=[list(map(int,re.findall(r'\d+',n.get('bounds','')))) for n in nodes]
+ b=max(candidates,key=lambda b:(b[2]-b[0])*(b[3]-b[1]));cx=(b[0]+b[2])//2;h=b[3]-b[1]
+ print(run('shell','input','swipe',str(cx),str(b[1]+h*4//5),str(cx),str(b[1]+h//5),'450').decode())
+elif act=='type':
+ value=sys.argv[2];assert re.fullmatch('[A-Za-z0-9_ .-]{1,60}',value)
+ print(run('shell','input','text',value.replace(' ','%s')).decode())
+elif act=='back': print(run('shell','input','keyevent','KEYCODE_BACK').decode())
+elif act=='verify-detail-layout':
+ xml=ET.fromstring((out/'latest.xml').read_bytes());nodes=list(xml.iter('node'))
+ assert any(n.get('text')=='Room to settle in' for n in nodes),'Property title must be visible without scrolling past an oversized image'
+ img=next(n for n in nodes if n.get('content-desc')=='Reused AI-generated room concept, not a photograph of this listing')
+ b=list(map(int,re.findall(r'\d+',img.get('bounds',''))));assert b[3]-b[1]<=b[2]-b[0],'Property image exceeds its intended bounded frame'
+ header=next(n for n in nodes if n.get('content-desc')=='Close property details');r=list(map(int,re.findall(r'\d+',header.get('bounds',''))));assert r[1]>0,'Property header must avoid the top system inset'
+ print('Actual device property title/image/header geometry passed')
 elif act=='dump':
  label=sys.argv[2];assert re.fullmatch('[a-z0-9-]+',label)
  run('shell','uiautomator','dump','--compressed','/sdcard/realtor470.xml',timeout=60)

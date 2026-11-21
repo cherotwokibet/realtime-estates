@@ -1,3 +1,4 @@
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   AccessibilityInfo,
@@ -6,8 +7,8 @@ import {
   Modal,
   Platform,
   Pressable,
-  SafeAreaView,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -265,6 +266,14 @@ export const MobileCustomerSessionContext = createContext<MobileCustomerSession 
   undefined,
 );
 export default function App() {
+  return (
+    <SafeAreaProvider>
+      <StatusBar barStyle="dark-content" />
+      <AppContent />
+    </SafeAreaProvider>
+  );
+}
+function AppContent() {
   const customerSession = useContext(MobileCustomerSessionContext);
   let firebaseConfig;
   try {
@@ -669,121 +678,124 @@ function DemoApp() {
         }}
         accessibilityViewIsModal
       >
-        <SafeAreaView style={s.safe}>
-          {selected &&
-            (draftHandle ? (
-              <DemoEnquiryForm
-                handle={draftHandle}
-                primary={brand.primary}
-                onBack={() => setDraftHandle(null)}
-                onSaved={() => setDrafts(draftStore.snapshot())}
-                onReview={() => {
-                  setDraftHandle(null);
-                  setSelected(null);
-                  chooseTab('Profile');
-                }}
-              />
-            ) : (
-              <>
-                <View style={s.detailHeader}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="Close property details"
-                    onPress={() => setSelected(null)}
-                    style={s.closeButton}
-                  >
-                    <Text style={[s.textButtonText, { color: brand.primary }]}>← Back</Text>
-                  </Pressable>
-                  <Text style={s.detailHeaderText}>Property details</Text>
-                </View>
-                <ScrollView contentContainerStyle={s.detailPage}>
-                  <Image
-                    source={photoFor(selected)}
-                    style={s.detailPhoto}
-                    accessibilityLabel="Reused AI-generated room concept, not a photograph of this listing"
-                  />
-                  <View style={s.detailBody}>
-                    <Text style={[s.purpose, { color: brand.primary }]}>
-                      SYNTHETIC LISTING · AI CONCEPT IMAGE
-                    </Text>
-                    <Text accessibilityRole="header" style={s.detailTitle}>
-                      {selected.title}
-                    </Text>
-                    <Text style={s.location}>
-                      {selected.neighbourhood} · {selected.county}
-                    </Text>
-                    <Text style={s.detailPrice}>
-                      {money(selected)}
-                      <Text style={s.period}>
-                        {selected.rentalPeriod ? ` / ${selected.rentalPeriod}` : ''}
-                      </Text>
-                    </Text>
-                    <View style={s.specs}>
-                      <Text style={s.specText}>{roomLabel(selected)}</Text>
-                      <Text style={s.specText}>{bathLabel(selected)}</Text>
-                      <Text style={s.specText}>{selected.areaSqm} m²</Text>
-                    </View>
-                    <Text style={s.copy}>{selected.description}</Text>
-                    <Text accessibilityRole="header" style={s.sectionTitle}>
-                      Features
-                    </Text>
-                    {selected.amenities.map((amenity) => (
-                      <Text key={amenity} style={s.feature}>
-                        ✓ {amenity}
-                      </Text>
-                    ))}
-                    <Text style={s.copy}>
-                      Additional fees: no amounts supplied for this synthetic example. The displayed
-                      base price is not an all-in quote.
-                    </Text>
-                    <View style={s.infoBox}>
-                      <Text style={s.infoTitle}>Explore the experience</Text>
-                      <Text style={s.copy}>
-                        This image concept is reused across demo records and does not document this
-                        property's type or room count. Demo enquiries save only a local draft; no
-                        message or viewing request is sent.
-                      </Text>
-                    </View>
-                    {!!draftError && (
-                      <Text accessibilityRole="alert" style={s.copy}>
-                        {draftError}
-                      </Text>
-                    )}
+        <SafeAreaProvider>
+          <StatusBar barStyle="dark-content" />
+          <SafeAreaView style={s.safe}>
+            {selected &&
+              (draftHandle ? (
+                <DemoEnquiryForm
+                  handle={draftHandle}
+                  primary={brand.primary}
+                  onBack={() => setDraftHandle(null)}
+                  onSaved={() => setDrafts(draftStore.snapshot())}
+                  onReview={() => {
+                    setDraftHandle(null);
+                    setSelected(null);
+                    chooseTab('Profile');
+                  }}
+                />
+              ) : (
+                <>
+                  <View style={s.detailHeader}>
                     <Pressable
                       accessibilityRole="button"
-                      onPress={() => {
-                        try {
-                          setDraftError('');
-                          setDraftHandle(draftStore.begin(selected.id));
-                        } catch (e) {
-                          setDraftError(
-                            e instanceof DemoDraftError
-                              ? e.message
-                              : 'The demo draft could not be opened.',
-                          );
-                        }
-                      }}
-                      style={[s.primary, { backgroundColor: brand.primary }]}
+                      accessibilityLabel="Close property details"
+                      onPress={() => setSelected(null)}
+                      style={s.closeButton}
                     >
-                      <Text style={s.primaryText}>Prepare demo enquiry</Text>
+                      <Text style={[s.textButtonText, { color: brand.primary }]}>← Back</Text>
                     </Pressable>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: savedIds.includes(selected.id) }}
-                      onPress={() => toggleSaved(selected)}
-                      style={[s.primary, { backgroundColor: brand.primary }]}
-                    >
-                      <Text style={s.primaryText}>
-                        {savedIds.includes(selected.id)
-                          ? 'Remove from shortlist'
-                          : 'Save for this session'}
-                      </Text>
-                    </Pressable>
+                    <Text style={s.detailHeaderText}>Property details</Text>
                   </View>
-                </ScrollView>
-              </>
-            ))}
-        </SafeAreaView>
+                  <ScrollView contentContainerStyle={s.detailPage}>
+                    <Image
+                      source={photoFor(selected)}
+                      style={s.detailPhoto}
+                      accessibilityLabel="Reused AI-generated room concept, not a photograph of this listing"
+                    />
+                    <View style={s.detailBody}>
+                      <Text style={[s.purpose, { color: brand.primary }]}>
+                        SYNTHETIC LISTING · AI CONCEPT IMAGE
+                      </Text>
+                      <Text accessibilityRole="header" style={s.detailTitle}>
+                        {selected.title}
+                      </Text>
+                      <Text style={s.location}>
+                        {selected.neighbourhood} · {selected.county}
+                      </Text>
+                      <Text style={s.detailPrice}>
+                        {money(selected)}
+                        <Text style={s.period}>
+                          {selected.rentalPeriod ? ` / ${selected.rentalPeriod}` : ''}
+                        </Text>
+                      </Text>
+                      <View style={s.specs}>
+                        <Text style={s.specText}>{roomLabel(selected)}</Text>
+                        <Text style={s.specText}>{bathLabel(selected)}</Text>
+                        <Text style={s.specText}>{selected.areaSqm} m²</Text>
+                      </View>
+                      <Text style={s.copy}>{selected.description}</Text>
+                      <Text accessibilityRole="header" style={s.sectionTitle}>
+                        Features
+                      </Text>
+                      {selected.amenities.map((amenity) => (
+                        <Text key={amenity} style={s.feature}>
+                          ✓ {amenity}
+                        </Text>
+                      ))}
+                      <Text style={s.copy}>
+                        Additional fees: no amounts supplied for this synthetic example. The
+                        displayed base price is not an all-in quote.
+                      </Text>
+                      <View style={s.infoBox}>
+                        <Text style={s.infoTitle}>Explore the experience</Text>
+                        <Text style={s.copy}>
+                          This image concept is reused across demo records and does not document
+                          this property's type or room count. Demo enquiries save only a local
+                          draft; no message or viewing request is sent.
+                        </Text>
+                      </View>
+                      {!!draftError && (
+                        <Text accessibilityRole="alert" style={s.copy}>
+                          {draftError}
+                        </Text>
+                      )}
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => {
+                          try {
+                            setDraftError('');
+                            setDraftHandle(draftStore.begin(selected.id));
+                          } catch (e) {
+                            setDraftError(
+                              e instanceof DemoDraftError
+                                ? e.message
+                                : 'The demo draft could not be opened.',
+                            );
+                          }
+                        }}
+                        style={[s.primary, { backgroundColor: brand.primary }]}
+                      >
+                        <Text style={s.primaryText}>Prepare demo enquiry</Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{ selected: savedIds.includes(selected.id) }}
+                        onPress={() => toggleSaved(selected)}
+                        style={[s.primary, { backgroundColor: brand.primary }]}
+                      >
+                        <Text style={s.primaryText}>
+                          {savedIds.includes(selected.id)
+                            ? 'Remove from shortlist'
+                            : 'Save for this session'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </ScrollView>
+                </>
+              ))}
+          </SafeAreaView>
+        </SafeAreaProvider>
       </Modal>
     </SafeAreaView>
   );
@@ -849,7 +861,7 @@ const s = StyleSheet.create({
     marginBottom: 23,
   },
   photoWrap: { position: 'relative' },
-  photo: { width: '100%', aspectRatio: 1.5, backgroundColor: '#f1efec' },
+  photo: { width: '100%', height: undefined, aspectRatio: 1.5, backgroundColor: '#f1efec' },
   photoBadge: {
     position: 'absolute',
     bottom: 12,
@@ -1041,7 +1053,7 @@ const s = StyleSheet.create({
   closeButton: { minHeight: 55, minWidth: 74, justifyContent: 'center' },
   detailHeaderText: { fontSize: 15, fontWeight: '600', color: '#344054' },
   detailPage: { paddingBottom: 30 },
-  detailPhoto: { width: '100%', aspectRatio: 1.3 },
+  detailPhoto: { width: '100%', height: undefined, aspectRatio: 1.3 },
   detailBody: { padding: 22 },
   detailTitle: { fontSize: 28, lineHeight: 35, fontWeight: '700', color: '#20242b', marginTop: 14 },
   detailPrice: { fontSize: 27, lineHeight: 36, fontWeight: '700', color: '#20242b', marginTop: 19 },
