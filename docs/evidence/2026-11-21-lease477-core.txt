@@ -1,0 +1,30 @@
+✔ real RS256 signature yields immutable subject and verified expiry, ignoring role/company claims (189.1852ms)
+✔ bearer header parser rejects missing, duplicate and malformed credentials (2.1208ms)
+✔ expired, future and overlong-lifetime claims fail closed (20.7726ms)
+✔ wrong issuer, audience and malformed subject are denied despite valid signature (11.8994ms)
+✔ issuer, audience, subject, expiry and issued-at are required (14.699ms)
+✔ counterfeit signature, unknown key and absent key ID are denied (15.3076ms)
+✔ HS256 algorithm confusion and unsigned/malformed tokens are denied (2.9096ms)
+✔ token-supplied key URL does not change the trusted JWKS endpoint (12.6478ms)
+✔ unavailable/malformed/redirecting JWKS endpoints deny without following redirects (31.4478ms)
+✔ trusted configuration is captured, not mutable through caller object (17.8836ms)
+✔ missing/untrusted identity configuration is rejected before any key fetch (0.6149ms)
+✔ explicit loopback HTTP exception is rejected in production mode (0.225ms)
+✔ hostname resolves only configured company and does not grant membership (0.8508ms)
+✔ tenant configuration rejects host collisions, wildcards, duplicate IDs and invalid input (0.3261ms)
+✔ Firebase policy requires revocation checking and explicit actor mapping, ignoring company and role claims (1.799ms)
+✔ wrong project, unverified email, anonymous, tenant mismatch and invalid times refuse before mapping (1.2742ms)
+✔ disabled/revoked SDK failures and unmapped actors deny with no SDK diagnostics (0.4572ms)
+✔ Firebase Identity Platform tenant is explicitly pinned and emulator activation cannot bypass verification (0.3644ms)
+✔ actual Firebase Admin SDK refuses an HS256 token before credential lookup or actor mapping (2.3621ms)
+✔ actual SQL bindings isolate project/auth-tenant/UID and immediately reflect revocation (2247.0319ms)
+✔ staff access lease joins current restricted SQL role, verified expiry and SDK; revoked/foreign/customer access is denied (2720.8072ms)
+✔ bounded staff lease is immutable, canonical and contains no credential or caller permission fields (4.766ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3251.4062
