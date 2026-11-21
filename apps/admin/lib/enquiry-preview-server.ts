@@ -160,6 +160,11 @@ function configuration(actor: unknown, env: Environment) {
   return Object.freeze({ ...scopes[actor], origin: origin.origin });
 }
 
+/** Server-only credential capture for the matching read-only access lease. */
+export function enquiryAccessLeaseConfiguration(actor: 'admin' | 'agent', env: Environment) {
+  return configuration(actor, env);
+}
+
 /** Safe page metadata only. These fixed development roles never select a production identity. */
 export function getEnquiryPreviewScope(actor: unknown, env: Environment = process.env): Scope {
   const { actorId, role, instanceId } = configuration(actor, env);

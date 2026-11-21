@@ -121,7 +121,8 @@ async function tab(origin, path, kind, model) {
     return r.result.value;
   };
   let reads = 0,
-    held = null;
+    held = null,
+    leaseHeld = null;
   const errors = [];
   async function fulfil(requestId, body, status = 200) {
     await cmd('Fetch.fulfillRequest', {
@@ -267,6 +268,29 @@ async function tab(origin, path, kind, model) {
       await cmd('Fetch.failRequest', { requestId, errorReason: 'BlockedByClient' });
       return;
     }
+    if (u.pathname.startsWith('/api/private-workspace/lease/')) {
+      reads++;
+      const when = Date.now();
+      const body = {
+        policy: 'staff-access-lease-v1',
+        tenantId: model.leaseTenant ?? tenant,
+        actorId: model.leaseActor ?? actor,
+        role: model.leaseRole ?? 'admin',
+        checkedAt: new Date(when).toISOString(),
+        expiresAt: new Date(
+          Math.min(model.leaseExpiresAt ?? when + 30000, when + 30000),
+        ).toISOString(),
+      };
+      const complete = () =>
+        fulfil(
+          requestId,
+          model.leaseStatus ? { error: 'synthetic-lease-denied' } : body,
+          model.leaseStatus ?? 200,
+        );
+      if (model.holdLease) leaseHeld = complete;
+      else await complete();
+      return;
+    }
     if (!/^\/(auth\/|api\/customer\/|api\/hosted-staff\/|api\/staff\/reviews)/.test(u.pathname)) {
       await cmd('Fetch.continueRequest', { requestId });
       return;
@@ -357,7 +381,7 @@ async function tab(origin, path, kind, model) {
           : 'You are signed in.';
   const text = () => evaljs(`document.querySelector(${JSON.stringify(selector)})?.innerText || ''`);
   const visible = async () => (await text()).includes(privateText);
-  await until(visible, kind + ' private initial render');
+  if (!model.allowChecking) await until(visible, kind + ' private initial render');
   return {
     cmd,
     evaljs,
@@ -366,6 +390,7 @@ async function tab(origin, path, kind, model) {
     reads: () => reads,
     errors,
     held: () => held,
+    leaseHeld: () => leaseHeld,
     click: async (label) =>
       evaljs(
         `(()=>{const b=[...document.querySelectorAll(${JSON.stringify(selector + ' button')})].find(x=>x.textContent.trim()===${JSON.stringify(label)});if(!b||b.disabled)throw Error('Button unavailable');b.click();})()`,
@@ -727,6 +752,93 @@ try {
       await waiting.close();
       evidence.tests.push(
         'admin/private boundary: pending private image reads cancel and late replies create no blob URL',
+      );
+      const checking = {
+        expiresAt: Date.now() + 120000,
+        logouts: [],
+        hold: false,
+        holdLease: true,
+        allowChecking: true,
+      };
+      const gate = await tab(reviewOrigin, path, 'review', checking);
+      await until(() => gate.leaseHeld(), 'initial current-access read held');
+      assert.equal(await gate.visible(), false);
+      assert.equal(gate.reads(), 1, 'private data reads must not start before current access');
+      assert.equal(
+        await gate.evaljs(`document.querySelectorAll('.review-workspace-layout textarea').length`),
+        0,
+      );
+      await gate.leaseHeld()();
+      await until(gate.visible, 'initial server lease permits the current view');
+      await gate.close();
+      evidence.tests.push(
+        'admin/private lease: initial private children and data requests wait for fresh scoped server access',
+      );
+      const idle = {
+        expiresAt: Date.now() + 120000,
+        logouts: [],
+        hold: false,
+        leaseExpiresAt: Date.now() + 5000,
+      };
+      const expiry = await tab(reviewOrigin, path, 'review', idle);
+      await until(async () => !(await expiry.visible()), 'private view idle expiry', 10000);
+      const expiryReads = expiry.reads();
+      await expiry.evaljs(
+        `window.dispatchEvent(new Event('focus'));document.dispatchEvent(new Event('visibilitychange'))`,
+      );
+      await pause(200);
+      assert.equal(expiry.reads(), expiryReads);
+      assert.deepEqual(expiry.errors, []);
+      await expiry.close();
+      evidence.tests.push(
+        'admin/private lease: verified deadline closes an idle private view and foreground events cannot reopen it',
+      );
+      const forbidden = { expiresAt: Date.now() + 120000, logouts: [], hold: false };
+      const deniedLease = await tab(reviewOrigin, path, 'review', forbidden);
+      forbidden.leaseStatus = 403;
+      await deniedLease.evaljs(`window.dispatchEvent(new Event('focus'))`);
+      await until(async () => !(await deniedLease.visible()), 'current lease denied');
+      const deniedCount = deniedLease.reads();
+      forbidden.leaseStatus = undefined;
+      await deniedLease.evaljs(`window.dispatchEvent(new Event('focus'))`);
+      await pause(150);
+      assert.equal(deniedLease.reads(), deniedCount);
+      await deniedLease.close();
+      evidence.tests.push(
+        'admin/private lease: fresh access denial closes the view without automatic reauthorization',
+      );
+      const changed = { expiresAt: Date.now() + 120000, logouts: [], hold: false };
+      const roleChange = await tab(reviewOrigin, path, 'review', changed);
+      changed.leaseRole = 'agent';
+      await roleChange.evaljs(`window.dispatchEvent(new Event('focus'))`);
+      await until(async () => !(await roleChange.visible()), 'current role changed');
+      await roleChange.close();
+      evidence.tests.push(
+        'admin/private lease: changed current role cannot retain the prior moderation view',
+      );
+      const delayed = {
+        expiresAt: Date.now() + 120000,
+        logouts: [],
+        hold: false,
+        leaseExpiresAt: Date.now() + 3500,
+      };
+      const lateLease = await tab(reviewOrigin, path, 'review', delayed);
+      delayed.holdLease = true;
+      await lateLease.evaljs(`window.dispatchEvent(new Event('focus'))`);
+      await until(() => lateLease.leaseHeld(), 'renewal held before deadline');
+      await until(
+        async () => !(await lateLease.visible()),
+        'held lease cannot outlive private deadline',
+        10000,
+      );
+      await lateLease
+        .leaseHeld()()
+        .catch(() => {});
+      await pause(200);
+      assert.equal(await lateLease.visible(), false);
+      await lateLease.close();
+      evidence.tests.push(
+        'admin/private lease: late renewal response cannot extend or reopen an expired view',
       );
       const hidden = { expiresAt: Date.now() + 120000, logouts: [], hold: false };
       const d = await tab(reviewOrigin, path, 'review', hidden);

@@ -1,3 +1,4 @@
+import { renderAfterVerifiedLease } from './verified-workspace-render.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
@@ -25,7 +26,7 @@ const props = (state) => ({
 });
 test('author markup discloses saved private exact snapshot and separately gated submit/withdraw, never reviewer decisions', () => {
   for (const state of ['draft', 'pending']) {
-    const h = render(React.createElement(Workspace, props(state)));
+    const h = renderAfterVerifiedLease(React.createElement(Workspace, props(state)));
     assert.ok(h.includes('Submit or withdraw saved listing'));
     assert.ok(h.includes('<fieldset disabled="">'));
     assert.ok(
@@ -47,7 +48,7 @@ test('author markup discloses saved private exact snapshot and separately gated 
   }
 });
 test('terminal author recovery shell has no fabricated fresh action and does not show private context', () => {
-  const h = render(
+  const h = renderAfterVerifiedLease(
     React.createElement(Workspace, { purpose: 'author', scope: scope(), context: null }),
   );
   assert.ok(h.includes('Checking this tab for an original'));

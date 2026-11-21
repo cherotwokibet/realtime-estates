@@ -1,3 +1,4 @@
+import { validateStaffAccessLease, type StaffAccessLease } from '@realtor/domain';
 import { readPublishedFloorPlanImageBytes, type FloorPlanImageDigest } from './floor-plan-image.js';
 export { readPublishedFloorPlanImageBytes, type FloorPlanImageDigest } from './floor-plan-image.js';
 import {
@@ -4980,6 +4981,14 @@ export class RealtorApiClient {
       }
     } catch (error) {
       return uncertainWriteError(error);
+    }
+  }
+  async getCurrentStaffAccessLeaseV2(options: StaffRequestOptions): Promise<StaffAccessLease> {
+    const data = await this.request('/v2/staff/session-lease', 'GET', uploadOptions(options));
+    try {
+      return validateStaffAccessLease(data);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Fresh staff access is unavailable.');
     }
   }
   async getCurrentStaffSessionV2(options: StaffRequestOptions): Promise<{

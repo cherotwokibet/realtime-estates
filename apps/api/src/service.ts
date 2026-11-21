@@ -1,3 +1,4 @@
+import { validateStaffAccessLease, STAFF_ACCESS_LEASE_MAX_MS } from '@realtor/domain';
 import { readSyntheticUploadBody, SyntheticUploadBodyError } from '@realtor/media/upload-body';
 import {
   validateFloorPlanPreparationCommand,
@@ -167,6 +168,7 @@ import {
 
 export interface VerifiedIdentity {
   readonly actorId: string;
+  readonly expiresAt?: number;
 }
 export interface LimiterResult {
   readonly allowed: boolean;
@@ -519,10 +521,11 @@ function safeError(error: unknown): HttpError {
     );
   return new HttpError(503, 'SERVICE_UNAVAILABLE', 'Service is unavailable.');
 }
-async function assertStaff(query: TransactionQuery): Promise<void> {
+async function assertStaff(query: TransactionQuery): Promise<'agent' | 'admin'> {
   const result = await query.query('SELECT app_private.staff_role() AS role');
   if (!['agent', 'admin'].includes(String(result.rows[0]?.role)))
     throw new HttpError(403, 'FORBIDDEN', 'An active staff membership is required.');
+  return result.rows[0]!.role as 'agent' | 'admin';
 }
 async function assertAdmin(query: TransactionQuery): Promise<void> {
   const result = await query.query('SELECT app_private.staff_role() AS role');
@@ -1797,6 +1800,7 @@ export function createApiService(
   const newId = options.uuid ?? randomUUID;
   const limiter = options.limiter ?? createLocalEnquiryLimiter();
   const requestLimiter = options.requestLimiter ?? createLocalEnquiryLimiter({ limit: 240 });
+  const verifiedExpiries = new WeakMap<Request, number>();
   async function identity(request: Request, required: boolean): Promise<string | null> {
     if (!request.headers.has('authorization')) {
       if (required)
@@ -1804,7 +1808,11 @@ export function createApiService(
       return null;
     }
     try {
-      return uuid((await options.verifyAuthorization(request)).actorId, 'Verified subject');
+      const verified = await options.verifyAuthorization(request);
+      const actor = uuid(verified.actorId, 'Verified subject');
+      if (Number.isSafeInteger(verified.expiresAt))
+        verifiedExpiries.set(request, verified.expiresAt!);
+      return actor;
     } catch {
       throw new HttpError(401, 'UNAUTHENTICATED', 'A valid bearer token is required.');
     }
@@ -4548,7 +4556,7 @@ export function createApiService(
             throw Error('Enquiry queue response exceeded bound.');
           return response(200, page, correlationId);
         }
-        if (path === '/v2/staff/session') {
+        if (path === '/v2/staff/session' || path === '/v2/staff/session-lease') {
           if (method !== 'GET')
             throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Staff context is read-only.', {
               Allow: 'GET',
@@ -4581,7 +4589,30 @@ export function createApiService(
           });
           if (forbidden) throw new HttpError(400, 'INVALID_INPUT', 'Unsupported staff context.');
           const value = await options.database.transaction(context, async (query) => {
-            await assertStaff(query);
+            const role = await assertStaff(query);
+            if (path === '/v2/staff/session-lease') {
+              const now = Date.now(),
+                expiry = verifiedExpiries.get(request);
+              if (!Number.isSafeInteger(expiry) || expiry! <= now)
+                throw new HttpError(
+                  401,
+                  'UNAUTHENTICATED',
+                  'Fresh verified credential expiry is required.',
+                );
+              return validateStaffAccessLease(
+                {
+                  policy: 'staff-access-lease-v1',
+                  tenantId,
+                  actorId,
+                  role,
+                  checkedAt: new Date(now).toISOString(),
+                  expiresAt: new Date(
+                    Math.min(expiry!, now + STAFF_ACCESS_LEASE_MAX_MS),
+                  ).toISOString(),
+                },
+                now,
+              );
+            }
             return { policy: 'current-staff-session-v2', tenantId, actorId };
           });
           return response(200, value, correlationId);

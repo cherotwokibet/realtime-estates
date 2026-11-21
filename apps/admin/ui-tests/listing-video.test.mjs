@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
-import { renderToStaticMarkup as render } from 'react-dom/server';
+import { renderAfterVerifiedLease as render } from './verified-workspace-render.mjs';
 import Workspace from '../dist/tests/components/ListingVideoWorkspace.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
   props = {

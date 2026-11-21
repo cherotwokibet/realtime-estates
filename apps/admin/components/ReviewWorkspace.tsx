@@ -86,7 +86,10 @@ type ReviewWorkspaceProps = {
 };
 export default function ReviewWorkspace(props: ReviewWorkspaceProps) {
   return (
-    <PrivateWorkspaceBoundary key={props.previewInstanceId}>
+    <PrivateWorkspaceBoundary
+      access={{ profile: 'staff', instanceId: props.previewInstanceId, role: 'admin' }}
+      key={props.previewInstanceId}
+    >
       <ReviewSession {...props} />
     </PrivateWorkspaceBoundary>
   );

@@ -16,7 +16,15 @@ export default function ListingVideoWorkspace(props: ListingVideoScreen) {
     props.scope.revision,
   ].join(':');
   return (
-    <PrivateWorkspaceBoundary key={scope}>
+    <PrivateWorkspaceBoundary
+      access={{
+        profile: 'staff',
+        instanceId: props.scope.instanceId,
+        tenantId: props.scope.tenantId,
+        actorId: props.scope.actorId,
+      }}
+      key={scope}
+    >
       <ListingVideoSession {...props} />
     </PrivateWorkspaceBoundary>
   );

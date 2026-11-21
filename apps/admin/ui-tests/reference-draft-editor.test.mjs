@@ -1,3 +1,4 @@
+import { renderAfterVerifiedLease } from './verified-workspace-render.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
@@ -79,7 +80,7 @@ test('unknown property type does not promise type-inapplicable amenities', () =>
 });
 import ReferenceDraftWorkspace from '../dist/tests/components/ReferenceDraftWorkspace.js';
 test('mounted reference workspace includes explicit refresh and retains disabled recovery-first initial state', () => {
-  const html = renderToStaticMarkup(React.createElement(ReferenceDraftWorkspace, props()));
+  const html = renderAfterVerifiedLease(React.createElement(ReferenceDraftWorkspace, props()));
   assert.match(html, /Refresh current reference draft/);
   assert.match(html, /Reference draft editor/);
   assert.match(html, /fieldset disabled/);

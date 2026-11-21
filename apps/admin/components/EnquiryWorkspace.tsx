@@ -75,7 +75,15 @@ function Snapshot({ value }: { value: StaffEnquiryDetailV2 }) {
 
 export default function EnquiryWorkspace(props: Props) {
   return (
-    <PrivateWorkspaceBoundary key={[props.instanceId, props.actor, props.actorId].join(':')}>
+    <PrivateWorkspaceBoundary
+      access={{
+        profile: props.actor,
+        instanceId: props.instanceId,
+        actorId: props.actorId,
+        role: props.actor,
+      }}
+      key={[props.instanceId, props.actor, props.actorId].join(':')}
+    >
       <EnquirySession {...props} />
     </PrivateWorkspaceBoundary>
   );

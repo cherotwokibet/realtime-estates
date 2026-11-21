@@ -21,7 +21,15 @@ export default function FloorPlanWorkspace(props: Screen) {
     props.scope.revision,
   ].join(':');
   return (
-    <PrivateWorkspaceBoundary key={scope}>
+    <PrivateWorkspaceBoundary
+      access={{
+        profile: 'staff',
+        instanceId: props.scope.instanceId,
+        tenantId: props.scope.tenantId,
+        actorId: props.scope.actorId,
+      }}
+      key={scope}
+    >
       <FloorPlanSession {...props} />
     </PrivateWorkspaceBoundary>
   );

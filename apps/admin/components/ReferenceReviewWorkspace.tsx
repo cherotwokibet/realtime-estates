@@ -35,7 +35,16 @@ export default function ReferenceReviewWorkspace(props: WorkspaceProps) {
     props.context?.review.listingVersion ?? 'recovery',
   ].join(':');
   return (
-    <PrivateWorkspaceBoundary key={key}>
+    <PrivateWorkspaceBoundary
+      access={{
+        profile: 'staff',
+        instanceId: props.scope.instanceId,
+        tenantId: props.scope.tenantId,
+        actorId: props.scope.actorId,
+        role: props.purpose === 'author' ? undefined : 'admin',
+      }}
+      key={key}
+    >
       <ReferenceReview {...props} />
     </PrivateWorkspaceBoundary>
   );

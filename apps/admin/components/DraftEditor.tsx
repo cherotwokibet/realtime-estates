@@ -110,6 +110,7 @@ type DraftEditorProps = {
 export default function DraftEditor(props: DraftEditorProps) {
   return (
     <PrivateWorkspaceBoundary
+      access={{ profile: 'staff', instanceId: props.previewInstanceId }}
       key={[props.previewInstanceId, props.listingId, props.revision].join(':')}
     >
       <DraftSession {...props} />

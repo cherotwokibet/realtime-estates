@@ -52,7 +52,7 @@ function setup(overrides = {}, sdkError = false, config = { projectId }) {
 }
 test('Firebase policy requires revocation checking and explicit actor mapping, ignoring company and role claims', async () => {
   const f = setup();
-  assert.deepEqual(await f.verify(token, true), { actorId: actor });
+  assert.deepEqual(await f.verify(token, true), { actorId: actor, expiresAt: (now + 3590) * 1000 });
   assert.deepEqual(f.calls, [{ value: token, revoked: true }]);
   assert.deepEqual(f.lookups, [{ projectId, authTenantId: null, uid: 'firebase-user-1' }]);
 });
@@ -78,7 +78,7 @@ test('wrong project, unverified email, anonymous, tenant mismatch and invalid ti
   }
   const old = setup({ auth_time: now - 301 });
   await assert.rejects(old.verify(token, true));
-  assert.deepEqual(await old.verify(token), { actorId: actor });
+  assert.deepEqual(await old.verify(token), { actorId: actor, expiresAt: (now + 3590) * 1000 });
 });
 test('disabled/revoked SDK failures and unmapped actors deny with no SDK diagnostics', async () => {
   const f = setup({}, true);
@@ -104,7 +104,7 @@ test('Firebase Identity Platform tenant is explicitly pinned and emulator activa
     projectId,
     authTenantId: 'company-auth',
   });
-  assert.deepEqual(await f.verify(token), { actorId: actor });
+  assert.deepEqual(await f.verify(token), { actorId: actor, expiresAt: (now + 3590) * 1000 });
   const prior = process.env.FIREBASE_AUTH_EMULATOR_HOST;
   try {
     process.env.FIREBASE_AUTH_EMULATOR_HOST = '';

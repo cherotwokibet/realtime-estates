@@ -137,8 +137,8 @@ export function createFirebaseIdentityVerifier(
 ): (token: string, requireRecentSignIn?: boolean) => Promise<VerifiedIdentity> {
   const verify = createFirebaseTokenVerifier(input, resolveActor, options);
   return async (token, recent = false) => {
-    const { actorId } = await verify(token, recent);
-    return Object.freeze({ actorId });
+    const { actorId, expiresAt } = await verify(token, recent);
+    return Object.freeze({ actorId, expiresAt });
   };
 }
 

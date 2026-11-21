@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderAfterVerifiedLease } from './verified-workspace-render.mjs';
 import { normalizeStaffDraftContentV2 } from '@realtor/domain';
 import ReferenceReviewWorkspace from '../dist/tests/components/ReferenceReviewWorkspace.js';
 import { catalogue, review, scope } from '../test-helpers/reference-moderation-fixture.mjs';
@@ -15,7 +15,7 @@ const props = () => ({
 });
 test('private reviewer initial markup shows complete historical facts and locks decisions until original restoration', () => {
   const p = props();
-  const html = renderToStaticMarkup(React.createElement(ReferenceReviewWorkspace, p));
+  const html = renderAfterVerifiedLease(React.createElement(ReferenceReviewWorkspace, p));
   assert.ok(html.includes('PRIVATE BFF REVIEW'));
   assert.ok(html.includes('Synthetic original county'));
   assert.ok(html.includes('Catalogue version 1'));
@@ -35,7 +35,7 @@ test('private reviewer initial markup shows complete historical facts and locks 
   assert.ok(html.includes('Advertised price'));
 });
 test('recovery shell has no fresh decision controls or fabricated review data', () => {
-  const html = renderToStaticMarkup(
+  const html = renderAfterVerifiedLease(
     React.createElement(ReferenceReviewWorkspace, { scope: scope(), context: null }),
   );
   assert.ok(html.includes('Checking this tab for an original decision'));
@@ -73,7 +73,7 @@ test('review prices retain exact cents and quote-required fees remain explicitly
       ],
     },
   });
-  const html = renderToStaticMarkup(React.createElement(ReferenceReviewWorkspace, p));
+  const html = renderAfterVerifiedLease(React.createElement(ReferenceReviewWorkspace, p));
   assert.ok(html.includes('KES 20,000.01'));
   assert.ok(html.includes('KES 1,000.01'));
   assert.ok(html.includes('Quote required'));
@@ -83,9 +83,9 @@ test('review prices retain exact cents and quote-required fees remain explicitly
 test('review content is escaped and mismatched historical context cannot render controls', () => {
   const p = structuredClone(props());
   p.context.review.content.privateAddress = '<script>synthetic()</script>';
-  const html = renderToStaticMarkup(React.createElement(ReferenceReviewWorkspace, p));
+  const html = renderAfterVerifiedLease(React.createElement(ReferenceReviewWorkspace, p));
   assert.ok(html.includes('&lt;script&gt;synthetic()&lt;/script&gt;'));
   assert.ok(!html.includes('<script>synthetic'));
   p.context.catalogue.version = '2';
-  assert.throws(() => renderToStaticMarkup(React.createElement(ReferenceReviewWorkspace, p)));
+  assert.throws(() => renderAfterVerifiedLease(React.createElement(ReferenceReviewWorkspace, p)));
 });

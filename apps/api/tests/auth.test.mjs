@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 import { createServer } from 'node:http';
-import { exportJWK, generateKeyPair, SignJWT } from 'jose';
+import { decodeJwt, exportJWK, generateKeyPair, SignJWT } from 'jose';
 import {
   AuthenticationError,
   AuthConfigurationError,
@@ -88,12 +88,15 @@ function signed(overrides = {}, headerOverrides = {}, signingKey = privateKey) {
     .sign(signingKey);
 }
 
-test('real RS256 signature yields only immutable verified subject identity, ignoring role/company claims', async () => {
+test('real RS256 signature yields immutable subject and verified expiry, ignoring role/company claims', async () => {
   const verify = createIdentityVerifier(configuration());
-  const result = await verify(
-    await signed({ role: 'admin', tenantId: 'other-company', memberships: [{ role: 'admin' }] }),
-  );
-  assert.deepEqual(result, { actorId: 'actor-fixture' });
+  const token = await signed({
+    role: 'admin',
+    tenantId: 'other-company',
+    memberships: [{ role: 'admin' }],
+  });
+  const result = await verify(token);
+  assert.deepEqual(result, { actorId: 'actor-fixture', expiresAt: decodeJwt(token).exp * 1000 });
   assert.equal(Object.isFrozen(result), true);
 });
 
@@ -194,7 +197,11 @@ test('trusted configuration is captured, not mutable through caller object', asy
   config.issuer = `${issuer}/attacker`;
   config.audience = 'attacker-api';
   config.jwksUrl = `${issuer}/attacker-keys`;
-  assert.deepEqual(await verify(await signed()), { actorId: 'actor-fixture' });
+  const token = await signed();
+  assert.deepEqual(await verify(token), {
+    actorId: 'actor-fixture',
+    expiresAt: decodeJwt(token).exp * 1000,
+  });
 });
 
 test('missing/untrusted identity configuration is rejected before any key fetch', () => {

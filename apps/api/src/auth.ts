@@ -11,6 +11,8 @@ export interface IdentityVerifierConfig {
 
 export interface VerifiedIdentity {
   readonly actorId: string;
+  /** Millisecond deadline supplied only by the verified credential provider. */
+  readonly expiresAt?: number;
 }
 
 export class AuthenticationError extends Error {
@@ -173,7 +175,7 @@ export function createIdentityVerifier(
       ) {
         throw new AuthenticationError();
       }
-      return Object.freeze({ actorId: payload.sub });
+      return Object.freeze({ actorId: payload.sub, expiresAt: payload.exp * 1000 });
     } catch {
       // Do not expose tokens, payload claims, keys, network URLs or JOSE diagnostics to callers.
       throw new AuthenticationError();
