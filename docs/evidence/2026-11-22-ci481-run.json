@@ -1,0 +1,633 @@
+{
+  "id": 44957141321,
+  "status": "completed",
+  "conclusion": "success",
+  "html_url": "https://github.com/cherotwokibet/realtime-estates/actions/runs/44957141321",
+  "head_sha": "1bc77e6488c3f954c1adcaa4d0364d8910251638",
+  "run_started_at": "2026-11-21T22:30:59Z",
+  "updated_at": "2026-11-21T22:42:39Z",
+  "jobs": [
+    {
+      "id": 137007651529,
+      "name": "plan",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-21T22:31:02Z",
+      "completed_at": "2026-11-21T22:31:13Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-21T22:31:03Z",
+          "completed_at": "2026-11-21T22:31:04Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-21T22:31:04Z",
+          "completed_at": "2026-11-21T22:31:08Z"
+        },
+        {
+          "name": "Run node scripts/ci/plan.mjs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-21T22:31:08Z",
+          "completed_at": "2026-11-21T22:31:09Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-21T22:31:09Z",
+          "completed_at": "2026-11-21T22:31:09Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-21T22:31:09Z",
+          "completed_at": "2026-11-21T22:31:10Z"
+        }
+      ]
+    },
+    {
+      "id": 137007710357,
+      "name": "Linux staging runtime verification",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-21T22:31:15Z",
+      "completed_at": "2026-11-21T22:35:08Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-21T22:31:15Z",
+          "completed_at": "2026-11-21T22:31:16Z"
+        },
+        {
+          "name": "Initialize containers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-21T22:31:16Z",
+          "completed_at": "2026-11-21T22:31:30Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-21T22:31:30Z",
+          "completed_at": "2026-11-21T22:31:32Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-21T22:31:32Z",
+          "completed_at": "2026-11-21T22:31:41Z"
+        },
+        {
+          "name": "Run npm ci --no-audit --no-fund",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-21T22:31:41Z",
+          "completed_at": "2026-11-21T22:31:54Z"
+        },
+        {
+          "name": "Run npm run build:web",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-21T22:31:54Z",
+          "completed_at": "2026-11-21T22:32:28Z"
+        },
+        {
+          "name": "Verify actual browser logout and expiry against synthetic authority",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-21T22:32:28Z",
+          "completed_at": "2026-11-21T22:34:04Z"
+        },
+        {
+          "name": "Run node --test scripts/stage-runtime-packages.test.mjs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-21T22:34:04Z",
+          "completed_at": "2026-11-21T22:34:04Z"
+        },
+        {
+          "name": "Verify real disposable PostgreSQL connections",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-21T22:34:04Z",
+          "completed_at": "2026-11-21T22:34:06Z"
+        },
+        {
+          "name": "Assemble and verify detached Linux runtimes",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-21T22:34:06Z",
+          "completed_at": "2026-11-21T22:35:05Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-11-21T22:35:05Z",
+          "completed_at": "2026-11-21T22:35:05Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-11-21T22:35:05Z",
+          "completed_at": "2026-11-21T22:35:05Z"
+        },
+        {
+          "name": "Stop containers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-11-21T22:35:05Z",
+          "completed_at": "2026-11-21T22:35:06Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-11-21T22:35:06Z",
+          "completed_at": "2026-11-21T22:35:06Z"
+        }
+      ]
+    },
+    {
+      "id": 137007710407,
+      "name": "Tests (web-admin)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-21T22:31:15Z",
+      "completed_at": "2026-11-21T22:32:33Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-21T22:31:15Z",
+          "completed_at": "2026-11-21T22:31:17Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-21T22:31:17Z",
+          "completed_at": "2026-11-21T22:31:24Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-21T22:31:24Z",
+          "completed_at": "2026-11-21T22:31:29Z"
+        },
+        {
+          "name": "Run npm ci --no-audit --no-fund",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-21T22:31:29Z",
+          "completed_at": "2026-11-21T22:31:38Z"
+        },
+        {
+          "name": "Run node scripts/ci/test-suite-group.mjs 'web-admin'",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-21T22:31:38Z",
+          "completed_at": "2026-11-21T22:32:31Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-21T22:32:31Z",
+          "completed_at": "2026-11-21T22:32:31Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-21T22:32:31Z",
+          "completed_at": "2026-11-21T22:32:31Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-21T22:32:31Z",
+          "completed_at": "2026-11-21T22:32:31Z"
+        }
+      ]
+    },
+    {
+      "id": 137007710436,
+      "name": "Tests (sdk-database)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-21T22:31:14Z",
+      "completed_at": "2026-11-21T22:40:45Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-21T22:31:15Z",
+          "completed_at": "2026-11-21T22:31:17Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-21T22:31:17Z",
+          "completed_at": "2026-11-21T22:31:20Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-21T22:31:20Z",
+          "completed_at": "2026-11-21T22:31:26Z"
+        },
+        {
+          "name": "Run npm ci --no-audit --no-fund",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-21T22:31:26Z",
+          "completed_at": "2026-11-21T22:31:35Z"
+        },
+        {
+          "name": "Run node scripts/ci/test-suite-group.mjs 'sdk-database'",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-21T22:31:35Z",
+          "completed_at": "2026-11-21T22:40:43Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-21T22:40:43Z",
+          "completed_at": "2026-11-21T22:40:43Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-21T22:40:43Z",
+          "completed_at": "2026-11-21T22:40:43Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-21T22:40:43Z",
+          "completed_at": "2026-11-21T22:40:43Z"
+        }
+      ]
+    },
+    {
+      "id": 137007710438,
+      "name": "Tests (domain-api)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-21T22:31:14Z",
+      "completed_at": "2026-11-21T22:34:50Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-21T22:31:15Z",
+          "completed_at": "2026-11-21T22:31:15Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-21T22:31:15Z",
+          "completed_at": "2026-11-21T22:31:18Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-21T22:31:18Z",
+          "completed_at": "2026-11-21T22:31:25Z"
+        },
+        {
+          "name": "Run npm ci --no-audit --no-fund",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-21T22:31:25Z",
+          "completed_at": "2026-11-21T22:31:36Z"
+        },
+        {
+          "name": "Run node scripts/ci/test-suite-group.mjs 'domain-api'",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-21T22:31:36Z",
+          "completed_at": "2026-11-21T22:34:48Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-21T22:34:48Z",
+          "completed_at": "2026-11-21T22:34:48Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-21T22:34:48Z",
+          "completed_at": "2026-11-21T22:34:48Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-21T22:34:48Z",
+          "completed_at": "2026-11-21T22:34:49Z"
+        }
+      ]
+    },
+    {
+      "id": 137007710446,
+      "name": "Tests (previews-mobile-media)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-21T22:31:15Z",
+      "completed_at": "2026-11-21T22:40:35Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-21T22:31:15Z",
+          "completed_at": "2026-11-21T22:31:16Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-21T22:31:16Z",
+          "completed_at": "2026-11-21T22:31:18Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-21T22:31:18Z",
+          "completed_at": "2026-11-21T22:31:25Z"
+        },
+        {
+          "name": "Run npm ci --no-audit --no-fund",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-21T22:31:25Z",
+          "completed_at": "2026-11-21T22:31:42Z"
+        },
+        {
+          "name": "Run node scripts/ci/test-suite-group.mjs 'previews-mobile-media'",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-21T22:31:42Z",
+          "completed_at": "2026-11-21T22:40:33Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-21T22:40:33Z",
+          "completed_at": "2026-11-21T22:40:33Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-21T22:40:33Z",
+          "completed_at": "2026-11-21T22:40:34Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-21T22:40:34Z",
+          "completed_at": "2026-11-21T22:40:34Z"
+        }
+      ]
+    },
+    {
+      "id": 137010219934,
+      "name": "verify",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-21T22:40:46Z",
+      "completed_at": "2026-11-21T22:42:38Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-21T22:40:47Z",
+          "completed_at": "2026-11-21T22:40:48Z"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-21T22:40:48Z",
+          "completed_at": "2026-11-21T22:40:50Z"
+        },
+        {
+          "name": "Select verification from the complete available Git diff",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-21T22:40:50Z",
+          "completed_at": "2026-11-21T22:40:50Z"
+        },
+        {
+          "name": "Check conservative verification planning",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-21T22:40:50Z",
+          "completed_at": "2026-11-21T22:40:51Z"
+        },
+        {
+          "name": "Require every test group before typechecks and builds",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-21T22:40:51Z",
+          "completed_at": "2026-11-21T22:40:51Z"
+        },
+        {
+          "name": "Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-21T22:40:51Z",
+          "completed_at": "2026-11-21T22:40:59Z"
+        },
+        {
+          "name": "Run npm ci --no-audit --no-fund",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-21T22:40:59Z",
+          "completed_at": "2026-11-21T22:41:12Z"
+        },
+        {
+          "name": "Run npm run format:check",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-21T22:41:12Z",
+          "completed_at": "2026-11-21T22:41:28Z"
+        },
+        {
+          "name": "Check manual Firebase rehearsal safeguards without provider requests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-21T22:41:28Z",
+          "completed_at": "2026-11-21T22:41:28Z"
+        },
+        {
+          "name": "Run npm run build:packages",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-21T22:41:28Z",
+          "completed_at": "2026-11-21T22:41:35Z"
+        },
+        {
+          "name": "Run npm run build --workspace=@realtor/api",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-21T22:41:35Z",
+          "completed_at": "2026-11-21T22:41:38Z"
+        },
+        {
+          "name": "Run npm run typecheck --workspaces --if-present",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-21T22:41:38Z",
+          "completed_at": "2026-11-21T22:41:55Z"
+        },
+        {
+          "name": "Run npm run build --workspace=@realtor/web",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-21T22:41:55Z",
+          "completed_at": "2026-11-21T22:42:07Z"
+        },
+        {
+          "name": "Run npm run build --workspace=@realtor/admin",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-21T22:42:07Z",
+          "completed_at": "2026-11-21T22:42:22Z"
+        },
+        {
+          "name": "Run npm run export:android --workspace=@realtor/mobile",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-21T22:42:22Z",
+          "completed_at": "2026-11-21T22:42:36Z"
+        },
+        {
+          "name": "Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-11-21T22:42:36Z",
+          "completed_at": "2026-11-21T22:42:36Z"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-11-21T22:42:36Z",
+          "completed_at": "2026-11-21T22:42:36Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-11-21T22:42:36Z",
+          "completed_at": "2026-11-21T22:42:36Z"
+        }
+      ]
+    }
+  ]
+}
