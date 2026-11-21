@@ -1,3 +1,4 @@
+import { KeyboardForm } from './KeyboardForm';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
@@ -144,77 +145,79 @@ export function SyntheticPropertyEnquiry({
       <Modal visible={open} animationType="slide" onRequestClose={close}>
         <SafeAreaProvider>
           <SafeAreaView style={s.root}>
-            <ScrollView contentContainerStyle={s.page}>
-              <Text accessibilityRole="header" style={s.title}>
-                {viewing ? 'Request a viewing' : 'Property enquiry'}
-              </Text>
-              <Text style={s.heading}>{draft?.title}</Text>
-              <Text style={s.copy}>
-                This preview uses fictional contact details and stores the enquiry in the local test
-                database.
-              </Text>
-              {viewing && <Text style={s.copy}>A realtor can follow up to propose a time.</Text>}
-              <Text style={s.copy}>
-                Synthetic Mobile Customer · mobile-customer@example.invalid
-              </Text>
-              {!locked && !unavailable && (
-                <>
-                  <Pressable
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: acknowledged }}
-                    onPress={() => setAcknowledged(!acknowledged)}
-                    style={s.button}
-                  >
-                    <Text style={s.buttonText}>
-                      {acknowledged ? '☑' : '☐'} I agree to save this fictional enquiry in the local
-                      preview.
-                    </Text>
-                  </Pressable>
-                </>
-              )}
-              {feedback !== '' && (
-                <Text accessibilityLiveRegion="polite" style={s.copy}>
-                  {feedback}
+            <KeyboardForm>
+              <ScrollView contentContainerStyle={s.page}>
+                <Text accessibilityRole="header" style={s.title}>
+                  {viewing ? 'Request a viewing' : 'Property enquiry'}
                 </Text>
-              )}
-              {status === 'sending' && (
-                <Text accessibilityLiveRegion="polite" style={s.copy}>
-                  Saving the enquiry…
+                <Text style={s.heading}>{draft?.title}</Text>
+                <Text style={s.copy}>
+                  This preview uses fictional contact details and stores the enquiry in the local
+                  test database.
                 </Text>
-              )}
-              {status !== 'received' && !unavailable && (
-                <CatalogueButton
-                  label={
-                    status === 'uncertain'
-                      ? 'Retry original request'
-                      : viewing
-                        ? 'Send viewing request'
-                        : 'Send synthetic enquiry'
-                  }
-                  onPress={() => void submit()}
-                  disabled={!acknowledged || status === 'sending'}
-                  styles={s}
-                />
-              )}
-              {status === 'received' && (
-                <Text selectable style={s.copy}>
-                  Reference {draft?.attempt?.state.receipt?.id}
+                {viewing && <Text style={s.copy}>A realtor can follow up to propose a time.</Text>}
+                <Text style={s.copy}>
+                  Synthetic Mobile Customer · mobile-customer@example.invalid
                 </Text>
-              )}
-              {status === 'received' && (
-                <CatalogueButton
-                  label="Done"
-                  onPress={() => {
-                    setOpen(false);
-                    setDraft(null);
-                    setAcknowledged(false);
-                    setFeedback('');
-                  }}
-                  styles={s}
-                />
-              )}
-              <CatalogueButton label="Back to properties" onPress={close} styles={s} />
-            </ScrollView>
+                {!locked && !unavailable && (
+                  <>
+                    <Pressable
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: acknowledged }}
+                      onPress={() => setAcknowledged(!acknowledged)}
+                      style={s.button}
+                    >
+                      <Text style={s.buttonText}>
+                        {acknowledged ? '☑' : '☐'} I agree to save this fictional enquiry in the
+                        local preview.
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
+                {feedback !== '' && (
+                  <Text accessibilityLiveRegion="polite" style={s.copy}>
+                    {feedback}
+                  </Text>
+                )}
+                {status === 'sending' && (
+                  <Text accessibilityLiveRegion="polite" style={s.copy}>
+                    Saving the enquiry…
+                  </Text>
+                )}
+                {status !== 'received' && !unavailable && (
+                  <CatalogueButton
+                    label={
+                      status === 'uncertain'
+                        ? 'Retry original request'
+                        : viewing
+                          ? 'Send viewing request'
+                          : 'Send synthetic enquiry'
+                    }
+                    onPress={() => void submit()}
+                    disabled={!acknowledged || status === 'sending'}
+                    styles={s}
+                  />
+                )}
+                {status === 'received' && (
+                  <Text selectable style={s.copy}>
+                    Reference {draft?.attempt?.state.receipt?.id}
+                  </Text>
+                )}
+                {status === 'received' && (
+                  <CatalogueButton
+                    label="Done"
+                    onPress={() => {
+                      setOpen(false);
+                      setDraft(null);
+                      setAcknowledged(false);
+                      setFeedback('');
+                    }}
+                    styles={s}
+                  />
+                )}
+                <CatalogueButton label="Back to properties" onPress={close} styles={s} />
+              </ScrollView>
+            </KeyboardForm>
           </SafeAreaView>
         </SafeAreaProvider>
       </Modal>

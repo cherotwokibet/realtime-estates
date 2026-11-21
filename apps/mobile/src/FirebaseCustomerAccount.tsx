@@ -1,15 +1,7 @@
+import { KeyboardForm } from './KeyboardForm';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import React, { useEffect, useState, useSyncExternalStore } from 'react';
-import {
-  AppState,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-} from 'react-native';
+import { AppState, Pressable, ScrollView, StyleSheet, Text, TextInput } from 'react-native';
 import { randomUUID } from 'expo-crypto';
 import { createFirebaseMobileSignIn } from './firebase-customer-sign-in';
 import { firebaseNativePasswordProvider } from './firebase-native-provider';
@@ -58,10 +50,7 @@ export function FirebaseCustomerAccount({ config }: { config: NativeFirebaseConf
   };
   return (
     <SafeAreaView style={styles.screen}>
-      <KeyboardAvoidingView
-        style={styles.screen}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardForm>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text accessibilityRole="header" style={styles.heading}>
             Your account
@@ -165,7 +154,7 @@ export function FirebaseCustomerAccount({ config }: { config: NativeFirebaseConf
             </>
           )}
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardForm>
     </SafeAreaView>
   );
 }

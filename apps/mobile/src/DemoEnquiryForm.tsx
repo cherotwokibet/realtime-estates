@@ -1,14 +1,6 @@
+import { KeyboardForm } from './KeyboardForm';
 import React, { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   DemoDraftError,
   type DemoEnquiryHandle,
@@ -33,10 +25,7 @@ export function DemoEnquiryForm({
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardForm>
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         <Pressable accessibilityRole="button" onPress={onBack} style={styles.button}>
           <Text style={{ color: primary }}>← Back to property</Text>
@@ -155,7 +144,7 @@ export function DemoEnquiryForm({
           </>
         )}
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardForm>
   );
 }
 const styles = StyleSheet.create({
