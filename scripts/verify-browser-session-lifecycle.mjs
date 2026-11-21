@@ -2,6 +2,9 @@
 // Never uses a personal browser profile, provider, account, database or paid service.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { registerHooks } from 'node:module';
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
 import { once } from 'node:events';
 import { createServer } from 'node:net';
 import { createServer as httpServer } from 'node:http';
@@ -10,10 +13,35 @@ import * as successorFixture from '../packages/api-client/tests/fixtures/referen
 import { staffListingFixture } from '../packages/domain/test-helpers/staff-listing-fixtures.mjs';
 import { openReferenceCreationEntry } from '../apps/admin/lib/reference-creation-entry.ts';
 import { referenceSuccessorSession } from '../apps/admin/lib/reference-successor-workspace.ts';
+
+import {
+  prepareStaffWrite,
+  markStaffWriteUncertain,
+  serializeStaffWrite,
+} from '../apps/admin/lib/staff-write-attempt.ts';
 import { mkdtemp, readFile, access, mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../', import.meta.url));
+// Fixture-only loading of source store protocols; no test-dist build or application bypass.
+// Transpile TS parameter properties using the repository's installed compiler, without writing files.
+const fixtureLibRoot = new URL('../apps/admin/lib/', import.meta.url).href;
+registerHooks({
+  load(url, context, next) {
+    if (url.startsWith(fixtureLibRoot) && url.endsWith('.ts'))
+      return {
+        format: 'module',
+        shortCircuit: true,
+        source: ts.transpileModule(readFileSync(new URL(url), 'utf8'), {
+          compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+        }).outputText,
+      };
+    return next(url, context);
+  },
+});
+const { creationAllocationSession, successorAllocationSession } =
+  await import('../apps/admin/lib/allocation-recovery.ts');
+
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 async function until(fn, label, ms = 20000) {
   const end = Date.now() + ms;
@@ -89,48 +117,60 @@ async function start(app, review = false) {
       'https://synthetic-api.example';
   env.PRIVACY_NOTICE_VERSION = 'synthetic-staff-v1';
   if (review) env.STAFF_PREVIEW_INSTANCE = id(900); // Fixture scope only; production preview BFF stays disabled.
-  if (review === 'references') {
+  if (review === 'references' || review === 'ordinary') {
     // Production client bundle, explicitly developer-mode fixture server/BFF policy.
     // No production-policy override is added to application code.
-    referenceServer = httpServer((req, res) => {
-      let body;
-      if (req.method !== 'GET') {
-        res.writeHead(405);
-        res.end();
-        return;
-      }
-      if (req.url === '/v3/staff/reference-session')
-        body = { policy: 'synthetic-reference-session-v1', tenantId: tenant, actorId: actor };
-      else if (req.url?.includes('/reference-catalogues/')) body = creationFixture.catalogue();
-      else if (req.url === '/v2/staff/listings/' + listing) {
-        const row = staffListingFixture(200);
-        body = {
-          ...row,
-          version: '1',
-          publicationStatus: 'unpublished',
-          publishedRevision: null,
-          latest: { ...row.latest, revision: 1, version: '4', state: 'rejected' },
-        };
-      } else {
-        res.writeHead(404);
-        res.end();
-        return;
-      }
-      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-      res.end(JSON.stringify(body));
-    });
-    referenceServer.listen(0, '127.0.0.1');
-    await once(referenceServer, 'listening');
+    if (!referenceServer) {
+      referenceServer = httpServer((req, res) => {
+        let body;
+        if (req.method !== 'GET') {
+          res.writeHead(405);
+          res.end();
+          return;
+        }
+        if (req.url === '/v2/staff/session')
+          body = { policy: 'current-staff-session-v2', tenantId: tenant, actorId: actor };
+        else if (req.url?.startsWith('/v2/staff/branches?'))
+          body = { policy: 'staff-branch-page-v1', items: [], nextAfter: null };
+        else if (req.url?.startsWith('/v2/staff/invitation-requests?'))
+          body = { policy: 'staff-invitation-page-v1', items: [], nextAfter: null };
+        else if (req.url === '/v3/staff/reference-session')
+          body = { policy: 'synthetic-reference-session-v1', tenantId: tenant, actorId: actor };
+        else if (req.url?.includes('/reference-catalogues/')) body = creationFixture.catalogue();
+        else if (req.url === '/v2/staff/listings/' + listing) {
+          const row = staffListingFixture(200);
+          body = {
+            ...row,
+            version: '1',
+            publicationStatus: 'unpublished',
+            publishedRevision: null,
+            latest: { ...row.latest, revision: 1, version: '4', state: 'rejected' },
+          };
+        } else {
+          res.writeHead(404);
+          res.end();
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify(body));
+      });
+      referenceServer.listen(0, '127.0.0.1');
+      await once(referenceServer, 'listening');
+    }
     Object.assign(env, {
       NODE_ENV: 'development',
       STAFF_PREVIEW_MODE: 'synthetic',
       STAFF_PREVIEW_API_ORIGIN: 'http://127.0.0.1:' + referenceServer.address().port,
       STAFF_PREVIEW_TOKEN: 'synthetic.fixture.signature',
       STAFF_PREVIEW_INSTANCE: id(900),
-      STAFF_PREVIEW_REFERENCE: 'synthetic-reference-draft-v1',
-      STAFF_PREVIEW_REFERENCE_MODERATION: 'synthetic-reference-transition-v1',
-      STAFF_PREVIEW_REFERENCE_CREATION: 'synthetic-reference-creation-v1',
-      STAFF_PREVIEW_REFERENCE_SUCCESSOR: 'synthetic-reference-successor-v1',
+      ...(review === 'references'
+        ? {
+            STAFF_PREVIEW_REFERENCE: 'synthetic-reference-draft-v1',
+            STAFF_PREVIEW_REFERENCE_MODERATION: 'synthetic-reference-transition-v1',
+            STAFF_PREVIEW_REFERENCE_CREATION: 'synthetic-reference-creation-v1',
+            STAFF_PREVIEW_REFERENCE_SUCCESSOR: 'synthetic-reference-successor-v1',
+          }
+        : { STAFF_DIRECTORY_PREVIEW_MODE: 'synthetic-v1' }),
     });
   }
   const child = spawn(
@@ -342,6 +382,67 @@ async function tab(origin, path, kind, model) {
       return;
     }
     if (
+      model.ordinaryKind &&
+      (/^\/api\/staff\/listings\//.test(u.pathname) ||
+        u.pathname.startsWith('/api/staff-directory/'))
+    ) {
+      reads++;
+      const command = model.ordinaryCommand;
+      let body;
+      if (model.ordinaryKind === 'directory')
+        body = {
+          record: {
+            ...command,
+            policy: 'staff-branch-record-v1',
+            actorId: actor,
+            version: '1',
+            outcome: 'applied',
+            recordedAt: '2026-11-21T17:00:00.000Z',
+          },
+        };
+      else if (model.ordinaryKind === 'allocation-creation')
+        body = {
+          listingId: command.listingId,
+          operationId: command.operationId,
+          actorId: actor,
+          kind: 'create_listing',
+          request: { slug: command.slug, content: command.content },
+          outcome: 'created',
+          reason: null,
+          result: { listingVersion: '1', revision: 1, revisionVersion: '2' },
+          completedAt: '2026-11-21T17:00:00.000Z',
+        };
+      else
+        body = {
+          listingId: command.listingId,
+          operationId: command.operationId,
+          actorId: actor,
+          kind: 'start_revision',
+          request: {
+            expectedListingVersion: command.expectedListingVersion,
+            predecessor: command.predecessor,
+            content: command.content,
+          },
+          decision: {
+            outcome: 'applied',
+            reason: null,
+            result: { listingVersion: '2', revision: 2, revisionVersion: '2' },
+          },
+          completedAt: '2026-11-21T17:00:00.000Z',
+        };
+      const complete = () =>
+        fulfil(
+          requestId,
+          model.ordinaryStatus
+            ? { error: 'SYNTHETIC_ACCESS_DENIED', submissionUncertain: false }
+            : body,
+          model.ordinaryStatus ?? 200,
+        );
+      if (model.holdOrdinary) held = complete;
+      else await complete();
+      return;
+    }
+    if (
       model.referenceKind &&
       /^\/api\/staff\/(reference-catalogues|listings)\//.test(u.pathname)
     ) {
@@ -442,25 +543,31 @@ async function tab(origin, path, kind, model) {
     });
   await cmd('Page.navigate', { url: origin + path });
   const selector =
-    kind === 'creation' || kind === 'successor'
-      ? '.draft-panel[aria-label="Reference ' + kind + ' workspace"]'
-      : kind === 'review'
-        ? '.review-workspace-layout'
-        : kind === 'staff'
-          ? '.hosted-staff'
-          : kind === 'customer'
-            ? '.customer-account'
-            : '.hosted-sign-in';
+    kind === 'directory'
+      ? '.staff-workspace'
+      : kind.startsWith('allocation-')
+        ? '.draft-panel[aria-label="Retained listing allocation workspace"]'
+        : kind === 'creation' || kind === 'successor'
+          ? '.draft-panel[aria-label="Reference ' + kind + ' workspace"]'
+          : kind === 'review'
+            ? '.review-workspace-layout'
+            : kind === 'staff'
+              ? '.hosted-staff'
+              : kind === 'customer'
+                ? '.customer-account'
+                : '.hosted-sign-in';
   const privateText =
-    kind === 'creation' || kind === 'successor'
-      ? 'PRIVATE_ORIGINAL_CANARY'
-      : kind === 'review'
-        ? 'PRIVATE_REVIEW_CANARY'
-        : kind === 'staff'
-          ? 'PRIVATE_BRANCH_CANARY'
-          : kind === 'customer'
-            ? 'PRIVATE_HOME_CANARY'
-            : 'You are signed in.';
+    kind === 'directory' || kind.startsWith('allocation-')
+      ? 'PRIVATE_STAFF_ORIGINAL_CANARY'
+      : kind === 'creation' || kind === 'successor'
+        ? 'PRIVATE_ORIGINAL_CANARY'
+        : kind === 'review'
+          ? 'PRIVATE_REVIEW_CANARY'
+          : kind === 'staff'
+            ? 'PRIVATE_BRANCH_CANARY'
+            : kind === 'customer'
+              ? 'PRIVATE_HOME_CANARY'
+              : 'You are signed in.';
   const text = () => evaljs(`document.querySelector(${JSON.stringify(selector)})?.innerText || ''`);
   const visible = async () => (await text()).includes(privateText);
   if (!model.allowChecking) await until(visible, kind + ' private initial render');
@@ -1032,6 +1139,128 @@ try {
       'admin/' +
         kind +
         ': idle credential deadline removes private forms/original and foreground does not reopen them',
+    );
+  }
+  const ordinaryOrigin = await start('admin', 'ordinary');
+  for (const kind of ['allocation-creation', 'allocation-successor', 'directory']) {
+    const identity = { instanceId: id(900), tenantId: tenant, actorId: actor },
+      map = new Map(),
+      store = {
+        getItem: (k) => map.get(k) ?? null,
+        setItem: (k, v) => map.set(k, v),
+        removeItem: (k) => map.delete(k),
+      };
+    let command;
+    if (kind === 'directory') {
+      command = {
+        policy: 'staff-branch-command-v1',
+        operationId: id(1000),
+        branchId: id(201),
+        expectedVersion: '0',
+        name: 'PRIVATE_STAFF_ORIGINAL_CANARY',
+        active: true,
+        reason: 'Synthetic original',
+      };
+      map.set(
+        'realtor.staff-write.v1:' + identity.instanceId + ':' + tenant + ':' + actor,
+        serializeStaffWrite(
+          markStaffWriteUncertain(prepareStaffWrite(identity, 'branch', command), identity),
+        ),
+      );
+    } else {
+      const { policy, selection, ...raw } = structuredClone(
+        (kind === 'allocation-creation' ? creationFixture : successorFixture).command(200),
+      );
+      command = raw;
+      command.content.title = 'PRIVATE_STAFF_ORIGINAL_CANARY';
+      if (kind === 'allocation-creation')
+        creationAllocationSession(store, identity).retain(command);
+      else successorAllocationSession(store, identity, listing).retain(command);
+    }
+    const seed = () => ({
+      ordinaryKind: kind,
+      ordinaryCommand: command,
+      originalEntries: [...map],
+      expiresAt: Date.now() + 120000,
+      logouts: [],
+      hold: false,
+    });
+    const path =
+      kind === 'directory'
+        ? '/staff'
+        : kind === 'allocation-creation'
+          ? '/listings/new'
+          : '/listings/' + listing + '/successor';
+    const label =
+      kind === 'directory' ? 'Recover original by GET' : 'Recover exact original with GET';
+    const snapshot = (t) => t.evaljs('JSON.stringify(Object.entries(sessionStorage).sort())');
+    const cleared = async (t, saved) => {
+      await until(async () => !(await t.visible()), kind + ' cleared');
+      assert.equal(await snapshot(t), saved);
+      assert.equal(await t.evaljs("document.querySelectorAll('input,textarea,select').length"), 0);
+      assert.doesNotMatch(
+        await t.evaljs('document.body.innerText'),
+        /PRIVATE_STAFF_ORIGINAL_CANARY/,
+      );
+    };
+    const model = seed(),
+      tabbed = await tab(ordinaryOrigin, path, kind, model),
+      before = await snapshot(tabbed);
+    model.holdOrdinary = true;
+    await tabbed.click(label);
+    await until(() => tabbed.held(), kind + ' held recovery');
+    await tabbed.evaljs(
+      "(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signing-out'});c.close()})()",
+    );
+    await cleared(tabbed, before);
+    await tabbed
+      .held()()
+      .catch(() => {});
+    await pause(150);
+    await cleared(tabbed, before);
+    const count = tabbed.reads();
+    await tabbed.evaljs("window.dispatchEvent(new Event('focus'))");
+    await pause(100);
+    assert.equal(tabbed.reads(), count);
+    assert.deepEqual(tabbed.errors, []);
+    await tabbed.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': logout clears private fields/original, cancels held recovery and suppresses late success without changing retained bytes',
+    );
+    for (const status of [401, 403]) {
+      const denied = seed(),
+        t = await tab(ordinaryOrigin, path, kind, denied),
+        saved = await snapshot(t);
+      denied.ordinaryStatus = status;
+      await t.click(label);
+      await cleared(t, saved);
+      assert.deepEqual(t.errors, []);
+      await t.close();
+      evidence.tests.push(
+        'admin/' +
+          kind +
+          ': raw HTTP ' +
+          status +
+          ' closes private rendering while preserving uncertain original',
+      );
+    }
+    const idle = seed();
+    idle.leaseExpiresAt = Date.now() + 5000;
+    const t = await tab(ordinaryOrigin, path, kind, idle),
+      saved = await snapshot(t);
+    await cleared(t, saved);
+    const n = t.reads();
+    await t.evaljs("window.dispatchEvent(new Event('focus'))");
+    await pause(100);
+    assert.equal(t.reads(), n);
+    assert.deepEqual(t.errors, []);
+    await t.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': verified idle expiry closes private rendering and focus cannot reopen it',
     );
   }
   console.log(JSON.stringify(evidence, null, 2));

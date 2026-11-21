@@ -44,6 +44,7 @@ const uuid = (v: unknown): string => {
 export function createStaffDirectoryClient(
   input: Readonly<{ instanceId: string }>,
   transport: typeof fetch = (...args) => globalThis.fetch(...args),
+  lifetime: Readonly<{ signal?: AbortSignal; onAccessDenied?: () => void }> = {},
 ) {
   if (
     !input ||
@@ -66,7 +67,11 @@ export function createStaffDirectoryClient(
   ): Promise<T> {
     const deadline = new AbortController(),
       timer = setTimeout(() => deadline.abort(), 15000),
-      combined = signal ? AbortSignal.any([signal, deadline.signal]) : deadline.signal,
+      combined = AbortSignal.any([
+        deadline.signal,
+        ...(signal ? [signal] : []),
+        ...(lifetime.signal ? [lifetime.signal] : []),
+      ]),
       writing = body !== undefined;
     let dispatched = false,
       abort = () => {};
@@ -130,6 +135,7 @@ export function createStaffDirectoryClient(
         void response.body?.cancel().catch(() => {});
         throw Error('Private response cannot be cached.');
       }
+      if (response.status === 401 || response.status === 403) lifetime.onAccessDenied?.();
       const data = await readReferenceJson(
         response,
         envelope === 'page' ? 65536 : 8192,
@@ -158,13 +164,14 @@ export function createStaffDirectoryClient(
       const expected = writing && path.includes('/invitations/operations/') ? 202 : 200;
       if (response.status !== expected || keys.length !== 1 || keys[0] !== envelope)
         throw Error('Invalid successful envelope.');
+      if (combined.aborted) throw new ApiClientError('CANCELLED', 'Cancelled.');
       return validate(record[envelope]);
     } catch (error) {
       if (error instanceof ApiClientError && error.kind === 'HTTP') throw error;
       throw new ApiClientError(
         deadline.signal.aborted
           ? 'TIMEOUT'
-          : signal?.aborted
+          : signal?.aborted || lifetime.signal?.aborted
             ? 'CANCELLED'
             : error instanceof ApiClientError
               ? error.kind

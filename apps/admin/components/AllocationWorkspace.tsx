@@ -6,8 +6,8 @@ import {
   openSuccessorAllocation,
   type AllocationIdentity,
 } from '../lib/allocation-recovery.ts';
-import { createListingCreationClient } from '../lib/listing-creation-client.ts';
-import { createListingSuccessorClient } from '../lib/listing-successor-client.ts';
+import { createPrivateAllocationClients } from '../lib/private-allocation-client.ts';
+import PrivateWorkspaceBoundary, { usePrivateWorkspaceClear } from './PrivateWorkspaceBoundary.tsx';
 import AllocationOriginal from './AllocationOriginal.tsx';
 type Props = { scope: AllocationIdentity } & (
   { kind: 'creation' } | { kind: 'revision'; listing: StaffListingSummary }
@@ -15,6 +15,23 @@ type Props = { scope: AllocationIdentity } & (
 type Entry = ReturnType<typeof openCreationAllocation> | ReturnType<typeof openSuccessorAllocation>;
 type Attempt = NonNullable<Entry['restored']>;
 export default function AllocationWorkspace(props: Props) {
+  return (
+    <PrivateWorkspaceBoundary
+      key={[
+        props.scope.instanceId,
+        props.scope.tenantId,
+        props.scope.actorId,
+        props.kind,
+        props.kind === 'revision' ? props.listing.listingId : 'new',
+      ].join(':')}
+      access={{ profile: 'staff', ...props.scope }}
+    >
+      <AllocationContent {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function AllocationContent(props: Props) {
+  const clearPrivate = usePrivateWorkspaceClear();
   const [slug, setSlug] = useState(''),
     [title, setTitle] = useState(''),
     [status, setStatus] = useState('restoring'),
@@ -38,17 +55,14 @@ export default function AllocationWorkspace(props: Props) {
     entry.current = null;
     active.current = null;
     setStatus('restoring');
+    const protectedClients = createPrivateAllocationClients(props.scope, clearPrivate);
     try {
       const scope = props.scope;
       const opened =
         props.kind === 'creation'
-          ? openCreationAllocation(
-              createListingCreationClient({ instanceId: scope.instanceId, scope }),
-              window.sessionStorage,
-              scope,
-            )
+          ? openCreationAllocation(protectedClients.creation, window.sessionStorage, scope)
           : openSuccessorAllocation(
-              createListingSuccessorClient({ instanceId: scope.instanceId, scope }),
+              protectedClients.successor,
               window.sessionStorage,
               scope,
               props.listing.listingId,
@@ -75,7 +89,11 @@ export default function AllocationWorkspace(props: Props) {
     } finally {
       if (gen === generation.current) flight.current = false;
     }
-    return () => abort.abort();
+    return () => {
+      generation.current++;
+      protectedClients.dispose();
+      abort.abort();
+    };
   }, [
     props.scope.instanceId,
     props.scope.tenantId,

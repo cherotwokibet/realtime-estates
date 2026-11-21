@@ -1,3 +1,4 @@
+import { renderAfterVerifiedLease } from './verified-workspace-render.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
@@ -5,7 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import StaffDirectoryWorkspace from '../dist/tests/components/StaffDirectoryWorkspace.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 test('staff workspace SSR shows explicit request-only scope, bounded directories and disabled writes until retained storage opens', () => {
-  const html = renderToStaticMarkup(
+  const html = renderAfterVerifiedLease(
     React.createElement(StaffDirectoryWorkspace, {
       scope: { instanceId: id(1), tenantId: id(2), actorId: id(3) },
       branches: { policy: 'staff-branch-page-v1', items: [], nextAfter: null },
@@ -31,7 +32,7 @@ test('staff workspace SSR shows explicit request-only scope, bounded directories
   assert.doesNotMatch(html, /Existing staff access|Review current access for/);
 });
 test('staff SSR membership directory marks own access unavailable and offers only peer review without credentials', () => {
-  const html = renderToStaticMarkup(
+  const html = renderAfterVerifiedLease(
     React.createElement(StaffDirectoryWorkspace, {
       scope: { instanceId: id(1), tenantId: id(2), actorId: id(3) },
       branches: { policy: 'staff-branch-page-v1', items: [], nextAfter: null },
@@ -76,7 +77,7 @@ test('staff SSR membership directory marks own access unavailable and offers onl
   assert.doesNotMatch(html, /bearerToken|STAFF_PREVIEW_TOKEN|type="password"/);
 });
 test('staff SSR escapes displayed branch labels while membership administration stays hidden when disabled', () => {
-  const html = renderToStaticMarkup(
+  const html = renderAfterVerifiedLease(
     React.createElement(StaffDirectoryWorkspace, {
       scope: { instanceId: id(1), tenantId: id(2), actorId: id(3) },
       branches: {

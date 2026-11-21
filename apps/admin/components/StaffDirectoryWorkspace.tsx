@@ -16,20 +16,33 @@ import {
   type StaffWriteController,
 } from '../lib/staff-write-controller.ts';
 import type { StaffWriteScope, StaffWriteAttempt } from '../lib/staff-write-attempt.ts';
+import PrivateWorkspaceBoundary, { usePrivateWorkspaceClear } from './PrivateWorkspaceBoundary.tsx';
 import { staffInvitationIntentForPage } from '../lib/staff-invitation-selection.ts';
-export default function StaffDirectoryWorkspace({
-  scope,
-  branches: initialBranches,
-  invitations: initialInvitations,
-  memberships: initialMemberships = null,
-  issuanceEnabled = false,
-}: {
+type StaffDirectoryProps = {
   scope: StaffWriteScope;
   branches: StaffBranchPage;
   invitations: StaffInvitationPage;
   memberships?: StaffMembershipPage | null;
   issuanceEnabled?: boolean;
-}) {
+};
+export default function StaffDirectoryWorkspace(props: StaffDirectoryProps) {
+  return (
+    <PrivateWorkspaceBoundary
+      key={[props.scope.instanceId, props.scope.tenantId, props.scope.actorId].join(':')}
+      access={{ profile: 'staff', ...props.scope, role: 'admin' }}
+    >
+      <StaffDirectoryContent {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function StaffDirectoryContent({
+  scope,
+  branches: initialBranches,
+  invitations: initialInvitations,
+  memberships: initialMemberships = null,
+  issuanceEnabled = false,
+}: StaffDirectoryProps) {
+  const clearPrivate = usePrivateWorkspaceClear();
   const visibleSecret = useRef<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const controller = useRef<StaffWriteController | null>(null),
@@ -62,20 +75,25 @@ export default function StaffDirectoryWorkspace({
   };
   useEffect(() => {
     let live = true;
-    const api = createStaffDirectoryClient({ instanceId: scope.instanceId }, async (...args) => {
-      const response = await fetch(...args);
-      if (live && (response.status === 401 || response.status === 403)) {
-        setDenied(true);
-        visibleSecret.current = null;
-        setSecret(null);
-        controller.current?.close();
-        setBranches({ policy: 'staff-branch-page-v1', items: [], nextAfter: null });
-        setInvitations({ policy: 'staff-invitation-page-v1', items: [], nextAfter: null });
-        setMemberships(null);
-        setMember(null);
-      }
-      return response;
-    });
+    const lifetime = new AbortController();
+    const api = createStaffDirectoryClient(
+      { instanceId: scope.instanceId },
+      async (...args) => {
+        const response = await fetch(...args);
+        if (live && (response.status === 401 || response.status === 403)) {
+          setDenied(true);
+          visibleSecret.current = null;
+          setSecret(null);
+          controller.current?.close();
+          setBranches({ policy: 'staff-branch-page-v1', items: [], nextAfter: null });
+          setInvitations({ policy: 'staff-invitation-page-v1', items: [], nextAfter: null });
+          setMemberships(null);
+          setMember(null);
+        }
+        return response;
+      },
+      { signal: lifetime.signal, onAccessDenied: clearPrivate },
+    );
     client.current = api;
     try {
       controller.current = createStaffWriteController({
@@ -111,6 +129,7 @@ export default function StaffDirectoryWorkspace({
     document.addEventListener('click', links, true);
     return () => {
       live = false;
+      lifetime.abort();
       visibleSecret.current = null;
       controller.current?.close();
       controller.current = null;
@@ -126,20 +145,31 @@ export default function StaffDirectoryWorkspace({
     after: string | null = null,
   ) {
     if (!client.current || denied) return;
+    const api = client.current;
     setReading(true);
     try {
-      if (kind === 'branches') setBranches(await client.current.listBranches({ limit: 10, after }));
-      else if (kind === 'invitations')
-        setInvitations(await client.current.listInvitations({ limit: 10, after }));
-      else if (memberships !== null)
-        setMemberships(await client.current.listMemberships({ limit: 10, after }));
-      setMessage('Current page refreshed.');
+      if (kind === 'branches') {
+        const value = await api.listBranches({ limit: 10, after });
+        if (client.current !== api) return;
+        setBranches(value);
+      } else if (kind === 'invitations') {
+        const value = await api.listInvitations({ limit: 10, after });
+        if (client.current !== api) return;
+        setInvitations(value);
+      } else if (memberships !== null) {
+        const value = await api.listMemberships({ limit: 10, after });
+        if (client.current !== api) return;
+        setMemberships(value);
+      }
+      if (client.current === api) setMessage('Current page refreshed.');
     } catch {
-      setMessage('Current authorized page could not be confirmed. Reload to verify access.');
+      if (client.current === api)
+        setMessage('Current authorized page could not be confirmed. Reload to verify access.');
     } finally {
-      setReading(false);
+      if (client.current === api) setReading(false);
     }
   }
+
   function prepare(kind: StaffWriteAttempt['kind'], command: unknown) {
     try {
       controller.current?.prepare(kind, command);

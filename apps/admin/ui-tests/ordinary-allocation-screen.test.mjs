@@ -1,3 +1,4 @@
+import { renderAfterVerifiedLease } from './verified-workspace-render.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
@@ -53,7 +54,7 @@ test('ordinary creation and current-draft successor markup lock new IDs/requests
     { kind: 'creation', scope },
     { kind: 'revision', scope, listing: staffListingFixture(100) },
   ]) {
-    const html = renderToStaticMarkup(React.createElement(Workspace, props));
+    const html = renderAfterVerifiedLease(React.createElement(Workspace, props));
     assert.match(html, /Checking for a retained original/);
     assert.match(html, /<fieldset disabled="">/);
     assert.match(html, /Closing the tab can remove it/);
