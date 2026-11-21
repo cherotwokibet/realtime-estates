@@ -554,19 +554,6 @@ function DemoApp() {
             </Text>
             <Text style={s.copy}>This preview does not sign you in or create an account.</Text>
             <View style={s.profileCard}>
-              <Text style={[s.eyebrow, { color: brand.primary }]}>AGENCY</Text>
-              <Text style={s.sectionTitle}>{brand.name}</Text>
-              <Text style={s.copy}>
-                You're exploring an independently built property experience with synthetic examples.
-              </Text>
-              <View style={s.divider} />
-              <Text style={s.inputLabel}>Account and activity</Text>
-              <Text style={s.copy}>
-                Live sign-in and enquiry receipts need the protected service. Demo drafts below stay
-                in this preview and are never submitted.
-              </Text>
-            </View>
-            <View style={s.profileCard}>
               <Text accessibilityRole="header" style={s.sectionTitle}>
                 Demo enquiry drafts ({drafts.length})
               </Text>
@@ -598,6 +585,19 @@ function DemoApp() {
                   </Pressable>
                 </View>
               ))}
+            </View>
+            <View style={s.profileCard}>
+              <Text style={[s.eyebrow, { color: brand.primary }]}>AGENCY</Text>
+              <Text style={s.sectionTitle}>{brand.name}</Text>
+              <Text style={s.copy}>
+                You're exploring an independently built property experience with synthetic examples.
+              </Text>
+              <View style={s.divider} />
+              <Text style={s.inputLabel}>Account and activity</Text>
+              <Text style={s.copy}>
+                Live sign-in and enquiry receipts need the protected service. Demo drafts stay in
+                this preview and are never submitted.
+              </Text>
             </View>
             <View style={s.infoBox}>
               <Text style={s.infoTitle}>Preview privacy</Text>
