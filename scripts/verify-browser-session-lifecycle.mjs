@@ -4,6 +4,12 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer } from 'node:net';
+import { createServer as httpServer } from 'node:http';
+import * as creationFixture from '../packages/api-client/tests/fixtures/reference-creation.mjs';
+import * as successorFixture from '../packages/api-client/tests/fixtures/reference-successor.mjs';
+import { staffListingFixture } from '../packages/domain/test-helpers/staff-listing-fixtures.mjs';
+import { openReferenceCreationEntry } from '../apps/admin/lib/reference-creation-entry.ts';
+import { referenceSuccessorSession } from '../apps/admin/lib/reference-successor-workspace.ts';
 import { mkdtemp, readFile, access, mkdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,7 +36,7 @@ const evidence = {
   nativeDeviceVerified: false,
 };
 const children = [];
-let socket;
+let socket, referenceServer;
 const pending = new Map(),
   handlers = new Map();
 let sequence = 0;
@@ -83,6 +89,50 @@ async function start(app, review = false) {
       'https://synthetic-api.example';
   env.PRIVACY_NOTICE_VERSION = 'synthetic-staff-v1';
   if (review) env.STAFF_PREVIEW_INSTANCE = id(900); // Fixture scope only; production preview BFF stays disabled.
+  if (review === 'references') {
+    // Production client bundle, explicitly developer-mode fixture server/BFF policy.
+    // No production-policy override is added to application code.
+    referenceServer = httpServer((req, res) => {
+      let body;
+      if (req.method !== 'GET') {
+        res.writeHead(405);
+        res.end();
+        return;
+      }
+      if (req.url === '/v3/staff/reference-session')
+        body = { policy: 'synthetic-reference-session-v1', tenantId: tenant, actorId: actor };
+      else if (req.url?.includes('/reference-catalogues/')) body = creationFixture.catalogue();
+      else if (req.url === '/v2/staff/listings/' + listing) {
+        const row = staffListingFixture(200);
+        body = {
+          ...row,
+          version: '1',
+          publicationStatus: 'unpublished',
+          publishedRevision: null,
+          latest: { ...row.latest, revision: 1, version: '4', state: 'rejected' },
+        };
+      } else {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify(body));
+    });
+    referenceServer.listen(0, '127.0.0.1');
+    await once(referenceServer, 'listening');
+    Object.assign(env, {
+      NODE_ENV: 'development',
+      STAFF_PREVIEW_MODE: 'synthetic',
+      STAFF_PREVIEW_API_ORIGIN: 'http://127.0.0.1:' + referenceServer.address().port,
+      STAFF_PREVIEW_TOKEN: 'synthetic.fixture.signature',
+      STAFF_PREVIEW_INSTANCE: id(900),
+      STAFF_PREVIEW_REFERENCE: 'synthetic-reference-draft-v1',
+      STAFF_PREVIEW_REFERENCE_MODERATION: 'synthetic-reference-transition-v1',
+      STAFF_PREVIEW_REFERENCE_CREATION: 'synthetic-reference-creation-v1',
+      STAFF_PREVIEW_REFERENCE_SUCCESSOR: 'synthetic-reference-successor-v1',
+    });
+  }
   const child = spawn(
     process.execPath,
     [resolve(root, 'node_modules/next/dist/bin/next'), 'start', '-p', String(p), '-H', '127.0.0.1'],
@@ -291,6 +341,30 @@ async function tab(origin, path, kind, model) {
       else await complete();
       return;
     }
+    if (
+      model.referenceKind &&
+      /^\/api\/staff\/(reference-catalogues|listings)\//.test(u.pathname)
+    ) {
+      reads++;
+      let body = creationFixture.catalogue();
+      if (u.pathname.includes('-operations/')) {
+        const input = JSON.parse(request.postData);
+        body = (model.referenceKind === 'creation' ? creationFixture : successorFixture).receipt(
+          input,
+          creationFixture.catalogue(),
+          actor,
+        );
+      }
+      const complete = () =>
+        fulfil(
+          requestId,
+          model.referenceStatus ? { submissionUncertain: true } : body,
+          model.referenceStatus ?? 200,
+        );
+      if (model.holdReference) held = complete;
+      else await complete();
+      return;
+    }
     if (!/^\/(auth\/|api\/customer\/|api\/hosted-staff\/|api\/staff\/reviews)/.test(u.pathname)) {
       await cmd('Fetch.continueRequest', { requestId });
       return;
@@ -362,23 +436,31 @@ async function tab(origin, path, kind, model) {
   await cmd('Page.enable');
   await cmd('Emulation.setFocusEmulationEnabled', { enabled: true });
   await cmd('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
+  if (model.originalEntries)
+    await cmd('Page.addScriptToEvaluateOnNewDocument', {
+      source: `for(const [k,v] of ${JSON.stringify(model.originalEntries)})sessionStorage.setItem(k,v);`,
+    });
   await cmd('Page.navigate', { url: origin + path });
   const selector =
-    kind === 'review'
-      ? '.review-workspace-layout'
-      : kind === 'staff'
-        ? '.hosted-staff'
-        : kind === 'customer'
-          ? '.customer-account'
-          : '.hosted-sign-in';
+    kind === 'creation' || kind === 'successor'
+      ? '.draft-panel[aria-label="Reference ' + kind + ' workspace"]'
+      : kind === 'review'
+        ? '.review-workspace-layout'
+        : kind === 'staff'
+          ? '.hosted-staff'
+          : kind === 'customer'
+            ? '.customer-account'
+            : '.hosted-sign-in';
   const privateText =
-    kind === 'review'
-      ? 'PRIVATE_REVIEW_CANARY'
-      : kind === 'staff'
-        ? 'PRIVATE_BRANCH_CANARY'
-        : kind === 'customer'
-          ? 'PRIVATE_HOME_CANARY'
-          : 'You are signed in.';
+    kind === 'creation' || kind === 'successor'
+      ? 'PRIVATE_ORIGINAL_CANARY'
+      : kind === 'review'
+        ? 'PRIVATE_REVIEW_CANARY'
+        : kind === 'staff'
+          ? 'PRIVATE_BRANCH_CANARY'
+          : kind === 'customer'
+            ? 'PRIVATE_HOME_CANARY'
+            : 'You are signed in.';
   const text = () => evaljs(`document.querySelector(${JSON.stringify(selector)})?.innerText || ''`);
   const visible = async () => (await text()).includes(privateText);
   if (!model.allowChecking) await until(visible, kind + ' private initial render');
@@ -852,6 +934,106 @@ try {
       );
     }
   }
+  const referenceOrigin = await start('admin', 'references');
+  for (const kind of ['creation', 'successor']) {
+    const fixture = kind === 'creation' ? creationFixture : successorFixture;
+    const original = structuredClone(fixture.command(200));
+    original.content.title = 'PRIVATE_ORIGINAL_CANARY';
+    original.content.privateAddress = 'PRIVATE_ORIGINAL_ADDRESS_CANARY';
+    const map = new Map(),
+      store = {
+        getItem: (k) => map.get(k) ?? null,
+        setItem: (k, v) => map.set(k, v),
+        removeItem: (k) => map.delete(k),
+      };
+    const identity = { instanceId: id(900), tenantId: tenant, actorId: actor };
+    if (kind === 'creation')
+      openReferenceCreationEntry(store, identity, () => listing).session.retain(
+        original,
+        fixture.catalogue(),
+      );
+    else
+      referenceSuccessorSession(store, { ...identity, listingId: listing }).retain(
+        original,
+        fixture.catalogue(),
+      );
+    const seed = () => ({
+      referenceKind: kind,
+      originalEntries: [...map],
+      expiresAt: Date.now() + 120000,
+      logouts: [],
+      hold: false,
+    });
+    const route = kind === 'creation' ? '/listings/new' : '/listings/' + listing + '/successor';
+    const snapshot = (t) => t.evaljs('JSON.stringify(Object.entries(sessionStorage).sort())');
+    const closeCheck = async (t, before) => {
+      await until(async () => !(await t.visible()), kind + ' private view cleared');
+      assert.equal(await snapshot(t), before, 'uncertain original must remain byte-for-byte');
+      assert.equal(await t.evaljs("document.querySelectorAll('input,textarea,select').length"), 0);
+      assert.doesNotMatch(await t.evaljs('document.body.innerText'), /PRIVATE_ORIGINAL/);
+    };
+    const m = seed(),
+      t = await tab(referenceOrigin, route, kind, m),
+      before = await snapshot(t);
+    m.holdReference = true;
+    await t.click('Recover original');
+    await until(() => t.held(), kind + ' recovery held');
+    await t.evaljs(
+      "(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signing-out'});c.close()})()",
+    );
+    await closeCheck(t, before);
+    await t
+      .held()()
+      .catch(() => {});
+    await pause(150);
+    await closeCheck(t, before);
+    const count = t.reads();
+    await t.evaljs(
+      "window.dispatchEvent(new Event('focus'));window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}))",
+    );
+    await pause(100);
+    assert.equal(t.reads(), count);
+    assert.deepEqual(t.errors, []);
+    await t.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': logout removes private form/original, cancels held recovery and refuses its late success while retaining exact original storage',
+    );
+    for (const status of [401, 403]) {
+      const denied = seed(),
+        d = await tab(referenceOrigin, route, kind, denied),
+        saved = await snapshot(d);
+      denied.referenceStatus = status;
+      await d.click('Recover original');
+      await closeCheck(d, saved);
+      assert.deepEqual(d.errors, []);
+      await d.close();
+      evidence.tests.push(
+        'admin/' +
+          kind +
+          ': raw HTTP ' +
+          status +
+          ' closes private rendering and preserves the uncertain original',
+      );
+    }
+    const idle = seed();
+    idle.leaseExpiresAt = Date.now() + 5000;
+    const exp = await tab(referenceOrigin, route, kind, idle),
+      saved = await snapshot(exp);
+    await closeCheck(exp, saved);
+    const n = exp.reads();
+    await exp.evaljs("window.dispatchEvent(new Event('focus'))");
+    await pause(100);
+    assert.equal(exp.reads(), n);
+    assert.deepEqual(exp.errors, []);
+    await exp.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': idle credential deadline removes private forms/original and foreground does not reopen them',
+    );
+  }
   console.log(JSON.stringify(evidence, null, 2));
 } finally {
   if (socket?.readyState === 1) {
@@ -863,6 +1045,10 @@ try {
       p.kill();
       await Promise.race([once(p, 'exit'), pause(3000)]);
     }
+  }
+  if (referenceServer) {
+    referenceServer.closeAllConnections();
+    await new Promise((r) => referenceServer.close(r));
   }
   for (const p of pending.values()) {
     clearTimeout(p.timer);

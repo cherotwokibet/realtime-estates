@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import PrivateWorkspaceBoundary, { usePrivateWorkspaceClear } from './PrivateWorkspaceBoundary.tsx';
 import {
   PROPERTY_TYPES,
   RENTAL_PERIODS,
@@ -29,6 +30,27 @@ const emptyForm = () =>
     }),
   );
 export default function ReferenceSuccessorWorkspace(props: ReferenceSuccessorWorkspaceProps) {
+  return (
+    <PrivateWorkspaceBoundary
+      key={[
+        props.scope.instanceId,
+        props.scope.tenantId,
+        props.scope.actorId,
+        props.scope.listingId,
+      ].join(':')}
+      access={{
+        profile: 'staff',
+        instanceId: props.scope.instanceId,
+        tenantId: props.scope.tenantId,
+        actorId: props.scope.actorId,
+      }}
+    >
+      <ReferenceSuccessorContent {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function ReferenceSuccessorContent(props: ReferenceSuccessorWorkspaceProps) {
+  const clearPrivate = usePrivateWorkspaceClear();
   const catalogue = useMemo(
     () => validateListingReferenceCatalogue(props.catalogue),
     [props.catalogue],
@@ -66,7 +88,7 @@ export default function ReferenceSuccessorWorkspace(props: ReferenceSuccessorWor
     setConfirmed(false);
     void (async () => {
       try {
-        const transport = createReferenceSuccessorClient(props.scope);
+        const transport = createReferenceSuccessorClient(props.scope, undefined, clearPrivate);
         const opened = await openReferenceSuccessorEntry(
           window.sessionStorage,
           props.scope,
@@ -100,7 +122,10 @@ export default function ReferenceSuccessorWorkspace(props: ReferenceSuccessorWor
         if (gen === generation.current) flight.current = false;
       }
     })();
-    return () => abort.abort();
+    return () => {
+      generation.current++;
+      abort.abort();
+    };
   }, [
     props.scope.instanceId,
     props.scope.tenantId,

@@ -1,3 +1,4 @@
+import { renderAfterVerifiedLease } from './verified-workspace-render.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
@@ -14,7 +15,7 @@ const props = () => ({
   catalogue: catalogue(),
 });
 test('creation initial markup locks allocation until storage restoration and does not allocate target IDs', () => {
-  const html = renderToStaticMarkup(React.createElement(ReferenceCreationWorkspace, props()));
+  const html = renderAfterVerifiedLease(React.createElement(ReferenceCreationWorkspace, props()));
   assert.match(html, /Reference creation workspace/);
   assert.match(html, /Checking for an original creation/);
   assert.match(html, /<fieldset disabled="">/);
@@ -24,7 +25,7 @@ test('creation initial markup locks allocation until storage restoration and doe
   assert.equal(html.includes('Replay identical original'), false);
 });
 test('creation provides explicit unknown reference choices, canonical property types and exact cost inputs', () => {
-  const html = renderToStaticMarkup(React.createElement(ReferenceCreationWorkspace, props()));
+  const html = renderAfterVerifiedLease(React.createElement(ReferenceCreationWorkspace, props()));
   assert.match(html, /Unknown type/);
   assert.match(html, /Unknown purpose/);
   assert.match(html, /Base price \(KES; blank is unknown\)/);
@@ -39,7 +40,7 @@ test('creation provides explicit unknown reference choices, canonical property t
 test('reference labels are escaped and unknown property type cannot preselect an amenity', () => {
   const p = props();
   p.catalogue.amenities[0].label = '<script>synthetic</script>';
-  const html = renderToStaticMarkup(React.createElement(ReferenceCreationWorkspace, p));
+  const html = renderAfterVerifiedLease(React.createElement(ReferenceCreationWorkspace, p));
   assert.equal(html.includes('<script>synthetic</script>'), false);
   assert.match(html, /&lt;script&gt;/);
   assert.match(html, /<input type="checkbox" disabled=""/);

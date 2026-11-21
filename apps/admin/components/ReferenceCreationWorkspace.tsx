@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import PrivateWorkspaceBoundary, { usePrivateWorkspaceClear } from './PrivateWorkspaceBoundary.tsx';
 import {
   PROPERTY_TYPES,
   RENTAL_PERIODS,
@@ -34,6 +35,22 @@ const emptyForm = () =>
     }),
   );
 export default function ReferenceCreationWorkspace(props: ReferenceCreationWorkspaceProps) {
+  return (
+    <PrivateWorkspaceBoundary
+      key={[props.identity.instanceId, props.identity.tenantId, props.identity.actorId].join(':')}
+      access={{
+        profile: 'staff',
+        instanceId: props.identity.instanceId,
+        tenantId: props.identity.tenantId,
+        actorId: props.identity.actorId,
+      }}
+    >
+      <ReferenceCreationContent {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function ReferenceCreationContent(props: ReferenceCreationWorkspaceProps) {
+  const clearPrivate = usePrivateWorkspaceClear();
   const catalogue = useMemo(
     () => validateListingReferenceCatalogue(props.catalogue),
     [props.catalogue],
@@ -74,7 +91,7 @@ export default function ReferenceCreationWorkspace(props: ReferenceCreationWorks
           crypto.randomUUID(),
         );
         entry.current = opened;
-        const base = createReferenceCreationClient(opened.scope);
+        const base = createReferenceCreationClient(opened.scope, undefined, clearPrivate);
         const transport = {
           ...base,
           async catalogue(version: string, signal?: AbortSignal) {
@@ -109,7 +126,10 @@ export default function ReferenceCreationWorkspace(props: ReferenceCreationWorks
         if (gen === generation.current) flight.current = false;
       }
     })();
-    return () => abort.abort();
+    return () => {
+      generation.current++;
+      abort.abort();
+    };
   }, [
     props.identity.instanceId,
     props.identity.tenantId,

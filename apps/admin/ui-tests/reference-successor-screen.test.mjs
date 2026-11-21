@@ -1,3 +1,4 @@
+import { renderAfterVerifiedLease } from './verified-workspace-render.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
@@ -89,7 +90,7 @@ test('actual page uses retained ordinary default and exact reference mode render
   }
 });
 test('successor initial markup locks allocation until storage restoration and does not allocate target IDs', () => {
-  const html = renderToStaticMarkup(React.createElement(ReferenceSuccessorWorkspace, props()));
+  const html = renderAfterVerifiedLease(React.createElement(ReferenceSuccessorWorkspace, props()));
   assert.match(html, /Reference successor workspace/);
   assert.match(html, /Checking for an original successor/);
   assert.match(html, /<fieldset disabled="">/);
@@ -99,7 +100,7 @@ test('successor initial markup locks allocation until storage restoration and do
   assert.equal(html.includes('Replay identical original'), false);
 });
 test('successor provides explicit unknown reference choices, canonical property types and exact cost inputs', () => {
-  const html = renderToStaticMarkup(React.createElement(ReferenceSuccessorWorkspace, props()));
+  const html = renderAfterVerifiedLease(React.createElement(ReferenceSuccessorWorkspace, props()));
   assert.match(html, /Unknown type/);
   assert.match(html, /Unknown purpose/);
   assert.match(html, /Base price \(KES; blank is unknown\)/);
@@ -114,7 +115,7 @@ test('successor provides explicit unknown reference choices, canonical property 
 test('reference labels are escaped and unknown property type cannot preselect an amenity', () => {
   const p = props();
   p.catalogue.amenities[0].label = '<script>synthetic</script>';
-  const html = renderToStaticMarkup(React.createElement(ReferenceSuccessorWorkspace, p));
+  const html = renderAfterVerifiedLease(React.createElement(ReferenceSuccessorWorkspace, p));
   assert.equal(html.includes('<script>synthetic</script>'), false);
   assert.match(html, /&lt;script&gt;/);
   assert.match(html, /<input type="checkbox" disabled=""/);

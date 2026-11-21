@@ -13,6 +13,7 @@ import { readReferenceJson } from './reference-draft-wire.ts';
 export function createReferenceSuccessorClient(
   input: ReferenceSuccessorScope,
   transport: typeof fetch = (...args) => globalThis.fetch(...args),
+  onAccessDenied?: () => void,
 ): ReferenceSuccessorClient {
   const captured: Record<string, string> = {},
     keys = ['instanceId', 'tenantId', 'actorId', 'listingId'],
@@ -75,6 +76,8 @@ export function createReferenceSuccessorClient(
       } finally {
         signal.removeEventListener('abort', abort);
       }
+      // Denial closes private rendering even if its error body is absent or malformed.
+      if (response.status === 401 || response.status === 403) onAccessDenied?.();
       const data = await readReferenceJson(response, response.ok ? maximum : 131072, signal);
       if (!response.ok) {
         const uncertain = (data as { submissionUncertain?: unknown })?.submissionUncertain;
