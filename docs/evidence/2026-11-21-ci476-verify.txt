@@ -1,0 +1,663 @@
+2026-11-21T15:10:33.4876470Z Current runner version: '2.338.2'
+2026-11-21T15:10:33.4895599Z ##[group]Runner Image Provisioner
+2026-11-21T15:10:33.4896325Z Hosted Compute Agent
+2026-11-21T15:10:33.4896727Z Version: 20261111.635
+2026-11-21T15:10:33.4897220Z Commit: b8a594ea514ff44cadb5342986c68b1eac6e22ed
+2026-11-21T15:10:33.4897751Z Build Date: 2026-11-11T01:49:01Z
+2026-11-21T15:10:33.4898246Z Worker ID: {1671529e-d977-4e78-8ccd-b6d70297bc36}
+2026-11-21T15:10:33.4898777Z Region: us-west-2
+2026-11-21T15:10:33.4899176Z Cloud: AWS
+2026-11-21T15:10:33.4899569Z ##[endgroup]
+2026-11-21T15:10:33.4900583Z ##[group]Operating System
+2026-11-21T15:10:33.4901202Z Ubuntu
+2026-11-21T15:10:33.4901601Z 24.04.5
+2026-11-21T15:10:33.4902014Z LTS
+2026-11-21T15:10:33.4902390Z ##[endgroup]
+2026-11-21T15:10:33.4902773Z ##[group]Runner Image
+2026-11-21T15:10:33.4903185Z Image: ubuntu-24.04
+2026-11-21T15:10:33.4903624Z Version: 20261116.133.1
+2026-11-21T15:10:33.4904799Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261116.133/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-21T15:10:33.4905960Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261116.133
+2026-11-21T15:10:33.4906642Z ##[endgroup]
+2026-11-21T15:10:33.4907486Z ##[group]GITHUB_TOKEN Permissions
+2026-11-21T15:10:33.4909227Z Contents: read
+2026-11-21T15:10:33.4909668Z Metadata: read
+2026-11-21T15:10:33.4910056Z ##[endgroup]
+2026-11-21T15:10:33.4911688Z Secret source: Actions
+2026-11-21T15:10:33.4912303Z Cache mode: write
+2026-11-21T15:10:33.4912830Z Prepare workflow directory
+2026-11-21T15:10:33.5146300Z Prepare all required actions
+2026-11-21T15:10:33.5183326Z Getting action download info
+2026-11-21T15:10:33.8621998Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-11-21T15:10:35.0242990Z Download action repository 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1' (SHA:949feb2413d6458794dcd2491c4babbbce0c15c1)
+2026-11-21T15:10:35.2638098Z Complete job name: verify
+2026-11-21T15:10:35.3309060Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+2026-11-21T15:10:35.3309978Z with:
+2026-11-21T15:10:35.3310379Z   persist-credentials: false
+2026-11-21T15:10:35.3310883Z   fetch-depth: 2
+2026-11-21T15:10:35.3311335Z   repository: cherotwokibet/realtime-estates
+2026-11-21T15:10:35.3315070Z   token: ***
+2026-11-21T15:10:35.3315514Z   ssh-strict: true
+2026-11-21T15:10:35.3315935Z   ssh-user: git
+2026-11-21T15:10:35.3316347Z   clean: true
+2026-11-21T15:10:35.3316766Z   sparse-checkout-cone-mode: true
+2026-11-21T15:10:35.3317245Z   fetch-tags: false
+2026-11-21T15:10:35.3317688Z   show-progress: true
+2026-11-21T15:10:35.3318115Z   lfs: false
+2026-11-21T15:10:35.3318520Z   submodules: false
+2026-11-21T15:10:35.3318991Z   set-safe-directory: true
+2026-11-21T15:10:35.3319447Z   allow-unsafe-pr-checkout: false
+2026-11-21T15:10:35.3320125Z ##[endgroup]
+2026-11-21T15:10:36.6288752Z Syncing repository: cherotwokibet/realtime-estates
+2026-11-21T15:10:36.6291946Z ##[group]Getting Git version info
+2026-11-21T15:10:36.6293236Z Working directory is '/home/runner/work/realtime-estates/realtime-estates'
+2026-11-21T15:10:36.6295427Z [command]/usr/bin/git version
+2026-11-21T15:10:36.9028935Z git version 2.56.1
+2026-11-21T15:10:36.9044004Z ##[endgroup]
+2026-11-21T15:10:36.9055793Z Temporarily overriding HOME='/home/runner/work/_temp/a38e9f6b-ab34-41f0-b011-4da704b53830' before making global git config changes
+2026-11-21T15:10:36.9059000Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-21T15:10:36.9062046Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/realtime-estates/realtime-estates
+2026-11-21T15:10:36.9102854Z Deleting the contents of '/home/runner/work/realtime-estates/realtime-estates'
+2026-11-21T15:10:36.9106477Z ##[group]Determining repository object format
+2026-11-21T15:10:36.9109014Z ##[endgroup]
+2026-11-21T15:10:36.9111082Z ##[group]Initializing the repository
+2026-11-21T15:10:36.9113695Z [command]/usr/bin/git init /home/runner/work/realtime-estates/realtime-estates
+2026-11-21T15:10:36.9863799Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-21T15:10:36.9866450Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-21T15:10:36.9868526Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-21T15:10:36.9870286Z hint: call:
+2026-11-21T15:10:36.9871169Z hint:
+2026-11-21T15:10:36.9872288Z hint: 	git config --global init.defaultBranch <name>
+2026-11-21T15:10:36.9873698Z hint:
+2026-11-21T15:10:36.9875309Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-21T15:10:36.9877265Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-21T15:10:36.9878847Z hint:
+2026-11-21T15:10:36.9879711Z hint: 	git branch -m <name>
+2026-11-21T15:10:36.9880718Z hint:
+2026-11-21T15:10:36.9882122Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-21T15:10:36.9884702Z Initialized empty Git repository in /home/runner/work/realtime-estates/realtime-estates/.git/
+2026-11-21T15:10:36.9888878Z [command]/usr/bin/git remote add origin https://github.com/cherotwokibet/realtime-estates
+2026-11-21T15:10:36.9921602Z ##[endgroup]
+2026-11-21T15:10:36.9923314Z ##[group]Disabling automatic garbage collection
+2026-11-21T15:10:36.9924979Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-21T15:10:36.9951857Z ##[endgroup]
+2026-11-21T15:10:36.9953367Z ##[group]Setting up auth
+2026-11-21T15:10:36.9954709Z Removing SSH command configuration
+2026-11-21T15:10:36.9956323Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-21T15:10:36.9982064Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-21T15:10:37.3043650Z Removing HTTP extra header
+2026-11-21T15:10:37.3049688Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-21T15:10:37.3074781Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-21T15:10:37.3226184Z Removing includeIf entries pointing to credentials config files
+2026-11-21T15:10:37.3228808Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-21T15:10:37.3260895Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-21T15:10:37.3415800Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-52465dbd-6510-4f5a-b32c-71b62bd5409d.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-21T15:10:37.3447529Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path /home/runner/work/_temp/git-credentials-52465dbd-6510-4f5a-b32c-71b62bd5409d.config
+2026-11-21T15:10:37.3473286Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-52465dbd-6510-4f5a-b32c-71b62bd5409d.config
+2026-11-21T15:10:37.3502884Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-52465dbd-6510-4f5a-b32c-71b62bd5409d.config
+2026-11-21T15:10:37.3527518Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-52465dbd-6510-4f5a-b32c-71b62bd5409d.config
+2026-11-21T15:10:37.3548796Z ##[endgroup]
+2026-11-21T15:10:37.3550542Z ##[group]Fetching the repository
+2026-11-21T15:10:37.3553926Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=2 origin +abe2a5863b721e81eb6e542d255f71f1ade3acf7:refs/remotes/origin/main
+2026-11-21T15:10:38.8159421Z From https://github.com/cherotwokibet/realtime-estates
+2026-11-21T15:10:38.8160289Z  * [new ref]         abe2a5863b721e81eb6e542d255f71f1ade3acf7 -> origin/main
+2026-11-21T15:10:38.8168117Z [command]/usr/bin/git branch --list --remote origin/main
+2026-11-21T15:10:38.8201462Z   origin/main
+2026-11-21T15:10:38.8206889Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-11-21T15:10:38.8227506Z abe2a5863b721e81eb6e542d255f71f1ade3acf7
+2026-11-21T15:10:38.8229157Z ##[endgroup]
+2026-11-21T15:10:38.8229694Z ##[group]Determining the checkout info
+2026-11-21T15:10:38.8230333Z ##[endgroup]
+2026-11-21T15:10:38.8234371Z [command]/usr/bin/git sparse-checkout disable
+2026-11-21T15:10:38.8288022Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-21T15:10:38.8310413Z ##[group]Checking out the ref
+2026-11-21T15:10:38.8313686Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-11-21T15:10:39.0710322Z Switched to a new branch 'main'
+2026-11-21T15:10:39.0716891Z branch 'main' set up to track 'origin/main'.
+2026-11-21T15:10:39.0728066Z ##[endgroup]
+2026-11-21T15:10:39.0768756Z [command]/usr/bin/git log -1 --format=%H
+2026-11-21T15:10:39.0790002Z abe2a5863b721e81eb6e542d255f71f1ade3acf7
+2026-11-21T15:10:39.0798382Z ##[group]Removing auth
+2026-11-21T15:10:39.0799015Z Removing SSH command configuration
+2026-11-21T15:10:39.0802270Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-21T15:10:39.0826458Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-21T15:10:39.0985037Z Removing HTTP extra header
+2026-11-21T15:10:39.0987778Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-21T15:10:39.1010505Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-21T15:10:39.1163404Z Removing includeIf entries pointing to credentials config files
+2026-11-21T15:10:39.1166854Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-21T15:10:39.1192468Z includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path
+2026-11-21T15:10:39.1193323Z includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path
+2026-11-21T15:10:39.1194559Z includeif.gitdir:/github/workspace/.git.path
+2026-11-21T15:10:39.1195086Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-21T15:10:39.1199456Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path
+2026-11-21T15:10:39.1217644Z /home/runner/work/_temp/git-credentials-52465dbd-6510-4f5a-b32c-71b62bd5409d.config
+2026-11-21T15:10:39.1225245Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-52465dbd\-6510\-4f5a\-b32c\-71b62bd5409d\.config
+2026-11-21T15:10:39.1250664Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path
+2026-11-21T15:10:39.1268537Z /home/runner/work/_temp/git-credentials-52465dbd-6510-4f5a-b32c-71b62bd5409d.config
+2026-11-21T15:10:39.1274647Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-52465dbd\-6510\-4f5a\-b32c\-71b62bd5409d\.config
+2026-11-21T15:10:39.1300219Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-21T15:10:39.1314995Z /github/runner_temp/git-credentials-52465dbd-6510-4f5a-b32c-71b62bd5409d.config
+2026-11-21T15:10:39.1320328Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-52465dbd\-6510\-4f5a\-b32c\-71b62bd5409d\.config
+2026-11-21T15:10:39.1344371Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-21T15:10:39.1361143Z /github/runner_temp/git-credentials-52465dbd-6510-4f5a-b32c-71b62bd5409d.config
+2026-11-21T15:10:39.1367604Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-52465dbd\-6510\-4f5a\-b32c\-71b62bd5409d\.config
+2026-11-21T15:10:39.1389796Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-21T15:10:39.1538173Z Removing credentials config '/home/runner/work/_temp/git-credentials-52465dbd-6510-4f5a-b32c-71b62bd5409d.config'
+2026-11-21T15:10:39.1543933Z ##[endgroup]
+2026-11-21T15:10:39.1691112Z ##[group]Run node scripts/ci/plan.mjs
+2026-11-21T15:10:39.1691455Z [36;1mnode scripts/ci/plan.mjs[0m
+2026-11-21T15:10:39.3529253Z shell: /usr/bin/bash -e {0}
+2026-11-21T15:10:39.3529883Z ##[endgroup]
+2026-11-21T15:10:41.3528328Z {"verify":true,"web":true,"admin":true,"mobile":true,"reason":"shared-tooling-or-unknown-change"}
+2026-11-21T15:10:41.3636829Z ##[group]Run node --test scripts/ci/plan.test.mjs scripts/ci/test-suite-group.test.mjs
+2026-11-21T15:10:41.3637387Z [36;1mnode --test scripts/ci/plan.test.mjs scripts/ci/test-suite-group.test.mjs[0m
+2026-11-21T15:10:41.3663368Z shell: /usr/bin/bash -e {0}
+2026-11-21T15:10:41.3663638Z ##[endgroup]
+2026-11-21T15:10:41.4405666Z TAP version 13
+2026-11-21T15:10:41.7798837Z # Subtest: formatting preserves immutable source evidence and deterministic generated indexes while keeping application code checked
+2026-11-21T15:10:41.7805865Z ok 1 - formatting preserves immutable source evidence and deterministic generated indexes while keeping application code checked
+2026-11-21T15:10:41.7806645Z   ---
+2026-11-21T15:10:41.7807015Z   duration_ms: 2.373605
+2026-11-21T15:10:41.7807607Z   type: 'test'
+2026-11-21T15:10:41.7807882Z   ...
+2026-11-21T15:10:41.7808353Z # Subtest: all documentation/evidence formats and one-shot tracker scripts avoid application runners
+2026-11-21T15:10:41.7809253Z ok 2 - all documentation/evidence formats and one-shot tracker scripts avoid application runners
+2026-11-21T15:10:41.7809733Z   ---
+2026-11-21T15:10:41.7810016Z   duration_ms: 0.751801
+2026-11-21T15:10:41.7810297Z   type: 'test'
+2026-11-21T15:10:41.7810565Z   ...
+2026-11-21T15:10:41.7811045Z # Subtest: runtime code always requires the full tests/types with only affected frontend production builds
+2026-11-21T15:10:41.7811794Z ok 3 - runtime code always requires the full tests/types with only affected frontend production builds
+2026-11-21T15:10:41.7812367Z   ---
+2026-11-21T15:10:41.7812625Z   duration_ms: 0.282494
+2026-11-21T15:10:41.7812926Z   type: 'test'
+2026-11-21T15:10:41.7813193Z   ...
+2026-11-21T15:10:41.7813705Z # Subtest: shared packages, lockfiles, workflow/planner changes and unknown/ambiguous paths fail closed to full verification
+2026-11-21T15:10:41.7814810Z ok 4 - shared packages, lockfiles, workflow/planner changes and unknown/ambiguous paths fail closed to full verification
+2026-11-21T15:10:41.7821004Z   ---
+2026-11-21T15:10:41.7821345Z   duration_ms: 0.247799
+2026-11-21T15:10:41.7821644Z   type: 'test'
+2026-11-21T15:10:41.7821904Z   ...
+2026-11-21T15:10:41.7822396Z # Subtest: real Git diff includes every commit and deleted runtime paths, not only the final documentation commit
+2026-11-21T15:10:41.7823178Z ok 5 - real Git diff includes every commit and deleted runtime paths, not only the final documentation commit
+2026-11-21T15:10:41.7823682Z   ---
+2026-11-21T15:10:41.7823964Z   duration_ms: 187.812461
+2026-11-21T15:10:41.7824385Z   type: 'test'
+2026-11-21T15:10:41.7824935Z   ...
+2026-11-21T15:10:41.7825640Z # Subtest: real documentation-only Git diff skips bundles while absent/unrelated/unknown events require full checks
+2026-11-21T15:10:41.7826606Z ok 6 - real documentation-only Git diff skips bundles while absent/unrelated/unknown events require full checks
+2026-11-21T15:10:41.7827177Z   ---
+2026-11-21T15:10:41.7827430Z   duration_ms: 94.068508
+2026-11-21T15:10:41.7827737Z   type: 'test'
+2026-11-21T15:10:41.7827998Z   ...
+2026-11-21T15:10:41.7828386Z # Subtest: renaming runtime content into documentation cannot bypass full tests
+2026-11-21T15:10:41.7828998Z ok 7 - renaming runtime content into documentation cannot bypass full tests
+2026-11-21T15:10:41.7829411Z   ---
+2026-11-21T15:10:41.7829685Z   duration_ms: 25.108398
+2026-11-21T15:10:41.7829963Z   type: 'test'
+2026-11-21T15:10:41.7830221Z   ...
+2026-11-21T15:10:41.7830786Z # Subtest: workflow preserves required verify result, concurrency, pinned actions, cache, full tests/types and explicit manual full run
+2026-11-21T15:10:41.7831550Z ok 8 - workflow preserves required verify result, concurrency, pinned actions, cache, full tests/types and explicit manual full run
+2026-11-21T15:10:41.7832048Z   ---
+2026-11-21T15:10:41.7832243Z   duration_ms: 0.583809
+2026-11-21T15:10:41.7832469Z   type: 'test'
+2026-11-21T15:10:41.7832688Z   ...
+2026-11-21T15:10:41.7833164Z # Subtest: combined integration job retains real SQL tests before packaging and the positive API image check
+2026-11-21T15:10:41.7833911Z ok 9 - combined integration job retains real SQL tests before packaging and the positive API image check
+2026-11-21T15:10:41.7834524Z   ---
+2026-11-21T15:10:41.7834742Z   duration_ms: 0.427288
+2026-11-21T15:10:41.7834994Z   type: 'test'
+2026-11-21T15:10:41.7835220Z   ...
+2026-11-21T15:10:41.8347503Z # Subtest: parallel CI includes every canonical serial test command exactly once across isolated groups
+2026-11-21T15:10:41.8348757Z ok 10 - parallel CI includes every canonical serial test command exactly once across isolated groups
+2026-11-21T15:10:41.8349410Z   ---
+2026-11-21T15:10:41.8349769Z   duration_ms: 2.580163
+2026-11-21T15:10:41.8350220Z   type: 'test'
+2026-11-21T15:10:41.8350558Z   ...
+2026-11-21T15:10:41.8351085Z # Subtest: missing, duplicated, new or shell-modified test commands fail closed to coverage review
+2026-11-21T15:10:41.8351933Z ok 11 - missing, duplicated, new or shell-modified test commands fail closed to coverage review
+2026-11-21T15:10:41.8352529Z   ---
+2026-11-21T15:10:41.8352878Z   duration_ms: 0.252179
+2026-11-21T15:10:41.8353234Z   type: 'test'
+2026-11-21T15:10:41.8353600Z   ...
+2026-11-21T15:10:41.8354086Z # Subtest: workflow runs every isolated test group and gates the required result on matrix success
+2026-11-21T15:10:41.8355030Z ok 12 - workflow runs every isolated test group and gates the required result on matrix success
+2026-11-21T15:10:41.8355619Z   ---
+2026-11-21T15:10:41.8355921Z   duration_ms: 0.289751
+2026-11-21T15:10:41.8356241Z   type: 'test'
+2026-11-21T15:10:41.8356532Z   ...
+2026-11-21T15:10:41.8356992Z # Subtest: preview isolation compiles the imported web test helpers before dev HTTP tests
+2026-11-21T15:10:41.8357727Z ok 13 - preview isolation compiles the imported web test helpers before dev HTTP tests
+2026-11-21T15:10:41.8358267Z   ---
+2026-11-21T15:10:41.8358530Z   duration_ms: 0.121505
+2026-11-21T15:10:41.8358869Z   type: 'test'
+2026-11-21T15:10:41.8359174Z   ...
+2026-11-21T15:10:41.8359453Z 1..13
+2026-11-21T15:10:41.8359733Z # tests 13
+2026-11-21T15:10:41.8359998Z # suites 0
+2026-11-21T15:10:41.8360320Z # pass 13
+2026-11-21T15:10:41.8360595Z # fail 0
+2026-11-21T15:10:41.8360845Z # cancelled 0
+2026-11-21T15:10:41.8361141Z # skipped 0
+2026-11-21T15:10:41.8361427Z # todo 0
+2026-11-21T15:10:41.8361791Z # duration_ms 437.365534
+2026-11-21T15:10:41.8435171Z ##[group]Run node -e "if(process.env.PLAN_RESULT!=='success'||!['true','false'].includes(process.env.EXPECT_TESTS)||(process.env.EXPECT_TESTS==='true'?process.env.TESTS_RESULT!=='success':process.env.TESTS_RESULT!=='skipped'))process.exit(1)"
+2026-11-21T15:10:41.8436390Z [36;1mnode -e "if(process.env.PLAN_RESULT!=='success'||!['true','false'].includes(process.env.EXPECT_TESTS)||(process.env.EXPECT_TESTS==='true'?process.env.TESTS_RESULT!=='success':process.env.TESTS_RESULT!=='skipped'))process.exit(1)"[0m
+2026-11-21T15:10:41.8463117Z shell: /usr/bin/bash -e {0}
+2026-11-21T15:10:41.8463429Z env:
+2026-11-21T15:10:41.8463665Z   PLAN_RESULT: success
+2026-11-21T15:10:41.8463913Z   EXPECT_TESTS: true
+2026-11-21T15:10:41.8464329Z   TESTS_RESULT: success
+2026-11-21T15:10:41.8464626Z ##[endgroup]
+2026-11-21T15:10:41.8801822Z ##[group]Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+2026-11-21T15:10:41.8802208Z with:
+2026-11-21T15:10:41.8802450Z   node-version: 24.19.0
+2026-11-21T15:10:41.8802686Z   cache: npm
+2026-11-21T15:10:41.8802919Z   check-latest: false
+2026-11-21T15:10:41.8805381Z   token: ***
+2026-11-21T15:10:41.8805645Z   package-manager-cache: true
+2026-11-21T15:10:41.8805930Z ##[endgroup]
+2026-11-21T15:10:41.9780763Z Attempting to download 24.19.0...
+2026-11-21T15:10:42.5882411Z Acquiring 24.19.0 - x64 from https://github.com/actions/node-versions/releases/download/24.19.0-30872449280/node-24.19.0-linux-x64.tar.gz
+2026-11-21T15:10:43.0680991Z Extracting ...
+2026-11-21T15:10:43.0776890Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/3fa93f1f-e94a-4ac9-ba73-8459bb882c7b -f /home/runner/work/_temp/05a109b0-12fc-4d8b-aafd-a9012af80ade
+2026-11-21T15:10:44.1098869Z Adding to the cache ...
+2026-11-21T15:10:45.0306700Z ##[group]Environment details
+2026-11-21T15:10:45.3553486Z node: v24.19.0
+2026-11-21T15:10:45.3553942Z npm: 11.17.0
+2026-11-21T15:10:45.3554353Z yarn: 1.22.22
+2026-11-21T15:10:45.3554868Z ##[endgroup]
+2026-11-21T15:10:45.3566662Z [command]/opt/hostedtoolcache/node/24.19.0/x64/bin/npm config get cache
+2026-11-21T15:10:45.4250387Z /home/runner/.npm
+2026-11-21T15:10:45.7002043Z Cache hit for: node-cache-Linux-x64-npm-82625ee3acd2a082890cdfae666be5685b62d737f367b2ef136249c683a37ac7
+2026-11-21T15:10:47.0868271Z Received 0 of 296774000 (0.0%), 0.0 MBs/sec
+2026-11-21T15:10:48.0877029Z Received 71303168 of 296774000 (24.0%), 34.0 MBs/sec
+2026-11-21T15:10:49.0887941Z Received 184549376 of 296774000 (62.2%), 58.6 MBs/sec
+2026-11-21T15:10:50.0945597Z Received 292579696 of 296774000 (98.6%), 69.7 MBs/sec
+2026-11-21T15:10:50.1311750Z Received 296774000 of 296774000 (100.0%), 70.0 MBs/sec
+2026-11-21T15:10:50.1312553Z Cache Size: ~283 MB (296774000 B)
+2026-11-21T15:10:50.1341102Z [command]/usr/bin/tar -xf /home/runner/work/_temp/fddce0aa-8a8a-42d0-8654-1d8cee7685e7/cache.tzst -P -C /home/runner/work/realtime-estates/realtime-estates --use-compress-program unzstd
+2026-11-21T15:10:50.3479731Z Cache restored successfully
+2026-11-21T15:10:50.3585010Z Cache restored from key: node-cache-Linux-x64-npm-82625ee3acd2a082890cdfae666be5685b62d737f367b2ef136249c683a37ac7
+2026-11-21T15:10:50.3743541Z ##[group]Run npm ci --no-audit --no-fund
+2026-11-21T15:10:50.3743904Z [36;1mnpm ci --no-audit --no-fund[0m
+2026-11-21T15:10:50.3772418Z shell: /usr/bin/bash -e {0}
+2026-11-21T15:10:50.3772732Z ##[endgroup]
+2026-11-21T15:10:55.1367599Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-11-21T15:10:55.2643315Z npm warn deprecated uuid@7.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-11-21T15:11:00.0696081Z 
+2026-11-21T15:11:00.0697103Z added 717 packages in 10s
+2026-11-21T15:11:00.0710092Z npm warn allow-scripts 2 packages have install scripts not yet covered by allowScripts:
+2026-11-21T15:11:00.0710784Z npm warn allow-scripts   @firebase/util@1.15.3 (postinstall: node ./postinstall.js)
+2026-11-21T15:11:00.0711476Z npm warn allow-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+2026-11-21T15:11:00.0711901Z npm warn allow-scripts
+2026-11-21T15:11:00.0712456Z npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+2026-11-21T15:11:00.1628216Z ##[group]Run npm run format:check
+2026-11-21T15:11:00.1628797Z [36;1mnpm run format:check[0m
+2026-11-21T15:11:00.1659092Z shell: /usr/bin/bash -e {0}
+2026-11-21T15:11:00.1659403Z ##[endgroup]
+2026-11-21T15:11:00.2483802Z 
+2026-11-21T15:11:00.2485247Z > realtor-platform@0.1.0 format:check
+2026-11-21T15:11:00.2485923Z > prettier . --check --ignore-unknown
+2026-11-21T15:11:00.2486201Z 
+2026-11-21T15:11:00.3118601Z Checking formatting...
+2026-11-21T15:11:14.1754772Z All matched files use Prettier code style!
+2026-11-21T15:11:14.2085772Z ##[group]Run node --test scripts/firebase-auth-provider-rehearsal.test.mjs
+2026-11-21T15:11:14.2086561Z [36;1mnode --test scripts/firebase-auth-provider-rehearsal.test.mjs[0m
+2026-11-21T15:11:14.2114456Z shell: /usr/bin/bash -e {0}
+2026-11-21T15:11:14.2114741Z ##[endgroup]
+2026-11-21T15:11:14.3706918Z ✔ refuses billing, foreign projects and stale evidence before any request (1.23905ms)
+2026-11-21T15:11:14.3715381Z ✔ one bounded lifecycle, exact ownership cleanup, no persisted credentials or false live proof (12.890105ms)
+2026-11-21T15:11:14.3716748Z ✔ quota refusal stops after one request without retrying signup or leaking response detail (0.59738ms)
+2026-11-21T15:11:14.3717801Z ✔ signature failure still deletes only the account created by this invocation (0.834265ms)
+2026-11-21T15:11:14.3718728Z ✔ ambiguous signup response recovers the same account once without another creation (0.626333ms)
+2026-11-21T15:11:14.3719786Z ✔ foreign lookup never deletes and reports required cleanup without credentials (0.706866ms)
+2026-11-21T15:11:14.3861411Z ℹ tests 6
+2026-11-21T15:11:14.3861847Z ℹ suites 0
+2026-11-21T15:11:14.3862161Z ℹ pass 6
+2026-11-21T15:11:14.3862451Z ℹ fail 0
+2026-11-21T15:11:14.3862750Z ℹ cancelled 0
+2026-11-21T15:11:14.3862979Z ℹ skipped 0
+2026-11-21T15:11:14.3863223Z ℹ todo 0
+2026-11-21T15:11:14.3863523Z ℹ duration_ms 148.377214
+2026-11-21T15:11:14.3923326Z ##[group]Run npm run build:packages
+2026-11-21T15:11:14.3923659Z [36;1mnpm run build:packages[0m
+2026-11-21T15:11:14.3949852Z shell: /usr/bin/bash -e {0}
+2026-11-21T15:11:14.3950190Z ##[endgroup]
+2026-11-21T15:11:14.4688729Z 
+2026-11-21T15:11:14.4689272Z > realtor-platform@0.1.0 build:packages
+2026-11-21T15:11:14.4690336Z > npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/demo && npm run build --workspace=@realtor/api-client && npm run build --workspace=@realtor/media && npm run build --workspace=@realtor/browser-auth
+2026-11-21T15:11:14.4690913Z 
+2026-11-21T15:11:14.5569228Z 
+2026-11-21T15:11:14.5570198Z > @realtor/domain@0.1.0 build
+2026-11-21T15:11:14.5570925Z > tsc -p tsconfig.json
+2026-11-21T15:11:14.5571165Z 
+2026-11-21T15:11:16.2267347Z 
+2026-11-21T15:11:16.2268237Z > @realtor/demo@0.1.0 build
+2026-11-21T15:11:16.2268895Z > tsc -p tsconfig.json
+2026-11-21T15:11:16.2269097Z 
+2026-11-21T15:11:16.9909436Z 
+2026-11-21T15:11:16.9911125Z > @realtor/api-client@0.1.0 build
+2026-11-21T15:11:16.9911726Z > tsc -p tsconfig.json
+2026-11-21T15:11:16.9911920Z 
+2026-11-21T15:11:18.3557306Z 
+2026-11-21T15:11:18.3558604Z > @realtor/media@0.1.0 build
+2026-11-21T15:11:18.3559421Z > tsc -p tsconfig.json
+2026-11-21T15:11:18.3560569Z 
+2026-11-21T15:11:19.8356792Z 
+2026-11-21T15:11:19.8357619Z > @realtor/browser-auth@0.1.0 build
+2026-11-21T15:11:19.8358040Z > tsc -p tsconfig.json
+2026-11-21T15:11:19.8358334Z 
+2026-11-21T15:11:20.7196547Z ##[group]Run npm run build --workspace=@realtor/api
+2026-11-21T15:11:20.7196942Z [36;1mnpm run build --workspace=@realtor/api[0m
+2026-11-21T15:11:20.7223277Z shell: /usr/bin/bash -e {0}
+2026-11-21T15:11:20.7223581Z ##[endgroup]
+2026-11-21T15:11:20.8105934Z 
+2026-11-21T15:11:20.8106486Z > @realtor/api@0.1.0 build
+2026-11-21T15:11:20.8106858Z > tsc -p tsconfig.json
+2026-11-21T15:11:20.8107093Z 
+2026-11-21T15:11:22.6715673Z ##[group]Run npm run typecheck --workspaces --if-present
+2026-11-21T15:11:22.6716103Z [36;1mnpm run typecheck --workspaces --if-present[0m
+2026-11-21T15:11:22.6742229Z shell: /usr/bin/bash -e {0}
+2026-11-21T15:11:22.6742612Z ##[endgroup]
+2026-11-21T15:11:22.7591509Z 
+2026-11-21T15:11:22.7592244Z > @realtor/admin@0.1.0 typecheck
+2026-11-21T15:11:22.7592710Z > tsc --noEmit
+2026-11-21T15:11:22.7592833Z 
+2026-11-21T15:11:27.0273337Z 
+2026-11-21T15:11:27.0274507Z > @realtor/api@0.1.0 typecheck
+2026-11-21T15:11:27.0275274Z > tsc -p tsconfig.json --noEmit
+2026-11-21T15:11:27.0275531Z 
+2026-11-21T15:11:28.6791208Z 
+2026-11-21T15:11:28.6792327Z > @realtor/mobile@0.1.0 typecheck
+2026-11-21T15:11:28.6793015Z > tsc --noEmit
+2026-11-21T15:11:28.6793275Z 
+2026-11-21T15:11:30.2306891Z 
+2026-11-21T15:11:30.2308032Z > @realtor/web@0.1.0 typecheck
+2026-11-21T15:11:30.2308443Z > tsc --noEmit
+2026-11-21T15:11:30.2308635Z 
+2026-11-21T15:11:32.3439821Z 
+2026-11-21T15:11:32.3440995Z > @realtor/api-client@0.1.0 typecheck
+2026-11-21T15:11:32.3441458Z > tsc -p tsconfig.json --noEmit
+2026-11-21T15:11:32.3441802Z 
+2026-11-21T15:11:33.4818923Z 
+2026-11-21T15:11:33.4819804Z > @realtor/browser-auth@0.1.0 typecheck
+2026-11-21T15:11:33.4820367Z > tsc -p tsconfig.json --noEmit
+2026-11-21T15:11:33.4820595Z 
+2026-11-21T15:11:34.3230074Z 
+2026-11-21T15:11:34.3231127Z > @realtor/demo@0.1.0 typecheck
+2026-11-21T15:11:34.3232069Z > tsc -p tsconfig.json --noEmit
+2026-11-21T15:11:34.3232410Z 
+2026-11-21T15:11:34.9819522Z 
+2026-11-21T15:11:34.9820454Z > @realtor/domain@0.1.0 typecheck
+2026-11-21T15:11:34.9820882Z > tsc -p tsconfig.json --noEmit
+2026-11-21T15:11:34.9821066Z 
+2026-11-21T15:11:36.3183834Z 
+2026-11-21T15:11:36.3185308Z > @realtor/media@0.1.0 typecheck
+2026-11-21T15:11:36.3186248Z > tsc -p tsconfig.json --noEmit
+2026-11-21T15:11:36.3186562Z 
+2026-11-21T15:11:37.5628479Z ##[group]Run npm run build --workspace=@realtor/web
+2026-11-21T15:11:37.5628898Z [36;1mnpm run build --workspace=@realtor/web[0m
+2026-11-21T15:11:37.5655328Z shell: /usr/bin/bash -e {0}
+2026-11-21T15:11:37.5655641Z ##[endgroup]
+2026-11-21T15:11:37.6513391Z 
+2026-11-21T15:11:37.9041825Z > @realtor/web@0.1.0 build
+2026-11-21T15:11:37.9042464Z > next build
+2026-11-21T15:11:37.9042646Z 
+2026-11-21T15:11:37.9043244Z ▲ Next.js 16.4.6 (Turbopack)
+2026-11-21T15:11:37.9256542Z ✓ Running next.config.ts took 21ms
+2026-11-21T15:11:37.9270086Z ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+2026-11-21T15:11:37.9312660Z Attention: Next.js now collects completely anonymous telemetry regarding usage.
+2026-11-21T15:11:37.9313448Z This information is used to shape Next.js' roadmap and prioritize features.
+2026-11-21T15:11:37.9314699Z You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+2026-11-21T15:11:37.9315458Z https://nextjs.org/telemetry
+2026-11-21T15:11:37.9315651Z 
+2026-11-21T15:11:37.9489586Z 
+2026-11-21T15:11:37.9731955Z   Creating an optimized production build ...
+2026-11-21T15:11:43.1371159Z ✓ Compiled successfully in 5.2s
+2026-11-21T15:11:43.1381768Z   Running TypeScript ...
+2026-11-21T15:11:45.7674930Z   Finished TypeScript in 2.6s ...
+2026-11-21T15:11:45.7691131Z   Collecting page data using 3 workers ...
+2026-11-21T15:11:46.4636527Z   Generating static pages using 3 workers (0/2) ...
+2026-11-21T15:11:46.5528541Z ✓ Generating static pages using 3 workers (2/2) in 89ms
+2026-11-21T15:11:46.5553078Z   Finalizing page optimization ...
+2026-11-21T15:11:46.8056112Z 
+2026-11-21T15:11:46.8072008Z Route (app)
+2026-11-21T15:11:46.8072723Z ┌ ƒ /
+2026-11-21T15:11:46.8073106Z ├ ○ /_not-found
+2026-11-21T15:11:46.8073655Z ├ ƒ /.well-known/apple-app-site-association
+2026-11-21T15:11:46.8074419Z ├ ƒ /.well-known/assetlinks.json
+2026-11-21T15:11:46.8074893Z ├ ƒ /account
+2026-11-21T15:11:46.8075192Z ├ ƒ /agents/[id]
+2026-11-21T15:11:46.8075608Z ├ ƒ /api/customer/[...segments]
+2026-11-21T15:11:46.8076003Z ├ ƒ /api/enquiry-intake
+2026-11-21T15:11:46.8076449Z ├ ƒ /api/listing-reports/[listing]/[operation]
+2026-11-21T15:11:46.8077006Z ├ ƒ /api/public-floor-plans/[id]/[revision]/[version]
+2026-11-21T15:11:46.8077573Z ├ ƒ /api/public-photos/[listing]/[revision]/[job]/[output]
+2026-11-21T15:11:46.8078322Z ├ ƒ /auth/[...segments]
+2026-11-21T15:11:46.8078706Z ├ ƒ /company
+2026-11-21T15:11:46.8079003Z ├ ƒ /contact
+2026-11-21T15:11:46.8079284Z ├ ƒ /enquire
+2026-11-21T15:11:46.8079610Z ├ ƒ /properties/[id]
+2026-11-21T15:11:46.8079956Z ├ ƒ /robots.txt
+2026-11-21T15:11:46.8080278Z ├ ƒ /sharing-card
+2026-11-21T15:11:46.8080565Z ├ ƒ /sign-in
+2026-11-21T15:11:46.8080902Z ├ ƒ /sitemap.xml
+2026-11-21T15:11:46.8081269Z └ ƒ /v2/customer/[...segments]
+2026-11-21T15:11:46.8081559Z 
+2026-11-21T15:11:46.8081566Z 
+2026-11-21T15:11:46.8081902Z ○  (Static)   prerendered as static content
+2026-11-21T15:11:46.8082367Z ƒ  (Dynamic)  server-rendered on demand
+2026-11-21T15:11:46.8082618Z 
+2026-11-21T15:11:47.1067022Z ##[group]Run npm run build --workspace=@realtor/admin
+2026-11-21T15:11:47.1067416Z [36;1mnpm run build --workspace=@realtor/admin[0m
+2026-11-21T15:11:47.1093751Z shell: /usr/bin/bash -e {0}
+2026-11-21T15:11:47.1094371Z ##[endgroup]
+2026-11-21T15:11:47.1968485Z 
+2026-11-21T15:11:47.1969341Z > @realtor/admin@0.1.0 build
+2026-11-21T15:11:47.1969768Z > next build
+2026-11-21T15:11:47.1970018Z 
+2026-11-21T15:11:47.4517149Z ▲ Next.js 16.4.6 (Turbopack)
+2026-11-21T15:11:47.4731288Z ✓ Running next.config.ts took 21ms
+2026-11-21T15:11:47.4732539Z ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+2026-11-21T15:11:47.4800236Z Attention: Next.js now collects completely anonymous telemetry regarding usage.
+2026-11-21T15:11:47.4801162Z This information is used to shape Next.js' roadmap and prioritize features.
+2026-11-21T15:11:47.4802287Z You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+2026-11-21T15:11:47.4802926Z https://nextjs.org/telemetry
+2026-11-21T15:11:47.4803187Z 
+2026-11-21T15:11:47.4954006Z 
+2026-11-21T15:11:47.5322871Z   Creating an optimized production build ...
+2026-11-21T15:11:53.7400388Z ✓ Compiled successfully in 6.2s
+2026-11-21T15:11:53.7485675Z   Running TypeScript ...
+2026-11-21T15:11:58.6086278Z   Finished TypeScript in 4.9s ...
+2026-11-21T15:11:58.6104372Z   Collecting page data using 3 workers ...
+2026-11-21T15:11:59.4653235Z   Generating static pages using 3 workers (0/2) ...
+2026-11-21T15:11:59.5359803Z ✓ Generating static pages using 3 workers (2/2) in 71ms
+2026-11-21T15:11:59.5389983Z   Finalizing page optimization ...
+2026-11-21T15:11:59.9993534Z 
+2026-11-21T15:12:00.0019762Z Route (app)
+2026-11-21T15:12:00.0020576Z ┌ ƒ /
+2026-11-21T15:12:00.0021113Z ├ ○ /_not-found
+2026-11-21T15:12:00.0021533Z ├ ƒ /api/company-settings
+2026-11-21T15:12:00.0022585Z ├ ƒ /api/company-settings/operations/[id]
+2026-11-21T15:12:00.0023058Z ├ ƒ /api/deletion-privacy
+2026-11-21T15:12:00.0024607Z ├ ƒ /api/deletion-privacy/[customerId]/[requestId]/[operationId]
+2026-11-21T15:12:00.0025561Z ├ ƒ /api/deletion-privacy/[customerId]/[requestId]/[operationId]/processing-plan
+2026-11-21T15:12:00.0026148Z ├ ƒ /api/deletion-triage
+2026-11-21T15:12:00.0026685Z ├ ƒ /api/deletion-triage/[customerId]/[requestId]/[operationId]
+2026-11-21T15:12:00.0027510Z ├ ƒ /api/deletion-triage/[customerId]/[requestId]/[operationId]/return
+2026-11-21T15:12:00.0027960Z ├ ƒ /api/enquiry-intake
+2026-11-21T15:12:00.0028421Z ├ ƒ /api/enquiry-preview/[actor]/assignees
+2026-11-21T15:12:00.0028894Z ├ ƒ /api/enquiry-preview/[actor]/capture
+2026-11-21T15:12:00.0029431Z ├ ƒ /api/enquiry-preview/[actor]/enquiries
+2026-11-21T15:12:00.0029978Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]
+2026-11-21T15:12:00.0030541Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/activity
+2026-11-21T15:12:00.0031254Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/contacts
+2026-11-21T15:12:00.0031897Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/contacts/recover
+2026-11-21T15:12:00.0032516Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/operations
+2026-11-21T15:12:00.0033238Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/operations/[operationId]
+2026-11-21T15:12:00.0034109Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewing-reminder-admissions/[admissionOperationId]/captures
+2026-11-21T15:12:00.0035682Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewing-reminder-admissions/[admissionOperationId]/captures/recover
+2026-11-21T15:12:00.0036474Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings
+2026-11-21T15:12:00.0037141Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]
+2026-11-21T15:12:00.0037890Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/cancellations
+2026-11-21T15:12:00.0038733Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/cancellations/recover
+2026-11-21T15:12:00.0039765Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/completions
+2026-11-21T15:12:00.0040639Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/completions/recover
+2026-11-21T15:12:00.0041474Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/confirmations
+2026-11-21T15:12:00.0042358Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/confirmations/recover
+2026-11-21T15:12:00.0043232Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/declines
+2026-11-21T15:12:00.0044000Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/declines/recover
+2026-11-21T15:12:00.0045083Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/history
+2026-11-21T15:12:00.0045887Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/no-shows
+2026-11-21T15:12:00.0046658Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/no-shows/recover
+2026-11-21T15:12:00.0047602Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/proposals
+2026-11-21T15:12:00.0048543Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/reminder-admissions
+2026-11-21T15:12:00.0049529Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/reminder-admissions/recover
+2026-11-21T15:12:00.0050398Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/reschedules
+2026-11-21T15:12:00.0051319Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/reschedules/recover
+2026-11-21T15:12:00.0052103Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/recover
+2026-11-21T15:12:00.0052715Z ├ ƒ /api/enquiry-preview/[actor]/queue
+2026-11-21T15:12:00.0053297Z ├ ƒ /api/enquiry-preview/[actor]/viewing-properties
+2026-11-21T15:12:00.0053821Z ├ ƒ /api/hosted-staff/[...segments]
+2026-11-21T15:12:00.0054620Z ├ ƒ /api/invitation-acceptance/[invitation]/operations/[operation]
+2026-11-21T15:12:00.0055183Z ├ ƒ /api/invitation-acceptance/session
+2026-11-21T15:12:00.0055647Z ├ ƒ /api/listing-reports
+2026-11-21T15:12:00.0056163Z ├ ƒ /api/listing-reports/[report]/operations/[operation]
+2026-11-21T15:12:00.0056624Z ├ ƒ /api/push-queue
+2026-11-21T15:12:00.0057062Z ├ ƒ /api/staff-directory/branches
+2026-11-21T15:12:00.0057511Z ├ ƒ /api/staff-directory/branches/[branch]
+2026-11-21T15:12:00.0058118Z ├ ƒ /api/staff-directory/branches/operations/[operation]
+2026-11-21T15:12:00.0058835Z ├ ƒ /api/staff-directory/invitation-issues/[invitation]/operations/[operation]
+2026-11-21T15:12:00.0059625Z ├ ƒ /api/staff-directory/invitation-issues/[invitation]/operations/[operation]/state
+2026-11-21T15:12:00.0060328Z ├ ƒ /api/staff-directory/invitations
+2026-11-21T15:12:00.0060868Z ├ ƒ /api/staff-directory/invitations/[invitation]
+2026-11-21T15:12:00.0061560Z ├ ƒ /api/staff-directory/invitations/[invitation]/revocations/[operation]
+2026-11-21T15:12:00.0062271Z ├ ƒ /api/staff-directory/invitations/operations/[operation]
+2026-11-21T15:12:00.0062809Z ├ ƒ /api/staff-directory/memberships
+2026-11-21T15:12:00.0063376Z ├ ƒ /api/staff-directory/memberships/[member]
+2026-11-21T15:12:00.0064005Z ├ ƒ /api/staff-directory/memberships/operations/[operation]
+2026-11-21T15:12:00.0064806Z ├ ƒ /api/staff/drafts/[id]/[revision]
+2026-11-21T15:12:00.0065363Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-attach-intents
+2026-11-21T15:12:00.0066097Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-attach-intents/[operationId]
+2026-11-21T15:12:00.0067275Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-attach-intents/[operationId]/finalize
+2026-11-21T15:12:00.0068138Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-jobs/[jobId]/uploads/[uploadId]
+2026-11-21T15:12:00.0068860Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-operations/[operationId]
+2026-11-21T15:12:00.0069497Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-registrations
+2026-11-21T15:12:00.0070248Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-registrations/[registrationId]
+2026-11-21T15:12:00.0070907Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-removals
+2026-11-21T15:12:00.0071619Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-reorders
+2026-11-21T15:12:00.0072261Z ├ ƒ /api/staff/drafts/[id]/[revision]/media/[mediaId]/preview
+2026-11-21T15:12:00.0072814Z ├ ƒ /api/staff/drafts/[id]/[revision]/submit
+2026-11-21T15:12:00.0073401Z ├ ƒ /api/staff/drafts/[id]/[revision]/workspace
+2026-11-21T15:12:00.0073981Z ├ ƒ /api/staff/listing-import-preview
+2026-11-21T15:12:00.0074865Z ├ ƒ /api/staff/listings/[id]/availability-operations/[operationId]
+2026-11-21T15:12:00.0075522Z ├ ƒ /api/staff/listings/[id]/creation-operations/[operationId]
+2026-11-21T15:12:00.0076167Z ├ ƒ /api/staff/listings/[id]/duplicate-candidates
+2026-11-21T15:12:00.0076974Z ├ ƒ /api/staff/listings/[id]/floor-plan-images/[revision]/[version]/[operationId]
+2026-11-21T15:12:00.0079650Z ├ ƒ /api/staff/listings/[id]/floor-plan-inputs/[revision]/[version]/[requestId]
+2026-11-21T15:12:00.0080500Z ├ ƒ /api/staff/listings/[id]/floor-plan-operations/[operationId]
+2026-11-21T15:12:00.0081196Z ├ ƒ /api/staff/listings/[id]/floor-plan-operations/[operationId]/recover
+2026-11-21T15:12:00.0081959Z ├ ƒ /api/staff/listings/[id]/floor-plan-revisions/[revision]
+2026-11-21T15:12:00.0082687Z ├ ƒ /api/staff/listings/[id]/publication-operations/[operationId]
+2026-11-21T15:12:00.0083390Z ├ ƒ /api/staff/listings/[id]/reference-creation-operations/[operationId]
+2026-11-21T15:12:00.0084471Z ├ ƒ /api/staff/listings/[id]/reference-creation-operations/[operationId]/recover
+2026-11-21T15:12:00.0085314Z ├ ƒ /api/staff/listings/[id]/reference-draft-operations/[operationId]
+2026-11-21T15:12:00.0086144Z ├ ƒ /api/staff/listings/[id]/reference-draft-operations/[operationId]/recover
+2026-11-21T15:12:00.0087068Z ├ ƒ /api/staff/listings/[id]/reference-successor-operations/[operationId]
+2026-11-21T15:12:00.0088026Z ├ ƒ /api/staff/listings/[id]/reference-successor-operations/[operationId]/recover
+2026-11-21T15:12:00.0088834Z ├ ƒ /api/staff/listings/[id]/reference-transition-operations/[operationId]
+2026-11-21T15:12:00.0089681Z ├ ƒ /api/staff/listings/[id]/reference-transition-operations/[operationId]/recover
+2026-11-21T15:12:00.0090579Z ├ ƒ /api/staff/listings/[id]/retained-creation-operations/[operationId]
+2026-11-21T15:12:00.0091332Z ├ ƒ /api/staff/listings/[id]/retained-revision-operations/[operationId]
+2026-11-21T15:12:00.0092041Z ├ ƒ /api/staff/listings/[id]/revision-operations/[operationId]
+2026-11-21T15:12:00.0092692Z ├ ƒ /api/staff/listings/[id]/verification-history
+2026-11-21T15:12:00.0093340Z ├ ƒ /api/staff/listings/[id]/verification-operations/[operationId]
+2026-11-21T15:12:00.0094029Z ├ ƒ /api/staff/listings/[id]/video-operations/[operationId]
+2026-11-21T15:12:00.0094943Z ├ ƒ /api/staff/listings/[id]/video-operations/[operationId]/recover
+2026-11-21T15:12:00.0095585Z ├ ƒ /api/staff/reference-catalogues/[version]
+2026-11-21T15:12:00.0096085Z ├ ƒ /api/staff/reference-session
+2026-11-21T15:12:00.0096558Z ├ ƒ /api/staff/reviews
+2026-11-21T15:12:00.0097005Z ├ ƒ /api/staff/reviews/[id]/[revision]
+2026-11-21T15:12:00.0097505Z ├ ƒ /api/staff/reviews/[id]/[revision]/decision
+2026-11-21T15:12:00.0098122Z ├ ƒ /api/staff/reviews/[id]/[revision]/media-gallery
+2026-11-21T15:12:00.0098755Z ├ ƒ /api/staff/reviews/[id]/[revision]/media/[mediaId]/preview
+2026-11-21T15:12:00.0099503Z ├ ƒ /api/staff/reviews/[id]/floor-plan-images/[revision]/[version]/[operationId]
+2026-11-21T15:12:00.0100446Z ├ ƒ /audit
+2026-11-21T15:12:00.0100771Z ├ ƒ /auth/[...segments]
+2026-11-21T15:12:00.0101397Z ├ ƒ /deletion-privacy
+2026-11-21T15:12:00.0101832Z ├ ƒ /deletion-triage
+2026-11-21T15:12:00.0102217Z ├ ƒ /drafts/[id]/[revision]
+2026-11-21T15:12:00.0102655Z ├ ƒ /drafts/[id]/[revision]/floor-plan
+2026-11-21T15:12:00.0103158Z ├ ƒ /drafts/[id]/[revision]/references
+2026-11-21T15:12:00.0103645Z ├ ƒ /drafts/[id]/[revision]/submission
+2026-11-21T15:12:00.0104322Z ├ ƒ /drafts/[id]/[revision]/video
+2026-11-21T15:12:00.0104796Z ├ ƒ /enquiries/[actor]
+2026-11-21T15:12:00.0105219Z ├ ƒ /enquiries/[actor]/new
+2026-11-21T15:12:00.0105603Z ├ ƒ /enquiry-intake
+2026-11-21T15:12:00.0105983Z ├ ƒ /invitations/accept
+2026-11-21T15:12:00.0106524Z ├ ƒ /listings
+2026-11-21T15:12:00.0106925Z ├ ƒ /listings/[id]/controls
+2026-11-21T15:12:00.0107325Z ├ ƒ /listings/[id]/duplicates
+2026-11-21T15:12:00.0107805Z ├ ƒ /listings/[id]/successor
+2026-11-21T15:12:00.0108229Z ├ ƒ /listings/[id]/verification
+2026-11-21T15:12:00.0108595Z ├ ƒ /listings/import
+2026-11-21T15:12:00.0109012Z ├ ƒ /listings/new
+2026-11-21T15:12:00.0109356Z ├ ƒ /operations
+2026-11-21T15:12:00.0109738Z ├ ƒ /push-queue
+2026-11-21T15:12:00.0110050Z ├ ƒ /reports
+2026-11-21T15:12:00.0110402Z ├ ƒ /reviews
+2026-11-21T15:12:00.0110815Z ├ ƒ /reviews/[id]/[revision]/floor-plan
+2026-11-21T15:12:00.0111334Z ├ ƒ /reviews/[id]/[revision]/references/[version]
+2026-11-21T15:12:00.0111835Z ├ ƒ /settings
+2026-11-21T15:12:00.0112133Z ├ ƒ /sign-in
+2026-11-21T15:12:00.0112439Z ├ ƒ /staff
+2026-11-21T15:12:00.0112818Z └ ƒ /viewings/[actor]
+2026-11-21T15:12:00.0112997Z 
+2026-11-21T15:12:00.0113004Z 
+2026-11-21T15:12:00.0113258Z ○  (Static)   prerendered as static content
+2026-11-21T15:12:00.0113833Z ƒ  (Dynamic)  server-rendered on demand
+2026-11-21T15:12:00.0114099Z 
+2026-11-21T15:12:00.1031194Z ##[group]Run npm run export:android --workspace=@realtor/mobile
+2026-11-21T15:12:00.1031622Z [36;1mnpm run export:android --workspace=@realtor/mobile[0m
+2026-11-21T15:12:00.1060320Z shell: /usr/bin/bash -e {0}
+2026-11-21T15:12:00.1060614Z ##[endgroup]
+2026-11-21T15:12:00.1934257Z 
+2026-11-21T15:12:00.1934844Z > @realtor/mobile@0.1.0 export:android
+2026-11-21T15:12:00.1935502Z > expo export --platform android --output-dir dist/android
+2026-11-21T15:12:00.1935747Z 
+2026-11-21T15:12:00.7495683Z Expo Autolinking module resolution enabled
+2026-11-21T15:12:01.0781572Z Starting Metro Bundler
+2026-11-21T15:12:01.0781828Z 
+2026-11-21T15:12:10.9115107Z Android Bundled 9786ms apps/mobile/index.ts (702 modules)
+2026-11-21T15:12:10.9150787Z 
+2026-11-21T15:12:10.9151873Z › Assets (2):
+2026-11-21T15:12:10.9219549Z assets/demo/bedsitter-room.jpg (279KB)
+2026-11-21T15:12:10.9220120Z assets/demo/studio-room.jpg (267KB)
+2026-11-21T15:12:10.9222810Z 
+2026-11-21T15:12:10.9224366Z › android bundles (1):
+2026-11-21T15:12:10.9225504Z _expo/static/js/android/index-e26b278d731dda65a6401bab797907d3.hbc (2.7MB)
+2026-11-21T15:12:10.9226082Z 
+2026-11-21T15:12:10.9226470Z › Files (1):
+2026-11-21T15:12:10.9226944Z metadata.json (275B)
+2026-11-21T15:12:10.9266905Z 
+2026-11-21T15:12:10.9269470Z Exported: dist/android
+2026-11-21T15:12:11.0399355Z Post job cleanup.
+2026-11-21T15:12:11.1271103Z Cache hit occurred on the primary key node-cache-Linux-x64-npm-82625ee3acd2a082890cdfae666be5685b62d737f367b2ef136249c683a37ac7, not saving cache.
+2026-11-21T15:12:11.1391374Z Post job cleanup.
+2026-11-21T15:12:11.2173064Z [command]/usr/bin/git version
+2026-11-21T15:12:11.2204077Z git version 2.56.1
+2026-11-21T15:12:11.2233483Z Temporarily overriding HOME='/home/runner/work/_temp/f92703a1-1509-45bf-82e1-acf5c538ac1e' before making global git config changes
+2026-11-21T15:12:11.2234609Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-21T15:12:11.2239020Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/realtime-estates/realtime-estates
+2026-11-21T15:12:11.2268335Z Removing SSH command configuration
+2026-11-21T15:12:11.2273250Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-21T15:12:11.2298712Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-21T15:12:11.2461339Z Removing HTTP extra header
+2026-11-21T15:12:11.2466107Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-21T15:12:11.2489943Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-21T15:12:11.2653026Z Removing includeIf entries pointing to credentials config files
+2026-11-21T15:12:11.2656800Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-21T15:12:11.2681718Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-21T15:12:11.2980405Z Cleaning up orphan processes
