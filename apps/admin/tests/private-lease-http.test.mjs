@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
+import { Readable } from 'node:stream';
+import { privateRecoveryRequest } from '../dist/tests/lib/private-recovery-server.js';
+import { createPrivateRecoveryClient } from '../dist/tests/lib/private-recovery-client.js';
+import { createSealedRecoveryStore } from '../dist/tests/lib/private-recovery-store.js';
 import { generateKeyPair, exportJWK, SignJWT } from 'jose';
 import { PGlite } from '@electric-sql/pglite';
 import { applyTestMigrations } from '../../../database/test-helpers/migrations.mjs';
@@ -24,6 +28,9 @@ function wire(handler) {
         new Request('http://' + req.headers.host + req.url, {
           method: req.method,
           headers: req.headers,
+          ...(!['GET', 'HEAD'].includes(req.method)
+            ? { body: Readable.toWeb(req), duplex: 'half' }
+            : {}),
         }),
       );
       res.writeHead(result.status, Object.fromEntries(result.headers));
@@ -35,7 +42,7 @@ function wire(handler) {
   };
 }
 
-test('verified RS256 expiry reaches the private controller through two owned HTTP envelopes, current SQL role and revocation', async () => {
+test('verified RS256 leases and sealed originals cross two owned HTTP envelopes with current SQL role, revocation and expiry', async () => {
   const db = new PGlite();
   let apiServer, bffServer, controller;
   try {
@@ -109,11 +116,18 @@ test('verified RS256 expiry reaches the private controller through two owned HTT
       STAFF_PREVIEW_API_ORIGIN: origin,
       STAFF_PREVIEW_INSTANCE: id(90),
       STAFF_PREVIEW_TOKEN: await token(10, 60),
+      PRIVATE_RECOVERY_MODE: 'synthetic-sealed-original-v1',
+      PRIVATE_RECOVERY_STORAGE_KEY: '0c'.repeat(32),
     };
     bffServer = createServer(
       wire((request) => {
         frontCalls++;
-        return privateWorkspaceLeaseRequest(request, 'staff', env);
+        const match = /^\/api\/private-workspace\/recovery\/(settings|report)\/(seal|open)$/.exec(
+          new URL(request.url).pathname,
+        );
+        return match
+          ? privateRecoveryRequest(request, match[1], match[2], env)
+          : privateWorkspaceLeaseRequest(request, 'staff', env);
       }),
     );
     await listen(bffServer);
@@ -141,6 +155,61 @@ test('verified RS256 expiry reaches the private controller through two owned HTT
     assert.equal(controller.active, true);
     assert.equal(apiCalls, 1);
     assert.equal(frontCalls, 1);
+    const recoveryScope = { instanceId: id(90), tenantId: id(1), actorId: id(10) };
+    const http = (path, init) =>
+      fetch(front + path, { ...init, headers: { ...init.headers, origin: front } });
+    const commands = {
+      settings: {
+        policy: 'company-settings-command-v1',
+        operationId: id(100),
+        expectedVersion: '0',
+        approval: 'approved-for-publication',
+        content: {
+          companyName: 'Synthetic agency',
+          summary: 'PRIVATE_WIRE_RECOVERY_CANARY',
+          about: 'Fictional content',
+          officeAddress: null,
+          openingHours: null,
+          colors: {
+            primary: '#5e0202',
+            secondary: '#194d3e',
+            accent: '#b77b27',
+            background: '#ffffff',
+          },
+        },
+      },
+      report: {
+        policy: 'listing-report-decision-command-v1',
+        operationId: id(101),
+        reportId: id(200),
+        expectedVersion: '1',
+        decision: 'reviewed',
+        reason: 'PRIVATE_WIRE_RECOVERY_CANARY',
+      },
+    };
+    const protectedOriginals = [];
+    for (const kind of ['settings', 'report']) {
+      const codec = createPrivateRecoveryClient(recoveryScope, kind, http),
+        map = new Map(),
+        storage = { getItem: (k) => map.get(k) ?? null, setItem: (k, v) => map.set(k, v) };
+      const originalStore = createSealedRecoveryStore(storage, recoveryScope, kind, codec);
+      const envelope = await originalStore.retain(commands[kind]);
+      assert.ok(!JSON.stringify([...map]).includes('PRIVATE_WIRE_RECOVERY_CANARY'));
+      assert.deepEqual(await originalStore.load(), commands[kind]);
+      originalStore.dispose();
+      const reopened = createSealedRecoveryStore(storage, recoveryScope, kind, codec);
+      assert.deepEqual(await reopened.load(), commands[kind]);
+      protectedOriginals.push({ codec, envelope, reopened, map, saved: [...map] });
+      const wrongScope = createPrivateRecoveryClient(
+        { ...recoveryScope, actorId: id(11) },
+        kind,
+        http,
+      );
+      await assert.rejects(
+        wrongScope.seal(commands[kind], new AbortController().signal),
+        (e) => e.status === 403,
+      );
+    }
     // A privileged fixture operator changes the stored role; the API login itself has no write grant.
     await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');
     await db.query(
@@ -153,6 +222,11 @@ test('verified RS256 expiry reaches the private controller through two owned HTT
     const next = await read(new AbortController().signal);
     assert.equal(next.role, 'agent', 'signed role/company claims never replace current SQL facts');
     assert.equal(next.tenantId, id(1));
+    for (const item of protectedOriginals) {
+      await assert.rejects(item.reopened.load());
+      assert.deepEqual([...item.map], item.saved);
+      item.reopened.dispose();
+    }
     await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');
     await db.query(
       'UPDATE app_private.memberships SET active=false,revoked_at=clock_timestamp() WHERE tenant_id=$1 AND user_id=$2',
@@ -160,6 +234,19 @@ test('verified RS256 expiry reaches the private controller through two owned HTT
     );
     await db.exec('SET SESSION AUTHORIZATION lease_wire_login');
     await assert.rejects(read(new AbortController().signal));
+    for (const item of protectedOriginals)
+      await assert.rejects(
+        item.codec.open(item.envelope, new AbortController().signal),
+        (e) => e.status === 403,
+      );
+    env.STAFF_PREVIEW_TOKEN = await token(10, -60);
+    await assert.rejects(
+      protectedOriginals[0].codec.open(
+        protectedOriginals[0].envelope,
+        new AbortController().signal,
+      ),
+      (e) => e.status === 401,
+    );
     // A separate short-lived, genuinely signed credential demonstrates idle expiry without a read.
     env.STAFF_PREVIEW_TOKEN = await token(11, 3);
     let closeExpiry;

@@ -1,0 +1,97 @@
+import {
+  validateCompanySettingsCommand,
+  validateListingReportDecisionCommand,
+  type CompanySettingsCommand,
+  type ListingReportDecisionCommand,
+} from '@realtor/domain';
+export type RecoveryKind = 'settings' | 'report';
+export type RecoveryCommand = CompanySettingsCommand | ListingReportDecisionCommand;
+export interface RecoveryScope {
+  readonly instanceId: string;
+  readonly tenantId: string;
+  readonly actorId: string;
+}
+export interface RecoveryEnvelope {
+  readonly policy: 'private-recovery-envelope-v1';
+  readonly scope: RecoveryScope;
+  readonly kind: RecoveryKind;
+  readonly operationId: string;
+  readonly sealed: string;
+}
+export const RECOVERY_MAX_PLAIN_BYTES = 131072;
+export const RECOVERY_MAX_WIRE_BYTES = 180000;
+export function recoveryObject(input: unknown, keys: readonly string[]): Record<string, unknown> {
+  if (
+    !input ||
+    typeof input !== 'object' ||
+    ![Object.prototype, null].includes(Object.getPrototypeOf(input)) ||
+    Reflect.ownKeys(input).length !== keys.length
+  )
+    throw Error('Invalid recovery record.');
+  const row: Record<string, unknown> = {};
+  for (const key of keys) {
+    const d = Object.getOwnPropertyDescriptor(input, key);
+    if (!d?.enumerable || !Object.hasOwn(d, 'value')) throw Error('Invalid recovery record.');
+    row[key] = d.value;
+  }
+  return row;
+}
+export function recoveryId(value: unknown): string {
+  if (
+    typeof value !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value)
+  )
+    throw Error('Invalid recovery scope.');
+  return value;
+}
+export function recoveryKind(value: unknown): RecoveryKind {
+  if (value !== 'settings' && value !== 'report') throw Error('Invalid recovery kind.');
+  return value;
+}
+export function captureRecoveryScope(input: unknown): RecoveryScope {
+  const r = recoveryObject(input, ['instanceId', 'tenantId', 'actorId']);
+  return Object.freeze({
+    instanceId: recoveryId(r.instanceId),
+    tenantId: recoveryId(r.tenantId),
+    actorId: recoveryId(r.actorId),
+  });
+}
+export function sameRecoveryScope(a: RecoveryScope, b: RecoveryScope) {
+  return a.instanceId === b.instanceId && a.tenantId === b.tenantId && a.actorId === b.actorId;
+}
+export function recoveryCommand(kind: RecoveryKind, input: unknown): RecoveryCommand {
+  recoveryKind(kind);
+  const value =
+    kind === 'settings'
+      ? validateCompanySettingsCommand(input)
+      : validateListingReportDecisionCommand(input);
+  if (new TextEncoder().encode(JSON.stringify(value)).byteLength > RECOVERY_MAX_PLAIN_BYTES)
+    throw Error('Recovery original too large.');
+  return value;
+}
+export function recoveryEnvelope(
+  input: unknown,
+  expectedScope: RecoveryScope,
+  expectedKind: RecoveryKind,
+): RecoveryEnvelope {
+  const row = recoveryObject(input, ['policy', 'scope', 'kind', 'operationId', 'sealed']),
+    scope = captureRecoveryScope(row.scope),
+    kind = recoveryKind(row.kind),
+    operationId = recoveryId(row.operationId);
+  if (
+    row.policy !== 'private-recovery-envelope-v1' ||
+    kind !== expectedKind ||
+    !sameRecoveryScope(scope, expectedScope) ||
+    typeof row.sealed !== 'string' ||
+    row.sealed.length > 175000 ||
+    !/^[A-Za-z0-9_-]{39,}$/.test(row.sealed)
+  )
+    throw Error('Invalid recovery envelope.');
+  return Object.freeze({
+    policy: 'private-recovery-envelope-v1',
+    scope,
+    kind,
+    operationId,
+    sealed: row.sealed,
+  });
+}

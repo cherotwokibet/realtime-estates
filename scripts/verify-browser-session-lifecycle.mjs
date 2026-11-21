@@ -92,7 +92,7 @@ async function start(app, review = false) {
     env = { ...process.env, NODE_ENV: 'production', APP_ENV: 'staging' };
   for (const k of Object.keys(env))
     if (
-      /^(FIREBASE_|BROWSER_IDENTITY_|STAFF_PREVIEW_|WEB_CUSTOMER_PREVIEW_CONFIG|HOSTED_CUSTOMER_|HOSTED_STAFF_|HOSTED_API_INVOCATION_)/.test(
+      /^(FIREBASE_|BROWSER_IDENTITY_|STAFF_PREVIEW_|PRIVATE_RECOVERY_|WEB_CUSTOMER_PREVIEW_CONFIG|HOSTED_CUSTOMER_|HOSTED_STAFF_|HOSTED_API_INVOCATION_)/.test(
         k,
       )
     )
@@ -658,6 +658,28 @@ try {
   evidence.browser = (await send('Browser.getVersion')).product;
   for (const app of ['web', 'admin']) {
     const origin = await start(app);
+    if (app === 'admin') {
+      const recoveryPath = '/api/private-workspace/recovery/settings/seal';
+      const closed = await fetch(origin + recoveryPath, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin, 'x-preview-instance': id(900) },
+        body: JSON.stringify({
+          scope: { instanceId: id(900), tenantId: tenant, actorId: actor },
+          command: { private: 'PRIVATE_PRODUCTION_RECOVERY_CANARY' },
+        }),
+      });
+      assert.equal(closed.status, 503);
+      assert.match(closed.headers.get('cache-control'), /no-store/);
+      assert.doesNotMatch(await closed.text(), /PRIVATE_PRODUCTION_RECOVERY_CANARY/);
+      assert.equal((await fetch(origin + recoveryPath)).status, 405);
+      assert.equal(
+        (await fetch(origin + '/api/private-workspace/recovery/unknown/seal', { method: 'POST' }))
+          .status,
+        404,
+      );
+      evidence.productionRecoveryRouteCasesPassed = 3; // HTTP route checks, not additional browser workflow cases.
+    }
+
     for (const kind of app === 'web' ? ['customer', 'signin'] : ['staff', 'signin']) {
       const path = kind === 'customer' ? '/account' : kind === 'staff' ? '/' : '/sign-in';
       const model = { expiresAt: Date.now() + 120000, logouts: [], hold: false };
