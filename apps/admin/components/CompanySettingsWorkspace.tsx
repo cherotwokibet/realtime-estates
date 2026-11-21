@@ -10,6 +10,10 @@ import {
   type CompanySettingsState,
   type CompanySettingsCommand,
 } from '@realtor/domain';
+import PrivateWorkspaceBoundary from './PrivateWorkspaceBoundary.tsx';
+import { useSealedRecovery } from '../lib/use-sealed-recovery.ts';
+import type { RecoveryScope } from '../lib/private-recovery-contract.ts';
+import { readBrowserDecodedJson } from '../lib/browser-decoded-json.ts';
 const initial: CompanySettingsContent = {
   companyName: 'Synthetic agency',
   summary: 'Independent company content preview.',
@@ -18,17 +22,24 @@ const initial: CompanySettingsContent = {
   openingHours: null,
   colors: { primary: '#5e0202', secondary: '#194d3e', accent: '#b77b27', background: '#ffffff' },
 };
-export default function CompanySettingsWorkspace({
-  initialState,
-  instanceId,
-}: {
-  initialState: CompanySettingsState;
-  instanceId: string;
-}) {
+type Props = { initialState: CompanySettingsState; instanceId: string; scope: RecoveryScope };
+export default function CompanySettingsWorkspace(props: Props) {
+  return (
+    <PrivateWorkspaceBoundary
+      key={[props.scope.instanceId, props.scope.tenantId, props.scope.actorId].join(':')}
+      access={{ profile: 'staff', ...props.scope, role: 'admin' }}
+    >
+      <CompanySettingsContent {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function CompanySettingsContent({ initialState, instanceId, scope }: Props) {
+  const recovery = useSealedRecovery(scope, 'settings');
+  const pending =
+    recovery.pending === null ? null : validateCompanySettingsCommand(recovery.pending);
   const [state, setState] = useState(initialState),
     [form, setForm] = useState<CompanySettingsContent>(initialState.current ?? initial),
     [approved, setApproved] = useState(false),
-    [pending, setPending] = useState<CompanySettingsCommand | null>(null),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState(''),
     [denied, setDenied] = useState(false),
@@ -52,7 +63,11 @@ export default function CompanySettingsWorkspace({
     setApproved(false);
     setComparison(null);
   }
-  async function request(op: string | null, command?: CompanySettingsCommand) {
+  async function request(
+    op: string | null,
+    command?: CompanySettingsCommand,
+    caller?: AbortSignal,
+  ) {
     const controller = new AbortController();
     abort.current = controller;
     const response = await fetch('/api/company-settings' + (op ? '/operations/' + op : ''), {
@@ -65,7 +80,9 @@ export default function CompanySettingsWorkspace({
       credentials: 'omit',
       cache: 'no-store',
       redirect: 'error',
-      signal: controller.signal,
+      signal: caller
+        ? AbortSignal.any([caller, controller.signal, AbortSignal.timeout(12000)])
+        : controller.signal,
     });
     if (response.status === 401 || response.status === 403) {
       setDenied(true);
@@ -78,8 +95,11 @@ export default function CompanySettingsWorkspace({
         hasMore: false,
       });
       setComparison(null);
-      throw Error(
-        'Access ended. Private content was cleared; sign in through a fresh authorized session.',
+      throw Object.assign(
+        Error(
+          'Access ended. Private content was cleared; sign in through a fresh authorized session.',
+        ),
+        { status: response.status },
       );
     }
     if (!response.ok)
@@ -93,10 +113,25 @@ export default function CompanySettingsWorkspace({
         ),
         { definitiveRefusal: !!command && [400, 409, 422].includes(response.status) },
       );
-    return response.json();
+    return readBrowserDecodedJson(
+      response,
+      512 * 1024,
+      caller ? AbortSignal.any([caller, controller.signal]) : controller.signal,
+    );
   }
   async function save() {
-    if (busy || pending || !preview || !approved || unchanged || denied || needsAdoption) return;
+    if (
+      !recovery.ready ||
+      recovery.busy ||
+      busy ||
+      pending ||
+      !preview ||
+      !approved ||
+      unchanged ||
+      denied ||
+      needsAdoption
+    )
+      return;
     const command = validateCompanySettingsCommand({
       policy: 'company-settings-command-v1',
       operationId: crypto.randomUUID(),
@@ -104,7 +139,6 @@ export default function CompanySettingsWorkspace({
       content: preview,
       approval: 'approved-for-publication',
     });
-    setPending(command);
     await original(command, true);
   }
   async function original(command: CompanySettingsCommand, send = false) {
@@ -112,21 +146,28 @@ export default function CompanySettingsWorkspace({
     setMessage('Inspecting the original settings operation…');
     try {
       const receipt = validateCompanySettingsRecord(
-        await request(command.operationId, send ? command : undefined),
+        await recovery.execute(command, (original, signal) =>
+          request(
+            original.operationId,
+            send ? validateCompanySettingsCommand(original) : undefined,
+            signal,
+          ),
+        ),
       );
-      if (JSON.stringify(receipt.request) !== JSON.stringify(command))
-        throw Error('Original result does not match the retained request.');
       setApproved(false);
+      setNeedsAdoption(true);
       setMessage(
         'Approved content saved at version ' +
           receipt.version +
           '. Current settings must be refreshed before another change.',
       );
-      const current = validateCompanySettingsState(await request(null));
+      const current = validateCompanySettingsState(
+        await recovery.read((signal) => request(null, undefined, signal)),
+      );
       setState(current);
+      setNeedsAdoption(false);
       setForm(current.current ?? initial);
       setComparison(null);
-      setPending(null);
       setMessage(
         'Approved content saved at version ' +
           receipt.version +
@@ -136,7 +177,6 @@ export default function CompanySettingsWorkspace({
       );
     } catch (e) {
       if (e && typeof e === 'object' && 'definitiveRefusal' in e && e.definitiveRefusal === true) {
-        setPending(null);
         setNeedsAdoption(true);
         setApproved(false);
       }
@@ -149,7 +189,9 @@ export default function CompanySettingsWorkspace({
   async function compare() {
     setBusy(true);
     try {
-      const current = validateCompanySettingsState(await request(null));
+      const current = validateCompanySettingsState(
+        await recovery.read((signal) => request(null, undefined, signal)),
+      );
       setComparison(current);
       setMessage('Current saved content loaded for comparison. Your unsaved fields are retained.');
     } catch (e) {
@@ -171,7 +213,13 @@ export default function CompanySettingsWorkspace({
       </section>
     );
   return (
-    <div className="settings-grid">
+    <div className="settings-grid" aria-label="Private company settings">
+      <p role="status">{recovery.error}</p>
+      {!recovery.ready && (
+        <button type="button" onClick={recovery.retry}>
+          Retry encrypted recovery
+        </button>
+      )}
       <section>
         <h2>Approved company content</h2>
         <p>
@@ -187,7 +235,7 @@ export default function CompanySettingsWorkspace({
             void save();
           }}
         >
-          <fieldset disabled={busy || pending !== null}>
+          <fieldset disabled={!recovery.ready || recovery.busy || busy || pending !== null}>
             <legend>Public copy and brand palette</legend>
             {(['companyName', 'summary', 'about', 'officeAddress', 'openingHours'] as const).map(
               (key) => (
@@ -250,16 +298,30 @@ export default function CompanySettingsWorkspace({
               I have reviewed the preview and approve this copy and palette for publication. This
               records my approval; it does not prove external asset rights.
             </label>
-            <button disabled={!valid || !approved || unchanged || needsAdoption} type="submit">
+            <button
+              disabled={
+                !recovery.ready ||
+                recovery.busy ||
+                !valid ||
+                !approved ||
+                unchanged ||
+                needsAdoption
+              }
+              type="submit"
+            >
               Approve and save content
             </button>
           </fieldset>
         </form>
-        <button type="button" disabled={busy} onClick={() => void compare()}>
+        <button
+          type="button"
+          disabled={!recovery.ready || recovery.busy || busy}
+          onClick={() => void compare()}
+        >
           Compare current saved content
         </button>
         {busy && (
-          <button type="button" onClick={() => abort.current?.abort()}>
+          <button type="button" onClick={recovery.cancel}>
             Stop waiting
           </button>
         )}
@@ -268,12 +330,14 @@ export default function CompanySettingsWorkspace({
             <h3>Keep the original request</h3>
             <p>
               Operation {pending.operationId}. No automatic retry or replacement request. Stay on
-              this page until reconciled; closing it loses this in-memory recovery context.
+              this page until reconciled. The original is encrypted in this tab for authorized
+              recovery after reload; closing the tab can remove it.
             </p>
-            <button disabled={busy} onClick={() => void original(pending)}>
+            <pre>{JSON.stringify(pending, null, 2)}</pre>
+            <button disabled={recovery.busy || busy} onClick={() => void original(pending)}>
               Inspect original result
             </button>
-            <button disabled={busy} onClick={() => void original(pending, true)}>
+            <button disabled={recovery.busy || busy} onClick={() => void original(pending, true)}>
               Explicitly resend the same original request
             </button>
           </section>
@@ -293,7 +357,7 @@ export default function CompanySettingsWorkspace({
                 : 'not configured'}
             </p>
             <button
-              disabled={busy || pending !== null}
+              disabled={!recovery.ready || recovery.busy || busy || pending !== null}
               onClick={() => {
                 setState(comparison);
                 setForm(comparison.current ?? initial);
@@ -307,7 +371,7 @@ export default function CompanySettingsWorkspace({
             </button>
             {needsAdoption && (
               <button
-                disabled={busy || pending !== null}
+                disabled={!recovery.ready || recovery.busy || busy || pending !== null}
                 onClick={() => {
                   setState(comparison);
                   setComparison(null);

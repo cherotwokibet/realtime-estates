@@ -1,3 +1,4 @@
+import { syntheticRecoveryEnvironment } from './synthetic-recovery-env.mjs';
 /** Disposable synthetic enquiry UI. Tokens are server-only and never logged. */
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -13,6 +14,7 @@ import {
 
 const launch = enquiryLaunchConfiguration(process.env, process.argv.slice(2));
 const pilot = launch.journeyFixture === 'web-admin-pilot-v1';
+const recoveryEnvironment = pilot ? syntheticRecoveryEnvironment() : {};
 if (pilot && process.platform !== 'win32')
   throw Error('The current pilot photo processor requires Windows.');
 if (
@@ -142,6 +144,7 @@ try {
         NODE_ENV: 'development',
         TENANT_SLUG: preview.tenantSlug,
         STAFF_PREVIEW_MODE: pilot ? 'synthetic' : '',
+        ...recoveryEnvironment,
         STAFF_PREVIEW_TOKEN: pilot ? admin.bearerToken : '',
         STAFF_PREVIEW_INSTANCE: pilot ? randomUUID() : '',
         STAFF_PREVIEW_MEDIA: pilot ? 'synthetic' : '',

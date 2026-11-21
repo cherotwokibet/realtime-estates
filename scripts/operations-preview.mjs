@@ -1,9 +1,11 @@
+import { syntheticRecoveryEnvironment } from './synthetic-recovery-env.mjs';
 /** Local synthetic operations UI; credentials are server-only and never logged. */
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { startStaffPreview } from '../apps/api/dev/staff-preview.mjs';
+const recoveryEnvironment = syntheticRecoveryEnvironment();
 if (process.env.NODE_ENV === 'production') throw Error('Operations preview refuses production.');
 const args = process.argv.slice(2);
 if (
@@ -53,6 +55,7 @@ const child = spawn(
     env: {
       ...process.env,
       NODE_ENV: 'development',
+      ...recoveryEnvironment,
       TENANT_SLUG: preview.tenantSlug,
       STAFF_PREVIEW_MODE: reviews ? 'synthetic' : '',
       STAFF_PREVIEW_TOKEN: reviews ? preview.bearerToken : '',

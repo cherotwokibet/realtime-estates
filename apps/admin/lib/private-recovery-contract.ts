@@ -1,5 +1,7 @@
 import {
   validateCompanySettingsCommand,
+  validateCompanySettingsRecord,
+  validateListingReportDecisionReceipt,
   validateListingReportDecisionCommand,
   type CompanySettingsCommand,
   type ListingReportDecisionCommand,
@@ -94,4 +96,29 @@ export function recoveryEnvelope(
     operationId,
     sealed: row.sealed,
   });
+}
+
+/** A receipt releases only the exact original and the current actor, never a missing/refused guess. */
+export function recoveryReceipt(
+  scope: RecoveryScope,
+  kind: RecoveryKind,
+  input: unknown,
+  receipt: unknown,
+) {
+  const command = recoveryCommand(kind, input);
+  if (kind === 'settings') {
+    const value = validateCompanySettingsRecord(receipt);
+    if (
+      value.actorId !== scope.actorId ||
+      JSON.stringify(value.request) !== JSON.stringify(command)
+    )
+      throw Error('Receipt does not confirm this original.');
+    return value;
+  }
+  const value = validateListingReportDecisionReceipt(
+    receipt,
+    command as ListingReportDecisionCommand,
+  );
+  if (value.actorId !== scope.actorId) throw Error('Receipt actor changed.');
+  return value;
 }

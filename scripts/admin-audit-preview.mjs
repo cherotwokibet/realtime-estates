@@ -1,9 +1,11 @@
+import { syntheticRecoveryEnvironment } from './synthetic-recovery-env.mjs';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline';
 import { startAdminAuditPreview } from '../apps/api/dev/admin-audit-preview.mjs';
+const recoveryEnvironment = syntheticRecoveryEnvironment();
 if (process.env.NODE_ENV === 'production' || process.argv.length > 2)
   throw Error('Audit preview is development-only; use TENANT_SLUG to select a synthetic company.');
 const root = fileURLToPath(new URL('../', import.meta.url)),
@@ -35,6 +37,7 @@ const child = spawn(
     env: {
       ...process.env,
       NODE_ENV: 'development',
+      ...recoveryEnvironment,
       TENANT_SLUG: fixture.company,
       STAFF_PREVIEW_MODE: 'synthetic',
       STAFF_PREVIEW_TOKEN: fixture.token(),

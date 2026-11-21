@@ -1,9 +1,11 @@
+import { syntheticRecoveryEnvironment } from './synthetic-recovery-env.mjs';
 /** Synthetic development only. No persistent identity or database. Never print or persist the bearer token. */
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { startStaffPreview } from '../apps/api/dev/staff-preview.mjs';
+const recoveryEnvironment = syntheticRecoveryEnvironment();
 if (process.env.NODE_ENV === 'production') throw new Error('Staff preview refuses production.');
 const root = fileURLToPath(new URL('../', import.meta.url));
 const referenceDraftMode = process.env.STAFF_PREVIEW_REFERENCE;
@@ -128,6 +130,7 @@ const child = spawn(
     env: {
       ...process.env,
       NODE_ENV: 'development',
+      ...recoveryEnvironment,
       STAFF_PREVIEW_MODE: 'synthetic',
       STAFF_PREVIEW_MEDIA: nativeUploads ? 'synthetic' : '',
       STAFF_PREVIEW_API_ORIGIN: preview.origin,

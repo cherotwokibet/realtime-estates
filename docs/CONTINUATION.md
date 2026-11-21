@@ -1,3 +1,11 @@
+## Locally verified settings/report sealed recovery481 - 22 November 2026 EAT
+
+Settings/report screens now require current access and encrypted retain/readback before mutation, restore exact originals on authorized reload, and release only on complete original/current actor receipts. Refusal/missing/uncertain outcomes stay retained. Local17/17 focused/composed checks, admin609/609, UI53/53, production admin build, workspace types/format and60 controlled browser workflows plus3 separate production-route HTTP checks passed. Real Node encryption with mutable owned HTTP/browser authority fixtures is not browser-to-real-SQL/provider/device acceptance. A compressed-response startup failure was corrected; initial browser logs remain explicit. Exact docs/evidence/2026-11-22-sealed481.md. Next source-bound seven-job CI, then existing private dashboard publication preserving55/97/all14 gates/1012 notes/earlier474 APK. Stable key/instance custody, refusal resolution and whole05-7 remain open. Billing remains disabled; no vendor/live/export/signing/credits/plan change.
+
+## Active settings/report sealed recovery integration481 - 22 November 2026 EAT
+
+480 is published; workspaces clean at resume. Implementing exact actor/original receipt release, current-scope settings/report access boundaries, ciphertext retention/readback before dispatch, authorized reload restoration and operation/lifetime cancellation. Refusal/missing/uncertain outcomes remain retained, never auto-cleared; a safe refusal-resolution UX remains open. Next compile, verify release races/denial/storage, provision only ephemeral disposable-preview RAM keys explicitly in launchers (no production key/billing), run real browser lost-reply/logout/reload/denial flows and current-source CI, then private publication. Preserve55/97/all14 gates/1012 notes and earlier474 APK; no vendor/live/export/signing/credit/plan changes.
+
 ## Published server-sealed recovery foundation, checkpoint 480, 22 November 2026 EAT
 
 Private dashboard deployment appgdep_6b020d95d2a08191b3107552585b5d1a succeeded from dashboard d7e01d4aebe34efe29689aac279d3b2b002d4118. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.

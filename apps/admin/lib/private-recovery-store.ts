@@ -3,6 +3,7 @@ import {
   recoveryKind,
   recoveryCommand,
   recoveryEnvelope,
+  recoveryReceipt,
   RECOVERY_MAX_WIRE_BYTES,
   type RecoveryScope,
   type RecoveryKind,
@@ -13,8 +14,9 @@ import type { createPrivateRecoveryClient } from './private-recovery-client.ts';
 interface Store {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  removeItem?(key: string): void;
 }
-/** Ciphertext-only slot. No delete/replay or plaintext fallback; retain/readback must finish before a write. */
+/** Ciphertext-only slot. Only confirmed release; no replay or plaintext fallback; retain/readback must finish before a write. */
 export function createSealedRecoveryStore(
   storage: Store,
   inputScope: RecoveryScope,
@@ -33,10 +35,12 @@ export function createSealedRecoveryStore(
     ].join(':'),
     guard = createPrivateWorkspaceGuard(onDenied);
   let busy = false;
-  const read = () => {
-    const raw = storage.getItem(key);
+  const decode = (raw: string | null) => {
     if (raw === null) return null;
-    if (new TextEncoder().encode(raw).byteLength > RECOVERY_MAX_WIRE_BYTES)
+    if (
+      typeof raw !== 'string' ||
+      new TextEncoder().encode(raw).byteLength > RECOVERY_MAX_WIRE_BYTES
+    )
       throw Error('Recovery record too large.');
     return recoveryEnvelope(parseVerificationJson(raw), scope, kind);
   };
@@ -59,10 +63,16 @@ export function createSealedRecoveryStore(
   return Object.freeze({
     load(caller?: AbortSignal) {
       return active(caller, async (signal) => {
-        const record = read();
+        const raw = storage.getItem(key),
+          record = decode(raw);
         if (!record) return null;
         const command = recoveryCommand(kind, await codec.open(record, signal));
-        if (signal.aborted || guard.cleared || command.operationId !== record.operationId)
+        if (
+          signal.aborted ||
+          guard.cleared ||
+          storage.getItem(key) !== raw ||
+          command.operationId !== record.operationId
+        )
           throw Error('Recovery cancelled.');
         return command;
       });
@@ -71,12 +81,14 @@ export function createSealedRecoveryStore(
       const command = recoveryCommand(kind, input);
       return active(caller, async (signal) => {
         if (signal.aborted) throw Error('Recovery cancelled.');
-        const existing = read();
+        const before = storage.getItem(key),
+          existing = decode(before);
         if (existing) {
           const original = recoveryCommand(kind, await codec.open(existing, signal));
           if (
             signal.aborted ||
             guard.cleared ||
+            storage.getItem(key) !== before ||
             JSON.stringify(original) !== JSON.stringify(command)
           )
             throw Error('An original is already retained.');
@@ -90,6 +102,28 @@ export function createSealedRecoveryStore(
         storage.setItem(key, raw);
         if (storage.getItem(key) !== raw) throw Error('Recovery readback unavailable.');
         return record;
+      });
+    },
+    releaseConfirmed(input: unknown, receipt: unknown, caller?: AbortSignal) {
+      const command = recoveryCommand(kind, input),
+        confirmed = recoveryReceipt(scope, kind, command, receipt);
+      return active(caller, async (signal) => {
+        const raw = storage.getItem(key),
+          record = decode(raw);
+        if (raw === null || !record || record.operationId !== command.operationId)
+          throw Error('Retained original unavailable.');
+        const original = recoveryCommand(kind, await codec.open(record, signal));
+        if (
+          signal.aborted ||
+          guard.cleared ||
+          JSON.stringify(original) !== JSON.stringify(command) ||
+          storage.getItem(key) !== raw ||
+          typeof storage.removeItem !== 'function'
+        )
+          throw Error('Retained original changed.');
+        storage.removeItem(key);
+        if (storage.getItem(key) !== null) throw Error('Confirmed original release failed.');
+        return confirmed;
       });
     },
     dispose: () => guard.dispose(),

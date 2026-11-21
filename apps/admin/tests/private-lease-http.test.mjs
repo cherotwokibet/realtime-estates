@@ -122,9 +122,10 @@ test('verified RS256 leases and sealed originals cross two owned HTTP envelopes 
     bffServer = createServer(
       wire((request) => {
         frontCalls++;
-        const match = /^\/api\/private-workspace\/recovery\/(settings|report)\/(seal|open)$/.exec(
-          new URL(request.url).pathname,
-        );
+        const match =
+          /^\/api\/private-workspace\/recovery\/(settings|report)\/(seal|open|check)$/.exec(
+            new URL(request.url).pathname,
+          );
         return match
           ? privateRecoveryRequest(request, match[1], match[2], env)
           : privateWorkspaceLeaseRequest(request, 'staff', env);
@@ -192,6 +193,7 @@ test('verified RS256 leases and sealed originals cross two owned HTTP envelopes 
       const codec = createPrivateRecoveryClient(recoveryScope, kind, http),
         map = new Map(),
         storage = { getItem: (k) => map.get(k) ?? null, setItem: (k, v) => map.set(k, v) };
+      await codec.check(new AbortController().signal);
       const originalStore = createSealedRecoveryStore(storage, recoveryScope, kind, codec);
       const envelope = await originalStore.retain(commands[kind]);
       assert.ok(!JSON.stringify([...map]).includes('PRIVATE_WIRE_RECOVERY_CANARY'));

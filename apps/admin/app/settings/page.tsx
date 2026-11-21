@@ -1,10 +1,13 @@
+import { readStaffAllocationScope } from '../../lib/staff-allocation-scope.ts';
 import CompanySettingsWorkspace from '../../components/CompanySettingsWorkspace.tsx';
 import { loadCompanySettings } from '../../lib/company-settings-server.ts';
 import './settings.css';
 export const dynamic = 'force-dynamic';
 export default async function Settings() {
+  let scope: Awaited<ReturnType<typeof readStaffAllocationScope>> | null = null;
   let result: Awaited<ReturnType<typeof loadCompanySettings>> | null = null;
   try {
+    scope = await readStaffAllocationScope();
     result = await loadCompanySettings();
   } catch {}
   return (
@@ -20,8 +23,12 @@ export default async function Settings() {
         Synthetic local preview · Current company admin access required. No vendor/live-system
         change.
       </p>
-      {result ? (
-        <CompanySettingsWorkspace initialState={result.state} instanceId={result.instanceId} />
+      {result && scope ? (
+        <CompanySettingsWorkspace
+          initialState={result.state}
+          instanceId={result.instanceId}
+          scope={scope}
+        />
       ) : (
         <section role="alert">
           <h2>Company settings unavailable</h2>

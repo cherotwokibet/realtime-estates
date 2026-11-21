@@ -1,6 +1,8 @@
 import { ApiClientError } from '@realtor/api-client';
 import {
   captureRecoveryScope,
+  recoveryObject,
+  sameRecoveryScope,
   recoveryKind,
   recoveryCommand,
   recoveryEnvelope,
@@ -8,7 +10,7 @@ import {
   type RecoveryScope,
   type RecoveryKind,
 } from './private-recovery-contract.ts';
-import { readReferenceJson } from './reference-draft-wire.ts';
+import { readBrowserDecodedJson } from './browser-decoded-json.ts';
 export function createPrivateRecoveryClient(
   inputScope: RecoveryScope,
   inputKind: RecoveryKind,
@@ -16,7 +18,7 @@ export function createPrivateRecoveryClient(
 ) {
   const scope = captureRecoveryScope(inputScope),
     kind = recoveryKind(inputKind);
-  async function request(action: 'seal' | 'open', value: unknown, caller: AbortSignal) {
+  async function request(action: 'seal' | 'open' | 'check', value: unknown, caller: AbortSignal) {
     const signal = AbortSignal.any([caller, AbortSignal.timeout(5000)]),
       path = '/api/private-workspace/recovery/' + kind + '/' + action;
     if (signal.aborted) throw new ApiClientError('CANCELLED', 'Recovery unavailable.');
@@ -27,7 +29,11 @@ export function createPrivateRecoveryClient(
       redirect: 'error',
       signal,
       headers: { 'X-Preview-Instance': scope.instanceId, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scope, [action === 'seal' ? 'command' : 'envelope']: value }),
+      body: JSON.stringify(
+        action === 'check'
+          ? { scope }
+          : { scope, [action === 'seal' ? 'command' : 'envelope']: value },
+      ),
     });
     if (response.status !== 200 || response.redirected) {
       void response.body?.cancel().catch(() => {});
@@ -47,11 +53,25 @@ export function createPrivateRecoveryClient(
         throw Error('Recovery target changed.');
       }
     }
-    const data = await readReferenceJson(response, RECOVERY_MAX_WIRE_BYTES, signal);
+    const data = await readBrowserDecodedJson(response, RECOVERY_MAX_WIRE_BYTES, signal);
     if (signal.aborted) throw Error('Recovery cancelled.');
     return data;
   }
   return Object.freeze({
+    async check(signal: AbortSignal) {
+      const row = recoveryObject(await request('check', undefined, signal), [
+        'policy',
+        'scope',
+        'kind',
+      ]);
+      if (
+        row.policy !== 'private-recovery-ready-v1' ||
+        row.kind !== kind ||
+        !sameRecoveryScope(captureRecoveryScope(row.scope), scope)
+      )
+        throw Error('Recovery readiness changed.');
+    },
+
     async seal(input: unknown, signal: AbortSignal) {
       const command = recoveryCommand(kind, input);
       const envelope = recoveryEnvelope(await request('seal', command, signal), scope, kind);

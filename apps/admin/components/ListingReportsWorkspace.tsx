@@ -9,73 +9,60 @@ import {
   type ListingReportAdminRecord,
   type ListingReportDecisionCommand,
 } from '@realtor/domain';
+import PrivateWorkspaceBoundary from './PrivateWorkspaceBoundary.tsx';
+import { useSealedRecovery } from '../lib/use-sealed-recovery.ts';
+import type { RecoveryScope } from '../lib/private-recovery-contract.ts';
+import { readBrowserDecodedJson } from '../lib/browser-decoded-json.ts';
 class BoundaryError extends Error {
   constructor(readonly status: number) {
     super('Report request unavailable');
   }
 }
-async function exchange(path: string, instanceId: string, command?: ListingReportDecisionCommand) {
-  const abort = new AbortController(),
-    timer = setTimeout(() => abort.abort(), 12000);
-  try {
-    const response = await fetch(path, {
-      method: command ? 'POST' : 'GET',
-      headers: {
-        'x-preview-instance': instanceId,
-        ...(command ? { 'content-type': 'application/json' } : {}),
-      },
-      ...(command ? { body: JSON.stringify(command) } : {}),
-      credentials: 'omit',
-      redirect: 'error',
-      cache: 'no-store',
-      signal: abort.signal,
-    });
-    if (!response.ok) {
-      void response.body?.cancel().catch(() => {});
-      throw new BoundaryError(response.status);
-    }
-    if (
-      response.headers.get('content-type')?.split(';')[0] !== 'application/json' ||
-      response.headers.has('content-encoding') ||
-      !response.body
-    )
-      throw Error('Invalid framing');
-    const reader = response.body.getReader(),
-      decoder = new TextDecoder('utf-8', { fatal: true });
-    let text = '',
-      bytes = 0,
-      empty = 0;
-    try {
-      for (;;) {
-        const p = await reader.read();
-        if (p.done) break;
-        if (!p.value.byteLength) {
-          if (++empty > 1024) throw Error();
-          if (empty % 64 === 0) await new Promise((r) => setTimeout(r, 0));
-          continue;
-        }
-        empty = 0;
-        bytes += p.value.byteLength;
-        if (bytes > (command ? 8192 : 524288)) throw Error();
-        text += decoder.decode(p.value, { stream: true });
-      }
-      text += decoder.decode();
-    } finally {
-      void reader.cancel().catch(() => {});
-      reader.releaseLock();
-    }
-    return parseListingReportJson(text);
-  } finally {
-    clearTimeout(timer);
+async function exchange(
+  path: string,
+  instanceId: string,
+  command: ListingReportDecisionCommand | undefined,
+  caller: AbortSignal,
+) {
+  const signal = AbortSignal.any([caller, AbortSignal.timeout(12000)]);
+  const response = await fetch(path, {
+    method: command ? 'POST' : 'GET',
+    headers: {
+      'x-preview-instance': instanceId,
+      ...(command ? { 'content-type': 'application/json' } : {}),
+    },
+    ...(command ? { body: JSON.stringify(command) } : {}),
+    credentials: 'omit',
+    redirect: 'error',
+    cache: 'no-store',
+    signal,
+  });
+  if (!response.ok) {
+    void response.body?.cancel().catch(() => {});
+    throw new BoundaryError(response.status);
   }
+  return readBrowserDecodedJson(response, command ? 8192 : 524288, signal, parseListingReportJson);
 }
-export function ListingReportsWorkspace({ instanceId }: { instanceId: string }) {
+type Props = { instanceId: string; scope: RecoveryScope };
+export function ListingReportsWorkspace(props: Props) {
+  return (
+    <PrivateWorkspaceBoundary
+      key={[props.scope.instanceId, props.scope.tenantId, props.scope.actorId].join(':')}
+      access={{ profile: 'staff', ...props.scope, role: 'admin' }}
+    >
+      <ReportsContent {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function ReportsContent({ instanceId, scope }: Props) {
+  const recovery = useSealedRecovery(scope, 'report');
+  const pending =
+    recovery.pending === null ? null : validateListingReportDecisionCommand(recovery.pending);
   const [queue, setQueue] = useState<ListingReportQueue | null>(null),
     [filter, setFilter] = useState<ListingReportQueue['status']>('new'),
     [selected, setSelected] = useState<ListingReportAdminRecord | null>(null),
     [reason, setReason] = useState(''),
     [kind, setKind] = useState<'reviewed' | 'dismissed'>('reviewed'),
-    [pending, setPending] = useState<ListingReportDecisionCommand | null>(null),
     [status, setStatus] = useState('Load reports to begin.'),
     [busy, setBusy] = useState(false);
   const locked = useRef(false),
@@ -91,7 +78,6 @@ export function ListingReportsWorkspace({ instanceId }: { instanceId: string }) 
       setQueue(null);
       setSelected(null);
       setReason('');
-      setPending(null);
       setStatus(
         'Access unavailable. Private report data was cleared; reload after restoring current admin access.',
       );
@@ -101,15 +87,19 @@ export function ListingReportsWorkspace({ instanceId }: { instanceId: string }) 
       );
   }
   async function load(before?: string) {
-    if (locked.current || pending || reason) return;
+    if (!recovery.ready || recovery.busy || locked.current || pending || reason) return;
     locked.current = true;
     setBusy(true);
     setQueue(null);
     setSelected(null);
     try {
-      const raw = await exchange(
-        '/api/listing-reports?limit=20&status=' + filter + (before ? '&before=' + before : ''),
-        instanceId,
+      const raw = await recovery.read((signal) =>
+        exchange(
+          '/api/listing-reports?limit=20&status=' + filter + (before ? '&before=' + before : ''),
+          instanceId,
+          undefined,
+          signal,
+        ),
       );
       if (!alive.current) return;
       if (
@@ -139,24 +129,27 @@ export function ListingReportsWorkspace({ instanceId }: { instanceId: string }) 
     locked.current = true;
     setBusy(true);
     try {
-      const raw = await exchange(
-        `/api/listing-reports/${command.reportId}/operations/${command.operationId}`,
-        instanceId,
-        method === 'POST' ? command : undefined,
-      );
-      if (!alive.current) return;
-      if (
-        !raw ||
-        typeof raw !== 'object' ||
-        Array.isArray(raw) ||
-        Object.keys(raw).join(',') !== 'receipt'
-      )
-        throw Error();
       const receipt = validateListingReportDecisionReceipt(
-        (raw as { receipt: unknown }).receipt,
+        await recovery.execute(command, async (original, signal) => {
+          const exact = validateListingReportDecisionCommand(original);
+          const raw = await exchange(
+            `/api/listing-reports/${exact.reportId}/operations/${exact.operationId}`,
+            instanceId,
+            method === 'POST' ? exact : undefined,
+            signal,
+          );
+          if (
+            !raw ||
+            typeof raw !== 'object' ||
+            Array.isArray(raw) ||
+            Object.keys(raw).join(',') !== 'receipt'
+          )
+            throw Error('Original result is unavailable.');
+          return (raw as { receipt: unknown }).receipt;
+        }),
         command,
       );
-      setPending(null);
+      if (!alive.current) return;
       setReason('');
       setSelected(null);
       setQueue(null);
@@ -166,11 +159,10 @@ export function ListingReportsWorkspace({ instanceId }: { instanceId: string }) 
     } catch (e) {
       if (alive.current) {
         if (e instanceof BoundaryError && [400, 409, 422].includes(e.status) && method === 'POST') {
-          setPending(null);
           setSelected(null);
           setQueue(null);
           setStatus(
-            'Review refused without a saved result. Discard local fields and reload the current queue before another decision.',
+            'The current attempt was refused. Its encrypted original remains retained; inspect the outcome before another decision.',
           );
         } else failure(e);
       }
@@ -190,14 +182,15 @@ export function ListingReportsWorkspace({ instanceId }: { instanceId: string }) 
         decision: kind,
         reason: reason.trim(),
       });
-      setPending(command);
       void review('POST', command);
     } catch {
       setStatus('Supply a plain review reason of at most500 characters.');
     }
   }
   return (
-    <section>
+    <section aria-label="Private report review">
+      <p role="status">{recovery.error}</p>
+      {!recovery.ready && <button onClick={recovery.retry}>Retry encrypted recovery</button>}
       <p>
         Synthetic local workflow. Report concerns are unverified. Reviewing or dismissing a report
         does not change property publication.
@@ -206,7 +199,7 @@ export function ListingReportsWorkspace({ instanceId }: { instanceId: string }) 
         Queue status
         <select
           value={filter}
-          disabled={busy || !!pending || !!reason}
+          disabled={!recovery.ready || recovery.busy || busy || !!pending || !!reason}
           onChange={(e) => {
             setFilter(e.target.value as ListingReportQueue['status']);
             setQueue(null);
@@ -218,7 +211,10 @@ export function ListingReportsWorkspace({ instanceId }: { instanceId: string }) 
           ))}
         </select>
       </label>
-      <button disabled={busy || !!pending || !!reason} onClick={() => void load()}>
+      <button
+        disabled={!recovery.ready || recovery.busy || busy || !!pending || !!reason}
+        onClick={() => void load()}
+      >
         Load current reports
       </button>
       <p role="status" aria-live="polite">
@@ -245,7 +241,14 @@ export function ListingReportsWorkspace({ instanceId }: { instanceId: string }) 
                   </p>
                 )}
                 <button
-                  disabled={busy || !!pending || !!reason || r.status !== 'new'}
+                  disabled={
+                    !recovery.ready ||
+                    recovery.busy ||
+                    busy ||
+                    !!pending ||
+                    !!reason ||
+                    r.status !== 'new'
+                  }
                   onClick={() => setSelected(r)}
                 >
                   Review this report
@@ -255,7 +258,7 @@ export function ListingReportsWorkspace({ instanceId }: { instanceId: string }) 
           </ul>
           {queue.hasMore && (
             <button
-              disabled={busy || !!pending || !!reason}
+              disabled={!recovery.ready || recovery.busy || busy || !!pending || !!reason}
               onClick={() => void load(queue.items.at(-1)!.reportId)}
             >
               Older reports
@@ -264,7 +267,7 @@ export function ListingReportsWorkspace({ instanceId }: { instanceId: string }) 
         </>
       )}
       {selected && (
-        <fieldset disabled={busy || !!pending}>
+        <fieldset disabled={!recovery.ready || recovery.busy || busy || !!pending}>
           <legend>Review report {selected.reportId}</legend>
           <label>
             Decision
@@ -301,13 +304,15 @@ export function ListingReportsWorkspace({ instanceId }: { instanceId: string }) 
       {pending && (
         <div>
           <p>
-            Original review:{pending.operationId}. Keep this page open; no browser storage or hidden
-            retry is used.
+            Original review:{pending.operationId}. The original is encrypted in this tab for
+            authorized recovery after reload; no hidden retry is used. Closing the tab can remove
+            it.
           </p>
-          <button disabled={busy} onClick={() => void review('GET', pending)}>
+          <pre>{JSON.stringify(pending, null, 2)}</pre>
+          <button disabled={recovery.busy || busy} onClick={() => void review('GET', pending)}>
             Check original review
           </button>
-          <button disabled={busy} onClick={() => void review('POST', pending)}>
+          <button disabled={recovery.busy || busy} onClick={() => void review('POST', pending)}>
             Retry exact review
           </button>
         </div>

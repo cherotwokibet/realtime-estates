@@ -74,7 +74,12 @@ const request = (kind, action, body, patch = {}) =>
   });
 const memory = () => {
   const map = new Map();
-  return { map, getItem: (k) => map.get(k) ?? null, setItem: (k, v) => map.set(k, v) };
+  return {
+    map,
+    getItem: (k) => map.get(k) ?? null,
+    setItem: (k, v) => map.set(k, v),
+    removeItem: (k) => map.delete(k),
+  };
 };
 for (const [kind, command] of [
   ['settings', settings],
@@ -414,4 +419,154 @@ test('store abort/denial preserves stored ciphertext and no cached callback can 
     createSealedRecoveryStore(storage, scope, 'report', codec).load(abort.signal),
   );
   assert.deepEqual([...storage.map], saved);
+});
+
+for (const [kind, command] of [
+  ['settings', settings],
+  ['report', report],
+]) {
+  test(
+    kind +
+      ' confirmed release requires complete original, current actor and intact matching ciphertext',
+    async () => {
+      const cipher = createPrivateRecoveryCipher(key),
+        storage = memory(),
+        codec = {
+          seal: async (c) => cipher.seal(scope, kind, c),
+          open: async (e) => cipher.open(scope, kind, e),
+        };
+      const store = createSealedRecoveryStore(storage, scope, kind, codec);
+      await store.retain(command);
+      const saved = [...storage.map];
+      const receipt =
+        kind === 'settings'
+          ? {
+              version: '1',
+              operationId: command.operationId,
+              actorId: scope.actorId,
+              recordedAt: '2026-11-22T00:00:00.000Z',
+              request: command,
+            }
+          : {
+              policy: 'listing-report-decision-receipt-v1',
+              operationId: command.operationId,
+              reportId: command.reportId,
+              version: '2',
+              decision: command.decision,
+              reason: command.reason,
+              actorId: scope.actorId,
+              recordedAt: '2026-11-22T00:00:00.000Z',
+            };
+      for (const bad of [
+        { ...receipt, actorId: id(11) },
+        { ...receipt, operationId: id(999) },
+        kind === 'settings'
+          ? {
+              ...receipt,
+              request: { ...command, content: { ...command.content, summary: 'changed' } },
+            }
+          : { ...receipt, reason: 'changed' },
+        {},
+      ]) {
+        await assert.rejects(async () => store.releaseConfirmed(command, bad));
+        assert.deepEqual([...storage.map], saved);
+      }
+      assert.deepEqual(await store.releaseConfirmed(command, receipt), receipt);
+      assert.equal(storage.map.size, 0);
+      store.dispose();
+      await assert.rejects(store.releaseConfirmed(command, receipt));
+    },
+  );
+}
+test('confirmed release refuses a replacement during current-authorized reopening and preserves the replacement bytes', async () => {
+  const cipher = createPrivateRecoveryCipher(key),
+    storage = memory();
+  let release;
+  const codec = {
+    seal: async (c) => cipher.seal(scope, 'report', c),
+    open: async (e) => new Promise((r) => (release = () => r(cipher.open(scope, 'report', e)))),
+  };
+  const store = createSealedRecoveryStore(storage, scope, 'report', codec);
+  await store.retain(report);
+  const receipt = {
+    policy: 'listing-report-decision-receipt-v1',
+    operationId: report.operationId,
+    reportId: report.reportId,
+    version: '2',
+    decision: report.decision,
+    reason: report.reason,
+    actorId: scope.actorId,
+    recordedAt: '2026-11-22T00:00:00.000Z',
+  };
+  const pending = store.releaseConfirmed(report, receipt);
+  await new Promise((r) => setImmediate(r));
+  const slot = [...storage.map.keys()][0],
+    replacement = JSON.stringify(cipher.seal(scope, 'report', { ...report, operationId: id(999) }));
+  storage.map.set(slot, replacement);
+  release();
+  await assert.rejects(pending);
+  assert.equal(storage.map.get(slot), replacement);
+  store.dispose();
+});
+test('recovery readiness verifies captured scope and key configuration without returning a command or mutation permission', async () => {
+  const api = async () => Response.json(lease());
+  const result = await privateRecoveryRequest(
+    request('settings', 'check', { scope }),
+    'settings',
+    'check',
+    env,
+    api,
+  );
+  assert.equal(result.status, 200);
+  assert.deepEqual(await result.json(), {
+    policy: 'private-recovery-ready-v1',
+    scope,
+    kind: 'settings',
+  });
+  const client = createPrivateRecoveryClient(scope, 'settings', async () =>
+    Response.json({ policy: 'private-recovery-ready-v1', scope, kind: 'settings' }),
+  );
+  await client.check(new AbortController().signal);
+  await assert.rejects(
+    createPrivateRecoveryClient(scope, 'settings', async () =>
+      Response.json({
+        policy: 'private-recovery-ready-v1',
+        scope: { ...scope, actorId: id(11) },
+        kind: 'settings',
+      }),
+    ).check(new AbortController().signal),
+  );
+});
+
+test('browser decoded JSON permits standard compression with bounded decoded bytes and rejects wire/framing/duplicate ambiguity', async () => {
+  const { readBrowserDecodedJson } = await import('../dist/tests/lib/browser-decoded-json.js');
+  const signal = new AbortController().signal;
+  for (const encoding of ['gzip', 'br', 'deflate', 'identity']) {
+    const text = JSON.stringify({ value: 'x'.repeat(100) });
+    const headers = {
+      'content-type': 'application/json',
+      'content-encoding': encoding,
+      'content-length': String(encoding === 'identity' ? text.length : 12),
+    };
+    assert.deepEqual(await readBrowserDecodedJson(new Response(text, { headers }), 200, signal), {
+      value: 'x'.repeat(100),
+    });
+  }
+  for (const [text, extra] of [
+    ['{}', { 'content-encoding': 'unknown' }],
+    ['{}', { 'content-length': '3' }],
+    ['{}', { 'content-length': '01' }],
+    ['{"v":1,"v":2}', {}],
+    [
+      JSON.stringify({ v: 'x'.repeat(1000) }),
+      { 'content-encoding': 'gzip', 'content-length': '12' },
+    ],
+  ])
+    await assert.rejects(
+      readBrowserDecodedJson(
+        new Response(text, { headers: { 'content-type': 'application/json', ...extra } }),
+        200,
+        signal,
+      ),
+    );
 });

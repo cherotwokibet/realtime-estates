@@ -1,0 +1,25 @@
+✔ verified RS256 leases and sealed originals cross two owned HTTP envelopes with current SQL role, revocation and expiry (7018.5905ms)
+✔ settings cipher preserves normalized original across fresh instances without exposing command/key, with a fresh nonce (7.0326ms)
+✔ settings ciphertext-only store survives disposal and current-authorized reopening; retaining the same original is idempotent (5.1102ms)
+✔ report cipher preserves normalized original across fresh instances without exposing command/key, with a fresh nonce (1.4483ms)
+✔ report ciphertext-only store survives disposal and current-authorized reopening; retaining the same original is idempotent (1.6907ms)
+✔ authenticated envelopes refuse wrong key, IV/tag/ciphertext tamper, metadata substitution, malformed encoding and unbounded inputs (1.9048ms)
+✔ recovery BFF defaults closed, pins same-origin nonce and refuses authority/cookies/duplicates before releasing any plaintext (59.9385ms)
+✔ BFF rechecks SQL-derived role/actor after a body read and does not decrypt on denied, expired or changed authority (12.783ms)
+✔ browser recovery client fixes paths, strips credentials and rejects scope/operation/redirect substitution (4.2278ms)
+✔ sealed store refuses replacement, concurrent preparation and failed persistence/readback without a write permission claim (8.8079ms)
+✔ store abort/denial preserves stored ciphertext and no cached callback can load or replace it (1.6616ms)
+✔ settings confirmed release requires complete original, current actor and intact matching ciphertext (1.8678ms)
+✔ report confirmed release requires complete original, current actor and intact matching ciphertext (1.7282ms)
+✔ confirmed release refuses a replacement during current-authorized reopening and preserves the replacement bytes (2.9678ms)
+✔ recovery readiness verifies captured scope and key configuration without returning a command or mutation permission (2.124ms)
+✔ browser decoded JSON permits standard compression with bounded decoded bytes and rejects wire/framing/duplicate ambiguity (3.4546ms)
+✔ disposable preview keys are random RAM-only values; explicit configuration is preserved and production/partial overrides fail closed (3.8655ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7697.7424

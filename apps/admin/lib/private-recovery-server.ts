@@ -32,7 +32,7 @@ export async function privateRecoveryRequest(
   let kind;
   try {
     kind = recoveryKind(kindInput);
-    if (action !== 'seal' && action !== 'open') throw Error();
+    if (action !== 'seal' && action !== 'open' && action !== 'check') throw Error();
   } catch {
     return reply(404, { error: 'RECOVERY_UNAVAILABLE' });
   }
@@ -96,7 +96,7 @@ export async function privateRecoveryRequest(
     if (initial.role !== 'admin') return reply(403, { error: 'RECOVERY_UNAVAILABLE' });
     const input = recoveryObject(
       await readReferenceJson(request, RECOVERY_MAX_WIRE_BYTES, signal),
-      ['scope', action === 'seal' ? 'command' : 'envelope'],
+      action === 'check' ? ['scope'] : ['scope', action === 'seal' ? 'command' : 'envelope'],
     );
     const scope = captureRecoveryScope(input.scope),
       current = await client.getCurrentStaffAccessLeaseV2(options);
@@ -114,9 +114,11 @@ export async function privateRecoveryRequest(
     )
       return reply(403, { error: 'RECOVERY_UNAVAILABLE' });
     const value =
-      action === 'seal'
-        ? cipher.seal(trusted, kind, input.command)
-        : cipher.open(trusted, kind, input.envelope);
+      action === 'check'
+        ? { policy: 'private-recovery-ready-v1', scope: trusted, kind }
+        : action === 'seal'
+          ? cipher.seal(trusted, kind, input.command)
+          : cipher.open(trusted, kind, input.envelope);
     if (signal.aborted || Date.now() >= Date.parse(current.expiresAt))
       return reply(403, { error: 'RECOVERY_UNAVAILABLE' });
     return reply(200, value);

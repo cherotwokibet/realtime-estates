@@ -1,6 +1,7 @@
 // Actual headless Chromium + production Next clients; synthetic intercepted API authority only.
 // Never uses a personal browser profile, provider, account, database or paid service.
 import assert from 'node:assert/strict';
+import { syntheticRecoveryEnvironment } from './synthetic-recovery-env.mjs';
 import { spawn } from 'node:child_process';
 import { registerHooks } from 'node:module';
 import { readFileSync } from 'node:fs';
@@ -87,6 +88,96 @@ async function port() {
   await new Promise((r) => s.close(r));
   return p;
 }
+// Owned mutable HTTP fixtures, not SQL/provider evidence. Recovery still uses the real Node BFF cipher.
+const sealedReceipts = new Map();
+let sealedWrites = 0;
+const settingsState = {
+  policy: 'company-settings-state-v1',
+  version: '0',
+  current: null,
+  history: [],
+  hasMore: false,
+};
+async function sealedFixture(req, res) {
+  const path = new URL(req.url, 'http://fixture.invalid').pathname;
+  const reply = (status, body) => {
+    res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    res.end(JSON.stringify(body));
+  };
+  if (path === '/v2/staff/session-lease') {
+    const now = Date.now();
+    reply(200, {
+      policy: 'staff-access-lease-v1',
+      tenantId: tenant,
+      actorId: actor,
+      role: 'admin',
+      checkedAt: new Date(now).toISOString(),
+      expiresAt: new Date(now + 30000).toISOString(),
+    });
+    return true;
+  }
+  if (path === '/v2/staff/company-settings') {
+    reply(200, settingsState);
+    return true;
+  }
+  if (path === '/v2/staff/listing-reports') {
+    reply(200, {
+      policy: 'listing-report-queue-v1',
+      limit: 20,
+      status: 'new',
+      hasMore: false,
+      items: [
+        {
+          reportId: id(210),
+          listingId: listing,
+          revision: 1,
+          reason: 'other',
+          details: 'PRIVATE_SEALED_QUEUE_CANARY',
+          noticeVersion: 'synthetic-v1',
+          recordedAt: '2026-11-22T00:00:00.000Z',
+          version: '1',
+          status: 'new',
+          decision: null,
+        },
+      ],
+    });
+    return true;
+  }
+  if (/^\/v2\/staff\/(company-settings|listing-reports).*\/operations\//.test(path)) {
+    if (req.method === 'POST') {
+      let text = '';
+      for await (const chunk of req) text += chunk;
+      const command = JSON.parse(text);
+      if (!sealedReceipts.has(path)) {
+        sealedWrites++;
+        sealedReceipts.set(
+          path,
+          path.includes('/company-settings/')
+            ? {
+                version: '1',
+                operationId: command.operationId,
+                actorId: actor,
+                recordedAt: '2026-11-22T00:00:01.000Z',
+                request: command,
+              }
+            : {
+                policy: 'listing-report-decision-receipt-v1',
+                operationId: command.operationId,
+                reportId: command.reportId,
+                version: '2',
+                decision: command.decision,
+                reason: command.reason,
+                actorId: actor,
+                recordedAt: '2026-11-22T00:00:01.000Z',
+              },
+        );
+      }
+    }
+    reply(sealedReceipts.has(path) ? 200 : 404, sealedReceipts.get(path) ?? { error: 'missing' });
+    return true;
+  }
+  return false;
+}
 async function start(app, review = false) {
   const p = await port(),
     env = { ...process.env, NODE_ENV: 'production', APP_ENV: 'staging' };
@@ -117,11 +208,12 @@ async function start(app, review = false) {
       'https://synthetic-api.example';
   env.PRIVACY_NOTICE_VERSION = 'synthetic-staff-v1';
   if (review) env.STAFF_PREVIEW_INSTANCE = id(900); // Fixture scope only; production preview BFF stays disabled.
-  if (review === 'references' || review === 'ordinary') {
+  if (review === 'references' || review === 'ordinary' || review === 'sealed') {
     // Production client bundle, explicitly developer-mode fixture server/BFF policy.
     // No production-policy override is added to application code.
     if (!referenceServer) {
-      referenceServer = httpServer((req, res) => {
+      referenceServer = httpServer(async (req, res) => {
+        if (await sealedFixture(req, res)) return;
         let body;
         if (req.method !== 'GET') {
           res.writeHead(405);
@@ -170,7 +262,9 @@ async function start(app, review = false) {
             STAFF_PREVIEW_REFERENCE_CREATION: 'synthetic-reference-creation-v1',
             STAFF_PREVIEW_REFERENCE_SUCCESSOR: 'synthetic-reference-successor-v1',
           }
-        : { STAFF_DIRECTORY_PREVIEW_MODE: 'synthetic-v1' }),
+        : review === 'sealed'
+          ? { STAFF_REPORT_PREVIEW_MODE: 'synthetic-v1', ...syntheticRecoveryEnvironment({}) }
+          : { STAFF_DIRECTORY_PREVIEW_MODE: 'synthetic-v1' }),
     });
   }
   const child = spawn(
@@ -381,6 +475,50 @@ async function tab(origin, path, kind, model) {
       else await complete();
       return;
     }
+    if (model.recoveryUnavailable && u.pathname.startsWith('/api/private-workspace/recovery/')) {
+      await fulfil(requestId, { error: 'synthetic-recovery-unavailable' }, 503);
+      return;
+    }
+    if (
+      model.sealedKind &&
+      /^(\/api\/company-settings|\/api\/listing-reports).*\/operations\//.test(u.pathname)
+    ) {
+      reads++;
+      if (model.sealedStatus) {
+        await fulfil(requestId, { error: 'unavailable' }, model.sealedStatus);
+        return;
+      }
+      // Assert encrypted retention already exists at the mutation dispatch boundary.
+      if (request.method === 'POST') {
+        const slots = await evaljs(
+          'Object.entries(sessionStorage).filter(([k])=>k.startsWith("realtor.sealed-recovery.v1:"))',
+        );
+        assert.equal(slots.length, 1);
+        assert.doesNotMatch(
+          JSON.stringify(slots),
+          /PRIVATE_SEALED_ORIGINAL_CANARY|companyName|reason/,
+        );
+        model.retainedBeforeDispatch = true;
+      }
+      // Forward to the actual Next BFF/owned HTTP fixture, then withhold only its browser reply.
+      const reply = await fetch(request.url, {
+        method: request.method,
+        headers: {
+          'x-preview-instance': id(900),
+          ...(request.method === 'POST' ? { 'content-type': 'application/json', origin } : {}),
+        },
+        ...(request.postData ? { body: request.postData } : {}),
+      });
+      const body = await reply.json();
+      if (model.wrongActor) {
+        if (model.sealedKind === 'settings') body.actorId = id(99);
+        else body.receipt.actorId = id(99);
+      }
+      const complete = () => fulfil(requestId, body, reply.status);
+      if (model.holdSealed) held = complete;
+      else await complete();
+      return;
+    }
     if (
       model.ordinaryKind &&
       (/^\/api\/staff\/listings\//.test(u.pathname) ||
@@ -543,31 +681,37 @@ async function tab(origin, path, kind, model) {
     });
   await cmd('Page.navigate', { url: origin + path });
   const selector =
-    kind === 'directory'
-      ? '.staff-workspace'
-      : kind.startsWith('allocation-')
-        ? '.draft-panel[aria-label="Retained listing allocation workspace"]'
-        : kind === 'creation' || kind === 'successor'
-          ? '.draft-panel[aria-label="Reference ' + kind + ' workspace"]'
-          : kind === 'review'
-            ? '.review-workspace-layout'
-            : kind === 'staff'
-              ? '.hosted-staff'
-              : kind === 'customer'
-                ? '.customer-account'
-                : '.hosted-sign-in';
+    kind === 'settings'
+      ? '.settings-grid'
+      : kind === 'report'
+        ? 'section[aria-label="Private report review"]'
+        : kind === 'directory'
+          ? '.staff-workspace'
+          : kind.startsWith('allocation-')
+            ? '.draft-panel[aria-label="Retained listing allocation workspace"]'
+            : kind === 'creation' || kind === 'successor'
+              ? '.draft-panel[aria-label="Reference ' + kind + ' workspace"]'
+              : kind === 'review'
+                ? '.review-workspace-layout'
+                : kind === 'staff'
+                  ? '.hosted-staff'
+                  : kind === 'customer'
+                    ? '.customer-account'
+                    : '.hosted-sign-in';
   const privateText =
-    kind === 'directory' || kind.startsWith('allocation-')
-      ? 'PRIVATE_STAFF_ORIGINAL_CANARY'
-      : kind === 'creation' || kind === 'successor'
-        ? 'PRIVATE_ORIGINAL_CANARY'
-        : kind === 'review'
-          ? 'PRIVATE_REVIEW_CANARY'
-          : kind === 'staff'
-            ? 'PRIVATE_BRANCH_CANARY'
-            : kind === 'customer'
-              ? 'PRIVATE_HOME_CANARY'
-              : 'You are signed in.';
+    kind === 'settings' || kind === 'report'
+      ? 'PRIVATE_SEALED_ORIGINAL_CANARY'
+      : kind === 'directory' || kind.startsWith('allocation-')
+        ? 'PRIVATE_STAFF_ORIGINAL_CANARY'
+        : kind === 'creation' || kind === 'successor'
+          ? 'PRIVATE_ORIGINAL_CANARY'
+          : kind === 'review'
+            ? 'PRIVATE_REVIEW_CANARY'
+            : kind === 'staff'
+              ? 'PRIVATE_BRANCH_CANARY'
+              : kind === 'customer'
+                ? 'PRIVATE_HOME_CANARY'
+                : 'You are signed in.';
   const text = () => evaljs(`document.querySelector(${JSON.stringify(selector)})?.innerText || ''`);
   const visible = async () => (await text()).includes(privateText);
   if (!model.allowChecking) await until(visible, kind + ' private initial render');
@@ -1283,6 +1427,194 @@ try {
       'admin/' +
         kind +
         ': verified idle expiry closes private rendering and focus cannot reopen it',
+    );
+  }
+  const sealedOrigin = await start('admin', 'sealed');
+  const readiness = await fetch(sealedOrigin + '/api/private-workspace/recovery/settings/check', {
+    method: 'POST',
+    headers: {
+      origin: sealedOrigin,
+      'content-type': 'application/json',
+      'x-preview-instance': id(900),
+    },
+    body: JSON.stringify({ scope: { instanceId: id(900), tenantId: tenant, actorId: actor } }),
+  });
+  assert.equal(readiness.status, 200, await readiness.text());
+  for (const kind of ['settings', 'report']) {
+    const path = kind === 'settings' ? '/settings' : '/reports';
+    const label = kind === 'settings' ? 'Inspect original result' : 'Check original review';
+    const unavailableWrites = sealedWrites;
+    const unavailable = await tab(sealedOrigin, path, kind, {
+      sealedKind: kind,
+      allowChecking: true,
+      recoveryUnavailable: true,
+      logouts: [],
+      expiresAt: Date.now() + 120000,
+    });
+    await until(
+      () =>
+        unavailable.evaljs("document.body.innerText.includes('Encrypted recovery is unavailable')"),
+      kind + ' readiness refusal',
+    );
+    assert.equal(
+      await unavailable.evaljs(
+        `document.querySelector(${JSON.stringify(kind === 'settings' ? '.settings-grid fieldset' : 'section[aria-label="Private report review"] select')})?.disabled`,
+      ),
+      true,
+    );
+    assert.equal(sealedWrites, unavailableWrites);
+    assert.deepEqual(unavailable.errors, []);
+    await unavailable.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': empty browser storage does not bypass unavailable encrypted recovery; write controls stay disabled',
+    );
+    const model = {
+      sealedKind: kind,
+      allowChecking: true,
+      logouts: [],
+      expiresAt: Date.now() + 120000,
+    };
+    const t = await tab(sealedOrigin, path, kind, model);
+    await until(
+      () =>
+        t.evaljs(
+          `document.querySelector(${JSON.stringify(kind === 'settings' ? '.settings-grid fieldset' : 'section[aria-label="Private report review"] select')})?.disabled === false`,
+        ),
+      kind + ' encrypted readiness',
+    );
+    if (kind === 'report') {
+      await t.click('Load current reports');
+      await until(
+        () =>
+          t.evaljs(
+            "!![...document.querySelectorAll('button')].find(b=>b.textContent==='Review this report')",
+          ),
+        'report queue',
+      );
+      await t.click('Review this report');
+    }
+    await t.evaljs(
+      `(()=>{const e=document.querySelector(${JSON.stringify(kind === 'settings' ? '.settings-grid input' : 'section[aria-label="Private report review"] textarea')});Object.getOwnPropertyDescriptor(${kind === 'settings' ? 'HTMLInputElement' : 'HTMLTextAreaElement'}.prototype,'value').set.call(e,'PRIVATE_SEALED_ORIGINAL_CANARY');e.dispatchEvent(new Event('input',{bubbles:true}));})()`,
+    );
+    if (kind === 'settings')
+      await t.evaljs("document.querySelector('.settings-grid input[type=checkbox]').click()");
+    model.holdSealed = true;
+    const writesBefore = sealedWrites;
+    await t.click(kind === 'settings' ? 'Approve and save content' : 'Save report review');
+    await until(() => t.held(), kind + ' actual persisted reply held');
+    assert.equal(sealedWrites, writesBefore + 1);
+    assert.equal(model.retainedBeforeDispatch, true);
+    const snapshot = (page) =>
+      page.evaljs(
+        'JSON.stringify(Object.entries(sessionStorage).filter(([k])=>k.startsWith("realtor.sealed-recovery.v1:")).sort())',
+      );
+    const saved = await snapshot(t);
+    assert.doesNotMatch(saved, /PRIVATE_SEALED_ORIGINAL_CANARY|companyName|reason/);
+    const entries = JSON.parse(saved);
+    assert.equal(entries.length, 1);
+    const clearCheck = async (page) => {
+      await until(
+        () => page.evaljs('!!document.querySelector(\'[aria-label="Private view closed"]\')'),
+        kind + ' closed',
+      );
+      assert.equal(await snapshot(page), saved);
+      assert.equal(
+        await page.evaljs("document.querySelectorAll('input,textarea,select').length"),
+        0,
+      );
+      assert.doesNotMatch(await page.evaljs('document.body.innerText'), /PRIVATE_SEALED_.*CANARY/);
+    };
+    await t.evaljs(
+      "(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signing-out'});c.close()})()",
+    );
+    await clearCheck(t);
+    await t
+      .held()()
+      .catch(() => {});
+    await pause(100);
+    await clearCheck(t);
+    model.holdSealed = false;
+    await t.cmd('Page.reload');
+    await until(() => t.visible(), kind + ' authorized original restored on reload');
+    assert.equal(sealedWrites, writesBefore + 1, 'Reload must not dispatch another mutation');
+    assert.equal(await snapshot(t), saved);
+    await t.click(label);
+    await until(async () => (await snapshot(t)) === '[]', kind + ' exact receipt release');
+    assert.equal(sealedWrites, writesBefore + 1);
+    assert.deepEqual(t.errors, []);
+    await t.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': real BFF seals before write; lost reply/logout preserves opaque original; authorized reload and exact GET receipt release it without a duplicate write',
+    );
+    for (const status of [401, 403, 404, 409]) {
+      const denied = { ...model, originalEntries: entries, sealedStatus: status },
+        page = await tab(sealedOrigin, path, kind, denied);
+      await until(() => page.visible(), kind + ' retained original restored');
+      await page.click(label);
+      if (status === 401 || status === 403) await clearCheck(page);
+      else {
+        await until(
+          () =>
+            page.evaljs(
+              `!![...document.querySelectorAll('button')].find(b=>b.textContent.trim()===${JSON.stringify(label)}&&!b.disabled)`,
+            ),
+          kind + ' unresolved read settled',
+        );
+        assert.equal(await snapshot(page), saved);
+        assert.equal(await page.visible(), true);
+      }
+      assert.equal(sealedWrites, writesBefore + 1);
+      assert.deepEqual(page.errors, []);
+      await page.close();
+      evidence.tests.push(
+        'admin/' +
+          kind +
+          ': outcome HTTP ' +
+          status +
+          ' preserves encrypted original' +
+          (status < 404 ? ' and closes private rendering' : ' and blocks replacement'),
+      );
+    }
+    const wrong = await tab(sealedOrigin, path, kind, {
+      ...model,
+      originalEntries: entries,
+      wrongActor: true,
+    });
+    await until(() => wrong.visible(), kind + ' actor mismatch original');
+    await wrong.click(label);
+    await until(
+      () =>
+        wrong.evaljs(
+          `!![...document.querySelectorAll('button')].find(b=>b.textContent.trim()===${JSON.stringify(label)}&&!b.disabled)`,
+        ),
+      kind + ' mismatched actor settled',
+    );
+    assert.equal(await snapshot(wrong), saved);
+    assert.equal(await wrong.visible(), true);
+    await wrong.close();
+    evidence.tests.push(
+      'admin/' + kind + ': valid-shaped receipt for another actor cannot release the original',
+    );
+    const idle = await tab(sealedOrigin, path, kind, {
+      ...model,
+      originalEntries: entries,
+      leaseExpiresAt: Date.now() + 5000,
+    });
+    await until(() => idle.visible(), kind + ' expiry original');
+    await clearCheck(idle);
+    const reads = idle.reads();
+    await idle.evaljs("window.dispatchEvent(new Event('focus'))");
+    await pause(100);
+    assert.equal(idle.reads(), reads);
+    await idle.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': idle access expiry removes private forms without deleting encrypted intent or reopening on focus',
     );
   }
   console.log(JSON.stringify(evidence, null, 2));
