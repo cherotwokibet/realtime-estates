@@ -1,0 +1,1900 @@
+2026-11-21T10:34:07.6574337Z Current runner version: '2.338.2'
+2026-11-21T10:34:07.6590764Z ##[group]Runner Image Provisioner
+2026-11-21T10:34:07.6591438Z Hosted Compute Agent
+2026-11-21T10:34:07.6591862Z Version: 20261111.635
+2026-11-21T10:34:07.6592356Z Commit: b8a594ea514ff44cadb5342986c68b1eac6e22ed
+2026-11-21T10:34:07.6592890Z Build Date: 2026-11-11T01:49:01Z
+2026-11-21T10:34:07.6593369Z Worker ID: {e0a3b4a2-da90-4d78-8a1a-0f3ca5a2d978}
+2026-11-21T10:34:07.6593900Z Region: us-west-2
+2026-11-21T10:34:07.6594282Z Cloud: AWS
+2026-11-21T10:34:07.6594653Z ##[endgroup]
+2026-11-21T10:34:07.6595991Z ##[group]Operating System
+2026-11-21T10:34:07.6596428Z Ubuntu
+2026-11-21T10:34:07.6596814Z 24.04.5
+2026-11-21T10:34:07.6597179Z LTS
+2026-11-21T10:34:07.6597570Z ##[endgroup]
+2026-11-21T10:34:07.6597975Z ##[group]Runner Image
+2026-11-21T10:34:07.6598389Z Image: ubuntu-24.04
+2026-11-21T10:34:07.6598800Z Version: 20261116.133.1
+2026-11-21T10:34:07.6599703Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261116.133/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-21T10:34:07.6600820Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261116.133
+2026-11-21T10:34:07.6601505Z ##[endgroup]
+2026-11-21T10:34:07.6602277Z ##[group]GITHUB_TOKEN Permissions
+2026-11-21T10:34:07.6603862Z Contents: read
+2026-11-21T10:34:07.6604302Z Metadata: read
+2026-11-21T10:34:07.6604689Z ##[endgroup]
+2026-11-21T10:34:07.6606490Z Secret source: Actions
+2026-11-21T10:34:07.6607205Z Cache mode: write
+2026-11-21T10:34:07.6607672Z Prepare workflow directory
+2026-11-21T10:34:07.6895493Z Prepare all required actions
+2026-11-21T10:34:07.6931731Z Getting action download info
+2026-11-21T10:34:08.0144287Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-11-21T10:34:09.0212997Z Download action repository 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1' (SHA:949feb2413d6458794dcd2491c4babbbce0c15c1)
+2026-11-21T10:34:09.2593950Z Complete job name: Linux staging runtime verification
+2026-11-21T10:34:09.3077326Z ##[group]Checking docker version
+2026-11-21T10:34:09.3087531Z ##[command]/usr/bin/docker version --format '{{.Server.APIVersion}}'
+2026-11-21T10:34:10.3207656Z '1.48'
+2026-11-21T10:34:10.3216939Z Docker daemon API version: '1.48'
+2026-11-21T10:34:10.3217435Z ##[command]/usr/bin/docker version --format '{{.Client.APIVersion}}'
+2026-11-21T10:34:10.3344364Z '1.48'
+2026-11-21T10:34:10.3350728Z Docker client API version: '1.48'
+2026-11-21T10:34:10.3354129Z ##[endgroup]
+2026-11-21T10:34:10.3356342Z ##[group]Clean up resources from previous jobs
+2026-11-21T10:34:10.3359560Z ##[command]/usr/bin/docker ps --all --quiet --no-trunc --filter "label=342f15"
+2026-11-21T10:34:10.3474172Z ##[command]/usr/bin/docker network prune --force --filter "label=342f15"
+2026-11-21T10:34:10.3571580Z ##[endgroup]
+2026-11-21T10:34:10.3571964Z ##[group]Create local container network
+2026-11-21T10:34:10.3578964Z ##[command]/usr/bin/docker network create --label 342f15 github_network_5c0c8cb8b29643c19e9e89e8ecd7f399
+2026-11-21T10:34:10.3909085Z e422ffd533721232acaf4a0338cec143a73df616c27aa80310ae4edf641b9c69
+2026-11-21T10:34:10.3920738Z ##[endgroup]
+2026-11-21T10:34:10.3940545Z ##[group]Starting postgres service container
+2026-11-21T10:34:10.3956860Z ##[command]/usr/bin/docker pull postgres:17-bookworm@sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b
+2026-11-21T10:34:10.9668021Z docker.io/library/postgres@sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b: Pulling from library/postgres
+2026-11-21T10:34:11.2230852Z dd051e1b8c92: Pulling fs layer
+2026-11-21T10:34:11.2232608Z 61898df8215c: Pulling fs layer
+2026-11-21T10:34:11.2233229Z c786e7ff3265: Pulling fs layer
+2026-11-21T10:34:11.2234140Z ae002ce57fa8: Pulling fs layer
+2026-11-21T10:34:11.2234615Z 6d9261669255: Pulling fs layer
+2026-11-21T10:34:11.2235105Z 790213b31cb1: Pulling fs layer
+2026-11-21T10:34:11.2235429Z b8f9f793b6b5: Pulling fs layer
+2026-11-21T10:34:11.2235835Z 2394d9fec7ad: Pulling fs layer
+2026-11-21T10:34:11.2236370Z db77f2c04c86: Pulling fs layer
+2026-11-21T10:34:11.2236685Z 46cf366c2af5: Pulling fs layer
+2026-11-21T10:34:11.2236927Z a0fed06a709c: Pulling fs layer
+2026-11-21T10:34:11.2237199Z 1efe74d974fe: Pulling fs layer
+2026-11-21T10:34:11.2237451Z 593598a92ca5: Pulling fs layer
+2026-11-21T10:34:11.2237684Z 2394d9fec7ad: Waiting
+2026-11-21T10:34:11.2237923Z db77f2c04c86: Waiting
+2026-11-21T10:34:11.2238146Z 46cf366c2af5: Waiting
+2026-11-21T10:34:11.2238371Z a0fed06a709c: Waiting
+2026-11-21T10:34:11.2238591Z 1efe74d974fe: Waiting
+2026-11-21T10:34:11.2238797Z 593598a92ca5: Waiting
+2026-11-21T10:34:11.2239038Z ae002ce57fa8: Waiting
+2026-11-21T10:34:11.2239293Z 6d9261669255: Waiting
+2026-11-21T10:34:11.2239519Z 790213b31cb1: Waiting
+2026-11-21T10:34:11.2239737Z b8f9f793b6b5: Waiting
+2026-11-21T10:34:11.4241342Z 61898df8215c: Verifying Checksum
+2026-11-21T10:34:11.4241833Z 61898df8215c: Download complete
+2026-11-21T10:34:11.4701788Z c786e7ff3265: Verifying Checksum
+2026-11-21T10:34:11.4702389Z c786e7ff3265: Download complete
+2026-11-21T10:34:11.5571653Z dd051e1b8c92: Verifying Checksum
+2026-11-21T10:34:11.5572123Z dd051e1b8c92: Download complete
+2026-11-21T10:34:11.6686036Z ae002ce57fa8: Verifying Checksum
+2026-11-21T10:34:11.6691603Z ae002ce57fa8: Download complete
+2026-11-21T10:34:11.7600314Z 6d9261669255: Verifying Checksum
+2026-11-21T10:34:11.7601296Z 6d9261669255: Download complete
+2026-11-21T10:34:11.8032374Z 790213b31cb1: Verifying Checksum
+2026-11-21T10:34:11.8032778Z 790213b31cb1: Download complete
+2026-11-21T10:34:11.8785094Z b8f9f793b6b5: Verifying Checksum
+2026-11-21T10:34:11.8785565Z b8f9f793b6b5: Download complete
+2026-11-21T10:34:11.9548161Z 2394d9fec7ad: Verifying Checksum
+2026-11-21T10:34:11.9548734Z 2394d9fec7ad: Download complete
+2026-11-21T10:34:12.1549379Z a0fed06a709c: Verifying Checksum
+2026-11-21T10:34:12.1549914Z a0fed06a709c: Download complete
+2026-11-21T10:34:12.2672241Z dd051e1b8c92: Pull complete
+2026-11-21T10:34:12.2747734Z 61898df8215c: Pull complete
+2026-11-21T10:34:12.3061096Z db77f2c04c86: Verifying Checksum
+2026-11-21T10:34:12.3061570Z db77f2c04c86: Download complete
+2026-11-21T10:34:12.3531401Z c786e7ff3265: Pull complete
+2026-11-21T10:34:12.3545992Z 1efe74d974fe: Verifying Checksum
+2026-11-21T10:34:12.3546797Z 1efe74d974fe: Download complete
+2026-11-21T10:34:12.3551192Z 46cf366c2af5: Download complete
+2026-11-21T10:34:12.3737613Z ae002ce57fa8: Pull complete
+2026-11-21T10:34:12.5132620Z 6d9261669255: Pull complete
+2026-11-21T10:34:12.5232016Z 593598a92ca5: Download complete
+2026-11-21T10:34:12.5407326Z 790213b31cb1: Pull complete
+2026-11-21T10:34:12.5437799Z b8f9f793b6b5: Pull complete
+2026-11-21T10:34:12.5479088Z 2394d9fec7ad: Pull complete
+2026-11-21T10:34:14.1576322Z db77f2c04c86: Pull complete
+2026-11-21T10:34:14.1621065Z 46cf366c2af5: Pull complete
+2026-11-21T10:34:14.1656280Z a0fed06a709c: Pull complete
+2026-11-21T10:34:14.1712879Z 1efe74d974fe: Pull complete
+2026-11-21T10:34:14.1748537Z 593598a92ca5: Pull complete
+2026-11-21T10:34:14.1775897Z Digest: sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b
+2026-11-21T10:34:14.1781921Z Status: Downloaded newer image for postgres@sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b
+2026-11-21T10:34:14.1787417Z docker.io/library/postgres:17-bookworm@sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b
+2026-11-21T10:34:14.1831942Z ##[command]/usr/bin/docker create --name 1a87ac7e123c4f8fa27134c0aee8c758_postgres17bookwormsha256837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b_f410b1 --label 342f15 --network github_network_5c0c8cb8b29643c19e9e89e8ecd7f399 --network-alias postgres -p 5432:5432 --health-cmd "pg_isready -U postgres -d realtor_synthetic_ci" --health-interval 5s --health-timeout 5s --health-retries 12 -e "POSTGRES_DB=realtor_synthetic_ci" -e "POSTGRES_PASSWORD=synthetic-ci-admin-only" -e GITHUB_ACTIONS=true -e CI=true postgres:17-bookworm@sha256:837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b
+2026-11-21T10:34:15.1031518Z a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d
+2026-11-21T10:34:15.1046283Z ##[command]/usr/bin/docker start a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d
+2026-11-21T10:34:15.7970698Z a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d
+2026-11-21T10:34:15.7995718Z ##[command]/usr/bin/docker ps --all --filter id=a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d --filter status=running --no-trunc --format "{{.ID}} {{.Status}}"
+2026-11-21T10:34:15.8105508Z a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d Up Less than a second (health: starting)
+2026-11-21T10:34:15.8118188Z ##[command]/usr/bin/docker port a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d
+2026-11-21T10:34:15.8215455Z 5432/tcp -> 0.0.0.0:5432
+2026-11-21T10:34:15.8216678Z 5432/tcp -> [::]:5432
+2026-11-21T10:34:15.8247215Z ##[endgroup]
+2026-11-21T10:34:15.8254635Z ##[group]Waiting for all services to be ready
+2026-11-21T10:34:15.8264421Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d
+2026-11-21T10:34:15.8360214Z starting
+2026-11-21T10:34:15.8373507Z postgres service is starting, waiting 2 seconds before checking again.
+2026-11-21T10:34:17.8369072Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d
+2026-11-21T10:34:17.8476522Z starting
+2026-11-21T10:34:17.8483958Z postgres service is starting, waiting 4 seconds before checking again.
+2026-11-21T10:34:21.9441961Z ##[command]/usr/bin/docker inspect --format="{{if .Config.Healthcheck}}{{print .State.Health.Status}}{{end}}" a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d
+2026-11-21T10:34:21.9548346Z healthy
+2026-11-21T10:34:21.9565810Z postgres service is healthy.
+2026-11-21T10:34:21.9566525Z ##[endgroup]
+2026-11-21T10:34:21.9793269Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+2026-11-21T10:34:21.9793786Z with:
+2026-11-21T10:34:21.9794001Z   persist-credentials: false
+2026-11-21T10:34:21.9794305Z   repository: cherotwokibet/realtime-estates
+2026-11-21T10:34:21.9796371Z   token: ***
+2026-11-21T10:34:21.9796614Z   ssh-strict: true
+2026-11-21T10:34:21.9796837Z   ssh-user: git
+2026-11-21T10:34:21.9797058Z   clean: true
+2026-11-21T10:34:21.9797300Z   sparse-checkout-cone-mode: true
+2026-11-21T10:34:21.9797545Z   fetch-depth: 1
+2026-11-21T10:34:21.9797768Z   fetch-tags: false
+2026-11-21T10:34:21.9797994Z   show-progress: true
+2026-11-21T10:34:21.9798209Z   lfs: false
+2026-11-21T10:34:21.9798418Z   submodules: false
+2026-11-21T10:34:21.9798635Z   set-safe-directory: true
+2026-11-21T10:34:21.9798887Z   allow-unsafe-pr-checkout: false
+2026-11-21T10:34:21.9799295Z ##[endgroup]
+2026-11-21T10:34:24.1465552Z Syncing repository: cherotwokibet/realtime-estates
+2026-11-21T10:34:24.1466815Z ##[group]Getting Git version info
+2026-11-21T10:34:24.1467192Z Working directory is '/home/runner/work/realtime-estates/realtime-estates'
+2026-11-21T10:34:24.1467740Z [command]/usr/bin/git version
+2026-11-21T10:34:24.3376302Z git version 2.56.1
+2026-11-21T10:34:24.3394658Z ##[endgroup]
+2026-11-21T10:34:24.3403110Z Temporarily overriding HOME='/home/runner/work/_temp/436a16b9-fc6c-4803-b699-d48fdd367b6e' before making global git config changes
+2026-11-21T10:34:24.3403993Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-21T10:34:24.3407954Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/realtime-estates/realtime-estates
+2026-11-21T10:34:24.3796416Z Deleting the contents of '/home/runner/work/realtime-estates/realtime-estates'
+2026-11-21T10:34:24.3798496Z ##[group]Determining repository object format
+2026-11-21T10:34:24.3799520Z ##[endgroup]
+2026-11-21T10:34:24.3800097Z ##[group]Initializing the repository
+2026-11-21T10:34:24.3803116Z [command]/usr/bin/git init /home/runner/work/realtime-estates/realtime-estates
+2026-11-21T10:34:24.4176769Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-21T10:34:24.4177410Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-21T10:34:24.4177915Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-21T10:34:24.4178289Z hint: call:
+2026-11-21T10:34:24.4178618Z hint:
+2026-11-21T10:34:24.4179010Z hint: 	git config --global init.defaultBranch <name>
+2026-11-21T10:34:24.4179436Z hint:
+2026-11-21T10:34:24.4179902Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-21T10:34:24.4180604Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-21T10:34:24.4181128Z hint:
+2026-11-21T10:34:24.4181438Z hint: 	git branch -m <name>
+2026-11-21T10:34:24.4181830Z hint:
+2026-11-21T10:34:24.4182732Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-21T10:34:24.4183561Z Initialized empty Git repository in /home/runner/work/realtime-estates/realtime-estates/.git/
+2026-11-21T10:34:24.4185670Z [command]/usr/bin/git remote add origin https://github.com/cherotwokibet/realtime-estates
+2026-11-21T10:34:24.4228001Z ##[endgroup]
+2026-11-21T10:34:24.4228448Z ##[group]Disabling automatic garbage collection
+2026-11-21T10:34:24.4230735Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-21T10:34:24.4252311Z ##[endgroup]
+2026-11-21T10:34:24.4252787Z ##[group]Setting up auth
+2026-11-21T10:34:24.4253155Z Removing SSH command configuration
+2026-11-21T10:34:24.4256727Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-21T10:34:24.4282658Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-21T10:34:24.6498374Z Removing HTTP extra header
+2026-11-21T10:34:24.6502304Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-21T10:34:24.6524748Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-21T10:34:24.6671340Z Removing includeIf entries pointing to credentials config files
+2026-11-21T10:34:24.6674505Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-21T10:34:24.6702989Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-21T10:34:24.6853761Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-1c050c0f-d542-4a9a-9c68-0f7a9d9adae7.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-21T10:34:24.6882219Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path /home/runner/work/_temp/git-credentials-1c050c0f-d542-4a9a-9c68-0f7a9d9adae7.config
+2026-11-21T10:34:24.6905852Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-1c050c0f-d542-4a9a-9c68-0f7a9d9adae7.config
+2026-11-21T10:34:24.6929630Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-1c050c0f-d542-4a9a-9c68-0f7a9d9adae7.config
+2026-11-21T10:34:24.6954772Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-1c050c0f-d542-4a9a-9c68-0f7a9d9adae7.config
+2026-11-21T10:34:24.6977064Z ##[endgroup]
+2026-11-21T10:34:24.6977481Z ##[group]Fetching the repository
+2026-11-21T10:34:24.6982932Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +32aa2663206c6823a94f9a957d92c248ba582066:refs/remotes/origin/main
+2026-11-21T10:34:25.7624749Z From https://github.com/cherotwokibet/realtime-estates
+2026-11-21T10:34:25.7625499Z  * [new ref]         32aa2663206c6823a94f9a957d92c248ba582066 -> origin/main
+2026-11-21T10:34:25.7632705Z [command]/usr/bin/git branch --list --remote origin/main
+2026-11-21T10:34:25.7664204Z   origin/main
+2026-11-21T10:34:25.7669347Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-11-21T10:34:25.7687184Z 32aa2663206c6823a94f9a957d92c248ba582066
+2026-11-21T10:34:25.7688954Z ##[endgroup]
+2026-11-21T10:34:25.7689418Z ##[group]Determining the checkout info
+2026-11-21T10:34:25.7690047Z ##[endgroup]
+2026-11-21T10:34:25.7692787Z [command]/usr/bin/git sparse-checkout disable
+2026-11-21T10:34:25.7739081Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-21T10:34:25.7760176Z ##[group]Checking out the ref
+2026-11-21T10:34:25.7762790Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-11-21T10:34:26.0101062Z Switched to a new branch 'main'
+2026-11-21T10:34:26.0106915Z branch 'main' set up to track 'origin/main'.
+2026-11-21T10:34:26.0115649Z ##[endgroup]
+2026-11-21T10:34:26.0148120Z [command]/usr/bin/git log -1 --format=%H
+2026-11-21T10:34:26.0176369Z 32aa2663206c6823a94f9a957d92c248ba582066
+2026-11-21T10:34:26.0185445Z ##[group]Removing auth
+2026-11-21T10:34:26.0185737Z Removing SSH command configuration
+2026-11-21T10:34:26.0191484Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-21T10:34:26.0209385Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-21T10:34:26.0359921Z Removing HTTP extra header
+2026-11-21T10:34:26.0362168Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-21T10:34:26.0385612Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-21T10:34:26.0533200Z Removing includeIf entries pointing to credentials config files
+2026-11-21T10:34:26.0535725Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-21T10:34:26.0561213Z includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path
+2026-11-21T10:34:26.0562057Z includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path
+2026-11-21T10:34:26.0562871Z includeif.gitdir:/github/workspace/.git.path
+2026-11-21T10:34:26.0563482Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-21T10:34:26.0566757Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path
+2026-11-21T10:34:26.0583222Z /home/runner/work/_temp/git-credentials-1c050c0f-d542-4a9a-9c68-0f7a9d9adae7.config
+2026-11-21T10:34:26.0590021Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-1c050c0f\-d542\-4a9a\-9c68\-0f7a9d9adae7\.config
+2026-11-21T10:34:26.0617116Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path
+2026-11-21T10:34:26.0634813Z /home/runner/work/_temp/git-credentials-1c050c0f-d542-4a9a-9c68-0f7a9d9adae7.config
+2026-11-21T10:34:26.0640976Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-1c050c0f\-d542\-4a9a\-9c68\-0f7a9d9adae7\.config
+2026-11-21T10:34:26.0666047Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-21T10:34:26.0682778Z /github/runner_temp/git-credentials-1c050c0f-d542-4a9a-9c68-0f7a9d9adae7.config
+2026-11-21T10:34:26.0687977Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-1c050c0f\-d542\-4a9a\-9c68\-0f7a9d9adae7\.config
+2026-11-21T10:34:26.0711123Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-21T10:34:26.0728911Z /github/runner_temp/git-credentials-1c050c0f-d542-4a9a-9c68-0f7a9d9adae7.config
+2026-11-21T10:34:26.0734572Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-1c050c0f\-d542\-4a9a\-9c68\-0f7a9d9adae7\.config
+2026-11-21T10:34:26.0756732Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-21T10:34:26.0899866Z Removing credentials config '/home/runner/work/_temp/git-credentials-1c050c0f-d542-4a9a-9c68-0f7a9d9adae7.config'
+2026-11-21T10:34:26.0906496Z ##[endgroup]
+2026-11-21T10:34:26.1080002Z ##[group]Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+2026-11-21T10:34:26.1080350Z with:
+2026-11-21T10:34:26.1080583Z   node-version: 24.19.0
+2026-11-21T10:34:26.1080804Z   cache: npm
+2026-11-21T10:34:26.1081015Z   check-latest: false
+2026-11-21T10:34:26.1082733Z   token: ***
+2026-11-21T10:34:26.1082956Z   package-manager-cache: true
+2026-11-21T10:34:26.1083216Z ##[endgroup]
+2026-11-21T10:34:26.2605707Z Attempting to download 24.19.0...
+2026-11-21T10:34:26.8503484Z Acquiring 24.19.0 - x64 from https://github.com/actions/node-versions/releases/download/24.19.0-30872449280/node-24.19.0-linux-x64.tar.gz
+2026-11-21T10:34:27.6252191Z Extracting ...
+2026-11-21T10:34:27.6369464Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/a648cb61-427b-431c-ae13-2f6f91486cf9 -f /home/runner/work/_temp/337573e5-c6a9-4c34-b58c-6cac97323734
+2026-11-21T10:34:28.6839973Z Adding to the cache ...
+2026-11-21T10:34:29.5932605Z ##[group]Environment details
+2026-11-21T10:34:29.8624551Z node: v24.19.0
+2026-11-21T10:34:29.8624825Z npm: 11.17.0
+2026-11-21T10:34:29.8625190Z yarn: 1.22.22
+2026-11-21T10:34:29.8625659Z ##[endgroup]
+2026-11-21T10:34:29.8636570Z [command]/opt/hostedtoolcache/node/24.19.0/x64/bin/npm config get cache
+2026-11-21T10:34:29.9309178Z /home/runner/.npm
+2026-11-21T10:34:30.1901500Z Cache hit for: node-cache-Linux-x64-npm-82625ee3acd2a082890cdfae666be5685b62d737f367b2ef136249c683a37ac7
+2026-11-21T10:34:31.5320464Z Received 0 of 296774000 (0.0%), 0.0 MBs/sec
+2026-11-21T10:34:32.5323261Z Received 83886080 of 296774000 (28.3%), 40.0 MBs/sec
+2026-11-21T10:34:33.5366739Z Received 184549376 of 296774000 (62.2%), 58.7 MBs/sec
+2026-11-21T10:34:34.5322154Z Received 288385392 of 296774000 (97.2%), 68.8 MBs/sec
+2026-11-21T10:34:34.5525962Z Received 296774000 of 296774000 (100.0%), 70.4 MBs/sec
+2026-11-21T10:34:34.5526701Z Cache Size: ~283 MB (296774000 B)
+2026-11-21T10:34:34.5544848Z [command]/usr/bin/tar -xf /home/runner/work/_temp/dd67aa92-e810-4bba-8c32-56dad32f9ed5/cache.tzst -P -C /home/runner/work/realtime-estates/realtime-estates --use-compress-program unzstd
+2026-11-21T10:34:34.7634301Z Cache restored successfully
+2026-11-21T10:34:34.7735991Z Cache restored from key: node-cache-Linux-x64-npm-82625ee3acd2a082890cdfae666be5685b62d737f367b2ef136249c683a37ac7
+2026-11-21T10:34:34.7909726Z ##[group]Run npm ci --no-audit --no-fund
+2026-11-21T10:34:34.7910119Z [36;1mnpm ci --no-audit --no-fund[0m
+2026-11-21T10:34:34.8383467Z shell: /usr/bin/bash -e {0}
+2026-11-21T10:34:34.8383831Z ##[endgroup]
+2026-11-21T10:34:39.2676488Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-11-21T10:34:39.3920563Z npm warn deprecated uuid@7.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-11-21T10:34:43.6345810Z npm warn allow-scripts 2 packages have install scripts not yet covered by allowScripts:
+2026-11-21T10:34:43.6346759Z 
+2026-11-21T10:34:43.6347216Z npm warn allow-scripts   @firebase/util@1.15.3 (postinstall: node ./postinstall.js)
+2026-11-21T10:34:43.6348027Z npm warn allow-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+2026-11-21T10:34:43.6348690Z npm warn allow-scripts
+2026-11-21T10:34:43.6349654Z npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+2026-11-21T10:34:43.6350912Z added 717 packages in 9s
+2026-11-21T10:34:43.6927392Z ##[group]Run npm run build:web
+2026-11-21T10:34:43.6927736Z [36;1mnpm run build:web[0m
+2026-11-21T10:34:43.6956651Z shell: /usr/bin/bash -e {0}
+2026-11-21T10:34:43.6956940Z ##[endgroup]
+2026-11-21T10:34:43.7774121Z 
+2026-11-21T10:34:43.7774852Z > realtor-platform@0.1.0 build:web
+2026-11-21T10:34:43.7776134Z > npm run build:packages && npm run build --workspace=@realtor/api && npm run build --workspace=@realtor/web && npm run build --workspace=@realtor/admin
+2026-11-21T10:34:43.7776782Z 
+2026-11-21T10:34:43.8492983Z 
+2026-11-21T10:34:43.8493806Z > realtor-platform@0.1.0 build:packages
+2026-11-21T10:34:43.8495391Z > npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/demo && npm run build --workspace=@realtor/api-client && npm run build --workspace=@realtor/media && npm run build --workspace=@realtor/browser-auth
+2026-11-21T10:34:43.8496352Z 
+2026-11-21T10:34:43.9421285Z 
+2026-11-21T10:34:43.9421855Z > @realtor/domain@0.1.0 build
+2026-11-21T10:34:43.9422656Z > tsc -p tsconfig.json
+2026-11-21T10:34:43.9423072Z 
+2026-11-21T10:34:45.6400510Z 
+2026-11-21T10:34:45.6401456Z > @realtor/demo@0.1.0 build
+2026-11-21T10:34:45.6401850Z > tsc -p tsconfig.json
+2026-11-21T10:34:45.6402030Z 
+2026-11-21T10:34:46.4098854Z 
+2026-11-21T10:34:46.4099864Z > @realtor/api-client@0.1.0 build
+2026-11-21T10:34:46.4100406Z > tsc -p tsconfig.json
+2026-11-21T10:34:46.4100610Z 
+2026-11-21T10:34:47.7295545Z 
+2026-11-21T10:34:47.7296529Z > @realtor/media@0.1.0 build
+2026-11-21T10:34:47.7296964Z > tsc -p tsconfig.json
+2026-11-21T10:34:47.7297208Z 
+2026-11-21T10:34:49.1741930Z 
+2026-11-21T10:34:49.1742742Z > @realtor/browser-auth@0.1.0 build
+2026-11-21T10:34:49.1743293Z > tsc -p tsconfig.json
+2026-11-21T10:34:49.1743433Z 
+2026-11-21T10:34:50.1148629Z 
+2026-11-21T10:34:50.1149391Z > @realtor/api@0.1.0 build
+2026-11-21T10:34:50.1150042Z > tsc -p tsconfig.json
+2026-11-21T10:34:50.1150261Z 
+2026-11-21T10:34:51.9881967Z 
+2026-11-21T10:34:51.9882943Z > @realtor/web@0.1.0 build
+2026-11-21T10:34:51.9883660Z > next build
+2026-11-21T10:34:51.9883857Z 
+2026-11-21T10:34:52.2393591Z ▲ Next.js 16.4.6 (Turbopack)
+2026-11-21T10:34:52.2578860Z ✓ Running next.config.ts took 18ms
+2026-11-21T10:34:52.2580392Z ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+2026-11-21T10:34:52.2688314Z Attention: Next.js now collects completely anonymous telemetry regarding usage.
+2026-11-21T10:34:52.2689118Z This information is used to shape Next.js' roadmap and prioritize features.
+2026-11-21T10:34:52.2692197Z You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+2026-11-21T10:34:52.2693006Z https://nextjs.org/telemetry
+2026-11-21T10:34:52.2693210Z 
+2026-11-21T10:34:52.2837041Z 
+2026-11-21T10:34:52.3092685Z   Creating an optimized production build ...
+2026-11-21T10:34:57.3128067Z ✓ Compiled successfully in 5.0s
+2026-11-21T10:34:57.3165606Z   Running TypeScript ...
+2026-11-21T10:34:59.9364229Z   Finished TypeScript in 2.6s ...
+2026-11-21T10:34:59.9381109Z   Collecting page data using 3 workers ...
+2026-11-21T10:35:00.6261428Z   Generating static pages using 3 workers (0/2) ...
+2026-11-21T10:35:00.7156442Z ✓ Generating static pages using 3 workers (2/2) in 90ms
+2026-11-21T10:35:00.7180777Z   Finalizing page optimization ...
+2026-11-21T10:35:01.0002295Z 
+2026-11-21T10:35:01.0017646Z Route (app)
+2026-11-21T10:35:01.0018335Z ┌ ƒ /
+2026-11-21T10:35:01.0018582Z ├ ○ /_not-found
+2026-11-21T10:35:01.0019194Z ├ ƒ /.well-known/apple-app-site-association
+2026-11-21T10:35:01.0019601Z ├ ƒ /.well-known/assetlinks.json
+2026-11-21T10:35:01.0019877Z ├ ƒ /account
+2026-11-21T10:35:01.0020127Z ├ ƒ /agents/[id]
+2026-11-21T10:35:01.0020458Z ├ ƒ /api/customer/[...segments]
+2026-11-21T10:35:01.0020791Z ├ ƒ /api/enquiry-intake
+2026-11-21T10:35:01.0021148Z ├ ƒ /api/listing-reports/[listing]/[operation]
+2026-11-21T10:35:01.0021646Z ├ ƒ /api/public-floor-plans/[id]/[revision]/[version]
+2026-11-21T10:35:01.0022197Z ├ ƒ /api/public-photos/[listing]/[revision]/[job]/[output]
+2026-11-21T10:35:01.0022531Z ├ ƒ /auth/[...segments]
+2026-11-21T10:35:01.0022826Z ├ ƒ /company
+2026-11-21T10:35:01.0023097Z ├ ƒ /contact
+2026-11-21T10:35:01.0023367Z ├ ƒ /enquire
+2026-11-21T10:35:01.0023700Z ├ ƒ /properties/[id]
+2026-11-21T10:35:01.0023928Z ├ ƒ /robots.txt
+2026-11-21T10:35:01.0024203Z ├ ƒ /sharing-card
+2026-11-21T10:35:01.0024458Z ├ ƒ /sign-in
+2026-11-21T10:35:01.0024690Z ├ ƒ /sitemap.xml
+2026-11-21T10:35:01.0025243Z └ ƒ /v2/customer/[...segments]
+2026-11-21T10:35:01.0025432Z 
+2026-11-21T10:35:01.0025437Z 
+2026-11-21T10:35:01.0025650Z ○  (Static)   prerendered as static content
+2026-11-21T10:35:01.0026016Z ƒ  (Dynamic)  server-rendered on demand
+2026-11-21T10:35:01.0026197Z 
+2026-11-21T10:35:01.3660406Z 
+2026-11-21T10:35:01.3661431Z > @realtor/admin@0.1.0 build
+2026-11-21T10:35:01.3661797Z > next build
+2026-11-21T10:35:01.3661923Z 
+2026-11-21T10:35:01.6146094Z ▲ Next.js 16.4.6 (Turbopack)
+2026-11-21T10:35:01.6335461Z ✓ Running next.config.ts took 18ms
+2026-11-21T10:35:01.6336974Z ⚠ No build cache found. Please configure build caching for faster rebuilds. Read more: https://nextjs.org/docs/messages/no-cache
+2026-11-21T10:35:01.6385298Z Attention: Next.js now collects completely anonymous telemetry regarding usage.
+2026-11-21T10:35:01.6386336Z This information is used to shape Next.js' roadmap and prioritize features.
+2026-11-21T10:35:01.6387378Z You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+2026-11-21T10:35:01.6388151Z https://nextjs.org/telemetry
+2026-11-21T10:35:01.6388473Z 
+2026-11-21T10:35:01.6514041Z 
+2026-11-21T10:35:01.6867486Z   Creating an optimized production build ...
+2026-11-21T10:35:07.5559038Z ✓ Compiled successfully in 5.9s
+2026-11-21T10:35:07.5609386Z   Running TypeScript ...
+2026-11-21T10:35:12.4199323Z   Finished TypeScript in 4.9s ...
+2026-11-21T10:35:12.4216568Z   Collecting page data using 3 workers ...
+2026-11-21T10:35:13.2819936Z   Generating static pages using 3 workers (0/2) ...
+2026-11-21T10:35:13.3513725Z ✓ Generating static pages using 3 workers (2/2) in 70ms
+2026-11-21T10:35:13.3542529Z   Finalizing page optimization ...
+2026-11-21T10:35:13.7556313Z 
+2026-11-21T10:35:13.7582240Z Route (app)
+2026-11-21T10:35:13.7583083Z ┌ ƒ /
+2026-11-21T10:35:13.7583406Z ├ ○ /_not-found
+2026-11-21T10:35:13.7583798Z ├ ƒ /api/company-settings
+2026-11-21T10:35:13.7584223Z ├ ƒ /api/company-settings/operations/[id]
+2026-11-21T10:35:13.7584629Z ├ ƒ /api/deletion-privacy
+2026-11-21T10:35:13.7585342Z ├ ƒ /api/deletion-privacy/[customerId]/[requestId]/[operationId]
+2026-11-21T10:35:13.7585932Z ├ ƒ /api/deletion-privacy/[customerId]/[requestId]/[operationId]/processing-plan
+2026-11-21T10:35:13.7586492Z ├ ƒ /api/deletion-triage
+2026-11-21T10:35:13.7587217Z ├ ƒ /api/deletion-triage/[customerId]/[requestId]/[operationId]
+2026-11-21T10:35:13.7587984Z ├ ƒ /api/deletion-triage/[customerId]/[requestId]/[operationId]/return
+2026-11-21T10:35:13.7588462Z ├ ƒ /api/enquiry-intake
+2026-11-21T10:35:13.7588890Z ├ ƒ /api/enquiry-preview/[actor]/assignees
+2026-11-21T10:35:13.7589397Z ├ ƒ /api/enquiry-preview/[actor]/capture
+2026-11-21T10:35:13.7589838Z ├ ƒ /api/enquiry-preview/[actor]/enquiries
+2026-11-21T10:35:13.7590317Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]
+2026-11-21T10:35:13.7590853Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/activity
+2026-11-21T10:35:13.7591447Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/contacts
+2026-11-21T10:35:13.7592344Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/contacts/recover
+2026-11-21T10:35:13.7592995Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/operations
+2026-11-21T10:35:13.7593634Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/operations/[operationId]
+2026-11-21T10:35:13.7594534Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewing-reminder-admissions/[admissionOperationId]/captures
+2026-11-21T10:35:13.7596093Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewing-reminder-admissions/[admissionOperationId]/captures/recover
+2026-11-21T10:35:13.7596660Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings
+2026-11-21T10:35:13.7597120Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]
+2026-11-21T10:35:13.7597657Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/cancellations
+2026-11-21T10:35:13.7598224Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/cancellations/recover
+2026-11-21T10:35:13.7598788Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/completions
+2026-11-21T10:35:13.7599358Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/completions/recover
+2026-11-21T10:35:13.7599926Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/confirmations
+2026-11-21T10:35:13.7600608Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/confirmations/recover
+2026-11-21T10:35:13.7601341Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/declines
+2026-11-21T10:35:13.7601953Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/declines/recover
+2026-11-21T10:35:13.7602649Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/history
+2026-11-21T10:35:13.7603222Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/no-shows
+2026-11-21T10:35:13.7603739Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/no-shows/recover
+2026-11-21T10:35:13.7604314Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/proposals
+2026-11-21T10:35:13.7605075Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/reminder-admissions
+2026-11-21T10:35:13.7605772Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/reminder-admissions/recover
+2026-11-21T10:35:13.7606316Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/reschedules
+2026-11-21T10:35:13.7606874Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/[viewingId]/reschedules/recover
+2026-11-21T10:35:13.7607584Z ├ ƒ /api/enquiry-preview/[actor]/enquiries/[id]/viewings/recover
+2026-11-21T10:35:13.7607988Z ├ ƒ /api/enquiry-preview/[actor]/queue
+2026-11-21T10:35:13.7608364Z ├ ƒ /api/enquiry-preview/[actor]/viewing-properties
+2026-11-21T10:35:13.7608737Z ├ ƒ /api/hosted-staff/[...segments]
+2026-11-21T10:35:13.7609157Z ├ ƒ /api/invitation-acceptance/[invitation]/operations/[operation]
+2026-11-21T10:35:13.7609551Z ├ ƒ /api/invitation-acceptance/session
+2026-11-21T10:35:13.7609970Z ├ ƒ /api/listing-reports
+2026-11-21T10:35:13.7610393Z ├ ƒ /api/listing-reports/[report]/operations/[operation]
+2026-11-21T10:35:13.7610714Z ├ ƒ /api/push-queue
+2026-11-21T10:35:13.7611054Z ├ ƒ /api/staff-directory/branches
+2026-11-21T10:35:13.7611379Z ├ ƒ /api/staff-directory/branches/[branch]
+2026-11-21T10:35:13.7611750Z ├ ƒ /api/staff-directory/branches/operations/[operation]
+2026-11-21T10:35:13.7612275Z ├ ƒ /api/staff-directory/invitation-issues/[invitation]/operations/[operation]
+2026-11-21T10:35:13.7612855Z ├ ƒ /api/staff-directory/invitation-issues/[invitation]/operations/[operation]/state
+2026-11-21T10:35:13.7613303Z ├ ƒ /api/staff-directory/invitations
+2026-11-21T10:35:13.7613680Z ├ ƒ /api/staff-directory/invitations/[invitation]
+2026-11-21T10:35:13.7614598Z ├ ƒ /api/staff-directory/invitations/[invitation]/revocations/[operation]
+2026-11-21T10:35:13.7615435Z ├ ƒ /api/staff-directory/invitations/operations/[operation]
+2026-11-21T10:35:13.7615911Z ├ ƒ /api/staff-directory/memberships
+2026-11-21T10:35:13.7616275Z ├ ƒ /api/staff-directory/memberships/[member]
+2026-11-21T10:35:13.7616841Z ├ ƒ /api/staff-directory/memberships/operations/[operation]
+2026-11-21T10:35:13.7617235Z ├ ƒ /api/staff/drafts/[id]/[revision]
+2026-11-21T10:35:13.7617646Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-attach-intents
+2026-11-21T10:35:13.7618213Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-attach-intents/[operationId]
+2026-11-21T10:35:13.7618770Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-attach-intents/[operationId]/finalize
+2026-11-21T10:35:13.7619330Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-jobs/[jobId]/uploads/[uploadId]
+2026-11-21T10:35:13.7619804Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-operations/[operationId]
+2026-11-21T10:35:13.7620266Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-registrations
+2026-11-21T10:35:13.7620712Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-registrations/[registrationId]
+2026-11-21T10:35:13.7621170Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-removals
+2026-11-21T10:35:13.7621671Z ├ ƒ /api/staff/drafts/[id]/[revision]/media-reorders
+2026-11-21T10:35:13.7622296Z ├ ƒ /api/staff/drafts/[id]/[revision]/media/[mediaId]/preview
+2026-11-21T10:35:13.7622807Z ├ ƒ /api/staff/drafts/[id]/[revision]/submit
+2026-11-21T10:35:13.7623323Z ├ ƒ /api/staff/drafts/[id]/[revision]/workspace
+2026-11-21T10:35:13.7623726Z ├ ƒ /api/staff/listing-import-preview
+2026-11-21T10:35:13.7624119Z ├ ƒ /api/staff/listings/[id]/availability-operations/[operationId]
+2026-11-21T10:35:13.7624645Z ├ ƒ /api/staff/listings/[id]/creation-operations/[operationId]
+2026-11-21T10:35:13.7625359Z ├ ƒ /api/staff/listings/[id]/duplicate-candidates
+2026-11-21T10:35:13.7625837Z ├ ƒ /api/staff/listings/[id]/floor-plan-images/[revision]/[version]/[operationId]
+2026-11-21T10:35:13.7626387Z ├ ƒ /api/staff/listings/[id]/floor-plan-inputs/[revision]/[version]/[requestId]
+2026-11-21T10:35:13.7626856Z ├ ƒ /api/staff/listings/[id]/floor-plan-operations/[operationId]
+2026-11-21T10:35:13.7627352Z ├ ƒ /api/staff/listings/[id]/floor-plan-operations/[operationId]/recover
+2026-11-21T10:35:13.7627823Z ├ ƒ /api/staff/listings/[id]/floor-plan-revisions/[revision]
+2026-11-21T10:35:13.7628278Z ├ ƒ /api/staff/listings/[id]/publication-operations/[operationId]
+2026-11-21T10:35:13.7628733Z ├ ƒ /api/staff/listings/[id]/reference-creation-operations/[operationId]
+2026-11-21T10:35:13.7629290Z ├ ƒ /api/staff/listings/[id]/reference-creation-operations/[operationId]/recover
+2026-11-21T10:35:13.7629775Z ├ ƒ /api/staff/listings/[id]/reference-draft-operations/[operationId]
+2026-11-21T10:35:13.7630303Z ├ ƒ /api/staff/listings/[id]/reference-draft-operations/[operationId]/recover
+2026-11-21T10:35:13.7630805Z ├ ƒ /api/staff/listings/[id]/reference-successor-operations/[operationId]
+2026-11-21T10:35:13.7631310Z ├ ƒ /api/staff/listings/[id]/reference-successor-operations/[operationId]/recover
+2026-11-21T10:35:13.7631862Z ├ ƒ /api/staff/listings/[id]/reference-transition-operations/[operationId]
+2026-11-21T10:35:13.7632375Z ├ ƒ /api/staff/listings/[id]/reference-transition-operations/[operationId]/recover
+2026-11-21T10:35:13.7632879Z ├ ƒ /api/staff/listings/[id]/retained-creation-operations/[operationId]
+2026-11-21T10:35:13.7633381Z ├ ƒ /api/staff/listings/[id]/retained-revision-operations/[operationId]
+2026-11-21T10:35:13.7633811Z ├ ƒ /api/staff/listings/[id]/revision-operations/[operationId]
+2026-11-21T10:35:13.7634246Z ├ ƒ /api/staff/listings/[id]/verification-history
+2026-11-21T10:35:13.7634681Z ├ ƒ /api/staff/listings/[id]/verification-operations/[operationId]
+2026-11-21T10:35:13.7635331Z ├ ƒ /api/staff/listings/[id]/video-operations/[operationId]
+2026-11-21T10:35:13.7635779Z ├ ƒ /api/staff/listings/[id]/video-operations/[operationId]/recover
+2026-11-21T10:35:13.7636217Z ├ ƒ /api/staff/reference-catalogues/[version]
+2026-11-21T10:35:13.7636563Z ├ ƒ /api/staff/reference-session
+2026-11-21T10:35:13.7636841Z ├ ƒ /api/staff/reviews
+2026-11-21T10:35:13.7637163Z ├ ƒ /api/staff/reviews/[id]/[revision]
+2026-11-21T10:35:13.7637502Z ├ ƒ /api/staff/reviews/[id]/[revision]/decision
+2026-11-21T10:35:13.7637883Z ├ ƒ /api/staff/reviews/[id]/[revision]/media-gallery
+2026-11-21T10:35:13.7638519Z ├ ƒ /api/staff/reviews/[id]/[revision]/media/[mediaId]/preview
+2026-11-21T10:35:13.7638981Z ├ ƒ /api/staff/reviews/[id]/floor-plan-images/[revision]/[version]/[operationId]
+2026-11-21T10:35:13.7639349Z ├ ƒ /audit
+2026-11-21T10:35:13.7639605Z ├ ƒ /auth/[...segments]
+2026-11-21T10:35:13.7639899Z ├ ƒ /deletion-privacy
+2026-11-21T10:35:13.7640154Z ├ ƒ /deletion-triage
+2026-11-21T10:35:13.7640402Z ├ ƒ /drafts/[id]/[revision]
+2026-11-21T10:35:13.7640973Z ├ ƒ /drafts/[id]/[revision]/floor-plan
+2026-11-21T10:35:13.7641315Z ├ ƒ /drafts/[id]/[revision]/references
+2026-11-21T10:35:13.7641629Z ├ ƒ /drafts/[id]/[revision]/submission
+2026-11-21T10:35:13.7641964Z ├ ƒ /drafts/[id]/[revision]/video
+2026-11-21T10:35:13.7642245Z ├ ƒ /enquiries/[actor]
+2026-11-21T10:35:13.7642531Z ├ ƒ /enquiries/[actor]/new
+2026-11-21T10:35:13.7642805Z ├ ƒ /enquiry-intake
+2026-11-21T10:35:13.7643080Z ├ ƒ /invitations/accept
+2026-11-21T10:35:13.7643324Z ├ ƒ /listings
+2026-11-21T10:35:13.7643622Z ├ ƒ /listings/[id]/controls
+2026-11-21T10:35:13.7643917Z ├ ƒ /listings/[id]/duplicates
+2026-11-21T10:35:13.7644184Z ├ ƒ /listings/[id]/successor
+2026-11-21T10:35:13.7644498Z ├ ƒ /listings/[id]/verification
+2026-11-21T10:35:13.7644800Z ├ ƒ /listings/import
+2026-11-21T10:35:13.7645232Z ├ ƒ /listings/new
+2026-11-21T10:35:13.7645484Z ├ ƒ /operations
+2026-11-21T10:35:13.7645750Z ├ ƒ /push-queue
+2026-11-21T10:35:13.7645983Z ├ ƒ /reports
+2026-11-21T10:35:13.7646204Z ├ ƒ /reviews
+2026-11-21T10:35:13.7646548Z ├ ƒ /reviews/[id]/[revision]/floor-plan
+2026-11-21T10:35:13.7646901Z ├ ƒ /reviews/[id]/[revision]/references/[version]
+2026-11-21T10:35:13.7647202Z ├ ƒ /settings
+2026-11-21T10:35:13.7647426Z ├ ƒ /sign-in
+2026-11-21T10:35:13.7647659Z ├ ƒ /staff
+2026-11-21T10:35:13.7647928Z └ ƒ /viewings/[actor]
+2026-11-21T10:35:13.7648077Z 
+2026-11-21T10:35:13.7648082Z 
+2026-11-21T10:35:13.7648275Z ○  (Static)   prerendered as static content
+2026-11-21T10:35:13.7648621Z ƒ  (Dynamic)  server-rendered on demand
+2026-11-21T10:35:13.7648811Z 
+2026-11-21T10:35:13.9104103Z ##[group]Run node scripts/verify-browser-session-lifecycle.mjs
+2026-11-21T10:35:13.9104785Z [36;1mnode scripts/verify-browser-session-lifecycle.mjs[0m
+2026-11-21T10:35:13.9144142Z shell: /usr/bin/bash -e {0}
+2026-11-21T10:35:13.9144579Z ##[endgroup]
+2026-11-21T10:35:46.6770399Z {
+2026-11-21T10:35:46.6770813Z   "policy": "synthetic-browser-session-lifecycle-v1",
+2026-11-21T10:35:46.6771244Z   "tests": [
+2026-11-21T10:35:46.6771800Z     "web/customer: pending and failed logout clear both tabs; foreground/BFCache events do not reload",
+2026-11-21T10:35:46.6772478Z     "web/customer: late private response discarded after logout invalidation",
+2026-11-21T10:35:46.6773263Z     "web/customer: expiry and sign-in notifications cannot unlock cleared views; legacy messages fail closed; explicit checks are local",
+2026-11-21T10:35:46.6773981Z     "web/signin: pending and failed logout clear both tabs; foreground/BFCache events do not reload",
+2026-11-21T10:35:46.6776107Z     "web/signin: late private response discarded after logout invalidation",
+2026-11-21T10:35:46.6776959Z     "web/signin: expiry and sign-in notifications cannot unlock cleared views; legacy messages fail closed; explicit checks are local",
+2026-11-21T10:35:46.6777708Z     "admin/staff: pending and failed logout clear both tabs; foreground/BFCache events do not reload",
+2026-11-21T10:35:46.6778356Z     "admin/staff: late private response discarded after logout invalidation",
+2026-11-21T10:35:46.6779076Z     "admin/staff: expiry and sign-in notifications cannot unlock cleared views; legacy messages fail closed; explicit checks are local",
+2026-11-21T10:35:46.6779786Z     "admin/signin: pending and failed logout clear both tabs; foreground/BFCache events do not reload",
+2026-11-21T10:35:46.6780414Z     "admin/signin: late private response discarded after logout invalidation",
+2026-11-21T10:35:46.6781100Z     "admin/signin: expiry and sign-in notifications cannot unlock cleared views; legacy messages fail closed; explicit checks are local"
+2026-11-21T10:35:46.6781872Z   ],
+2026-11-21T10:35:46.6782134Z   "realProviderVerified": false,
+2026-11-21T10:35:46.6782437Z   "realDatabaseVerified": false,
+2026-11-21T10:35:46.6782736Z   "nativeDeviceVerified": false,
+2026-11-21T10:35:46.6783003Z   "browser": "Chrome/157.0.8103.78"
+2026-11-21T10:35:46.6783247Z }
+2026-11-21T10:35:49.7130834Z ##[group]Run node --test scripts/stage-runtime-packages.test.mjs
+2026-11-21T10:35:49.7131303Z [36;1mnode --test scripts/stage-runtime-packages.test.mjs[0m
+2026-11-21T10:35:49.7157954Z shell: /usr/bin/bash -e {0}
+2026-11-21T10:35:49.7158309Z ##[endgroup]
+2026-11-21T10:35:49.7833679Z ✔ runtime path policy refuses private configuration, source data, traversal and signing material (1.197887ms)
+2026-11-21T10:35:49.7892909Z ✔ runtime tree materializes internal junctions without links and verifies exact copied bytes (7.974237ms)
+2026-11-21T10:35:49.7915505Z ✔ external directory links and cycles cannot enter a runtime package (2.208662ms)
+2026-11-21T10:35:49.7959381Z ✔ environment files and complete private keys refuse rather than being silently copied (4.254628ms)
+2026-11-21T10:35:49.8004679Z ✔ verification rejects changed bytes, extra files, missing entries and runtime links (4.68153ms)
+2026-11-21T10:35:49.8060284Z ℹ tests 5
+2026-11-21T10:35:49.8060729Z ℹ suites 0
+2026-11-21T10:35:49.8061192Z ℹ pass 5
+2026-11-21T10:35:49.8061577Z ℹ fail 0
+2026-11-21T10:35:49.8061875Z ℹ cancelled 0
+2026-11-21T10:35:49.8062186Z ℹ skipped 0
+2026-11-21T10:35:49.8062429Z ℹ todo 0
+2026-11-21T10:35:49.8062665Z ℹ duration_ms 62.544172
+2026-11-21T10:35:49.8127863Z ##[group]Run node --test database/integration-tests/postgres-runtime.test.mjs
+2026-11-21T10:35:49.8128418Z [36;1mnode --test database/integration-tests/postgres-runtime.test.mjs[0m
+2026-11-21T10:35:49.8151423Z shell: /usr/bin/bash -e {0}
+2026-11-21T10:35:49.8151685Z env:
+2026-11-21T10:35:49.8151940Z   REALTOR_POSTGRES_TEST_POLICY: owned-disposable-ci-v1
+2026-11-21T10:35:49.8152406Z   REALTOR_POSTGRES_TEST_CONTAINER: a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d
+2026-11-21T10:35:49.8153434Z   REALTOR_POSTGRES_TEST_URL: ***127.0.0.1:5432/realtor_synthetic_ci
+2026-11-21T10:35:49.8153739Z ##[endgroup]
+2026-11-21T10:35:50.0816638Z ▶ real PostgreSQL TCP runtime isolates transactions and serializes concurrent originals
+2026-11-21T10:35:50.0817797Z   ✔ migration bootstrap needs explicit SET and INHERIT authority and works without superuser (152.756865ms)
+2026-11-21T10:35:50.1068841Z   ✔ same original on two connections commits one operation/audit and returns the same receipt (12.125614ms)
+2026-11-21T10:35:50.1119492Z   ✔ different originals with one expected version produce one applied and one conflict (5.643451ms)
+2026-11-21T10:35:50.1152618Z   ✔ changed facts cannot reuse a committed original (3.113574ms)
+2026-11-21T10:35:50.1188800Z   ✔ application failure rolls back the SQL mutation and original (3.579249ms)
+2026-11-21T10:35:50.1270028Z   ✔ current company/actor and membership revocation deny recovery without exposing an original (7.766891ms)
+2026-11-21T10:35:50.1284251Z   ✔ pooled connections clear transaction role/context after successful and failed requests (0.916422ms)
+2026-11-21T10:35:50.1469424Z   ▶ standalone browser identity proposals and real runtime grants
+2026-11-21T10:35:50.1470182Z     ✔ identity proposals install through restricted migration login with a non-login owner (18.650697ms)
+2026-11-21T10:35:50.1943369Z     ✔ three real login profiles pass exact attestation and deny enrollment, app access and cross-profile reads (25.244857ms)
+2026-11-21T10:35:50.2198947Z     ✔ production identity wrapper refuses newly unsafe grants before a payload query (24.409288ms)
+2026-11-21T10:35:50.2445560Z     ✔ encrypted login consume and logout work across real pooled connections and adapters (25.134339ms)
+2026-11-21T10:35:50.2886272Z     ✔ customer and staff originals retain encrypted commands with actor/company scope (44.553664ms)
+2026-11-21T10:35:50.3045917Z     ✔ API security-definer binding lookup remains company scoped and denies direct identity-table access (12.577526ms)
+2026-11-21T10:35:50.3183662Z   ✔ standalone browser identity proposals and real runtime grants (177.893389ms)
+2026-11-21T10:35:50.9923319Z   ▶ certificate-verified PostgreSQL and standalone production API bootstrap
+2026-11-21T10:35:50.9923933Z     ✔ pinned PostgreSQL driver verifies the generated CA and negotiates encrypted TLS (59.507753ms)
+2026-11-21T10:35:51.0936615Z     ✔ TLS driver refuses an untrusted CA and a trusted certificate for the wrong DNS host (101.196868ms)
+2026-11-21T10:35:51.5725692Z     ✔ actual API entry point refuses TLS failures and privileged database login without fallback (472.186248ms)
+2026-11-21T10:35:51.8925627Z     ✔ actual API starts over verified PostgreSQL TLS, enforces health envelope and drains on SIGTERM (325.234023ms)
+2026-11-21T10:35:51.8929527Z   ✔ certificate-verified PostgreSQL and standalone production API bootstrap (1587.050286ms)
+2026-11-21T10:35:51.8931246Z   ℹ Owned compiled API/TLS rehearsal completed; inspect individual subtest outcomes above. Cloud Run, workload ADC, IAM and provider sign-in are not verified.
+2026-11-21T10:35:51.8950136Z ✔ real PostgreSQL TCP runtime isolates transactions and serializes concurrent originals (1979.14529ms)
+2026-11-21T10:35:51.8950757Z ℹ Real PostgreSQL server version 17.12 (Debian 17.12-1.pgdg12+1)
+2026-11-21T10:35:51.9031388Z ℹ tests 20
+2026-11-21T10:35:51.9031818Z ℹ suites 0
+2026-11-21T10:35:51.9032105Z ℹ pass 20
+2026-11-21T10:35:51.9032437Z ℹ fail 0
+2026-11-21T10:35:51.9032758Z ℹ cancelled 0
+2026-11-21T10:35:51.9033425Z ℹ skipped 0
+2026-11-21T10:35:51.9033715Z ℹ todo 0
+2026-11-21T10:35:51.9034111Z ℹ duration_ms 2063.129688
+2026-11-21T10:35:51.9091987Z ##[group]Run node scripts/stage-runtime-packages.mjs > "$RUNNER_TEMP/runtime-packages.json"
+2026-11-21T10:35:51.9092586Z [36;1mnode scripts/stage-runtime-packages.mjs > "$RUNNER_TEMP/runtime-packages.json"[0m
+2026-11-21T10:35:51.9093245Z [36;1mbundle=$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).directory" "$RUNNER_TEMP/runtime-packages.json")[0m
+2026-11-21T10:35:51.9093788Z [36;1mnode scripts/verify-runtime-packages.mjs "$bundle"[0m
+2026-11-21T10:35:51.9094152Z [36;1mnode scripts/verify-runtime-containers.mjs "$bundle"[0m
+2026-11-21T10:35:51.9094540Z [36;1mcat "$RUNNER_TEMP/runtime-packages.json" >> "$GITHUB_STEP_SUMMARY"[0m
+2026-11-21T10:35:51.9095481Z [36;1mcat "$bundle/container-verification.json" >> "$GITHUB_STEP_SUMMARY"[0m
+2026-11-21T10:35:51.9123965Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-21T10:35:51.9124279Z env:
+2026-11-21T10:35:51.9124604Z   REALTOR_POSTGRES_TEST_POLICY: owned-disposable-ci-v1
+2026-11-21T10:35:51.9125332Z   REALTOR_POSTGRES_TEST_CONTAINER: a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d
+2026-11-21T10:35:51.9125747Z ##[endgroup]
+2026-11-21T10:36:00.4116807Z api: CJS and Cloud SQL ESM server modules load from detached package.
+2026-11-21T10:36:02.8358609Z web: CJS and Cloud SQL ESM server modules load from detached package.
+2026-11-21T10:36:05.9752569Z admin: CJS and Cloud SQL ESM server modules load from detached package.
+2026-11-21T10:36:22.3526769Z web unconfigured: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3527774Z web identity: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3528440Z web customer: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3529125Z web customer-invalid: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3530364Z web customer-iam: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3531115Z web customer-run: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3531918Z web customer-run-invalid: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3532663Z admin unconfigured: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3533812Z admin identity: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3534512Z admin staff: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3535388Z admin staff-invalid: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3536120Z admin staff-iam: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3536764Z admin staff-run: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3537478Z admin staff-run-invalid: HTTP sign-in/account, robots, session and secret-isolation checks passed
+2026-11-21T10:36:22.3538212Z 14 production HTTP/SSR profiles passed; no browser/provider/hosted SQL verification claimed.
+2026-11-21T10:36:24.8838445Z {"productionNextGatewayVerified":true,"selectedProfile":true,"profile":"selected","ingressCasesPassed":12,"privateRequests":3,"injectedFirebaseChecks":5,"injectedIamChecks":3,"actualGoogleVerified":false,"actualTlsVerified":false,"managedSqlVerified":false,"deviceVerified":false}
+2026-11-21T10:36:24.8839933Z {"profile":"malformed","configRefused":true,"privateRequests":0,"injectedFirebaseChecks":0,"injectedIamChecks":0}
+2026-11-21T10:36:24.8840872Z {"profile":"missing-iam","configRefused":true,"privateRequests":0,"injectedFirebaseChecks":0,"injectedIamChecks":0}
+2026-11-21T10:36:24.8841727Z {"profile":"wrong-company","configRefused":true,"privateRequests":0,"injectedFirebaseChecks":0,"injectedIamChecks":0}
+2026-11-21T10:36:24.8842684Z {"profile":"preview","configRefused":true,"privateRequests":0,"injectedFirebaseChecks":0,"injectedIamChecks":0}
+2026-11-21T10:36:24.8843304Z Five production Next native gateway profiles passed; synthetic authority/loopback only.
+2026-11-21T10:36:24.8843725Z {
+2026-11-21T10:36:24.8844121Z   "source": "/home/runner/work/realtime-estates/realtime-estates/.staging-artifacts/runtime-zU5vyS",
+2026-11-21T10:36:24.8844633Z   "detached": "/tmp/realtor-detached-runtime-75JCkf",
+2026-11-21T10:36:24.8845543Z   "sourceCommit": "32aa2663206c6823a94f9a957d92c248ba582066",
+2026-11-21T10:36:24.8845925Z   "sourceDirty": false,
+2026-11-21T10:36:24.8846227Z   "platform": "linux",
+2026-11-21T10:36:24.8846458Z   "arch": "x64",
+2026-11-21T10:36:24.8846708Z   "inventoryVerified": true,
+2026-11-21T10:36:24.8846985Z   "materializedLinks": true,
+2026-11-21T10:36:24.8847285Z   "serverModuleImportsPassed": [
+2026-11-21T10:36:24.8847548Z     "api",
+2026-11-21T10:36:24.8847765Z     "web",
+2026-11-21T10:36:24.8847977Z     "admin"
+2026-11-21T10:36:24.8848201Z   ],
+2026-11-21T10:36:24.8848475Z   "localHttpProfilesPassed": 14,
+2026-11-21T10:36:24.8848780Z   "syntheticNativeGatewayProfilesPassed": 5,
+2026-11-21T10:36:24.8849115Z   "syntheticNativeGatewayPreloadExcluded": true,
+2026-11-21T10:36:24.8849506Z   "apiPositiveDatabaseStartupVerified": false,
+2026-11-21T10:36:24.8849844Z   "linuxContainerVerified": false,
+2026-11-21T10:36:24.8850272Z   "liveDeploymentVerified": false
+2026-11-21T10:36:24.8850560Z }
+2026-11-21T10:36:31.0058800Z #0 building with "default" instance using docker driver
+2026-11-21T10:36:31.0059196Z 
+2026-11-21T10:36:31.0059591Z #1 [internal] load build definition from api.Dockerfile
+2026-11-21T10:36:31.0060084Z #1 transferring dockerfile: 298B done
+2026-11-21T10:36:31.0060394Z #1 DONE 0.0s
+2026-11-21T10:36:31.0060516Z 
+2026-11-21T10:36:31.0061004Z #2 [internal] load metadata for docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df
+2026-11-21T10:36:31.0061526Z #2 ...
+2026-11-21T10:36:31.0061699Z 
+2026-11-21T10:36:31.0061923Z #3 [auth] library/node:pull token for registry-1.docker.io
+2026-11-21T10:36:31.0062228Z #3 DONE 0.0s
+2026-11-21T10:36:31.0062349Z 
+2026-11-21T10:36:31.0062788Z #2 [internal] load metadata for docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df
+2026-11-21T10:36:31.0063589Z #2 DONE 0.8s
+2026-11-21T10:36:31.0063696Z 
+2026-11-21T10:36:31.0063947Z #4 [internal] load .dockerignore
+2026-11-21T10:36:31.0064286Z #4 transferring context: 2B done
+2026-11-21T10:36:31.0064566Z #4 DONE 0.0s
+2026-11-21T10:36:31.0064658Z 
+2026-11-21T10:36:31.0065232Z #5 [1/3] FROM docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df
+2026-11-21T10:36:31.0066112Z #5 resolve docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df done
+2026-11-21T10:36:31.0066573Z #5 ...
+2026-11-21T10:36:31.0066712Z 
+2026-11-21T10:36:31.0066834Z #6 [internal] load build context
+2026-11-21T10:36:31.0067144Z #6 transferring context: 17.38MB 0.1s done
+2026-11-21T10:36:31.0067447Z #6 DONE 0.1s
+2026-11-21T10:36:31.0067578Z 
+2026-11-21T10:36:31.0068031Z #5 [1/3] FROM docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df
+2026-11-21T10:36:31.0068924Z #5 sha256:4996e33358abd29e5daf56cdda6681efb4db3bd55b5ab63a7d3d44f8400195a4 0B / 50.50MB 0.2s
+2026-11-21T10:36:31.0069706Z #5 sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df 3.93kB / 3.93kB done
+2026-11-21T10:36:31.0070293Z #5 sha256:e5a8dee7bc1e6a215d224a7ef8206f7e77271bc3cabd5febf2beafac0674f174 1.93kB / 1.93kB done
+2026-11-21T10:36:31.0070935Z #5 sha256:622f209f6c16ba5af4d9a337cae6577d096f17174b904cfc6a5b0c81a2679c24 6.76kB / 6.76kB done
+2026-11-21T10:36:31.0071515Z #5 sha256:a8ac7f6c67abc236e4c745052c404112b8fab6fe8ac3a329d1ef3b867ad67c71 28.23MB / 28.23MB 0.2s done
+2026-11-21T10:36:31.0072258Z #5 sha256:990581063f5c8a03a57db7a0d116679ea6e6e335d4ac48ef457f26f82d917eba 3.32kB / 3.32kB 0.2s done
+2026-11-21T10:36:31.0072849Z #5 extracting sha256:a8ac7f6c67abc236e4c745052c404112b8fab6fe8ac3a329d1ef3b867ad67c71
+2026-11-21T10:36:31.0073428Z #5 sha256:f95897c2a1fb7bce26b018dd74b2845f816f7b86d5adff2939c6482b1d5b474c 0B / 1.71MB 0.2s
+2026-11-21T10:36:31.0074122Z #5 sha256:c35748eaa5ecc949b0f7cc349a9f7c4a5417dc008e2d9bebd53678d87238fcbf 0B / 450B 0.2s
+2026-11-21T10:36:31.0074809Z #5 sha256:4996e33358abd29e5daf56cdda6681efb4db3bd55b5ab63a7d3d44f8400195a4 27.26MB / 50.50MB 0.3s
+2026-11-21T10:36:31.0075601Z #5 sha256:f95897c2a1fb7bce26b018dd74b2845f816f7b86d5adff2939c6482b1d5b474c 1.71MB / 1.71MB 0.2s done
+2026-11-21T10:36:31.0076257Z #5 sha256:c35748eaa5ecc949b0f7cc349a9f7c4a5417dc008e2d9bebd53678d87238fcbf 450B / 450B 0.3s done
+2026-11-21T10:36:31.0076876Z #5 sha256:4996e33358abd29e5daf56cdda6681efb4db3bd55b5ab63a7d3d44f8400195a4 50.50MB / 50.50MB 0.4s done
+2026-11-21T10:36:31.0077466Z #5 extracting sha256:a8ac7f6c67abc236e4c745052c404112b8fab6fe8ac3a329d1ef3b867ad67c71 0.6s done
+2026-11-21T10:36:31.0078055Z #5 extracting sha256:990581063f5c8a03a57db7a0d116679ea6e6e335d4ac48ef457f26f82d917eba done
+2026-11-21T10:36:31.0078606Z #5 extracting sha256:4996e33358abd29e5daf56cdda6681efb4db3bd55b5ab63a7d3d44f8400195a4 0.1s
+2026-11-21T10:36:31.0079189Z #5 extracting sha256:4996e33358abd29e5daf56cdda6681efb4db3bd55b5ab63a7d3d44f8400195a4 0.8s done
+2026-11-21T10:36:31.0079796Z #5 extracting sha256:f95897c2a1fb7bce26b018dd74b2845f816f7b86d5adff2939c6482b1d5b474c 0.0s done
+2026-11-21T10:36:31.0080349Z #5 extracting sha256:c35748eaa5ecc949b0f7cc349a9f7c4a5417dc008e2d9bebd53678d87238fcbf done
+2026-11-21T10:36:31.0080710Z #5 DONE 1.7s
+2026-11-21T10:36:31.0080860Z 
+2026-11-21T10:36:31.0080988Z #7 [2/3] WORKDIR /app
+2026-11-21T10:36:31.0081223Z #7 DONE 1.9s
+2026-11-21T10:36:31.0081379Z 
+2026-11-21T10:36:31.0081515Z #8 [3/3] COPY --chown=node:node . /app/
+2026-11-21T10:36:31.0081803Z #8 DONE 0.1s
+2026-11-21T10:36:31.0081894Z 
+2026-11-21T10:36:31.0082044Z #9 exporting to image
+2026-11-21T10:36:31.0082295Z #9 exporting layers 0.1s done
+2026-11-21T10:36:31.0082773Z #9 writing image sha256:2c21369c57c436a55619e3a2152203bff0acdd4a3fbc11a9308358f1d76d8b08 done
+2026-11-21T10:36:31.0083264Z #9 naming to docker.io/library/realtor-ci-api:32aa2663206c done
+2026-11-21T10:36:31.0083566Z #9 DONE 0.1s
+2026-11-21T10:36:31.4543899Z Non-root Linux container SDK imports passed.
+2026-11-21T10:36:32.8251264Z #0 building with "default" instance using docker driver
+2026-11-21T10:36:32.8251647Z 
+2026-11-21T10:36:32.8252042Z #1 [internal] load build definition from web.Dockerfile
+2026-11-21T10:36:32.8252396Z #1 transferring dockerfile: 287B done
+2026-11-21T10:36:32.8252736Z #1 DONE 0.0s
+2026-11-21T10:36:32.8252861Z 
+2026-11-21T10:36:32.8253349Z #2 [internal] load metadata for docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df
+2026-11-21T10:36:32.8253875Z #2 DONE 0.0s
+2026-11-21T10:36:32.8254006Z 
+2026-11-21T10:36:32.8254208Z #3 [internal] load .dockerignore
+2026-11-21T10:36:32.8254496Z #3 transferring context: 2B done
+2026-11-21T10:36:32.8255281Z #3 DONE 0.0s
+2026-11-21T10:36:32.8255431Z 
+2026-11-21T10:36:32.8255856Z #4 [1/3] FROM docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df
+2026-11-21T10:36:32.8256305Z #4 DONE 0.0s
+2026-11-21T10:36:32.8256455Z 
+2026-11-21T10:36:32.8256570Z #5 [internal] load build context
+2026-11-21T10:36:32.8256894Z #5 transferring context: 80.68MB 0.3s done
+2026-11-21T10:36:32.8257163Z #5 DONE 0.3s
+2026-11-21T10:36:32.8257310Z 
+2026-11-21T10:36:32.8257409Z #6 [2/3] WORKDIR /app
+2026-11-21T10:36:32.8257659Z #6 CACHED
+2026-11-21T10:36:32.8257770Z 
+2026-11-21T10:36:32.8257927Z #7 [3/3] COPY --chown=node:node . /app/
+2026-11-21T10:36:32.8258182Z #7 DONE 0.2s
+2026-11-21T10:36:32.8258310Z 
+2026-11-21T10:36:32.8258467Z #8 exporting to image
+2026-11-21T10:36:32.8258699Z #8 exporting layers
+2026-11-21T10:36:32.8259185Z #8 exporting layers 0.2s done
+2026-11-21T10:36:32.8259684Z #8 writing image sha256:70112bcc6b83ed349492a80ad455aad75ba7bb8a7f5fb1ead8e934cebf8a658d done
+2026-11-21T10:36:32.8260167Z #8 naming to docker.io/library/realtor-ci-web:32aa2663206c done
+2026-11-21T10:36:32.8260519Z #8 DONE 0.3s
+2026-11-21T10:36:33.2505857Z Non-root Linux container SDK imports passed.
+2026-11-21T10:36:34.7264223Z #0 building with "default" instance using docker driver
+2026-11-21T10:36:34.7264547Z 
+2026-11-21T10:36:34.7264738Z #1 [internal] load build definition from admin.Dockerfile
+2026-11-21T10:36:34.7265273Z #1 transferring dockerfile: 291B done
+2026-11-21T10:36:34.7265579Z #1 DONE 0.0s
+2026-11-21T10:36:34.7265724Z 
+2026-11-21T10:36:34.7266178Z #2 [internal] load metadata for docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df
+2026-11-21T10:36:34.7266750Z #2 DONE 0.0s
+2026-11-21T10:36:34.7266854Z 
+2026-11-21T10:36:34.7267006Z #3 [internal] load .dockerignore
+2026-11-21T10:36:34.7267367Z #3 transferring context: 2B done
+2026-11-21T10:36:34.7267656Z #3 DONE 0.0s
+2026-11-21T10:36:34.7267760Z 
+2026-11-21T10:36:34.7268179Z #4 [1/3] FROM docker.io/library/node:24.19.0-bookworm-slim@sha256:a9f5f7c91a432850b2a8a7797adf5eadb6c733ceed61167806cee7ea7fbc29df
+2026-11-21T10:36:34.7268632Z #4 DONE 0.0s
+2026-11-21T10:36:34.7268767Z 
+2026-11-21T10:36:34.7268907Z #5 [internal] load build context
+2026-11-21T10:36:34.7269201Z #5 transferring context: 78.77MB 0.4s done
+2026-11-21T10:36:34.7269491Z #5 DONE 0.4s
+2026-11-21T10:36:34.7269640Z 
+2026-11-21T10:36:34.7269755Z #6 [2/3] WORKDIR /app
+2026-11-21T10:36:34.7270003Z #6 CACHED
+2026-11-21T10:36:34.7270130Z 
+2026-11-21T10:36:34.7270262Z #7 [3/3] COPY --chown=node:node . /app/
+2026-11-21T10:36:34.7270556Z #7 DONE 0.3s
+2026-11-21T10:36:34.7270657Z 
+2026-11-21T10:36:34.7270797Z #8 exporting to image
+2026-11-21T10:36:34.7271088Z #8 exporting layers
+2026-11-21T10:36:34.7271340Z #8 exporting layers 0.3s done
+2026-11-21T10:36:34.7271800Z #8 writing image sha256:0d1a79a5d7cd368deea242aab78bca55527e5f3398f6eb5e8a4b94e9705efdf0 done
+2026-11-21T10:36:34.7272307Z #8 naming to docker.io/library/realtor-ci-admin:32aa2663206c done
+2026-11-21T10:36:34.7272657Z #8 DONE 0.3s
+2026-11-21T10:36:35.1730726Z Non-root Linux container SDK imports passed.
+2026-11-21T10:36:35.4435312Z Staging API startup failed.
+2026-11-21T10:36:36.2052222Z web: 512 MiB non-root container serves configured SSR/static and refuses loopback private origin.
+2026-11-21T10:36:37.1110045Z admin: 512 MiB non-root container serves configured SSR/static and refuses loopback private origin.
+2026-11-21T10:36:37.5706494Z Staging API startup failed.
+2026-11-21T10:36:37.5844183Z Error response from daemon: No such container: realtor-ci-api-privileged-ae5cac4b-795f-4eb2-9f45-75a8b7014fd1
+2026-11-21T10:36:37.8361236Z node:internal/modules/run_main:107
+2026-11-21T10:36:37.8363335Z     triggerUncaughtException(
+2026-11-21T10:36:37.8363907Z     ^
+2026-11-21T10:36:37.8373387Z 
+2026-11-21T10:36:37.8374203Z Error: connect ECONNREFUSED 127.0.0.1:8080
+2026-11-21T10:36:37.8374852Z     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1864:16) {
+2026-11-21T10:36:37.8375811Z   errno: -111,
+2026-11-21T10:36:37.8376159Z   code: 'ECONNREFUSED',
+2026-11-21T10:36:37.8376507Z   syscall: 'connect',
+2026-11-21T10:36:37.8376901Z   address: '127.0.0.1',
+2026-11-21T10:36:37.8377221Z   port: 8080
+2026-11-21T10:36:37.8377606Z }
+2026-11-21T10:36:37.8377780Z 
+2026-11-21T10:36:37.8377936Z Node.js v24.19.0
+2026-11-21T10:36:38.3255325Z {
+2026-11-21T10:36:38.3255894Z   "sourceCommit": "32aa2663206c6823a94f9a957d92c248ba582066",
+2026-11-21T10:36:38.3256284Z   "platform": "linux",
+2026-11-21T10:36:38.3256515Z   "images": {
+2026-11-21T10:36:38.3256760Z     "api": {
+2026-11-21T10:36:38.3257034Z       "tag": "realtor-ci-api:32aa2663206c",
+2026-11-21T10:36:38.3257442Z       "id": "sha256:2c21369c57c436a55619e3a2152203bff0acdd4a3fbc11a9308358f1d76d8b08"
+2026-11-21T10:36:38.3257827Z     },
+2026-11-21T10:36:38.3258021Z     "web": {
+2026-11-21T10:36:38.3258562Z       "tag": "realtor-ci-web:32aa2663206c",
+2026-11-21T10:36:38.3258978Z       "id": "sha256:70112bcc6b83ed349492a80ad455aad75ba7bb8a7f5fb1ead8e934cebf8a658d"
+2026-11-21T10:36:38.3259343Z     },
+2026-11-21T10:36:38.3259547Z     "admin": {
+2026-11-21T10:36:38.3259819Z       "tag": "realtor-ci-admin:32aa2663206c",
+2026-11-21T10:36:38.3260263Z       "id": "sha256:0d1a79a5d7cd368deea242aab78bca55527e5f3398f6eb5e8a4b94e9705efdf0"
+2026-11-21T10:36:38.3260591Z     }
+2026-11-21T10:36:38.3260808Z   },
+2026-11-21T10:36:38.3261041Z   "nonRootSdkImportsPassed": [
+2026-11-21T10:36:38.3261284Z     "api",
+2026-11-21T10:36:38.3261531Z     "web",
+2026-11-21T10:36:38.3261711Z     "admin"
+2026-11-21T10:36:38.3261922Z   ],
+2026-11-21T10:36:38.3262197Z   "configuredContainerHttpProfilesPassed": 2,
+2026-11-21T10:36:38.3262542Z   "apiMissingConfigRefused": true,
+2026-11-21T10:36:38.3262838Z   "apiPositiveDatabaseStartupVerified": true,
+2026-11-21T10:36:38.3263138Z   "apiBootstrap": {
+2026-11-21T10:36:38.3263449Z     "sourceCommit": "32aa2663206c6823a94f9a957d92c248ba582066",
+2026-11-21T10:36:38.3263894Z     "imageId": "sha256:2c21369c57c436a55619e3a2152203bff0acdd4a3fbc11a9308358f1d76d8b08",
+2026-11-21T10:36:38.3264307Z     "nonRoot": true,
+2026-11-21T10:36:38.3264554Z     "memoryLimitBytes": 536870912,
+2026-11-21T10:36:38.3264806Z     "cpuLimit": 1,
+2026-11-21T10:36:38.3265262Z     "healthEnvelopeCasesPassed": 4,
+2026-11-21T10:36:38.3265580Z     "apiPositiveDatabaseStartupVerified": true,
+2026-11-21T10:36:38.3265926Z     "certificateVerifiedPostgresTls": true,
+2026-11-21T10:36:38.3266252Z     "privilegedDatabaseLoginRefused": true,
+2026-11-21T10:36:38.3266574Z     "gracefulSigtermAndSqlDrainVerified": true,
+2026-11-21T10:36:38.3266874Z     "cloudRunVerified": false,
+2026-11-21T10:36:38.3267189Z     "googleAdcOrIamVerified": false,
+2026-11-21T10:36:38.3267481Z     "providerSignInVerified": false
+2026-11-21T10:36:38.3267723Z   },
+2026-11-21T10:36:38.3267983Z   "linuxContainerVerified": true,
+2026-11-21T10:36:38.3268264Z   "liveDeploymentVerified": false
+2026-11-21T10:36:38.3268523Z }
+2026-11-21T10:36:38.3430391Z Post job cleanup.
+2026-11-21T10:36:38.4330438Z Cache hit occurred on the primary key node-cache-Linux-x64-npm-82625ee3acd2a082890cdfae666be5685b62d737f367b2ef136249c683a37ac7, not saving cache.
+2026-11-21T10:36:38.4437373Z Post job cleanup.
+2026-11-21T10:36:38.5095067Z [command]/usr/bin/git version
+2026-11-21T10:36:38.5124715Z git version 2.56.1
+2026-11-21T10:36:38.5150128Z Temporarily overriding HOME='/home/runner/work/_temp/e3d35e7e-09f0-4b94-b9d7-4713ec9eb380' before making global git config changes
+2026-11-21T10:36:38.5151098Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-21T10:36:38.5152409Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/realtime-estates/realtime-estates
+2026-11-21T10:36:38.5176026Z Removing SSH command configuration
+2026-11-21T10:36:38.5180435Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-21T10:36:38.5205201Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-21T10:36:38.5392689Z Removing HTTP extra header
+2026-11-21T10:36:38.5397492Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-21T10:36:38.5423128Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-21T10:36:38.5593387Z Removing includeIf entries pointing to credentials config files
+2026-11-21T10:36:38.5598253Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-21T10:36:38.5620839Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-21T10:36:38.5866890Z Print service container logs: 1a87ac7e123c4f8fa27134c0aee8c758_postgres17bookwormsha256837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b_f410b1
+2026-11-21T10:36:38.5870624Z ##[command]/usr/bin/docker logs --details a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d
+2026-11-21T10:36:38.5983824Z  The files belonging to this database system will be owned by user "postgres".
+2026-11-21T10:36:38.5985849Z  initdb: warning: enabling "trust" authentication for local connections
+2026-11-21T10:36:38.5986650Z  initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-11-21T10:36:38.5987708Z  2026-11-21 10:34:16.429 UTC [1] LOG:  starting PostgreSQL 17.12 (Debian 17.12-1.pgdg12+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+2026-11-21T10:36:38.5988561Z  2026-11-21 10:34:16.429 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-11-21T10:36:38.5989248Z  2026-11-21 10:34:16.429 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-11-21T10:36:38.5989847Z  2026-11-21 10:34:16.430 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-11-21T10:36:38.5990540Z  2026-11-21 10:34:16.431 UTC [64] LOG:  database system was shut down at 2026-11-21 10:34:16 UTC
+2026-11-21T10:36:38.5991146Z  2026-11-21 10:34:16.434 UTC [1] LOG:  database system is ready to accept connections
+2026-11-21T10:36:38.5991710Z  2026-11-21 10:35:49.938 UTC [216] ERROR:  must be able to SET ROLE "realtor_owner"
+2026-11-21T10:36:38.5992470Z  2026-11-21 10:35:49.938 UTC [216] STATEMENT:  -- Independently written replacement foundation. Bootstrap with a migration administrator.
+2026-11-21T10:36:38.5993272Z  	-- API connections must SET ROLE api_runtime and set transaction-local, verified identity.
+2026-11-21T10:36:38.5993766Z  	BEGIN;
+2026-11-21T10:36:38.5994183Z  	CREATE ROLE realtor_owner NOLOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS;
+2026-11-21T10:36:38.5994675Z  	CREATE ROLE api_runtime NOLOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS;
+2026-11-21T10:36:38.6113010Z  	CREATE SCHEMA app_private AUTHORIZATION realtor_owner;
+2026-11-21T10:36:38.6113401Z  	CREATE SCHEMA app_api AUTHORIZATION realtor_owner;
+2026-11-21T10:36:38.6113774Z  	REVOKE ALL ON SCHEMA app_private, app_api FROM PUBLIC;
+2026-11-21T10:36:38.6114449Z  	GRANT USAGE ON SCHEMA app_private, app_api TO api_runtime;
+2026-11-21T10:36:38.6114772Z  	SET LOCAL ROLE realtor_owner;
+2026-11-21T10:36:38.6119629Z  	ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+2026-11-21T10:36:38.6119960Z  	
+2026-11-21T10:36:38.6120155Z  	CREATE TABLE app_private.tenants (
+2026-11-21T10:36:38.6120583Z  	  id uuid PRIMARY KEY, slug text NOT NULL UNIQUE CHECK (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+2026-11-21T10:36:38.6121119Z  	  display_name text NOT NULL CHECK (length(btrim(display_name)) BETWEEN 1 AND 160),
+2026-11-21T10:36:38.6121689Z  	  enabled boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now()
+2026-11-21T10:36:38.6122058Z  	);
+2026-11-21T10:36:38.6122300Z  	CREATE TABLE app_private.memberships (
+2026-11-21T10:36:38.6122687Z  	  tenant_id uuid NOT NULL REFERENCES app_private.tenants(id), user_id uuid NOT NULL,
+2026-11-21T10:36:38.6123253Z  	  role text NOT NULL CHECK (role IN ('customer','agent','admin')), active boolean NOT NULL DEFAULT true,
+2026-11-21T10:36:38.6123734Z  	  created_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz,
+2026-11-21T10:36:38.6124150Z  	  PRIMARY KEY (tenant_id,user_id), CHECK (active OR revoked_at IS NOT NULL)
+2026-11-21T10:36:38.6124510Z  	);
+2026-11-21T10:36:38.6124720Z  	CREATE TABLE app_private.listings (
+2026-11-21T10:36:38.6125403Z  	  tenant_id uuid NOT NULL REFERENCES app_private.tenants(id), id uuid NOT NULL,
+2026-11-21T10:36:38.6125832Z  	  slug text NOT NULL CHECK (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+2026-11-21T10:36:38.6126226Z  	  created_by_id uuid NOT NULL, assigned_agent_id uuid NOT NULL,
+2026-11-21T10:36:38.6127179Z  	  availability text NOT NULL DEFAULT 'available' CHECK (availability IN ('available','reserved','rented','sold','withdrawn')),
+2026-11-21T10:36:38.6128251Z  	  publication_status text NOT NULL DEFAULT 'unpublished' CHECK (publication_status IN ('unpublished','published','paused','archived')),
+2026-11-21T10:36:38.6129076Z  	  published_revision_no integer, last_availability_confirmed_at timestamptz, archived_at timestamptz,
+2026-11-21T10:36:38.6129595Z  	  version bigint NOT NULL DEFAULT 1 CHECK (version > 0),
+2026-11-21T10:36:38.6130262Z  	  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+2026-11-21T10:36:38.6130835Z  	  PRIMARY KEY (tenant_id,id), UNIQUE (tenant_id,slug),
+2026-11-21T10:36:38.6131344Z  	  FOREIGN KEY (tenant_id,created_by_id) REFERENCES app_private.memberships(tenant_id,user_id),
+2026-11-21T10:36:38.6131977Z  	  FOREIGN KEY (tenant_id,assigned_agent_id) REFERENCES app_private.memberships(tenant_id,user_id),
+2026-11-21T10:36:38.6132591Z  	  CHECK ((publication_status = 'archived') = (archived_at IS NOT NULL))
+2026-11-21T10:36:38.6133372Z  	);
+2026-11-21T10:36:38.6133614Z  	CREATE TABLE app_private.listing_revisions (
+2026-11-21T10:36:38.6134078Z  	  tenant_id uuid NOT NULL, listing_id uuid NOT NULL, revision_no integer NOT NULL CHECK (revision_no > 0),
+2026-11-21T10:36:38.6134674Z  	  state text NOT NULL DEFAULT 'draft' CHECK (state IN ('draft','pending','approved','rejected')),
+2026-11-21T10:36:38.6135416Z  	  title text CHECK (title IS NULL OR length(btrim(title)) BETWEEN 1 AND 160),
+2026-11-21T10:36:38.6135883Z  	  description text CHECK (description IS NULL OR length(btrim(description)) BETWEEN 1 AND 10000),
+2026-11-21T10:36:38.6136320Z  	  purpose text CHECK (purpose IN ('rent','sale')),
+2026-11-21T10:36:38.6136889Z  	  property_type text CHECK (property_type IN ('apartment','bedsitter','studio','bungalow','maisonette','townhouse','villa','commercial','land')),
+2026-11-21T10:36:38.6137452Z  	  currency text NOT NULL DEFAULT 'KES' CHECK (currency = 'KES'),
+2026-11-21T10:36:38.6137770Z  	  amount_minor bigint CHECK (amount_minor BETWEEN 1 AND 100000000000000),
+2026-11-21T10:36:38.6138093Z  	  rent_period text CHECK (rent_period IN ('day','week','month','year')),
+2026-11-21T10:36:38.6138391Z  	  bedrooms integer CHECK (bedrooms BETWEEN 0 AND 100),
+2026-11-21T10:36:38.6138688Z  	  private_bathrooms integer CHECK (private_bathrooms BETWEEN 0 AND 100),
+2026-11-21T10:36:38.6139216Z  	  shared_bathrooms integer CHECK (shared_bathrooms BETWEEN 0 AND 100),
+2026-11-21T10:36:38.6139529Z  	  country text NOT NULL DEFAULT 'KE' CHECK (country = 'KE'),
+2026-11-21T10:36:38.6139856Z  	  locality text CHECK (locality IS NULL OR length(btrim(locality)) BETWEEN 1 AND 160),
+2026-11-21T10:36:38.6140245Z  	  public_precision text NOT NULL DEFAULT 'area' CHECK (public_precision IN ('area','exact')),
+2026-11-21T10:36:38.6140707Z  	  latitude numeric CHECK (latitude BETWEEN -90 AND 90), longitude numeric CHECK (longitude BETWEEN -180 AND 180),
+2026-11-21T10:36:38.6141096Z  	  private_address text CHECK (length(private_address) <= 1000),
+2026-11-21T10:36:38.6141483Z  	  submitted_at timestamptz, submitted_by uuid, decided_at timestamptz, decided_by uuid, decision_reason text,
+2026-11-21T10:36:38.6141867Z  	  version bigint NOT NULL DEFAULT 1 CHECK (version > 0),
+2026-11-21T10:36:38.6142202Z  	  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+2026-11-21T10:36:38.6142539Z  	  PRIMARY KEY (tenant_id,listing_id,revision_no),
+2026-11-21T10:36:38.6142848Z  	  FOREIGN KEY (tenant_id,listing_id) REFERENCES app_private.listings(tenant_id,id),
+2026-11-21T10:36:38.6143241Z  	  FOREIGN KEY (tenant_id,submitted_by) REFERENCES app_private.memberships(tenant_id,user_id),
+2026-11-21T10:36:38.6143643Z  	  FOREIGN KEY (tenant_id,decided_by) REFERENCES app_private.memberships(tenant_id,user_id),
+2026-11-21T10:36:38.6144009Z  	  CHECK (purpose IS DISTINCT FROM 'sale' OR rent_period IS NULL),
+2026-11-21T10:36:38.6144354Z  	  CHECK ((latitude IS NULL) = (longitude IS NULL)),
+2026-11-21T10:36:38.6144638Z  	  CHECK (property_type IS DISTINCT FROM 'land' OR bedrooms IS NULL),
+2026-11-21T10:36:38.6145210Z  	  CHECK (property_type NOT IN ('studio','bedsitter') OR bedrooms IS NULL OR bedrooms = 0),
+2026-11-21T10:36:38.6145616Z  	  CHECK (state = 'draft' OR (title IS NOT NULL AND description IS NOT NULL AND purpose IS NOT NULL
+2026-11-21T10:36:38.6146016Z  	    AND property_type IS NOT NULL AND amount_minor IS NOT NULL AND locality IS NOT NULL
+2026-11-21T10:36:38.6146351Z  	    AND (purpose <> 'rent' OR rent_period IS NOT NULL)
+2026-11-21T10:36:38.6146762Z  	    AND (property_type NOT IN ('apartment','bedsitter','studio','bungalow','maisonette','townhouse','villa') OR bedrooms IS NOT NULL))),
+2026-11-21T10:36:38.6147225Z  	  CHECK (state <> 'rejected' OR coalesce(length(btrim(decision_reason)),0) > 0)
+2026-11-21T10:36:38.6147503Z  	);
+2026-11-21T10:36:38.6147740Z  	ALTER TABLE app_private.listings ADD CONSTRAINT published_revision_same_tenant
+2026-11-21T10:36:38.6148207Z  	  FOREIGN KEY (tenant_id,id,published_revision_no) REFERENCES app_private.listing_revisions(tenant_id,listing_id,revision_no);
+2026-11-21T10:36:38.6148590Z  	
+2026-11-21T10:36:38.6148854Z  	-- Only a future trusted media processor may add accepted assets. The API role has no DML here.
+2026-11-21T10:36:38.6149183Z  	CREATE TABLE app_private.revision_media (
+2026-11-21T10:36:38.6149525Z  	  tenant_id uuid NOT NULL, listing_id uuid NOT NULL, revision_no integer NOT NULL, id uuid NOT NULL,
+2026-11-21T10:36:38.6149965Z  	  public_object_key text NOT NULL CHECK (public_object_key ~ '^[a-zA-Z0-9/_-]+\.(webp|jpg|png)$'),
+2026-11-21T10:36:38.6150421Z  	  content_type text NOT NULL CHECK (content_type IN ('image/jpeg','image/png','image/webp')),
+2026-11-21T10:36:38.6150799Z  	  bytes bigint NOT NULL CHECK (bytes BETWEEN 1 AND 10485760),
+2026-11-21T10:36:38.6151147Z  	  width integer NOT NULL CHECK (width > 0), height integer NOT NULL CHECK (height > 0),
+2026-11-21T10:36:38.6151492Z  	  sha256 text NOT NULL CHECK (sha256 ~ '^[a-f0-9]{64}$'),
+2026-11-21T10:36:38.6151819Z  	  alt_text text NOT NULL CHECK (length(btrim(alt_text)) BETWEEN 1 AND 300),
+2026-11-21T10:36:38.6152228Z  	  position integer NOT NULL CHECK (position BETWEEN 0 AND 11), accepted boolean NOT NULL DEFAULT false,
+2026-11-21T10:36:38.6152649Z  	  PRIMARY KEY (tenant_id,id), UNIQUE (tenant_id,listing_id,revision_no,position),
+2026-11-21T10:36:38.6153194Z  	  FOREIGN KEY (tenant_id,listing_id,revision_no) REFERENCES app_private.listing_revisions(tenant_id,listing_id,revision_no),
+2026-11-21T10:36:38.6153621Z  	  CHECK (width::bigint * height::bigint <= 40000000)
+2026-11-21T10:36:38.6153844Z  	);
+2026-11-21T10:36:38.6154040Z  	CREATE TABLE app_private.public_snapshots (
+2026-11-21T10:36:38.6154346Z  	  tenant_id uuid NOT NULL, listing_id uuid NOT NULL, revision_no integer NOT NULL,
+2026-11-21T10:36:38.6154755Z  	  title text NOT NULL, description text NOT NULL, purpose text NOT NULL, property_type text NOT NULL,
+2026-11-21T10:36:38.6155419Z  	  currency text NOT NULL CHECK (currency = 'KES'), amount_minor bigint NOT NULL CHECK (amount_minor BETWEEN 1 AND 100000000000000),
+2026-11-21T10:36:38.6155920Z  	  rent_period text, bedrooms integer, private_bathrooms integer, shared_bathrooms integer,
+2026-11-21T10:36:38.6156320Z  	  country text NOT NULL, locality text NOT NULL, public_precision text NOT NULL,
+2026-11-21T10:36:38.6156682Z  	  latitude numeric, longitude numeric, photo_refs jsonb NOT NULL,
+2026-11-21T10:36:38.6157012Z  	  approved_at timestamptz NOT NULL, PRIMARY KEY (tenant_id,listing_id),
+2026-11-21T10:36:38.6157464Z  	  FOREIGN KEY (tenant_id,listing_id,revision_no) REFERENCES app_private.listing_revisions(tenant_id,listing_id,revision_no)
+2026-11-21T10:36:38.6157854Z  	);
+2026-11-21T10:36:38.6158031Z  	CREATE TABLE app_private.enquiries (
+2026-11-21T10:36:38.6158389Z  	  tenant_id uuid NOT NULL REFERENCES app_private.tenants(id), id uuid NOT NULL, idempotency_key uuid NOT NULL,
+2026-11-21T10:36:38.6158952Z  	  listing_id uuid, contacted_revision_no integer, requested_by_id uuid, assigned_agent_id uuid,
+2026-11-21T10:36:38.6159356Z  	  contact_name text NOT NULL CHECK (length(btrim(contact_name)) BETWEEN 1 AND 160),
+2026-11-21T10:36:38.6159708Z  	  phone_e164 text CHECK (phone_e164 ~ '^\+[1-9][0-9]{7,14}$'),
+2026-11-21T10:36:38.6160074Z  	  email text CHECK (length(email) <= 254 AND email ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'),
+2026-11-21T10:36:38.6160455Z  	  message text NOT NULL CHECK (length(btrim(message)) BETWEEN 1 AND 2000),
+2026-11-21T10:36:38.6160779Z  	  origin text NOT NULL CHECK (origin IN ('web','mobile','staff')),
+2026-11-21T10:36:38.6161117Z  	  notice_version text NOT NULL CHECK (length(btrim(notice_version)) BETWEEN 1 AND 100),
+2026-11-21T10:36:38.6161591Z  	  status text NOT NULL DEFAULT 'new' CHECK (status IN ('new','assigned','contacted','qualified','closed_won','closed_lost','spam')),
+2026-11-21T10:36:38.6162005Z  	  next_action_at timestamptz, closure_reason text,
+2026-11-21T10:36:38.6162260Z  	  version bigint NOT NULL DEFAULT 1 CHECK (version > 0),
+2026-11-21T10:36:38.6162598Z  	  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+2026-11-21T10:36:38.6162963Z  	  PRIMARY KEY (tenant_id,id), UNIQUE (tenant_id,idempotency_key),
+2026-11-21T10:36:38.6163407Z  	  FOREIGN KEY (tenant_id,listing_id,contacted_revision_no) REFERENCES app_private.listing_revisions(tenant_id,listing_id,revision_no),
+2026-11-21T10:36:38.6163923Z  	  FOREIGN KEY (tenant_id,requested_by_id) REFERENCES app_private.memberships(tenant_id,user_id),
+2026-11-21T10:36:38.6164358Z  	  FOREIGN KEY (tenant_id,assigned_agent_id) REFERENCES app_private.memberships(tenant_id,user_id),
+2026-11-21T10:36:38.6164709Z  	  CHECK (phone_e164 IS NOT NULL OR email IS NOT NULL),
+2026-11-21T10:36:38.6165113Z  	  CHECK ((listing_id IS NULL) = (contacted_revision_no IS NULL)),
+2026-11-21T10:36:38.6165442Z  	  CHECK (status NOT IN ('contacted','qualified') OR next_action_at IS NOT NULL),
+2026-11-21T10:36:38.6165814Z  	  CHECK (status NOT IN ('closed_lost','spam') OR coalesce(length(btrim(closure_reason)),0) > 0)
+2026-11-21T10:36:38.6166104Z  	);
+2026-11-21T10:36:38.6166270Z  	CREATE TABLE app_private.audit_events (
+2026-11-21T10:36:38.6166512Z  	  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+2026-11-21T10:36:38.6166809Z  	  tenant_id uuid NOT NULL REFERENCES app_private.tenants(id), actor_id uuid,
+2026-11-21T10:36:38.6167267Z  	  action text NOT NULL, object_type text NOT NULL, object_id uuid NOT NULL, object_version bigint,
+2026-11-21T10:36:38.6167630Z  	  correlation_id text, summary jsonb NOT NULL DEFAULT '{}'::jsonb,
+2026-11-21T10:36:38.6167903Z  	  occurred_at timestamptz NOT NULL DEFAULT now(),
+2026-11-21T10:36:38.6168219Z  	  FOREIGN KEY (tenant_id,actor_id) REFERENCES app_private.memberships(tenant_id,user_id)
+2026-11-21T10:36:38.6168531Z  	);
+2026-11-21T10:36:38.6168775Z  	CREATE INDEX listing_assignee ON app_private.listings(tenant_id,assigned_agent_id,id);
+2026-11-21T10:36:38.6169178Z  	CREATE INDEX enquiry_assignee ON app_private.enquiries(tenant_id,assigned_agent_id,status);
+2026-11-21T10:36:38.6169585Z  	CREATE INDEX audit_tenant_time ON app_private.audit_events(tenant_id,occurred_at DESC);
+2026-11-21T10:36:38.6169866Z  	
+2026-11-21T10:36:38.6170190Z  	CREATE FUNCTION app_private.context_tenant() RETURNS uuid LANGUAGE sql STABLE
+2026-11-21T10:36:38.6170610Z  	  SET search_path = pg_catalog AS $$ SELECT nullif(current_setting('realtor.tenant_id',true),'')::uuid $$;
+2026-11-21T10:36:38.6171030Z  	CREATE FUNCTION app_private.context_actor() RETURNS uuid LANGUAGE sql STABLE
+2026-11-21T10:36:38.6171434Z  	  SET search_path = pg_catalog AS $$ SELECT nullif(current_setting('realtor.actor_id',true),'')::uuid $$;
+2026-11-21T10:36:38.6171882Z  	CREATE FUNCTION app_private.staff_role() RETURNS text LANGUAGE sql STABLE SECURITY DEFINER
+2026-11-21T10:36:38.6172206Z  	  SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6172513Z  	  SELECT m.role FROM app_private.memberships m JOIN app_private.tenants t ON t.id=m.tenant_id
+2026-11-21T10:36:38.6173017Z  	   WHERE m.tenant_id=app_private.context_tenant() AND m.user_id=app_private.context_actor()
+2026-11-21T10:36:38.6173326Z  	     AND m.active AND t.enabled
+2026-11-21T10:36:38.6173503Z  	$$;
+2026-11-21T10:36:38.6173794Z  	CREATE FUNCTION app_private.may_work(p_tenant uuid,p_assigned uuid) RETURNS boolean LANGUAGE sql STABLE
+2026-11-21T10:36:38.6174137Z  	  SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6174373Z  	  SELECT coalesce(p_tenant=app_private.context_tenant() AND
+2026-11-21T10:36:38.6174775Z  	    (app_private.staff_role()='admin' OR (app_private.staff_role()='agent' AND p_assigned=app_private.context_actor())),false)
+2026-11-21T10:36:38.6175273Z  	$$;
+2026-11-21T10:36:38.6175554Z  	CREATE FUNCTION app_private.assert_staff(p_roles text[]) RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+2026-11-21T10:36:38.6175909Z  	  SET search_path = pg_catalog AS $$ BEGIN
+2026-11-21T10:36:38.6176335Z  	  IF NOT coalesce(app_private.staff_role()=ANY(p_roles),false) THEN RAISE EXCEPTION 'Access denied' USING ERRCODE='42501'; END IF;
+2026-11-21T10:36:38.6176707Z  	END $$;
+2026-11-21T10:36:38.6176956Z  	CREATE FUNCTION app_private.touch_version() RETURNS trigger LANGUAGE plpgsql
+2026-11-21T10:36:38.6177275Z  	  SET search_path = pg_catalog AS $$ BEGIN
+2026-11-21T10:36:38.6177552Z  	  NEW.version := OLD.version+1; NEW.updated_at := now(); RETURN NEW;
+2026-11-21T10:36:38.6177795Z  	END $$;
+2026-11-21T10:36:38.6178144Z  	CREATE TRIGGER touch_listing BEFORE UPDATE ON app_private.listings FOR EACH ROW EXECUTE FUNCTION app_private.touch_version();
+2026-11-21T10:36:38.6178733Z  	CREATE TRIGGER touch_revision BEFORE UPDATE ON app_private.listing_revisions FOR EACH ROW EXECUTE FUNCTION app_private.touch_version();
+2026-11-21T10:36:38.6179316Z  	CREATE TRIGGER touch_enquiry BEFORE UPDATE ON app_private.enquiries FOR EACH ROW EXECUTE FUNCTION app_private.touch_version();
+2026-11-21T10:36:38.6179809Z  	CREATE FUNCTION app_private.immutable_revision() RETURNS trigger LANGUAGE plpgsql
+2026-11-21T10:36:38.6180132Z  	  SET search_path = pg_catalog AS $$ BEGIN
+2026-11-21T10:36:38.6180359Z  	  IF TG_OP='DELETE' THEN
+2026-11-21T10:36:38.6180730Z  	    IF OLD.state<>'draft' THEN RAISE EXCEPTION 'Submitted revisions are immutable' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6181082Z  	    RETURN OLD;
+2026-11-21T10:36:38.6181251Z  	  END IF;
+2026-11-21T10:36:38.6181676Z  	  IF OLD.state IN ('approved','rejected') THEN RAISE EXCEPTION 'Decided revisions are immutable' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6182295Z  	  IF OLD.state='pending' AND (to_jsonb(NEW)-ARRAY['state','submitted_at','submitted_by','decided_at','decided_by','decision_reason','updated_at','version'])
+2026-11-21T10:36:38.6182942Z  	    IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['state','submitted_at','submitted_by','decided_at','decided_by','decision_reason','updated_at','version'])
+2026-11-21T10:36:38.6183452Z  	    THEN RAISE EXCEPTION 'Pending content is immutable' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6183747Z  	  RETURN NEW;
+2026-11-21T10:36:38.6183914Z  	END $$;
+2026-11-21T10:36:38.6184343Z  	CREATE TRIGGER immutable_revision BEFORE UPDATE OR DELETE ON app_private.listing_revisions FOR EACH ROW EXECUTE FUNCTION app_private.immutable_revision();
+2026-11-21T10:36:38.6185134Z  	CREATE FUNCTION app_private.immutable_media() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6185529Z  	DECLARE v_state text; BEGIN
+2026-11-21T10:36:38.6185763Z  	  IF TG_OP IN ('UPDATE','DELETE') THEN
+2026-11-21T10:36:38.6186099Z  	    SELECT state INTO v_state FROM app_private.listing_revisions WHERE tenant_id=OLD.tenant_id
+2026-11-21T10:36:38.6186513Z  	      AND listing_id=OLD.listing_id AND revision_no=OLD.revision_no FOR UPDATE;
+2026-11-21T10:36:38.6186839Z  This user must also own the server process.
+2026-11-21T10:36:38.6187035Z  
+2026-11-21T10:36:38.6187242Z  The database cluster will be initialized with locale "en_US.utf8".
+2026-11-21T10:36:38.6187685Z  The default database encoding has accordingly been set to "UTF8".
+2026-11-21T10:36:38.6188001Z  The default text search configuration will be set to "english".
+2026-11-21T10:36:38.6188239Z  
+2026-11-21T10:36:38.6188388Z  Data page checksums are disabled.
+2026-11-21T10:36:38.6188583Z  
+2026-11-21T10:36:38.6188792Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
+2026-11-21T10:36:38.6189078Z  creating subdirectories ... ok
+2026-11-21T10:36:38.6189312Z  selecting dynamic shared memory implementation ... posix
+2026-11-21T10:36:38.6189564Z  selecting default "max_connections" ... 100
+2026-11-21T10:36:38.6189808Z  selecting default "shared_buffers" ... 128MB
+2026-11-21T10:36:38.6190042Z  selecting default time zone ... Etc/UTC
+2026-11-21T10:36:38.6190265Z  creating configuration files ... ok
+2026-11-21T10:36:38.6190465Z  running bootstrap script ... ok
+2026-11-21T10:36:38.6190685Z  performing post-bootstrap initialization ... ok
+2026-11-21T10:36:38.6190916Z  syncing data to disk ... ok
+2026-11-21T10:36:38.6191090Z  
+2026-11-21T10:36:38.6191231Z  
+2026-11-21T10:36:38.6191406Z  Success. You can now start the database server using:
+2026-11-21T10:36:38.6191628Z  
+2026-11-21T10:36:38.6191854Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
+2026-11-21T10:36:38.6192084Z  
+2026-11-21T10:36:38.6192558Z  waiting for server to start....2026-11-21 10:34:16.169 UTC [48] LOG:  starting PostgreSQL 17.12 (Debian 17.12-1.pgdg12+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+2026-11-21T10:36:38.6193180Z  2026-11-21 10:34:16.169 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-11-21T10:36:38.6193572Z  2026-11-21 10:34:16.170 UTC [51] LOG:  database system was shut down at 2026-11-21 10:34:16 UTC
+2026-11-21T10:36:38.6193928Z  2026-11-21 10:34:16.172 UTC [48] LOG:  database system is ready to accept connections
+2026-11-21T10:36:38.6194180Z   done
+2026-11-21T10:36:38.6194311Z  server started
+2026-11-21T10:36:38.6194460Z  CREATE DATABASE
+2026-11-21T10:36:38.6194606Z  
+2026-11-21T10:36:38.6194734Z  
+2026-11-21T10:36:38.6195090Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+2026-11-21T10:36:38.6195369Z  
+2026-11-21T10:36:38.6195622Z  waiting for server to shut down....2026-11-21 10:34:16.316 UTC [48] LOG:  received fast shutdown request
+2026-11-21T10:36:38.6195974Z  2026-11-21 10:34:16.316 UTC [48] LOG:  aborting any active transactions
+2026-11-21T10:36:38.6196420Z  2026-11-21 10:34:16.318 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+2026-11-21T10:36:38.6196776Z  2026-11-21 10:34:16.318 UTC [49] LOG:  shutting down
+2026-11-21T10:36:38.6197052Z  2026-11-21 10:34:16.319 UTC [49] LOG:  checkpoint starting: shutdown immediate
+2026-11-21T10:36:38.6197790Z  2026-11-21 10:34:16.328 UTC [49] LOG:  checkpoint complete: wrote 930 buffers (5.7%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.008 s, sync=0.001 s, total=0.010 s; sync files=301, longest=0.001 s, average=0.001 s; distance=4311 kB, estimate=4311 kB; lsn=0/192EF08, redo lsn=0/192EF08
+2026-11-21T10:36:38.6198511Z  2026-11-21 10:34:16.331 UTC [48] LOG:  database system is shut down
+2026-11-21T10:36:38.6198743Z   done
+2026-11-21T10:36:38.6198883Z  server stopped
+2026-11-21T10:36:38.6199032Z  
+2026-11-21T10:36:38.6199214Z  PostgreSQL init process complete; ready for start up.
+2026-11-21T10:36:38.6199440Z  
+2026-11-21T10:36:38.6199857Z  	    IF v_state <> 'draft' THEN RAISE EXCEPTION 'Submitted media is immutable' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6200182Z  	  END IF;
+2026-11-21T10:36:38.6200353Z  	  IF TG_OP IN ('INSERT','UPDATE') THEN
+2026-11-21T10:36:38.6200668Z  	    SELECT state INTO v_state FROM app_private.listing_revisions WHERE tenant_id=NEW.tenant_id
+2026-11-21T10:36:38.6201049Z  	      AND listing_id=NEW.listing_id AND revision_no=NEW.revision_no FOR UPDATE;
+2026-11-21T10:36:38.6201454Z  	    IF v_state <> 'draft' THEN RAISE EXCEPTION 'Submitted media is immutable' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6201768Z  	  END IF;
+2026-11-21T10:36:38.6202002Z  	  RETURN CASE WHEN TG_OP='DELETE' THEN OLD ELSE NEW END;
+2026-11-21T10:36:38.6202228Z  	END $$;
+2026-11-21T10:36:38.6202615Z  	CREATE TRIGGER immutable_media BEFORE INSERT OR UPDATE OR DELETE ON app_private.revision_media FOR EACH ROW EXECUTE FUNCTION app_private.immutable_media();
+2026-11-21T10:36:38.6203277Z  	CREATE FUNCTION app_private.immutable_audit() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6203742Z  	BEGIN RAISE EXCEPTION 'Audit events are append only' USING ERRCODE='23514'; END $$;
+2026-11-21T10:36:38.6204249Z  	CREATE TRIGGER immutable_audit BEFORE UPDATE OR DELETE ON app_private.audit_events FOR EACH ROW EXECUTE FUNCTION app_private.immutable_audit();
+2026-11-21T10:36:38.6204834Z  	CREATE FUNCTION app_private.audit(p_action text,p_type text,p_id uuid,p_version bigint,p_summary jsonb DEFAULT '{}'::jsonb)
+2026-11-21T10:36:38.6205416Z  	RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6205875Z  	  INSERT INTO app_private.audit_events(tenant_id,actor_id,action,object_type,object_id,object_version,correlation_id,summary)
+2026-11-21T10:36:38.6206377Z  	  VALUES(app_private.context_tenant(),app_private.context_actor(),p_action,p_type,p_id,p_version,
+2026-11-21T10:36:38.6206791Z  	    left(nullif(current_setting('realtor.correlation_id',true),''),100),p_summary)
+2026-11-21T10:36:38.6207087Z  	$$;
+2026-11-21T10:36:38.6207242Z  	
+2026-11-21T10:36:38.6207481Z  	-- FORCE RLS also applies to the table owner; its explicit owner policy supports the
+2026-11-21T10:36:38.6207858Z  	-- narrowly granted SECURITY DEFINER commands. api_runtime never has owner membership.
+2026-11-21T10:36:38.6208155Z  	DO $$ DECLARE v_table text; BEGIN
+2026-11-21T10:36:38.6208594Z  	  FOREACH v_table IN ARRAY ARRAY['tenants','memberships','listings','listing_revisions','revision_media','public_snapshots','enquiries','audit_events'] LOOP
+2026-11-21T10:36:38.6209108Z  	    EXECUTE format('ALTER TABLE app_private.%I ENABLE ROW LEVEL SECURITY',v_table);
+2026-11-21T10:36:38.6209473Z  	    EXECUTE format('ALTER TABLE app_private.%I FORCE ROW LEVEL SECURITY',v_table);
+2026-11-21T10:36:38.6210010Z  	    EXECUTE format('CREATE POLICY owner_access ON app_private.%I TO realtor_owner USING (true) WITH CHECK (true)',v_table);
+2026-11-21T10:36:38.6210391Z  	  END LOOP;
+2026-11-21T10:36:38.6210616Z  	END $$;
+2026-11-21T10:36:38.6211010Z  	CREATE POLICY own_tenant ON app_private.tenants FOR SELECT TO api_runtime USING (id=app_private.context_tenant() AND app_private.staff_role() IS NOT NULL);
+2026-11-21T10:36:38.6211805Z  	CREATE POLICY own_membership ON app_private.memberships FOR SELECT TO api_runtime USING (tenant_id=app_private.context_tenant() AND user_id=app_private.context_actor() AND app_private.staff_role() IS NOT NULL);
+2026-11-21T10:36:38.6212577Z  	CREATE POLICY assigned_listing ON app_private.listings FOR SELECT TO api_runtime USING (app_private.may_work(tenant_id,assigned_agent_id));
+2026-11-21T10:36:38.6213093Z  	CREATE POLICY assigned_revision ON app_private.listing_revisions FOR SELECT TO api_runtime USING (
+2026-11-21T10:36:38.6213606Z  	  EXISTS(SELECT 1 FROM app_private.listings l WHERE l.tenant_id=listing_revisions.tenant_id AND l.id=listing_revisions.listing_id));
+2026-11-21T10:36:38.6214122Z  	CREATE POLICY assigned_media ON app_private.revision_media FOR SELECT TO api_runtime USING (
+2026-11-21T10:36:38.6214622Z  	  EXISTS(SELECT 1 FROM app_private.listings l WHERE l.tenant_id=revision_media.tenant_id AND l.id=revision_media.listing_id));
+2026-11-21T10:36:38.6215328Z  	CREATE POLICY assigned_enquiry ON app_private.enquiries FOR SELECT TO api_runtime USING (app_private.may_work(tenant_id,assigned_agent_id));
+2026-11-21T10:36:38.6215847Z  	CREATE POLICY tenant_admin_audit ON app_private.audit_events FOR SELECT TO api_runtime USING (
+2026-11-21T10:36:38.6216236Z  	  tenant_id=app_private.context_tenant() AND app_private.staff_role()='admin');
+2026-11-21T10:36:38.6216742Z  	GRANT SELECT ON app_private.tenants,app_private.memberships,app_private.listings,app_private.listing_revisions,
+2026-11-21T10:36:38.6217251Z  	  app_private.revision_media,app_private.enquiries,app_private.audit_events TO api_runtime;
+2026-11-21T10:36:38.6217824Z  	GRANT EXECUTE ON FUNCTION app_private.context_tenant(),app_private.context_actor(),app_private.staff_role(),app_private.may_work(uuid,uuid) TO api_runtime;
+2026-11-21T10:36:38.6218252Z  	
+2026-11-21T10:36:38.6218457Z  	CREATE VIEW app_api.public_listings WITH (security_barrier=true) AS
+2026-11-21T10:36:38.6218851Z  	 SELECT s.tenant_id,s.listing_id,s.revision_no,s.title,s.description,s.purpose,s.property_type,
+2026-11-21T10:36:38.6219304Z  	   s.currency,s.amount_minor,s.rent_period,s.bedrooms,s.private_bathrooms,s.shared_bathrooms,
+2026-11-21T10:36:38.6219775Z  	   s.country,s.locality,s.public_precision,s.latitude,s.longitude,s.photo_refs,s.approved_at,l.slug
+2026-11-21T10:36:38.6220143Z  	 FROM app_private.public_snapshots s
+2026-11-21T10:36:38.6220517Z  	 JOIN app_private.listings l ON l.tenant_id=s.tenant_id AND l.id=s.listing_id AND l.published_revision_no=s.revision_no
+2026-11-21T10:36:38.6220907Z  	 JOIN app_private.tenants t ON t.id=l.tenant_id
+2026-11-21T10:36:38.6221255Z  	 WHERE t.enabled AND l.tenant_id=app_private.context_tenant() AND l.publication_status='published'
+2026-11-21T10:36:38.6221703Z  	   AND l.availability='available' AND l.last_availability_confirmed_at > now()-interval '30 days';
+2026-11-21T10:36:38.6222075Z  	GRANT SELECT ON app_api.public_listings TO api_runtime;
+2026-11-21T10:36:38.6222302Z  	
+2026-11-21T10:36:38.6222610Z  	CREATE FUNCTION app_private.lock_listing(p_id uuid,p_expected bigint DEFAULT NULL) RETURNS app_private.listings
+2026-11-21T10:36:38.6223041Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6223330Z  	DECLARE v_listing app_private.listings; BEGIN
+2026-11-21T10:36:38.6223718Z  	  SELECT * INTO v_listing FROM app_private.listings WHERE tenant_id=app_private.context_tenant() AND id=p_id FOR UPDATE;
+2026-11-21T10:36:38.6224212Z  	  IF NOT FOUND OR NOT app_private.may_work(v_listing.tenant_id,v_listing.assigned_agent_id) THEN
+2026-11-21T10:36:38.6224598Z  	    RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6225208Z  	  IF p_expected IS NOT NULL AND v_listing.version<>p_expected THEN RAISE EXCEPTION 'Version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6225676Z  	  RETURN v_listing;
+2026-11-21T10:36:38.6225854Z  	END $$;
+2026-11-21T10:36:38.6226168Z  	CREATE FUNCTION app_private.require_version(p_version bigint,p_allow_new boolean DEFAULT false) RETURNS void
+2026-11-21T10:36:38.6226590Z  	LANGUAGE plpgsql SET search_path = pg_catalog AS $$ BEGIN
+2026-11-21T10:36:38.6226914Z  	  IF p_version IS NULL OR p_version < (CASE WHEN p_allow_new THEN 0 ELSE 1 END) THEN
+2026-11-21T10:36:38.6227286Z  	    RAISE EXCEPTION 'Expected version required' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6227582Z  	END $$;
+2026-11-21T10:36:38.6227871Z  	CREATE FUNCTION app_api.create_listing(p_id uuid,p_slug text,p_assigned uuid DEFAULT NULL) RETURNS uuid
+2026-11-21T10:36:38.6228277Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6228559Z  	DECLARE v_assigned uuid; BEGIN
+2026-11-21T10:36:38.6228805Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']);
+2026-11-21T10:36:38.6229114Z  	  v_assigned:=coalesce(p_assigned,app_private.context_actor());
+2026-11-21T10:36:38.6229594Z  	  IF app_private.staff_role()='agent' AND v_assigned<>app_private.context_actor() THEN RAISE EXCEPTION 'Access denied' USING ERRCODE='42501'; END IF;
+2026-11-21T10:36:38.6230282Z  	  IF NOT EXISTS(SELECT 1 FROM app_private.memberships WHERE tenant_id=app_private.context_tenant() AND user_id=v_assigned AND active AND role IN ('agent','admin'))
+2026-11-21T10:36:38.6230817Z  	    THEN RAISE EXCEPTION 'Assignment unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6231258Z  	  INSERT INTO app_private.listings(tenant_id,id,slug,created_by_id,assigned_agent_id)
+2026-11-21T10:36:38.6231692Z  	    VALUES(app_private.context_tenant(),p_id,p_slug,app_private.context_actor(),v_assigned);
+2026-11-21T10:36:38.6232098Z  	  PERFORM app_private.audit('listing.created','listing',p_id,1); RETURN p_id;
+2026-11-21T10:36:38.6232382Z  	END $$;
+2026-11-21T10:36:38.6232714Z  	CREATE FUNCTION app_api.save_draft(p_id uuid,p_revision integer,p_expected bigint,p_content jsonb) RETURNS bigint
+2026-11-21T10:36:38.6233149Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6233524Z  	DECLARE v_current app_private.listing_revisions; v_next integer; v_version bigint; BEGIN
+2026-11-21T10:36:38.6233975Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']); PERFORM app_private.lock_listing(p_id);
+2026-11-21T10:36:38.6234352Z  	  PERFORM app_private.require_version(p_expected,true);
+2026-11-21T10:36:38.6234788Z  	  IF jsonb_typeof(p_content) IS DISTINCT FROM 'object' THEN RAISE EXCEPTION 'Invalid content fields' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6235399Z  	  IF EXISTS(SELECT 1 FROM jsonb_object_keys(p_content) k WHERE k NOT IN
+2026-11-21T10:36:38.6236043Z  	    ('title','description','purpose','propertyType','currency','amountMinor','rentPeriod','bedrooms','privateBathrooms','sharedBathrooms','country','locality','publicPrecision','latitude','longitude','privateAddress'))
+2026-11-21T10:36:38.6236716Z  	    THEN RAISE EXCEPTION 'Invalid content fields' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6237037Z  	  IF EXISTS(SELECT 1 FROM jsonb_each(p_content) e WHERE
+2026-11-21T10:36:38.6237411Z  	    CASE WHEN e.key IN ('amountMinor','bedrooms','privateBathrooms','sharedBathrooms','latitude','longitude')
+2026-11-21T10:36:38.6237912Z  	      THEN jsonb_typeof(e.value) NOT IN ('number','null') ELSE jsonb_typeof(e.value) NOT IN ('string','null') END)
+2026-11-21T10:36:38.6238333Z  	    THEN RAISE EXCEPTION 'Invalid content types' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6238719Z  	  IF (p_content->>'amountMinor') IS NOT NULL AND (p_content->>'amountMinor') !~ '^[0-9]+$'
+2026-11-21T10:36:38.6239138Z  	    THEN RAISE EXCEPTION 'Money must use integer minor units' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6239715Z  	  SELECT * INTO v_current FROM app_private.listing_revisions WHERE tenant_id=app_private.context_tenant() AND listing_id=p_id AND revision_no=p_revision FOR UPDATE;
+2026-11-21T10:36:38.6240355Z  	  IF FOUND THEN
+2026-11-21T10:36:38.6240676Z  	    IF v_current.state<>'draft' THEN RAISE EXCEPTION 'Only drafts may be edited' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6241159Z  	    IF v_current.version<>p_expected THEN RAISE EXCEPTION 'Version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6241496Z  	  ELSE
+2026-11-21T10:36:38.6241909Z  	    SELECT coalesce(max(revision_no),0)+1 INTO v_next FROM app_private.listing_revisions WHERE tenant_id=app_private.context_tenant() AND listing_id=p_id;
+2026-11-21T10:36:38.6242492Z  	    IF p_expected<>0 OR p_revision<>v_next THEN RAISE EXCEPTION 'Version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6243036Z  	    INSERT INTO app_private.listing_revisions(tenant_id,listing_id,revision_no) VALUES(app_private.context_tenant(),p_id,p_revision);
+2026-11-21T10:36:38.6243458Z  	  END IF;
+2026-11-21T10:36:38.6243840Z  	  UPDATE app_private.listing_revisions SET title=nullif(btrim(p_content->>'title'),''),description=nullif(btrim(p_content->>'description'),''),
+2026-11-21T10:36:38.6244482Z  	    purpose=p_content->>'purpose',property_type=p_content->>'propertyType',currency=coalesce(p_content->>'currency','KES'),
+2026-11-21T10:36:38.6245140Z  	    amount_minor=(p_content->>'amountMinor')::bigint,rent_period=p_content->>'rentPeriod',bedrooms=(p_content->>'bedrooms')::integer,
+2026-11-21T10:36:38.6245697Z  	    private_bathrooms=(p_content->>'privateBathrooms')::integer,shared_bathrooms=(p_content->>'sharedBathrooms')::integer,
+2026-11-21T10:36:38.6246237Z  	    country=coalesce(p_content->>'country','KE'),locality=nullif(btrim(p_content->>'locality'),''),
+2026-11-21T10:36:38.6246698Z  	    public_precision=coalesce(p_content->>'publicPrecision','area'),latitude=(p_content->>'latitude')::numeric,
+2026-11-21T10:36:38.6247148Z  	    longitude=(p_content->>'longitude')::numeric,private_address=p_content->>'privateAddress'
+2026-11-21T10:36:38.6247622Z  	    WHERE tenant_id=app_private.context_tenant() AND listing_id=p_id AND revision_no=p_revision RETURNING version INTO v_version;
+2026-11-21T10:36:38.6248179Z  	  PERFORM app_private.audit('revision.saved','listing',p_id,v_version,jsonb_build_object('revision',p_revision)); RETURN v_version;
+2026-11-21T10:36:38.6248541Z  	END $$;
+2026-11-21T10:36:38.6248829Z  	CREATE FUNCTION app_api.submit_revision(p_id uuid,p_revision integer,p_expected bigint) RETURNS bigint
+2026-11-21T10:36:38.6249215Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6249575Z  	DECLARE v_revision app_private.listing_revisions; v_count integer; v_version bigint; BEGIN
+2026-11-21T10:36:38.6250147Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']); PERFORM app_private.lock_listing(p_id);
+2026-11-21T10:36:38.6250514Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6251004Z  	  SELECT * INTO v_revision FROM app_private.listing_revisions WHERE tenant_id=app_private.context_tenant() AND listing_id=p_id AND revision_no=p_revision FOR UPDATE;
+2026-11-21T10:36:38.6251580Z  	  IF NOT FOUND THEN RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6252016Z  	  IF v_revision.version<>p_expected THEN RAISE EXCEPTION 'Version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6252460Z  	  IF v_revision.state<>'draft' THEN RAISE EXCEPTION 'Expected draft' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6253033Z  	  SELECT count(*) INTO v_count FROM app_private.revision_media WHERE tenant_id=v_revision.tenant_id AND listing_id=p_id AND revision_no=p_revision AND accepted;
+2026-11-21T10:36:38.6253614Z  	  IF v_count NOT BETWEEN 4 AND 12 THEN RAISE EXCEPTION 'Require 4 to 12 accepted photos' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6254116Z  	  UPDATE app_private.listing_revisions SET state='pending',submitted_at=now(),submitted_by=app_private.context_actor()
+2026-11-21T10:36:38.6254676Z  	    WHERE tenant_id=v_revision.tenant_id AND listing_id=p_id AND revision_no=p_revision RETURNING version INTO v_version;
+2026-11-21T10:36:38.6255466Z  	  PERFORM app_private.audit('revision.submitted','listing',p_id,v_version,jsonb_build_object('revision',p_revision)); RETURN v_version;
+2026-11-21T10:36:38.6255869Z  	END $$;
+2026-11-21T10:36:38.6256192Z  	CREATE FUNCTION app_api.withdraw_revision(p_id uuid,p_revision integer,p_expected bigint) RETURNS bigint
+2026-11-21T10:36:38.6256660Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ DECLARE v_version bigint; BEGIN
+2026-11-21T10:36:38.6257124Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']); PERFORM app_private.lock_listing(p_id);
+2026-11-21T10:36:38.6257510Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6257891Z  	  UPDATE app_private.listing_revisions SET state='draft',submitted_at=NULL,submitted_by=NULL
+2026-11-21T10:36:38.6258479Z  	    WHERE tenant_id=app_private.context_tenant() AND listing_id=p_id AND revision_no=p_revision AND state='pending' AND version=p_expected RETURNING version INTO v_version;
+2026-11-21T10:36:38.6259078Z  	  IF NOT FOUND THEN RAISE EXCEPTION 'State or version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6259581Z  	  PERFORM app_private.audit('revision.withdrawn','listing',p_id,v_version,jsonb_build_object('revision',p_revision)); RETURN v_version;
+2026-11-21T10:36:38.6259981Z  	END $$;
+2026-11-21T10:36:38.6260366Z  	CREATE FUNCTION app_api.decide_revision(p_id uuid,p_revision integer,p_expected bigint,p_approve boolean,p_reason text DEFAULT NULL) RETURNS bigint
+2026-11-21T10:36:38.6260869Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6261347Z  	DECLARE v_listing app_private.listings; v_revision app_private.listing_revisions; v_version bigint; BEGIN
+2026-11-21T10:36:38.6261820Z  	  PERFORM app_private.assert_staff(ARRAY['admin']); v_listing:=app_private.lock_listing(p_id);
+2026-11-21T10:36:38.6262185Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6262671Z  	  SELECT * INTO v_revision FROM app_private.listing_revisions WHERE tenant_id=v_listing.tenant_id AND listing_id=p_id AND revision_no=p_revision FOR UPDATE;
+2026-11-21T10:36:38.6263222Z  	  IF NOT FOUND THEN RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6263748Z  	  IF v_revision.state<>'pending' OR v_revision.version<>p_expected THEN RAISE EXCEPTION 'State or version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6264422Z  	  IF p_approve AND coalesce(v_listing.published_revision_no,0)>=p_revision THEN RAISE EXCEPTION 'Superseded review conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6265272Z  	  IF p_approve IS NULL OR (NOT p_approve AND coalesce(length(btrim(p_reason)),0)=0) THEN RAISE EXCEPTION 'Decision requires a reason' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6266010Z  	  IF p_approve AND (v_listing.availability<>'available' OR v_listing.last_availability_confirmed_at IS NULL OR v_listing.last_availability_confirmed_at<=now()-interval '30 days')
+2026-11-21T10:36:38.6266624Z  	    THEN RAISE EXCEPTION 'Availability confirmation required' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6267081Z  	  UPDATE app_private.listing_revisions SET state=CASE WHEN p_approve THEN 'approved' ELSE 'rejected' END,
+2026-11-21T10:36:38.6267640Z  	    decided_at=now(),decided_by=app_private.context_actor(),decision_reason=CASE WHEN p_approve THEN NULL ELSE btrim(p_reason) END
+2026-11-21T10:36:38.6268189Z  	    WHERE tenant_id=v_listing.tenant_id AND listing_id=p_id AND revision_no=p_revision RETURNING version INTO v_version;
+2026-11-21T10:36:38.6268551Z  	  IF p_approve THEN
+2026-11-21T10:36:38.6268983Z  	    INSERT INTO app_private.public_snapshots SELECT r.tenant_id,r.listing_id,r.revision_no,r.title,r.description,r.purpose,r.property_type,
+2026-11-21T10:36:38.6269642Z  	      r.currency,r.amount_minor,r.rent_period,r.bedrooms,r.private_bathrooms,r.shared_bathrooms,r.country,r.locality,r.public_precision,
+2026-11-21T10:36:38.6270236Z  	      CASE WHEN r.public_precision='exact' THEN r.latitude END,CASE WHEN r.public_precision='exact' THEN r.longitude END,
+2026-11-21T10:36:38.6270875Z  	      (SELECT jsonb_agg(jsonb_build_object('key',m.public_object_key,'alt',m.alt_text) ORDER BY m.position) FROM app_private.revision_media m
+2026-11-21T10:36:38.6271443Z  	        WHERE m.tenant_id=r.tenant_id AND m.listing_id=r.listing_id AND m.revision_no=r.revision_no AND m.accepted),now()
+2026-11-21T10:36:38.6271994Z  	      FROM app_private.listing_revisions r WHERE r.tenant_id=v_listing.tenant_id AND r.listing_id=p_id AND r.revision_no=p_revision
+2026-11-21T10:36:38.6272619Z  	      ON CONFLICT(tenant_id,listing_id) DO UPDATE SET revision_no=EXCLUDED.revision_no,title=EXCLUDED.title,description=EXCLUDED.description,
+2026-11-21T10:36:38.6273257Z  	        purpose=EXCLUDED.purpose,property_type=EXCLUDED.property_type,currency=EXCLUDED.currency,amount_minor=EXCLUDED.amount_minor,
+2026-11-21T10:36:38.6273949Z  	        rent_period=EXCLUDED.rent_period,bedrooms=EXCLUDED.bedrooms,private_bathrooms=EXCLUDED.private_bathrooms,shared_bathrooms=EXCLUDED.shared_bathrooms,
+2026-11-21T10:36:38.6274626Z  	        country=EXCLUDED.country,locality=EXCLUDED.locality,public_precision=EXCLUDED.public_precision,latitude=EXCLUDED.latitude,
+2026-11-21T10:36:38.6275284Z  	        longitude=EXCLUDED.longitude,photo_refs=EXCLUDED.photo_refs,approved_at=EXCLUDED.approved_at;
+2026-11-21T10:36:38.6275796Z  	    -- Reviewing content does not undo an operational pause/archive applied while it was pending.
+2026-11-21T10:36:38.6276233Z  	    -- Keep the approved snapshot ready, but require the explicit admin restoration command.
+2026-11-21T10:36:38.6276678Z  	    UPDATE app_private.listings SET published_revision_no=p_revision,
+2026-11-21T10:36:38.6277138Z  	      publication_status=CASE WHEN publication_status IN ('paused','archived') THEN publication_status ELSE 'published' END
+2026-11-21T10:36:38.6277562Z  	      WHERE tenant_id=v_listing.tenant_id AND id=p_id;
+2026-11-21T10:36:38.6277794Z  	  END IF;
+2026-11-21T10:36:38.6278164Z  	  PERFORM app_private.audit(CASE WHEN p_approve THEN 'revision.approved' ELSE 'revision.rejected' END,'listing',p_id,v_version,
+2026-11-21T10:36:38.6278756Z  	    jsonb_build_object('revision',p_revision,'selfApproval',v_revision.submitted_by=app_private.context_actor())); RETURN v_version;
+2026-11-21T10:36:38.6279152Z  	END $$;
+2026-11-21T10:36:38.6279478Z  	CREATE FUNCTION app_api.confirm_availability(p_id uuid,p_expected bigint,p_availability text) RETURNS bigint
+2026-11-21T10:36:38.6280053Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ DECLARE v_listing app_private.listings; v_version bigint; BEGIN
+2026-11-21T10:36:38.6280506Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6280931Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']); v_listing:=app_private.lock_listing(p_id,p_expected);
+2026-11-21T10:36:38.6281428Z  	  UPDATE app_private.listings SET availability=p_availability,last_availability_confirmed_at=now(),
+2026-11-21T10:36:38.6282052Z  	    publication_status=CASE WHEN p_availability<>'available' AND publication_status='published' THEN 'paused' ELSE publication_status END
+2026-11-21T10:36:38.6282571Z  	    WHERE tenant_id=v_listing.tenant_id AND id=p_id RETURNING version INTO v_version;
+2026-11-21T10:36:38.6283127Z  	  PERFORM app_private.audit('listing.availability_confirmed','listing',p_id,v_version,jsonb_build_object('availability',p_availability)); RETURN v_version;
+2026-11-21T10:36:38.6283588Z  	END $$;
+2026-11-21T10:36:38.6283881Z  	CREATE FUNCTION app_api.set_publication(p_id uuid,p_expected bigint,p_status text) RETURNS bigint
+2026-11-21T10:36:38.6284394Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ DECLARE v_listing app_private.listings; v_version bigint; BEGIN
+2026-11-21T10:36:38.6284804Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6285297Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']); v_listing:=app_private.lock_listing(p_id,p_expected);
+2026-11-21T10:36:38.6285874Z  	  IF p_status NOT IN ('paused','published','archived') OR (app_private.staff_role()<>'admin' AND p_status<>'paused')
+2026-11-21T10:36:38.6286290Z  	    THEN RAISE EXCEPTION 'Access denied' USING ERRCODE='42501'; END IF;
+2026-11-21T10:36:38.6286721Z  	  IF p_status='published' AND (v_listing.published_revision_no IS NULL OR v_listing.availability<>'available' OR
+2026-11-21T10:36:38.6287239Z  	    v_listing.last_availability_confirmed_at IS NULL OR v_listing.last_availability_confirmed_at<=now()-interval '30 days')
+2026-11-21T10:36:38.6287726Z  	    THEN RAISE EXCEPTION 'Valid approved publication required' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6288278Z  	  IF app_private.staff_role()='agent' AND v_listing.publication_status='archived' THEN RAISE EXCEPTION 'Access denied' USING ERRCODE='42501'; END IF;
+2026-11-21T10:36:38.6288887Z  	  UPDATE app_private.listings SET publication_status=p_status,archived_at=CASE WHEN p_status='archived' THEN now() END
+2026-11-21T10:36:38.6289367Z  	    WHERE tenant_id=v_listing.tenant_id AND id=p_id RETURNING version INTO v_version;
+2026-11-21T10:36:38.6289869Z  	  PERFORM app_private.audit('listing.publication_changed','listing',p_id,v_version,jsonb_build_object('status',p_status)); RETURN v_version;
+2026-11-21T10:36:38.6290384Z  	END $$;
+2026-11-21T10:36:38.6290705Z  	CREATE FUNCTION app_api.reassign_listing(p_id uuid,p_expected bigint,p_assigned uuid) RETURNS bigint
+2026-11-21T10:36:38.6291251Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ DECLARE v_listing app_private.listings; v_version bigint; BEGIN
+2026-11-21T10:36:38.6291763Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6292174Z  	  PERFORM app_private.assert_staff(ARRAY['admin']); v_listing:=app_private.lock_listing(p_id,p_expected);
+2026-11-21T10:36:38.6292747Z  	  IF NOT EXISTS(SELECT 1 FROM app_private.memberships WHERE tenant_id=v_listing.tenant_id AND user_id=p_assigned AND active AND role IN ('agent','admin'))
+2026-11-21T10:36:38.6293283Z  	    THEN RAISE EXCEPTION 'Assignment unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6293817Z  	  UPDATE app_private.listings SET assigned_agent_id=p_assigned WHERE tenant_id=v_listing.tenant_id AND id=p_id RETURNING version INTO v_version;
+2026-11-21T10:36:38.6294375Z  	  PERFORM app_private.audit('listing.reassigned','listing',p_id,v_version); RETURN v_version;
+2026-11-21T10:36:38.6294702Z  	END $$;
+2026-11-21T10:36:38.6295250Z  	CREATE FUNCTION app_api.record_enquiry(p_id uuid,p_key uuid,p_listing uuid,p_name text,p_phone text,p_email text,p_message text,p_origin text,p_notice text) RETURNS uuid
+2026-11-21T10:36:38.6295814Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6296164Z  	DECLARE v_revision integer; v_existing app_private.enquiries; BEGIN
+2026-11-21T10:36:38.6296623Z  	  IF NOT EXISTS(SELECT 1 FROM app_private.tenants WHERE id=app_private.context_tenant() AND enabled)
+2026-11-21T10:36:38.6297206Z  	    OR (app_private.context_actor() IS NOT NULL AND app_private.staff_role() IS NULL) THEN RAISE EXCEPTION 'Access denied' USING ERRCODE='42501'; END IF;
+2026-11-21T10:36:38.6297765Z  	  -- Serialise equivalent retries before checking the unique key, without storing contact data in lock keys.
+2026-11-21T10:36:38.6298250Z  	  PERFORM pg_advisory_xact_lock(hashtextextended(app_private.context_tenant()::text||p_key::text,0));
+2026-11-21T10:36:38.6298779Z  	  SELECT * INTO v_existing FROM app_private.enquiries WHERE tenant_id=app_private.context_tenant() AND idempotency_key=p_key FOR UPDATE;
+2026-11-21T10:36:38.6299170Z  	  IF FOUND THEN
+2026-11-21T10:36:38.6299643Z  	    IF ROW(v_existing.listing_id,v_existing.contact_name,v_existing.phone_e164,v_existing.email,v_existing.message,v_existing.origin,v_existing.notice_version,v_existing.requested_by_id)
+2026-11-21T10:36:38.6300381Z  	      IS DISTINCT FROM ROW(p_listing,btrim(p_name),nullif(btrim(p_phone),''),nullif(btrim(p_email),''),btrim(p_message),p_origin,p_notice,app_private.context_actor())
+2026-11-21T10:36:38.6300994Z  	      THEN RAISE EXCEPTION 'Idempotency conflict' USING ERRCODE='23505'; END IF;
+2026-11-21T10:36:38.6301274Z  	    RETURN v_existing.id;
+2026-11-21T10:36:38.6301442Z  	  END IF;
+2026-11-21T10:36:38.6301596Z  	  IF p_listing IS NOT NULL THEN
+2026-11-21T10:36:38.6301901Z  	    SELECT revision_no INTO v_revision FROM app_api.public_listings WHERE listing_id=p_listing;
+2026-11-21T10:36:38.6302311Z  	    IF NOT FOUND THEN RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6302596Z  	  END IF;
+2026-11-21T10:36:38.6302911Z  	  INSERT INTO app_private.enquiries(tenant_id,id,idempotency_key,listing_id,contacted_revision_no,requested_by_id,
+2026-11-21T10:36:38.6303320Z  	    contact_name,phone_e164,email,message,origin,notice_version)
+2026-11-21T10:36:38.6303898Z  	    VALUES(app_private.context_tenant(),p_id,p_key,p_listing,v_revision,app_private.context_actor(),btrim(p_name),nullif(btrim(p_phone),''),nullif(btrim(p_email),''),btrim(p_message),p_origin,p_notice);
+2026-11-21T10:36:38.6304501Z  	  PERFORM app_private.audit('enquiry.received','enquiry',p_id,1); RETURN p_id;
+2026-11-21T10:36:38.6304777Z  	END $$;
+2026-11-21T10:36:38.6305208Z  	CREATE FUNCTION app_api.assign_enquiry(p_id uuid,p_expected bigint,p_assigned uuid) RETURNS bigint
+2026-11-21T10:36:38.6305673Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ DECLARE v_version bigint; BEGIN
+2026-11-21T10:36:38.6306035Z  	  PERFORM app_private.assert_staff(ARRAY['admin']);
+2026-11-21T10:36:38.6306292Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6306845Z  	  IF NOT EXISTS(SELECT 1 FROM app_private.memberships WHERE tenant_id=app_private.context_tenant() AND user_id=p_assigned AND active AND role IN ('agent','admin'))
+2026-11-21T10:36:38.6307425Z  	    THEN RAISE EXCEPTION 'Assignment unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6307886Z  	  UPDATE app_private.enquiries SET assigned_agent_id=p_assigned,status=CASE WHEN status='new' THEN 'assigned' ELSE status END
+2026-11-21T10:36:38.6308415Z  	    WHERE tenant_id=app_private.context_tenant() AND id=p_id AND version=p_expected RETURNING version INTO v_version;
+2026-11-21T10:36:38.6308872Z  	  IF NOT FOUND THEN RAISE EXCEPTION 'Resource or version unavailable' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6309290Z  	  PERFORM app_private.audit('enquiry.assigned','enquiry',p_id,v_version); RETURN v_version;
+2026-11-21T10:36:38.6309586Z  	END $$;
+2026-11-21T10:36:38.6309976Z  	CREATE FUNCTION app_api.transition_enquiry(p_id uuid,p_expected bigint,p_status text,p_next timestamptz DEFAULT NULL,p_reason text DEFAULT NULL) RETURNS bigint
+2026-11-21T10:36:38.6310611Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ DECLARE v_enquiry app_private.enquiries; v_version bigint; BEGIN
+2026-11-21T10:36:38.6311036Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']);
+2026-11-21T10:36:38.6311301Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6311694Z  	  SELECT * INTO v_enquiry FROM app_private.enquiries WHERE tenant_id=app_private.context_tenant() AND id=p_id FOR UPDATE;
+2026-11-21T10:36:38.6312307Z  	  IF NOT FOUND OR NOT app_private.may_work(v_enquiry.tenant_id,v_enquiry.assigned_agent_id) THEN RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6312872Z  	  IF v_enquiry.version<>p_expected THEN RAISE EXCEPTION 'Version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6313350Z  	  IF NOT ((v_enquiry.status='assigned' AND p_status='contacted') OR (v_enquiry.status='contacted' AND p_status='qualified')
+2026-11-21T10:36:38.6313839Z  	    OR (v_enquiry.status IN ('new','assigned','contacted','qualified') AND p_status IN ('closed_lost','spam'))
+2026-11-21T10:36:38.6314200Z  	    OR (v_enquiry.status='qualified' AND p_status='closed_won')
+2026-11-21T10:36:38.6314739Z  	    OR (v_enquiry.status IN ('closed_won','closed_lost','spam') AND p_status=CASE WHEN v_enquiry.assigned_agent_id IS NULL THEN 'new' ELSE 'assigned' END AND coalesce(length(btrim(p_reason)),0)>0))
+2026-11-21T10:36:38.6315468Z  	    THEN RAISE EXCEPTION 'Invalid enquiry transition' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6315908Z  	  UPDATE app_private.enquiries SET status=p_status,next_action_at=p_next,closure_reason=nullif(btrim(p_reason),'')
+2026-11-21T10:36:38.6316346Z  	    WHERE tenant_id=v_enquiry.tenant_id AND id=p_id RETURNING version INTO v_version;
+2026-11-21T10:36:38.6316856Z  	  PERFORM app_private.audit('enquiry.transitioned','enquiry',p_id,v_version,jsonb_build_object('from',v_enquiry.status,'to',p_status)); RETURN v_version;
+2026-11-21T10:36:38.6317286Z  	END $$;
+2026-11-21T10:36:38.6317489Z  	GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app_api TO api_runtime;
+2026-11-21T10:36:38.6317796Z  	RESET ROLE;
+2026-11-21T10:36:38.6317958Z  	COMMIT;
+2026-11-21T10:36:38.6318115Z  	
+2026-11-21T10:36:38.6318339Z  2026-11-21 10:35:49.941 UTC [216] ERROR:  permission denied for schema app_private
+2026-11-21T10:36:38.6318828Z  2026-11-21 10:35:49.941 UTC [216] STATEMENT:  -- Independently written replacement foundation. Bootstrap with a migration administrator.
+2026-11-21T10:36:38.6319355Z  	-- API connections must SET ROLE api_runtime and set transaction-local, verified identity.
+2026-11-21T10:36:38.6319665Z  	BEGIN;
+2026-11-21T10:36:38.6319897Z  	CREATE ROLE realtor_owner NOLOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS;
+2026-11-21T10:36:38.6320245Z  	CREATE ROLE api_runtime NOLOGIN NOINHERIT NOSUPERUSER NOBYPASSRLS;
+2026-11-21T10:36:38.6320551Z  	CREATE SCHEMA app_private AUTHORIZATION realtor_owner;
+2026-11-21T10:36:38.6320879Z  	CREATE SCHEMA app_api AUTHORIZATION realtor_owner;
+2026-11-21T10:36:38.6321168Z  	REVOKE ALL ON SCHEMA app_private, app_api FROM PUBLIC;
+2026-11-21T10:36:38.6321455Z  	GRANT USAGE ON SCHEMA app_private, app_api TO api_runtime;
+2026-11-21T10:36:38.6321716Z  	SET LOCAL ROLE realtor_owner;
+2026-11-21T10:36:38.6321991Z  	ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+2026-11-21T10:36:38.6322249Z  	
+2026-11-21T10:36:38.6322422Z  	CREATE TABLE app_private.tenants (
+2026-11-21T10:36:38.6322732Z  	  id uuid PRIMARY KEY, slug text NOT NULL UNIQUE CHECK (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+2026-11-21T10:36:38.6323134Z  	  display_name text NOT NULL CHECK (length(btrim(display_name)) BETWEEN 1 AND 160),
+2026-11-21T10:36:38.6323524Z  	  enabled boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now()
+2026-11-21T10:36:38.6323821Z  	);
+2026-11-21T10:36:38.6324013Z  	CREATE TABLE app_private.memberships (
+2026-11-21T10:36:38.6324323Z  	  tenant_id uuid NOT NULL REFERENCES app_private.tenants(id), user_id uuid NOT NULL,
+2026-11-21T10:36:38.6324743Z  	  role text NOT NULL CHECK (role IN ('customer','agent','admin')), active boolean NOT NULL DEFAULT true,
+2026-11-21T10:36:38.6325267Z  	  created_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz,
+2026-11-21T10:36:38.6325626Z  	  PRIMARY KEY (tenant_id,user_id), CHECK (active OR revoked_at IS NOT NULL)
+2026-11-21T10:36:38.6325900Z  	);
+2026-11-21T10:36:38.6326086Z  	CREATE TABLE app_private.listings (
+2026-11-21T10:36:38.6326377Z  	  tenant_id uuid NOT NULL REFERENCES app_private.tenants(id), id uuid NOT NULL,
+2026-11-21T10:36:38.6326710Z  	  slug text NOT NULL CHECK (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+2026-11-21T10:36:38.6327029Z  	  created_by_id uuid NOT NULL, assigned_agent_id uuid NOT NULL,
+2026-11-21T10:36:38.6327458Z  	  availability text NOT NULL DEFAULT 'available' CHECK (availability IN ('available','reserved','rented','sold','withdrawn')),
+2026-11-21T10:36:38.6328064Z  	  publication_status text NOT NULL DEFAULT 'unpublished' CHECK (publication_status IN ('unpublished','published','paused','archived')),
+2026-11-21T10:36:38.6328603Z  	  published_revision_no integer, last_availability_confirmed_at timestamptz, archived_at timestamptz,
+2026-11-21T10:36:38.6328991Z  	  version bigint NOT NULL DEFAULT 1 CHECK (version > 0),
+2026-11-21T10:36:38.6329354Z  	  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+2026-11-21T10:36:38.6329787Z  	  PRIMARY KEY (tenant_id,id), UNIQUE (tenant_id,slug),
+2026-11-21T10:36:38.6330232Z  	  FOREIGN KEY (tenant_id,created_by_id) REFERENCES app_private.memberships(tenant_id,user_id),
+2026-11-21T10:36:38.6330684Z  	  FOREIGN KEY (tenant_id,assigned_agent_id) REFERENCES app_private.memberships(tenant_id,user_id),
+2026-11-21T10:36:38.6331106Z  	  CHECK ((publication_status = 'archived') = (archived_at IS NOT NULL))
+2026-11-21T10:36:38.6331374Z  	);
+2026-11-21T10:36:38.6331563Z  	CREATE TABLE app_private.listing_revisions (
+2026-11-21T10:36:38.6331950Z  	  tenant_id uuid NOT NULL, listing_id uuid NOT NULL, revision_no integer NOT NULL CHECK (revision_no > 0),
+2026-11-21T10:36:38.6332420Z  	  state text NOT NULL DEFAULT 'draft' CHECK (state IN ('draft','pending','approved','rejected')),
+2026-11-21T10:36:38.6332816Z  	  title text CHECK (title IS NULL OR length(btrim(title)) BETWEEN 1 AND 160),
+2026-11-21T10:36:38.6333224Z  	  description text CHECK (description IS NULL OR length(btrim(description)) BETWEEN 1 AND 10000),
+2026-11-21T10:36:38.6333582Z  	  purpose text CHECK (purpose IN ('rent','sale')),
+2026-11-21T10:36:38.6334036Z  	  property_type text CHECK (property_type IN ('apartment','bedsitter','studio','bungalow','maisonette','townhouse','villa','commercial','land')),
+2026-11-21T10:36:38.6334529Z  	  currency text NOT NULL DEFAULT 'KES' CHECK (currency = 'KES'),
+2026-11-21T10:36:38.6334855Z  	  amount_minor bigint CHECK (amount_minor BETWEEN 1 AND 100000000000000),
+2026-11-21T10:36:38.6335337Z  	  rent_period text CHECK (rent_period IN ('day','week','month','year')),
+2026-11-21T10:36:38.6335739Z  	  bedrooms integer CHECK (bedrooms BETWEEN 0 AND 100),
+2026-11-21T10:36:38.6336062Z  	  private_bathrooms integer CHECK (private_bathrooms BETWEEN 0 AND 100),
+2026-11-21T10:36:38.6336412Z  	  shared_bathrooms integer CHECK (shared_bathrooms BETWEEN 0 AND 100),
+2026-11-21T10:36:38.6336756Z  	  country text NOT NULL DEFAULT 'KE' CHECK (country = 'KE'),
+2026-11-21T10:36:38.6337102Z  	  locality text CHECK (locality IS NULL OR length(btrim(locality)) BETWEEN 1 AND 160),
+2026-11-21T10:36:38.6337530Z  	  public_precision text NOT NULL DEFAULT 'area' CHECK (public_precision IN ('area','exact')),
+2026-11-21T10:36:38.6338013Z  	  latitude numeric CHECK (latitude BETWEEN -90 AND 90), longitude numeric CHECK (longitude BETWEEN -180 AND 180),
+2026-11-21T10:36:38.6338430Z  	  private_address text CHECK (length(private_address) <= 1000),
+2026-11-21T10:36:38.6338885Z  	  submitted_at timestamptz, submitted_by uuid, decided_at timestamptz, decided_by uuid, decision_reason text,
+2026-11-21T10:36:38.6339293Z  	  version bigint NOT NULL DEFAULT 1 CHECK (version > 0),
+2026-11-21T10:36:38.6339635Z  	  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+2026-11-21T10:36:38.6339970Z  	  PRIMARY KEY (tenant_id,listing_id,revision_no),
+2026-11-21T10:36:38.6340282Z  	  FOREIGN KEY (tenant_id,listing_id) REFERENCES app_private.listings(tenant_id,id),
+2026-11-21T10:36:38.6340681Z  	  FOREIGN KEY (tenant_id,submitted_by) REFERENCES app_private.memberships(tenant_id,user_id),
+2026-11-21T10:36:38.6341091Z  	  FOREIGN KEY (tenant_id,decided_by) REFERENCES app_private.memberships(tenant_id,user_id),
+2026-11-21T10:36:38.6341459Z  	  CHECK (purpose IS DISTINCT FROM 'sale' OR rent_period IS NULL),
+2026-11-21T10:36:38.6341732Z  	  CHECK ((latitude IS NULL) = (longitude IS NULL)),
+2026-11-21T10:36:38.6342005Z  	  CHECK (property_type IS DISTINCT FROM 'land' OR bedrooms IS NULL),
+2026-11-21T10:36:38.6342350Z  	  CHECK (property_type NOT IN ('studio','bedsitter') OR bedrooms IS NULL OR bedrooms = 0),
+2026-11-21T10:36:38.6342762Z  	  CHECK (state = 'draft' OR (title IS NOT NULL AND description IS NOT NULL AND purpose IS NOT NULL
+2026-11-21T10:36:38.6343162Z  	    AND property_type IS NOT NULL AND amount_minor IS NOT NULL AND locality IS NOT NULL
+2026-11-21T10:36:38.6343483Z  	    AND (purpose <> 'rent' OR rent_period IS NOT NULL)
+2026-11-21T10:36:38.6343948Z  	    AND (property_type NOT IN ('apartment','bedsitter','studio','bungalow','maisonette','townhouse','villa') OR bedrooms IS NOT NULL))),
+2026-11-21T10:36:38.6344409Z  	  CHECK (state <> 'rejected' OR coalesce(length(btrim(decision_reason)),0) > 0)
+2026-11-21T10:36:38.6344689Z  	);
+2026-11-21T10:36:38.6345064Z  	ALTER TABLE app_private.listings ADD CONSTRAINT published_revision_same_tenant
+2026-11-21T10:36:38.6345563Z  	  FOREIGN KEY (tenant_id,id,published_revision_no) REFERENCES app_private.listing_revisions(tenant_id,listing_id,revision_no);
+2026-11-21T10:36:38.6345952Z  	
+2026-11-21T10:36:38.6346230Z  	-- Only a future trusted media processor may add accepted assets. The API role has no DML here.
+2026-11-21T10:36:38.6346567Z  	CREATE TABLE app_private.revision_media (
+2026-11-21T10:36:38.6346895Z  	  tenant_id uuid NOT NULL, listing_id uuid NOT NULL, revision_no integer NOT NULL, id uuid NOT NULL,
+2026-11-21T10:36:38.6347341Z  	  public_object_key text NOT NULL CHECK (public_object_key ~ '^[a-zA-Z0-9/_-]+\.(webp|jpg|png)$'),
+2026-11-21T10:36:38.6347760Z  	  content_type text NOT NULL CHECK (content_type IN ('image/jpeg','image/png','image/webp')),
+2026-11-21T10:36:38.6348116Z  	  bytes bigint NOT NULL CHECK (bytes BETWEEN 1 AND 10485760),
+2026-11-21T10:36:38.6348452Z  	  width integer NOT NULL CHECK (width > 0), height integer NOT NULL CHECK (height > 0),
+2026-11-21T10:36:38.6348778Z  	  sha256 text NOT NULL CHECK (sha256 ~ '^[a-f0-9]{64}$'),
+2026-11-21T10:36:38.6349126Z  	  alt_text text NOT NULL CHECK (length(btrim(alt_text)) BETWEEN 1 AND 300),
+2026-11-21T10:36:38.6349586Z  	  position integer NOT NULL CHECK (position BETWEEN 0 AND 11), accepted boolean NOT NULL DEFAULT false,
+2026-11-21T10:36:38.6349998Z  	  PRIMARY KEY (tenant_id,id), UNIQUE (tenant_id,listing_id,revision_no,position),
+2026-11-21T10:36:38.6350458Z  	  FOREIGN KEY (tenant_id,listing_id,revision_no) REFERENCES app_private.listing_revisions(tenant_id,listing_id,revision_no),
+2026-11-21T10:36:38.6350875Z  	  CHECK (width::bigint * height::bigint <= 40000000)
+2026-11-21T10:36:38.6351088Z  	);
+2026-11-21T10:36:38.6351258Z  	CREATE TABLE app_private.public_snapshots (
+2026-11-21T10:36:38.6351572Z  	  tenant_id uuid NOT NULL, listing_id uuid NOT NULL, revision_no integer NOT NULL,
+2026-11-21T10:36:38.6351960Z  	  title text NOT NULL, description text NOT NULL, purpose text NOT NULL, property_type text NOT NULL,
+2026-11-21T10:36:38.6352441Z  	  currency text NOT NULL CHECK (currency = 'KES'), amount_minor bigint NOT NULL CHECK (amount_minor BETWEEN 1 AND 100000000000000),
+2026-11-21T10:36:38.6352917Z  	  rent_period text, bedrooms integer, private_bathrooms integer, shared_bathrooms integer,
+2026-11-21T10:36:38.6353296Z  	  country text NOT NULL, locality text NOT NULL, public_precision text NOT NULL,
+2026-11-21T10:36:38.6353618Z  	  latitude numeric, longitude numeric, photo_refs jsonb NOT NULL,
+2026-11-21T10:36:38.6353942Z  	  approved_at timestamptz NOT NULL, PRIMARY KEY (tenant_id,listing_id),
+2026-11-21T10:36:38.6354366Z  	  FOREIGN KEY (tenant_id,listing_id,revision_no) REFERENCES app_private.listing_revisions(tenant_id,listing_id,revision_no)
+2026-11-21T10:36:38.6354721Z  	);
+2026-11-21T10:36:38.6354880Z  	CREATE TABLE app_private.enquiries (
+2026-11-21T10:36:38.6355360Z  	  tenant_id uuid NOT NULL REFERENCES app_private.tenants(id), id uuid NOT NULL, idempotency_key uuid NOT NULL,
+2026-11-21T10:36:38.6355801Z  	  listing_id uuid, contacted_revision_no integer, requested_by_id uuid, assigned_agent_id uuid,
+2026-11-21T10:36:38.6356188Z  	  contact_name text NOT NULL CHECK (length(btrim(contact_name)) BETWEEN 1 AND 160),
+2026-11-21T10:36:38.6356516Z  	  phone_e164 text CHECK (phone_e164 ~ '^\+[1-9][0-9]{7,14}$'),
+2026-11-21T10:36:38.6356859Z  	  email text CHECK (length(email) <= 254 AND email ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'),
+2026-11-21T10:36:38.6357243Z  	  message text NOT NULL CHECK (length(btrim(message)) BETWEEN 1 AND 2000),
+2026-11-21T10:36:38.6357549Z  	  origin text NOT NULL CHECK (origin IN ('web','mobile','staff')),
+2026-11-21T10:36:38.6357940Z  	  notice_version text NOT NULL CHECK (length(btrim(notice_version)) BETWEEN 1 AND 100),
+2026-11-21T10:36:38.6358408Z  	  status text NOT NULL DEFAULT 'new' CHECK (status IN ('new','assigned','contacted','qualified','closed_won','closed_lost','spam')),
+2026-11-21T10:36:38.6358801Z  	  next_action_at timestamptz, closure_reason text,
+2026-11-21T10:36:38.6359054Z  	  version bigint NOT NULL DEFAULT 1 CHECK (version > 0),
+2026-11-21T10:36:38.6359400Z  	  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+2026-11-21T10:36:38.6359769Z  	  PRIMARY KEY (tenant_id,id), UNIQUE (tenant_id,idempotency_key),
+2026-11-21T10:36:38.6360205Z  	  FOREIGN KEY (tenant_id,listing_id,contacted_revision_no) REFERENCES app_private.listing_revisions(tenant_id,listing_id,revision_no),
+2026-11-21T10:36:38.6360790Z  	  FOREIGN KEY (tenant_id,requested_by_id) REFERENCES app_private.memberships(tenant_id,user_id),
+2026-11-21T10:36:38.6361212Z  	  FOREIGN KEY (tenant_id,assigned_agent_id) REFERENCES app_private.memberships(tenant_id,user_id),
+2026-11-21T10:36:38.6361563Z  	  CHECK (phone_e164 IS NOT NULL OR email IS NOT NULL),
+2026-11-21T10:36:38.6361842Z  	  CHECK ((listing_id IS NULL) = (contacted_revision_no IS NULL)),
+2026-11-21T10:36:38.6362160Z  	  CHECK (status NOT IN ('contacted','qualified') OR next_action_at IS NOT NULL),
+2026-11-21T10:36:38.6362526Z  	  CHECK (status NOT IN ('closed_lost','spam') OR coalesce(length(btrim(closure_reason)),0) > 0)
+2026-11-21T10:36:38.6362824Z  	);
+2026-11-21T10:36:38.6362982Z  	CREATE TABLE app_private.audit_events (
+2026-11-21T10:36:38.6363263Z  	  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+2026-11-21T10:36:38.6363569Z  	  tenant_id uuid NOT NULL REFERENCES app_private.tenants(id), actor_id uuid,
+2026-11-21T10:36:38.6363944Z  	  action text NOT NULL, object_type text NOT NULL, object_id uuid NOT NULL, object_version bigint,
+2026-11-21T10:36:38.6364303Z  	  correlation_id text, summary jsonb NOT NULL DEFAULT '{}'::jsonb,
+2026-11-21T10:36:38.6364583Z  	  occurred_at timestamptz NOT NULL DEFAULT now(),
+2026-11-21T10:36:38.6364990Z  	  FOREIGN KEY (tenant_id,actor_id) REFERENCES app_private.memberships(tenant_id,user_id)
+2026-11-21T10:36:38.6365284Z  	);
+2026-11-21T10:36:38.6365534Z  	CREATE INDEX listing_assignee ON app_private.listings(tenant_id,assigned_agent_id,id);
+2026-11-21T10:36:38.6365940Z  	CREATE INDEX enquiry_assignee ON app_private.enquiries(tenant_id,assigned_agent_id,status);
+2026-11-21T10:36:38.6366336Z  	CREATE INDEX audit_tenant_time ON app_private.audit_events(tenant_id,occurred_at DESC);
+2026-11-21T10:36:38.6366625Z  	
+2026-11-21T10:36:38.6366852Z  	CREATE FUNCTION app_private.context_tenant() RETURNS uuid LANGUAGE sql STABLE
+2026-11-21T10:36:38.6367253Z  	  SET search_path = pg_catalog AS $$ SELECT nullif(current_setting('realtor.tenant_id',true),'')::uuid $$;
+2026-11-21T10:36:38.6367650Z  	CREATE FUNCTION app_private.context_actor() RETURNS uuid LANGUAGE sql STABLE
+2026-11-21T10:36:38.6368043Z  	  SET search_path = pg_catalog AS $$ SELECT nullif(current_setting('realtor.actor_id',true),'')::uuid $$;
+2026-11-21T10:36:38.6368459Z  	CREATE FUNCTION app_private.staff_role() RETURNS text LANGUAGE sql STABLE SECURITY DEFINER
+2026-11-21T10:36:38.6368770Z  	  SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6369091Z  	  SELECT m.role FROM app_private.memberships m JOIN app_private.tenants t ON t.id=m.tenant_id
+2026-11-21T10:36:38.6369512Z  	   WHERE m.tenant_id=app_private.context_tenant() AND m.user_id=app_private.context_actor()
+2026-11-21T10:36:38.6369816Z  	     AND m.active AND t.enabled
+2026-11-21T10:36:38.6370087Z  	$$;
+2026-11-21T10:36:38.6370383Z  	CREATE FUNCTION app_private.may_work(p_tenant uuid,p_assigned uuid) RETURNS boolean LANGUAGE sql STABLE
+2026-11-21T10:36:38.6370722Z  	  SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6370976Z  	  SELECT coalesce(p_tenant=app_private.context_tenant() AND
+2026-11-21T10:36:38.6371387Z  	    (app_private.staff_role()='admin' OR (app_private.staff_role()='agent' AND p_assigned=app_private.context_actor())),false)
+2026-11-21T10:36:38.6371807Z  	$$;
+2026-11-21T10:36:38.6372097Z  	CREATE FUNCTION app_private.assert_staff(p_roles text[]) RETURNS void LANGUAGE plpgsql SECURITY DEFINER
+2026-11-21T10:36:38.6372445Z  	  SET search_path = pg_catalog AS $$ BEGIN
+2026-11-21T10:36:38.6372838Z  	  IF NOT coalesce(app_private.staff_role()=ANY(p_roles),false) THEN RAISE EXCEPTION 'Access denied' USING ERRCODE='42501'; END IF;
+2026-11-21T10:36:38.6373225Z  	END $$;
+2026-11-21T10:36:38.6373458Z  	CREATE FUNCTION app_private.touch_version() RETURNS trigger LANGUAGE plpgsql
+2026-11-21T10:36:38.6373759Z  	  SET search_path = pg_catalog AS $$ BEGIN
+2026-11-21T10:36:38.6374028Z  	  NEW.version := OLD.version+1; NEW.updated_at := now(); RETURN NEW;
+2026-11-21T10:36:38.6374273Z  	END $$;
+2026-11-21T10:36:38.6374604Z  	CREATE TRIGGER touch_listing BEFORE UPDATE ON app_private.listings FOR EACH ROW EXECUTE FUNCTION app_private.touch_version();
+2026-11-21T10:36:38.6375311Z  	CREATE TRIGGER touch_revision BEFORE UPDATE ON app_private.listing_revisions FOR EACH ROW EXECUTE FUNCTION app_private.touch_version();
+2026-11-21T10:36:38.6375921Z  	CREATE TRIGGER touch_enquiry BEFORE UPDATE ON app_private.enquiries FOR EACH ROW EXECUTE FUNCTION app_private.touch_version();
+2026-11-21T10:36:38.6376407Z  	CREATE FUNCTION app_private.immutable_revision() RETURNS trigger LANGUAGE plpgsql
+2026-11-21T10:36:38.6376725Z  	  SET search_path = pg_catalog AS $$ BEGIN
+2026-11-21T10:36:38.6376938Z  	  IF TG_OP='DELETE' THEN
+2026-11-21T10:36:38.6377336Z  	    IF OLD.state<>'draft' THEN RAISE EXCEPTION 'Submitted revisions are immutable' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6377688Z  	    RETURN OLD;
+2026-11-21T10:36:38.6377840Z  	  END IF;
+2026-11-21T10:36:38.6378169Z  	  IF OLD.state IN ('approved','rejected') THEN RAISE EXCEPTION 'Decided revisions are immutable' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6378783Z  	  IF OLD.state='pending' AND (to_jsonb(NEW)-ARRAY['state','submitted_at','submitted_by','decided_at','decided_by','decision_reason','updated_at','version'])
+2026-11-21T10:36:38.6379424Z  	    IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['state','submitted_at','submitted_by','decided_at','decided_by','decision_reason','updated_at','version'])
+2026-11-21T10:36:38.6379938Z  	    THEN RAISE EXCEPTION 'Pending content is immutable' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6380230Z  	  RETURN NEW;
+2026-11-21T10:36:38.6380381Z  	END $$;
+2026-11-21T10:36:38.6380777Z  	CREATE TRIGGER immutable_revision BEFORE UPDATE OR DELETE ON app_private.listing_revisions FOR EACH ROW EXECUTE FUNCTION app_private.immutable_revision();
+2026-11-21T10:36:38.6381385Z  	CREATE FUNCTION app_private.immutable_media() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6381748Z  	DECLARE v_state text; BEGIN
+2026-11-21T10:36:38.6381942Z  	  IF TG_OP IN ('UPDATE','DELETE') THEN
+2026-11-21T10:36:38.6382254Z  	    SELECT state INTO v_state FROM app_private.listing_revisions WHERE tenant_id=OLD.tenant_id
+2026-11-21T10:36:38.6382640Z  	      AND listing_id=OLD.listing_id AND revision_no=OLD.revision_no FOR UPDATE;
+2026-11-21T10:36:38.6383043Z  	    IF v_state <> 'draft' THEN RAISE EXCEPTION 'Submitted media is immutable' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6383370Z  	  END IF;
+2026-11-21T10:36:38.6383525Z  	  IF TG_OP IN ('INSERT','UPDATE') THEN
+2026-11-21T10:36:38.6383831Z  	    SELECT state INTO v_state FROM app_private.listing_revisions WHERE tenant_id=NEW.tenant_id
+2026-11-21T10:36:38.6384210Z  	      AND listing_id=NEW.listing_id AND revision_no=NEW.revision_no FOR UPDATE;
+2026-11-21T10:36:38.6384609Z  	    IF v_state <> 'draft' THEN RAISE EXCEPTION 'Submitted media is immutable' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6385071Z  	  END IF;
+2026-11-21T10:36:38.6385299Z  	  RETURN CASE WHEN TG_OP='DELETE' THEN OLD ELSE NEW END;
+2026-11-21T10:36:38.6385536Z  	END $$;
+2026-11-21T10:36:38.6385934Z  	CREATE TRIGGER immutable_media BEFORE INSERT OR UPDATE OR DELETE ON app_private.revision_media FOR EACH ROW EXECUTE FUNCTION app_private.immutable_media();
+2026-11-21T10:36:38.6386606Z  	CREATE FUNCTION app_private.immutable_audit() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6387063Z  	BEGIN RAISE EXCEPTION 'Audit events are append only' USING ERRCODE='23514'; END $$;
+2026-11-21T10:36:38.6387576Z  	CREATE TRIGGER immutable_audit BEFORE UPDATE OR DELETE ON app_private.audit_events FOR EACH ROW EXECUTE FUNCTION app_private.immutable_audit();
+2026-11-21T10:36:38.6388185Z  	CREATE FUNCTION app_private.audit(p_action text,p_type text,p_id uuid,p_version bigint,p_summary jsonb DEFAULT '{}'::jsonb)
+2026-11-21T10:36:38.6388645Z  	RETURNS void LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6389103Z  	  INSERT INTO app_private.audit_events(tenant_id,actor_id,action,object_type,object_id,object_version,correlation_id,summary)
+2026-11-21T10:36:38.6389614Z  	  VALUES(app_private.context_tenant(),app_private.context_actor(),p_action,p_type,p_id,p_version,
+2026-11-21T10:36:38.6390027Z  	    left(nullif(current_setting('realtor.correlation_id',true),''),100),p_summary)
+2026-11-21T10:36:38.6390343Z  	$$;
+2026-11-21T10:36:38.6390481Z  	
+2026-11-21T10:36:38.6390748Z  	-- FORCE RLS also applies to the table owner; its explicit owner policy supports the
+2026-11-21T10:36:38.6391157Z  	-- narrowly granted SECURITY DEFINER commands. api_runtime never has owner membership.
+2026-11-21T10:36:38.6391485Z  	DO $$ DECLARE v_table text; BEGIN
+2026-11-21T10:36:38.6392018Z  	  FOREACH v_table IN ARRAY ARRAY['tenants','memberships','listings','listing_revisions','revision_media','public_snapshots','enquiries','audit_events'] LOOP
+2026-11-21T10:36:38.6392555Z  	    EXECUTE format('ALTER TABLE app_private.%I ENABLE ROW LEVEL SECURITY',v_table);
+2026-11-21T10:36:38.6392933Z  	    EXECUTE format('ALTER TABLE app_private.%I FORCE ROW LEVEL SECURITY',v_table);
+2026-11-21T10:36:38.6393406Z  	    EXECUTE format('CREATE POLICY owner_access ON app_private.%I TO realtor_owner USING (true) WITH CHECK (true)',v_table);
+2026-11-21T10:36:38.6393775Z  	  END LOOP;
+2026-11-21T10:36:38.6393942Z  	END $$;
+2026-11-21T10:36:38.6394348Z  	CREATE POLICY own_tenant ON app_private.tenants FOR SELECT TO api_runtime USING (id=app_private.context_tenant() AND app_private.staff_role() IS NOT NULL);
+2026-11-21T10:36:38.6395269Z  	CREATE POLICY own_membership ON app_private.memberships FOR SELECT TO api_runtime USING (tenant_id=app_private.context_tenant() AND user_id=app_private.context_actor() AND app_private.staff_role() IS NOT NULL);
+2026-11-21T10:36:38.6396058Z  	CREATE POLICY assigned_listing ON app_private.listings FOR SELECT TO api_runtime USING (app_private.may_work(tenant_id,assigned_agent_id));
+2026-11-21T10:36:38.6396610Z  	CREATE POLICY assigned_revision ON app_private.listing_revisions FOR SELECT TO api_runtime USING (
+2026-11-21T10:36:38.6397160Z  	  EXISTS(SELECT 1 FROM app_private.listings l WHERE l.tenant_id=listing_revisions.tenant_id AND l.id=listing_revisions.listing_id));
+2026-11-21T10:36:38.6397698Z  	CREATE POLICY assigned_media ON app_private.revision_media FOR SELECT TO api_runtime USING (
+2026-11-21T10:36:38.6398214Z  	  EXISTS(SELECT 1 FROM app_private.listings l WHERE l.tenant_id=revision_media.tenant_id AND l.id=revision_media.listing_id));
+2026-11-21T10:36:38.6398828Z  	CREATE POLICY assigned_enquiry ON app_private.enquiries FOR SELECT TO api_runtime USING (app_private.may_work(tenant_id,assigned_agent_id));
+2026-11-21T10:36:38.6399380Z  	CREATE POLICY tenant_admin_audit ON app_private.audit_events FOR SELECT TO api_runtime USING (
+2026-11-21T10:36:38.6399800Z  	  tenant_id=app_private.context_tenant() AND app_private.staff_role()='admin');
+2026-11-21T10:36:38.6400265Z  	GRANT SELECT ON app_private.tenants,app_private.memberships,app_private.listings,app_private.listing_revisions,
+2026-11-21T10:36:38.6400809Z  	  app_private.revision_media,app_private.enquiries,app_private.audit_events TO api_runtime;
+2026-11-21T10:36:38.6401431Z  	GRANT EXECUTE ON FUNCTION app_private.context_tenant(),app_private.context_actor(),app_private.staff_role(),app_private.may_work(uuid,uuid) TO api_runtime;
+2026-11-21T10:36:38.6401877Z  	
+2026-11-21T10:36:38.6402113Z  	CREATE VIEW app_api.public_listings WITH (security_barrier=true) AS
+2026-11-21T10:36:38.6402515Z  	 SELECT s.tenant_id,s.listing_id,s.revision_no,s.title,s.description,s.purpose,s.property_type,
+2026-11-21T10:36:38.6402977Z  	   s.currency,s.amount_minor,s.rent_period,s.bedrooms,s.private_bathrooms,s.shared_bathrooms,
+2026-11-21T10:36:38.6403462Z  	   s.country,s.locality,s.public_precision,s.latitude,s.longitude,s.photo_refs,s.approved_at,l.slug
+2026-11-21T10:36:38.6403837Z  	 FROM app_private.public_snapshots s
+2026-11-21T10:36:38.6404215Z  	 JOIN app_private.listings l ON l.tenant_id=s.tenant_id AND l.id=s.listing_id AND l.published_revision_no=s.revision_no
+2026-11-21T10:36:38.6404625Z  	 JOIN app_private.tenants t ON t.id=l.tenant_id
+2026-11-21T10:36:38.6405080Z  	 WHERE t.enabled AND l.tenant_id=app_private.context_tenant() AND l.publication_status='published'
+2026-11-21T10:36:38.6405540Z  	   AND l.availability='available' AND l.last_availability_confirmed_at > now()-interval '30 days';
+2026-11-21T10:36:38.6405934Z  	GRANT SELECT ON app_api.public_listings TO api_runtime;
+2026-11-21T10:36:38.6406180Z  	
+2026-11-21T10:36:38.6406495Z  	CREATE FUNCTION app_private.lock_listing(p_id uuid,p_expected bigint DEFAULT NULL) RETURNS app_private.listings
+2026-11-21T10:36:38.6406933Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6407235Z  	DECLARE v_listing app_private.listings; BEGIN
+2026-11-21T10:36:38.6407730Z  	  SELECT * INTO v_listing FROM app_private.listings WHERE tenant_id=app_private.context_tenant() AND id=p_id FOR UPDATE;
+2026-11-21T10:36:38.6408240Z  	  IF NOT FOUND OR NOT app_private.may_work(v_listing.tenant_id,v_listing.assigned_agent_id) THEN
+2026-11-21T10:36:38.6408636Z  	    RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6409106Z  	  IF p_expected IS NOT NULL AND v_listing.version<>p_expected THEN RAISE EXCEPTION 'Version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6409524Z  	  RETURN v_listing;
+2026-11-21T10:36:38.6409698Z  	END $$;
+2026-11-21T10:36:38.6410116Z  	CREATE FUNCTION app_private.require_version(p_version bigint,p_allow_new boolean DEFAULT false) RETURNS void
+2026-11-21T10:36:38.6410538Z  	LANGUAGE plpgsql SET search_path = pg_catalog AS $$ BEGIN
+2026-11-21T10:36:38.6410880Z  	  IF p_version IS NULL OR p_version < (CASE WHEN p_allow_new THEN 0 ELSE 1 END) THEN
+2026-11-21T10:36:38.6411301Z  	    RAISE EXCEPTION 'Expected version required' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6411583Z  	END $$;
+2026-11-21T10:36:38.6411869Z  	CREATE FUNCTION app_api.create_listing(p_id uuid,p_slug text,p_assigned uuid DEFAULT NULL) RETURNS uuid
+2026-11-21T10:36:38.6412267Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6412543Z  	DECLARE v_assigned uuid; BEGIN
+2026-11-21T10:36:38.6412783Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']);
+2026-11-21T10:36:38.6413087Z  	  v_assigned:=coalesce(p_assigned,app_private.context_actor());
+2026-11-21T10:36:38.6413563Z  	  IF app_private.staff_role()='agent' AND v_assigned<>app_private.context_actor() THEN RAISE EXCEPTION 'Access denied' USING ERRCODE='42501'; END IF;
+2026-11-21T10:36:38.6414235Z  	  IF NOT EXISTS(SELECT 1 FROM app_private.memberships WHERE tenant_id=app_private.context_tenant() AND user_id=v_assigned AND active AND role IN ('agent','admin'))
+2026-11-21T10:36:38.6414777Z  	    THEN RAISE EXCEPTION 'Assignment unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6415329Z  	  INSERT INTO app_private.listings(tenant_id,id,slug,created_by_id,assigned_agent_id)
+2026-11-21T10:36:38.6415744Z  	    VALUES(app_private.context_tenant(),p_id,p_slug,app_private.context_actor(),v_assigned);
+2026-11-21T10:36:38.6416139Z  	  PERFORM app_private.audit('listing.created','listing',p_id,1); RETURN p_id;
+2026-11-21T10:36:38.6416480Z  	END $$;
+2026-11-21T10:36:38.6416787Z  	CREATE FUNCTION app_api.save_draft(p_id uuid,p_revision integer,p_expected bigint,p_content jsonb) RETURNS bigint
+2026-11-21T10:36:38.6417217Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6417591Z  	DECLARE v_current app_private.listing_revisions; v_next integer; v_version bigint; BEGIN
+2026-11-21T10:36:38.6418016Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']); PERFORM app_private.lock_listing(p_id);
+2026-11-21T10:36:38.6418387Z  	  PERFORM app_private.require_version(p_expected,true);
+2026-11-21T10:36:38.6418826Z  	  IF jsonb_typeof(p_content) IS DISTINCT FROM 'object' THEN RAISE EXCEPTION 'Invalid content fields' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6419294Z  	  IF EXISTS(SELECT 1 FROM jsonb_object_keys(p_content) k WHERE k NOT IN
+2026-11-21T10:36:38.6419940Z  	    ('title','description','purpose','propertyType','currency','amountMinor','rentPeriod','bedrooms','privateBathrooms','sharedBathrooms','country','locality','publicPrecision','latitude','longitude','privateAddress'))
+2026-11-21T10:36:38.6420615Z  	    THEN RAISE EXCEPTION 'Invalid content fields' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6420940Z  	  IF EXISTS(SELECT 1 FROM jsonb_each(p_content) e WHERE
+2026-11-21T10:36:38.6421310Z  	    CASE WHEN e.key IN ('amountMinor','bedrooms','privateBathrooms','sharedBathrooms','latitude','longitude')
+2026-11-21T10:36:38.6421849Z  	      THEN jsonb_typeof(e.value) NOT IN ('number','null') ELSE jsonb_typeof(e.value) NOT IN ('string','null') END)
+2026-11-21T10:36:38.6422310Z  	    THEN RAISE EXCEPTION 'Invalid content types' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6422687Z  	  IF (p_content->>'amountMinor') IS NOT NULL AND (p_content->>'amountMinor') !~ '^[0-9]+$'
+2026-11-21T10:36:38.6423094Z  	    THEN RAISE EXCEPTION 'Money must use integer minor units' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6423656Z  	  SELECT * INTO v_current FROM app_private.listing_revisions WHERE tenant_id=app_private.context_tenant() AND listing_id=p_id AND revision_no=p_revision FOR UPDATE;
+2026-11-21T10:36:38.6424120Z  	  IF FOUND THEN
+2026-11-21T10:36:38.6424425Z  	    IF v_current.state<>'draft' THEN RAISE EXCEPTION 'Only drafts may be edited' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6425007Z  	    IF v_current.version<>p_expected THEN RAISE EXCEPTION 'Version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6425370Z  	  ELSE
+2026-11-21T10:36:38.6425778Z  	    SELECT coalesce(max(revision_no),0)+1 INTO v_next FROM app_private.listing_revisions WHERE tenant_id=app_private.context_tenant() AND listing_id=p_id;
+2026-11-21T10:36:38.6426356Z  	    IF p_expected<>0 OR p_revision<>v_next THEN RAISE EXCEPTION 'Version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6426909Z  	    INSERT INTO app_private.listing_revisions(tenant_id,listing_id,revision_no) VALUES(app_private.context_tenant(),p_id,p_revision);
+2026-11-21T10:36:38.6427302Z  	  END IF;
+2026-11-21T10:36:38.6427675Z  	  UPDATE app_private.listing_revisions SET title=nullif(btrim(p_content->>'title'),''),description=nullif(btrim(p_content->>'description'),''),
+2026-11-21T10:36:38.6428286Z  	    purpose=p_content->>'purpose',property_type=p_content->>'propertyType',currency=coalesce(p_content->>'currency','KES'),
+2026-11-21T10:36:38.6428858Z  	    amount_minor=(p_content->>'amountMinor')::bigint,rent_period=p_content->>'rentPeriod',bedrooms=(p_content->>'bedrooms')::integer,
+2026-11-21T10:36:38.6429416Z  	    private_bathrooms=(p_content->>'privateBathrooms')::integer,shared_bathrooms=(p_content->>'sharedBathrooms')::integer,
+2026-11-21T10:36:38.6429912Z  	    country=coalesce(p_content->>'country','KE'),locality=nullif(btrim(p_content->>'locality'),''),
+2026-11-21T10:36:38.6430362Z  	    public_precision=coalesce(p_content->>'publicPrecision','area'),latitude=(p_content->>'latitude')::numeric,
+2026-11-21T10:36:38.6430878Z  	    longitude=(p_content->>'longitude')::numeric,private_address=p_content->>'privateAddress'
+2026-11-21T10:36:38.6431416Z  	    WHERE tenant_id=app_private.context_tenant() AND listing_id=p_id AND revision_no=p_revision RETURNING version INTO v_version;
+2026-11-21T10:36:38.6431967Z  	  PERFORM app_private.audit('revision.saved','listing',p_id,v_version,jsonb_build_object('revision',p_revision)); RETURN v_version;
+2026-11-21T10:36:38.6432393Z  	END $$;
+2026-11-21T10:36:38.6432692Z  	CREATE FUNCTION app_api.submit_revision(p_id uuid,p_revision integer,p_expected bigint) RETURNS bigint
+2026-11-21T10:36:38.6433097Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6433486Z  	DECLARE v_revision app_private.listing_revisions; v_count integer; v_version bigint; BEGIN
+2026-11-21T10:36:38.6433946Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']); PERFORM app_private.lock_listing(p_id);
+2026-11-21T10:36:38.6434317Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6434817Z  	  SELECT * INTO v_revision FROM app_private.listing_revisions WHERE tenant_id=app_private.context_tenant() AND listing_id=p_id AND revision_no=p_revision FOR UPDATE;
+2026-11-21T10:36:38.6435579Z  	  IF NOT FOUND THEN RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6436026Z  	  IF v_revision.version<>p_expected THEN RAISE EXCEPTION 'Version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6436493Z  	  IF v_revision.state<>'draft' THEN RAISE EXCEPTION 'Expected draft' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6437145Z  	  SELECT count(*) INTO v_count FROM app_private.revision_media WHERE tenant_id=v_revision.tenant_id AND listing_id=p_id AND revision_no=p_revision AND accepted;
+2026-11-21T10:36:38.6437759Z  	  IF v_count NOT BETWEEN 4 AND 12 THEN RAISE EXCEPTION 'Require 4 to 12 accepted photos' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6438302Z  	  UPDATE app_private.listing_revisions SET state='pending',submitted_at=now(),submitted_by=app_private.context_actor()
+2026-11-21T10:36:38.6438844Z  	    WHERE tenant_id=v_revision.tenant_id AND listing_id=p_id AND revision_no=p_revision RETURNING version INTO v_version;
+2026-11-21T10:36:38.6439412Z  	  PERFORM app_private.audit('revision.submitted','listing',p_id,v_version,jsonb_build_object('revision',p_revision)); RETURN v_version;
+2026-11-21T10:36:38.6439828Z  	END $$;
+2026-11-21T10:36:38.6440130Z  	CREATE FUNCTION app_api.withdraw_revision(p_id uuid,p_revision integer,p_expected bigint) RETURNS bigint
+2026-11-21T10:36:38.6440606Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ DECLARE v_version bigint; BEGIN
+2026-11-21T10:36:38.6441085Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']); PERFORM app_private.lock_listing(p_id);
+2026-11-21T10:36:38.6441451Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6441801Z  	  UPDATE app_private.listing_revisions SET state='draft',submitted_at=NULL,submitted_by=NULL
+2026-11-21T10:36:38.6442410Z  	    WHERE tenant_id=app_private.context_tenant() AND listing_id=p_id AND revision_no=p_revision AND state='pending' AND version=p_expected RETURNING version INTO v_version;
+2026-11-21T10:36:38.6442995Z  	  IF NOT FOUND THEN RAISE EXCEPTION 'State or version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6443500Z  	  PERFORM app_private.audit('revision.withdrawn','listing',p_id,v_version,jsonb_build_object('revision',p_revision)); RETURN v_version;
+2026-11-21T10:36:38.6443917Z  	END $$;
+2026-11-21T10:36:38.6444305Z  	CREATE FUNCTION app_api.decide_revision(p_id uuid,p_revision integer,p_expected bigint,p_approve boolean,p_reason text DEFAULT NULL) RETURNS bigint
+2026-11-21T10:36:38.6444817Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6445355Z  	DECLARE v_listing app_private.listings; v_revision app_private.listing_revisions; v_version bigint; BEGIN
+2026-11-21T10:36:38.6445817Z  	  PERFORM app_private.assert_staff(ARRAY['admin']); v_listing:=app_private.lock_listing(p_id);
+2026-11-21T10:36:38.6446238Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6446731Z  	  SELECT * INTO v_revision FROM app_private.listing_revisions WHERE tenant_id=v_listing.tenant_id AND listing_id=p_id AND revision_no=p_revision FOR UPDATE;
+2026-11-21T10:36:38.6447281Z  	  IF NOT FOUND THEN RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6447797Z  	  IF v_revision.state<>'pending' OR v_revision.version<>p_expected THEN RAISE EXCEPTION 'State or version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6448468Z  	  IF p_approve AND coalesce(v_listing.published_revision_no,0)>=p_revision THEN RAISE EXCEPTION 'Superseded review conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6449166Z  	  IF p_approve IS NULL OR (NOT p_approve AND coalesce(length(btrim(p_reason)),0)=0) THEN RAISE EXCEPTION 'Decision requires a reason' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6449994Z  	  IF p_approve AND (v_listing.availability<>'available' OR v_listing.last_availability_confirmed_at IS NULL OR v_listing.last_availability_confirmed_at<=now()-interval '30 days')
+2026-11-21T10:36:38.6450632Z  	    THEN RAISE EXCEPTION 'Availability confirmation required' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6451105Z  	  UPDATE app_private.listing_revisions SET state=CASE WHEN p_approve THEN 'approved' ELSE 'rejected' END,
+2026-11-21T10:36:38.6451654Z  	    decided_at=now(),decided_by=app_private.context_actor(),decision_reason=CASE WHEN p_approve THEN NULL ELSE btrim(p_reason) END
+2026-11-21T10:36:38.6452263Z  	    WHERE tenant_id=v_listing.tenant_id AND listing_id=p_id AND revision_no=p_revision RETURNING version INTO v_version;
+2026-11-21T10:36:38.6452651Z  	  IF p_approve THEN
+2026-11-21T10:36:38.6453072Z  	    INSERT INTO app_private.public_snapshots SELECT r.tenant_id,r.listing_id,r.revision_no,r.title,r.description,r.purpose,r.property_type,
+2026-11-21T10:36:38.6453731Z  	      r.currency,r.amount_minor,r.rent_period,r.bedrooms,r.private_bathrooms,r.shared_bathrooms,r.country,r.locality,r.public_precision,
+2026-11-21T10:36:38.6454327Z  	      CASE WHEN r.public_precision='exact' THEN r.latitude END,CASE WHEN r.public_precision='exact' THEN r.longitude END,
+2026-11-21T10:36:38.6455017Z  	      (SELECT jsonb_agg(jsonb_build_object('key',m.public_object_key,'alt',m.alt_text) ORDER BY m.position) FROM app_private.revision_media m
+2026-11-21T10:36:38.6455587Z  	        WHERE m.tenant_id=r.tenant_id AND m.listing_id=r.listing_id AND m.revision_no=r.revision_no AND m.accepted),now()
+2026-11-21T10:36:38.6456156Z  	      FROM app_private.listing_revisions r WHERE r.tenant_id=v_listing.tenant_id AND r.listing_id=p_id AND r.revision_no=p_revision
+2026-11-21T10:36:38.6456764Z  	      ON CONFLICT(tenant_id,listing_id) DO UPDATE SET revision_no=EXCLUDED.revision_no,title=EXCLUDED.title,description=EXCLUDED.description,
+2026-11-21T10:36:38.6457517Z  	        purpose=EXCLUDED.purpose,property_type=EXCLUDED.property_type,currency=EXCLUDED.currency,amount_minor=EXCLUDED.amount_minor,
+2026-11-21T10:36:38.6458203Z  	        rent_period=EXCLUDED.rent_period,bedrooms=EXCLUDED.bedrooms,private_bathrooms=EXCLUDED.private_bathrooms,shared_bathrooms=EXCLUDED.shared_bathrooms,
+2026-11-21T10:36:38.6458871Z  	        country=EXCLUDED.country,locality=EXCLUDED.locality,public_precision=EXCLUDED.public_precision,latitude=EXCLUDED.latitude,
+2026-11-21T10:36:38.6459422Z  	        longitude=EXCLUDED.longitude,photo_refs=EXCLUDED.photo_refs,approved_at=EXCLUDED.approved_at;
+2026-11-21T10:36:38.6459902Z  	    -- Reviewing content does not undo an operational pause/archive applied while it was pending.
+2026-11-21T10:36:38.6460338Z  	    -- Keep the approved snapshot ready, but require the explicit admin restoration command.
+2026-11-21T10:36:38.6460720Z  	    UPDATE app_private.listings SET published_revision_no=p_revision,
+2026-11-21T10:36:38.6461183Z  	      publication_status=CASE WHEN publication_status IN ('paused','archived') THEN publication_status ELSE 'published' END
+2026-11-21T10:36:38.6461762Z  	      WHERE tenant_id=v_listing.tenant_id AND id=p_id;
+2026-11-21T10:36:38.6461996Z  	  END IF;
+2026-11-21T10:36:38.6462361Z  	  PERFORM app_private.audit(CASE WHEN p_approve THEN 'revision.approved' ELSE 'revision.rejected' END,'listing',p_id,v_version,
+2026-11-21T10:36:38.6462958Z  	    jsonb_build_object('revision',p_revision,'selfApproval',v_revision.submitted_by=app_private.context_actor())); RETURN v_version;
+2026-11-21T10:36:38.6463358Z  	END $$;
+2026-11-21T10:36:38.6463725Z  	CREATE FUNCTION app_api.confirm_availability(p_id uuid,p_expected bigint,p_availability text) RETURNS bigint
+2026-11-21T10:36:38.6464271Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ DECLARE v_listing app_private.listings; v_version bigint; BEGIN
+2026-11-21T10:36:38.6464691Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6465172Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']); v_listing:=app_private.lock_listing(p_id,p_expected);
+2026-11-21T10:36:38.6465652Z  	  UPDATE app_private.listings SET availability=p_availability,last_availability_confirmed_at=now(),
+2026-11-21T10:36:38.6466169Z  	    publication_status=CASE WHEN p_availability<>'available' AND publication_status='published' THEN 'paused' ELSE publication_status END
+2026-11-21T10:36:38.6466663Z  	    WHERE tenant_id=v_listing.tenant_id AND id=p_id RETURNING version INTO v_version;
+2026-11-21T10:36:38.6467185Z  	  PERFORM app_private.audit('listing.availability_confirmed','listing',p_id,v_version,jsonb_build_object('availability',p_availability)); RETURN v_version;
+2026-11-21T10:36:38.6467619Z  	END $$;
+2026-11-21T10:36:38.6467937Z  	CREATE FUNCTION app_api.set_publication(p_id uuid,p_expected bigint,p_status text) RETURNS bigint
+2026-11-21T10:36:38.6468439Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ DECLARE v_listing app_private.listings; v_version bigint; BEGIN
+2026-11-21T10:36:38.6468856Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6469218Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']); v_listing:=app_private.lock_listing(p_id,p_expected);
+2026-11-21T10:36:38.6469699Z  	  IF p_status NOT IN ('paused','published','archived') OR (app_private.staff_role()<>'admin' AND p_status<>'paused')
+2026-11-21T10:36:38.6470105Z  	    THEN RAISE EXCEPTION 'Access denied' USING ERRCODE='42501'; END IF;
+2026-11-21T10:36:38.6470508Z  	  IF p_status='published' AND (v_listing.published_revision_no IS NULL OR v_listing.availability<>'available' OR
+2026-11-21T10:36:38.6471019Z  	    v_listing.last_availability_confirmed_at IS NULL OR v_listing.last_availability_confirmed_at<=now()-interval '30 days')
+2026-11-21T10:36:38.6471491Z  	    THEN RAISE EXCEPTION 'Valid approved publication required' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6472007Z  	  IF app_private.staff_role()='agent' AND v_listing.publication_status='archived' THEN RAISE EXCEPTION 'Access denied' USING ERRCODE='42501'; END IF;
+2026-11-21T10:36:38.6472599Z  	  UPDATE app_private.listings SET publication_status=p_status,archived_at=CASE WHEN p_status='archived' THEN now() END
+2026-11-21T10:36:38.6473059Z  	    WHERE tenant_id=v_listing.tenant_id AND id=p_id RETURNING version INTO v_version;
+2026-11-21T10:36:38.6473550Z  	  PERFORM app_private.audit('listing.publication_changed','listing',p_id,v_version,jsonb_build_object('status',p_status)); RETURN v_version;
+2026-11-21T10:36:38.6473949Z  	END $$;
+2026-11-21T10:36:38.6474293Z  	CREATE FUNCTION app_api.reassign_listing(p_id uuid,p_expected bigint,p_assigned uuid) RETURNS bigint
+2026-11-21T10:36:38.6474823Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ DECLARE v_listing app_private.listings; v_version bigint; BEGIN
+2026-11-21T10:36:38.6475354Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6475739Z  	  PERFORM app_private.assert_staff(ARRAY['admin']); v_listing:=app_private.lock_listing(p_id,p_expected);
+2026-11-21T10:36:38.6476318Z  	  IF NOT EXISTS(SELECT 1 FROM app_private.memberships WHERE tenant_id=v_listing.tenant_id AND user_id=p_assigned AND active AND role IN ('agent','admin'))
+2026-11-21T10:36:38.6476904Z  	    THEN RAISE EXCEPTION 'Assignment unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6477432Z  	  UPDATE app_private.listings SET assigned_agent_id=p_assigned WHERE tenant_id=v_listing.tenant_id AND id=p_id RETURNING version INTO v_version;
+2026-11-21T10:36:38.6477975Z  	  PERFORM app_private.audit('listing.reassigned','listing',p_id,v_version); RETURN v_version;
+2026-11-21T10:36:38.6478307Z  	END $$;
+2026-11-21T10:36:38.6478737Z  	CREATE FUNCTION app_api.record_enquiry(p_id uuid,p_key uuid,p_listing uuid,p_name text,p_phone text,p_email text,p_message text,p_origin text,p_notice text) RETURNS uuid
+2026-11-21T10:36:38.6479323Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$
+2026-11-21T10:36:38.6479677Z  	DECLARE v_revision integer; v_existing app_private.enquiries; BEGIN
+2026-11-21T10:36:38.6480069Z  	  IF NOT EXISTS(SELECT 1 FROM app_private.tenants WHERE id=app_private.context_tenant() AND enabled)
+2026-11-21T10:36:38.6480616Z  	    OR (app_private.context_actor() IS NOT NULL AND app_private.staff_role() IS NULL) THEN RAISE EXCEPTION 'Access denied' USING ERRCODE='42501'; END IF;
+2026-11-21T10:36:38.6481213Z  	  -- Serialise equivalent retries before checking the unique key, without storing contact data in lock keys.
+2026-11-21T10:36:38.6481703Z  	  PERFORM pg_advisory_xact_lock(hashtextextended(app_private.context_tenant()::text||p_key::text,0));
+2026-11-21T10:36:38.6482324Z  	  SELECT * INTO v_existing FROM app_private.enquiries WHERE tenant_id=app_private.context_tenant() AND idempotency_key=p_key FOR UPDATE;
+2026-11-21T10:36:38.6482738Z  	  IF FOUND THEN
+2026-11-21T10:36:38.6483214Z  	    IF ROW(v_existing.listing_id,v_existing.contact_name,v_existing.phone_e164,v_existing.email,v_existing.message,v_existing.origin,v_existing.notice_version,v_existing.requested_by_id)
+2026-11-21T10:36:38.6483982Z  	      IS DISTINCT FROM ROW(p_listing,btrim(p_name),nullif(btrim(p_phone),''),nullif(btrim(p_email),''),btrim(p_message),p_origin,p_notice,app_private.context_actor())
+2026-11-21T10:36:38.6484564Z  	      THEN RAISE EXCEPTION 'Idempotency conflict' USING ERRCODE='23505'; END IF;
+2026-11-21T10:36:38.6484861Z  	    RETURN v_existing.id;
+2026-11-21T10:36:38.6485143Z  	  END IF;
+2026-11-21T10:36:38.6485331Z  	  IF p_listing IS NOT NULL THEN
+2026-11-21T10:36:38.6485654Z  	    SELECT revision_no INTO v_revision FROM app_api.public_listings WHERE listing_id=p_listing;
+2026-11-21T10:36:38.6486076Z  	    IF NOT FOUND THEN RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6486392Z  	  END IF;
+2026-11-21T10:36:38.6486715Z  	  INSERT INTO app_private.enquiries(tenant_id,id,idempotency_key,listing_id,contacted_revision_no,requested_by_id,
+2026-11-21T10:36:38.6487147Z  	    contact_name,phone_e164,email,message,origin,notice_version)
+2026-11-21T10:36:38.6487753Z  	    VALUES(app_private.context_tenant(),p_id,p_key,p_listing,v_revision,app_private.context_actor(),btrim(p_name),nullif(btrim(p_phone),''),nullif(btrim(p_email),''),btrim(p_message),p_origin,p_notice);
+2026-11-21T10:36:38.6488377Z  	  PERFORM app_private.audit('enquiry.received','enquiry',p_id,1); RETURN p_id;
+2026-11-21T10:36:38.6488658Z  	END $$;
+2026-11-21T10:36:38.6488960Z  	CREATE FUNCTION app_api.assign_enquiry(p_id uuid,p_expected bigint,p_assigned uuid) RETURNS bigint
+2026-11-21T10:36:38.6489416Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ DECLARE v_version bigint; BEGIN
+2026-11-21T10:36:38.6489781Z  	  PERFORM app_private.assert_staff(ARRAY['admin']);
+2026-11-21T10:36:38.6490161Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6490672Z  	  IF NOT EXISTS(SELECT 1 FROM app_private.memberships WHERE tenant_id=app_private.context_tenant() AND user_id=p_assigned AND active AND role IN ('agent','admin'))
+2026-11-21T10:36:38.6491244Z  	    THEN RAISE EXCEPTION 'Assignment unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6491814Z  	  UPDATE app_private.enquiries SET assigned_agent_id=p_assigned,status=CASE WHEN status='new' THEN 'assigned' ELSE status END
+2026-11-21T10:36:38.6492374Z  	    WHERE tenant_id=app_private.context_tenant() AND id=p_id AND version=p_expected RETURNING version INTO v_version;
+2026-11-21T10:36:38.6492867Z  	  IF NOT FOUND THEN RAISE EXCEPTION 'Resource or version unavailable' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6493319Z  	  PERFORM app_private.audit('enquiry.assigned','enquiry',p_id,v_version); RETURN v_version;
+2026-11-21T10:36:38.6493631Z  	END $$;
+2026-11-21T10:36:38.6494051Z  	CREATE FUNCTION app_api.transition_enquiry(p_id uuid,p_expected bigint,p_status text,p_next timestamptz DEFAULT NULL,p_reason text DEFAULT NULL) RETURNS bigint
+2026-11-21T10:36:38.6494726Z  	LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ DECLARE v_enquiry app_private.enquiries; v_version bigint; BEGIN
+2026-11-21T10:36:38.6495271Z  	  PERFORM app_private.assert_staff(ARRAY['agent','admin']);
+2026-11-21T10:36:38.6495559Z  	  PERFORM app_private.require_version(p_expected);
+2026-11-21T10:36:38.6495980Z  	  SELECT * INTO v_enquiry FROM app_private.enquiries WHERE tenant_id=app_private.context_tenant() AND id=p_id FOR UPDATE;
+2026-11-21T10:36:38.6496611Z  	  IF NOT FOUND OR NOT app_private.may_work(v_enquiry.tenant_id,v_enquiry.assigned_agent_id) THEN RAISE EXCEPTION 'Resource unavailable' USING ERRCODE='P0002'; END IF;
+2026-11-21T10:36:38.6497225Z  	  IF v_enquiry.version<>p_expected THEN RAISE EXCEPTION 'Version conflict' USING ERRCODE='40001'; END IF;
+2026-11-21T10:36:38.6497789Z  	  IF NOT ((v_enquiry.status='assigned' AND p_status='contacted') OR (v_enquiry.status='contacted' AND p_status='qualified')
+2026-11-21T10:36:38.6498307Z  	    OR (v_enquiry.status IN ('new','assigned','contacted','qualified') AND p_status IN ('closed_lost','spam'))
+2026-11-21T10:36:38.6498709Z  	    OR (v_enquiry.status='qualified' AND p_status='closed_won')
+2026-11-21T10:36:38.6499278Z  	    OR (v_enquiry.status IN ('closed_won','closed_lost','spam') AND p_status=CASE WHEN v_enquiry.assigned_agent_id IS NULL THEN 'new' ELSE 'assigned' END AND coalesce(length(btrim(p_reason)),0)>0))
+2026-11-21T10:36:38.6499902Z  	    THEN RAISE EXCEPTION 'Invalid enquiry transition' USING ERRCODE='23514'; END IF;
+2026-11-21T10:36:38.6500383Z  	  UPDATE app_private.enquiries SET status=p_status,next_action_at=p_next,closure_reason=nullif(btrim(p_reason),'')
+2026-11-21T10:36:38.6500851Z  	    WHERE tenant_id=v_enquiry.tenant_id AND id=p_id RETURNING version INTO v_version;
+2026-11-21T10:36:38.6501413Z  	  PERFORM app_private.audit('enquiry.transitioned','enquiry',p_id,v_version,jsonb_build_object('from',v_enquiry.status,'to',p_status)); RETURN v_version;
+2026-11-21T10:36:38.6501866Z  	END $$;
+2026-11-21T10:36:38.6502089Z  	GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA app_api TO api_runtime;
+2026-11-21T10:36:38.6502348Z  	RESET ROLE;
+2026-11-21T10:36:38.6502522Z  	COMMIT;
+2026-11-21T10:36:38.6502674Z  	
+2026-11-21T10:36:38.6502910Z  2026-11-21 10:35:50.072 UTC [216] WARNING:  there is no transaction in progress
+2026-11-21T10:36:38.6503245Z  2026-11-21 10:35:50.113 UTC [218] ERROR:  Operation conflict
+2026-11-21T10:36:38.6503700Z  2026-11-21 10:35:50.113 UTC [218] CONTEXT:  PL/pgSQL function app_api.save_staff_branch(uuid,uuid,bigint,text,boolean,text) line 23 at RAISE
+2026-11-21T10:36:38.6504235Z  2026-11-21 10:35:50.113 UTC [218] STATEMENT:  SELECT app_api.save_staff_branch($1,$2,$3,$4,$5,$6) AS record
+2026-11-21T10:36:38.6504602Z  2026-11-21 10:35:50.120 UTC [218] ERROR:  Access denied
+2026-11-21T10:36:38.6505050Z  2026-11-21 10:35:50.120 UTC [218] CONTEXT:  PL/pgSQL function app_private.assert_staff(text[]) line 2 at RAISE
+2026-11-21T10:36:38.6505498Z  	SQL statement "SELECT app_private.assert_staff(ARRAY['admin'])"
+2026-11-21T10:36:38.6505860Z  	PL/pgSQL function app_api.read_staff_branch_operation(uuid) line 2 at PERFORM
+2026-11-21T10:36:38.6506247Z  2026-11-21 10:35:50.120 UTC [218] STATEMENT:  SELECT app_api.read_staff_branch_operation($1)
+2026-11-21T10:36:38.6506683Z  2026-11-21 10:35:50.122 UTC [218] ERROR:  Access denied
+2026-11-21T10:36:38.6507054Z  2026-11-21 10:35:50.122 UTC [218] CONTEXT:  PL/pgSQL function app_private.assert_staff(text[]) line 2 at RAISE
+2026-11-21T10:36:38.6507443Z  	SQL statement "SELECT app_private.assert_staff(ARRAY['admin'])"
+2026-11-21T10:36:38.6507788Z  	PL/pgSQL function app_api.read_staff_branch_operation(uuid) line 2 at PERFORM
+2026-11-21T10:36:38.6508176Z  2026-11-21 10:35:50.122 UTC [218] STATEMENT:  SELECT app_api.read_staff_branch_operation($1)
+2026-11-21T10:36:38.6508584Z  2026-11-21 10:35:50.127 UTC [218] ERROR:  permission denied for schema app_private at character 15
+2026-11-21T10:36:38.6509002Z  2026-11-21 10:35:50.127 UTC [218] STATEMENT:  SELECT * FROM app_private.staff_branch_operations
+2026-11-21T10:36:38.6509401Z  2026-11-21 10:35:50.173 UTC [220] ERROR:  permission denied for table firebase_actor_bindings
+2026-11-21T10:36:38.6509812Z  2026-11-21 10:35:50.173 UTC [220] STATEMENT:  UPDATE identity.firebase_actor_bindings SET active=false
+2026-11-21T10:36:38.6510236Z  2026-11-21 10:35:50.174 UTC [220] ERROR:  permission denied for schema app_private at character 15
+2026-11-21T10:36:38.6510629Z  2026-11-21 10:35:50.174 UTC [220] STATEMENT:  SELECT * FROM app_private.tenants
+2026-11-21T10:36:38.6510979Z  2026-11-21 10:35:50.174 UTC [220] ERROR:  permission denied for table browser_state
+2026-11-21T10:36:38.6511320Z  2026-11-21 10:35:50.174 UTC [220] STATEMENT:  TRUNCATE identity.browser_state
+2026-11-21T10:36:38.6511753Z  2026-11-21 10:35:50.174 UTC [220] ERROR:  permission denied for schema identity at character 14
+2026-11-21T10:36:38.6512150Z  2026-11-21 10:35:50.174 UTC [220] STATEMENT:  CREATE TABLE identity.unapproved_ci_table(id int)
+2026-11-21T10:36:38.6512536Z  2026-11-21 10:35:50.174 UTC [220] ERROR:  permission denied to set role "realtor_owner"
+2026-11-21T10:36:38.6512889Z  2026-11-21 10:35:50.174 UTC [220] STATEMENT:  SET ROLE realtor_owner
+2026-11-21T10:36:38.6513223Z  2026-11-21 10:35:50.175 UTC [220] ERROR:  permission denied to set role "api_runtime"
+2026-11-21T10:36:38.6513555Z  2026-11-21 10:35:50.175 UTC [220] STATEMENT:  SET ROLE api_runtime
+2026-11-21T10:36:38.6513917Z  2026-11-21 10:35:50.175 UTC [220] ERROR:  permission denied for table customer_browser_originals
+2026-11-21T10:36:38.6514317Z  2026-11-21 10:35:50.175 UTC [220] STATEMENT:  SELECT * FROM identity.customer_browser_originals
+2026-11-21T10:36:38.6514707Z  2026-11-21 10:35:50.175 UTC [220] ERROR:  permission denied for table staff_browser_originals
+2026-11-21T10:36:38.6515545Z  2026-11-21 10:35:50.175 UTC [220] STATEMENT:  SELECT * FROM identity.staff_browser_originals
+2026-11-21T10:36:38.6515925Z  2026-11-21 10:35:50.181 UTC [221] ERROR:  permission denied for table firebase_actor_bindings
+2026-11-21T10:36:38.6516324Z  2026-11-21 10:35:50.181 UTC [221] STATEMENT:  UPDATE identity.firebase_actor_bindings SET active=false
+2026-11-21T10:36:38.6516733Z  2026-11-21 10:35:50.181 UTC [221] ERROR:  permission denied for schema app_private at character 15
+2026-11-21T10:36:38.6517093Z  2026-11-21 10:35:50.181 UTC [221] STATEMENT:  SELECT * FROM app_private.tenants
+2026-11-21T10:36:38.6517413Z  2026-11-21 10:35:50.181 UTC [221] ERROR:  permission denied for table browser_state
+2026-11-21T10:36:38.6517744Z  2026-11-21 10:35:50.181 UTC [221] STATEMENT:  TRUNCATE identity.browser_state
+2026-11-21T10:36:38.6518090Z  2026-11-21 10:35:50.181 UTC [221] ERROR:  permission denied for schema identity at character 14
+2026-11-21T10:36:38.6518467Z  2026-11-21 10:35:50.181 UTC [221] STATEMENT:  CREATE TABLE identity.unapproved_ci_table(id int)
+2026-11-21T10:36:38.6518835Z  2026-11-21 10:35:50.181 UTC [221] ERROR:  permission denied to set role "realtor_owner"
+2026-11-21T10:36:38.6519155Z  2026-11-21 10:35:50.181 UTC [221] STATEMENT:  SET ROLE realtor_owner
+2026-11-21T10:36:38.6519459Z  2026-11-21 10:35:50.182 UTC [221] ERROR:  permission denied to set role "api_runtime"
+2026-11-21T10:36:38.6519889Z  2026-11-21 10:35:50.182 UTC [221] STATEMENT:  SET ROLE api_runtime
+2026-11-21T10:36:38.6520201Z  2026-11-21 10:35:50.182 UTC [221] ERROR:  permission denied for table staff_browser_originals
+2026-11-21T10:36:38.6520558Z  2026-11-21 10:35:50.182 UTC [221] STATEMENT:  SELECT * FROM identity.staff_browser_originals
+2026-11-21T10:36:38.6520928Z  2026-11-21 10:35:50.189 UTC [222] ERROR:  permission denied for table firebase_actor_bindings
+2026-11-21T10:36:38.6521309Z  2026-11-21 10:35:50.189 UTC [222] STATEMENT:  UPDATE identity.firebase_actor_bindings SET active=false
+2026-11-21T10:36:38.6521709Z  2026-11-21 10:35:50.189 UTC [222] ERROR:  permission denied for schema app_private at character 15
+2026-11-21T10:36:38.6522075Z  2026-11-21 10:35:50.189 UTC [222] STATEMENT:  SELECT * FROM app_private.tenants
+2026-11-21T10:36:38.6522388Z  2026-11-21 10:35:50.190 UTC [222] ERROR:  permission denied for table browser_state
+2026-11-21T10:36:38.6522708Z  2026-11-21 10:35:50.190 UTC [222] STATEMENT:  TRUNCATE identity.browser_state
+2026-11-21T10:36:38.6523096Z  2026-11-21 10:35:50.191 UTC [222] ERROR:  permission denied for schema identity at character 14
+2026-11-21T10:36:38.6523481Z  2026-11-21 10:35:50.191 UTC [222] STATEMENT:  CREATE TABLE identity.unapproved_ci_table(id int)
+2026-11-21T10:36:38.6523889Z  2026-11-21 10:35:50.191 UTC [222] ERROR:  permission denied to set role "realtor_owner"
+2026-11-21T10:36:38.6524219Z  2026-11-21 10:35:50.191 UTC [222] STATEMENT:  SET ROLE realtor_owner
+2026-11-21T10:36:38.6524529Z  2026-11-21 10:35:50.191 UTC [222] ERROR:  permission denied to set role "api_runtime"
+2026-11-21T10:36:38.6524887Z  2026-11-21 10:35:50.191 UTC [222] STATEMENT:  SET ROLE api_runtime
+2026-11-21T10:36:38.6525337Z  2026-11-21 10:35:50.191 UTC [222] ERROR:  permission denied for table customer_browser_originals
+2026-11-21T10:36:38.6525719Z  2026-11-21 10:35:50.191 UTC [222] STATEMENT:  SELECT * FROM identity.customer_browser_originals
+2026-11-21T10:36:38.6526144Z  2026-11-21 10:35:50.300 UTC [218] ERROR:  permission denied for schema identity at character 15
+2026-11-21T10:36:38.6526526Z  2026-11-21 10:35:50.300 UTC [218] STATEMENT:  SELECT * FROM identity.firebase_actor_bindings
+2026-11-21T10:36:38.6526883Z  2026-11-21 10:35:50.826 UTC [1] LOG:  received SIGHUP, reloading configuration files
+2026-11-21T10:36:38.6527366Z  2026-11-21 10:35:50.827 UTC [1] LOG:  parameter "ssl_cert_file" changed to "/tmp/realtor-ci-tls-e8473171-2d92-48c4-af1c-e6c12587cbe2/server.crt"
+2026-11-21T10:36:38.6527976Z  2026-11-21 10:35:50.827 UTC [1] LOG:  parameter "ssl_key_file" changed to "/tmp/realtor-ci-tls-e8473171-2d92-48c4-af1c-e6c12587cbe2/server.key"
+2026-11-21T10:36:38.6528430Z  2026-11-21 10:35:50.827 UTC [1] LOG:  parameter "ssl" changed to "on"
+2026-11-21T10:36:38.6528739Z  2026-11-21 10:35:51.039 UTC [248] LOG:  could not accept SSL connection: EOF detected
+2026-11-21T10:36:38.6529080Z  2026-11-21 10:35:51.089 UTC [249] LOG:  could not accept SSL connection: EOF detected
+2026-11-21T10:36:38.6529408Z  2026-11-21 10:35:51.242 UTC [250] LOG:  could not accept SSL connection: EOF detected
+2026-11-21T10:36:38.6529732Z  2026-11-21 10:35:51.396 UTC [251] LOG:  could not accept SSL connection: EOF detected
+2026-11-21T10:36:38.6535459Z Stop and remove container: 1a87ac7e123c4f8fa27134c0aee8c758_postgres17bookwormsha256837bed18782820fe967067cb5328b02b0d9992c1be9a37ee0c9c492cfc03af3b_f410b1
+2026-11-21T10:36:38.6539332Z ##[command]/usr/bin/docker rm --force a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d
+2026-11-21T10:36:38.7408411Z a389fc69bfeab75e718f82f74911247dbf92db9170f2c7cd9ddcb38a998ac30d
+2026-11-21T10:36:38.7431177Z Remove container network: github_network_5c0c8cb8b29643c19e9e89e8ecd7f399
+2026-11-21T10:36:38.7434075Z ##[command]/usr/bin/docker network rm github_network_5c0c8cb8b29643c19e9e89e8ecd7f399
+2026-11-21T10:36:38.8480641Z github_network_5c0c8cb8b29643c19e9e89e8ecd7f399
+2026-11-21T10:36:38.8556614Z Cleaning up orphan processes

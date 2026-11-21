@@ -8,7 +8,7 @@ adb=Path('C:/Users/BONIFACE/AppData/Local/Android/Sdk/platform-tools/adb.exe')
 serial='emulator-5580';package='com.boniface.realtor.preview.realtime.estates'
 def run(*args,timeout=30):
  p=subprocess.run([str(adb),'-s',serial,*args],capture_output=True,timeout=timeout)
- with (out/'trace.jsonl').open('a',encoding='utf-8') as f:f.write(json.dumps({'utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'args':args,'exit':p.returncode,'stderr':p.stderr.decode('utf-8',errors='replace')[:1000]})+'\n')
+ with (out/'trace.jsonl').open('a',encoding='utf-8') as f:f.write(json.dumps({'utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'args':args,'exit':p.returncode,'stderr':p.stderr.decode('utf-8',errors='replace')[:1000],'stdout':p.stdout.decode('utf-8',errors='replace')[:4000] if args[0]!='exec-out' else '<binary or XML; retained separately>'})+'\n')
  if p.returncode:raise RuntimeError(p.stderr.decode('utf-8',errors='replace'))
  return p.stdout
 act=sys.argv[1]
@@ -21,7 +21,10 @@ if act=='install':
  assert hashlib.sha256(apk.read_bytes()).hexdigest()=='a3e829ef708cd0397de354ce142367e3c19dbe1b29de6402258f6ad9e45179a7'
  print(run('install',str(apk),timeout=180).decode())
 elif act=='install-x86':
- meta=json.loads((root/'docs/evidence/2026-11-21-android470-x86-artifact.json').read_text(encoding='utf-8'))
+ record=sys.argv[2] if len(sys.argv)>2 else '2026-11-21-android470-x86-artifact.json'
+ assert re.fullmatch(r'2026-11-21-android(?:470|472|473|474)-x86-artifact\.json',record)
+ meta=json.loads((root/'docs/evidence'/record).read_text(encoding='utf-8'))
+ assert meta['packageId']==package and meta['abi']==['x86_64']
  apk=Path(meta['apk']['path']).resolve();assert apk.is_relative_to((root/'.staging-artifacts/deliverables').resolve())
  assert hashlib.sha256(apk.read_bytes()).hexdigest()==meta['apk']['sha256']
  print(run('install','-r',str(apk),timeout=180).decode())
@@ -31,6 +34,9 @@ elif act=='home': print(run('shell','input','keyevent','KEYCODE_HOME').decode())
 elif act=='tap':
  xml=ET.fromstring((out/'latest.xml').read_bytes());needle=sys.argv[2]
  matches=[n for n in xml.iter('node') if n.get('text')==needle or n.get('content-desc')==needle]
+ matches=[n for n in matches if (lambda b:len(b)==4 and b[2]>b[0] and b[3]>b[1])(list(map(int,re.findall(r'-?\d+',n.get('bounds','')))))]
+ clickable=[n for n in matches if n.get('clickable')=='true']
+ if len(clickable)==1:matches=clickable
  assert len(matches)==1,f'Expected one exact visible target {needle}: {len(matches)}'
  vals=list(map(int,re.findall(r'\d+',matches[0].get('bounds',''))));assert len(vals)==4
  print(run('shell','input','tap',str((vals[0]+vals[2])//2),str((vals[1]+vals[3])//2)).decode())
@@ -44,6 +50,9 @@ elif act=='scroll':
 elif act=='type':
  value=sys.argv[2];assert re.fullmatch('[A-Za-z0-9_ .-]{1,60}',value)
  print(run('shell','input','text',value.replace(' ','%s')).decode())
+elif act=='select-all': print(run('shell','input','keycombination','KEYCODE_CTRL_LEFT','KEYCODE_A').decode())
+elif act=='keyboard-on': print(run('shell','settings','put','secure','show_ime_with_hard_keyboard','1').decode())
+elif act=='pid': print(run('shell','pidof',package).decode())
 elif act=='back': print(run('shell','input','keyevent','KEYCODE_BACK').decode())
 elif act=='verify-detail-layout':
  xml=ET.fromstring((out/'latest.xml').read_bytes());nodes=list(xml.iter('node'))
