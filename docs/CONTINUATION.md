@@ -1,3 +1,9 @@
+## Published moderation logout and denied-access privacy fix, checkpoint 475, 21 November 2026 EAT
+
+Private dashboard deployment appgdep_6b017d6a88448191947d50c1c912e143 succeeded from dashboard a19534702ffe9d613009c7d8ed23a48d23bd8b8a. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source 55c1a4132a9e2140b25d71e63d8af9ea88b5630c passed all seven CI44897151458 jobs and17 actual production-client browser fixture checks on Windows Chrome158 and Linux Chrome157.13 focused guard/gallery tests, local admin573/573 and53/53 UI/static checks passed; CI admin572 passed/1skip is recorded explicitly. Old-build regression reproduced before the fix. Private review cards/address/reason/acknowledgement/media clear on auth changes,401/403/gallery denial and pagehide; pending calls cancel and late/cached work stays blocked. This is synthetic API browser evidence, not a Firebase/cookie/SQL browser-authority or whole05-7 pass. Whole55/97 task count and all14 gates remain unchanged. Next implement reference review/enquiry/author-media lifecycle and composed owned-authority revoke/cached-edit/native matrix. Existing474 Android download,1012 saved notes/manual fields, billing-disabled state, exports and vendor/live resources were preserved.
+
 ## Moderation privacy475 passed current-source CI — 21 November 2026 EAT
 
 Source55c1a4132a9e2140b25d71e63d8af9ea88b5630c passed all seven CI44897151458 jobs.17 actual production-client browser fixture checks passed locally Chrome158 and Linux Chrome157.13 focused guard/gallery checks passed; full local admin573/573 and53/53 UI/static checks passed; CI admin572/1skip is explicit in ci475-counts.json. Workspace types/format/production builds/Android export passed. Old production build reproduced the private-review logout failure before the fix.
