@@ -1,0 +1,37 @@
+✔ settings cipher preserves normalized original across fresh instances without exposing command/key, with a fresh nonce (70.3013ms)
+✔ settings ciphertext-only store survives disposal and current-authorized reopening; retaining the same original is idempotent (36.2165ms)
+✔ report cipher preserves normalized original across fresh instances without exposing command/key, with a fresh nonce (2.1188ms)
+✔ report ciphertext-only store survives disposal and current-authorized reopening; retaining the same original is idempotent (1.1266ms)
+✔ authenticated envelopes refuse wrong key, IV/tag/ciphertext tamper, metadata substitution, malformed encoding and unbounded inputs (1.9519ms)
+✔ recovery BFF defaults closed, pins same-origin nonce and refuses authority/cookies/duplicates before releasing any plaintext (46.1633ms)
+✖ BFF rechecks SQL-derived role/actor after a body read and does not decrypt on denied, expired or changed authority (3.8838ms)
+✔ browser recovery client fixes paths, strips credentials and rejects scope/operation/redirect substitution (2.9334ms)
+✔ sealed store refuses replacement, concurrent preparation and failed persistence/readback without a write permission claim (6.5996ms)
+✔ store abort/denial preserves stored ciphertext and no cached callback can load or replace it (1.1101ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 430.4212
+
+✖ failing tests:
+
+test at apps\admin\tests\private-recovery.test.mjs:234:1
+✖ BFF rechecks SQL-derived role/actor after a body read and does not decrypt on denied, expired or changed authority (3.8838ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  503 !== 401
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/tests/private-recovery.test.mjs:262:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 503,
+    expected: 401,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
