@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readReviewGallery } from '../dist/tests/lib/review-gallery-client.js';
+import {
+  readReviewGallery,
+  ReviewGalleryAccessDenied,
+} from '../dist/tests/lib/review-gallery-client.js';
 import { createReviewImageBatch } from '../dist/tests/lib/private-image.js';
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
   scope = { instanceId: id(1), listingId: id(2), revision: 12, version: '7' };
@@ -156,4 +159,20 @@ test('review batch rejects a response URL from the draft policy before creating 
   assert.ok(states.some((s) => s.phase === 'unavailable'));
   assert.equal(created, 0);
   batch.close();
+});
+
+test('gallery denial preserves typed status without exposing an untrusted error body', async () => {
+  for (const status of [401, 403]) {
+    await assert.rejects(
+      readReviewGallery(
+        scope,
+        new AbortController().signal,
+        async () => new Response('untrusted private diagnostic', { status }),
+      ),
+      (error) =>
+        error instanceof ReviewGalleryAccessDenied &&
+        error.status === status &&
+        !error.message.includes('diagnostic'),
+    );
+  }
 });

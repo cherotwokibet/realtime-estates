@@ -1,4 +1,10 @@
 import { validateReviewMediaGallery, type ReviewMediaGallery } from '@realtor/domain';
+export class ReviewGalleryAccessDenied extends Error {
+  constructor(readonly status: 401 | 403) {
+    super('Gallery access unavailable.');
+    this.name = 'ReviewGalleryAccessDenied';
+  }
+}
 type Scope = Readonly<{ instanceId: string; listingId: string; revision: number; version: string }>;
 export async function readReviewGallery(
   scope: Scope,
@@ -48,6 +54,8 @@ export async function readReviewGallery(
     });
     const response = await Promise.race([pending, interrupted]);
     reader = response.body?.getReader();
+    if (response.status === 401 || response.status === 403)
+      throw new ReviewGalleryAccessDenied(response.status);
     if (
       response.status !== 200 ||
       response.redirected ||

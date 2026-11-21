@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
 import type { ReviewMediaGallery } from '@realtor/domain';
-import { readReviewGallery } from '../lib/review-gallery-client.ts';
+import { readReviewGallery, ReviewGalleryAccessDenied } from '../lib/review-gallery-client.ts';
 import {
   createReviewImageBatch,
   type PrivateImageState,
@@ -12,11 +12,13 @@ export default function ReviewImages({
   listingId,
   revision,
   version,
+  onDenied,
 }: {
   instanceId: string;
   listingId: string;
   revision: number;
   version: string;
+  onDenied?: () => void;
 }) {
   const batchRef = useRef<PrivateImageBatch | undefined>(undefined);
   const [gallery, setGallery] = useState<ReviewMediaGallery | null>(null),
@@ -56,7 +58,9 @@ export default function ReviewImages({
             },
             onDenied: () => {
               if (active) {
+                setGallery(null);
                 setImages({});
+                onDenied?.();
                 setMessage(
                   'Photo access is unavailable. Check the latest review before continuing.',
                 );
@@ -67,8 +71,9 @@ export default function ReviewImages({
         batchRef.current = batch;
         batch.start();
       })
-      .catch(() => {
+      .catch((error) => {
         if (active) {
+          if (error instanceof ReviewGalleryAccessDenied) onDenied?.();
           setGallery(null);
           setImages({});
           setMessage(
@@ -82,7 +87,7 @@ export default function ReviewImages({
       batch?.close();
       if (batchRef.current === batch) batchRef.current = undefined;
     };
-  }, [instanceId, listingId, revision, version]);
+  }, [instanceId, listingId, revision, version, onDenied]);
   return (
     <div aria-label="Verified review photos">
       <p role="status">{message}</p>

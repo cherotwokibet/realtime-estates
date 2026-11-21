@@ -1,6 +1,10 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import ReviewImages from './ReviewImages';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  createPrivateWorkspaceGuard,
+  PrivateWorkspaceCleared,
+} from '../lib/private-workspace-guard.ts';
+import ReviewImages from './ReviewImages.tsx';
 import type { ReviewDetailV2, ReviewSummaryV2, ReviewPageV2 } from '@realtor/api-client';
 import { calculateWirePricingV2, formatKes, kesFromMinor } from '@realtor/domain';
 import {
@@ -8,45 +12,45 @@ import {
   reviewReadback,
   reviewRejectionReason,
   type ReviewIntent,
-} from '../lib/review-model';
+} from '../lib/review-model.ts';
 
 type Failure = { status: number; uncertain: boolean };
-async function requestReview(path: string, instanceId: string, body?: unknown): Promise<unknown> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 20000);
+async function requestReview(
+  path: string,
+  instanceId: string,
+  signal: AbortSignal,
+  body?: unknown,
+): Promise<unknown> {
+  const combined = AbortSignal.any([signal, AbortSignal.timeout(20000)]);
+  let response: Response;
   try {
-    let response: Response;
-    try {
-      response = await fetch(path, {
-        method: body ? 'POST' : 'GET',
-        signal: controller.signal,
-        cache: 'no-store',
-        credentials: 'same-origin',
-        redirect: 'error',
-        headers: {
-          'X-Preview-Instance': instanceId,
-          ...(body ? { 'Content-Type': 'application/json' } : {}),
-        },
-        ...(body ? { body: JSON.stringify(body) } : {}),
-      });
-    } catch {
-      throw { status: 0, uncertain: !!body } satisfies Failure;
-    }
-    let data: unknown;
-    try {
-      data = await response.json();
-    } catch {
-      throw { status: response.status, uncertain: !!body } satisfies Failure;
-    }
-    if (!response.ok)
-      throw {
-        status: response.status,
-        uncertain: (data as { submissionUncertain?: boolean })?.submissionUncertain === true,
-      } satisfies Failure;
-    return data;
-  } finally {
-    clearTimeout(timer);
+    response = await fetch(path, {
+      method: body ? 'POST' : 'GET',
+      signal: combined,
+      cache: 'no-store',
+      credentials: 'same-origin',
+      redirect: 'error',
+      headers: {
+        'X-Preview-Instance': instanceId,
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+  } catch {
+    throw { status: 0, uncertain: !!body } satisfies Failure;
   }
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch {
+    throw { status: response.status, uncertain: !!body } satisfies Failure;
+  }
+  if (!response.ok)
+    throw {
+      status: response.status,
+      uncertain: (data as { submissionUncertain?: boolean })?.submissionUncertain === true,
+    } satisfies Failure;
+  return data;
 }
 function failureText(failure: Failure): string {
   if (failure.status === 401 || failure.status === 403)
@@ -75,13 +79,14 @@ const when = (value: string | null) =>
       }) + ' EAT'
     : 'Not recorded';
 
-export default function ReviewWorkspace({
-  previewInstanceId,
-  initialReview,
-}: {
+type ReviewWorkspaceProps = {
   previewInstanceId: string;
   initialReview?: Readonly<{ listingId: string; revision: number }>;
-}) {
+};
+export default function ReviewWorkspace(props: ReviewWorkspaceProps) {
+  return <ReviewSession key={props.previewInstanceId} {...props} />;
+}
+function ReviewSession({ previewInstanceId, initialReview }: ReviewWorkspaceProps) {
   const initialHandled = useRef(false);
   const [queue, setQueue] = useState<readonly ReviewSummaryV2[] | null>(null),
     [queueMessage, setQueueMessage] = useState('Loading pending revisions…');
@@ -95,7 +100,28 @@ export default function ReviewWorkspace({
   const [message, setMessage] = useState(
     'Select a pending revision to inspect its exact submitted content.',
   );
-  const call = (path: string, body?: unknown) => requestReview(path, previewInstanceId, body);
+  const lifecycle = useRef<ReturnType<typeof createPrivateWorkspaceGuard> | null>(null);
+  const denyPhotos = useCallback(() => lifecycle.current?.invalidate(), []);
+  const clearPrivate = () => {
+    initialHandled.current = true;
+    setQueue(null);
+    setReview(null);
+    setReason('');
+    setAck(false);
+    setBusy(false);
+    setQueueBusy(false);
+    setBlocked(true);
+    setError(true);
+    setQueueMessage('Private review access has been cleared. Restart the preview to check access.');
+    setMessage(
+      'Private content and unsaved notes cleared. No decision is confirmed by this screen.',
+    );
+  };
+  const call = (path: string, body?: unknown) => {
+    const guard = lifecycle.current;
+    if (!guard) return Promise.reject(new PrivateWorkspaceCleared());
+    return guard.run((signal) => requestReview(path, previewInstanceId, signal, body));
+  };
   const path = (item: { listingId: string; revision: number }) =>
     `/api/staff/reviews/${encodeURIComponent(item.listingId)}/${item.revision}`;
   async function loadQueue() {
@@ -109,6 +135,7 @@ export default function ReviewWorkspace({
           : `${page.items.length} pending revision${page.items.length === 1 ? '' : 's'} in this company.`,
       );
     } catch (failure) {
+      if (failure instanceof PrivateWorkspaceCleared) return;
       setQueueMessage(
         failureText(failure as Failure) +
           (queue ? ' Previously loaded queue retained; it may be out of date.' : ''),
@@ -119,10 +146,19 @@ export default function ReviewWorkspace({
   }
   useEffect(() => {
     let active = true;
+    const guard = createPrivateWorkspaceGuard(clearPrivate);
+    lifecycle.current = guard;
+    const channel =
+      typeof BroadcastChannel === 'undefined'
+        ? null
+        : new BroadcastChannel('realtor-hosted-auth-v1');
+    if (channel) channel.onmessage = (event) => guard.observe(event.data);
+    const pagehide = () => guard.invalidate();
+    window.addEventListener('pagehide', pagehide);
     setQueueBusy(true);
-    requestReview('/api/staff/reviews', previewInstanceId)
+    call('/api/staff/reviews')
       .then((value) => {
-        if (active) {
+        if (active && !guard.cleared) {
           const page = value as ReviewPageV2;
           setQueue(page.items);
           setQueueMessage(
@@ -133,13 +169,18 @@ export default function ReviewWorkspace({
         }
       })
       .catch((failure) => {
-        if (active) setQueueMessage(failureText(failure as Failure));
+        if (active && !(failure instanceof PrivateWorkspaceCleared))
+          setQueueMessage(failureText(failure as Failure));
       })
       .finally(() => {
-        if (active) setQueueBusy(false);
+        if (active && !guard.cleared) setQueueBusy(false);
       });
     return () => {
       active = false;
+      guard.dispose();
+      channel?.close();
+      window.removeEventListener('pagehide', pagehide);
+      if (lifecycle.current === guard) lifecycle.current = null;
     };
   }, [previewInstanceId]);
   const hasNotes = review?.state === 'pending' && (reason.length > 0 || ack || blocked);
@@ -165,6 +206,7 @@ export default function ReviewWorkspace({
       setBlocked(false);
       setMessage('Saved revision loaded. Check each section before a decision.');
     } catch (failure) {
+      if (failure instanceof PrivateWorkspaceCleared) return;
       setError(true);
       setMessage(failureText(failure as Failure));
     } finally {
@@ -195,6 +237,7 @@ export default function ReviewWorkspace({
       );
       void loadQueue();
     } catch (failure) {
+      if (failure instanceof PrivateWorkspaceCleared) return;
       setBlocked(true);
       setError(true);
       setMessage(failureText(failure as Failure));
@@ -208,6 +251,7 @@ export default function ReviewWorkspace({
     try {
       intent = { decision, reason: decision === 'reject' ? reviewRejectionReason(reason) : null };
     } catch (failure) {
+      if (failure instanceof PrivateWorkspaceCleared) return;
       setError(true);
       setMessage((failure as Error).message);
       return;
@@ -234,6 +278,7 @@ export default function ReviewWorkspace({
       );
       void loadQueue();
     } catch (failure) {
+      if (failure instanceof PrivateWorkspaceCleared) return;
       setBlocked(true);
       setAck(false);
       setError(true);
@@ -539,6 +584,7 @@ export default function ReviewWorkspace({
                 </ol>
                 {review.state === 'pending' && !busy && !blocked && !error && (
                   <ReviewImages
+                    onDenied={denyPhotos}
                     key={`${previewInstanceId}/${review.listingId}/${review.revision}/${review.version}`}
                     instanceId={previewInstanceId}
                     listingId={review.listingId}

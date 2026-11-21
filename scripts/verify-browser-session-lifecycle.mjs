@@ -53,7 +53,7 @@ async function port() {
   await new Promise((r) => s.close(r));
   return p;
 }
-async function start(app) {
+async function start(app, review = false) {
   const p = await port(),
     env = { ...process.env, NODE_ENV: 'production', APP_ENV: 'staging' };
   for (const k of Object.keys(env))
@@ -78,9 +78,11 @@ async function start(app) {
   env.BROWSER_IDENTITY_DATABASE_URL =
     'postgres://synthetic:synthetic-database-secret@127.0.0.1:1/identity?sslmode=verify-full';
   env.BROWSER_IDENTITY_STORAGE_KEY = 'ec'.repeat(32);
-  env[app === 'web' ? 'HOSTED_CUSTOMER_API_ORIGIN' : 'HOSTED_STAFF_API_ORIGIN'] =
-    'https://synthetic-api.example';
+  if (!review)
+    env[app === 'web' ? 'HOSTED_CUSTOMER_API_ORIGIN' : 'HOSTED_STAFF_API_ORIGIN'] =
+      'https://synthetic-api.example';
   env.PRIVACY_NOTICE_VERSION = 'synthetic-staff-v1';
+  if (review) env.STAFF_PREVIEW_INSTANCE = id(900); // Fixture scope only; production preview BFF stays disabled.
   const child = spawn(
     process.execPath,
     [resolve(root, 'node_modules/next/dist/bin/next'), 'start', '-p', String(p), '-H', '127.0.0.1'],
@@ -95,7 +97,7 @@ async function start(app) {
     async () => {
       if (child.exitCode !== null) throw Error(log);
       try {
-        return (await fetch(origin + '/sign-in')).ok;
+        return (await fetch(origin + (review ? '/reviews' : '/sign-in'))).ok;
       } catch {
         return false;
       }
@@ -193,6 +195,59 @@ async function tab(origin, path, kind, model) {
           nextAfter: null,
         },
       };
+    if (path === '/api/staff/reviews')
+      return {
+        items: [
+          {
+            listingId: listing,
+            revision: 1,
+            version: '1',
+            title: 'PRIVATE_QUEUE_CANARY',
+            amountMinor: null,
+            rentPeriod: null,
+            submittedAt: null,
+          },
+        ],
+      };
+    if (path === '/api/staff/reviews/' + listing + '/1')
+      return {
+        listingId: listing,
+        revision: 1,
+        version: '1',
+        listingVersion: '1',
+        slug: 'private-fixture',
+        state: 'pending',
+        publicationStatus: 'draft',
+        publishedRevision: null,
+        availability: 'available',
+        lastAvailabilityConfirmedAt: null,
+        submittedAt: null,
+        submittedBy: actor,
+        decidedAt: null,
+        decidedBy: null,
+        decisionReason: null,
+        acceptedPhotoCount: 0,
+        photos: [],
+        content: {
+          title: 'PRIVATE_REVIEW_CANARY',
+          description: 'Private submitted description',
+          purpose: null,
+          propertyType: null,
+          bedrooms: null,
+          privateBathrooms: null,
+          sharedBathrooms: null,
+          location: { area: null, town: null, county: null },
+          locality: null,
+          country: 'KE',
+          publicPrecision: 'area',
+          latitude: null,
+          longitude: null,
+          privateAddress: 'PRIVATE_ADDRESS_CANARY',
+          amountMinor: null,
+          rentPeriod: null,
+          pricing: { declaration: 'incomplete', charges: [] },
+        },
+      };
     throw Error('Unexpected synthetic endpoint ' + path);
   }
   handlers.set(s, async (m) => {
@@ -207,7 +262,7 @@ async function tab(origin, path, kind, model) {
       await cmd('Fetch.failRequest', { requestId, errorReason: 'BlockedByClient' });
       return;
     }
-    if (!/^\/(auth\/|api\/customer\/|api\/hosted-staff\/)/.test(u.pathname)) {
+    if (!/^\/(auth\/|api\/customer\/|api\/hosted-staff\/|api\/staff\/reviews)/.test(u.pathname)) {
       await cmd('Fetch.continueRequest', { requestId });
       return;
     }
@@ -216,8 +271,20 @@ async function tab(origin, path, kind, model) {
       return;
     }
     reads++;
+    if (u.pathname.endsWith('/media-gallery')) {
+      await fulfil(
+        requestId,
+        { error: 'synthetic-gallery-unavailable' },
+        model.galleryStatus ?? 503,
+      );
+      return;
+    }
+    if (model.reviewStatus && u.pathname.startsWith('/api/staff/reviews')) {
+      await fulfil(requestId, { error: 'synthetic-access-denied' }, model.reviewStatus);
+      return;
+    }
     const body = data(u.pathname);
-    if (model.hold && /favourites|branches|auth\/session/.test(u.pathname)) {
+    if (model.hold && /favourites|branches|auth\/session|staff\/reviews\//.test(u.pathname)) {
       held = () => fulfil(requestId, body);
       return;
     }
@@ -229,17 +296,21 @@ async function tab(origin, path, kind, model) {
   await cmd('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   await cmd('Page.navigate', { url: origin + path });
   const selector =
-    kind === 'staff'
-      ? '.hosted-staff'
-      : kind === 'customer'
-        ? '.customer-account'
-        : '.hosted-sign-in';
+    kind === 'review'
+      ? '.review-workspace-layout'
+      : kind === 'staff'
+        ? '.hosted-staff'
+        : kind === 'customer'
+          ? '.customer-account'
+          : '.hosted-sign-in';
   const privateText =
-    kind === 'staff'
-      ? 'PRIVATE_BRANCH_CANARY'
-      : kind === 'customer'
-        ? 'PRIVATE_HOME_CANARY'
-        : 'You are signed in.';
+    kind === 'review'
+      ? 'PRIVATE_REVIEW_CANARY'
+      : kind === 'staff'
+        ? 'PRIVATE_BRANCH_CANARY'
+        : kind === 'customer'
+          ? 'PRIVATE_HOME_CANARY'
+          : 'You are signed in.';
   const text = () => evaljs(`document.querySelector(${JSON.stringify(selector)})?.innerText || ''`);
   const visible = async () => (await text()).includes(privateText);
   await until(visible, kind + ' private initial render');
@@ -462,6 +533,96 @@ try {
           '/' +
           kind +
           ': expiry and sign-in notifications cannot unlock cleared views; legacy messages fail closed; explicit checks are local',
+      );
+    }
+    if (app === 'admin') {
+      const reviewOrigin = await start('admin', true);
+      const path = '/reviews?listingId=' + listing + '&revision=1';
+      const model = { expiresAt: Date.now() + 120000, logouts: [], hold: false };
+      const a = await tab(reviewOrigin, path, 'review', model),
+        b = await tab(reviewOrigin, path, 'review', model);
+      await b.evaljs(
+        `(()=>{const x=document.querySelector('.review-workspace-layout textarea');if(!x)throw Error('Missing review reason');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(x,'PRIVATE_REASON_CANARY');x.dispatchEvent(new Event('input',{bubbles:true}));})()`,
+      );
+      assert.equal(
+        await b.evaljs(`document.querySelector('textarea').value`),
+        'PRIVATE_REASON_CANARY',
+      );
+      model.hold = true;
+      await b.click('Check latest review');
+      await until(() => b.held(), 'held review refresh');
+      await a.evaljs(
+        `(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signing-out'});c.close();})()`,
+      );
+      await until(
+        async () => !(await a.visible()) && !(await b.visible()),
+        'review tabs clear immediately',
+      );
+      await b
+        .held()()
+        .catch(() => {});
+      await pause(200);
+      const count = b.reads();
+      await b.evaljs(
+        `window.dispatchEvent(new Event('focus'));window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}));(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signed-in'});c.close();})()`,
+      );
+      await pause(200);
+      assert.equal(b.reads(), count);
+      assert.doesNotMatch(await b.text(), /PRIVATE_(REVIEW|QUEUE|ADDRESS|REASON)_CANARY/);
+      assert.equal(
+        await b.evaljs(`!!document.querySelector('.review-workspace-layout textarea')`),
+        false,
+      );
+      assert.equal(
+        await b.evaljs(
+          `!![...document.querySelectorAll('.review-workspace-layout button')].find(x=>x.textContent.includes('Approve synthetic'))`,
+        ),
+        false,
+      );
+      assert.deepEqual(a.errors, []);
+      assert.deepEqual(b.errors, []);
+      await a.close();
+      await b.close();
+      evidence.tests.push(
+        'admin/review: two-tab logout clears cards/address/reason/media subtree; late refresh and sign-in hints cannot restore or dispatch cached decisions',
+      );
+      for (const status of [401, 403]) {
+        const denied = { expiresAt: Date.now() + 120000, logouts: [], hold: false };
+        const c = await tab(reviewOrigin, path, 'review', denied);
+        denied.reviewStatus = status;
+        await c.click('Check latest review');
+        await until(async () => !(await c.visible()), 'review denial ' + status);
+        assert.doesNotMatch(await c.text(), /PRIVATE_(REVIEW|QUEUE|ADDRESS)_CANARY/);
+        const n = c.reads();
+        await c.click('Refresh queue');
+        await pause(150);
+        assert.equal(c.reads(), n, 'locked preview cannot dispatch another private request');
+        assert.deepEqual(c.errors, []);
+        await c.close();
+        evidence.tests.push(
+          'admin/review: HTTP ' +
+            status +
+            ' clears loaded private content and blocks further preview requests',
+        );
+      }
+      const media = { expiresAt: Date.now() + 120000, logouts: [], hold: false };
+      const c = await tab(reviewOrigin, path, 'review', media);
+      media.galleryStatus = 403;
+      await c.click('Check latest review');
+      await until(async () => !(await c.visible()), 'gallery denial clears parent review');
+      assert.doesNotMatch(await c.text(), /PRIVATE_(REVIEW|QUEUE|ADDRESS)_CANARY/);
+      assert.deepEqual(c.errors, []);
+      await c.close();
+      evidence.tests.push('admin/review: denied gallery clears the containing private review');
+      const hidden = { expiresAt: Date.now() + 120000, logouts: [], hold: false };
+      const d = await tab(reviewOrigin, path, 'review', hidden);
+      await d.evaljs(`window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));`);
+      await until(async () => !(await d.visible()), 'review pagehide clear');
+      assert.doesNotMatch(await d.text(), /PRIVATE_(REVIEW|QUEUE|ADDRESS)_CANARY/);
+      assert.deepEqual(d.errors, []);
+      await d.close();
+      evidence.tests.push(
+        'admin/review: pagehide removes private rendering before a persisted-page restore',
       );
     }
   }
