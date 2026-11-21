@@ -1,3 +1,9 @@
+## Published Android emulator journey fixes and ARM64 review download, checkpoint 474, 21 November 2026 EAT
+
+Private dashboard deployment appgdep_6b0177076b448191b4c32acd714e5524 succeeded from dashboard ae4ff4bbf99e4105907d1dddc0614c4da4bbe4a5. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source 32aa2663206c6823a94f9a957d92c248ba582066 passed complete seven-job CI44894933636 and bounded emulator checks as recorded in native473/native474-device receipts. Gallery, keyboard and draft-first Profile defects were fixed. New ARM64 APK/ZIP built and inspected with the exact same Hermes bundle as tested x86; physical ARM64 startup is unverified. Initial blank emulator screen required foreground recovery; no startup/performance gate passed. All earlier downloads and1012 notes/manual fields were preserved; billing stays disabled. Whole55/97 tasks/all14 gates remain open. Next: complete common private review/enquiry/author-media invalidation and owned HTTP/SQL revoke/cached-edit proof for whole05-7.
+
 ## Verified Android journey checkpoint 474 — 21 November 2026 EAT
 
 Source32aa2663206c6823a94f9a957d92c248ba582066 passed all seven CI44894933636 jobs, including native102/102 and twelve actual Linux browser lifecycle checks. Matching x86 APK773153c71801 retested bounded gallery and exact draft visible immediately in Profile. Earlier same-batch source55f4493 actual-device proof covers keyboard/save/review/remove/viewing/offline/same-process background clearing/filter retention. Initial final-APK blank screen required Home/resume; startup/performance gate remains open. Both scoped source-bound receipts and screenshots are retained. No physical ARM64/iOS/provider/live-booking acceptance.
