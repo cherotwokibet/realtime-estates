@@ -1,6 +1,7 @@
 'use client';
 
 import EnquiryActivity from './EnquiryActivity';
+import PrivateWorkspaceBoundary, { usePrivateWorkspaceClear } from './PrivateWorkspaceBoundary.tsx';
 import EnquiryContacts from './EnquiryContacts';
 import EnquiryViewings from './EnquiryViewings';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -72,7 +73,14 @@ function Snapshot({ value }: { value: StaffEnquiryDetailV2 }) {
   );
 }
 
-export default function EnquiryWorkspace({
+export default function EnquiryWorkspace(props: Props) {
+  return (
+    <PrivateWorkspaceBoundary key={[props.instanceId, props.actor, props.actorId].join(':')}>
+      <EnquirySession {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function EnquirySession({
   actor,
   actorId,
   instanceId,
@@ -81,6 +89,7 @@ export default function EnquiryWorkspace({
   initialViewingId,
   initialViewingMode,
 }: Props) {
+  const clearPrivateWorkspace = usePrivateWorkspaceClear();
   const client = useMemo(
     () => createEnquiryPreviewClient({ basePath: `/api/enquiry-preview/${actor}`, instanceId }),
     [actor, instanceId],
@@ -134,6 +143,7 @@ export default function EnquiryWorkspace({
   }
   function deny(error: unknown) {
     if (error instanceof EnquiryPreviewError && [401, 403, 404].includes(error.status)) {
+      clearPrivateWorkspace();
       readGuard.current.invalidate();
       sequence.current++;
       readRef.current?.abort();

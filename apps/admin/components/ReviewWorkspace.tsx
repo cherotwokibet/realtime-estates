@@ -5,6 +5,7 @@ import {
   PrivateWorkspaceCleared,
 } from '../lib/private-workspace-guard.ts';
 import ReviewImages from './ReviewImages.tsx';
+import PrivateWorkspaceBoundary from './PrivateWorkspaceBoundary.tsx';
 import type { ReviewDetailV2, ReviewSummaryV2, ReviewPageV2 } from '@realtor/api-client';
 import { calculateWirePricingV2, formatKes, kesFromMinor } from '@realtor/domain';
 import {
@@ -84,7 +85,11 @@ type ReviewWorkspaceProps = {
   initialReview?: Readonly<{ listingId: string; revision: number }>;
 };
 export default function ReviewWorkspace(props: ReviewWorkspaceProps) {
-  return <ReviewSession key={props.previewInstanceId} {...props} />;
+  return (
+    <PrivateWorkspaceBoundary key={props.previewInstanceId}>
+      <ReviewSession {...props} />
+    </PrivateWorkspaceBoundary>
+  );
 }
 function ReviewSession({ previewInstanceId, initialReview }: ReviewWorkspaceProps) {
   const initialHandled = useRef(false);
@@ -148,13 +153,6 @@ function ReviewSession({ previewInstanceId, initialReview }: ReviewWorkspaceProp
     let active = true;
     const guard = createPrivateWorkspaceGuard(clearPrivate);
     lifecycle.current = guard;
-    const channel =
-      typeof BroadcastChannel === 'undefined'
-        ? null
-        : new BroadcastChannel('realtor-hosted-auth-v1');
-    if (channel) channel.onmessage = (event) => guard.observe(event.data);
-    const pagehide = () => guard.invalidate();
-    window.addEventListener('pagehide', pagehide);
     setQueueBusy(true);
     call('/api/staff/reviews')
       .then((value) => {
@@ -178,8 +176,6 @@ function ReviewSession({ previewInstanceId, initialReview }: ReviewWorkspaceProp
     return () => {
       active = false;
       guard.dispose();
-      channel?.close();
-      window.removeEventListener('pagehide', pagehide);
       if (lifecycle.current === guard) lifecycle.current = null;
     };
   }, [previewInstanceId]);

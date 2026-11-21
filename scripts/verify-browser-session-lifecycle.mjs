@@ -226,8 +226,13 @@ async function tab(origin, path, kind, model) {
         decidedAt: null,
         decidedBy: null,
         decisionReason: null,
-        acceptedPhotoCount: 0,
-        photos: [],
+        acceptedPhotoCount: model.liveMedia ? 4 : 0,
+        photos: model.liveMedia
+          ? Array.from({ length: 4 }, (_, i) => ({
+              key: 'synthetic/fixture/' + i + '.webp',
+              alt: 'Private fixture ' + i,
+            }))
+          : [],
         content: {
           title: 'PRIVATE_REVIEW_CANARY',
           description: 'Private submitted description',
@@ -271,12 +276,51 @@ async function tab(origin, path, kind, model) {
       return;
     }
     reads++;
+    if (/\/media\/[^/]+\/preview$/.test(u.pathname)) {
+      const image = () =>
+        cmd('Fetch.fulfillRequest', {
+          requestId,
+          responseCode: 200,
+          responseHeaders: [
+            { name: 'content-type', value: 'image/webp' },
+            {
+              name: 'content-length',
+              value: String(
+                Buffer.from(
+                  'UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAIAAUAmJYgCdLoAA5gA/vmo7+1Niqnnd+hRsol8wAAA',
+                  'base64',
+                ).length,
+              ),
+            },
+            { name: 'x-revision-version', value: '1' },
+            { name: 'cache-control', value: 'no-store' },
+          ],
+          body: 'UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoCAAIAAUAmJYgCdLoAA5gA/vmo7+1Niqnnd+hRsol8wAAA',
+        });
+      if (model.holdImages) model.imageWaiters.push(image);
+      else await image();
+      return;
+    }
     if (u.pathname.endsWith('/media-gallery')) {
-      await fulfil(
-        requestId,
-        { error: 'synthetic-gallery-unavailable' },
-        model.galleryStatus ?? 503,
-      );
+      if (model.liveMedia)
+        await fulfil(requestId, {
+          kind: 'review_media_gallery',
+          listingId: listing,
+          revision: 1,
+          version: '1',
+          state: 'pending',
+          photos: Array.from({ length: 4 }, (_, i) => ({
+            id: id(100 + i),
+            alt: 'Private fixture ' + i,
+            position: i,
+          })),
+        });
+      else
+        await fulfil(
+          requestId,
+          { error: 'synthetic-gallery-unavailable' },
+          model.galleryStatus ?? 503,
+        );
       return;
     }
     if (model.reviewStatus && u.pathname.startsWith('/api/staff/reviews')) {
@@ -614,6 +658,76 @@ try {
       assert.deepEqual(c.errors, []);
       await c.close();
       evidence.tests.push('admin/review: denied gallery clears the containing private review');
+      const shownMedia = {
+        expiresAt: Date.now() + 120000,
+        logouts: [],
+        hold: false,
+        liveMedia: true,
+      };
+      const loaded = await tab(reviewOrigin, path, 'review', shownMedia);
+      await until(
+        () =>
+          loaded.evaljs(
+            `(()=>{const a=[...document.querySelectorAll('.review-image-grid img')];return a.length===4&&a.every(x=>x.complete&&x.naturalWidth===2);})()`,
+          ),
+        'four decoded private WebP fixtures',
+      );
+      const urls = await loaded.evaljs(
+        `(()=>{window.revokedPrivateUrls=[];const revoke=URL.revokeObjectURL.bind(URL);URL.revokeObjectURL=u=>{window.revokedPrivateUrls.push(u);revoke(u)};return [...document.querySelectorAll('.review-image-grid img')].map(x=>x.src)})()`,
+      );
+      await loaded.evaljs(
+        `(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signed-out'});c.close()})()`,
+      );
+      await until(
+        async () => !(await loaded.visible()),
+        'shared boundary removes decoded private media',
+      );
+      await until(
+        async () => (await loaded.evaljs('window.revokedPrivateUrls')).length === 4,
+        'all owned private blob URLs revoked',
+      );
+      assert.deepEqual((await loaded.evaljs('window.revokedPrivateUrls')).sort(), urls.sort());
+      assert.equal(
+        await loaded.evaljs(`document.querySelectorAll('.review-image-grid img').length`),
+        0,
+      );
+      assert.deepEqual(loaded.errors, []);
+      await loaded.close();
+      evidence.tests.push(
+        'admin/private boundary: account change unmounts private media and revokes all four decoded WebP blob URLs',
+      );
+      const waitingMedia = {
+        expiresAt: Date.now() + 120000,
+        logouts: [],
+        hold: false,
+        liveMedia: true,
+        holdImages: true,
+        imageWaiters: [],
+      };
+      const waiting = await tab(reviewOrigin, path, 'review', waitingMedia);
+      await until(
+        () => waitingMedia.imageWaiters.length === 2,
+        'two concurrent private image reads held',
+      );
+      await waiting.evaljs(
+        `(()=>{window.latePrivateUrls=0;const create=URL.createObjectURL.bind(URL);URL.createObjectURL=b=>{window.latePrivateUrls++;return create(b)};const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signed-out'});c.close()})()`,
+      );
+      await until(
+        async () => !(await waiting.visible()),
+        'shared boundary removes pending private image subscriptions',
+      );
+      for (const release of waitingMedia.imageWaiters) await release().catch(() => {});
+      await pause(200);
+      assert.equal(
+        await waiting.evaljs('window.latePrivateUrls'),
+        0,
+        'late image replies cannot create private blob URLs after unmount',
+      );
+      assert.deepEqual(waiting.errors, []);
+      await waiting.close();
+      evidence.tests.push(
+        'admin/private boundary: pending private image reads cancel and late replies create no blob URL',
+      );
       const hidden = { expiresAt: Date.now() + 120000, logouts: [], hold: false };
       const d = await tab(reviewOrigin, path, 'review', hidden);
       await d.evaljs(`window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));`);

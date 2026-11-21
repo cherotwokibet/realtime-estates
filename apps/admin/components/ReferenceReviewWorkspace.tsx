@@ -11,6 +11,7 @@ import {
   type ReferenceModerationAttempt,
 } from '../lib/reference-moderation-workspace.ts';
 import ReviewImages from './ReviewImages.tsx';
+import PrivateWorkspaceBoundary, { usePrivateWorkspaceClear } from './PrivateWorkspaceBoundary.tsx';
 import ReviewListingVideo from './ReviewListingVideo.tsx';
 import {
   referenceTransitionActions,
@@ -33,9 +34,14 @@ export default function ReferenceReviewWorkspace(props: WorkspaceProps) {
     props.context?.review.revisionVersion ?? 'recovery',
     props.context?.review.listingVersion ?? 'recovery',
   ].join(':');
-  return <ReferenceReview key={key} {...props} />;
+  return (
+    <PrivateWorkspaceBoundary key={key}>
+      <ReferenceReview {...props} />
+    </PrivateWorkspaceBoundary>
+  );
 }
 function ReferenceReview(props: WorkspaceProps) {
+  const clearPrivateWorkspace = usePrivateWorkspaceClear();
   const context = useMemo(
     () =>
       props.context === null
@@ -111,8 +117,10 @@ function ReferenceReview(props: WorkspaceProps) {
         );
       } catch (error) {
         if (epoch !== generation.current || controller.signal.aborted) return;
-        if (error instanceof ApiClientError && [401, 403].includes(error.status ?? 0))
+        if (error instanceof ApiClientError && [401, 403].includes(error.status ?? 0)) {
           setDenied(true);
+          clearPrivateWorkspace();
+        }
         setPhase('locked');
         setMessage(
           props.purpose === 'author'
@@ -176,8 +184,10 @@ function ReferenceReview(props: WorkspaceProps) {
       );
     } catch (error) {
       if (epoch !== generation.current) return;
-      if (error instanceof ApiClientError && [401, 403].includes(error.status ?? 0))
+      if (error instanceof ApiClientError && [401, 403].includes(error.status ?? 0)) {
         setDenied(true);
+        clearPrivateWorkspace();
+      }
       const state = current.current?.status;
       setPhase(state === 'uncertain' ? 'uncertain' : state === 'rejected' ? 'rejected' : 'locked');
       setMessage(
@@ -204,8 +214,10 @@ function ReferenceReview(props: WorkspaceProps) {
       setMessage('The original result is confirmed. Clear the settled original before leaving.');
     } catch (error) {
       if (epoch !== generation.current) return;
-      if (error instanceof ApiClientError && [401, 403].includes(error.status ?? 0))
+      if (error instanceof ApiClientError && [401, 403].includes(error.status ?? 0)) {
         setDenied(true);
+        clearPrivateWorkspace();
+      }
       setPhase('uncertain');
       setMessage(
         'The original remains unconfirmed. Saved facts and the decision lock are retained.',
@@ -408,6 +420,7 @@ function ReferenceReview(props: WorkspaceProps) {
       </ol>
       {props.purpose !== 'author' && !['restoring', 'locked', 'settled'].includes(phase) && (
         <ReviewImages
+          onDenied={clearPrivateWorkspace}
           instanceId={props.scope.instanceId}
           listingId={reviewed.listingId}
           revision={reviewed.revision}

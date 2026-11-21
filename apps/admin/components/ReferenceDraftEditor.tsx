@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { draftToForm, formToDraft, type DraftForm } from '../lib/editor-model.ts';
 import { referenceFormCommand } from '../lib/reference-draft-form.ts';
+import { usePrivateWorkspaceClear } from './PrivateWorkspaceBoundary.tsx';
+import { ApiClientError } from '@realtor/api-client';
 import ReferencePropertyFields from './ReferencePropertyFields.tsx';
 import ReferenceDraftOriginal from './ReferenceDraftOriginal.tsx';
 import { assertReferenceDraftAuthorClear } from '../lib/reference-author-policy.ts';
@@ -36,6 +38,7 @@ export interface ReferenceDraftEditorProps {
 }
 /** Reference picker mounted only through the current-authorized synthetic workspace route. */
 export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
+  const clearPrivateWorkspace = usePrivateWorkspaceClear();
   const catalogue = useMemo(
     () => validateListingReferenceCatalogue(props.catalogue),
     [props.catalogue],
@@ -84,7 +87,10 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
       flight.current = false;
       setStatus('blocked');
       setMessage('Reference saving is not connected.');
-      return () => abort.abort();
+      return () => {
+        generation.current++;
+        abort.abort();
+      };
     }
     void (async () => {
       try {
@@ -103,7 +109,9 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
               ? 'This saved snapshot is read-only. Original recovery remains available.'
               : 'Choose explicit reference facts.',
         );
-      } catch {
+      } catch (error) {
+        if (error instanceof ApiClientError && [401, 403].includes(error.status ?? 0))
+          clearPrivateWorkspace();
         if (generation.current === scope && !abort.signal.aborted) {
           setStatus('blocked');
           setMessage(
@@ -114,7 +122,10 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
         if (generation.current === scope) flight.current = false;
       }
     })();
-    return () => abort.abort();
+    return () => {
+      generation.current++;
+      abort.abort();
+    };
   }, [
     props.client,
     props.scope.instanceId,
@@ -196,8 +207,10 @@ export default function ReferenceDraftEditor(props: ReferenceDraftEditorProps) {
       if (generation.current !== scope) return;
       setStatus(original.status);
       setMessage(`Original saved at revision version ${original.receipt!.revisionVersion}.`);
-    } catch {
+    } catch (error) {
       if (generation.current !== scope) return;
+      if (error instanceof ApiClientError && [401, 403].includes(error.status ?? 0))
+        clearPrivateWorkspace();
       const state = current.current?.status ?? 'ready';
       setStatus(current.current && state === 'ready' ? 'blocked' : state);
       setMessage(

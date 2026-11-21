@@ -1,10 +1,15 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import {
+  createPrivateWorkspaceGuard,
+  PrivateWorkspaceCleared,
+} from '../lib/private-workspace-guard.ts';
+import {
   validateStaffDraftWorkspaceV2,
   type StaffDraftV2,
   type StaffDraftWorkspaceV2,
 } from '@realtor/api-client';
+import PrivateWorkspaceBoundary, { usePrivateWorkspaceClear } from './PrivateWorkspaceBoundary.tsx';
 import DraftGallery, { type GalleryWork } from './DraftGallery.tsx';
 import PhotoUpload from './PhotoUpload.tsx';
 import type { PrivateImageTuple } from '../lib/private-image.ts';
@@ -37,6 +42,7 @@ async function requestDraft(
   instanceId: string,
   method = 'GET',
   body?: unknown,
+  signal?: AbortSignal,
 ): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20000);
@@ -45,7 +51,7 @@ async function requestDraft(
     try {
       response = await fetch(path, {
         method,
-        signal: controller.signal,
+        signal: signal ? AbortSignal.any([signal, controller.signal]) : controller.signal,
         cache: 'no-store',
         credentials: 'same-origin',
         redirect: 'error',
@@ -95,17 +101,29 @@ function failureMessage(failure: Failure): string {
 }
 const label = (key: string) =>
   key.replace(/([A-Z])/g, ' $1').replace(/^./, (letter) => letter.toUpperCase());
-export default function DraftEditor({
-  listingId,
-  revision,
-  previewInstanceId,
-  photoPreviewEnabled = false,
-}: {
+type DraftEditorProps = {
   listingId: string;
   revision: number;
   previewInstanceId: string;
   photoPreviewEnabled?: boolean;
-}) {
+};
+export default function DraftEditor(props: DraftEditorProps) {
+  return (
+    <PrivateWorkspaceBoundary
+      key={[props.previewInstanceId, props.listingId, props.revision].join(':')}
+    >
+      <DraftSession {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function DraftSession({
+  listingId,
+  revision,
+  previewInstanceId,
+  photoPreviewEnabled = false,
+}: DraftEditorProps) {
+  const clearPrivateWorkspace = usePrivateWorkspaceClear();
+  const lifecycle = useRef<ReturnType<typeof createPrivateWorkspaceGuard> | null>(null);
   const [baseline, setBaseline] = useState<StaffDraftV2 | null>(null),
     [form, setForm] = useState<DraftForm | null>(null);
   const [workspace, setWorkspace] = useState<StaffDraftWorkspaceV2 | null>(null),
@@ -130,8 +148,11 @@ export default function DraftEditor({
     setUploadActive(locked);
   };
   const path = `/api/staff/drafts/${encodeURIComponent(listingId)}/${revision}`;
-  const call = (target: string, method = 'GET', body?: unknown) =>
-    requestDraft(target, previewInstanceId, method, body);
+  const call = (target: string, method = 'GET', body?: unknown) => {
+    const guard = lifecycle.current;
+    if (!guard) return Promise.reject(new PrivateWorkspaceCleared());
+    return guard.run((signal) => requestDraft(target, previewInstanceId, method, body, signal));
+  };
   const readWorkspace = async () =>
     validateStaffDraftWorkspaceV2(await call(path + '/workspace'), listingId, revision);
   const dirty = !!(form && baseline && !formsEqual(form, draftToForm(baseline.content)));
@@ -212,6 +233,8 @@ export default function DraftEditor({
   }
   useEffect(() => {
     let active = true;
+    const guard = createPrivateWorkspaceGuard(clearPrivateWorkspace);
+    lifecycle.current = guard;
     imageStale.current = false;
     savedGallery.current = null;
     flight.current = true;
@@ -227,7 +250,7 @@ export default function DraftEditor({
     setBlocked(false);
     setError(false);
     setMessage('Loading the assigned draft…');
-    requestDraft(path + '/workspace', previewInstanceId)
+    call(path + '/workspace')
       .then((value) => {
         if (active) {
           const saved = validateStaffDraftWorkspaceV2(value, listingId, revision);
@@ -236,6 +259,7 @@ export default function DraftEditor({
         }
       })
       .catch((failure: Failure) => {
+        if (failure instanceof PrivateWorkspaceCleared) return;
         if (active) {
           setError(true);
           setMessage(failureMessage(failure));
@@ -246,6 +270,8 @@ export default function DraftEditor({
       });
     return () => {
       active = false;
+      guard.dispose();
+      if (lifecycle.current === guard) lifecycle.current = null;
     };
   }, [path, previewInstanceId]);
   useEffect(() => {
@@ -298,6 +324,7 @@ export default function DraftEditor({
         );
       }
     } catch (failure) {
+      if (failure instanceof PrivateWorkspaceCleared) return;
       setMessage(failureMessage(failure as Failure));
       setError(true);
     } finally {
@@ -324,6 +351,7 @@ export default function DraftEditor({
     try {
       content = formToDraft(form);
     } catch (failure) {
+      if (failure instanceof PrivateWorkspaceCleared) return;
       setMessage((failure as Error).message);
       setError(true);
       return;
@@ -361,6 +389,7 @@ export default function DraftEditor({
         );
       }
     } catch (failure) {
+      if (failure instanceof PrivateWorkspaceCleared) return;
       const failed = failure as Failure;
       setMessage(failureMessage(failed));
       setError(true);
@@ -396,6 +425,7 @@ export default function DraftEditor({
           ? createRemoveCommand(workspace, removeTarget!, crypto.randomUUID())
           : createReorderCommand(workspace, order, crypto.randomUUID());
     } catch (failure) {
+      if (failure instanceof PrivateWorkspaceCleared) return;
       setError(true);
       setMessage((failure as Error).message);
       return;
@@ -431,6 +461,7 @@ export default function DraftEditor({
       setGalleryWork({ command, receipt, refused: false });
       setMessage('Original photo result received. Read the current gallery before continuing.');
     } catch (failure) {
+      if (failure instanceof PrivateWorkspaceCleared) return;
       const failed = failure as Failure,
         refused =
           !!failed.status && failed.status >= 400 && failed.status < 500 && !failed.uncertain;
@@ -465,6 +496,7 @@ export default function DraftEditor({
           : 'The current saved version is loaded. The original result is historical; compare before continuing.',
       );
     } catch (failure) {
+      if (failure instanceof PrivateWorkspaceCleared) return;
       setError(true);
       setMessage(
         'The original photo change is still retained. Its result or current gallery could not be verified. Check again when access and the connection return.',

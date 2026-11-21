@@ -1,4 +1,5 @@
 'use client';
+import PrivateWorkspaceBoundary, { usePrivateWorkspaceClear } from './PrivateWorkspaceBoundary.tsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ApiClientError } from '@realtor/api-client';
 import { validateListingVideoCommand, type ListingVideo } from '@realtor/domain';
@@ -7,6 +8,21 @@ import { createListingVideoClient } from '../lib/listing-video-client.ts';
 import type { ListingVideoScreen } from '../lib/listing-video-screen.ts';
 type Attempt = ReturnType<typeof videoAttempt>;
 export default function ListingVideoWorkspace(props: ListingVideoScreen) {
+  const scope = [
+    props.scope.instanceId,
+    props.scope.tenantId,
+    props.scope.actorId,
+    props.scope.listingId,
+    props.scope.revision,
+  ].join(':');
+  return (
+    <PrivateWorkspaceBoundary key={scope}>
+      <ListingVideoSession {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function ListingVideoSession(props: ListingVideoScreen) {
+  const clearPrivateWorkspace = usePrivateWorkspaceClear();
   const client = useMemo(
     () => createListingVideoClient(props.scope),
     [
@@ -106,6 +122,8 @@ export default function ListingVideoWorkspace(props: ListingVideoScreen) {
         setMessage('The exact original is confirmed. Clear it and load a fresh saved revision.');
     } catch (e) {
       if (turn !== generation.current) return;
+      if (e instanceof ApiClientError && [401, 403].includes(e.status ?? 0))
+        clearPrivateWorkspace();
       if (e instanceof ApiClientError && [401, 403].includes(e.status ?? 0)) {
         setLost(true);
         setMessage(

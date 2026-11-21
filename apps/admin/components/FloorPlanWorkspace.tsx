@@ -1,4 +1,6 @@
 'use client';
+import PrivateWorkspaceBoundary, { usePrivateWorkspaceClear } from './PrivateWorkspaceBoundary.tsx';
+import { ApiClientError } from '@realtor/api-client';
 import FloorPlanImage from './FloorPlanImage.tsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -11,6 +13,21 @@ import type { readFloorPlanScreen } from '../lib/floor-plan-server.ts';
 type Screen = Awaited<ReturnType<typeof readFloorPlanScreen>>;
 type Attempt = ReturnType<typeof floorPlanAttempt>;
 export default function FloorPlanWorkspace(props: Screen) {
+  const scope = [
+    props.scope.instanceId,
+    props.scope.tenantId,
+    props.scope.actorId,
+    props.scope.listingId,
+    props.scope.revision,
+  ].join(':');
+  return (
+    <PrivateWorkspaceBoundary key={scope}>
+      <FloorPlanSession {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function FloorPlanSession(props: Screen) {
+  const clearPrivateWorkspace = usePrivateWorkspaceClear();
   const client = useMemo(
     () => createFloorPlanClient(props.scope),
     [
@@ -137,8 +154,10 @@ export default function FloorPlanWorkspace(props: Screen) {
           ? 'Floor plan prepared. Attach it to the saved draft when ready.'
           : 'Saved floor-plan change verified. Clear this settled original and reload the saved draft.',
       );
-    } catch {
+    } catch (error) {
       if (turn !== generation.current) return;
+      if (error instanceof ApiClientError && [401, 403].includes(error.status ?? 0))
+        clearPrivateWorkspace();
       setMessage(
         original.status === 'refused'
           ? 'This request was refused before a write. Clear it and inspect a fresh draft.'
