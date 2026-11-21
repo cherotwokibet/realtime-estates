@@ -1,3 +1,9 @@
+## Verified local staff directory and ordinary allocation 479 - 21 November 2026
+
+Source6dfb96aeab66f7e10f41bfdb78a95d4afb414fee pushed. Current-source CI44934410977 PASSED all seven jobs;44 controlled browser cases repeated in Linux Chrome157. CI admin592/1skip is explicit. Staff directory and ordinary creation/successor allocation now use scoped verified access gates, raw401/403 closure, complete operation cancellation and lifetime/stream cleanup. Local6 focused tests, admin593/593, UI53/53, fresh production admin build/types/format and44 actual browser fixture cases passed. Twelve new browser cases cover three workflows with held recovery/logout,401,403 and expiry; exact retained originals remain unchanged. Developer-only context fixtures/controlled replies, not hosted provider/cookie/SQL browser or native/history-cache acceptance. Evidence docs/evidence/2026-11-21-private479.md.
+
+Private479 publication is next;478 remains published until it succeeds. Whole05-7 remains open;55/97 tasks/all14 gates/1012 notes preserved. Settings/report pending commands are currently only in React memory: implement durable original retention before adding their logout unmounts. Continue safe retained-original storage isolation and complete remaining private consumer/owned-authority/native matrix. Billing disabled; preserve vendor/live, exports, signing, credits/plan and earlier474 Android preview. Next finish private publication with retained CI logs, then settings/report persistence and appropriate privacy closure.
+
 ## Published creation and successor private lifecycle, checkpoint 478, 21 November 2026 EAT
 
 Private dashboard deployment appgdep_6b01d474aea881918a21a8f972b35b48 succeeded from dashboard ee437d675817f3ae5df476d35e66f6a63958f579. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
