@@ -1,0 +1,26 @@
+✔ verified RS256 leases and sealed originals cross two owned HTTP envelopes with current SQL role, revocation and expiry (5414.8391ms)
+✔ settings cipher preserves normalized original across fresh instances without exposing command/key, with a fresh nonce (6.5129ms)
+✔ settings ciphertext-only store survives disposal and current-authorized reopening; retaining the same original is idempotent (2.9341ms)
+✔ report cipher preserves normalized original across fresh instances without exposing command/key, with a fresh nonce (0.7448ms)
+✔ report ciphertext-only store survives disposal and current-authorized reopening; retaining the same original is idempotent (1.1085ms)
+✔ authenticated envelopes refuse wrong key, IV/tag/ciphertext tamper, metadata substitution, malformed encoding and unbounded inputs (1.1642ms)
+✔ recovery BFF defaults closed, pins same-origin nonce and refuses authority/cookies/duplicates before releasing any plaintext (37.8877ms)
+✔ BFF rechecks SQL-derived role/actor after a body read and does not decrypt on denied, expired or changed authority (9.148ms)
+✔ browser recovery client fixes paths, strips credentials and rejects scope/operation/redirect substitution (3.8034ms)
+✔ sealed store refuses replacement, concurrent preparation and failed persistence/readback without a write permission claim (6.6082ms)
+✔ store abort/denial preserves stored ciphertext and no cached callback can load or replace it (0.967ms)
+✔ settings confirmed release requires complete original, current actor and intact matching ciphertext (1.4231ms)
+✔ report confirmed release requires complete original, current actor and intact matching ciphertext (0.9487ms)
+✔ confirmed release refuses a replacement during current-authorized reopening and preserves the replacement bytes (1.9481ms)
+✔ recovery readiness verifies captured scope and key configuration without returning a command or mutation permission (2.0853ms)
+✔ browser decoded JSON permits standard compression with bounded decoded bytes and rejects wire/framing/duplicate ambiguity (2.5996ms)
+✔ settings: terminal resolution releases only the exact current-scope original; malformed or substituted retirement preserves ciphertext (1.7925ms)
+✔ report: terminal resolution releases only the exact current-scope original; malformed or substituted retirement preserves ciphertext (2.0351ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5889.9922

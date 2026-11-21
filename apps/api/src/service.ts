@@ -1,3 +1,8 @@
+import {
+  privateOperationKind,
+  privateOperationOriginal,
+  validatePrivateOperationResolution,
+} from '@realtor/domain';
 import { validateStaffAccessLease, STAFF_ACCESS_LEASE_MAX_MS } from '@realtor/domain';
 import { readSyntheticUploadBody, SyntheticUploadBodyError } from '@realtor/media/upload-body';
 import {
@@ -237,6 +242,7 @@ export interface ApiServiceOptions {
   readonly staffBranchMode?: 'hosted-staff-branches-v1';
   /** Local synthetic capture/review only; omission keeps every report route unavailable. */
   readonly publicReportMode?: 'synthetic-listing-report-v1';
+  readonly privateOperationResolutionMode?: 'synthetic-serialized-original-v1';
   readonly reportLimiter?: EnquiryLimiter;
   /** Isolated synthetic reference candidates only; omitted keeps every v3 reference route unavailable. */
   readonly referenceDraftMode?: 'synthetic-reference-draft-v1';
@@ -1667,6 +1673,14 @@ export function createApiService(
     options.publicReportMode !== 'synthetic-listing-report-v1'
   )
     throw Error('Unsupported public report mode.');
+  if (
+    options.privateOperationResolutionMode !== undefined &&
+    (options.privateOperationResolutionMode !== 'synthetic-serialized-original-v1' ||
+      process.env.NODE_ENV === 'production')
+  )
+    throw Error('Private operation resolution requires an explicit synthetic non-production mode.');
+  const privateOperationResolutionEnabled =
+    options.privateOperationResolutionMode === 'synthetic-serialized-original-v1';
   const publicReportsEnabled = options.publicReportMode === 'synthetic-listing-report-v1';
   if (publicReportsEnabled && !/^[a-z0-9][a-z0-9.-]{0,119}$/.test(options.privacyNoticeVersion))
     throw Error('A canonical report notice version is required.');
@@ -4313,6 +4327,66 @@ export function createApiService(
       if (path.startsWith('/v1/staff/') || v2Draft || enquiryQueueV3) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const resolutionRoute =
+          /^\/v2\/staff\/private-operations\/(settings|report)\/([^/]+)\/resolve$/.exec(path);
+        if (resolutionRoute) {
+          if (!privateOperationResolutionEnabled)
+            throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+          if (method !== 'POST')
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Explicit resolution only.', {
+              Allow: 'POST',
+            });
+          if (
+            request.url.includes('?') ||
+            request.url.includes('#') ||
+            headerNames(request.headers).some(
+              (k) =>
+                [
+                  'cookie',
+                  'range',
+                  'idempotency-key',
+                  'content-encoding',
+                  'transfer-encoding',
+                ].includes(k) ||
+                k.startsWith('x-') ||
+                k.startsWith('if-'),
+            )
+          )
+            throw new HttpError(
+              400,
+              'INVALID_INPUT',
+              'Resolution accepts no caller-selected authority or query.',
+            );
+          const kind = privateOperationKind(resolutionRoute[1]),
+            operationId = uuid(resolutionRoute[2], 'operationId');
+          let original;
+          try {
+            original = privateOperationOriginal(
+              kind,
+              await jsonBody(request, 32768, true, true, true, false, true, 5000),
+            );
+          } catch (e) {
+            if (e instanceof HttpError) throw e;
+            throw new HttpError(400, 'INVALID_INPUT', 'Invalid original.');
+          }
+          if (operationId !== resolutionRoute[2] || original.operationId !== operationId)
+            throw new HttpError(400, 'INVALID_INPUT', 'Original changed route.');
+          const result = await options.database.transaction(context, async (query) => {
+            await assertAdmin(query);
+            await query.query("SET LOCAL statement_timeout = '2s'");
+            const rows = await query.query(
+              'SELECT app_api.resolve_private_operation($1,$2::jsonb) AS resolution',
+              [kind, JSON.stringify(original)],
+            );
+            return validatePrivateOperationResolution(scalar(rows, 'resolution'), {
+              kind,
+              original,
+              tenantId,
+              actorId: actorId!,
+            });
+          });
+          return response(200, result, correlationId);
+        }
         const settingsRoute = /^\/v2\/staff\/company-settings(?:\/operations\/([^/]+))?$/.exec(
           path,
         );

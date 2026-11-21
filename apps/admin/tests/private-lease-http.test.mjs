@@ -95,9 +95,11 @@ test('verified RS256 leases and sealed originals cross two owned HTTP envelopes 
       allowLoopbackHttpForTests: true,
     });
     service = createApiService({
+      privateOperationResolutionMode: 'synthetic-serialized-original-v1',
       database,
       tenantId: id(1),
       privacyNoticeVersion: 'owned-lease-v1',
+      publicReportMode: 'synthetic-listing-report-v1',
       verifyAuthorization: (request) =>
         verify(parseBearerHeader(request.headers.get('authorization'))),
     });
@@ -123,7 +125,7 @@ test('verified RS256 leases and sealed originals cross two owned HTTP envelopes 
       wire((request) => {
         frontCalls++;
         const match =
-          /^\/api\/private-workspace\/recovery\/(settings|report)\/(seal|open|check)$/.exec(
+          /^\/api\/private-workspace\/recovery\/(settings|report)\/(seal|open|check|resolve)$/.exec(
             new URL(request.url).pathname,
           );
         return match
@@ -211,6 +213,43 @@ test('verified RS256 leases and sealed originals cross two owned HTTP envelopes 
         wrongScope.seal(commands[kind], new AbortController().signal),
         (e) => e.status === 403,
       );
+    }
+    for (const [index, kind] of ['settings', 'report'].entries()) {
+      const original = { ...commands[kind], operationId: id(300 + index) },
+        codec = createPrivateRecoveryClient(recoveryScope, kind, http),
+        map = new Map(),
+        storage = {
+          getItem: (k) => map.get(k) ?? null,
+          setItem: (k, v) => map.set(k, v),
+          removeItem: (k) => map.delete(k),
+        },
+        store = createSealedRecoveryStore(storage, recoveryScope, kind, codec);
+      await store.retain(original);
+      const before = [...map],
+        resolved = await codec.resolve(original, new AbortController().signal);
+      assert.equal(resolved.outcome, 'cancelled');
+      assert.deepEqual([...map], before, 'The endpoint alone cannot clear browser intent.');
+      assert.deepEqual(await codec.resolve(original, new AbortController().signal), resolved);
+      await store.releaseConfirmed(original, resolved);
+      assert.equal(map.size, 0);
+      const route =
+        kind === 'settings'
+          ? '/v2/staff/company-settings/operations/' + original.operationId
+          : '/v2/staff/listing-reports/' +
+            original.reportId +
+            '/operations/' +
+            original.operationId;
+      const late = await fetch(origin + route, {
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer ' + env.STAFF_PREVIEW_TOKEN,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(original),
+      });
+      assert.equal(late.status, 409, 'Retired originals can never apply when delayed/replayed.');
+      assert.match(late.headers.get('cache-control'), /no-store/);
+      store.dispose();
     }
     // A privileged fixture operator changes the stored role; the API login itself has no write grant.
     await db.exec('SET SESSION AUTHORIZATION postgres; RESET ROLE');

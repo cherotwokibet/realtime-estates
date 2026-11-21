@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import {
+  validatePrivateOperationResolution,
   parseListingReportJson,
   validateListingReportQueue,
   validateListingReportDecisionCommand,
@@ -171,6 +172,33 @@ function ReportsContent({ instanceId, scope }: Props) {
       if (alive.current) setBusy(false);
     }
   }
+  async function resolveOriginal() {
+    if (!pending || locked.current || recovery.busy) return;
+    locked.current = true;
+    setBusy(true);
+    try {
+      const result = validatePrivateOperationResolution(await recovery.resolve(pending), {
+        kind: 'report',
+        original: pending,
+        tenantId: scope.tenantId,
+        actorId: scope.actorId,
+      });
+      if (!alive.current) return;
+      setReason('');
+      setSelected(null);
+      setQueue(null);
+      setStatus(
+        result.outcome === 'cancelled'
+          ? 'Original permanently retired without a review decision. Load current reports before a new decision.'
+          : 'Original review confirmed. Load current reports to continue.',
+      );
+    } catch (e) {
+      if (alive.current) failure(e);
+    } finally {
+      locked.current = false;
+      if (alive.current) setBusy(false);
+    }
+  }
   function submit() {
     if (!selected || pending || locked.current) return;
     try {
@@ -309,6 +337,13 @@ function ReportsContent({ instanceId, scope }: Props) {
             it.
           </p>
           <pre>{JSON.stringify(pending, null, 2)}</pre>
+          <p>
+            Closing checks the saved result first. If it was never applied, the server permanently
+            blocks this original operation from applying later. It does not undo a saved review.
+          </p>
+          <button disabled={recovery.busy || busy} onClick={() => void resolveOriginal()}>
+            Close this original safely
+          </button>
           <button disabled={recovery.busy || busy} onClick={() => void review('GET', pending)}>
             Check original review
           </button>

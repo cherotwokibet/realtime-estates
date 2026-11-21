@@ -1,3 +1,4 @@
+import { verifyPrivateOperationResolution } from './private-operation-resolution-checks.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
@@ -339,6 +340,12 @@ test('real PostgreSQL TCP runtime isolates transactions and serializes concurren
         0,
       );
     });
+    await t.test(
+      'terminal private originals serialize with real settings/report writers',
+      async (resolutionTest) => {
+        await verifyPrivateOperationResolution(resolutionTest, owner, database, context, id);
+      },
+    );
     await t.test(
       'current company/actor and membership revocation deny recovery without exposing an original',
       async () => {

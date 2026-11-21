@@ -1424,6 +1424,7 @@ export async function startStaffPreview(options = {}) {
     let floorUploadFault = !!floorPlanReplyFault,
       floorAttachFault = !!floorPlanReplyFault;
     const service = createApiService({
+      privateOperationResolutionMode: 'synthetic-serialized-original-v1',
       database,
       ...(nativeFloorPlan
         ? {
@@ -1580,6 +1581,12 @@ export async function startStaffPreview(options = {}) {
       async (request) => {
         const denied = guard(request);
         if (denied) return denied;
+        if (
+          /^\/v2\/staff\/private-operations\/(settings|report)\/[^/]+\/resolve$/.test(
+            new URL(request.url).pathname,
+          )
+        )
+          return service(request);
         if (
           floorPlanPublicationMode &&
           /^(?:\/v3\/properties\/[^/]+\/revisions\/[^/]+|\/v2\/staff\/reviews\/[^/]+\/[^/]+)\/floor-plan/.test(

@@ -99,6 +99,7 @@ export async function startAdminAuditPreview({ mode, company = 'realtime-estates
       .setExpirationTime('15m')
       .sign(keys.privateKey);
     const service = createApiService({
+      privateOperationResolutionMode: 'synthetic-serialized-original-v1',
       tenantId,
       privacyNoticeVersion: 'synthetic-staff-notice-v1',
       adminAuditMode: mode,

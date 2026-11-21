@@ -1,6 +1,7 @@
 'use client';
 import { useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
+  validatePrivateOperationResolution,
   brandThemeCss,
   validateCompanySettingsCommand,
   validateCompanySettingsContent,
@@ -186,6 +187,42 @@ function CompanySettingsContent({ initialState, instanceId, scope }: Props) {
       abort.current = null;
     }
   }
+  async function resolveOriginal() {
+    if (!pending || busy || recovery.busy) return;
+    setBusy(true);
+    try {
+      const result = validatePrivateOperationResolution(await recovery.resolve(pending), {
+        kind: 'settings',
+        original: pending,
+        tenantId: scope.tenantId,
+        actorId: scope.actorId,
+      });
+      setApproved(false);
+      setNeedsAdoption(true);
+      setMessage(
+        result.outcome === 'cancelled'
+          ? 'Original permanently retired without publication. Refresh saved content before a new change.'
+          : 'Original publication confirmed. Refresh saved content before another change.',
+      );
+      const current = validateCompanySettingsState(
+        await recovery.read((signal) => request(null, undefined, signal)),
+      );
+      setState(current);
+      setForm(current.current ?? initial);
+      setComparison(null);
+      setNeedsAdoption(false);
+      setMessage(
+        result.outcome === 'cancelled'
+          ? 'Original permanently retired without publication. Current saved content loaded; review and approve any new change.'
+          : 'Original publication confirmed. Current saved content loaded.',
+      );
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : 'Original resolution remains uncertain.');
+    } finally {
+      setBusy(false);
+      abort.current = null;
+    }
+  }
   async function compare() {
     setBusy(true);
     try {
@@ -334,6 +371,14 @@ function CompanySettingsContent({ initialState, instanceId, scope }: Props) {
               recovery after reload; closing the tab can remove it.
             </p>
             <pre>{JSON.stringify(pending, null, 2)}</pre>
+            <p>
+              Closing checks the saved result first. If it was never applied, the server permanently
+              blocks this original operation from applying later. It does not undo saved
+              publication.
+            </p>
+            <button disabled={recovery.busy || busy} onClick={() => void resolveOriginal()}>
+              Close this original safely
+            </button>
             <button disabled={recovery.busy || busy} onClick={() => void original(pending)}>
               Inspect original result
             </button>

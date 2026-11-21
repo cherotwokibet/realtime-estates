@@ -1,3 +1,4 @@
+import { validatePrivateOperationResolution } from '@realtor/domain';
 import {
   validateCompanySettingsCommand,
   validateCompanySettingsRecord,
@@ -106,6 +107,17 @@ export function recoveryReceipt(
   receipt: unknown,
 ) {
   const command = recoveryCommand(kind, input);
+  if (
+    receipt &&
+    typeof receipt === 'object' &&
+    Object.getOwnPropertyDescriptor(receipt, 'policy')?.value === 'private-operation-resolution-v1'
+  )
+    return validatePrivateOperationResolution(receipt, {
+      kind,
+      original: command,
+      tenantId: scope.tenantId,
+      actorId: scope.actorId,
+    });
   if (kind === 'settings') {
     const value = validateCompanySettingsRecord(receipt);
     if (

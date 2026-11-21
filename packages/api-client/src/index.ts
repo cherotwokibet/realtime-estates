@@ -1,3 +1,9 @@
+import {
+  privateOperationKind,
+  privateOperationOriginal,
+  validatePrivateOperationResolution,
+  type PrivateOperationKind,
+} from '@realtor/domain';
 import { validateStaffAccessLease, type StaffAccessLease } from '@realtor/domain';
 import { readPublishedFloorPlanImageBytes, type FloorPlanImageDigest } from './floor-plan-image.js';
 export { readPublishedFloorPlanImageBytes, type FloorPlanImageDigest } from './floor-plan-image.js';
@@ -4978,6 +4984,35 @@ export class RealtorApiClient {
         return validateViewingOutcomeReceipt(data, id, viewing, kind, command);
       } catch {
         return invalid('INVALID_RESPONSE', 'Invalid viewing outcome receipt.');
+      }
+    } catch (error) {
+      return uncertainWriteError(error);
+    }
+  }
+  async resolvePrivateOperation(
+    kindInput: PrivateOperationKind,
+    input: unknown,
+    options: StaffRequestOptions,
+  ) {
+    let kind, original;
+    try {
+      kind = privateOperationKind(kindInput);
+      original = privateOperationOriginal(kind, input);
+    } catch {
+      return invalid('VALIDATION', 'Invalid original resolution.');
+    }
+    const captured = uploadOptions(options);
+    try {
+      const data = await this.request(
+        `/v2/staff/private-operations/${kind}/${original.operationId}/resolve`,
+        'POST',
+        captured,
+        { ...original },
+      );
+      try {
+        return validatePrivateOperationResolution(data, { kind, original });
+      } catch {
+        return invalid('INVALID_RESPONSE', 'Original resolution is uncertain.');
       }
     } catch (error) {
       return uncertainWriteError(error);

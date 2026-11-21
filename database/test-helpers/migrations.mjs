@@ -39,6 +39,7 @@ const files = [
   '0035_public_media_preview.sql',
   '0036_company_settings.sql',
   '0037_listing_reports.sql',
+  '0038_private_operation_resolution.sql',
 ];
 export async function applyTestMigrations(database, { after, through } = {}) {
   // Historical migration fixtures can continue through the reviewed current order.

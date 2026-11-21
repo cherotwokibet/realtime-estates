@@ -1,3 +1,4 @@
+import { validatePrivateOperationResolution } from '@realtor/domain';
 import { ApiClientError } from '@realtor/api-client';
 import {
   captureRecoveryScope,
@@ -18,7 +19,11 @@ export function createPrivateRecoveryClient(
 ) {
   const scope = captureRecoveryScope(inputScope),
     kind = recoveryKind(inputKind);
-  async function request(action: 'seal' | 'open' | 'check', value: unknown, caller: AbortSignal) {
+  async function request(
+    action: 'seal' | 'open' | 'check' | 'resolve',
+    value: unknown,
+    caller: AbortSignal,
+  ) {
     const signal = AbortSignal.any([caller, AbortSignal.timeout(5000)]),
       path = '/api/private-workspace/recovery/' + kind + '/' + action;
     if (signal.aborted) throw new ApiClientError('CANCELLED', 'Recovery unavailable.');
@@ -32,7 +37,7 @@ export function createPrivateRecoveryClient(
       body: JSON.stringify(
         action === 'check'
           ? { scope }
-          : { scope, [action === 'seal' ? 'command' : 'envelope']: value },
+          : { scope, [action === 'seal' || action === 'resolve' ? 'command' : 'envelope']: value },
       ),
     });
     if (response.status !== 200 || response.redirected) {
@@ -58,6 +63,15 @@ export function createPrivateRecoveryClient(
     return data;
   }
   return Object.freeze({
+    async resolve(input: unknown, signal: AbortSignal) {
+      const original = recoveryCommand(kind, input);
+      return validatePrivateOperationResolution(await request('resolve', original, signal), {
+        kind,
+        original,
+        tenantId: scope.tenantId,
+        actorId: scope.actorId,
+      });
+    },
     async check(signal: AbortSignal) {
       const row = recoveryObject(await request('check', undefined, signal), [
         'policy',

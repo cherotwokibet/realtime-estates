@@ -570,3 +570,49 @@ test('browser decoded JSON permits standard compression with bounded decoded byt
       ),
     );
 });
+
+for (const [kind, command] of [
+  ['settings', settings],
+  ['report', report],
+]) {
+  test(
+    kind +
+      ': terminal resolution releases only the exact current-scope original; malformed or substituted retirement preserves ciphertext',
+    async () => {
+      const cipher = createPrivateRecoveryCipher(key),
+        storage = memory(),
+        codec = {
+          seal: async (c) => cipher.seal(scope, kind, c),
+          open: async (e) => cipher.open(scope, kind, e),
+        },
+        store = createSealedRecoveryStore(storage, scope, kind, codec);
+      await store.retain(command);
+      const saved = [...storage.map];
+      const resolution = {
+        policy: 'private-operation-resolution-v1',
+        tenantId: scope.tenantId,
+        actorId: scope.actorId,
+        kind,
+        operationId: command.operationId,
+        request: command,
+        outcome: 'cancelled',
+        receipt: null,
+        recordedAt: '2026-11-22T00:00:00.000Z',
+      };
+      for (const bad of [
+        { ...resolution, actorId: id(99) },
+        { ...resolution, tenantId: id(99) },
+        { ...resolution, operationId: id(99) },
+        { ...resolution, outcome: 'missing' },
+        { ...resolution, receipt: {} },
+        { ...resolution, request: { ...command, expectedVersion: '2' } },
+      ]) {
+        await assert.rejects(async () => store.releaseConfirmed(command, bad));
+        assert.deepEqual([...storage.map], saved);
+      }
+      assert.deepEqual(await store.releaseConfirmed(command, resolution), resolution);
+      assert.equal(storage.map.size, 0);
+      store.dispose();
+    },
+  );
+}

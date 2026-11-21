@@ -79,6 +79,7 @@ export async function startAdminCommandFixture({ staff = false } = {}) {
     for (const tenantId of [T, OTHER]) {
       const server = createDevelopmentServer(
         createApiService({
+          privateOperationResolutionMode: 'synthetic-serialized-original-v1',
           tenantId,
           ...(staff
             ? {

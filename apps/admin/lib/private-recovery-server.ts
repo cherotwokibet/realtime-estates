@@ -1,3 +1,5 @@
+import { recoveryCommand } from './private-recovery-contract.ts';
+import { validatePrivateOperationResolution } from '@realtor/domain';
 import 'server-only';
 import { ApiClientError, RealtorApiClient } from '@realtor/api-client';
 import { previewConfiguration, assertPreviewRequest } from './staff-preview-policy.ts';
@@ -32,7 +34,8 @@ export async function privateRecoveryRequest(
   let kind;
   try {
     kind = recoveryKind(kindInput);
-    if (action !== 'seal' && action !== 'open' && action !== 'check') throw Error();
+    if (action !== 'seal' && action !== 'open' && action !== 'check' && action !== 'resolve')
+      throw Error();
   } catch {
     return reply(404, { error: 'RECOVERY_UNAVAILABLE' });
   }
@@ -96,7 +99,9 @@ export async function privateRecoveryRequest(
     if (initial.role !== 'admin') return reply(403, { error: 'RECOVERY_UNAVAILABLE' });
     const input = recoveryObject(
       await readReferenceJson(request, RECOVERY_MAX_WIRE_BYTES, signal),
-      action === 'check' ? ['scope'] : ['scope', action === 'seal' ? 'command' : 'envelope'],
+      action === 'check'
+        ? ['scope']
+        : ['scope', action === 'seal' || action === 'resolve' ? 'command' : 'envelope'],
     );
     const scope = captureRecoveryScope(input.scope),
       current = await client.getCurrentStaffAccessLeaseV2(options);
@@ -118,7 +123,21 @@ export async function privateRecoveryRequest(
         ? { policy: 'private-recovery-ready-v1', scope: trusted, kind }
         : action === 'seal'
           ? cipher.seal(trusted, kind, input.command)
-          : cipher.open(trusted, kind, input.envelope);
+          : action === 'resolve'
+            ? validatePrivateOperationResolution(
+                await client.resolvePrivateOperation(
+                  kind,
+                  recoveryCommand(kind, input.command),
+                  options,
+                ),
+                {
+                  kind,
+                  original: input.command,
+                  tenantId: trusted.tenantId,
+                  actorId: trusted.actorId,
+                },
+              )
+            : cipher.open(trusted, kind, input.envelope);
     if (signal.aborted || Date.now() >= Date.parse(current.expiresAt))
       return reply(403, { error: 'RECOVERY_UNAVAILABLE' });
     return reply(200, value);

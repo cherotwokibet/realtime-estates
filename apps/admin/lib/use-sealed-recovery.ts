@@ -154,6 +154,10 @@ export function useSealedRecovery(inputScope: RecoveryScope, kind: RecoveryKind)
     error,
     read,
     execute,
+    resolve: (input: unknown) =>
+      execute(input, (command, signal) =>
+        createPrivateRecoveryClient(scope, kind).resolve(command, signal),
+      ),
     cancel: () => current.current?.abort?.abort(),
     retry: () => setReload((n) => n + 1),
   };

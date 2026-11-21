@@ -89,7 +89,8 @@ async function port() {
   return p;
 }
 // Owned mutable HTTP fixtures, not SQL/provider evidence. Recovery still uses the real Node BFF cipher.
-const sealedReceipts = new Map();
+const sealedReceipts = new Map(),
+  sealedCancellations = new Map();
 let sealedWrites = 0;
 const settingsState = {
   policy: 'company-settings-state-v1',
@@ -101,7 +102,11 @@ const settingsState = {
 async function sealedFixture(req, res) {
   const path = new URL(req.url, 'http://fixture.invalid').pathname;
   const reply = (status, body) => {
-    res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    res.writeHead(status, {
+      'content-type': 'application/json',
+      'cache-control': 'no-store',
+      'x-request-id': id(1888),
+    });
     res.end(JSON.stringify(body));
   };
   if (path === '/v2/staff/session-lease') {
@@ -114,6 +119,53 @@ async function sealedFixture(req, res) {
       checkedAt: new Date(now).toISOString(),
       expiresAt: new Date(now + 30000).toISOString(),
     });
+    return true;
+  }
+  const resolution = /^\/v2\/staff\/private-operations\/(settings|report)\/([^/]+)\/resolve$/.exec(
+    path,
+  );
+  if (resolution) {
+    let text = '';
+    for await (const chunk of req) text += chunk;
+    const original = JSON.parse(text),
+      kind = resolution[1],
+      slot = kind + ':' + original.operationId,
+      savedPath =
+        kind === 'settings'
+          ? '/v2/staff/company-settings/operations/' + original.operationId
+          : '/v2/staff/listing-reports/' +
+            original.reportId +
+            '/operations/' +
+            original.operationId,
+      receipt = sealedReceipts.get(savedPath);
+    if (!receipt && !sealedCancellations.has(slot))
+      sealedCancellations.set(slot, {
+        policy: 'private-operation-resolution-v1',
+        tenantId: tenant,
+        actorId: actor,
+        kind,
+        operationId: original.operationId,
+        request: original,
+        outcome: 'cancelled',
+        receipt: null,
+        recordedAt: '2026-11-22T00:00:01.000Z',
+      });
+    reply(
+      200,
+      receipt
+        ? {
+            policy: 'private-operation-resolution-v1',
+            tenantId: tenant,
+            actorId: actor,
+            kind,
+            operationId: original.operationId,
+            request: original,
+            outcome: 'completed',
+            receipt,
+            recordedAt: receipt.recordedAt,
+          }
+        : sealedCancellations.get(slot),
+    );
     return true;
   }
   if (path === '/v2/staff/company-settings') {
@@ -148,6 +200,17 @@ async function sealedFixture(req, res) {
       let text = '';
       for await (const chunk of req) text += chunk;
       const command = JSON.parse(text);
+      if (
+        sealedCancellations.has(
+          (path.includes('/company-settings/') ? 'settings' : 'report') + ':' + command.operationId,
+        )
+      ) {
+        reply(409, {
+          error: { code: 'CONFLICT', message: 'Original permanently retired' },
+          requestId: id(1888),
+        });
+        return true;
+      }
       if (!sealedReceipts.has(path)) {
         sealedWrites++;
         sealedReceipts.set(
@@ -171,6 +234,15 @@ async function sealedFixture(req, res) {
                 recordedAt: '2026-11-22T00:00:01.000Z',
               },
         );
+      }
+      if (path.includes('/company-settings/')) {
+        const receipt = sealedReceipts.get(path);
+        Object.assign(settingsState, {
+          version: receipt.version,
+          current: receipt.request.content,
+          history: [receipt],
+          hasMore: false,
+        });
       }
     }
     reply(sealedReceipts.has(path) ? 200 : 404, sealedReceipts.get(path) ?? { error: 'missing' });
@@ -475,6 +547,27 @@ async function tab(origin, path, kind, model) {
       else await complete();
       return;
     }
+    if (
+      model.sealedKind &&
+      u.pathname === '/api/private-workspace/recovery/' + model.sealedKind + '/resolve'
+    ) {
+      reads++;
+      if (model.resolutionStatus) {
+        await fulfil(requestId, { error: 'synthetic-denial' }, model.resolutionStatus);
+        return;
+      }
+      const response = await fetch(request.url, {
+        method: 'POST',
+        headers: { origin, 'x-preview-instance': id(900), 'content-type': 'application/json' },
+        body: request.postData,
+      });
+      const body = await response.json();
+      if (model.resolveWrongActor) body.actorId = id(99);
+      const complete = () => fulfil(requestId, body, response.status);
+      if (model.holdResolution) held = complete;
+      else await complete();
+      return;
+    }
     if (model.recoveryUnavailable && u.pathname.startsWith('/api/private-workspace/recovery/')) {
       await fulfil(requestId, { error: 'synthetic-recovery-unavailable' }, 503);
       return;
@@ -675,8 +768,9 @@ async function tab(origin, path, kind, model) {
   await cmd('Page.enable');
   await cmd('Emulation.setFocusEmulationEnabled', { enabled: true });
   await cmd('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
+  let originalScript;
   if (model.originalEntries)
-    await cmd('Page.addScriptToEvaluateOnNewDocument', {
+    originalScript = await cmd('Page.addScriptToEvaluateOnNewDocument', {
       source: `for(const [k,v] of ${JSON.stringify(model.originalEntries)})sessionStorage.setItem(k,v);`,
     });
   await cmd('Page.navigate', { url: origin + path });
@@ -713,10 +807,19 @@ async function tab(origin, path, kind, model) {
                 ? 'PRIVATE_HOME_CANARY'
                 : 'You are signed in.';
   const text = () => evaljs(`document.querySelector(${JSON.stringify(selector)})?.innerText || ''`);
-  const visible = async () => (await text()).includes(privateText);
+  const visible = async () =>
+    kind === 'settings' || kind === 'report'
+      ? evaljs(
+          `document.querySelector(${JSON.stringify(selector + ' pre')})?.textContent.includes(${JSON.stringify(privateText)}) || false`,
+        )
+      : (await text()).includes(privateText);
   if (!model.allowChecking) await until(visible, kind + ' private initial render');
   return {
     cmd,
+    unseed: () =>
+      originalScript
+        ? cmd('Page.removeScriptToEvaluateOnNewDocument', { identifier: originalScript.identifier })
+        : Promise.resolve(),
     evaljs,
     text,
     visible,
@@ -1615,6 +1718,147 @@ try {
       'admin/' +
         kind +
         ': idle access expiry removes private forms without deleting encrypted intent or reopening on focus',
+    );
+    const completed = await tab(sealedOrigin, path, kind, { ...model, originalEntries: entries });
+    await until(() => completed.visible(), kind + ' completed original restored');
+    const cancellationsBefore = sealedCancellations.size;
+    await completed.click('Close this original safely');
+    await until(
+      async () => (await snapshot(completed)) === '[]',
+      kind + ' existing applied original resolved',
+    );
+    assert.equal(sealedCancellations.size, cancellationsBefore);
+    assert.equal(sealedWrites, writesBefore + 1);
+    if (kind === 'settings')
+      await until(
+        () => completed.evaljs("document.body.innerText.includes('Current saved content loaded.')"),
+        'settings current version after resolution',
+      );
+    assert.deepEqual(completed.errors, []);
+    await completed.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': explicit safe close confirms an applied original without cancelling or duplicating it',
+    );
+    const scope = { instanceId: id(900), tenantId: tenant, actorId: actor };
+    const codec = async (action, value) => {
+      const response = await fetch(
+        sealedOrigin + '/api/private-workspace/recovery/' + kind + '/' + action,
+        {
+          method: 'POST',
+          headers: {
+            origin: sealedOrigin,
+            'x-preview-instance': id(900),
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({ scope, [action === 'open' ? 'envelope' : 'command']: value }),
+        },
+      );
+      assert.equal(response.status, 200);
+      return response.json();
+    };
+    const old = await codec('open', JSON.parse(entries[0][1])),
+      original = { ...old, operationId: id(kind === 'settings' ? 1700 : 1701) },
+      capsule = await codec('seal', original),
+      newEntries = [[entries[0][0], JSON.stringify(capsule)]];
+    const pendingModel = { ...model, originalEntries: newEntries, holdResolution: true },
+      retired = await tab(sealedOrigin, path, kind, pendingModel);
+    await until(() => retired.visible(), kind + ' unapplied original restored');
+    await retired.unseed();
+    const retained = await snapshot(retired);
+    await retired.click('Close this original safely');
+    await until(() => retired.held(), kind + ' committed retirement reply held');
+    assert.equal(sealedCancellations.size, cancellationsBefore + 1);
+    await retired.evaljs(
+      "(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signing-out'});c.close()})()",
+    );
+    await until(
+      () => retired.evaljs('!!document.querySelector(\'[aria-label="Private view closed"]\')'),
+      kind + ' retirement logout',
+    );
+    assert.equal(await snapshot(retired), retained);
+    await retired
+      .held()()
+      .catch(() => {});
+    await pause(100);
+    assert.equal(await snapshot(retired), retained);
+    pendingModel.holdResolution = false;
+    await retired.cmd('Page.reload');
+    await until(() => retired.visible(), kind + ' encrypted retirement original restored');
+    await retired.click('Close this original safely');
+    await until(
+      async () => (await snapshot(retired)) === '[]',
+      kind + ' idempotent safe close recovered',
+    );
+    assert.equal(sealedCancellations.size, cancellationsBefore + 1);
+    assert.equal(sealedWrites, writesBefore + 1);
+    const latePath =
+      kind === 'settings'
+        ? '/api/company-settings/operations/' + original.operationId
+        : '/api/listing-reports/' + original.reportId + '/operations/' + original.operationId;
+    const late = await fetch(sealedOrigin + latePath, {
+      method: 'POST',
+      headers: {
+        origin: sealedOrigin,
+        'x-preview-instance': id(900),
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify(original),
+    });
+    assert.equal(late.status, 409);
+    assert.equal(sealedWrites, writesBefore + 1);
+    assert.deepEqual(retired.errors, []);
+    await retired.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': lost retirement reply/logout keeps ciphertext; authorized reload recovers exact cancellation once and delayed original writes remain blocked',
+    );
+    for (const status of [401, 403]) {
+      const denied = await tab(sealedOrigin, path, kind, {
+        ...model,
+        originalEntries: newEntries,
+        resolutionStatus: status,
+      });
+      await until(() => denied.visible(), kind + ' denied resolution restored');
+      const saved = await snapshot(denied);
+      await denied.click('Close this original safely');
+      await until(
+        () => denied.evaljs('!!document.querySelector(\'[aria-label="Private view closed"]\')'),
+        kind + ' resolution denial closes',
+      );
+      assert.equal(await snapshot(denied), saved);
+      assert.deepEqual(denied.errors, []);
+      await denied.close();
+      evidence.tests.push(
+        'admin/' +
+          kind +
+          ': explicit resolution HTTP ' +
+          status +
+          ' closes private view without erasing encrypted intent',
+      );
+    }
+    const wrongResolution = await tab(sealedOrigin, path, kind, {
+      ...model,
+      originalEntries: newEntries,
+      resolveWrongActor: true,
+    });
+    await until(() => wrongResolution.visible(), kind + ' mismatched resolution restored');
+    const savedWrong = await snapshot(wrongResolution);
+    await wrongResolution.click('Close this original safely');
+    await until(
+      () =>
+        wrongResolution.evaljs(
+          "!![...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Close this original safely'&&!b.disabled)",
+        ),
+      kind + ' mismatched resolution settled',
+    );
+    assert.equal(await snapshot(wrongResolution), savedWrong);
+    assert.deepEqual(wrongResolution.errors, []);
+    await wrongResolution.close();
+    evidence.tests.push(
+      'admin/' + kind + ': a changed resolution actor cannot clear encrypted intent',
     );
   }
   console.log(JSON.stringify(evidence, null, 2));

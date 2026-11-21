@@ -1,0 +1,47 @@
+✖ signed HTTP resolution returns exact committed receipts or permanent retirement, denies stale writes and refuses caller authority/current permission loss (2006.6254ms)
+✔ terminal resolution binds every original fact, scope, actor, outcome and optional exact saved receipt (3.626ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2480.1056
+
+✖ failing tests:
+
+test at apps\api\dev\private-operation-resolution-http.test.mjs:21:1
+✖ signed HTTP resolution returns exact committed receipts or permanent retirement, denies stale writes and refuses caller authority/current permission loss (2006.6254ms)
+  error: new row for relation "memberships" violates check constraint "memberships_check"
+      at pe.Ue (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959)
+      at pe.tt (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347)
+      at pe.parse (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021)
+      at N.qe (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1762)
+      at file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+      at wasm://wasm/0267bb86:wasm-function[10930]:0x5a5ccf
+      at wasm://wasm/0267bb86:wasm-function[3585]:0x27eaeb
+      at wasm://wasm/0267bb86:wasm-function[3627]:0x2869d1
+      at wasm://wasm/0267bb86:wasm-function[3637]:0x286c2d
+      at wasm://wasm/0267bb86:wasm-function[9914]:0x54fd4d {
+    length: 332,
+    severity: 'ERROR',
+    code: '23514',
+    detail: 'Failing row contains (00000000-0000-4000-8000-000000000001, 00000000-0000-4000-8000-000000000010, admin, f, 2026-11-22 02:09:21.159+03, null).',
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: 'app_private',
+    table: 'memberships',
+    column: undefined,
+    dataType: undefined,
+    constraint: 'memberships_check',
+    file: 'execMain.c',
+    line: '2081',
+    routine: 'ExecConstraints',
+    query: 'UPDATE app_private.memberships SET active=false WHERE tenant_id=$1 AND user_id=$2',
+    params: [ '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000010' ],
+    queryOptions: undefined
+  }
