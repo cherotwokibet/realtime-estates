@@ -1,4 +1,8 @@
 import 'server-only';
+import {
+  deletionTriageConfiguration,
+  deletionPrivacyConfiguration,
+} from './deletion-triage-server.ts';
 import { ApiClientError, RealtorApiClient } from '@realtor/api-client';
 import { assertPreviewRequest, previewConfiguration } from './staff-preview-policy.ts';
 import { enquiryAccessLeaseConfiguration } from './enquiry-preview-server.ts';
@@ -19,7 +23,7 @@ export async function privateWorkspaceLeaseRequest(
   env: Readonly<Record<string, string | undefined>> = process.env,
   transport?: typeof fetch,
 ) {
-  if (!['staff', 'admin', 'agent'].includes(profile))
+  if (!['staff', 'admin', 'agent', 'deletion-triage', 'deletion-privacy'].includes(profile))
     return reply(404, { error: 'PRIVATE_ACCESS_UNAVAILABLE' });
   if (request.method !== 'GET')
     return new Response(null, {
@@ -27,12 +31,24 @@ export async function privateWorkspaceLeaseRequest(
       headers: { Allow: 'GET', 'Cache-Control': 'no-store' },
     });
   let config:
-    ReturnType<typeof previewConfiguration> | ReturnType<typeof enquiryAccessLeaseConfiguration>;
+    | ReturnType<typeof previewConfiguration>
+    | ReturnType<typeof enquiryAccessLeaseConfiguration>
+    | ReturnType<typeof deletionTriageConfiguration>
+    | ReturnType<typeof deletionPrivacyConfiguration>;
+  let reviewerScope: { tenantId: string; reviewerId: string } | undefined;
   try {
+    const reviewer =
+      profile === 'deletion-privacy'
+        ? deletionPrivacyConfiguration(env)
+        : profile === 'deletion-triage'
+          ? deletionTriageConfiguration(env)
+          : undefined;
+    reviewerScope = reviewer?.scope;
     config =
-      profile === 'staff'
+      reviewer ??
+      (profile === 'staff'
         ? previewConfiguration(env)
-        : enquiryAccessLeaseConfiguration(profile as 'admin' | 'agent', env);
+        : enquiryAccessLeaseConfiguration(profile as 'admin' | 'agent', env));
   } catch {
     return reply(503, { error: 'PRIVATE_ACCESS_UNAVAILABLE' });
   }
@@ -70,6 +86,21 @@ export async function privateWorkspaceLeaseRequest(
       timeoutMs: 5000,
     });
     if ('actorId' in config && (lease.actorId !== config.actorId || lease.role !== config.role))
+      return reply(403, { error: 'PRIVATE_ACCESS_UNAVAILABLE' });
+    if (
+      reviewerScope &&
+      (lease.actorId !== reviewerScope.reviewerId ||
+        lease.tenantId !== reviewerScope.tenantId ||
+        lease.role !== 'admin')
+    )
+      return reply(403, { error: 'PRIVATE_ACCESS_UNAVAILABLE' });
+    if (profile === 'deletion-privacy' && reviewerScope)
+      await client.listDeletionPrivacyQueue({ limit: 1 }, reviewerScope, {
+        bearerToken: config.bearerToken,
+        signal: request.signal,
+        timeoutMs: 5000,
+      });
+    if (Date.now() >= Date.parse(lease.expiresAt))
       return reply(403, { error: 'PRIVATE_ACCESS_UNAVAILABLE' });
     return reply(200, lease);
   } catch (error) {

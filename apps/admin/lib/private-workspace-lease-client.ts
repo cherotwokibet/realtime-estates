@@ -1,7 +1,7 @@
 import { validateStaffAccessLease, type StaffAccessLease } from '@realtor/domain';
 import { readReferenceJson } from './reference-draft-wire.ts';
 export interface PrivateWorkspaceAccess {
-  readonly profile: 'staff' | 'admin' | 'agent';
+  readonly profile: 'staff' | 'admin' | 'agent' | 'deletion-triage' | 'deletion-privacy';
   readonly instanceId: string;
   readonly tenantId?: string;
   readonly actorId?: string;
@@ -13,7 +13,7 @@ export async function readPrivateWorkspaceLease(
   transport: typeof fetch = fetch,
 ): Promise<StaffAccessLease> {
   if (
-    !['staff', 'admin', 'agent'].includes(access.profile) ||
+    !['staff', 'admin', 'agent', 'deletion-triage', 'deletion-privacy'].includes(access.profile) ||
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(
       access.instanceId,
     )

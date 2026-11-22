@@ -1,5 +1,14 @@
 import { validatePrivateOperationResolution } from '@realtor/domain';
 import {
+  validateCustomerDeletionReviewCommand,
+  validateCustomerDeletionReviewTarget,
+  validateCustomerDeletionReviewReceipt,
+  validateCustomerDeletionReturnReceipt,
+  validateDeletionPrivacyCommand,
+  validateDeletionPrivacyReceipt,
+  type CustomerDeletionReviewCommand,
+  type CustomerDeletionReviewTarget,
+  type DeletionPrivacyCommand,
   validateCompanySettingsCommand,
   validateCompanySettingsRecord,
   validateListingReportDecisionReceipt,
@@ -7,8 +16,13 @@ import {
   type CompanySettingsCommand,
   type ListingReportDecisionCommand,
 } from '@realtor/domain';
-export type RecoveryKind = 'settings' | 'report';
-export type RecoveryCommand = CompanySettingsCommand | ListingReportDecisionCommand;
+export type RecoveryKind = 'settings' | 'report' | 'deletion-triage' | 'deletion-privacy';
+export type RecoveryCommand =
+  | CompanySettingsCommand
+  | ListingReportDecisionCommand
+  | CustomerDeletionReviewCommand
+  | CustomerDeletionReviewTarget
+  | DeletionPrivacyCommand;
 export interface RecoveryScope {
   readonly instanceId: string;
   readonly tenantId: string;
@@ -48,8 +62,15 @@ export function recoveryId(value: unknown): string {
   return value;
 }
 export function recoveryKind(value: unknown): RecoveryKind {
-  if (value !== 'settings' && value !== 'report') throw Error('Invalid recovery kind.');
-  return value;
+  if (!['settings', 'report', 'deletion-triage', 'deletion-privacy'].includes(value as string))
+    throw Error('Invalid recovery kind.');
+  return value as RecoveryKind;
+}
+/** Terminal retirement is implemented only for settings/report, never reviewer commands. */
+export function resolutionKind(kind: RecoveryKind): 'settings' | 'report' {
+  if (kind !== 'settings' && kind !== 'report')
+    throw Error('Resolution is unavailable for this original.');
+  return kind;
 }
 export function captureRecoveryScope(input: unknown): RecoveryScope {
   const r = recoveryObject(input, ['instanceId', 'tenantId', 'actorId']);
@@ -67,7 +88,13 @@ export function recoveryCommand(kind: RecoveryKind, input: unknown): RecoveryCom
   const value =
     kind === 'settings'
       ? validateCompanySettingsCommand(input)
-      : validateListingReportDecisionCommand(input);
+      : kind === 'report'
+        ? validateListingReportDecisionCommand(input)
+        : kind === 'deletion-privacy'
+          ? validateDeletionPrivacyCommand(input)
+          : Object.getOwnPropertyDescriptor(input ?? {}, 'disposition')
+            ? validateCustomerDeletionReviewCommand(input)
+            : validateCustomerDeletionReviewTarget(input);
   if (new TextEncoder().encode(JSON.stringify(value)).byteLength > RECOVERY_MAX_PLAIN_BYTES)
     throw Error('Recovery original too large.');
   return value;
@@ -113,11 +140,30 @@ export function recoveryReceipt(
     Object.getOwnPropertyDescriptor(receipt, 'policy')?.value === 'private-operation-resolution-v1'
   )
     return validatePrivateOperationResolution(receipt, {
-      kind,
+      kind: resolutionKind(kind),
       original: command,
       tenantId: scope.tenantId,
       actorId: scope.actorId,
     });
+  if (kind === 'deletion-privacy')
+    return validateDeletionPrivacyReceipt(receipt, {
+      ...validateDeletionPrivacyCommand(command),
+      tenantId: scope.tenantId,
+      reviewerId: scope.actorId,
+    });
+  if (kind === 'deletion-triage') {
+    const expected = {
+      ...(command as CustomerDeletionReviewTarget),
+      tenantId: scope.tenantId,
+      reviewerId: scope.actorId,
+    };
+    return 'disposition' in command
+      ? validateCustomerDeletionReviewReceipt(receipt, {
+          ...expected,
+          disposition: command.disposition,
+        })
+      : validateCustomerDeletionReturnReceipt(receipt, expected);
+  }
   if (kind === 'settings') {
     const value = validateCompanySettingsRecord(receipt);
     if (

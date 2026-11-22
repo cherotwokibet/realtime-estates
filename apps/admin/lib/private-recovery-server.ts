@@ -1,4 +1,8 @@
-import { recoveryCommand } from './private-recovery-contract.ts';
+import {
+  deletionTriageConfiguration,
+  deletionPrivacyConfiguration,
+} from './deletion-triage-server.ts';
+import { recoveryCommand, resolutionKind } from './private-recovery-contract.ts';
 import { validatePrivateOperationResolution } from '@realtor/domain';
 import 'server-only';
 import { ApiClientError, RealtorApiClient } from '@realtor/api-client';
@@ -34,6 +38,7 @@ export async function privateRecoveryRequest(
   let kind;
   try {
     kind = recoveryKind(kindInput);
+    if (action === 'resolve') resolutionKind(kind);
     if (action !== 'seal' && action !== 'open' && action !== 'check' && action !== 'resolve')
       throw Error();
   } catch {
@@ -45,8 +50,16 @@ export async function privateRecoveryRequest(
       headers: { Allow: 'POST', 'Cache-Control': 'no-store' },
     });
   let config, cipher;
+  let reviewerScope: { tenantId: string; reviewerId: string } | undefined;
   try {
-    config = previewConfiguration(env);
+    const reviewer =
+      kind === 'deletion-privacy'
+        ? deletionPrivacyConfiguration(env)
+        : kind === 'deletion-triage'
+          ? deletionTriageConfiguration(env)
+          : undefined;
+    config = reviewer ?? previewConfiguration(env);
+    reviewerScope = reviewer?.scope;
     if (env.PRIVATE_RECOVERY_MODE !== 'synthetic-sealed-original-v1') throw Error();
     cipher = createPrivateRecoveryCipher(env.PRIVATE_RECOVERY_STORAGE_KEY ?? '');
   } catch {
@@ -111,6 +124,9 @@ export async function privateRecoveryRequest(
       actorId: current.actorId,
     };
     if (
+      (reviewerScope &&
+        (reviewerScope.tenantId !== current.tenantId ||
+          reviewerScope.reviewerId !== current.actorId)) ||
       current.role !== 'admin' ||
       !sameRecoveryScope(scope, trusted) ||
       initial.tenantId !== current.tenantId ||
@@ -118,6 +134,8 @@ export async function privateRecoveryRequest(
       Date.now() >= Date.parse(current.expiresAt)
     )
       return reply(403, { error: 'RECOVERY_UNAVAILABLE' });
+    if (kind === 'deletion-privacy' && reviewerScope)
+      await client.listDeletionPrivacyQueue({ limit: 1 }, reviewerScope, options);
     const value =
       action === 'check'
         ? { policy: 'private-recovery-ready-v1', scope: trusted, kind }
@@ -126,12 +144,12 @@ export async function privateRecoveryRequest(
           : action === 'resolve'
             ? validatePrivateOperationResolution(
                 await client.resolvePrivateOperation(
-                  kind,
+                  resolutionKind(kind),
                   recoveryCommand(kind, input.command),
                   options,
                 ),
                 {
-                  kind,
+                  kind: resolutionKind(kind),
                   original: input.command,
                   tenantId: trusted.tenantId,
                   actorId: trusted.actorId,

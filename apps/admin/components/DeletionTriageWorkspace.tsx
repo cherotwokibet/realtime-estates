@@ -9,7 +9,10 @@ import {
   type CustomerDeletionDisposition,
   type CustomerDeletionReviewCommand,
 } from '@realtor/domain';
-import { readReferenceJson } from '../lib/reference-draft-wire';
+import { readBrowserDecodedJson } from '../lib/browser-decoded-json.ts';
+import PrivateWorkspaceBoundary, { usePrivateWorkspaceClear } from './PrivateWorkspaceBoundary.tsx';
+import { useSealedRecovery } from '../lib/use-sealed-recovery.ts';
+import { recoveryCommand } from '../lib/private-recovery-contract.ts';
 
 type Queue = ReturnType<typeof validateCustomerDeletionTriage>;
 type FollowUpQueue = ReturnType<typeof validateCustomerDeletionFollowUp>;
@@ -27,22 +30,50 @@ class ExchangeError extends Error {
     super('Deletion triage request unavailable.');
   }
 }
-export function DeletionTriageWorkspace({
-  instanceId,
-  scope,
-  followUp,
-}: {
+type Props = {
   instanceId: string;
-  followUp: boolean;
   scope: { tenantId: string; reviewerId: string };
-}) {
+  followUp: boolean;
+};
+export function DeletionTriageWorkspace(props: Props) {
+  return (
+    <PrivateWorkspaceBoundary
+      key={[props.instanceId, props.scope.tenantId, props.scope.reviewerId].join(':')}
+      access={{
+        profile: 'deletion-triage',
+        instanceId: props.instanceId,
+        tenantId: props.scope.tenantId,
+        actorId: props.scope.reviewerId,
+        role: 'admin',
+      }}
+    >
+      <DeletionTriageContent {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function DeletionTriageContent({ instanceId, scope, followUp }: Props) {
+  const clearPrivate = usePrivateWorkspaceClear();
+  const recovery = useSealedRecovery(
+    { instanceId, tenantId: scope.tenantId, actorId: scope.reviewerId },
+    'deletion-triage',
+  );
   const [queue, setQueue] = useState<Queue | FollowUpQueue | null>(null);
   const [selected, setSelected] = useState<Queue['items'][number] | null>(null);
   const [decision, setDecision] = useState<CustomerDeletionDisposition | ''>('');
   const [returnSelection, setReturnSelection] = useState<FollowUpQueue['items'][number] | null>(
     null,
   );
-  const [pending, setPending] = useState<Pending | null>(null);
+  const [attempt, setAttempt] = useState<Pending | null>(null);
+  const original =
+    recovery.pending === null
+      ? null
+      : (recoveryCommand('deletion-triage', recovery.pending) as Pending['command']);
+  const pending: Pending | null = original
+    ? {
+        command: original,
+        phase: attempt?.command.operationId === original.operationId ? attempt.phase : 'uncertain',
+      }
+    : null;
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Load unreviewed requests to begin.');
   const [denied, setDenied] = useState(false);
@@ -76,11 +107,11 @@ export function DeletionTriageWorkspace({
       void response.body?.cancel().catch(() => {});
       throw new ExchangeError(response.status);
     }
-    return readReferenceJson(response, 16384, signal);
+    return readBrowserDecodedJson(response, 16384, signal);
   }
 
   async function run(action: (signal: AbortSignal, current: () => boolean) => Promise<void>) {
-    if (active.current || denied) return;
+    if (active.current || denied || !recovery.ready || recovery.busy) return;
     const controller = new AbortController();
     active.current = controller;
     setBusy(true);
@@ -102,9 +133,10 @@ export function DeletionTriageWorkspace({
   }
   function accessLost(error: unknown) {
     if (!(error instanceof ExchangeError) || ![401, 403].includes(error.status)) return false;
+    clearPrivate();
     setDenied(true);
     setQueue(null);
-    setPending(null);
+    setAttempt(null);
     clearSelection();
     setStatus('Review access is unavailable.');
     return true;
@@ -116,7 +148,9 @@ export function DeletionTriageWorkspace({
         const params = new URLSearchParams({ limit: '20' });
         if (after) params.set('after', after);
         if (outcome) params.set('disposition', outcome);
-        const value = await exchange(base + '?' + params, signal);
+        const value = await recovery.read((owned) =>
+          exchange(base + '?' + params, AbortSignal.any([signal, owned])),
+        );
         const page = outcome
           ? validateCustomerDeletionFollowUp(value, 20, after, scope.tenantId, outcome)
           : validateCustomerDeletionTriage(value, 20, after, scope.tenantId);
@@ -144,7 +178,9 @@ export function DeletionTriageWorkspace({
       const path =
         base + '/' + customerId + '/' + requestId + '/' + operationId + (isReturn ? '/return' : '');
       try {
-        const value = await exchange(path, signal, recover ? undefined : command);
+        const value = await recovery.execute(command, (_original, owned) =>
+          exchange(path, AbortSignal.any([signal, owned]), recover ? undefined : command),
+        );
         let outcome: string;
         if (isReturn) {
           validateCustomerDeletionReturnReceipt(value, { ...scope, ...command });
@@ -154,14 +190,14 @@ export function DeletionTriageWorkspace({
           outcome = labels[receipt.disposition] + ' recorded.';
         }
         if (!current()) return;
-        setPending(null);
+        setAttempt(null);
         clearSelection();
         setQueue(null);
         setStatus(outcome + ' Reload to see remaining requests.');
       } catch (error) {
         if (!current() || accessLost(error)) return;
         if (recover && error instanceof ExchangeError && error.status === 404) {
-          setPending({ command, phase: 'missing' });
+          setAttempt({ command, phase: 'missing' });
           setStatus(
             isReturn
               ? 'No original return found. You can retry the same return.'
@@ -170,17 +206,17 @@ export function DeletionTriageWorkspace({
           return;
         }
         if (!recover && error instanceof ExchangeError && error.status < 500) {
-          setPending(null);
+          setAttempt({ command, phase: 'uncertain' });
           clearSelection();
           setQueue(null);
           setStatus(
             isReturn
-              ? 'The return was refused. Reload the queue before continuing.'
-              : 'The decision was refused. Reload the queue before continuing.',
+              ? 'The return was refused. Its encrypted original is retained; check its receipt before further work.'
+              : 'The decision was refused. Its encrypted original is retained; check its receipt before further work.',
           );
           return;
         }
-        setPending({ command, phase: 'uncertain' });
+        setAttempt({ command, phase: 'uncertain' });
         setStatus(
           isReturn
             ? 'The return could not be confirmed. Check the original receipt.'
@@ -190,12 +226,33 @@ export function DeletionTriageWorkspace({
     });
   }
 
+  if (!recovery.ready)
+    return (
+      <section aria-label="Encrypted deletion recovery">
+        <p role="status">{recovery.error}</p>
+        <button type="button" onClick={recovery.retry}>
+          Retry encrypted recovery
+        </button>
+      </section>
+    );
   const last = queue?.items.at(-1);
   const outcome = queue && 'disposition' in queue ? queue.disposition : undefined;
   return (
     <section aria-labelledby="triage-heading">
       <h2 id="triage-heading">{outcome ? labels[outcome] : 'Unreviewed requests'}</h2>
       <p role="status">{status}</p>
+      {recovery.error && <p role="status">{recovery.error}</p>}
+      {busy && (
+        <button
+          type="button"
+          onClick={() => {
+            recovery.cancel();
+            active.current?.abort();
+          }}
+        >
+          Stop waiting; retain original
+        </button>
+      )}
       <button type="button" disabled={busy || denied || !!pending} onClick={() => load()}>
         Load unreviewed requests
       </button>

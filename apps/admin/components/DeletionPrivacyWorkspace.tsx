@@ -9,7 +9,10 @@ import {
   type DeletionPrivacyCommand,
   type DeletionPrivacyDecision,
 } from '@realtor/domain';
-import { readReferenceJson } from '../lib/reference-draft-wire';
+import { readBrowserDecodedJson } from '../lib/browser-decoded-json.ts';
+import PrivateWorkspaceBoundary, { usePrivateWorkspaceClear } from './PrivateWorkspaceBoundary.tsx';
+import { useSealedRecovery } from '../lib/use-sealed-recovery.ts';
+import { recoveryCommand } from '../lib/private-recovery-contract.ts';
 
 const route = '/api/deletion-privacy';
 const limit = 20;
@@ -53,20 +56,49 @@ class PrivacyExchangeError extends Error {
   }
 }
 
-export function DeletionPrivacyWorkspace({
-  instanceId,
-  scope,
-  processingPlanEnabled,
-}: {
+type Props = {
   instanceId: string;
-  processingPlanEnabled: boolean;
   scope: { tenantId: string; reviewerId: string };
-}) {
+  processingPlanEnabled: boolean;
+};
+export function DeletionPrivacyWorkspace(props: Props) {
+  return (
+    <PrivateWorkspaceBoundary
+      key={[props.instanceId, props.scope.tenantId, props.scope.reviewerId].join(':')}
+      access={{
+        profile: 'deletion-privacy',
+        instanceId: props.instanceId,
+        tenantId: props.scope.tenantId,
+        actorId: props.scope.reviewerId,
+        role: 'admin',
+      }}
+    >
+      <DeletionPrivacyContent {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function DeletionPrivacyContent({ instanceId, scope, processingPlanEnabled }: Props) {
+  const clearPrivate = usePrivateWorkspaceClear();
+  const recovery = useSealedRecovery(
+    { instanceId, tenantId: scope.tenantId, actorId: scope.reviewerId },
+    'deletion-privacy',
+  );
   const [queue, setQueue] = useState<Queue | null>(null);
   const [selected, setSelected] = useState<Queue['items'][number] | null>(null);
   const [decision, setDecision] = useState<DeletionPrivacyDecision | null>(null);
   const [confirmed, setConfirmed] = useState(false);
-  const [pending, setPending] = useState<Pending | null>(null);
+  const [attempt, setAttempt] = useState<Pending | null>(null);
+  const original =
+    recovery.pending === null
+      ? null
+      : (recoveryCommand('deletion-privacy', recovery.pending) as Pending['command']);
+  const pending: Pending | null = original
+    ? {
+        command: original,
+        canRetry:
+          attempt?.command.operationId === original.operationId && attempt.canRetry === true,
+      }
+    : null;
   const [planningReceipt, setPlanningReceipt] = useState<Receipt | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [busy, setBusy] = useState(false);
@@ -99,11 +131,11 @@ export function DeletionPrivacyWorkspace({
       void response.body?.cancel().catch(() => {});
       throw new PrivacyExchangeError(response.status);
     }
-    return readReferenceJson(response, 16384, signal);
+    return readBrowserDecodedJson(response, 16384, signal);
   }
 
   async function run(action: (signal: AbortSignal, current: () => boolean) => Promise<void>) {
-    if (active.current || denied) return;
+    if (active.current || denied || !recovery.ready || recovery.busy) return;
     const controller = new AbortController();
     active.current = controller;
     setBusy(true);
@@ -127,11 +159,12 @@ export function DeletionPrivacyWorkspace({
   function accessLost(error: unknown) {
     if (!(error instanceof PrivacyExchangeError) || ![401, 403].includes(error.status))
       return false;
+    clearPrivate();
     setDenied(true);
     setPlanningReceipt(null);
     setPlan(null);
     setQueue(null);
-    setPending(null);
+    setAttempt(null);
     select(null);
     setStatus('Privacy reviewer access is unavailable.');
     return true;
@@ -145,7 +178,9 @@ export function DeletionPrivacyWorkspace({
         const params = new URLSearchParams({ limit: String(limit) });
         if (after) params.set('after', after);
         const page = validateDeletionPrivacyQueue(
-          await exchange(route + '?' + params, signal),
+          await recovery.read((owned) =>
+            exchange(route + '?' + params, AbortSignal.any([signal, owned])),
+          ),
           limit,
           after,
           scope,
@@ -170,12 +205,14 @@ export function DeletionPrivacyWorkspace({
       const path = decisionPath(command);
       try {
         const receipt = validateDeletionPrivacyReceipt(
-          await exchange(path, signal, recover ? undefined : command),
+          await recovery.execute(command, (_original, owned) =>
+            exchange(path, AbortSignal.any([signal, owned]), recover ? undefined : command),
+          ),
           { ...scope, ...command },
         );
         if (!current()) return;
         setQueue(null);
-        setPending(null);
+        setAttempt(null);
         setPlanningReceipt(
           processingPlanEnabled && receipt.decision === 'plan_review' ? receipt : null,
         );
@@ -187,7 +224,7 @@ export function DeletionPrivacyWorkspace({
       } catch (error) {
         if (!current() || accessLost(error)) return;
         if (recover && error instanceof PrivacyExchangeError && error.status === 404) {
-          setPending({ command, canRetry: true });
+          setAttempt({ command, canRetry: true });
           setStatus('No original receipt found. You can retry the same decision.');
           return;
         }
@@ -197,12 +234,14 @@ export function DeletionPrivacyWorkspace({
           [400, 404, 409].includes(error.status)
         ) {
           setQueue(null);
-          setPending(null);
+          setAttempt({ command, canRetry: false });
           select(null);
-          setStatus('The decision was refused. Reload eligible requests before continuing.');
+          setStatus(
+            'The decision was refused. Its encrypted original is retained; check its receipt before further work.',
+          );
           return;
         }
-        setPending({ command, canRetry: false });
+        setAttempt({ command, canRetry: false });
         setStatus('The decision could not be confirmed. Check the original receipt.');
       }
     });
@@ -214,7 +253,9 @@ export function DeletionPrivacyWorkspace({
       setStatus('Loading the processing plan.');
       try {
         const value = validateDeletionProcessingPlan(
-          await exchange(decisionPath(receipt) + '/processing-plan', signal),
+          await recovery.read((owned) =>
+            exchange(decisionPath(receipt) + '/processing-plan', AbortSignal.any([signal, owned])),
+          ),
           {
             ...scope,
             customerId: receipt.customerId,
@@ -233,12 +274,33 @@ export function DeletionPrivacyWorkspace({
     });
   }
 
+  if (!recovery.ready)
+    return (
+      <section aria-label="Encrypted deletion recovery">
+        <p role="status">{recovery.error}</p>
+        <button type="button" onClick={recovery.retry}>
+          Retry encrypted recovery
+        </button>
+      </section>
+    );
   const last = queue?.items.at(-1);
   return (
     <section aria-labelledby="privacy-queue">
       <h2 id="privacy-queue">Eligible deletion requests</h2>
       <p>Synthetic preview. These decisions do not delete accounts or contact providers.</p>
       <p role="status">{status}</p>
+      {recovery.error && <p role="status">{recovery.error}</p>}
+      {busy && (
+        <button
+          type="button"
+          onClick={() => {
+            recovery.cancel();
+            active.current?.abort();
+          }}
+        >
+          Stop waiting; retain original
+        </button>
+      )}
       <button type="button" disabled={busy || denied || !!pending} onClick={() => load()}>
         Load eligible requests
       </button>

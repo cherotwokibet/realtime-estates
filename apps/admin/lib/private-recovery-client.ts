@@ -3,6 +3,7 @@ import { ApiClientError } from '@realtor/api-client';
 import {
   captureRecoveryScope,
   recoveryObject,
+  resolutionKind,
   sameRecoveryScope,
   recoveryKind,
   recoveryCommand,
@@ -64,9 +65,10 @@ export function createPrivateRecoveryClient(
   }
   return Object.freeze({
     async resolve(input: unknown, signal: AbortSignal) {
+      const terminalKind = resolutionKind(kind);
       const original = recoveryCommand(kind, input);
       return validatePrivateOperationResolution(await request('resolve', original, signal), {
-        kind,
+        kind: terminalKind,
         original,
         tenantId: scope.tenantId,
         actorId: scope.actorId,

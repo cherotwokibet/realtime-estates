@@ -1,3 +1,4 @@
+import { syntheticRecoveryEnvironment } from './synthetic-recovery-env.mjs';
 /** Disposable loopback fixture for the signed admin deletion triage journey. */
 import { spawn, execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -23,6 +24,7 @@ if (
 if (existsSync(new URL('../apps/admin/.next/dev/lock', import.meta.url)))
   throw Error('The admin development directory is occupied.');
 
+const recoveryEnvironment = syntheticRecoveryEnvironment();
 const privacy = args.includes('--lost-privacy');
 const pushQueue = args.includes('--push-queue');
 const preview = await startCustomerPreview({
@@ -140,6 +142,7 @@ try {
       windowsHide: true,
       env: {
         ...process.env,
+        ...recoveryEnvironment,
         TENANT_SLUG: preview.tenantSlug,
         STAFF_PREVIEW_MODE: 'synthetic',
         STAFF_PREVIEW_API_ORIGIN: preview.origin,

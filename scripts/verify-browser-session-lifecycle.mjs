@@ -109,6 +109,72 @@ async function sealedFixture(req, res) {
     });
     res.end(JSON.stringify(body));
   };
+  if (/^\/v2\/staff\/customer-deletion-(triage|follow-up|privacy)/.test(path)) {
+    const url = new URL(req.url, 'http://fixture.invalid'),
+      privacy = path.includes('-privacy'),
+      follow = path.includes('-follow-up');
+    const stamp = '2026-11-22T03:00:00.000Z';
+    if (!path.includes('/requests/')) {
+      reply(200, {
+        policy: privacy
+          ? 'synthetic-deletion-privacy-queue-v1'
+          : follow
+            ? 'synthetic-customer-deletion-follow-up-v1'
+            : 'synthetic-customer-deletion-triage-v1',
+        tenantId: tenant,
+        ...(privacy
+          ? { reviewerId: actor }
+          : follow
+            ? { disposition: url.searchParams.get('disposition') }
+            : {}),
+        items: [
+          {
+            customerId: id(840),
+            requestId: id(841),
+            [privacy ? 'readyAt' : follow ? 'reviewedAt' : 'requestedAt']: stamp,
+          },
+        ],
+        hasMore: false,
+      });
+      return true;
+    }
+    if (req.method === 'POST') {
+      let raw = '';
+      for await (const chunk of req) raw += chunk;
+      const original = JSON.parse(raw);
+      if (!sealedReceipts.has(path)) {
+        sealedWrites++;
+        sealedReceipts.set(path, {
+          policy: privacy
+            ? 'synthetic-deletion-privacy-decision-v1'
+            : follow
+              ? 'synthetic-customer-deletion-return-v1'
+              : 'synthetic-customer-deletion-review-v1',
+          tenantId: tenant,
+          reviewerId: actor,
+          customerId: original.customerId,
+          requestId: original.requestId,
+          operationId: original.operationId,
+          ...(privacy
+            ? {
+                retentionProfile: 'synthetic-retention-review-v1',
+                decision: original.decision,
+                decidedAt: stamp,
+              }
+            : follow
+              ? { returnedAt: stamp }
+              : { disposition: original.disposition, reviewedAt: stamp }),
+        });
+      }
+    }
+    reply(
+      sealedReceipts.has(path) ? 200 : 404,
+      sealedReceipts.get(path) ?? {
+        error: { code: 'NOT_FOUND', message: 'No synthetic receipt.' },
+      },
+    );
+    return true;
+  }
   if (path === '/v2/staff/session-lease') {
     const now = Date.now();
     reply(200, {
@@ -335,7 +401,17 @@ async function start(app, review = false) {
             STAFF_PREVIEW_REFERENCE_SUCCESSOR: 'synthetic-reference-successor-v1',
           }
         : review === 'sealed'
-          ? { STAFF_REPORT_PREVIEW_MODE: 'synthetic-v1', ...syntheticRecoveryEnvironment({}) }
+          ? {
+              STAFF_REPORT_PREVIEW_MODE: 'synthetic-v1',
+              STAFF_DELETION_TRIAGE_MODE: 'synthetic-v1',
+              STAFF_DELETION_TRIAGE_TENANT: tenant,
+              STAFF_DELETION_TRIAGE_REVIEWER: actor,
+              STAFF_DELETION_FOLLOW_UP: 'synthetic-v1',
+              STAFF_DELETION_PRIVACY_MODE: 'synthetic-v1',
+              STAFF_DELETION_PRIVACY_TOKEN: 'synthetic.privacy.signature',
+              STAFF_DELETION_PRIVACY_REVIEWER: actor,
+              ...syntheticRecoveryEnvironment({}),
+            }
           : { STAFF_DIRECTORY_PREVIEW_MODE: 'synthetic-v1' }),
     });
   }
@@ -574,7 +650,8 @@ async function tab(origin, path, kind, model) {
     }
     if (
       model.sealedKind &&
-      /^(\/api\/company-settings|\/api\/listing-reports).*\/operations\//.test(u.pathname)
+      (/^(\/api\/company-settings|\/api\/listing-reports).*\/operations\//.test(u.pathname) ||
+        /^\/api\/deletion-(triage|privacy)\/[^/]+\/[^/]+\/[^/]+/.test(u.pathname))
     ) {
       reads++;
       if (model.sealedStatus) {
@@ -605,6 +682,7 @@ async function tab(origin, path, kind, model) {
       const body = await reply.json();
       if (model.wrongActor) {
         if (model.sealedKind === 'settings') body.actorId = id(99);
+        else if (model.sealedKind.startsWith('deletion-')) body.reviewerId = id(99);
         else body.receipt.actorId = id(99);
       }
       const complete = () => fulfil(requestId, body, reply.status);
@@ -774,8 +852,11 @@ async function tab(origin, path, kind, model) {
       source: `for(const [k,v] of ${JSON.stringify(model.originalEntries)})sessionStorage.setItem(k,v);`,
     });
   await cmd('Page.navigate', { url: origin + path });
-  const selector =
-    kind === 'settings'
+  const selector = kind.startsWith('deletion-')
+    ? 'section[aria-labelledby="' +
+      (kind === 'deletion-triage' ? 'triage-heading' : 'privacy-queue') +
+      '"]'
+    : kind === 'settings'
       ? '.settings-grid'
       : kind === 'report'
         ? 'section[aria-label="Private report review"]'
@@ -1859,6 +1940,205 @@ try {
     await wrongResolution.close();
     evidence.tests.push(
       'admin/' + kind + ': a changed resolution actor cannot clear encrypted intent',
+    );
+  }
+  // Real Node encryption + BFFs, controlled reviewer HTTP fixtures; no provider/SQL browser claim.
+  for (const variant of ['triage', 'return', 'privacy']) {
+    const kind = variant === 'privacy' ? 'deletion-privacy' : 'deletion-triage';
+    const path = '/' + kind,
+      model = { sealedKind: kind, allowChecking: true, logouts: [] };
+    const t = await tab(sealedOrigin, path, kind, model);
+    const waitButton = (page, label) =>
+      until(
+        () =>
+          page.evaljs(
+            `!![...document.querySelectorAll('button')].find(b=>b.textContent.trim()===${JSON.stringify(label)}&&!b.disabled)`,
+          ),
+        variant + ' ' + label,
+      );
+    const check =
+      variant === 'privacy'
+        ? 'Check original receipt'
+        : variant === 'return'
+          ? 'Check original return'
+          : 'Check original decision';
+    const load =
+      variant === 'privacy'
+        ? 'Load eligible requests'
+        : variant === 'return'
+          ? 'Needs information'
+          : 'Load unreviewed requests';
+    await waitButton(t, load);
+    await t.click(load);
+    const select =
+      variant === 'privacy'
+        ? 'Review request ' + id(841)
+        : variant === 'return'
+          ? 'Return request ' + id(841) + ' to privacy review'
+          : 'Review request for ' + id(840);
+    await waitButton(t, select);
+    await t.click(select);
+    if (variant === 'triage')
+      await t.evaljs(
+        `(()=>{const e=document.querySelector('#triage-decision');e.value='needs_information';e.dispatchEvent(new Event('change',{bubbles:true}));})()`,
+      );
+    if (variant === 'privacy')
+      await t.evaljs(
+        `document.querySelector('input[type=radio]').click();document.querySelector('input[type=checkbox]').click()`,
+      );
+    const submit =
+      variant === 'privacy'
+        ? 'Record privacy decision'
+        : variant === 'return'
+          ? 'Confirm return to privacy review'
+          : 'Confirm triage decision';
+    await waitButton(t, submit);
+    model.holdSealed = true;
+    const before = sealedWrites;
+    await t.click(submit);
+    await until(() => t.held(), variant + ' held saved reply');
+    assert.equal(sealedWrites, before + 1);
+    assert.equal(model.retainedBeforeDispatch, true);
+    const snapshot = (page) =>
+      page.evaljs(
+        'JSON.stringify(Object.entries(sessionStorage).filter(([k])=>k.startsWith("realtor.sealed-recovery.v1:")).sort())',
+      );
+    const saved = await snapshot(t),
+      entries = JSON.parse(saved);
+    assert.equal(entries.length, 1);
+    assert.doesNotMatch(saved, /customerId|requestId|decision|disposition/);
+    await t.evaljs(
+      "(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signing-out'});c.close()})()",
+    );
+    await until(
+      () => t.evaljs(`!!document.querySelector('[aria-label="Private view closed"]')`),
+      variant + ' logout closes',
+    );
+    assert.equal(await snapshot(t), saved);
+    assert.equal(await t.evaljs("document.querySelectorAll('input,select,fieldset').length"), 0);
+    await t
+      .held()()
+      .catch(() => {});
+    model.holdSealed = false;
+    await t.cmd('Page.reload');
+    await waitButton(t, check);
+    assert.equal(sealedWrites, before + 1);
+    assert.equal(await snapshot(t), saved);
+    await t.click(check);
+    await until(async () => (await snapshot(t)) === '[]', variant + ' exact receipt release');
+    assert.equal(sealedWrites, before + 1);
+    assert.deepEqual(t.errors, []);
+    await t.close();
+    evidence.tests.push(
+      'admin/' +
+        variant +
+        ': retained before write; lost reply/logout leaves opaque original; authorized reload confirms exact GET receipt without duplicate write',
+    );
+    for (const status of [401, 403, 404, 409]) {
+      const page = await tab(sealedOrigin, path, kind, {
+        sealedKind: kind,
+        originalEntries: entries,
+        sealedStatus: status,
+        allowChecking: true,
+        logouts: [],
+      });
+      await page.unseed();
+      await waitButton(page, check);
+      await page.click(check);
+      if (status === 401 || status === 403)
+        await until(
+          () => page.evaljs(`!!document.querySelector('[aria-label="Private view closed"]')`),
+          variant + ' denied closes',
+        );
+      else
+        await until(
+          () =>
+            page.evaljs(
+              `document.body.innerText.includes(${JSON.stringify(status === 404 ? 'No original' : 'could not be confirmed')})`,
+            ),
+          variant + ' uncertain status',
+        );
+      assert.equal(await snapshot(page), saved);
+      assert.equal(sealedWrites, before + 1);
+      assert.deepEqual(page.errors, []);
+      await page.close();
+      evidence.tests.push(
+        'admin/' +
+          variant +
+          ': outcome HTTP ' +
+          status +
+          ' preserves encrypted original' +
+          (status < 404 ? ' and closes private view' : ''),
+      );
+    }
+    const wrong = await tab(sealedOrigin, path, kind, {
+      sealedKind: kind,
+      originalEntries: entries,
+      wrongActor: true,
+      allowChecking: true,
+      logouts: [],
+    });
+    await wrong.unseed();
+    await waitButton(wrong, check);
+    await wrong.click(check);
+    await until(
+      () => wrong.evaljs("document.body.innerText.includes('could not be confirmed')"),
+      variant + ' changed reviewer refused',
+    );
+    assert.equal(await snapshot(wrong), saved);
+    assert.equal(sealedWrites, before + 1);
+    assert.deepEqual(wrong.errors, []);
+    await wrong.close();
+    evidence.tests.push('admin/' + variant + ': changed reviewer receipt cannot release original');
+    const idle = await tab(sealedOrigin, path, kind, {
+      sealedKind: kind,
+      originalEntries: entries,
+      allowChecking: true,
+      logouts: [],
+      leaseExpiresAt: Date.now() + 5000,
+    });
+    await idle.unseed();
+    await waitButton(idle, check);
+    await until(
+      () => idle.evaljs(`!!document.querySelector('[aria-label="Private view closed"]')`),
+      variant + ' expired private view',
+    );
+    assert.equal(await snapshot(idle), saved);
+    const reads = idle.reads();
+    await idle.evaljs("window.dispatchEvent(new Event('focus'))");
+    await pause(100);
+    assert.equal(idle.reads(), reads);
+    assert.equal(await idle.evaljs("document.querySelectorAll('input,select,fieldset').length"), 0);
+    assert.deepEqual(idle.errors, []);
+    await idle.close();
+    evidence.tests.push(
+      'admin/' +
+        variant +
+        ': idle expiry removes private controls while preserving encrypted original; focus cannot reopen',
+    );
+    const changed = await tab(sealedOrigin, path, kind, {
+      sealedKind: kind,
+      originalEntries: entries,
+      allowChecking: true,
+      logouts: [],
+      leaseRole: 'agent',
+    });
+    await changed.unseed();
+    await until(
+      () => changed.evaljs(`!!document.querySelector('[aria-label="Private view closed"]')`),
+      variant + ' changed reviewer role',
+    );
+    assert.equal(await snapshot(changed), saved);
+    assert.equal(
+      await changed.evaljs("document.querySelectorAll('input,select,fieldset').length"),
+      0,
+    );
+    assert.deepEqual(changed.errors, []);
+    await changed.close();
+    evidence.tests.push(
+      'admin/' +
+        variant +
+        ': changed initial SQL lease role blocks mounting private controls without deleting original',
     );
   }
   console.log(JSON.stringify(evidence, null, 2));
