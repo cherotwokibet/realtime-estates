@@ -1,0 +1,38 @@
+✔ deletion-triage synthetic-customer-deletion-review-v1: encrypted original survives disposal; only complete current-reviewer receipt can release it (7.4441ms)
+✔ deletion-triage synthetic-customer-deletion-review-v1: BFF pins configured reviewer credential and rechecks fresh authority before opening (46.1652ms)
+✔ deletion-triage synthetic-customer-deletion-return-v1: encrypted original survives disposal; only complete current-reviewer receipt can release it (1.6196ms)
+✔ deletion-triage synthetic-customer-deletion-return-v1: BFF pins configured reviewer credential and rechecks fresh authority before opening (5.0852ms)
+✔ deletion-privacy synthetic-deletion-privacy-decision-v1: encrypted original survives disposal; only complete current-reviewer receipt can release it (2.244ms)
+✔ deletion-privacy synthetic-deletion-privacy-decision-v1: BFF pins configured reviewer credential and rechecks fresh authority before opening (9.1354ms)
+✔ settings cipher preserves normalized original across fresh instances without exposing command/key, with a fresh nonce (4.7515ms)
+✔ settings ciphertext-only store survives disposal and current-authorized reopening; retaining the same original is idempotent (3.5232ms)
+✔ report cipher preserves normalized original across fresh instances without exposing command/key, with a fresh nonce (0.9125ms)
+✔ report ciphertext-only store survives disposal and current-authorized reopening; retaining the same original is idempotent (1.6992ms)
+✔ authenticated envelopes refuse wrong key, IV/tag/ciphertext tamper, metadata substitution, malformed encoding and unbounded inputs (1.1046ms)
+✔ recovery BFF defaults closed, pins same-origin nonce and refuses authority/cookies/duplicates before releasing any plaintext (46.6745ms)
+✔ BFF rechecks SQL-derived role/actor after a body read and does not decrypt on denied, expired or changed authority (9.4636ms)
+✔ browser recovery client fixes paths, strips credentials and rejects scope/operation/redirect substitution (3.709ms)
+✔ sealed store refuses replacement, concurrent preparation and failed persistence/readback without a write permission claim (10.1391ms)
+✔ store abort/denial preserves stored ciphertext and no cached callback can load or replace it (0.9809ms)
+✔ settings confirmed release requires complete original, current actor and intact matching ciphertext (1.5291ms)
+✔ report confirmed release requires complete original, current actor and intact matching ciphertext (0.9727ms)
+✔ confirmed release refuses a replacement during current-authorized reopening and preserves the replacement bytes (1.6655ms)
+✔ recovery readiness verifies captured scope and key configuration without returning a command or mutation permission (1.4328ms)
+✔ browser decoded JSON permits standard compression with bounded decoded bytes and rejects wire/framing/duplicate ambiguity (1.8298ms)
+✔ settings: terminal resolution releases only the exact current-scope original; malformed or substituted retirement preserves ciphertext (1.6296ms)
+✔ report: terminal resolution releases only the exact current-scope original; malformed or substituted retirement preserves ciphertext (0.7597ms)
+✔ a fresh lease gates readiness, renews a bounded lifetime and never reopens after expiry (5.2015ms)
+✔ active renewal preserves one ready transition while identity or role changes close the old view (1.4395ms)
+✔ a held renewal cannot extend an expired lease, and uncooperative initial reads have a five-second deadline (1.2438ms)
+✔ replayed lease metadata, transport failure and a backwards monotonic clock fail closed (0.9447ms)
+✔ unmount cancels timers and readers without updating the disposed owner (1.3832ms)
+✔ lease browser reader pins the relative endpoint, omits cookies and rejects false-status or scope-changing responses (36.871ms)
+✔ server lease BFF is default-off, binds fixed nonce/actor/role and never emits bearer credentials (8.0826ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 361.5961
