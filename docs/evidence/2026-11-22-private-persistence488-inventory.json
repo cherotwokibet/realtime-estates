@@ -1,0 +1,104 @@
+{
+  "policy": "source-private-persistence-followup-inventory-v1",
+  "checkpoint": 488,
+  "sourceCommit": "01b22d9eca08886722fedb3e473a0169d5592865",
+  "sourceAuditOnly": true,
+  "browserOrProviderVerification": false,
+  "findings": [
+    {
+      "component": "apps/admin/components/AllocationWorkspace.tsx",
+      "sessionStorageUseObserved": true,
+      "acceptance": "OPEN",
+      "classification": "typed retained originals or metadata; inspect exact serialized fields before any migration",
+      "migrationVerified": false,
+      "serializerInspectionComplete": false
+    },
+    {
+      "component": "apps/admin/components/ReferenceCreationWorkspace.tsx",
+      "sessionStorageUseObserved": true,
+      "acceptance": "OPEN",
+      "classification": "typed retained originals or metadata; inspect exact serialized fields before any migration",
+      "migrationVerified": false,
+      "serializerInspectionComplete": false
+    },
+    {
+      "component": "apps/admin/components/ReferenceDraftEditor.tsx",
+      "sessionStorageUseObserved": true,
+      "acceptance": "OPEN",
+      "classification": "typed retained originals or metadata; inspect exact serialized fields before any migration",
+      "migrationVerified": false,
+      "serializerInspectionComplete": false
+    },
+    {
+      "component": "apps/admin/components/ReferenceSuccessorWorkspace.tsx",
+      "sessionStorageUseObserved": true,
+      "acceptance": "OPEN",
+      "classification": "typed retained originals or metadata; inspect exact serialized fields before any migration",
+      "migrationVerified": false,
+      "serializerInspectionComplete": false
+    },
+    {
+      "component": "apps/admin/components/ReferenceReviewWorkspace.tsx",
+      "sessionStorageUseObserved": true,
+      "acceptance": "OPEN",
+      "classification": "typed retained originals or metadata; inspect exact serialized fields before any migration",
+      "migrationVerified": false,
+      "serializerInspectionComplete": false
+    },
+    {
+      "component": "apps/admin/components/ListingVerification.tsx",
+      "sessionStorageUseObserved": true,
+      "acceptance": "OPEN",
+      "classification": "typed retained originals or metadata; inspect exact serialized fields before any migration",
+      "migrationVerified": false,
+      "serializerInspectionComplete": false
+    },
+    {
+      "component": "apps/admin/components/FloorPlanWorkspace.tsx",
+      "sessionStorageUseObserved": true,
+      "acceptance": "OPEN",
+      "classification": "typed retained originals or metadata; inspect exact serialized fields before any migration",
+      "migrationVerified": false,
+      "serializerInspectionComplete": false
+    },
+    {
+      "component": "apps/admin/components/ListingVideoWorkspace.tsx",
+      "sessionStorageUseObserved": true,
+      "acceptance": "OPEN",
+      "classification": "typed retained originals or metadata; inspect exact serialized fields before any migration",
+      "migrationVerified": false,
+      "serializerInspectionComplete": false
+    },
+    {
+      "component": "apps/admin/components/StaffDirectoryWorkspace.tsx",
+      "sessionStorageUseObserved": true,
+      "acceptance": "OPEN",
+      "classification": "typed retained originals or metadata; inspect exact serialized fields before any migration",
+      "migrationVerified": false,
+      "serializerInspectionComplete": false
+    },
+    {
+      "component": "apps/admin/components/InvitationAcceptanceWorkspace.tsx",
+      "sessionStorageUseObserved": true,
+      "acceptance": "OPEN",
+      "classification": "non-secret acceptance command metadata; raw code excluded",
+      "migrationVerified": false,
+      "serializerInspectionComplete": false
+    }
+  ],
+  "sealedRecovery": {
+    "component": "apps/admin/lib/use-sealed-recovery.ts",
+    "storage": "window.sessionStorage",
+    "serverKeySource": "scripts/synthetic-recovery-env.mjs",
+    "defaultKeyCustody": "ephemeral random process memory unless explicitly configured",
+    "stableKeyOrInstanceCustodyVerified": false,
+    "closedTabRecoveryVerified": false
+  },
+  "nextConstraints": [
+    "Do not delete or overwrite unknown/refused originals to clear private UI.",
+    "Inspect typed serialization and current actor/tenant/resource authority before migrating legacy records.",
+    "Keep raw invitation codes and bearer credentials out of retained commands.",
+    "Encrypt and verify readback before removing any eligible plaintext original; preserve failure recovery.",
+    "No production/provider/custody acceptance inferred from source references."
+  ]
+}

@@ -1,0 +1,77 @@
+✔ actual listening HTTP Fetch decodes gzip, br, deflate and identity without equating encoded and decoded lengths (165.6271ms)
+✔ small compressed responses cannot exceed the decoded byte limit (10.4593ms)
+✔ unsupported encodings, malformed lengths, identity mismatches, duplicate keys and bad UTF8 remain rejected (2.8435ms)
+✔ raw Request compression is still refused while decoded moderation responses retain lexical validation (1.4712ms)
+✔ cancellation interrupts an uncooperative decoded stream without accepting a late body (1.187ms)
+✔ duplicate browser lookup fixes GET and original currency without browser credentials (53.232ms)
+✔ duplicate browser lookup rejects invalid input and cancellation before dispatch (0.9631ms)
+✔ duplicate browser lookup rejects denial, stale facts, malformed framing and private fields with one attempt (22.0659ms)
+✔ duplicate browser cancellation closes stalled response and ignores late fetch resolution (12.7949ms)
+✔ decoded compressed Fetch responses preserve exact original facts and identity length checks (33.7838ms)
+✔ import browser transport fixes same-origin POST with instance only and frozen CSV-bound response (60.9165ms)
+✔ invalid CSV, instance and predispatch cancellation do not dispatch (1.012ms)
+✔ bad facts, framing, size, UTF8, duplicate keys and denied access fail without returning prior data (30.6509ms)
+✔ cancellation ignores and cancels a late response, and closes stalled response reads (19.1133ms)
+✔ downloadable template matches the maintained exact CSV header (5.4092ms)
+✔ decoded compressed Fetch responses preserve exact original facts and identity length checks (10.7917ms)
+✔ verification browser transport fixes one write and original GET, detaching original facts (61.0912ms)
+✔ verification client rejects unsafe config, invalid originals and cursors before transport (1.4928ms)
+✖ verification successful replies reject duplicate keys, aliases, altered facts, bytes and encoding (14.1714ms)
+✔ verification deadlines include ignored fetch and stalled body with cancellation and no retries (225.5167ms)
+✔ cursor history echoes the requested window and remains a body-free read (2.6132ms)
+✔ uncertain attempts freeze originals, prevent concurrent sends/discard and recover using GET only (2.0151ms)
+✔ restored attempts remain uncertain across access loss and replay only identical saved facts explicitly (1.117ms)
+✔ decoded compressed Fetch responses preserve exact original facts and identity length checks (15.6321ms)
+✔ a fresh lease gates readiness, renews a bounded lifetime and never reopens after expiry (10.0005ms)
+✔ active renewal preserves one ready transition while identity or role changes close the old view (3.9041ms)
+✔ a held renewal cannot extend an expired lease, and uncooperative initial reads have a five-second deadline (1.7138ms)
+✔ replayed lease metadata, transport failure and a backwards monotonic clock fail closed (16.7177ms)
+✔ unmount cancels timers and readers without updating the disposed owner (0.8663ms)
+✔ lease browser reader pins the relative endpoint, omits cookies and rejects false-status or scope-changing responses (45.3454ms)
+✔ server lease BFF is default-off, binds fixed nonce/actor/role and never emits bearer credentials (8.5219ms)
+✔ browser gallery fixes same-origin path and exact tuple without credentials or implicit retry (64.4519ms)
+✔ browser gallery rejects changed tuples malformed UTF8 oversized bodies and denial (6.6853ms)
+✔ browser gallery aborts before dispatch and cancels a late ignored fetch response (6.1604ms)
+✔ review image factory pins reviewer paths and revokes owned URLs on close and decode failure (3.9741ms)
+✔ review batch rejects a response URL from the draft policy before creating a URL (1.6031ms)
+✔ gallery denial preserves typed status without exposing an untrusted error body (4.1208ms)
+✔ decoded compressed Fetch responses preserve exact original facts and identity length checks (6.5244ms)
+✔ staff browser transport snapshots instance/command and sends only current-instance headers (33.4371ms)
+✔ staff browser scope/query authority and accessors never dispatch (0.4384ms)
+✔ staff browser lost/malformed/wrong-status writes remain uncertain with one dispatch (2.7351ms)
+✔ staff browser pre-cancel never dispatches; interrupted read is bounded even when transport ignores signal (0.6314ms)
+✔ decoded compressed Fetch responses preserve exact original facts and identity length checks (5.1772ms)
+ℹ tests 43
+ℹ suites 0
+ℹ pass 42
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 644.7996
+
+✖ failing tests:
+
+test at apps\admin\tests\listing-verification-client.test.mjs:94:1
+✖ verification successful replies reject duplicate keys, aliases, altered facts, bytes and encoding (14.1714ms)
+  AssertionError [ERR_ASSERTION]: The validation function is expected to return "true". Received false
+  
+  Caught error:
+  
+  Error: Invalid response framing.
+      at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/tests/listing-verification-client.test.mjs:120:5)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: Invalid response framing.
+        at browserDecodedJsonLength (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/dist/tests/lib/browser-decoded-json.js:22:15)
+        at request (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/dist/tests/lib/listing-verification-client.js:107:49)
+        at async waitForActual (node:assert:646:5)
+        at async strict.rejects (node:assert:769:25)
+        at async TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/tests/listing-verification-client.test.mjs:120:5)
+        at async Test.run (node:internal/test_runner/test:1389:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:960:7),
+    operator: 'rejects',
+    diff: 'simple'
+  }
