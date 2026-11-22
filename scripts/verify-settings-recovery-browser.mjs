@@ -10,6 +10,12 @@ import { initializeOwnedSettingsRecovery } from './settings-recovery-preview.mjs
 import { ownedLedgerRoot } from '../apps/api/dev/recovery-ledger-preview.mjs';
 import { ledgerTestProtection } from '../apps/admin/tests/helpers/recovery-ledger-protection.mjs';
 import { randomBytes } from 'node:crypto';
+const arguments491 = process.argv.slice(2);
+assert.ok(
+  arguments491.length === 0 || (arguments491.length === 1 && arguments491[0] === '--stdout-only'),
+  'Unsupported browser rehearsal option.',
+);
+const stdoutOnly491 = arguments491.length === 1;
 const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 async function until(fn, label, ms = 45000) {
   const end = Date.now() + ms;
@@ -378,10 +384,11 @@ try {
     nativeDeviceVerified: false,
     plaintextMigrationVerified: false,
   };
-  await writeFile(
-    new URL('../docs/evidence/2026-11-22-restart491-browser.json', import.meta.url),
-    JSON.stringify(evidence, null, 2) + '\n',
-  );
+  if (!stdoutOnly491)
+    await writeFile(
+      new URL('../docs/evidence/2026-11-22-restart491-browser.json', import.meta.url),
+      JSON.stringify(evidence, null, 2) + '\n',
+    );
   console.log(JSON.stringify(evidence));
 } finally {
   if (socket?.readyState === WebSocket.OPEN) {

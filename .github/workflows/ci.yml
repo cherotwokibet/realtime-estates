@@ -119,7 +119,7 @@ jobs:
       - name: Verify actual browser logout and expiry against synthetic authority
         run: node scripts/verify-browser-session-lifecycle.mjs
       - name: Verify owned settings SQL and Next browser restart recovery
-        run: node scripts/verify-settings-recovery-browser.mjs
+        run: node scripts/verify-settings-recovery-browser.mjs --stdout-only
       - run: node --test scripts/stage-runtime-packages.test.mjs
       - name: Verify real disposable PostgreSQL connections
         run: node --test database/integration-tests/postgres-runtime.test.mjs
