@@ -1,3 +1,9 @@
+## Published durable staff enquiry capture, checkpoint 485, 22 November 2026 EAT
+
+Private dashboard deployment appgdep_6b02a10d18248191aab1f09a4034cdd7 succeeded from dashboard 87aba2dd786e9e45485db21edfccb9fc22ad86af. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source b2905c6f3e3bc50bc36832fa79dbd4b4b605af38 passed all seven CI44999622455 jobs, all128 controlled browser workflows and3 separate HTTP smoke checks. Both new actual PostgreSQL17.12 capture cases passed, separately from five existing runtime regressions. Capture replay is sequential; provider/device/deployed-browser verification is unrun. Billing remains disabled.
+
 ## Verified staff capture485 source - 22 November 2026 EAT
 
 Source b2905c6f3e3bc50bc36832fa79dbd4b4b605af38 passed all seven CI44999622455 jobs. Exact-source Linux128 browser workflows/3 separate HTTP smokes, two new actual PostgreSQL17.12 capture receipt/replay/current-permission cases and five existing PostgreSQL runtime regressions/TLS/detached/container checks passed. Capture cases are sequential, not a new concurrency-race proof. Final package/API/web/admin builds, workspace typechecks/format and Android JS export passed. CI admin632/1skip is explicit; local633/UI53 passed. Exact capture485.md, ci485-run.json, counts/browser/postgres/runtime proofs retained. Next publish485 to the existing owner-private dashboard preserving1012 notes/manual fields,55/97/all14 gates OPEN and earlier474 APK; then invitation-recipient identity-only lifetime, stable custody/legacy plaintext/cache/hosted/native matrix and capture/reviewer terminal protocols. Billing disabled; vendor/live/resources/signing/exports/credits/plan untouched. No actual provider/device/deployed-browser claim.
