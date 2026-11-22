@@ -1,0 +1,151 @@
+{
+  "policy": "source-only-retained-serialization-shapes-v1",
+  "checkpoint": 490,
+  "sourceCommit": "8c1b27599053608f3cecad7a238a75540c8cbf88",
+  "sourceShapeInspectionOnly": true,
+  "completeAuthorityAudit": false,
+  "migrationImplementedOrVerified": false,
+  "plaintextDeleted": false,
+  "priorThreeConsumerReview": "2026-11-22-custody489-migration-review.json",
+  "newConsumerShapesReviewed": 7,
+  "combinedConsumerShapeCoverage": 10,
+  "findings": [
+    {
+      "component": "apps/admin/components/ReferenceDraftEditor.tsx",
+      "serializerSha256": {
+        "apps/admin/lib/reference-draft-workspace.ts": "b94b89f87e16e3f32e39ba39d48bb3b2d1481b4ef8d4c03f2322da4cca80595e"
+      },
+      "schemaOrCommand": "synthetic-reference-attempt-v1",
+      "explicitUtf8MaximumBytes": 163840,
+      "fields": [
+        "schema",
+        "instanceId",
+        "tenantId",
+        "actorId",
+        "listingId",
+        "command"
+      ],
+      "sourceObservationsAndMigrationConstraints": "Full draft content/selection; original historical catalogue version required before restore.",
+      "acceptance": "OPEN"
+    },
+    {
+      "component": "apps/admin/components/ReferenceSuccessorWorkspace.tsx",
+      "serializerSha256": {
+        "apps/admin/lib/reference-successor-entry.ts": "d6795ebd34e582f4cdb2cdc22cc3ee39f7ab37ea8918600806a2d94c59163976",
+        "apps/admin/lib/reference-successor-workspace.ts": "8f432374b785ee3197948b3877c71684eab72ba7cbc971dde955c0192b90a32d"
+      },
+      "schemaOrCommand": "synthetic-reference-successor-attempt-v1",
+      "explicitUtf8MaximumBytes": 262144,
+      "fields": [
+        "schema",
+        "instanceId",
+        "tenantId",
+        "actorId",
+        "listingId",
+        "command",
+        "catalogue"
+      ],
+      "sourceObservationsAndMigrationConstraints": "Selected catalogue snapshot and immutable predecessor/version facts retained. Restoration precedes latest-revision eligibility.",
+      "acceptance": "OPEN"
+    },
+    {
+      "component": "apps/admin/components/ReferenceReviewWorkspace.tsx",
+      "serializerSha256": {
+        "apps/admin/lib/reference-moderation-workspace.ts": "96b21b0cf7ab4351050b10254c6a1cdd2b1160dce0f38d8277d78b61144759ff"
+      },
+      "schemaOrCommand": "synthetic-reference-moderation-attempt-v1 / synthetic-reference-author-attempt-v1",
+      "explicitUtf8MaximumBytes": 163840,
+      "fields": [
+        "schema",
+        "instanceId",
+        "tenantId",
+        "actorId",
+        "listingId",
+        "revision",
+        "command",
+        "outcome (author only)"
+      ],
+      "sourceObservationsAndMigrationConstraints": "Distinct author/reviewer keys. Full historical content/attributes/photos, version/state/action/reason facts and author outstanding/refused outcome; historical catalogue required.",
+      "acceptance": "OPEN"
+    },
+    {
+      "component": "apps/admin/components/ListingVerification.tsx",
+      "serializerSha256": {
+        "apps/admin/lib/listing-verification-session.ts": "25dbf4d5564931c2d1f5d3ae52edb1b7c80afff2182a7746b0815112508b7d6d"
+      },
+      "schemaOrCommand": "raw ListingVerificationCommand",
+      "explicitUtf8MaximumBytes": null,
+      "fields": [
+        "operationId",
+        "policy",
+        "target",
+        "expectedVerificationVersion",
+        "subject",
+        "outcome",
+        "evidenceReference",
+        "note",
+        "observedAt"
+      ],
+      "sourceObservationsAndMigrationConstraints": "Key uses instance/listing only. Load bound16384 is UTF-16 code units, not explicit UTF-8 bytes. Current actor/tenant/resource authority must be verified separately; foreign or uncertain entry cannot be blindly erased.",
+      "acceptance": "OPEN"
+    },
+    {
+      "component": "apps/admin/components/FloorPlanWorkspace.tsx",
+      "serializerSha256": {
+        "apps/admin/lib/floor-plan-session.ts": "73daa104183413e8ad0c54024eee91ec414425da64522b38a2aee7ac57feb10b",
+        "apps/admin/lib/floor-plan-original-key.ts": "13f6bb633a15c90980294dfdd1379e67407912963566ea6c010ed9fd7115a194"
+      },
+      "schemaOrCommand": "floor-plan-original-v1",
+      "explicitUtf8MaximumBytes": 8192,
+      "fields": [
+        "schema",
+        "scope",
+        "command",
+        "outcome",
+        "receipt"
+      ],
+      "sourceObservationsAndMigrationConstraints": "Distinct preparation and attachment commands; preparation requestId is operation identity. Source image bytes are not serialized here. Resolved receipt stores dimensions/bytes/hash/attachment metadata; unresolved receipt is null. Listing slot deliberately spans actors/revisions and locks conflicting originals.",
+      "acceptance": "OPEN"
+    },
+    {
+      "component": "apps/admin/components/ListingVideoWorkspace.tsx",
+      "serializerSha256": {
+        "apps/admin/lib/listing-video-session.ts": "a6c6d5f2011aef240247191edb023e6c8f517a5fc326a24015ba21a67d0c574d"
+      },
+      "schemaOrCommand": "private-listing-video-original-v1",
+      "explicitUtf8MaximumBytes": 8192,
+      "fields": [
+        "schema",
+        "scope",
+        "command",
+        "outcome",
+        "receipt"
+      ],
+      "sourceObservationsAndMigrationConstraints": "Provider/videoId/title or null with operation/listing/revision/version. Resolved receipt actor-bound; unresolved receipt null. Key is instance/listing while embedded scope binds tenant/actor/revision; foreign entry remains blocking.",
+      "acceptance": "OPEN"
+    },
+    {
+      "component": "apps/admin/components/StaffDirectoryWorkspace.tsx",
+      "serializerSha256": {
+        "apps/admin/lib/staff-write-controller.ts": "59360634856cf502ab2978955983a7058e0bf6e597e6991935ef31b144eba145",
+        "apps/admin/lib/staff-write-attempt.ts": "5f653840f8fe2a37354bd0e7f8acbdab2c59aca5a9402061f63002b691f75257"
+      },
+      "schemaOrCommand": "retained-staff-write-v1",
+      "explicitUtf8MaximumBytes": 12288,
+      "fields": [
+        "policy",
+        "scope",
+        "kind",
+        "command"
+      ],
+      "sourceObservationsAndMigrationConstraints": "Typed branch/invitation/issuance/revocation/membership commands can include recipient email, requested role, branch/member identity and reason. Raw issued/acceptance secrets and disclosure excluded; receipts/phases excluded. Restore becomes uncertain. Same serializer as acceptance, different private command facts.",
+      "acceptance": "OPEN"
+    }
+  ],
+  "constraints": [
+    "Do not truncate larger historical records to current131072-byte sealed plain cap.",
+    "Listing-slot keys do not grant authority to disclose/delete cross-actor originals.",
+    "Preserve historical catalogue/target/outcome/receipt facts and preparation requestId.",
+    "Actual browser restoration/current authority/readback and matching source bytes precede any eligible legacy removal."
+  ]
+}
