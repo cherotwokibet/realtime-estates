@@ -207,3 +207,73 @@ test('verified but wrong recipient cannot accept another address and a known ref
     await p.close();
   }
 });
+
+test('real signed recipient loss after committed acceptance preserves uncertainty and exact GET recovery', async () => {
+  const p = await startStaffPreview(mode);
+  try {
+    const settings = env(p),
+      data = await loadInvitationRecipientContext(settings),
+      { api, auth, secret, command } = await issue(p),
+      storage = memory();
+    const scope = {
+      instanceId: data.instanceId,
+      tenantId: data.session.tenantId,
+      actorId: data.session.actorId,
+    };
+    let identities = 0,
+      writes = 0;
+    const deniedClient = createStaffDirectoryClient(
+      { instanceId: settings.STAFF_PREVIEW_INSTANCE },
+      async (path, init) => {
+        const request = new Request('http://localhost:3120' + path, {
+          ...init,
+          headers: {
+            ...init.headers,
+            host: '127.0.0.1:3120',
+            ...(init.method === 'POST' ? { origin: 'http://127.0.0.1:3120' } : {}),
+          },
+        });
+        return invitationRecipientBoundary(
+          request,
+          { invitationId: command.invitationId, operationId: command.operationId },
+          settings,
+          async (url, upstream) => {
+            if (upstream.method === 'POST') writes++;
+            if (url.endsWith('/invitation-recipient-session') && ++identities === 2) {
+              // The final recheck reaches the real signature verifier using an invalid bearer.
+              const headers = new Headers(upstream.headers);
+              headers.set('authorization', 'Bearer invalid.recipient.signature');
+              return fetch(url, { ...upstream, headers });
+            }
+            return fetch(url, upstream);
+          },
+        );
+      },
+    );
+    const first = createStaffWriteController({ scope, store: storage, client: deniedClient });
+    first.prepare('acceptance', command);
+    await assert.rejects(() => first.submit(secret));
+    assert.equal(first.snapshot().attempt.phase, 'uncertain');
+    assert.equal(first.snapshot().attempt.receipt, null);
+    assert.equal(writes, 1);
+    assert.equal((await api.getStaffMembership(scope.actorId, auth)).active, true);
+    const retained = [...storage.values.values()].join('');
+    assert.ok(!retained.includes(secret));
+    assert.throws(() => first.clear());
+    first.close();
+    const methods = [],
+      resumed = createStaffWriteController({
+        scope,
+        store: storage,
+        client: browser(settings, methods),
+      });
+    assert.equal(resumed.snapshot().attempt.command.operationId, command.operationId);
+    await resumed.recover();
+    assert.deepEqual(methods, ['GET']);
+    assert.equal(resumed.snapshot().attempt.receipt.memberId, scope.actorId);
+    assert.equal(writes, 1);
+    assert.equal((await api.getStaffInvitationState(command.invitationId, auth)).state, 'used');
+  } finally {
+    await p.close();
+  }
+});

@@ -34,7 +34,22 @@ const api = (config: ReturnType<typeof previewConfiguration>, fetcher: typeof fe
     baseUrl: config.origin,
     privacyNoticeVersion: 'synthetic-staff-notice-v1',
     allowLoopbackHttp: true,
-    fetch: fetcher,
+    fetch: async (url, init) => {
+      const response = await fetcher(url, init);
+      // Preserve raw identity denial even if its error envelope is absent or malformed.
+      if (
+        String(url).endsWith('/v2/staff/invitation-recipient-session') &&
+        response.status >= 400 &&
+        response.status <= 599
+      ) {
+        void response.body?.cancel().catch(() => {});
+        throw new ApiClientError('HTTP', 'Recipient identity unavailable.', {
+          status: response.status,
+          submissionUncertain: false,
+        });
+      }
+      return response;
+    },
     timeoutMs: 10000,
   });
 /** Serialized page data contains verified identity facts only, never either bearer or a membership assertion. */
@@ -73,6 +88,8 @@ export async function invitationRecipientBoundary(
     return reply(400, { error: 'INVALID_INVITATION_ACCEPTANCE', submissionUncertain: false });
   if (!['GET', ...(target ? ['POST'] : [])].includes(request.method))
     return reply(405, { error: 'METHOD_UNAVAILABLE', submissionUncertain: false });
+  // One aggregate deadline includes body parsing, identity checks and the outcome read/write.
+  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(10000)]);
   let command: ReturnType<typeof validateStaffInvitationRedemptionCommand> | undefined,
     secret: string | undefined;
   if (request.method === 'GET') {
@@ -104,11 +121,13 @@ export async function invitationRecipientBoundary(
     } catch {
       return reply(400, { error: 'INVALID_INVITATION_ACCEPTANCE', submissionUncertain: false });
     }
-  let dispatched = false;
+  let dispatched = false,
+    outcomeRead = false;
   try {
     const client = api(config, fetcher),
-      options = { bearerToken: config.bearerToken, signal: request.signal },
+      options = { bearerToken: config.bearerToken, signal },
       session = await client.getStaffInvitationRecipientSession(options);
+    if (signal.aborted) throw Error('Recipient request closed.');
     if (!target) return reply(200, { session });
     const input = {
       policy: 'staff-invitation-redemption-command-v1' as const,
@@ -119,12 +138,26 @@ export async function invitationRecipientBoundary(
     const value = command
       ? await client.redeemStaffInvitation(command, secret!, options)
       : await client.getStaffInvitationRedemption(input, options);
+    outcomeRead = true;
     const receipt = validateStaffInvitationRedemptionRecord(
       value,
       target.operationId,
       target.invitationId,
       session.actorId,
     );
+    // A verified recipient is identity-only, including before membership exists.
+    // Receipt recovery must not infer current staff/admin authority or reactivate a grant.
+    const current = await client.getStaffInvitationRecipientSession(options);
+    if (
+      signal.aborted ||
+      current.actorId !== session.actorId ||
+      current.tenantId !== session.tenantId ||
+      current.recipientEmail !== session.recipientEmail
+    )
+      return reply(403, {
+        error: 'INVITATION_RECIPIENT_UNAVAILABLE',
+        submissionUncertain: dispatched,
+      });
     return reply(200, { receipt });
   } catch (error) {
     return reply(
@@ -132,7 +165,8 @@ export async function invitationRecipientBoundary(
       {
         error: 'INVITATION_RECIPIENT_UNAVAILABLE',
         submissionUncertain:
-          dispatched && (error instanceof ApiClientError ? error.submissionUncertain : true),
+          dispatched &&
+          (outcomeRead || !(error instanceof ApiClientError) || error.submissionUncertain),
       },
     );
   }

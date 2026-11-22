@@ -148,7 +148,7 @@ test('recipient acceptance uses a fresh identity GET and body-only secret with n
   assert.deepEqual(await result.json(), { receipt: receipt() });
   assert.deepEqual(
     calls.map((c) => c.init.method),
-    ['GET', 'POST'],
+    ['GET', 'POST', 'GET'],
   );
   for (const c of calls) {
     assert.ok(!c.url.includes(secret));
@@ -217,5 +217,121 @@ test('lost acceptance response never retries; explicit original recovery perform
   const original = await boundary(req(), target, env, fetcher);
   assert.equal(original.status, 200);
   assert.deepEqual(await original.json(), { receipt: receipt() });
-  assert.deepEqual(methods, ['GET', 'POST', 'GET', 'GET']);
+  assert.deepEqual(methods, ['GET', 'POST', 'GET', 'GET', 'GET']);
 });
+
+for (const method of ['GET', 'POST']) {
+  for (const field of ['actorId', 'tenantId', 'recipientEmail']) {
+    test(`${method}: recipient changed during outcome request cannot receive the original receipt`, async () => {
+      let identities = 0,
+        writes = 0;
+      const secret = randomBytes(32).toString('base64url');
+      const result = await boundary(
+        req(method, path, method === 'POST' ? { command: command(), secret } : undefined),
+        target,
+        env,
+        async (url, init) => {
+          if (url.endsWith('/invitation-recipient-session')) {
+            identities++;
+            return response(
+              identities === 1
+                ? session()
+                : {
+                    ...session(),
+                    [field]: field === 'recipientEmail' ? 'changed@example.invalid' : id(99),
+                  },
+            );
+          }
+          if (init.method === 'POST') writes++;
+          return response(receipt());
+        },
+      );
+      assert.equal(result.status, 403);
+      const data = await result.json();
+      assert.equal(data.submissionUncertain, method === 'POST');
+      assert.equal(Object.hasOwn(data, 'receipt'), false);
+      assert.equal(JSON.stringify(data).includes(secret), false);
+      assert.equal(identities, 2);
+      assert.equal(writes, method === 'POST' ? 1 : 0);
+    });
+  }
+  for (const status of [401, 403, 503]) {
+    test(`${method}: final recipient HTTP ${status} suppresses receipt without declaring a committed acceptance refused`, async () => {
+      let identities = 0;
+      const result = await boundary(
+        req(
+          method,
+          path,
+          method === 'POST'
+            ? { command: command(), secret: randomBytes(32).toString('base64url') }
+            : undefined,
+        ),
+        target,
+        env,
+        async (url) => {
+          if (url.endsWith('/invitation-recipient-session')) {
+            identities++;
+            if (identities === 2) return Response.json({ error: 'DENIED' }, { status });
+            return response(session());
+          }
+          return response(receipt());
+        },
+      );
+      assert.equal(result.status, status);
+      const data = await result.json();
+      assert.equal(data.submissionUncertain, method === 'POST');
+      assert.equal(Object.hasOwn(data, 'receipt'), false);
+      assert.equal(identities, 2);
+    });
+  }
+}
+test('aborted recipient request cannot dispatch an acceptance or release a receipt', async () => {
+  const controller = new AbortController();
+  let writes = 0;
+  const original = req('POST', path, {
+    command: command(),
+    secret: randomBytes(32).toString('base64url'),
+  });
+  const request = new Request(original, { signal: controller.signal });
+  controller.abort();
+  const result = await boundary(request, target, env, async (url, init) => {
+    if (init.method === 'POST') writes++;
+    return response(url.endsWith('/invitation-recipient-session') ? session() : receipt());
+  });
+  assert.ok(result.status >= 400);
+  assert.equal(writes, 0);
+  assert.equal(Object.hasOwn(await result.json(), 'receipt'), false);
+});
+
+for (const method of ['GET', 'POST']) {
+  test(`${method}: cancellation during the final identity check never releases a late receipt`, async () => {
+    const controller = new AbortController();
+    let identities = 0,
+      writes = 0;
+    const original = req(
+      method,
+      path,
+      method === 'POST'
+        ? { command: command(), secret: randomBytes(32).toString('base64url') }
+        : undefined,
+    );
+    const result = await boundary(
+      new Request(original, { signal: controller.signal }),
+      target,
+      env,
+      async (url, init) => {
+        if (url.endsWith('/invitation-recipient-session')) {
+          if (++identities === 2) controller.abort();
+          return response(session());
+        }
+        if (init.method === 'POST') writes++;
+        return response(receipt());
+      },
+    );
+    assert.ok(result.status >= 400);
+    const data = await result.json();
+    assert.equal(Object.hasOwn(data, 'receipt'), false);
+    assert.equal(data.submissionUncertain, method === 'POST');
+    assert.equal(writes, method === 'POST' ? 1 : 0);
+  });
+}
