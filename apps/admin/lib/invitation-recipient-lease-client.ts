@@ -1,5 +1,5 @@
 import { validateInvitationRecipientLease, type InvitationRecipientLease } from '@realtor/domain';
-import { readReferenceJson } from './reference-draft-wire.ts';
+import { readBrowserDecodedJson } from './browser-decoded-json.ts';
 export async function readInvitationRecipientLease(
   instanceId: string,
   signal: AbortSignal,
@@ -33,5 +33,5 @@ export async function readInvitationRecipientLease(
       throw Error('Recipient unavailable.');
     }
   }
-  return validateInvitationRecipientLease(await readReferenceJson(r, 4096, combined));
+  return validateInvitationRecipientLease(await readBrowserDecodedJson(r, 4096, combined));
 }

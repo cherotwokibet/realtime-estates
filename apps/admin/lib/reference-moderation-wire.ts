@@ -1,3 +1,4 @@
+import { readBrowserDecodedJson } from './browser-decoded-json.ts';
 import { parseVerificationJson } from './listing-verification-wire.ts';
 import { readReferenceJson } from './reference-draft-wire.ts';
 export function parseReferenceModerationJson(source: string): unknown {
@@ -19,4 +20,6 @@ export function parseReferenceModerationJson(source: string): unknown {
   return result;
 }
 export const readReferenceModerationJson = (source: Request | Response, signal: AbortSignal) =>
-  readReferenceJson(source, 131072, signal, parseReferenceModerationJson);
+  source instanceof Response
+    ? readBrowserDecodedJson(source, 131072, signal, parseReferenceModerationJson)
+    : readReferenceJson(source, 131072, signal, parseReferenceModerationJson);

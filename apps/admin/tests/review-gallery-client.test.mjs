@@ -1,3 +1,4 @@
+import { decodedJsonResponse } from './helpers/decoded-json-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -173,6 +174,17 @@ test('gallery denial preserves typed status without exposing an untrusted error 
         error instanceof ReviewGalleryAccessDenied &&
         error.status === status &&
         !error.message.includes('diagnostic'),
+    );
+  }
+});
+
+test('decoded compressed Fetch responses preserve exact original facts and identity length checks', async () => {
+  for (const encoding of ['gzip', 'br', 'deflate', 'identity']) {
+    assert.deepEqual(
+      await readReviewGallery(scope, new AbortController().signal, async () =>
+        decodedJsonResponse(gallery(), encoding),
+      ),
+      gallery(),
     );
   }
 });

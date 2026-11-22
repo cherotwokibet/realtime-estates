@@ -1,3 +1,4 @@
+import { decodedJsonResponse } from './helpers/decoded-json-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createStaffDirectoryClient } from '../dist/tests/lib/staff-directory-client.js';
@@ -75,7 +76,7 @@ test('staff browser lost/malformed/wrong-status writes remain uncertain with one
       new Response('{"receipt":null,"receipt":null}', {
         headers: { 'content-type': 'application/json' },
       }),
-    async () => Response.json({ receipt: saved() }, { headers: { 'content-encoding': 'gzip' } }),
+    async () => Response.json({ receipt: saved() }, { headers: { 'content-encoding': 'unknown' } }),
   ]) {
     let calls = 0;
     const client = createStaffDirectoryClient({ instanceId: id(1) }, async (...args) => {
@@ -110,4 +111,13 @@ test('staff browser pre-cancel never dispatches; interrupted read is bounded eve
     (e) => e.kind === 'CANCELLED' && !e.submissionUncertain,
   );
   assert.equal(calls, 1);
+});
+
+test('decoded compressed Fetch responses preserve exact original facts and identity length checks', async () => {
+  for (const encoding of ['gzip', 'br', 'deflate', 'identity']) {
+    const c = createStaffDirectoryClient({ instanceId: id(1) }, async () =>
+      decodedJsonResponse({ receipt: saved() }, encoding),
+    );
+    assert.deepEqual(await c.saveBranch(command()), saved());
+  }
 });

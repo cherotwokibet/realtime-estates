@@ -8,7 +8,7 @@ import type {
   ReferenceCreationClient,
   ReferenceCreationScope,
 } from './reference-creation-workspace.ts';
-import { readReferenceJson } from './reference-draft-wire.ts';
+import { readBrowserDecodedJson } from './browser-decoded-json.ts';
 /** Scope is compared with the current server identity, never forwarded to the API as authority. */
 export function createReferenceCreationClient(
   input: ReferenceCreationScope,
@@ -78,7 +78,7 @@ export function createReferenceCreationClient(
       }
       // Denial closes private rendering even if its error body is absent or malformed.
       if (response.status === 401 || response.status === 403) onAccessDenied?.();
-      const data = await readReferenceJson(response, response.ok ? maximum : 131072, signal);
+      const data = await readBrowserDecodedJson(response, response.ok ? maximum : 131072, signal);
       if (!response.ok) {
         const uncertain = (data as { submissionUncertain?: unknown })?.submissionUncertain;
         if (typeof uncertain !== 'boolean') throw Error('Invalid error envelope.');

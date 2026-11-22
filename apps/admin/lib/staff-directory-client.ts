@@ -32,7 +32,7 @@ import {
   type StaffInvitationRevocationCommand,
   type StaffMembershipCommand,
 } from '@realtor/domain';
-import { readReferenceJson } from './reference-draft-wire.ts';
+import { readBrowserDecodedJson } from './browser-decoded-json.ts';
 const uuid = (v: unknown): string => {
   if (
     typeof v !== 'string' ||
@@ -138,7 +138,7 @@ export function createStaffDirectoryClient(
         throw Error('Private response cannot be cached.');
       }
       if (response.status === 401 || response.status === 403) lifetime.onAccessDenied?.();
-      const data = await readReferenceJson(
+      const data = await readBrowserDecodedJson(
         response,
         envelope === 'page' ? 65536 : 8192,
         combined,

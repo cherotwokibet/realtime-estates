@@ -1,3 +1,4 @@
+import { browserDecodedJsonLength } from './browser-decoded-json.ts';
 import { validateReviewMediaGallery, type ReviewMediaGallery } from '@realtor/domain';
 export class ReviewGalleryAccessDenied extends Error {
   constructor(readonly status: 401 | 403) {
@@ -60,7 +61,6 @@ export async function readReviewGallery(
       response.status !== 200 ||
       response.redirected ||
       response.headers.get('content-type')?.split(';')[0] !== 'application/json' ||
-      response.headers.has('content-encoding') ||
       !reader
     )
       throw Error('Gallery unavailable.');
@@ -78,6 +78,7 @@ export async function readReviewGallery(
       )
         throw Error('Gallery response changed scope.');
     }
+    const declared = browserDecodedJsonLength(response, 32768);
     const bytes = new Uint8Array(32768);
     let length = 0;
     for (;;) {
@@ -89,6 +90,7 @@ export async function readReviewGallery(
       length += item.value.byteLength;
     }
     if (controller.signal.aborted) throw Error('Gallery read cancelled.');
+    if (declared !== null && declared !== length) throw Error('Gallery response length changed.');
     return validateReviewMediaGallery(
       JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(0, length))),
       scope.listingId,

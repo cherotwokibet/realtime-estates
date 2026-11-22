@@ -1,3 +1,4 @@
+import { browserDecodedJsonLength } from './browser-decoded-json.ts';
 import { captureAllocationIdentity, type AllocationIdentity } from './allocation-identity.ts';
 import {
   validateListingCreationCommand,
@@ -145,13 +146,12 @@ export function createListingCreationClient(input: {
           )
             return invalid();
         }
-        const declared = response.headers.get('content-length'),
-          encoding = response.headers.get('content-encoding');
-        if (
-          declared !== null &&
-          (!/^(?:0|[1-9]\d*)$/.test(declared) || Number(declared) > 256 * 1024)
-        )
+        let declared: number | null;
+        try {
+          declared = browserDecodedJsonLength(response, 256 * 1024);
+        } catch {
           return invalid();
+        }
         reader = response.body?.getReader();
         if (!reader) return invalid();
         const chunks: Uint8Array[] = [];
@@ -163,12 +163,7 @@ export function createListingCreationClient(input: {
           if (size > 256 * 1024) return invalid();
           chunks.push(value);
         }
-        if (
-          declared !== null &&
-          (!encoding || encoding === 'identity') &&
-          Number(declared) !== size
-        )
-          return invalid();
+        if (declared !== null && Number(declared) !== size) return invalid();
         const bytes = new Uint8Array(size);
         let offset = 0;
         for (const value of chunks) {

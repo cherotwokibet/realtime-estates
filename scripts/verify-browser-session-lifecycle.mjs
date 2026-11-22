@@ -91,6 +91,7 @@ async function port() {
 // Owned mutable HTTP fixtures, not SQL/provider evidence. Recovery still uses the real Node BFF cipher.
 const sealedReceipts = new Map(),
   sealedCancellations = new Map();
+let wireLeaseExpiresAt = null;
 let captureWrites = 0,
   capturePosts = 0;
 const captureReceipts = new Map();
@@ -294,7 +295,7 @@ async function sealedFixture(req, res) {
           ? 'agent'
           : 'admin',
       checkedAt: new Date(now).toISOString(),
-      expiresAt: new Date(now + 30000).toISOString(),
+      expiresAt: new Date(Math.min(now + 30000, wireLeaseExpiresAt ?? now + 30000)).toISOString(),
     });
     return true;
   }
@@ -714,6 +715,25 @@ async function tab(origin, path, kind, model) {
     throw Error('Unexpected synthetic endpoint ' + path);
   }
   handlers.set(s, async (m) => {
+    if (m.method === 'Network.responseReceived') {
+      if (model.directPrivate) {
+        const r = m.params.response,
+          u = new URL(r.url);
+        if (u.origin === origin && u.pathname.startsWith('/api/')) {
+          model.wireResponses ??= [];
+          model.wireResponses.push({
+            path: u.pathname,
+            status: r.status,
+            encoding:
+              Object.entries(r.headers).find(
+                ([k]) => k.toLowerCase() === 'content-encoding',
+              )?.[1] ?? null,
+          });
+        }
+      }
+      return;
+    }
+
     if (m.method === 'Runtime.exceptionThrown') {
       errors.push(m.params.exceptionDetails.text);
       return;
@@ -723,6 +743,16 @@ async function tab(origin, path, kind, model) {
     const u = new URL(request.url);
     if (u.origin !== origin) {
       await cmd('Fetch.failRequest', { requestId, errorReason: 'BlockedByClient' });
+      return;
+    }
+
+    if (
+      model.directPrivate &&
+      (u.pathname.startsWith('/api/private-workspace/lease/') ||
+        u.pathname.startsWith('/api/private-summary/'))
+    ) {
+      reads++;
+      await cmd('Fetch.continueRequest', { requestId });
       return;
     }
     if (model.recipient && u.pathname === '/api/invitation-acceptance/lease') {
@@ -1063,6 +1093,7 @@ async function tab(origin, path, kind, model) {
   });
   await cmd('Runtime.enable');
   await cmd('Page.enable');
+  await cmd('Network.enable');
   await cmd('Emulation.setFocusEmulationEnabled', { enabled: true });
   await cmd('Fetch.enable', { patterns: [{ urlPattern: '*' }] });
   let originalScript;
@@ -2865,6 +2896,88 @@ try {
     await hidden.close();
     evidence.tests.push(
       'admin/recipient: persisted-page lifecycle events clear private rendering before restore',
+    );
+  }
+
+  {
+    const ready = (page) =>
+        until(
+          () =>
+            page.evaljs(
+              `!![...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='Load company activity'&&!b.disabled)`,
+            ),
+          'unproxied audit readiness',
+        ),
+      closed = (page) =>
+        until(
+          () => page.evaljs(`!!document.querySelector('[aria-label="Private view closed"]')`),
+          'unproxied audit closed',
+        );
+    evidence.unproxiedPrivateWire = [];
+    const state = {
+        directPrivate: true,
+        summaryKind: 'audit',
+        allowChecking: true,
+        logouts: [],
+        wireResponses: [],
+      },
+      page = await tab(sealedOrigin, '/audit', 'audit', state);
+    await ready(page);
+    await page.click('Load company activity');
+    await until(() => page.visible(), 'unproxied actual compressed audit');
+    for (const path of ['/api/private-workspace/lease/staff', '/api/private-summary/audit'])
+      assert.ok(
+        state.wireResponses.some(
+          (r) => r.path === path && r.status === 200 && r.encoding === 'gzip',
+        ),
+        JSON.stringify(state.wireResponses),
+      );
+    await page.evaljs(
+      "(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signing-out'});c.close()})()",
+    );
+    await closed(page);
+    assert.equal(await page.visible(), false);
+    assert.deepEqual(page.errors, []);
+    evidence.unproxiedPrivateWire.push(...state.wireResponses);
+    await page.close();
+    evidence.tests.push(
+      'admin/actual-wire: unproxied compressed staff lease and audit response pass bounded Fetch readers; logout clears the rendered data',
+    );
+    wireLeaseExpiresAt = Date.now() + 7000;
+    try {
+      const state = {
+          directPrivate: true,
+          summaryKind: 'audit',
+          allowChecking: true,
+          logouts: [],
+          wireResponses: [],
+        },
+        page = await tab(sealedOrigin, '/audit', 'audit', state);
+      await ready(page);
+      await page.click('Load company activity');
+      await until(() => page.visible(), 'actual short-lease audit');
+      await closed(page);
+      assert.equal(await page.visible(), false);
+      const reads = page.reads();
+      await page.evaljs("window.dispatchEvent(new Event('focus'))");
+      await pause(80);
+      assert.equal(page.reads(), reads);
+      assert.deepEqual(page.errors, []);
+      assert.ok(
+        state.wireResponses.some(
+          (r) =>
+            r.path === '/api/private-workspace/lease/staff' &&
+            r.status === 200 &&
+            r.encoding === 'gzip',
+        ),
+      );
+      evidence.unproxiedPrivateWire.push(...state.wireResponses);
+      await page.close();
+    } finally {
+      wireLeaseExpiresAt = null;
+    }
+    evidence.tests.push(
+      'admin/actual-wire: actual short server lease expires a view opened through compressed Next responses and cannot reopen on focus',
     );
   }
   console.log(JSON.stringify(evidence, null, 2));

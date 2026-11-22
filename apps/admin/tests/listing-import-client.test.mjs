@@ -1,3 +1,4 @@
+import { decodedJsonResponse } from './helpers/decoded-json-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readListingImportPreview } from '../dist/tests/lib/listing-import-client.js';
@@ -142,4 +143,15 @@ test('downloadable template matches the maintained exact CSV header', async () =
     'utf8',
   );
   assert.equal(template.trim(), LISTING_IMPORT_COLUMNS.join(','));
+});
+
+test('decoded compressed Fetch responses preserve exact original facts and identity length checks', async () => {
+  for (const encoding of ['gzip', 'br', 'deflate', 'identity']) {
+    assert.deepEqual(
+      await readListingImportPreview(instance, csv, new AbortController().signal, async () =>
+        decodedJsonResponse(data(), encoding),
+      ),
+      data(),
+    );
+  }
 });

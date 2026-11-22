@@ -1,3 +1,4 @@
+import { browserDecodedJsonLength } from './browser-decoded-json.ts';
 import {
   validateListingVerificationCommand,
   validateListingVerificationReceipt,
@@ -136,7 +137,6 @@ export function createListingVerificationClient(input: {
       if (
         response.redirected ||
         response.headers.has('content-range') ||
-        response.headers.has('content-encoding') ||
         !/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(
           response.headers.get('content-type') ?? '',
         )
@@ -154,10 +154,13 @@ export function createListingVerificationClient(input: {
         )
           return invalid();
       }
-      const maximum = 1048576,
-        declared = response.headers.get('content-length');
-      if (declared !== null && (!/^(0|[1-9]\d*)$/.test(declared) || Number(declared) > maximum))
+      const maximum = 1048576;
+      let declared: number | null;
+      try {
+        declared = browserDecodedJsonLength(response, maximum);
+      } catch {
         return invalid();
+      }
       if (!reader) return invalid();
       const bytes = new Uint8Array(maximum);
       let size = 0,

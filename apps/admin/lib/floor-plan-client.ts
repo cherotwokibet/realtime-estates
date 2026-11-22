@@ -9,7 +9,7 @@ import {
   type FloorPlanAttachmentCommand,
 } from '@realtor/domain';
 import { captureVideoScope, type VideoScope } from './listing-video-session.ts';
-import { readReferenceJson } from './reference-draft-wire.ts';
+import { readBrowserDecodedJson } from './browser-decoded-json.ts';
 const typed = Object.getPrototypeOf(Uint8Array.prototype),
   length = Object.getOwnPropertyDescriptor(typed, 'byteLength')!.get!,
   buffer = Object.getOwnPropertyDescriptor(typed, 'buffer')!.get!,
@@ -89,7 +89,7 @@ export function createFloorPlanClient(
         !response.headers.get('cache-control')?.split(/[ ,]+/).includes('no-store')
       )
         throw Error('Invalid private response.');
-      const data = await readReferenceJson(response, 8192, signal);
+      const data = await readBrowserDecodedJson(response, 8192, signal);
       if (!response.ok) {
         const error = data as { submissionUncertain?: unknown };
         if (typeof error?.submissionUncertain !== 'boolean') throw Error('Invalid refusal.');

@@ -1,7 +1,7 @@
 import { ApiClientError } from '@realtor/api-client';
 import { validateListingVideoCommand, validateListingVideoRecord } from '@realtor/domain';
 import { captureVideoScope, type VideoScope, type VideoClient } from './listing-video-session.ts';
-import { readReferenceJson } from './reference-draft-wire.ts';
+import { readBrowserDecodedJson } from './browser-decoded-json.ts';
 export function createListingVideoClient(
   input: VideoScope,
   transport: typeof fetch = (...args) => globalThis.fetch(...args),
@@ -50,7 +50,7 @@ export function createListingVideoClient(
       ]);
       if (r.redirected || !r.headers.get('cache-control')?.split(/[ ,]+/).includes('no-store'))
         throw Error('Invalid private response.');
-      const data = await readReferenceJson(r, 8192, signal);
+      const data = await readBrowserDecodedJson(r, 8192, signal);
       if (!r.ok) {
         const e = data as { submissionUncertain?: unknown };
         if (typeof e?.submissionUncertain !== 'boolean') throw Error('Invalid refusal.');

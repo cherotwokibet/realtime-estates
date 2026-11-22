@@ -1,5 +1,5 @@
 import { validateStaffAccessLease, type StaffAccessLease } from '@realtor/domain';
-import { readReferenceJson } from './reference-draft-wire.ts';
+import { readBrowserDecodedJson } from './browser-decoded-json.ts';
 export interface PrivateWorkspaceAccess {
   readonly profile: 'staff' | 'admin' | 'agent' | 'deletion-triage' | 'deletion-privacy';
   readonly instanceId: string;
@@ -44,5 +44,5 @@ export async function readPrivateWorkspaceLease(
       throw Error('Private access unavailable.');
     }
   }
-  return validateStaffAccessLease(await readReferenceJson(response, 4096, combined));
+  return validateStaffAccessLease(await readBrowserDecodedJson(response, 4096, combined));
 }

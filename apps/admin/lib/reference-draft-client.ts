@@ -5,7 +5,7 @@ import {
   validateSyntheticReferenceDraftReceipt,
 } from '@realtor/domain';
 import type { ReferenceDraftClient, ReferenceDraftScope } from './reference-draft-workspace.ts';
-import { readReferenceJson } from './reference-draft-wire.ts';
+import { readBrowserDecodedJson } from './browser-decoded-json.ts';
 /** Scope is compared with the current server identity, never forwarded to the API as authority. */
 export function createReferenceDraftClient(
   input: ReferenceDraftScope,
@@ -72,7 +72,7 @@ export function createReferenceDraftClient(
       } finally {
         signal.removeEventListener('abort', abort);
       }
-      const data = await readReferenceJson(response, maximum, signal);
+      const data = await readBrowserDecodedJson(response, maximum, signal);
       if (!response.ok) {
         const uncertain = (data as { submissionUncertain?: unknown })?.submissionUncertain;
         if (typeof uncertain !== 'boolean') throw Error('Invalid error envelope.');

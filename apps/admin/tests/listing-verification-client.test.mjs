@@ -1,3 +1,4 @@
+import { decodedJsonResponse } from './helpers/decoded-json-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { planListingVerification } from '@realtor/domain';
@@ -108,7 +109,7 @@ test('verification successful replies reject duplicate keys, aliases, altered fa
       }),
     () =>
       new Response(JSON.stringify(receipt()), {
-        headers: { 'content-type': 'application/json', 'content-encoding': 'gzip' },
+        headers: { 'content-type': 'application/json', 'content-encoding': 'unknown' },
       }),
   ]) {
     let calls = 0;
@@ -249,4 +250,13 @@ test('restored attempts remain uncertain across access loss and replay only iden
   await attempt.replayOriginal();
   assert.equal(writes, 1);
   assert.equal(attempt.status, 'received');
+});
+
+test('decoded compressed Fetch responses preserve exact original facts and identity length checks', async () => {
+  for (const encoding of ['gzip', 'br', 'deflate', 'identity']) {
+    assert.deepEqual(
+      await client(async () => decodedJsonResponse(receipt(), encoding)).create(command()),
+      receipt(),
+    );
+  }
 });

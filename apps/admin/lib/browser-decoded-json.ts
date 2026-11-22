@@ -9,17 +9,27 @@ export async function readBrowserDecodedJson(
   signal: AbortSignal,
   parse: (source: string) => unknown = parseVerificationJson,
 ): Promise<unknown> {
-  const encoding = response.headers.get('content-encoding')?.toLowerCase(),
+  const expected = browserDecodedJsonLength(response, maximum);
+  const headers = new Headers(response.headers);
+  headers.delete('content-encoding');
+  if (expected === null) headers.delete('content-length');
+  return readReferenceJson(new Response(response.body, { headers }), maximum, signal, parse);
+}
+
+/** Returns an identity-body length only; compressed Fetch lengths count encoded wire bytes. */
+export function browserDecodedJsonLength(response: Response, maximum: number): number | null {
+  const encoding = response.headers.get('content-encoding')?.toLowerCase() ?? null,
     declared = response.headers.get('content-length');
   if (
-    (encoding && !['identity', 'gzip', 'br', 'deflate'].includes(encoding)) ||
+    !Number.isSafeInteger(maximum) ||
+    maximum <= 0 ||
+    (encoding !== null && !['identity', 'gzip', 'br', 'deflate'].includes(encoding)) ||
     (declared !== null && (!/^(0|[1-9]\d*)$/.test(declared) || Number(declared) > maximum))
   ) {
     void response.body?.cancel().catch(() => {});
     throw Error('Invalid response framing.');
   }
-  const headers = new Headers(response.headers);
-  headers.delete('content-encoding');
-  if (encoding && encoding !== 'identity') headers.delete('content-length');
-  return readReferenceJson(new Response(response.body, { headers }), maximum, signal, parse);
+  return declared !== null && (encoding === null || encoding === 'identity')
+    ? Number(declared)
+    : null;
 }

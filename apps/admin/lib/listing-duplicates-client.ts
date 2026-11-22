@@ -1,3 +1,4 @@
+import { browserDecodedJsonLength } from './browser-decoded-json.ts';
 import {
   validateListingDuplicateRequest,
   validateListingDuplicateCandidates,
@@ -52,7 +53,6 @@ export async function readListingDuplicateCandidates(
       response.status !== 200 ||
       response.redirected ||
       response.headers.get('content-type')?.split(';')[0] !== 'application/json' ||
-      response.headers.has('content-encoding') ||
       !reader
     )
       throw Error('Lookup unavailable. Reload the listing before checking again.');
@@ -71,9 +71,7 @@ export async function readListingDuplicateCandidates(
         throw Error('Lookup response changed scope.');
     }
     const maximum = 1048576,
-      declared = response.headers.get('content-length');
-    if (declared !== null && (!/^(0|[1-9]\d*)$/.test(declared) || Number(declared) > maximum))
-      throw Error('Lookup exceeds limit.');
+      declared = browserDecodedJsonLength(response, maximum);
     const bytes = new Uint8Array(maximum);
     let length = 0;
     for (;;) {

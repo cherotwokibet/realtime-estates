@@ -1,3 +1,4 @@
+import { decodedJsonResponse } from './helpers/decoded-json-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readListingDuplicateCandidates } from '../dist/tests/lib/listing-duplicates-client.js';
@@ -68,7 +69,7 @@ test('duplicate browser lookup rejects denial, stale facts, malformed framing an
     () => new Response('x'.repeat(1048577), { headers: { 'content-type': 'application/json' } }),
     () => new Response(new Uint8Array([255]), { headers: { 'content-type': 'application/json' } }),
     () => Response.json(data(), { headers: { 'content-length': '01' } }),
-    () => Response.json(data(), { headers: { 'content-encoding': 'gzip' } }),
+    () => Response.json(data(), { headers: { 'content-encoding': 'unknown' } }),
     () =>
       new Response('{"kind":"listing_duplicate_candidates","kind":"changed"}', {
         headers: { 'content-type': 'application/json' },
@@ -128,4 +129,10 @@ test('duplicate browser cancellation closes stalled response and ignores late fe
   );
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(lateCancelled, true);
+});
+
+test('decoded compressed Fetch responses preserve exact original facts and identity length checks', async () => {
+  for (const encoding of ['gzip', 'br', 'deflate', 'identity']) {
+    assert.deepEqual(await read(async () => decodedJsonResponse(data(), encoding)), data());
+  }
 });
