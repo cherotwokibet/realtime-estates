@@ -1,3 +1,9 @@
+## Published protected synthetic local recovery custody, checkpoint 489, 22 November 2026 EAT
+
+Private dashboard deployment appgdep_6b0300e83f108191bebe340dab40b18f succeeded from dashboard 64e1178c73a1dcb5182206521cd4139f636138f1. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source b683c043c91df6237fbdeb6ee2097cbd6c1ae24a passed all seven CI45033468770 jobs. Local11 focused/admin675/UI53/launcher23/types/format passed, including real Windows DPAPI and copied-bundle capsule reopening in a fresh signed-authority process. Linux140 browser workflows/3 separate HTTP smokes and7 existing PostgreSQL/TLS/detached/container checks passed. Final package/API/web/admin builds/types/format/Android JS export passed. Linux platform-specific skips are explicit. No original plaintext was migrated/deleted; full app/ledger/browser closed-tab/provider/device acceptance remains open. Billing disabled.
+
 ## Verified protected local recovery custody489 - 22 November2026 EAT
 
 Source b683c043c91df6237fbdeb6ee2097cbd6c1ae24a passed all seven CI45033468770 jobs. Local11 focused checks/admin675/UI53/launcher23/types/format passed, including real Windows DPAPI and separate fresh signed-authority process reopening of one capsule from a copied protected bundle, changed-role denial and wrong-custody refusal before authority startup. Linux admin671/4skip and API488/3skip are explicit; suite-specific counts retained.140 Linux browser workflows/3 separate HTTP smokes and7 existing PostgreSQL17.12/TLS/detached/container cases passed. Final builds/types/format/Android JS export each passed. No new PostgreSQL case, signed APK/device/provider acceptance. Existing private dashboard publication is next.
