@@ -1695,8 +1695,9 @@ export async function startStaffPreview(options = {}) {
           return response;
         }
         if (
-          staffInvitationRedemptionMode &&
-          url.pathname.startsWith('/v2/staff/invitation-recipient-session')
+          (staffInvitationRedemptionMode &&
+            url.pathname.startsWith('/v2/staff/invitation-recipient-session')) ||
+          url.pathname.startsWith('/v2/staff/invitation-recipient-lease')
         )
           return service(request);
         if (

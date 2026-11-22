@@ -277,3 +277,50 @@ test('real signed recipient loss after committed acceptance preserves uncertaint
     await p.close();
   }
 });
+
+test('recipient lease is available before membership through actual signed SDK and fixed BFF', async () => {
+  const p = await startStaffPreview(mode);
+  try {
+    const settings = env(p),
+      { invitationRecipientLeaseRequest, invitationRecipientPageConfiguration } =
+        await import('../dist/tests/lib/invitation-recipient-server.js'),
+      { readInvitationRecipientLease } =
+        await import('../dist/tests/lib/invitation-recipient-lease-client.js');
+    assert.deepEqual(invitationRecipientPageConfiguration(settings), {
+      instanceId: settings.STAFF_PREVIEW_INSTANCE,
+    });
+    const api = new RealtorApiClient({
+        baseUrl: p.origin,
+        allowLoopbackHttp: true,
+        privacyNoticeVersion: 'synthetic-v1',
+      }),
+      lease = await api.getStaffInvitationRecipientLease({
+        bearerToken: p.invitationRecipient.bearerToken,
+      });
+    assert.equal(lease.authority, 'identity_only');
+    assert.equal(lease.actorId, p.invitationRecipient.actorId);
+    assert.equal(Object.hasOwn(lease, 'role'), false);
+    assert.ok(Date.parse(lease.expiresAt) - Date.parse(lease.checkedAt) <= 30000);
+    const wire = await readInvitationRecipientLease(
+      settings.STAFF_PREVIEW_INSTANCE,
+      new AbortController().signal,
+      async (path, init) =>
+        invitationRecipientLeaseRequest(
+          new Request('http://localhost:3120' + path, {
+            ...init,
+            headers: { ...init.headers, host: '127.0.0.1:3120' },
+          }),
+          settings,
+        ),
+    );
+    assert.equal(wire.actorId, lease.actorId);
+    assert.equal(wire.recipientEmail, lease.recipientEmail);
+    const members = await api.listStaffMemberships(
+      { limit: 20, after: null },
+      { bearerToken: p.bearerToken },
+    );
+    assert.ok(!members.items.some((m) => m.memberId === lease.actorId));
+  } finally {
+    await p.close();
+  }
+});

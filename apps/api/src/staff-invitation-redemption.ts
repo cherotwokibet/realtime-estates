@@ -1,6 +1,7 @@
 import {
   validateStaffInvitationIssueRecord,
   validateStaffInvitationRecipientSession,
+  validateInvitationRecipientLease,
   validateStaffInvitationRedemptionRecord,
   validateStaffIssuedInvitationState,
   type StaffInvitationIssueRecord as InvitationIssueRecord,
@@ -170,6 +171,25 @@ export function createStaffInvitationRedemptionCandidate(options: {
   const issuer = options.identity.issuer;
   const transaction = options.database.transaction.bind(options.database);
   return Object.freeze({
+    async recipientLease(company: unknown, bearer: string) {
+      guard();
+      const tenantId = uuid(company),
+        recipient = await verifyRecipient(bearer),
+        checked = Date.now();
+      guard();
+      return validateInvitationRecipientLease(
+        {
+          policy: 'invitation-recipient-lease-v1',
+          tenantId,
+          actorId: recipient.actorId,
+          recipientEmail: recipient.recipientEmail,
+          authority: 'identity_only',
+          checkedAt: new Date(checked).toISOString(),
+          expiresAt: new Date(Math.min(checked + 30000, recipient.expiresAt)).toISOString(),
+        },
+        checked,
+      );
+    },
     async recipientSession(company: unknown, bearer: string) {
       guard();
       const tenantId = uuid(company),

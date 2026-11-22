@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useRecipientClear } from '../lib/recipient-private-context.tsx';
 import type { StaffInvitationRecipientSession } from '@realtor/domain';
 import {
   createStaffDirectoryClient,
@@ -17,6 +18,7 @@ export default function InvitationAcceptanceWorkspace({
   instanceId: string;
   session: StaffInvitationRecipientSession;
 }) {
+  const clearRecipient = useRecipientClear();
   const controller = useRef<StaffWriteController | null>(null),
     client = useRef<StaffDirectoryClient | null>(null),
     raw = useRef(''),
@@ -46,6 +48,7 @@ export default function InvitationAcceptanceWorkspace({
         raw.current = '';
         setCode('');
         setDenied(true);
+        clearRecipient();
       }
       return response;
     });
@@ -60,6 +63,7 @@ export default function InvitationAcceptanceWorkspace({
       if (c.snapshot().attempt && c.snapshot().attempt!.kind !== 'acceptance') {
         c.close();
         setDenied(true);
+        clearRecipient();
       }
       sync();
     } catch {
@@ -94,7 +98,7 @@ export default function InvitationAcceptanceWorkspace({
       window.removeEventListener('beforeunload', before);
       document.removeEventListener('click', links, true);
     };
-  }, [instanceId, session.tenantId, session.actorId, session.recipientEmail]);
+  }, [instanceId, session.tenantId, session.actorId, session.recipientEmail, clearRecipient]);
   const attempt = snapshot?.attempt,
     locked = !snapshot || snapshot.busy || snapshot.blocked || snapshot.closed || reading || denied;
   function prepare(event: FormEvent) {
@@ -131,6 +135,7 @@ export default function InvitationAcceptanceWorkspace({
         c.close();
         discardCode();
         setDenied(true);
+        clearRecipient();
         throw Error();
       }
       // Raw material never enters the retained command, snapshot or storage.

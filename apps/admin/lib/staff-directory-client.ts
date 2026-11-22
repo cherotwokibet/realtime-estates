@@ -130,7 +130,9 @@ export function createStaffDirectoryClient(
       }
       if (
         (path.includes('/invitation-issues/') || path.startsWith('/api/invitation-acceptance/')) &&
-        response.headers.get('cache-control') !== 'no-store'
+        !['no-store', 'no-store, no-transform'].includes(
+          response.headers.get('cache-control') ?? '',
+        )
       ) {
         void response.body?.cancel().catch(() => {});
         throw Error('Private response cannot be cached.');

@@ -2578,6 +2578,7 @@ export function createApiService(
       }
       if (
         path.startsWith('/v2/staff/invitation-recipient-session') ||
+        path.startsWith('/v2/staff/invitation-recipient-lease') ||
         path.startsWith('/v2/staff/invitation-issues') ||
         path.startsWith('/v2/staff/invitation-redemptions')
       ) {

@@ -115,15 +115,16 @@ export function createStaffInvitationHttpCandidate(options: {
       if (process.env.NODE_ENV === 'production') throw new InputError(404);
       const url = new URL(request.url),
         match = route.exec(url.pathname),
-        session = url.pathname === '/v2/staff/invitation-recipient-session';
+        session = url.pathname === '/v2/staff/invitation-recipient-session',
+        lease = url.pathname === '/v2/staff/invitation-recipient-lease';
       if (
-        (!match && !session) ||
+        (!match && !session && !lease) ||
         url.search ||
         url.hash ||
         (match?.[1] === 'invitation-redemptions' && match[4])
       )
         throw new InputError(404);
-      const state = session || !!match?.[4],
+      const state = lease || session || !!match?.[4],
         redemption = match?.[1] === 'invitation-redemptions';
       allow = state ? 'GET' : 'GET, POST';
       if (!['GET', ...(state ? [] : ['POST'])].includes(request.method)) throw new InputError(405);
@@ -149,6 +150,14 @@ export function createStaffInvitationHttpCandidate(options: {
           (request.headers.has('content-length') && request.headers.get('content-length') !== '0')
         )
           throw new InputError(400);
+        if (
+          lease &&
+          ['content-type', 'content-length', 'transfer-encoding'].some((k) =>
+            request.headers.has(k),
+          )
+        )
+          throw new InputError(400);
+        if (lease) return json(200, await candidate.recipientLease(tenantId, bearer), requestId);
         if (session)
           return json(200, await candidate.recipientSession(tenantId, bearer), requestId);
         return json(

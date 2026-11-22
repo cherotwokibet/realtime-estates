@@ -113,6 +113,42 @@ async function sealedFixture(req, res) {
     });
     res.end(JSON.stringify(body));
   };
+  if (
+    path === '/v2/staff/invitation-recipient-lease' ||
+    path === '/v2/staff/invitation-recipient-session'
+  ) {
+    const when = Date.now();
+    reply(200, {
+      policy: path.endsWith('-lease')
+        ? 'invitation-recipient-lease-v1'
+        : 'synthetic-staff-invitation-recipient-session-v1',
+      tenantId: tenant,
+      actorId: id(50),
+      recipientEmail: 'private_recipient_canary@example.invalid',
+      authority: 'identity_only',
+      ...(path.endsWith('-lease')
+        ? {
+            checkedAt: new Date(when).toISOString(),
+            expiresAt: new Date(when + 30000).toISOString(),
+          }
+        : {}),
+    });
+    return true;
+  }
+  if (path.startsWith('/v2/staff/invitation-redemptions/')) {
+    const parts = path.split('/');
+    reply(200, {
+      policy: 'staff-invitation-redemption-record-v1',
+      invitationId: parts[4],
+      operationId: parts[6],
+      memberId: id(50),
+      requestedRole: 'agent',
+      branchId: null,
+      recordedAt: '2026-11-22T09:00:00.000Z',
+      membershipGranted: true,
+    });
+    return true;
+  }
   if (path === '/v2/staff/audit-events' || path === '/v2/staff/synthetic-push-queue-summary') {
     summaryReads++;
     reply(
@@ -477,6 +513,9 @@ async function start(app, review = false) {
           }
         : review === 'sealed'
           ? {
+              STAFF_DIRECTORY_PREVIEW_MODE: 'synthetic-v1',
+              STAFF_INVITATION_RECIPIENT_PREVIEW_MODE: 'synthetic-verified-recipient-v1',
+              STAFF_INVITATION_RECIPIENT_TOKEN: 'synthetic.recipient.signature',
               STAFF_REPORT_PREVIEW_MODE: 'synthetic-v1',
               STAFF_AUDIT_PREVIEW_MODE: 'synthetic-admin-audit-v1',
               STAFF_AUDIT_WEB_ORIGIN: 'http://127.0.0.1:' + p,
@@ -684,6 +723,44 @@ async function tab(origin, path, kind, model) {
     const u = new URL(request.url);
     if (u.origin !== origin) {
       await cmd('Fetch.failRequest', { requestId, errorReason: 'BlockedByClient' });
+      return;
+    }
+    if (model.recipient && u.pathname === '/api/invitation-acceptance/lease') {
+      reads++;
+      const result = await fetch(request.url, { headers: { 'x-preview-instance': id(900) } }),
+        body = await result.json();
+      if (model.recipientActor) body.actorId = model.recipientActor;
+      if (model.recipientEmail) body.recipientEmail = model.recipientEmail;
+      if (model.leaseExpiresAt)
+        body.expiresAt = new Date(Math.min(model.leaseExpiresAt, Date.now() + 30000)).toISOString();
+      const complete = () =>
+        fulfil(
+          requestId,
+          model.leaseStatus ? { error: 'synthetic-recipient-denied' } : body,
+          model.leaseStatus ?? result.status,
+        );
+      if (model.holdLease) leaseHeld = complete;
+      else await complete();
+      return;
+    }
+    if (
+      model.recipient &&
+      u.pathname.startsWith('/api/invitation-acceptance/') &&
+      u.pathname.includes('/operations/')
+    ) {
+      reads++;
+      const result = await fetch(request.url, {
+          method: request.method,
+          headers: {
+            'x-preview-instance': id(900),
+            ...(request.method === 'POST' ? { 'content-type': 'application/json', origin } : {}),
+          },
+          ...(request.postData ? { body: request.postData } : {}),
+        }),
+        body = await result.json();
+      const complete = () => fulfil(requestId, body, result.status);
+      if (model.holdRecipient) held = complete;
+      else await complete();
       return;
     }
     if (u.pathname.startsWith('/api/private-workspace/lease/')) {
@@ -994,52 +1071,58 @@ async function tab(origin, path, kind, model) {
       source: `for(const [k,v] of ${JSON.stringify(model.originalEntries)})sessionStorage.setItem(k,v);`,
     });
   await cmd('Page.navigate', { url: origin + path });
-  const selector = kind.startsWith('capture-')
-    ? 'section.intake-card'
-    : kind === 'audit'
-      ? 'section[aria-label="Private company activity"]'
-      : kind === 'push'
-        ? 'section[aria-label="Synthetic notification queue"]'
-        : kind.startsWith('deletion-')
-          ? 'section[aria-labelledby="' +
-            (kind === 'deletion-triage' ? 'triage-heading' : 'privacy-queue') +
-            '"]'
-          : kind === 'settings'
-            ? '.settings-grid'
-            : kind === 'report'
-              ? 'section[aria-label="Private report review"]'
-              : kind === 'directory'
-                ? '.staff-workspace'
-                : kind.startsWith('allocation-')
-                  ? '.draft-panel[aria-label="Retained listing allocation workspace"]'
-                  : kind === 'creation' || kind === 'successor'
-                    ? '.draft-panel[aria-label="Reference ' + kind + ' workspace"]'
-                    : kind === 'review'
-                      ? '.review-workspace-layout'
-                      : kind === 'staff'
-                        ? '.hosted-staff'
-                        : kind === 'customer'
-                          ? '.customer-account'
-                          : '.hosted-sign-in';
-  const privateText = kind.startsWith('capture-')
-    ? 'PRIVATE_CAPTURE_CANARY'
-    : kind === 'audit'
-      ? '9007199254740993'
-      : kind === 'push'
-        ? '93847'
-        : kind === 'settings' || kind === 'report'
-          ? 'PRIVATE_SEALED_ORIGINAL_CANARY'
-          : kind === 'directory' || kind.startsWith('allocation-')
-            ? 'PRIVATE_STAFF_ORIGINAL_CANARY'
-            : kind === 'creation' || kind === 'successor'
-              ? 'PRIVATE_ORIGINAL_CANARY'
-              : kind === 'review'
-                ? 'PRIVATE_REVIEW_CANARY'
-                : kind === 'staff'
-                  ? 'PRIVATE_BRANCH_CANARY'
-                  : kind === 'customer'
-                    ? 'PRIVATE_HOME_CANARY'
-                    : 'You are signed in.';
+  const selector =
+    kind === 'recipient'
+      ? '.staff-workspace'
+      : kind.startsWith('capture-')
+        ? 'section.intake-card'
+        : kind === 'audit'
+          ? 'section[aria-label="Private company activity"]'
+          : kind === 'push'
+            ? 'section[aria-label="Synthetic notification queue"]'
+            : kind.startsWith('deletion-')
+              ? 'section[aria-labelledby="' +
+                (kind === 'deletion-triage' ? 'triage-heading' : 'privacy-queue') +
+                '"]'
+              : kind === 'settings'
+                ? '.settings-grid'
+                : kind === 'report'
+                  ? 'section[aria-label="Private report review"]'
+                  : kind === 'directory'
+                    ? '.staff-workspace'
+                    : kind.startsWith('allocation-')
+                      ? '.draft-panel[aria-label="Retained listing allocation workspace"]'
+                      : kind === 'creation' || kind === 'successor'
+                        ? '.draft-panel[aria-label="Reference ' + kind + ' workspace"]'
+                        : kind === 'review'
+                          ? '.review-workspace-layout'
+                          : kind === 'staff'
+                            ? '.hosted-staff'
+                            : kind === 'customer'
+                              ? '.customer-account'
+                              : '.hosted-sign-in';
+  const privateText =
+    kind === 'recipient'
+      ? 'private_recipient_canary@example.invalid'
+      : kind.startsWith('capture-')
+        ? 'PRIVATE_CAPTURE_CANARY'
+        : kind === 'audit'
+          ? '9007199254740993'
+          : kind === 'push'
+            ? '93847'
+            : kind === 'settings' || kind === 'report'
+              ? 'PRIVATE_SEALED_ORIGINAL_CANARY'
+              : kind === 'directory' || kind.startsWith('allocation-')
+                ? 'PRIVATE_STAFF_ORIGINAL_CANARY'
+                : kind === 'creation' || kind === 'successor'
+                  ? 'PRIVATE_ORIGINAL_CANARY'
+                  : kind === 'review'
+                    ? 'PRIVATE_REVIEW_CANARY'
+                    : kind === 'staff'
+                      ? 'PRIVATE_BRANCH_CANARY'
+                      : kind === 'customer'
+                        ? 'PRIVATE_HOME_CANARY'
+                        : 'You are signed in.';
   const text = () => evaljs(`document.querySelector(${JSON.stringify(selector)})?.innerText || ''`);
   const visible = async () =>
     kind.startsWith('capture-')
@@ -2622,6 +2705,166 @@ try {
       'admin/' +
         kind +
         ': changed initial role blocks private form mounting without deleting original',
+    );
+  }
+  {
+    const path = '/invitations/accept',
+      recipient = 'private_recipient_canary@example.invalid',
+      original = markStaffWriteUncertain(
+        prepareStaffWrite(
+          { instanceId: id(900), tenantId: tenant, actorId: id(50) },
+          'acceptance',
+          {
+            policy: 'staff-invitation-redemption-command-v1',
+            invitationId: id(880),
+            operationId: id(881),
+          },
+        ),
+        { instanceId: id(900), tenantId: tenant, actorId: id(50) },
+      ),
+      storageKey = 'realtor.staff-write.v1:' + id(900) + ':' + tenant + ':' + id(50),
+      originalValue = serializeStaffWrite(original),
+      entries = [[storageKey, originalValue]],
+      base = { recipient: true, allowChecking: true, logouts: [], originalEntries: entries },
+      snap = (page) => page.evaljs(`sessionStorage.getItem(${JSON.stringify(storageKey)})`),
+      closed = (page) =>
+        until(
+          () => page.evaljs(`!!document.querySelector('[aria-label="Recipient view closed"]')`),
+          'recipient closed',
+        ),
+      ready = (page) => until(() => page.visible(), 'recipient current identity'),
+      notify = (page) =>
+        page.evaljs(
+          "(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signing-out'});c.close()})()",
+        );
+    const html = await (await fetch(sealedOrigin + path)).text(),
+      rsc = await (await fetch(sealedOrigin + path, { headers: { RSC: '1' } })).text();
+    assert.ok(!html.includes(recipient) && !rsc.includes(recipient));
+    for (const operationFact of [id(880), id(881)])
+      assert.ok(!html.includes(operationFact) && !rsc.includes(operationFact));
+    evidence.tests.push(
+      'admin/recipient: actual HTML and RSC contain no recipient email or acceptance command',
+    );
+    const model = { ...base, holdLease: true },
+      page = await tab(sealedOrigin, path, 'recipient', model);
+    await page.unseed();
+    await until(() => page.leaseHeld(), 'recipient initial lease held');
+    assert.equal(await page.visible(), false);
+    assert.equal(await page.evaljs('!!document.querySelector("input[type=password]")'), false);
+    model.holdLease = false;
+    await page.leaseHeld()();
+    await ready(page);
+    assert.equal(await snap(page), originalValue);
+    assert.deepEqual(page.errors, []);
+    await page.close();
+    evidence.tests.push(
+      'admin/recipient: private identity, retained operation and code form wait for fresh identity-only lease',
+    );
+    const pending = { ...base, holdRecipient: true },
+      late = await tab(sealedOrigin, path, 'recipient', pending);
+    await late.unseed();
+    await ready(late);
+    await late.evaljs(
+      `(()=>{const e=document.querySelector('input[type=password]');const set=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set;set.call(e,'PRIVATE_CODE_CANARY');e.dispatchEvent(new Event('input',{bubbles:true}));})()`,
+    );
+    const precheck = await late.evaljs(
+      `fetch('/api/invitation-acceptance/session',{credentials:'omit',cache:'no-store',headers:{'X-Preview-Instance':${JSON.stringify(id(900))}}}).then(async r=>({status:r.status,headers:Object.fromEntries(r.headers),body:await r.json()}))`,
+    );
+    assert.equal(precheck.status, 200, JSON.stringify(precheck));
+    assert.equal(precheck.headers['content-encoding'], undefined, JSON.stringify(precheck.headers));
+    await late.click('Recover original acceptance by GET');
+    try {
+      await until(() => late.held(), 'held recipient receipt');
+    } catch (error) {
+      throw Error(
+        'Recipient recovery diagnostic: ' +
+          JSON.stringify({
+            reads: late.reads(),
+            closed: await late.evaljs(
+              `!!document.querySelector('[aria-label="Recipient view closed"]')`,
+            ),
+            message: await late.evaljs(`document.querySelector('[role="status"]')?.textContent`),
+            headings: await late.evaljs(
+              `Array.from(document.querySelectorAll('h2')).map(n=>n.textContent)`,
+            ),
+          }),
+      );
+    }
+    await notify(late);
+    await closed(late);
+    await late
+      .held()()
+      .catch(() => {});
+    await pause(80);
+    assert.equal(await late.visible(), false);
+    assert.equal(await late.evaljs('!!document.querySelector("input[type=password]")'), false);
+    assert.equal(await snap(late), originalValue);
+    assert.deepEqual(late.errors, []);
+    await late.close();
+    evidence.tests.push(
+      'admin/recipient: logout removes identity/code/forms, suppresses late receipt and preserves uncertain metadata',
+    );
+    for (const status of [401, 403, 503]) {
+      const state = { ...base },
+        p = await tab(sealedOrigin, path, 'recipient', state);
+      await p.unseed();
+      await ready(p);
+      state.leaseStatus = status;
+      await p.evaljs("window.dispatchEvent(new Event('focus'))");
+      await closed(p);
+      assert.equal(await p.visible(), false);
+      assert.equal(await snap(p), originalValue);
+      assert.deepEqual(p.errors, []);
+      await p.close();
+      evidence.tests.push(
+        'admin/recipient: fresh lease HTTP ' +
+          status +
+          ' closes private rendering and retains original metadata',
+      );
+    }
+    const expiry = { ...base, leaseExpiresAt: Date.now() + 3500 },
+      idle = await tab(sealedOrigin, path, 'recipient', expiry);
+    await idle.unseed();
+    await ready(idle);
+    await closed(idle);
+    const before = idle.reads();
+    await idle.evaljs("window.dispatchEvent(new Event('focus'))");
+    await pause(80);
+    assert.equal(idle.reads(), before);
+    assert.equal(await snap(idle), originalValue);
+    assert.deepEqual(idle.errors, []);
+    await idle.close();
+    evidence.tests.push(
+      'admin/recipient: bounded idle expiry closes private form and foreground cannot reopen it',
+    );
+    for (const field of ['recipientActor', 'recipientEmail']) {
+      const state = { ...base },
+        p = await tab(sealedOrigin, path, 'recipient', state);
+      await p.unseed();
+      await ready(p);
+      state[field] = field === 'recipientActor' ? id(99) : 'changed@example.invalid';
+      await p.evaljs("window.dispatchEvent(new Event('focus'))");
+      await closed(p);
+      assert.equal(await snap(p), originalValue);
+      assert.deepEqual(p.errors, []);
+      await p.close();
+      evidence.tests.push(
+        'admin/recipient: renewed ' + field + ' change cannot switch the captured identity',
+      );
+    }
+    const hidden = await tab(sealedOrigin, path, 'recipient', { ...base });
+    await hidden.unseed();
+    await ready(hidden);
+    await hidden.evaljs(
+      "window.dispatchEvent(new PageTransitionEvent('pagehide',{persisted:true}));window.dispatchEvent(new PageTransitionEvent('pageshow',{persisted:true}))",
+    );
+    await closed(hidden);
+    assert.equal(await hidden.visible(), false);
+    assert.equal(await snap(hidden), originalValue);
+    assert.deepEqual(hidden.errors, []);
+    await hidden.close();
+    evidence.tests.push(
+      'admin/recipient: persisted-page lifecycle events clear private rendering before restore',
     );
   }
   console.log(JSON.stringify(evidence, null, 2));

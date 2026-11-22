@@ -13,7 +13,7 @@ import {
 const reply = (status: number, payload: unknown) =>
   Response.json(payload, {
     status,
-    headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' },
+    headers: { 'cache-control': 'no-store, no-transform', 'x-content-type-options': 'nosniff' },
   });
 const uuid = (v: string) =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
@@ -38,7 +38,7 @@ const api = (config: ReturnType<typeof previewConfiguration>, fetcher: typeof fe
       const response = await fetcher(url, init);
       // Preserve raw identity denial even if its error envelope is absent or malformed.
       if (
-        String(url).endsWith('/v2/staff/invitation-recipient-session') &&
+        /\/v2\/staff\/invitation-recipient-(session|lease)$/.test(String(url)) &&
         response.status >= 400 &&
         response.status <= 599
       ) {
@@ -168,6 +168,47 @@ export async function invitationRecipientBoundary(
           dispatched &&
           (outcomeRead || !(error instanceof ApiClientError) || error.submissionUncertain),
       },
+    );
+  }
+}
+
+/** Page configuration exposes only the opaque preview instance; identity facts are fetched after hydration. */
+export function invitationRecipientPageConfiguration(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+) {
+  return { instanceId: configuration(env).config.instanceId };
+}
+export async function invitationRecipientLeaseRequest(
+  request: Request,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  fetcher: typeof fetch = fetch,
+) {
+  try {
+    const selected = configuration(env),
+      config = staffDirectoryPreviewContext(request, selected.scoped);
+    if (request.method !== 'GET') return reply(405, { error: 'RECIPIENT_LEASE_UNAVAILABLE' });
+    if (
+      new URL(request.url).pathname !== '/api/invitation-acceptance/lease' ||
+      request.url.includes('?') ||
+      request.url.includes('#') ||
+      request.body !== null ||
+      ['content-length', 'content-type', 'transfer-encoding', 'range', 'content-encoding'].some(
+        (k) => request.headers.has(k),
+      )
+    )
+      return reply(400, { error: 'INVALID_RECIPIENT_LEASE' });
+    const signal = AbortSignal.any([request.signal, AbortSignal.timeout(5000)]);
+    const lease = await api(config, fetcher).getStaffInvitationRecipientLease({
+      bearerToken: config.bearerToken,
+      signal,
+      timeoutMs: 5000,
+    });
+    if (signal.aborted || Date.now() >= Date.parse(lease.expiresAt)) throw Error();
+    return reply(200, lease);
+  } catch (error) {
+    return reply(
+      error instanceof ApiClientError ? upstreamFailureStatus(error.status, error.kind) : 403,
+      { error: 'RECIPIENT_LEASE_UNAVAILABLE' },
     );
   }
 }

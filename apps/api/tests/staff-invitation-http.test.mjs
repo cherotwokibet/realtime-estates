@@ -524,3 +524,40 @@ test('malformed SQL issue and redemption receipts roll back before generic HTTP 
     await f.close();
   }
 });
+
+test('recipient identity-only lease uses the verified credential expiry and grants no membership', async () => {
+  const f = await fixture();
+  try {
+    const expiry = Math.floor(Date.now() / 1000) + 8,
+      token = await signed(50, { exp: expiry });
+    const result = await f.handler(
+      new Request('http://synthetic.invalid/v2/staff/invitation-recipient-lease', {
+        headers: { authorization: 'Bearer ' + token },
+      }),
+    );
+    assert.equal(result.status, 200);
+    const lease = await result.json();
+    assert.equal(await count(f.db, 'memberships'), 1);
+    assert.equal(lease.policy, 'invitation-recipient-lease-v1');
+    assert.equal(lease.authority, 'identity_only');
+    assert.equal(lease.actorId, id(50));
+    assert.equal(Object.hasOwn(lease, 'role'), false);
+    assert.equal(Date.parse(lease.expiresAt), expiry * 1000);
+    assert.ok(Date.parse(lease.checkedAt) < Date.parse(lease.expiresAt));
+    assert.ok(!JSON.stringify(lease).includes(token));
+    for (const headers of [
+      { authorization: 'Bearer ' + token, 'content-type': 'application/json' },
+      {
+        authorization: 'Bearer ' + (await signed(50, { exp: Math.floor(Date.now() / 1000) - 10 })),
+      },
+    ]) {
+      const denied = await f.handler(
+        new Request('http://synthetic.invalid/v2/staff/invitation-recipient-lease', { headers }),
+      );
+      assert.ok(denied.status >= 400);
+      assert.equal(Object.hasOwn(await denied.json(), 'recipientEmail'), false);
+    }
+  } finally {
+    await f.close();
+  }
+});

@@ -50,10 +50,12 @@ const signed = (patch = {}, signing = key) => {
     .sign(signing);
 };
 test('verified signed recipient binds fixed issuer, UUID subject and canonical verified email, not role or company claims', async () => {
-  const p = await verify(await signed({ role: 'admin', tenant_id: 'ignored' }));
+  const expiry = Math.floor(Date.now() / 1000) + 120;
+  const p = await verify(await signed({ role: 'admin', tenant_id: 'ignored', exp: expiry }));
   assert.deepEqual(p, {
     policy: 'verified-staff-invitation-recipient-v1',
     actorId: actor,
+    expiresAt: expiry * 1000,
     issuer,
     recipientEmail: 'synthetic@example.invalid',
   });
@@ -92,6 +94,7 @@ test('caller objects and decoded unsigned payloads never become verified recipie
   const plain = {
     policy: 'verified-staff-invitation-recipient-v1',
     actorId: actor,
+    expiresAt: Date.now() + 120000,
     issuer,
     recipientEmail: 'synthetic@example.invalid',
   };

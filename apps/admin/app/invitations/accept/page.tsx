@@ -1,11 +1,11 @@
-import InvitationAcceptanceWorkspace from '../../../components/InvitationAcceptanceWorkspace.tsx';
-import { loadInvitationRecipientContext } from '../../../lib/invitation-recipient-server.ts';
+import InvitationRecipientBoundary from '../../../components/InvitationRecipientBoundary.tsx';
+import { invitationRecipientPageConfiguration } from '../../../lib/invitation-recipient-server.ts';
 import '../../staff/staff.css';
 export const dynamic = 'force-dynamic';
 export default async function InvitationAcceptance() {
-  let data: Awaited<ReturnType<typeof loadInvitationRecipientContext>> | null = null;
+  let data: Awaited<ReturnType<typeof invitationRecipientPageConfiguration>> | null = null;
   try {
-    data = await loadInvitationRecipientContext();
+    data = invitationRecipientPageConfiguration();
   } catch {}
   return (
     <main className="staff-page">
@@ -15,10 +15,7 @@ export default async function InvitationAcceptance() {
         required.
       </p>
       {data ? (
-        <InvitationAcceptanceWorkspace
-          key={data.instanceId + ':' + data.session.tenantId + ':' + data.session.actorId}
-          {...data}
-        />
+        <InvitationRecipientBoundary key={data.instanceId} instanceId={data.instanceId} />
       ) : (
         <section role="alert">
           <h2>Invitation acceptance unavailable</h2>

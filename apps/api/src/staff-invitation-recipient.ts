@@ -10,6 +10,7 @@ import {
 export interface VerifiedStaffInvitationRecipient {
   readonly policy: 'verified-staff-invitation-recipient-v1';
   readonly actorId: string;
+  readonly expiresAt: number;
   readonly issuer: string;
   readonly recipientEmail: string;
 }
@@ -38,6 +39,8 @@ export function createStaffInvitationRecipientVerifier(
       const identity = await verify(bearer),
         claims = decodeJwt(bearer);
       if (
+        !Number.isSafeInteger(identity.expiresAt) ||
+        identity.expiresAt! <= Date.now() ||
         claims.sub !== identity.actorId ||
         claims.iss !== issuer ||
         claims.email_verified !== true ||
@@ -49,6 +52,7 @@ export function createStaffInvitationRecipientVerifier(
       const principal: VerifiedStaffInvitationRecipient = Object.freeze({
         policy: 'verified-staff-invitation-recipient-v1',
         actorId: identity.actorId,
+        expiresAt: identity.expiresAt!,
         issuer,
         recipientEmail: validateStaffInvitationEmail(claims.email),
       });

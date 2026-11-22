@@ -497,3 +497,67 @@ test('review route admits canonical multi-digit revisions before exact SQL autho
     await f.api.close();
   }
 });
+
+test('verified identity expiry metadata is accepted without permitting extra authority fields', async () => {
+  const f = fixture();
+  let api;
+  try {
+    api = createDevelopmentReviewMediaPreviewApi({
+      ...f.options,
+      verifyBearer: async () => ({ actorId: ACTOR, expiresAt: Date.now() + 60000 }),
+    });
+    assert.equal((await api.handle(f.request())).status, 200);
+  } finally {
+    await api?.close();
+    await f.api.close();
+  }
+  for (const value of [0, Date.now() - 1, NaN, Date.now() + 0.5]) {
+    const f = fixture(),
+      api = createDevelopmentReviewMediaPreviewApi({
+        ...f.options,
+        verifyBearer: async () => ({ actorId: ACTOR, expiresAt: value }),
+      });
+    try {
+      await safeFailure(await api.handle(f.request()), 401, 'UNAUTHENTICATED');
+      assert.equal(f.calls.reads, 0);
+      assert.equal(f.calls.outputs, 0);
+    } finally {
+      await api.close();
+      await f.api.close();
+    }
+  }
+  const g = fixture(),
+    bad = createDevelopmentReviewMediaPreviewApi({
+      ...g.options,
+      verifyBearer: async () => ({ actorId: ACTOR, expiresAt: Date.now() + 60000, role: 'admin' }),
+    });
+  try {
+    await safeFailure(await bad.handle(g.request()), 401, 'UNAUTHENTICATED');
+    assert.equal(g.calls.reads, 0);
+  } finally {
+    await bad.close();
+    await g.api.close();
+  }
+});
+test('credential expiration during media IO suppresses bytes without extending the verified deadline', async (t) => {
+  let now = Date.now();
+  t.mock.method(Date, 'now', () => now);
+  const expiry = now + 1000;
+  const f = fixture({
+      onOutput: () => {
+        now = expiry;
+      },
+    }),
+    api = createDevelopmentReviewMediaPreviewApi({
+      ...f.options,
+      verifyBearer: async () => ({ actorId: ACTOR, expiresAt: expiry }),
+    });
+  try {
+    await safeFailure(await api.handle(f.request()), 401, 'UNAUTHENTICATED');
+    assert.equal(f.calls.outputs, 1);
+    assert.equal(f.calls.reads, 1);
+  } finally {
+    await api.close();
+    await f.api.close();
+  }
+});

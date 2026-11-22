@@ -1,3 +1,4 @@
+import { validateInvitationRecipientLease, type InvitationRecipientLease } from '@realtor/domain';
 import { normalizeKenyanPhone } from '@realtor/domain';
 import {
   privateOperationKind,
@@ -4486,6 +4487,17 @@ export class RealtorApiClient {
       return invalid('INVALID_RESPONSE', 'Invalid membership directory page.');
     }
   }
+  async getStaffInvitationRecipientLease(
+    options: StaffRequestOptions,
+  ): Promise<InvitationRecipientLease> {
+    const captured = uploadOptions(options);
+    const data = await this.request('/v2/staff/invitation-recipient-lease', 'GET', captured);
+    try {
+      return validateInvitationRecipientLease(data);
+    } catch {
+      return invalid('INVALID_RESPONSE', 'Recipient lifetime could not be verified.');
+    }
+  }
   async getStaffInvitationRecipientSession(
     options: StaffRequestOptions,
   ): Promise<StaffInvitationRecipientSession> {
@@ -6841,6 +6853,7 @@ export class RealtorApiClient {
     const staffMembership = /^\/v2\/staff\/memberships\/(?:operations\/)?[0-9a-f-]{36}$/.test(path);
     const singleUseInvitation =
       path === '/v2/staff/invitation-recipient-session' ||
+      path === '/v2/staff/invitation-recipient-lease' ||
       /^\/v2\/staff\/invitation-(?:issues|redemptions)\/[0-9a-f-]{36}\/operations\/[0-9a-f-]{36}(?:\/state)?$/.test(
         path,
       );

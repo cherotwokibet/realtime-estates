@@ -54,3 +54,5 @@ export * from './property-app-links.js';
 export * from './staff-access-lease.js';
 
 export * from './private-operation-resolution.js';
+
+export * from './invitation-recipient-lease.js';

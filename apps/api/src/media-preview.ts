@@ -694,13 +694,27 @@ function createMediaPreviewApi(
       if (request.headers.has('origin') && request.headers.get('origin') !== url.origin)
         throw new PreviewError(403, 'FORBIDDEN');
       cancelled(request);
-      let actorId: string | null = null;
+      let actorId: string | null = null,
+        credentialExpiresAt: number | null = null;
+      const currentCredential = () => {
+        if (credentialExpiresAt !== null && Date.now() >= credentialExpiresAt)
+          throw new PreviewError(401, 'UNAUTHENTICATED');
+      };
       if (policy !== 'public')
         try {
-          const identity = record(
-            await verify(parseBearerHeader(request.headers.get('authorization') ?? undefined)),
-            ['actorId'],
+          const verified = await verify(
+            parseBearerHeader(request.headers.get('authorization') ?? undefined),
           );
+          if (!verified || typeof verified !== 'object' || isProxy(verified)) invalid();
+          const identity = record(
+            verified,
+            Object.hasOwn(verified, 'expiresAt') ? ['actorId', 'expiresAt'] : ['actorId'],
+          );
+          if (Object.hasOwn(identity, 'expiresAt')) {
+            if (!Number.isSafeInteger(identity.expiresAt)) invalid();
+            credentialExpiresAt = identity.expiresAt as number;
+            currentCredential();
+          }
           actorId = uuid(
             typeof identity.actorId === 'string'
               ? identity.actorId.toLowerCase()
@@ -720,9 +734,12 @@ function createMediaPreviewApi(
       });
       const before = await read(resource, actorId, requestId);
       cancelled(request);
-      const bytes = await output(before, request),
-        after = await read(resource, actorId, requestId);
+      currentCredential();
+      const bytes = await output(before, request);
+      currentCredential();
+      const after = await read(resource, actorId, requestId);
       cancelled(request);
+      currentCredential();
       if (!processingEqual(before, after)) invalid();
       return new Response(new Uint8Array(bytes), {
         status: 200,

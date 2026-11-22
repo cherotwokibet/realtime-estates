@@ -144,7 +144,7 @@ test('recipient acceptance uses a fresh identity GET and body-only secret with n
     },
   );
   assert.equal(result.status, 200);
-  assert.equal(result.headers.get('cache-control'), 'no-store');
+  assert.equal(result.headers.get('cache-control'), 'no-store, no-transform');
   assert.deepEqual(await result.json(), { receipt: receipt() });
   assert.deepEqual(
     calls.map((c) => c.init.method),
