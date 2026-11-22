@@ -1,0 +1,105 @@
+{
+  "policy": "source-only-typed-retained-original-review-v1",
+  "checkpoint": 489,
+  "sourceCommit": "b683c043c91df6237fbdeb6ee2097cbd6c1ae24a",
+  "sourceAuditOnly": true,
+  "migrationImplemented": false,
+  "plaintextDeleted": false,
+  "findings": [
+    {
+      "component": "AllocationWorkspace.tsx",
+      "serializer": "apps/admin/lib/allocation-recovery.ts",
+      "storageSchema": "staff-allocation-original-v2",
+      "fields": [
+        "schema",
+        "kind",
+        "instanceId",
+        "tenantId",
+        "actorId",
+        "target",
+        "command"
+      ],
+      "maximumBytes": 262144,
+      "commandTypes": [
+        "ListingCreationCommand",
+        "ListingSuccessorCommand"
+      ],
+      "privateFacts": [
+        "creation slug and full normalized draft content",
+        "successor content plus expected listing version and terminal predecessor revision/version/state"
+      ],
+      "currentGuard": "apps/admin/lib/private-allocation-client.ts wraps whole operations with current private workspace authority/lifetime",
+      "migrationRequirements": [
+        "typed creation/successor recovery kinds and current resource authorization",
+        "do not truncate records to the sealed store current 131072-byte plain limit",
+        "preserve original operation/listing IDs and immutable predecessor/version facts",
+        "prove persistent outcome recovery, seal/readback and matching legacy-byte identity before eligible removal"
+      ]
+    },
+    {
+      "component": "ReferenceCreationWorkspace.tsx",
+      "serializer": [
+        "apps/admin/lib/reference-creation-entry.ts",
+        "apps/admin/lib/reference-creation-workspace.ts"
+      ],
+      "storageSchema": "synthetic-reference-creation-entry-v1",
+      "maximumOuterBytes": 393216,
+      "fields": [
+        "schema",
+        "instanceId",
+        "tenantId",
+        "actorId",
+        "listingId",
+        "original"
+      ],
+      "privateFacts": [
+        "nested typed creation original contains full normalized draft and reference selection"
+      ],
+      "importantDistinction": "Empty target reservation has original null; retained nested original requires the historical reference catalogue version before validation/restoration. Do not replace it using the current catalogue or newly generated listing ID.",
+      "migrationRequirements": [
+        "preserve target reservation and nested original together",
+        "fetch original catalogue version using current authorized client",
+        "inspect complete nested command bounds before any codec change"
+      ]
+    },
+    {
+      "component": "InvitationAcceptanceWorkspace.tsx",
+      "serializer": "apps/admin/lib/staff-write-attempt.ts",
+      "storagePolicy": "retained-staff-write-v1",
+      "maximumRestoreBytes": 12288,
+      "fields": [
+        "policy",
+        "scope",
+        "kind",
+        "command"
+      ],
+      "rawInvitationCodeSerialized": false,
+      "importantDistinction": "Acceptance is non-secret command metadata. Raw invitation secret is passed separately on explicit submit/replay and never retained in the command. Do not conflate metadata cleanup with clearing current form secrets."
+    }
+  ],
+  "sealedStoreCurrentKinds": [
+    "settings",
+    "report",
+    "deletion-triage",
+    "deletion-privacy",
+    "capture-admin",
+    "capture-agent"
+  ],
+  "sealedStoreCurrentPlainMaximumBytes": 131072,
+  "remainingConsumersNotYetInspected": [
+    "ReferenceDraftEditor.tsx",
+    "ReferenceSuccessorWorkspace.tsx",
+    "ReferenceReviewWorkspace.tsx",
+    "ListingVerification.tsx",
+    "FloorPlanWorkspace.tsx",
+    "ListingVideoWorkspace.tsx",
+    "StaffDirectoryWorkspace.tsx"
+  ],
+  "gateAcceptance": "OPEN",
+  "next": "Complete persistent app/SQL outcome-ledger and browser recovery first. Then add one typed migration with fault/tamper/role/current-resource/oversize/readback/uncertain-outcome proof; never erase unknown originals.",
+  "persistentOutcomeNextStep": {
+    "currentFixture": "apps/api/dev/staff-preview.mjs constructs new PGlite() at each start; current cold-process test intentionally does not preserve its DB",
+    "proposedBoundedProof": "Use an owned disposable persistent SQL store, seal and submit one supported settings original, stop authority/API, restart against the same ledger with fresh identity keys/credential and the same pinned protected bundle, reopen exact original and recover the committed original receipt without creating a second operation. Include refused/missing-ledger/wrong-role/wrong-instance/corrupt-key cases.",
+    "implementedOrPassed": false
+  }
+}
