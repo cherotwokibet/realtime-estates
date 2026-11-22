@@ -1,0 +1,90 @@
+✔ acceptance commands never retain raw codes or receipt facts, including after resolution and reload (7.5134ms)
+✔ uncertain acceptance reload retains the exact operation and recovery never resubmits raw material (2.8173ms)
+✔ acceptance binds original member identity, blocks late responses after close and acknowledges known refusal without a hidden retry (0.8982ms)
+✔ recipient BFF refuses missing mode, missing recipient credential and admin-token fallback without upstream calls (39.2613ms)
+✔ recipient page context returns signed identity facts only and never serializes either server credential (5.8979ms)
+✔ recipient request rejects authority, secret URL/query, malformed commands, headers and session writes before upstream (6.4203ms)
+✔ recipient acceptance uses a fresh identity GET and body-only secret with no browser-selected bearer or identity (4.5252ms)
+✔ mismatched post-write member facts remain uncertain; malformed recipient identity prevents any redemption call (1.9061ms)
+✔ lost acceptance response never retries; explicit original recovery performs only identity and original GET reads (2.135ms)
+✔ GET: recipient changed during outcome request cannot receive the original receipt (0.9583ms)
+✔ GET: recipient changed during outcome request cannot receive the original receipt (0.8637ms)
+✔ GET: recipient changed during outcome request cannot receive the original receipt (0.7771ms)
+✔ GET: final recipient HTTP 401 suppresses receipt without declaring a committed acceptance refused (1.5704ms)
+✔ GET: final recipient HTTP 403 suppresses receipt without declaring a committed acceptance refused (0.7766ms)
+✔ GET: final recipient HTTP 503 suppresses receipt without declaring a committed acceptance refused (0.7233ms)
+✔ POST: recipient changed during outcome request cannot receive the original receipt (0.9232ms)
+✔ POST: recipient changed during outcome request cannot receive the original receipt (1.0011ms)
+✔ POST: recipient changed during outcome request cannot receive the original receipt (0.8612ms)
+✔ POST: final recipient HTTP 401 suppresses receipt without declaring a committed acceptance refused (0.7504ms)
+✔ POST: final recipient HTTP 403 suppresses receipt without declaring a committed acceptance refused (0.6442ms)
+✔ POST: final recipient HTTP 503 suppresses receipt without declaring a committed acceptance refused (0.6694ms)
+✔ aborted recipient request cannot dispatch an acceptance or release a receipt (4.2484ms)
+✔ GET: cancellation during the final identity check never releases a late receipt (1.304ms)
+✔ POST: cancellation during the final identity check never releases a late receipt (1.3561ms)
+✔ a fresh lease gates readiness, renews a bounded lifetime and never reopens after expiry (3.3671ms)
+✖ active renewal preserves one ready transition while identity or role changes close the old view (2.2172ms)
+✖ a held renewal cannot extend an expired lease, and uncooperative initial reads have a five-second deadline (0.9725ms)
+✖ replayed lease metadata, transport failure and a backwards monotonic clock fail closed (1.574ms)
+✔ unmount cancels timers and readers without updating the disposed owner (0.5851ms)
+✔ lease browser reader pins the relative endpoint, omits cookies and rejects false-status or scope-changing responses (28.965ms)
+✔ server lease BFF is default-off, binds fixed nonce/actor/role and never emits bearer credentials (5.6284ms)
+ℹ tests 31
+ℹ suites 0
+ℹ pass 28
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 302.4664
+
+✖ failing tests:
+
+test at apps\admin\tests\private-workspace-lease.test.mjs:81:1
+✖ active renewal preserves one ready transition while identity or role changes close the old view (2.2172ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   'access-changed'
+  - ]
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/tests/private-workspace-lease.test.mjs:91:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 'access-changed' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at apps\admin\tests\private-workspace-lease.test.mjs:100:1
+✖ a held renewal cannot extend an expired lease, and uncooperative initial reads have a five-second deadline (0.9725ms)
+  TypeError: Cannot read properties of undefined (reading 'aborted')
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/tests/private-workspace-lease.test.mjs:114:23)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at apps\admin\tests\private-workspace-lease.test.mjs:124:1
+✖ replayed lease metadata, transport failure and a backwards monotonic clock fail closed (1.574ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+  + []
+  - [
+  -   'access-unavailable'
+  - ]
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/tests/private-workspace-lease.test.mjs:131:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [],
+    expected: [ 'access-unavailable' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

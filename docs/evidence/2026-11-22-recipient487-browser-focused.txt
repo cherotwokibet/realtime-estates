@@ -1,0 +1,20 @@
+{
+  "policy": "synthetic-browser-session-lifecycle-v1",
+  "tests": [
+    "admin/recipient: actual HTML and RSC contain no recipient email or acceptance command",
+    "admin/recipient: private identity, retained operation and code form wait for fresh identity-only lease",
+    "admin/recipient: logout removes identity/code/forms, suppresses late receipt and preserves uncertain metadata",
+    "admin/recipient: fresh lease HTTP 401 closes private rendering and retains original metadata",
+    "admin/recipient: fresh lease HTTP 403 closes private rendering and retains original metadata",
+    "admin/recipient: fresh lease HTTP 503 closes private rendering and retains original metadata",
+    "admin/recipient: bounded idle expiry closes private form and foreground cannot reopen it",
+    "admin/recipient: renewed recipientActor change cannot switch the captured identity",
+    "admin/recipient: renewed recipientEmail change cannot switch the captured identity",
+    "admin/recipient: persisted-page lifecycle events clear private rendering before restore"
+  ],
+  "realProviderVerified": false,
+  "realDatabaseVerified": false,
+  "nativeDeviceVerified": false,
+  "browser": "Chrome/158.0.8127.36",
+  "focusedRecipientOnly": true
+}
