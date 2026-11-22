@@ -1424,6 +1424,9 @@ export async function startStaffPreview(options = {}) {
     let floorUploadFault = !!floorPlanReplyFault,
       floorAttachFault = !!floorPlanReplyFault;
     const service = createApiService({
+      ...(enquiryPreview
+        ? { staffCaptureOriginalMode: 'synthetic-staff-capture-original-v1' }
+        : {}),
       privateOperationResolutionMode: 'synthetic-serialized-original-v1',
       database,
       ...(nativeFloorPlan
@@ -1581,6 +1584,8 @@ export async function startStaffPreview(options = {}) {
       async (request) => {
         const denied = guard(request);
         if (denied) return denied;
+        if (/^\/v2\/staff\/capture-originals\/[^/]+$/.test(new URL(request.url).pathname))
+          return service(request);
         if (
           /^\/v2\/staff\/private-operations\/(settings|report)\/[^/]+\/resolve$/.test(
             new URL(request.url).pathname,
@@ -1900,6 +1905,7 @@ export async function startStaffPreview(options = {}) {
         }
         if (
           url.pathname === '/v2/staff/session' ||
+          url.pathname === '/v2/staff/session-lease' ||
           url.pathname === '/v2/staff/listing-import-preview'
         ) {
           const response = await service(request);

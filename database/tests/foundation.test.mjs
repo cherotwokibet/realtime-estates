@@ -176,6 +176,7 @@ test('migration forces RLS and API role has neither owner membership nor direct 
       'private_operation_cancellations',
       'public_snapshots',
       'revision_media',
+      'staff_capture_originals',
       'tenants',
       'viewing_operations',
       'viewing_reminder_admissions',

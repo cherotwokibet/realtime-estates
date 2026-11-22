@@ -1,3 +1,4 @@
+import { normalizeKenyanPhone } from '@realtor/domain';
 import {
   privateOperationKind,
   privateOperationOriginal,
@@ -1107,7 +1108,7 @@ function coordinate(input: unknown, min: number, max: number): number | null {
 }
 function timeout(input: unknown, kind: 'VALIDATION' | 'CONFIGURATION'): number {
   if (typeof input !== 'number' || !Number.isSafeInteger(input) || input < 1 || input > 120000)
-    return invalid(kind, 'Timeout must be 1ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“120000 milliseconds.');
+    return invalid(kind, 'Timeout must be 1–120000 milliseconds.');
   return input;
 }
 function origin(options: ApiClientOptions): string {
@@ -1190,7 +1191,7 @@ function publicProperty(input: unknown, codePointDisplayBounds = false): PublicP
   )
     return invalid('INVALID_RESPONSE', 'Unexpected precise or incomplete coordinates.');
   if (!Array.isArray(value.photos) || value.photos.length < 4 || value.photos.length > 12)
-    return invalid('INVALID_RESPONSE', 'Expected 4ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“12 reviewed photos.');
+    return invalid('INVALID_RESPONSE', 'Expected 4–12 reviewed photos.');
   const keys = new Set<string>();
   const photos = value.photos.map((inputPhoto) => {
     const photo = record(inputPhoto, ['key', 'alt'], 'INVALID_RESPONSE');
@@ -2784,6 +2785,65 @@ export function validateStaffEnquiryInput(
   return Object.freeze(body);
 }
 
+export interface StaffCaptureCommand {
+  readonly policy: 'staff-capture-command-v1';
+  readonly operationId: string;
+  readonly role: 'admin' | 'agent';
+  readonly input: StaffEnquiryInput;
+}
+export function validateStaffCaptureCommand(input: unknown): StaffCaptureCommand {
+  const row = attachRecord(input, ['policy', 'operationId', 'role', 'input'], 'VALIDATION');
+  if (row.policy !== 'staff-capture-command-v1' || (row.role !== 'admin' && row.role !== 'agent'))
+    return invalid('VALIDATION', 'Invalid capture original.');
+  const value = validateStaffEnquiryInput(
+    row.input as StaffEnquiryInput,
+    'synthetic-staff-notice-v1',
+  );
+  const body = Object.freeze({
+    ...value,
+    phone: value.phone === null ? null : normalizeKenyanPhone(value.phone as string),
+  }) as unknown as StaffEnquiryInput;
+  return Object.freeze({
+    policy: 'staff-capture-command-v1',
+    operationId: uuid(row.operationId, 'VALIDATION', 'Operation ID'),
+    role: row.role,
+    input: body,
+  });
+}
+export function validateStaffCaptureReceipt(
+  input: unknown,
+  original: StaffCaptureCommand,
+  scope?: { tenantId: string; actorId: string },
+) {
+  const row = attachRecord(
+    input,
+    ['policy', 'tenantId', 'actorId', 'operationId', 'request', 'enquiryId', 'recordedAt'],
+    'INVALID_RESPONSE',
+  );
+  const command = validateStaffCaptureCommand(original),
+    request = validateStaffCaptureCommand(row.request);
+  const tenantId = uuid(row.tenantId, 'INVALID_RESPONSE', 'Company ID'),
+    actorId = uuid(row.actorId, 'INVALID_RESPONSE', 'Actor ID');
+  if (
+    row.policy !== 'staff-capture-receipt-v1' ||
+    row.operationId !== command.operationId ||
+    JSON.stringify(request) !== JSON.stringify(command) ||
+    (scope && (scope.tenantId !== tenantId || scope.actorId !== actorId)) ||
+    typeof row.recordedAt !== 'string' ||
+    !Number.isFinite(Date.parse(row.recordedAt)) ||
+    new Date(row.recordedAt).toISOString() !== row.recordedAt
+  )
+    return invalid('INVALID_RESPONSE', 'Capture receipt does not confirm this original.');
+  return Object.freeze({
+    policy: 'staff-capture-receipt-v1' as const,
+    tenantId,
+    actorId,
+    operationId: command.operationId,
+    request,
+    enquiryId: uuid(row.enquiryId, 'INVALID_RESPONSE', 'Enquiry ID'),
+    recordedAt: row.recordedAt,
+  });
+}
 export class RealtorApiClient {
   async getReviewListingVideo(
     listingId: string,
@@ -6358,6 +6418,43 @@ export class RealtorApiClient {
       id,
       operation,
     );
+  }
+  async readStaffCaptureOriginal(operationId: string, options: StaffRequestOptions) {
+    const op = uuid(operationId, 'VALIDATION', 'Operation ID'),
+      captured = uploadOptions(options);
+    const data = attachRecord(
+      await this.request('/v2/staff/capture-originals/' + op, 'GET', captured),
+      ['policy', 'tenantId', 'actorId', 'operationId', 'request', 'enquiryId', 'recordedAt'],
+      'INVALID_RESPONSE',
+    );
+    const receipt = validateStaffCaptureReceipt(data, validateStaffCaptureCommand(data.request));
+    if (receipt.operationId !== op)
+      return invalid('INVALID_RESPONSE', 'Capture operation changed.');
+    return receipt;
+  }
+  async staffCaptureOriginal(
+    input: StaffCaptureCommand,
+    options: StaffRequestOptions,
+    recover = false,
+  ) {
+    const command = validateStaffCaptureCommand(input),
+      captured = uploadOptions(options);
+    try {
+      const data = await this.request(
+        '/v2/staff/capture-originals/' + command.operationId,
+        recover ? 'GET' : 'POST',
+        captured,
+        recover ? undefined : { ...command },
+      );
+      return validateStaffCaptureReceipt(data, command);
+    } catch (error) {
+      if (error instanceof ApiClientError && !recover)
+        throw new ApiClientError(error.kind, error.message, {
+          status: error.status,
+          submissionUncertain: true,
+        });
+      throw error;
+    }
   }
   async captureStaffEnquiryV2(
     input: StaffEnquiryInput,

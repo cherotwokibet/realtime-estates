@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import StaffCaptureWorkspace from '../../../../components/StaffCaptureWorkspace';
-import { getEnquiryPreviewScope } from '../../../../lib/enquiry-preview-server';
+import { readStaffCaptureScope } from '../../../../lib/staff-capture-original-server.ts';
 export const dynamic = 'force-dynamic';
 export default async function CapturePage({ params }: { params: Promise<{ actor: string }> }) {
   const { actor } = await params;
-  let scope: ReturnType<typeof getEnquiryPreviewScope> | null = null;
+  let scope: Awaited<ReturnType<typeof readStaffCaptureScope>> | null = null;
   try {
-    scope = getEnquiryPreviewScope(actor);
+    if (actor !== 'admin' && actor !== 'agent') throw Error();
+    scope = await readStaffCaptureScope(actor);
   } catch {}
   return (
     <main className="intake-shell">
@@ -17,12 +18,7 @@ export default async function CapturePage({ params }: { params: Promise<{ actor:
         </Link>
       </header>
       {scope ? (
-        <StaffCaptureWorkspace
-          key={scope.instanceId}
-          actor={scope.role}
-          actorId={scope.actorId}
-          instanceId={scope.instanceId}
-        />
+        <StaffCaptureWorkspace scope={scope} actor={actor === 'agent' ? 'agent' : 'admin'} />
       ) : (
         <section className="intake-card">
           <h1>Staff capture unavailable</h1>

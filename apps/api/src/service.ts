@@ -1,3 +1,4 @@
+import { validateStaffCaptureCommand, validateStaffCaptureReceipt } from '@realtor/api-client';
 import {
   privateOperationKind,
   privateOperationOriginal,
@@ -242,6 +243,7 @@ export interface ApiServiceOptions {
   readonly staffBranchMode?: 'hosted-staff-branches-v1';
   /** Local synthetic capture/review only; omission keeps every report route unavailable. */
   readonly publicReportMode?: 'synthetic-listing-report-v1';
+  readonly staffCaptureOriginalMode?: 'synthetic-staff-capture-original-v1';
   readonly privateOperationResolutionMode?: 'synthetic-serialized-original-v1';
   readonly reportLimiter?: EnquiryLimiter;
   /** Isolated synthetic reference candidates only; omitted keeps every v3 reference route unavailable. */
@@ -1679,6 +1681,15 @@ export function createApiService(
       process.env.NODE_ENV === 'production')
   )
     throw Error('Private operation resolution requires an explicit synthetic non-production mode.');
+  if (
+    options.staffCaptureOriginalMode !== undefined &&
+    (options.staffCaptureOriginalMode !== 'synthetic-staff-capture-original-v1' ||
+      process.env.NODE_ENV === 'production' ||
+      options.privacyNoticeVersion !== 'synthetic-staff-notice-v1')
+  )
+    throw Error('Capture originals require an explicit synthetic mode.');
+  const captureOriginalEnabled =
+    options.staffCaptureOriginalMode === 'synthetic-staff-capture-original-v1';
   const privateOperationResolutionEnabled =
     options.privateOperationResolutionMode === 'synthetic-serialized-original-v1';
   const publicReportsEnabled = options.publicReportMode === 'synthetic-listing-report-v1';
@@ -4327,6 +4338,88 @@ export function createApiService(
       if (path.startsWith('/v1/staff/') || v2Draft || enquiryQueueV3) {
         const actorId = await identity(request, true);
         const context = { tenantId, actorId, correlationId };
+        const staffCaptureRoute = /^\/v2\/staff\/capture-originals\/([^/]+)$/.exec(path);
+        if (staffCaptureRoute) {
+          if (!captureOriginalEnabled)
+            throw new HttpError(404, 'NOT_FOUND', 'Resource is unavailable.');
+          if (!['GET', 'POST'].includes(method))
+            throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'GET or POST only.', {
+              Allow: 'GET, POST',
+            });
+          if (
+            request.url.includes('?') ||
+            request.url.includes('#') ||
+            headerNames(request.headers).some(
+              (k) =>
+                [
+                  'cookie',
+                  'range',
+                  'idempotency-key',
+                  'content-encoding',
+                  'transfer-encoding',
+                ].includes(k) ||
+                k.startsWith('x-') ||
+                k.startsWith('if-'),
+            ) ||
+            (method === 'GET' &&
+              (request.body !== null ||
+                request.headers.has('content-type') ||
+                request.headers.has('content-length')))
+          )
+            throw new HttpError(400, 'INVALID_INPUT', 'Exact capture request required.');
+          const op = uuid(staffCaptureRoute[1], 'operationId');
+          let command: ReturnType<typeof validateStaffCaptureCommand> | undefined;
+          if (method === 'POST') {
+            try {
+              command = validateStaffCaptureCommand(
+                await jsonBody(request, 16384, false, true, true, false, false, 5000),
+              );
+            } catch {
+              throw new HttpError(400, 'INVALID_INPUT', 'Invalid capture original.');
+            }
+            if (command.operationId !== op)
+              throw new HttpError(400, 'INVALID_INPUT', 'Operation changed.');
+          }
+          if (command) {
+            const quota = await limiter.consume(`${tenantId}:staff:${actorId}:${clientKey}`);
+            if (!quota.allowed)
+              throw new HttpError(429, 'RATE_LIMITED', 'Please wait before trying again.', {
+                'Retry-After': String(quota.retryAfterSeconds),
+              });
+          }
+          const data = await options.database.transaction(context, async (query) => {
+            await query.query("SET LOCAL statement_timeout='2000ms'");
+            await assertStaff(query);
+            const result = await query.query(
+              command
+                ? 'SELECT app_api.record_staff_capture_original($1::uuid,$2::jsonb) AS receipt'
+                : 'SELECT app_api.read_staff_capture_original($1::uuid) AS receipt',
+              command ? [newId(), JSON.stringify(command)] : [op],
+            );
+            const value = result.rows[0]?.receipt;
+            if (value === undefined) throw Error('Unexpected capture response.');
+            return value;
+          });
+          if (data === null) throw new HttpError(404, 'NOT_FOUND', 'Original unavailable.');
+          const receipt = validateStaffCaptureReceipt(
+            data,
+            command ??
+              validateStaffCaptureCommand(
+                record(data, [
+                  'policy',
+                  'tenantId',
+                  'actorId',
+                  'operationId',
+                  'request',
+                  'enquiryId',
+                  'recordedAt',
+                ]).request,
+              ),
+            { tenantId, actorId: actorId! },
+          );
+          if (receipt.operationId !== op) throw Error('Capture operation changed.');
+          return response(200, receipt, correlationId);
+        }
         const resolutionRoute =
           /^\/v2\/staff\/private-operations\/(settings|report)\/([^/]+)\/resolve$/.exec(path);
         if (resolutionRoute) {

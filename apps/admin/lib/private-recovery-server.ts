@@ -1,3 +1,4 @@
+import { enquiryAccessLeaseConfiguration } from './enquiry-preview-server.ts';
 import {
   deletionTriageConfiguration,
   deletionPrivacyConfiguration,
@@ -27,7 +28,7 @@ const reply = (status: number, body: unknown) =>
       'Cross-Origin-Resource-Policy': 'same-origin',
     },
   });
-/** Explicit developer adapter. No key generation/fallback, hosted-cookie assumption or write execution. */
+/** Explicit developer adapter. No key fallback or production-cookie authority. Resolution is kind-specific. */
 export async function privateRecoveryRequest(
   request: Request,
   kindInput: string,
@@ -49,7 +50,10 @@ export async function privateRecoveryRequest(
       status: 405,
       headers: { Allow: 'POST', 'Cache-Control': 'no-store' },
     });
+  const captureRole =
+    kind === 'capture-admin' ? 'admin' : kind === 'capture-agent' ? 'agent' : undefined;
   let config, cipher;
+  let captureActorId: string | undefined;
   let reviewerScope: { tenantId: string; reviewerId: string } | undefined;
   try {
     const reviewer =
@@ -58,7 +62,9 @@ export async function privateRecoveryRequest(
         : kind === 'deletion-triage'
           ? deletionTriageConfiguration(env)
           : undefined;
-    config = reviewer ?? previewConfiguration(env);
+    const capture = captureRole ? enquiryAccessLeaseConfiguration(captureRole, env) : undefined;
+    captureActorId = capture?.actorId;
+    config = capture ?? reviewer ?? previewConfiguration(env);
     reviewerScope = reviewer?.scope;
     if (env.PRIVATE_RECOVERY_MODE !== 'synthetic-sealed-original-v1') throw Error();
     cipher = createPrivateRecoveryCipher(env.PRIVATE_RECOVERY_STORAGE_KEY ?? '');
@@ -109,7 +115,11 @@ export async function privateRecoveryRequest(
     });
     const options = { bearerToken: config.bearerToken, signal, timeoutMs: 5000 };
     const initial = await client.getCurrentStaffAccessLeaseV2(options);
-    if (initial.role !== 'admin') return reply(403, { error: 'RECOVERY_UNAVAILABLE' });
+    if (
+      initial.role !== (captureRole ?? 'admin') ||
+      (captureActorId && initial.actorId !== captureActorId)
+    )
+      return reply(403, { error: 'RECOVERY_UNAVAILABLE' });
     const input = recoveryObject(
       await readReferenceJson(request, RECOVERY_MAX_WIRE_BYTES, signal),
       action === 'check'
@@ -127,7 +137,8 @@ export async function privateRecoveryRequest(
       (reviewerScope &&
         (reviewerScope.tenantId !== current.tenantId ||
           reviewerScope.reviewerId !== current.actorId)) ||
-      current.role !== 'admin' ||
+      current.role !== (captureRole ?? 'admin') ||
+      (captureActorId !== undefined && current.actorId !== captureActorId) ||
       !sameRecoveryScope(scope, trusted) ||
       initial.tenantId !== current.tenantId ||
       initial.actorId !== current.actorId ||

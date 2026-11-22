@@ -1,100 +1,111 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
-import { createEnquiryPreviewClient, type CaptureAttempt } from '../lib/enquiry-client';
-
-export default function StaffCaptureWorkspace({
-  instanceId,
-  actor,
-  actorId,
-}: {
-  instanceId: string;
-  actor: 'admin' | 'agent';
-  actorId: string;
-}) {
+import { useState } from 'react';
+import { validateStaffCaptureCommand, type StaffCaptureCommand } from '@realtor/api-client';
+import PrivateWorkspaceBoundary from './PrivateWorkspaceBoundary.tsx';
+import { useSealedRecovery } from '../lib/use-sealed-recovery.ts';
+import type { RecoveryScope } from '../lib/private-recovery-contract.ts';
+import { exchangeStaffCaptureOriginal } from '../lib/staff-capture-original-client.ts';
+type Props = { scope: RecoveryScope; actor: 'admin' | 'agent' };
+export default function StaffCaptureWorkspace(props: Props) {
+  return (
+    <PrivateWorkspaceBoundary
+      key={[props.scope.instanceId, props.scope.tenantId, props.scope.actorId, props.actor].join(
+        ':',
+      )}
+      access={{ profile: props.actor, ...props.scope, role: props.actor }}
+    >
+      <CaptureContent {...props} />
+    </PrivateWorkspaceBoundary>
+  );
+}
+function CaptureContent({ scope, actor }: Props) {
+  const actorId = scope.actorId;
+  const recovery = useSealedRecovery(scope, actor === 'admin' ? 'capture-admin' : 'capture-agent');
+  const pending = recovery.pending === null ? null : validateStaffCaptureCommand(recovery.pending);
   const [name, setName] = useState(''),
     [email, setEmail] = useState(''),
     [message, setMessage] = useState(''),
     [notice, setNotice] = useState(false),
     [status, setStatus] = useState('editing'),
-    [feedback, setFeedback] = useState('');
-  const attempt = useRef<CaptureAttempt | null>(null),
-    busy = useRef(false),
-    controller = useRef<AbortController | null>(null),
-    alive = useRef(true);
-  useEffect(() => {
-    alive.current = true;
-    return () => {
-      alive.current = false;
-      controller.current?.abort();
-    };
-  }, []);
-  useEffect(() => {
-    const guard = (event: BeforeUnloadEvent) => {
-      if (attempt.current?.status === 'uncertain' || busy.current) {
-        event.preventDefault();
-        event.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', guard);
-    return () => window.removeEventListener('beforeunload', guard);
-  }, []);
-  async function send(replay = false) {
+    [feedback, setFeedback] = useState(''),
+    [canRetry, setCanRetry] = useState(false);
+  async function send(recover = false) {
     if (
-      busy.current ||
-      attempt.current?.status === 'received' ||
-      (!replay && attempt.current?.status === 'uncertain')
+      !recovery.ready ||
+      recovery.busy ||
+      status === 'received' ||
+      (pending && !recover && !canRetry)
     )
       return;
-    busy.current = true;
+    let original: StaffCaptureCommand;
     try {
-      if (!replay) {
-        const api = createEnquiryPreviewClient({
-          basePath: `/api/enquiry-preview/${actor}`,
-          instanceId,
-        });
-        attempt.current = api.prepareCapture(
-          {
+      original =
+        pending ??
+        validateStaffCaptureCommand({
+          policy: 'staff-capture-command-v1',
+          operationId: crypto.randomUUID(),
+          role: actor,
+          input: {
             listingId: null,
             name,
             email: email || null,
             phone: null,
             message,
             noticeVersion: 'synthetic-staff-notice-v1',
-            noticeAcknowledged: notice as true,
+            noticeAcknowledged: notice,
           },
-          crypto.randomUUID(),
-        );
-      }
-      if (!attempt.current) throw new Error();
-      controller.current = new AbortController();
-      setStatus('sending');
-      setFeedback('Saving your synthetic enquiry…');
-      const receipt = await (replay
-        ? attempt.current.retryOriginal(controller.current.signal)
-        : attempt.current.submit(controller.current.signal));
-      if (alive.current) {
-        setStatus('received');
-        setFeedback(
-          `Synthetic enquiry saved. Reference: ${receipt.id}. No message was sent and no viewing was booked.`,
-        );
-      }
+        });
     } catch {
-      if (alive.current) {
-        const uncertain = attempt.current?.status === 'uncertain';
-        setStatus(uncertain ? 'uncertain' : 'editing');
+      setFeedback('Check your name, email, message and operator attestation.');
+      return;
+    }
+    setCanRetry(false);
+    setStatus('sending');
+    try {
+      const value = await recovery.execute(original, (command, signal) =>
+        exchangeStaffCaptureOriginal(scope, validateStaffCaptureCommand(command), recover, signal),
+      );
+      // The recovery store has already checked the complete command/current actor receipt.
+      const receipt = value as Awaited<ReturnType<typeof exchangeStaffCaptureOriginal>>;
+      setStatus('received');
+      setName('');
+      setEmail('');
+      setMessage('');
+      setNotice(false);
+      setFeedback(
+        'Synthetic enquiry saved. Reference: ' +
+          receipt.enquiryId +
+          '. No message was sent and no viewing was booked.',
+      );
+    } catch (error) {
+      setStatus('uncertain');
+      if (
+        recover &&
+        error &&
+        typeof error === 'object' &&
+        'status' in error &&
+        error.status === 404
+      ) {
+        setCanRetry(true);
         setFeedback(
-          uncertain
-            ? 'We could not confirm the result. Keep this page open and retry the original enquiry to recover it safely.'
-            : 'Check your name, email, message and notice acknowledgement, then try again.',
+          'No original receipt found. You may explicitly retry the same retained original.',
         );
-        if (!uncertain) attempt.current = null;
-      }
-    } finally {
-      busy.current = false;
-      controller.current = null;
+      } else
+        setFeedback(
+          'The result is unconfirmed. Its original remains encrypted; check the original enquiry before any further write.',
+        );
     }
   }
-  const locked = ['sending', 'uncertain', 'received'].includes(status);
+  if (!recovery.ready)
+    return (
+      <section aria-label="Encrypted capture recovery">
+        <p role="status">{recovery.error}</p>
+        <button type="button" onClick={recovery.retry}>
+          Retry encrypted recovery
+        </button>
+      </section>
+    );
+  const locked = recovery.busy || !!pending || status === 'received';
   return (
     <section className="intake-card">
       <p className="enq-eyebrow">STAFF CAPTURE / SYNTHETIC {actor.toUpperCase()}</p>
@@ -118,7 +129,7 @@ export default function StaffCaptureWorkspace({
           <label>
             Contact name
             <input
-              value={name}
+              value={pending?.input.name ?? name}
               maxLength={160}
               required
               autoComplete="off"
@@ -129,7 +140,7 @@ export default function StaffCaptureWorkspace({
             Email address
             <input
               type="email"
-              value={email}
+              value={pending?.input.email ?? email}
               maxLength={254}
               required
               autoComplete="off"
@@ -139,7 +150,7 @@ export default function StaffCaptureWorkspace({
           <label>
             Enquiry notes
             <textarea
-              value={message}
+              value={pending?.input.message ?? message}
               maxLength={2000}
               required
               rows={5}
@@ -157,7 +168,7 @@ export default function StaffCaptureWorkspace({
             <label className="intake-check">
               <input
                 type="checkbox"
-                checked={notice}
+                checked={pending?.input.noticeAcknowledged ?? notice}
                 onChange={(e) => setNotice(e.currentTarget.checked)}
               />
               I am recording fictional details and have reviewed this test notice. This is my
@@ -172,9 +183,43 @@ export default function StaffCaptureWorkspace({
       <p role="status" aria-live="polite" className="intake-feedback">
         {feedback}
       </p>
-      {status === 'uncertain' && (
-        <button type="button" className="primary" onClick={() => void send(true)}>
-          Retry original enquiry
+      {pending && (
+        <dl>
+          <dt>Original request reference</dt>
+          <dd>{pending.operationId}</dd>
+          {pending.input.phone && (
+            <>
+              <dt>Original phone</dt>
+              <dd>{pending.input.phone}</dd>
+            </>
+          )}
+          {pending.input.listingId && (
+            <>
+              <dt>Property reference</dt>
+              <dd>{pending.input.listingId}</dd>
+            </>
+          )}
+        </dl>
+      )}
+      {pending && (
+        <button
+          type="button"
+          className="primary"
+          disabled={recovery.busy}
+          onClick={() => void send(true)}
+        >
+          Check original enquiry
+        </button>
+      )}
+      {pending && canRetry && (
+        <button type="button" disabled={recovery.busy} onClick={() => void send(false)}>
+          Retry the same original enquiry
+        </button>
+      )}
+      {recovery.error && <p role="status">{recovery.error}</p>}
+      {recovery.busy && (
+        <button type="button" onClick={recovery.cancel}>
+          Stop waiting; retain original
         </button>
       )}
       {status === 'received' && (
@@ -192,8 +237,9 @@ export default function StaffCaptureWorkspace({
         </div>
       )}
       <p className="intake-limit">
-        Keep this page open while a result is uncertain. Form recovery is held in memory and will be
-        lost on reload or crash.
+        Unconfirmed originals remain encrypted for authorized recovery in this tab and preview.
+        Restarting the preview or closing the tab can make recovery unavailable; do not replace an
+        unresolved original.
       </p>
     </section>
   );

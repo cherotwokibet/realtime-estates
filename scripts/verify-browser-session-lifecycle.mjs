@@ -91,6 +91,9 @@ async function port() {
 // Owned mutable HTTP fixtures, not SQL/provider evidence. Recovery still uses the real Node BFF cipher.
 const sealedReceipts = new Map(),
   sealedCancellations = new Map();
+let captureWrites = 0,
+  capturePosts = 0;
+const captureReceipts = new Map();
 let sealedWrites = 0,
   summaryReads = 0;
 const settingsState = {
@@ -213,13 +216,47 @@ async function sealedFixture(req, res) {
     );
     return true;
   }
+  if (/^\/v2\/staff\/capture-originals\/[^/]+$/.test(path)) {
+    const agent = req.headers.authorization === 'Bearer synthetic.capture-agent.signature',
+      who = agent ? id(14) : actor;
+    if (req.method === 'POST') {
+      capturePosts++;
+      let raw = '';
+      for await (const b of req) raw += b;
+      const request = JSON.parse(raw);
+      if (!captureReceipts.has(path)) {
+        captureWrites++;
+        captureReceipts.set(path, {
+          policy: 'staff-capture-receipt-v1',
+          tenantId: tenant,
+          actorId: who,
+          operationId: request.operationId,
+          request,
+          enquiryId: id(98000 + captureWrites),
+          recordedAt: '2026-11-22T07:00:00.000Z',
+        });
+      }
+    }
+    const saved = captureReceipts.get(path);
+    reply(
+      saved && saved.actorId === who ? 200 : 404,
+      saved && saved.actorId === who
+        ? saved
+        : { error: { code: 'NOT_FOUND', message: 'Original unavailable.' } },
+    );
+    return true;
+  }
   if (path === '/v2/staff/session-lease') {
     const now = Date.now();
     reply(200, {
       policy: 'staff-access-lease-v1',
       tenantId: tenant,
-      actorId: actor,
-      role: 'admin',
+      actorId:
+        req.headers.authorization === 'Bearer synthetic.capture-agent.signature' ? id(14) : actor,
+      role:
+        req.headers.authorization === 'Bearer synthetic.capture-agent.signature'
+          ? 'agent'
+          : 'admin',
       checkedAt: new Date(now).toISOString(),
       expiresAt: new Date(now + 30000).toISOString(),
     });
@@ -445,6 +482,13 @@ async function start(app, review = false) {
               STAFF_AUDIT_WEB_ORIGIN: 'http://127.0.0.1:' + p,
               STAFF_PUSH_QUEUE_MODE: 'synthetic-v1',
               STAFF_PUSH_QUEUE_TENANT: tenant,
+              STAFF_ENQUIRY_PREVIEW_MODE: 'synthetic-v1',
+              STAFF_ENQUIRY_ADMIN_TOKEN: 'synthetic.capture-admin.signature',
+              STAFF_ENQUIRY_ADMIN_ID: actor,
+              STAFF_ENQUIRY_ADMIN_INSTANCE: id(900),
+              STAFF_ENQUIRY_AGENT_TOKEN: 'synthetic.capture-agent.signature',
+              STAFF_ENQUIRY_AGENT_ID: id(14),
+              STAFF_ENQUIRY_AGENT_INSTANCE: id(901),
               STAFF_DELETION_TRIAGE_MODE: 'synthetic-v1',
               STAFF_DELETION_TRIAGE_TENANT: tenant,
               STAFF_DELETION_TRIAGE_REVIEWER: actor,
@@ -662,6 +706,42 @@ async function tab(origin, path, kind, model) {
           model.leaseStatus ?? 200,
         );
       if (model.holdLease) leaseHeld = complete;
+      else await complete();
+      return;
+    }
+    if (
+      model.captureRole &&
+      /^\/api\/enquiry-preview\/(admin|agent)\/capture-originals\//.test(u.pathname)
+    ) {
+      reads++;
+      if (model.captureStatus) {
+        await fulfil(requestId, { error: 'Synthetic capture unavailable.' }, model.captureStatus);
+        return;
+      }
+      const nonce = model.captureRole === 'agent' ? id(901) : id(900);
+      if (request.method === 'POST') {
+        const retained = await evaljs(
+          'Object.entries(sessionStorage).filter(([k])=>k.startsWith("realtor.sealed-recovery.v1:"))',
+        );
+        assert.equal(retained.length, 1);
+        assert.doesNotMatch(
+          JSON.stringify(retained),
+          /PRIVATE_CAPTURE_CANARY|synthetic@example.test/,
+        );
+        model.retainedBeforeDispatch = true;
+      }
+      const response = await fetch(request.url, {
+        method: request.method,
+        headers: {
+          'x-preview-instance': nonce,
+          ...(request.method === 'POST' ? { 'content-type': 'application/json', origin } : {}),
+        },
+        ...(request.postData ? { body: request.postData } : {}),
+      });
+      const body = await response.json();
+      if (model.captureWrongActor) body.actorId = id(99);
+      const complete = () => fulfil(requestId, body, response.status);
+      if (model.holdCapture) held = complete;
       else await complete();
       return;
     }
@@ -914,8 +994,9 @@ async function tab(origin, path, kind, model) {
       source: `for(const [k,v] of ${JSON.stringify(model.originalEntries)})sessionStorage.setItem(k,v);`,
     });
   await cmd('Page.navigate', { url: origin + path });
-  const selector =
-    kind === 'audit'
+  const selector = kind.startsWith('capture-')
+    ? 'section.intake-card'
+    : kind === 'audit'
       ? 'section[aria-label="Private company activity"]'
       : kind === 'push'
         ? 'section[aria-label="Synthetic notification queue"]'
@@ -940,8 +1021,9 @@ async function tab(origin, path, kind, model) {
                         : kind === 'customer'
                           ? '.customer-account'
                           : '.hosted-sign-in';
-  const privateText =
-    kind === 'audit'
+  const privateText = kind.startsWith('capture-')
+    ? 'PRIVATE_CAPTURE_CANARY'
+    : kind === 'audit'
       ? '9007199254740993'
       : kind === 'push'
         ? '93847'
@@ -960,11 +1042,15 @@ async function tab(origin, path, kind, model) {
                     : 'You are signed in.';
   const text = () => evaljs(`document.querySelector(${JSON.stringify(selector)})?.innerText || ''`);
   const visible = async () =>
-    kind === 'settings' || kind === 'report'
+    kind.startsWith('capture-')
       ? evaljs(
-          `document.querySelector(${JSON.stringify(selector + ' pre')})?.textContent.includes(${JSON.stringify(privateText)}) || false`,
+          "document.querySelector('section.intake-card textarea')?.value==='PRIVATE_CAPTURE_CANARY'",
         )
-      : (await text()).includes(privateText);
+      : kind === 'settings' || kind === 'report'
+        ? evaljs(
+            `document.querySelector(${JSON.stringify(selector + ' pre')})?.textContent.includes(${JSON.stringify(privateText)}) || false`,
+          )
+        : (await text()).includes(privateText);
   if (!model.allowChecking) await until(visible, kind + ' private initial render');
   return {
     cmd,
@@ -2366,6 +2452,176 @@ try {
     await changed.close();
     evidence.tests.push(
       'admin/' + kind + ': changed initial role prevents mounting private read controls',
+    );
+  }
+  for (const role of ['admin', 'agent']) {
+    const kind = 'capture-' + role,
+      path = '/enquiries/' + role + '/new',
+      base = {
+        captureRole: role,
+        allowChecking: true,
+        logouts: [],
+        leaseActor: role === 'agent' ? id(14) : actor,
+        leaseRole: role,
+      };
+    const waitButton = (page, label) =>
+      until(
+        () =>
+          page.evaljs(
+            `!![...document.querySelectorAll('button')].find(b=>b.textContent.trim()===${JSON.stringify(label)}&&!b.disabled)`,
+          ),
+        kind + ' ' + label,
+      );
+    const snap = (page) =>
+      page.evaljs(
+        'JSON.stringify(Object.entries(sessionStorage).filter(([k])=>k.startsWith("realtor.sealed-recovery.v1:")).sort())',
+      );
+    const model = { ...base, holdCapture: true },
+      page = await tab(sealedOrigin, path, kind, model);
+    await until(
+      () => page.evaljs("!!document.querySelector('section.intake-card textarea')"),
+      kind + ' form ready',
+    );
+    await page.evaljs(
+      `(()=>{const values=['Synthetic Capture','synthetic@example.test'];document.querySelectorAll('section.intake-card input:not([type=checkbox])').forEach((e,i)=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,values[i]);e.dispatchEvent(new Event('input',{bubbles:true}));});const e=document.querySelector('section.intake-card textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(e,'PRIVATE_CAPTURE_CANARY');e.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('section.intake-card input[type=checkbox]').click();})()`,
+    );
+    await waitButton(page, 'Save synthetic enquiry →');
+    const before = captureWrites,
+      posts = capturePosts;
+    await page.click('Save synthetic enquiry →');
+    await until(() => page.held(), kind + ' committed reply held');
+    assert.equal(model.retainedBeforeDispatch, true);
+    assert.equal(captureWrites, before + 1);
+    assert.equal(capturePosts, posts + 1);
+    const saved = await snap(page),
+      entries = JSON.parse(saved);
+    assert.equal(entries.length, 1);
+    assert.doesNotMatch(saved, /PRIVATE_CAPTURE_CANARY|synthetic@example.test/);
+    await page.evaljs(
+      "(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signing-out'});c.close()})()",
+    );
+    const closed = (p) =>
+      until(
+        () => p.evaljs(`!!document.querySelector('[aria-label="Private view closed"]')`),
+        kind + ' closed',
+      );
+    await closed(page);
+    assert.equal(await page.visible(), false);
+    assert.equal(await snap(page), saved);
+    await page
+      .held()()
+      .catch(() => {});
+    model.holdCapture = false;
+    await page.cmd('Page.reload');
+    await waitButton(page, 'Check original enquiry');
+    assert.equal(await page.visible(), true);
+    assert.equal(capturePosts, posts + 1);
+    await page.click('Check original enquiry');
+    await until(async () => (await snap(page)) === '[]', kind + ' GET receipt releases');
+    assert.equal(capturePosts, posts + 1);
+    assert.equal(captureWrites, before + 1);
+    assert.deepEqual(page.errors, []);
+    await page.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': real BFF seals before write; lost reply/logout preserves ciphertext; authorized reload and exact GET receipt recover without duplicate capture',
+    );
+    for (const status of [401, 403, 404, 409]) {
+      const m = { ...base, originalEntries: entries, captureStatus: status },
+        p = await tab(sealedOrigin, path, kind, m);
+      await p.unseed();
+      await waitButton(p, 'Check original enquiry');
+      await p.click('Check original enquiry');
+      if (status < 404) await closed(p);
+      else
+        await until(
+          () =>
+            p.evaljs(
+              'document.body.innerText.includes(' +
+                JSON.stringify(
+                  status === 404 ? 'No original receipt found.' : 'The result is unconfirmed.',
+                ) +
+                ')',
+            ),
+          kind + ' result retained',
+        );
+      assert.equal(await snap(p), saved);
+      assert.equal(captureWrites, before + 1);
+      if (status === 404) {
+        m.captureStatus = 0;
+        await waitButton(p, 'Retry the same original enquiry');
+        await p.click('Retry the same original enquiry');
+        await until(async () => (await snap(p)) === '[]', kind + ' explicit same-original replay');
+        assert.equal(captureWrites, before + 1);
+      }
+      assert.deepEqual(p.errors, []);
+      await p.close();
+      evidence.tests.push(
+        'admin/' +
+          kind +
+          ': outcome HTTP ' +
+          status +
+          ' preserves encrypted original' +
+          (status === 404
+            ? '; only explicit same-original replay releases the matched receipt'
+            : ''),
+      );
+    }
+    const wrong = await tab(sealedOrigin, path, kind, {
+      ...base,
+      originalEntries: entries,
+      captureWrongActor: true,
+    });
+    await wrong.unseed();
+    await waitButton(wrong, 'Check original enquiry');
+    await wrong.click('Check original enquiry');
+    await until(
+      () => wrong.evaljs("document.body.innerText.includes('The result is unconfirmed.')"),
+      kind + ' wrong creator',
+    );
+    assert.equal(await snap(wrong), saved);
+    assert.deepEqual(wrong.errors, []);
+    await wrong.close();
+    evidence.tests.push(
+      'admin/' + kind + ': another creator receipt cannot release the retained contact original',
+    );
+    const idle = await tab(sealedOrigin, path, kind, {
+      ...base,
+      originalEntries: entries,
+      leaseExpiresAt: Date.now() + 5000,
+    });
+    await idle.unseed();
+    await waitButton(idle, 'Check original enquiry');
+    await closed(idle);
+    assert.equal(await snap(idle), saved);
+    assert.equal(await idle.visible(), false);
+    const reads = idle.reads();
+    await idle.evaljs("window.dispatchEvent(new Event('focus'))");
+    await pause(80);
+    assert.equal(idle.reads(), reads);
+    assert.deepEqual(idle.errors, []);
+    await idle.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': expiry removes contact details but preserves encrypted original and focus cannot reopen',
+    );
+    const changed = await tab(sealedOrigin, path, kind, {
+      ...base,
+      originalEntries: entries,
+      leaseRole: role === 'admin' ? 'agent' : 'admin',
+    });
+    await changed.unseed();
+    await closed(changed);
+    assert.equal(await snap(changed), saved);
+    assert.equal(await changed.visible(), false);
+    assert.deepEqual(changed.errors, []);
+    await changed.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': changed initial role blocks private form mounting without deleting original',
     );
   }
   console.log(JSON.stringify(evidence, null, 2));

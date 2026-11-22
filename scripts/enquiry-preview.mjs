@@ -14,7 +14,7 @@ import {
 
 const launch = enquiryLaunchConfiguration(process.env, process.argv.slice(2));
 const pilot = launch.journeyFixture === 'web-admin-pilot-v1';
-const recoveryEnvironment = pilot ? syntheticRecoveryEnvironment() : {};
+const recoveryEnvironment = syntheticRecoveryEnvironment();
 if (pilot && process.platform !== 'win32')
   throw Error('The current pilot photo processor requires Windows.');
 if (

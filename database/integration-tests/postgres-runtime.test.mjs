@@ -1,3 +1,4 @@
+import { verifyStaffCaptureOriginals } from './staff-capture-original-checks.mjs';
 import { verifyPrivateOperationResolution } from './private-operation-resolution-checks.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
@@ -339,6 +340,9 @@ test('real PostgreSQL TCP runtime isolates transactions and serializes concurren
         ).rows[0].n,
         0,
       );
+    });
+    await t.test('staff capture original receipts on actual PostgreSQL', async (captureTest) => {
+      await verifyStaffCaptureOriginals(captureTest, owner, database, context, id);
     });
     await t.test(
       'terminal private originals serialize with real settings/report writers',

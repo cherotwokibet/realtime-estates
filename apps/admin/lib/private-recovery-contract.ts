@@ -1,3 +1,8 @@
+import {
+  validateStaffCaptureCommand,
+  validateStaffCaptureReceipt,
+  type StaffCaptureCommand,
+} from '@realtor/api-client';
 import { validatePrivateOperationResolution } from '@realtor/domain';
 import {
   validateCustomerDeletionReviewCommand,
@@ -16,8 +21,15 @@ import {
   type CompanySettingsCommand,
   type ListingReportDecisionCommand,
 } from '@realtor/domain';
-export type RecoveryKind = 'settings' | 'report' | 'deletion-triage' | 'deletion-privacy';
+export type RecoveryKind =
+  | 'settings'
+  | 'report'
+  | 'deletion-triage'
+  | 'deletion-privacy'
+  | 'capture-admin'
+  | 'capture-agent';
 export type RecoveryCommand =
+  | StaffCaptureCommand
   | CompanySettingsCommand
   | ListingReportDecisionCommand
   | CustomerDeletionReviewCommand
@@ -62,7 +74,16 @@ export function recoveryId(value: unknown): string {
   return value;
 }
 export function recoveryKind(value: unknown): RecoveryKind {
-  if (!['settings', 'report', 'deletion-triage', 'deletion-privacy'].includes(value as string))
+  if (
+    ![
+      'settings',
+      'report',
+      'deletion-triage',
+      'deletion-privacy',
+      'capture-admin',
+      'capture-agent',
+    ].includes(value as string)
+  )
     throw Error('Invalid recovery kind.');
   return value as RecoveryKind;
 }
@@ -85,6 +106,11 @@ export function sameRecoveryScope(a: RecoveryScope, b: RecoveryScope) {
 }
 export function recoveryCommand(kind: RecoveryKind, input: unknown): RecoveryCommand {
   recoveryKind(kind);
+  if (kind === 'capture-admin' || kind === 'capture-agent') {
+    const command = validateStaffCaptureCommand(input);
+    if (command.role !== kind.slice(8)) throw Error('Capture role changed.');
+    return command;
+  }
   const value =
     kind === 'settings'
       ? validateCompanySettingsCommand(input)
@@ -134,6 +160,8 @@ export function recoveryReceipt(
   receipt: unknown,
 ) {
   const command = recoveryCommand(kind, input);
+  if (kind === 'capture-admin' || kind === 'capture-agent')
+    return validateStaffCaptureReceipt(receipt, command as StaffCaptureCommand, scope);
   if (
     receipt &&
     typeof receipt === 'object' &&
