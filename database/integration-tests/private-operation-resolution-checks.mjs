@@ -174,32 +174,37 @@ export async function verifyPrivateOperationResolution(t, owner, database, conte
   await t.test(
     'guarded creation and successor writers persist canonical milliseconds on the real PostgreSQL clock',
     async () => {
-      const facts = (
-        await owner.query(
-          'SELECT l.version::text AS listing_version,r.version::text AS revision_version,r.revision_no,r.state,r.content FROM app_private.listings l JOIN app_private.listing_revisions r ON r.tenant_id=l.tenant_id AND r.listing_id=l.id WHERE l.tenant_id=$1 AND l.id=$2 ORDER BY r.revision_no DESC LIMIT 1',
-          [T, LISTING],
-        )
-      ).rows[0];
-      assert.equal(facts.state, 'approved');
-      const result = await asActor(adapter, T, AGENT, () =>
-        scalar(adapter, 'SELECT app_api.start_listing_revision_v2($1,$2,$3,$4,$5,$6,$7::jsonb)', [
-          LISTING,
-          id(960),
-          facts.listing_version,
-          facts.revision_no,
-          facts.revision_version,
-          facts.state,
-          JSON.stringify(facts.content),
-        ]),
-      );
-      assert.equal(result.decision.outcome, 'applied');
-      assert.equal(new Date(result.completedAt).toISOString(), result.completedAt);
-      const precision = await owner.query(
-        'SELECT app_private.enquiry_time_valid(completed_at) AS valid FROM app_private.listing_creation_results WHERE tenant_id=$1 AND listing_id=$2 UNION ALL SELECT app_private.enquiry_time_valid(completed_at) FROM app_private.listing_successor_results WHERE tenant_id=$1 AND listing_id=$2',
-        [T, LISTING],
-      );
-      assert.equal(precision.rows.length, 2);
-      assert.ok(precision.rows.every((r) => r.valid === true));
+      await verifyAllocationCompletionPrecision(owner, adapter, id);
     },
   );
+}
+
+/** Same fixture/query is checked locally with PGlite and in CI against the real PostgreSQL clock. */
+export async function verifyAllocationCompletionPrecision(owner, adapter, id) {
+  const facts = (
+    await owner.query(
+      'SELECT l.version::text AS listing_version,r.version::text AS revision_version,r.revision_no,r.state,q.content FROM app_private.listings l JOIN app_private.listing_revisions r ON r.tenant_id=l.tenant_id AND r.listing_id=l.id JOIN app_private.listing_creation_results c ON c.tenant_id=l.tenant_id AND c.created_listing_id=l.id JOIN app_private.listing_creation_requests q ON q.tenant_id=c.tenant_id AND q.operation_id=c.operation_id WHERE l.tenant_id=$1 AND l.id=$2 ORDER BY r.revision_no DESC LIMIT 1',
+      [T, LISTING],
+    )
+  ).rows[0];
+  assert.equal(facts.state, 'approved');
+  const result = await asActor(adapter, T, AGENT, () =>
+    scalar(adapter, 'SELECT app_api.start_listing_revision_v2($1,$2,$3,$4,$5,$6,$7::jsonb)', [
+      LISTING,
+      id(960),
+      facts.listing_version,
+      facts.revision_no,
+      facts.revision_version,
+      facts.state,
+      JSON.stringify(facts.content),
+    ]),
+  );
+  assert.equal(result.decision.outcome, 'applied');
+  assert.equal(new Date(result.completedAt).toISOString(), result.completedAt);
+  const precision = await owner.query(
+    'SELECT app_private.enquiry_time_valid(completed_at) AS valid FROM app_private.listing_creation_results WHERE tenant_id=$1 AND listing_id=$2 UNION ALL SELECT app_private.enquiry_time_valid(completed_at) FROM app_private.listing_successor_results WHERE tenant_id=$1 AND listing_id=$2',
+    [T, LISTING],
+  );
+  assert.equal(precision.rows.length, 2);
+  assert.ok(precision.rows.every((r) => r.valid === true));
 }
