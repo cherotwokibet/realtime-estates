@@ -1102,6 +1102,17 @@ async function tab(origin, path, kind, model) {
       source: `for(const [k,v] of ${JSON.stringify(model.originalEntries)})sessionStorage.setItem(k,v);`,
     });
   await cmd('Page.navigate', { url: origin + path });
+  // Navigation acknowledgement precedes DOM creation; wait for the requested document's body.
+  await until(async () => {
+    try {
+      return await evaljs(
+        `location.href === ${JSON.stringify(new URL(origin + path).href)} && !!document.body && document.readyState !== 'loading'`,
+      );
+    } catch {
+      // The old execution context can disappear while navigation commits.
+      return false;
+    }
+  }, 'requested document body');
   const selector =
     kind === 'recipient'
       ? '.staff-workspace'
