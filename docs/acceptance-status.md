@@ -1,6 +1,6 @@
 # Replacement acceptance status and defect/retest index
 
-Updated 2026-11-03. All 24 substantive vendor findings plus reserved R-001 and all 35 replacement acceptance cases are linked below. This is maintained traceability, **not release acceptance**. No legacy PASS is imported as a replacement PASS.
+Updated 2026-11-22. All 24 substantive vendor findings plus reserved R-001 and all 35 replacement acceptance cases are linked below. This is maintained traceability, **not release acceptance**. No legacy PASS is imported as a replacement PASS.
 
 Case states deliberately distinguish partial evidence, not run, deferred and the reserved header. Every unresolved case has a named gap and next action. Test counts overlap and must not be added into a platform completion figure.
 
@@ -8,6 +8,8 @@ Case states deliberately distinguish partial evidence, not run, deferred and the
 
 | ID | Evidence at source commit | Actual scope |
 | --- | --- | --- |
+| privateBrowser483 | [evidence/2026-11-22-deletion483-browser.json](evidence/2026-11-22-deletion483-browser.json) · 395d7be | Actual Chrome158 production clients and real Node BFF encryption against owned HTTP authority fixtures:94 workflows/3 separate production-route HTTP smoke checks. Private lifetime/logout/expiry and retained-original coverage includes settings/report and deletion triage/returns/privacy. No full browser-to-SQL, provider, device, stable custody or complete cache/history acceptance. |
+| privateReviewer483 | [evidence/2026-11-22-deletion483-composed.txt](evidence/2026-11-22-deletion483-composed.txt) · 395d7be | 1 passed; Signed RS256/API/BFF/disposable PGlite journey recovers three committed lost write replies, binds complete reviewer originals and denies privacy designation removal while ordinary admin membership remains. Not physical-device/hosted-provider acceptance. |
 | adminModeration325 | [evidence/audit325-maintained4.txt](evidence/audit325-maintained4.txt) · c34f18f | 20 passed; Fresh domain, API and SDK builds. Signed maintained v2 draft save, submission and both decisions verify exact attribution, denial without mutation, stale decision and public snapshot outcomes. |
 | adminCommands323 | [evidence/audit323-maintained5.txt](evidence/audit323-maintained5.txt) · 28cf23b | 19 passed; Fresh domain, API and SDK builds with seven new signed HTTP command scenarios. Settings approval and both listing control kinds verify attribution, replay, permission denials and rollback after audit insertion failure. Disposable PostgreSQL-compatible fixture. |
 | adminAuditScreen321 | [evidence/audit321-maintained4.txt](evidence/audit321-maintained4.txt) · ec3a4cb | 6 + 2 passed; Fresh domain/API/SDK builds/admin compile. Server3/signed RS256-JWKS-HTTP loader integration3/SSR2, overlapping fulladmin. Original26-event traversal/filter/revocation and positive foreign-history second company; exact host/authority/production/default-off fences. Actual browser separately recorded. No every-action/native/device/hosted production acceptance. |
@@ -248,10 +250,10 @@ Next: Implement and test scoped export/session/job paths, then rerun the complet
 **R-004 · partial · GAP-AC-004**
 Original finding: Logout leaves private owner view in another tab.
 Expected: Private cards/reasons/drafts/subscriptions clear across tabs; requests denied after sign-out/revocation; no background repopulation
-Observed: A current foreign enquiry read hides loaded private details; current membership revocation is denied at SQL/API.
-Evidence: [operations212](evidence/2026-10-28-operations-overview.md), [api212](evidence/2026-10-28-operations-overview/api-full.txt), [customerDomain311](evidence/customer311-domain-full.txt), [customerSql311](evidence/customer311-focused5.txt), [customerSigned313](evidence/customer313-maintained4.txt), [customerApi313](evidence/customer313-api-full.txt), [customerSdk313](evidence/customer313-sdk-full.txt), [customerMaintain315](evidence/customer315-maintained10.txt), [customerWeb315](evidence/customer315-web-full7.txt), [customerBuild315](evidence/customer315-web-build8.txt), [customerBrowser315](evidence/2026-11-03-customer-account-acceptance.md)
-Still open: Sign-out broadcast, two-tab private cache clearing, native expiry and subscription teardown are unimplemented or unverified.
-Next: Implement provider-backed logout/expiry and verify two tabs plus native storage. Owner: Boniface + Codex.
+Observed: Published483 controlled browser workflows clear selected private views on cross-tab auth hints, current denial and bounded expiry, block late repopulation and retain encrypted originals. Separate signed SQL-backed reviewer proof recovers lost replies and denies designation removal.
+Evidence: [privateBrowser483](evidence/2026-11-22-deletion483-browser.json), [privateReviewer483](evidence/2026-11-22-deletion483-composed.txt), [operations212](evidence/2026-10-28-operations-overview.md), [api212](evidence/2026-10-28-operations-overview/api-full.txt), [customerDomain311](evidence/customer311-domain-full.txt), [customerSql311](evidence/customer311-focused5.txt), [customerSigned313](evidence/customer313-maintained4.txt), [customerApi313](evidence/customer313-api-full.txt), [customerSdk313](evidence/customer313-sdk-full.txt), [customerMaintain315](evidence/customer315-maintained10.txt), [customerWeb315](evidence/customer315-web-full7.txt), [customerBuild315](evidence/customer315-web-build8.txt), [customerBrowser315](evidence/2026-11-03-customer-account-acceptance.md)
+Still open: Remaining private consumers, SSR/RSC/router/history cache, stable key/instance custody, legacy plaintext, hosted provider sessions, native expiry/storage and complete subscription teardown remain unverified.94 controlled browser cases do not constitute full AC-004 acceptance.
+Next: Finish remaining consumer read/write lifetimes and private server-payload removal; then verify actual cache/history, provider-backed logout/expiry, native storage and subscriptions. Owner: Boniface + Codex.
 
 ### AC-005 — interruption/idempotency
 

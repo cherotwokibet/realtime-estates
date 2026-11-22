@@ -91,7 +91,8 @@ async function port() {
 // Owned mutable HTTP fixtures, not SQL/provider evidence. Recovery still uses the real Node BFF cipher.
 const sealedReceipts = new Map(),
   sealedCancellations = new Map();
-let sealedWrites = 0;
+let sealedWrites = 0,
+  summaryReads = 0;
 const settingsState = {
   policy: 'company-settings-state-v1',
   version: '0',
@@ -109,6 +110,43 @@ async function sealedFixture(req, res) {
     });
     res.end(JSON.stringify(body));
   };
+  if (path === '/v2/staff/audit-events' || path === '/v2/staff/synthetic-push-queue-summary') {
+    summaryReads++;
+    reply(
+      200,
+      path.includes('/audit-events')
+        ? {
+            policy: 'admin-audit-page-v1',
+            tenantId: tenant,
+            items: [
+              {
+                id: '9007199254740994',
+                actorId: actor,
+                action: 'private.audit.canary',
+                objectType: 'company',
+                objectId: tenant,
+                objectVersion: '9007199254740993',
+                occurredAt: '2026-11-22T04:00:00.000Z',
+              },
+            ],
+            nextBefore: null,
+          }
+        : {
+            policy: 'synthetic-push-queue-summary-v1',
+            tenantId: tenant,
+            asOf: '2026-11-22T04:00:00.000Z',
+            due: 93847,
+            scheduled: 0,
+            waitingForRetry: 0,
+            captured: 0,
+            suppressed: 0,
+            oldestDueAgeSeconds: 12,
+            oldestRetryAgeSeconds: null,
+            nextRetryAt: null,
+          },
+    );
+    return true;
+  }
   if (/^\/v2\/staff\/customer-deletion-(triage|follow-up|privacy)/.test(path)) {
     const url = new URL(req.url, 'http://fixture.invalid'),
       privacy = path.includes('-privacy'),
@@ -403,6 +441,10 @@ async function start(app, review = false) {
         : review === 'sealed'
           ? {
               STAFF_REPORT_PREVIEW_MODE: 'synthetic-v1',
+              STAFF_AUDIT_PREVIEW_MODE: 'synthetic-admin-audit-v1',
+              STAFF_AUDIT_WEB_ORIGIN: 'http://127.0.0.1:' + p,
+              STAFF_PUSH_QUEUE_MODE: 'synthetic-v1',
+              STAFF_PUSH_QUEUE_TENANT: tenant,
               STAFF_DELETION_TRIAGE_MODE: 'synthetic-v1',
               STAFF_DELETION_TRIAGE_TENANT: tenant,
               STAFF_DELETION_TRIAGE_REVIEWER: actor,
@@ -620,6 +662,26 @@ async function tab(origin, path, kind, model) {
           model.leaseStatus ?? 200,
         );
       if (model.holdLease) leaseHeld = complete;
+      else await complete();
+      return;
+    }
+    if (model.summaryKind && u.pathname === '/api/private-summary/' + model.summaryKind) {
+      reads++;
+      if (model.summaryStatus) {
+        await fulfil(requestId, { error: 'Synthetic private read denied.' }, model.summaryStatus);
+        return;
+      }
+      const result = await fetch(request.url, {
+        headers: {
+          'x-preview-instance': id(900),
+          'x-preview-tenant': tenant,
+          'x-preview-actor': actor,
+        },
+      });
+      const body = await result.json();
+      if (model.summaryWrongScope) body.scope.actorId = id(99);
+      const complete = () => fulfil(requestId, body, result.status);
+      if (model.holdSummary) held = complete;
       else await complete();
       return;
     }
@@ -852,41 +914,50 @@ async function tab(origin, path, kind, model) {
       source: `for(const [k,v] of ${JSON.stringify(model.originalEntries)})sessionStorage.setItem(k,v);`,
     });
   await cmd('Page.navigate', { url: origin + path });
-  const selector = kind.startsWith('deletion-')
-    ? 'section[aria-labelledby="' +
-      (kind === 'deletion-triage' ? 'triage-heading' : 'privacy-queue') +
-      '"]'
-    : kind === 'settings'
-      ? '.settings-grid'
-      : kind === 'report'
-        ? 'section[aria-label="Private report review"]'
-        : kind === 'directory'
-          ? '.staff-workspace'
-          : kind.startsWith('allocation-')
-            ? '.draft-panel[aria-label="Retained listing allocation workspace"]'
-            : kind === 'creation' || kind === 'successor'
-              ? '.draft-panel[aria-label="Reference ' + kind + ' workspace"]'
-              : kind === 'review'
-                ? '.review-workspace-layout'
-                : kind === 'staff'
-                  ? '.hosted-staff'
-                  : kind === 'customer'
-                    ? '.customer-account'
-                    : '.hosted-sign-in';
+  const selector =
+    kind === 'audit'
+      ? 'section[aria-label="Private company activity"]'
+      : kind === 'push'
+        ? 'section[aria-label="Synthetic notification queue"]'
+        : kind.startsWith('deletion-')
+          ? 'section[aria-labelledby="' +
+            (kind === 'deletion-triage' ? 'triage-heading' : 'privacy-queue') +
+            '"]'
+          : kind === 'settings'
+            ? '.settings-grid'
+            : kind === 'report'
+              ? 'section[aria-label="Private report review"]'
+              : kind === 'directory'
+                ? '.staff-workspace'
+                : kind.startsWith('allocation-')
+                  ? '.draft-panel[aria-label="Retained listing allocation workspace"]'
+                  : kind === 'creation' || kind === 'successor'
+                    ? '.draft-panel[aria-label="Reference ' + kind + ' workspace"]'
+                    : kind === 'review'
+                      ? '.review-workspace-layout'
+                      : kind === 'staff'
+                        ? '.hosted-staff'
+                        : kind === 'customer'
+                          ? '.customer-account'
+                          : '.hosted-sign-in';
   const privateText =
-    kind === 'settings' || kind === 'report'
-      ? 'PRIVATE_SEALED_ORIGINAL_CANARY'
-      : kind === 'directory' || kind.startsWith('allocation-')
-        ? 'PRIVATE_STAFF_ORIGINAL_CANARY'
-        : kind === 'creation' || kind === 'successor'
-          ? 'PRIVATE_ORIGINAL_CANARY'
-          : kind === 'review'
-            ? 'PRIVATE_REVIEW_CANARY'
-            : kind === 'staff'
-              ? 'PRIVATE_BRANCH_CANARY'
-              : kind === 'customer'
-                ? 'PRIVATE_HOME_CANARY'
-                : 'You are signed in.';
+    kind === 'audit'
+      ? '9007199254740993'
+      : kind === 'push'
+        ? '93847'
+        : kind === 'settings' || kind === 'report'
+          ? 'PRIVATE_SEALED_ORIGINAL_CANARY'
+          : kind === 'directory' || kind.startsWith('allocation-')
+            ? 'PRIVATE_STAFF_ORIGINAL_CANARY'
+            : kind === 'creation' || kind === 'successor'
+              ? 'PRIVATE_ORIGINAL_CANARY'
+              : kind === 'review'
+                ? 'PRIVATE_REVIEW_CANARY'
+                : kind === 'staff'
+                  ? 'PRIVATE_BRANCH_CANARY'
+                  : kind === 'customer'
+                    ? 'PRIVATE_HOME_CANARY'
+                    : 'You are signed in.';
   const text = () => evaljs(`document.querySelector(${JSON.stringify(selector)})?.innerText || ''`);
   const visible = async () =>
     kind === 'settings' || kind === 'report'
@@ -2139,6 +2210,162 @@ try {
       'admin/' +
         variant +
         ': changed initial SQL lease role blocks mounting private controls without deleting original',
+    );
+  }
+  for (const kind of ['audit', 'push']) {
+    const path = kind === 'audit' ? '/audit' : '/push-queue',
+      button = kind === 'audit' ? 'Load company activity' : 'Refresh queue summary';
+    const before = summaryReads;
+    for (const headers of [{}, { RSC: '1' }]) {
+      const response = await fetch(sealedOrigin + path, { headers });
+      assert.equal(response.status, 200);
+      if (headers.RSC) assert.match(response.headers.get('content-type'), /text\/x-component/);
+      const text = await response.text();
+      assert.doesNotMatch(
+        text,
+        /private.audit.canary|9007199254740993|93847|admin-audit-page-v1|synthetic-push-queue-summary-v1/,
+      );
+    }
+    assert.equal(summaryReads, before, 'Neither HTML nor RSC may fetch private rows/counts');
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': HTML and actual RSC responses contain no private rows/counts and make no private data read',
+    );
+    const waitButton = (page) =>
+      until(
+        () =>
+          page.evaljs(
+            `!![...document.querySelectorAll('button')].find(b=>b.textContent.trim()===${JSON.stringify(button)}&&!b.disabled)`,
+          ),
+        kind + ' readiness',
+      );
+    const closed = (page) =>
+      until(
+        () => page.evaljs(`!!document.querySelector('[aria-label="Private view closed"]')`),
+        kind + ' closed',
+      );
+    const notify = (page) =>
+      page.evaljs(
+        "(()=>{const c=new BroadcastChannel('realtor-hosted-auth-v1');c.postMessage({type:'auth-changed',reason:'signing-out'});c.close()})()",
+      );
+    const model = { summaryKind: kind, allowChecking: true, logouts: [] },
+      page = await tab(sealedOrigin, path, kind, model);
+    await waitButton(page);
+    await page.click(button);
+    await until(() => page.visible(), kind + ' loaded');
+    model.holdSummary = true;
+    await page.click(kind === 'audit' ? 'Refresh company activity' : button);
+    await until(() => page.held(), kind + ' held response');
+    assert.equal(await page.visible(), false);
+    await notify(page);
+    await closed(page);
+    await page
+      .held()()
+      .catch(() => {});
+    await pause(80);
+    assert.equal(await page.visible(), false);
+    assert.deepEqual(page.errors, []);
+    await page.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': sign-out clears loaded data and a held successful refresh cannot repopulate it',
+    );
+    for (const status of [401, 403, 503]) {
+      const m = { summaryKind: kind, allowChecking: true, logouts: [] },
+        t = await tab(sealedOrigin, path, kind, m);
+      await waitButton(t);
+      await t.click(button);
+      await until(() => t.visible(), kind + ' denied baseline');
+      m.summaryStatus = status;
+      await t.click(kind === 'audit' ? 'Refresh company activity' : button);
+      if (status === 503)
+        await until(
+          () =>
+            t.evaljs("document.body.innerText.includes('Could not load current private data.')"),
+          kind + ' failed read cleared',
+        );
+      else await closed(t);
+      assert.equal(await t.visible(), false);
+      assert.deepEqual(t.errors, []);
+      await t.close();
+      evidence.tests.push('admin/' + kind + ': HTTP ' + status + ' clears loaded private data');
+    }
+    const idle = await tab(sealedOrigin, path, kind, {
+      summaryKind: kind,
+      allowChecking: true,
+      logouts: [],
+      leaseExpiresAt: Date.now() + 5000,
+    });
+    await waitButton(idle);
+    await idle.click(button);
+    await until(() => idle.visible(), kind + ' idle baseline');
+    await closed(idle);
+    assert.equal(await idle.visible(), false);
+    const reads = idle.reads();
+    await idle.evaljs("window.dispatchEvent(new Event('focus'))");
+    await pause(80);
+    assert.equal(idle.reads(), reads);
+    assert.deepEqual(idle.errors, []);
+    await idle.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': idle expiry clears rows/counts and focus cannot reopen the closed lifetime',
+    );
+    const wrong = await tab(sealedOrigin, path, kind, {
+      summaryKind: kind,
+      summaryWrongScope: true,
+      allowChecking: true,
+      logouts: [],
+    });
+    await waitButton(wrong);
+    await wrong.click(button);
+    await until(
+      () =>
+        wrong.evaljs("document.body.innerText.includes('Could not load current private data.')"),
+      kind + ' wrong scope rejected',
+    );
+    assert.equal(await wrong.visible(), false);
+    assert.deepEqual(wrong.errors, []);
+    await wrong.close();
+    evidence.tests.push('admin/' + kind + ': another actor envelope never renders');
+    const historyModel = { summaryKind: kind, allowChecking: true, logouts: [] },
+      history = await tab(sealedOrigin, path, kind, historyModel);
+    await waitButton(history);
+    await history.click(button);
+    await until(() => history.visible(), kind + ' history baseline');
+    await history.cmd('Page.navigate', { url: sealedOrigin + '/sign-in' });
+    await until(() => history.evaljs('location.pathname==="/sign-in"'), kind + ' navigate away');
+    const historyReads = summaryReads;
+    await history.evaljs('window.history.back()');
+    await until(
+      () => history.evaljs('location.pathname===' + JSON.stringify(path)),
+      kind + ' history back',
+    );
+    await pause(350);
+    assert.equal(await history.visible(), false);
+    assert.equal(summaryReads, historyReads);
+    assert.deepEqual(history.errors, []);
+    await history.close();
+    evidence.tests.push(
+      'admin/' +
+        kind +
+        ': actual back navigation does not restore rows/counts or automatically fetch private data',
+    );
+    const changed = await tab(sealedOrigin, path, kind, {
+      summaryKind: kind,
+      leaseRole: 'agent',
+      allowChecking: true,
+      logouts: [],
+    });
+    await closed(changed);
+    assert.equal(await changed.visible(), false);
+    assert.deepEqual(changed.errors, []);
+    await changed.close();
+    evidence.tests.push(
+      'admin/' + kind + ': changed initial role prevents mounting private read controls',
     );
   }
   console.log(JSON.stringify(evidence, null, 2));

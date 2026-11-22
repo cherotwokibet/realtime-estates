@@ -47,13 +47,7 @@ export function adminAuditSearch(input: unknown): AdminAuditQuery {
   if (params.toString().length > 512) throw Error('Invalid audit filters.');
   return adminAuditQuery(params);
 }
-export function adminAuditHref(query: AdminAuditQuery, before: string | null): string {
-  const params = new URLSearchParams({ limit: String(query.limit) });
-  if (query.actorId !== null) params.set('actorId', query.actorId);
-  if (query.objectId !== null) params.set('objectId', query.objectId);
-  if (before !== null) params.set('before', before);
-  return '/audit?' + params.toString();
-}
+export { adminAuditHref } from './admin-audit-navigation.ts';
 export async function loadAdminAuditWorkspace(
   input: unknown,
   env: Env = process.env,

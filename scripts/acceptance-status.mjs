@@ -59,6 +59,7 @@ for (let index = 1; index <= 25; index++)
   assert.match(requirements, new RegExp(`\\| R-${String(index).padStart(3, '0')} \\|`));
 
 const commits = {
+  private483: '395d7bee1849188cd43a32db91615d52e721fa8d',
   search210: '45c9621b6669c7ed8cd6a062ca6f16f389db3806',
   mobile211: '9aedc88558b9168173697716adb804ceef877be6',
   foundation212: '86cf7ed329d804197de8c891f5647cde48f03406',
@@ -82,6 +83,23 @@ for (const commit of Object.values(commits))
     stdio: 'pipe',
   });
 const definitions = {
+  privateBrowser483: {
+    path: 'docs/evidence/2026-11-22-deletion483-browser.json',
+    counts: null,
+    commit: commits.private483,
+    observedDate: '2026-11-22',
+    environment:
+      'Actual Chrome158 production clients and real Node BFF encryption against owned HTTP authority fixtures:94 workflows/3 separate production-route HTTP smoke checks. Private lifetime/logout/expiry and retained-original coverage includes settings/report and deletion triage/returns/privacy. No full browser-to-SQL, provider, device, stable custody or complete cache/history acceptance.',
+  },
+  privateReviewer483: {
+    path: 'docs/evidence/2026-11-22-deletion483-composed.txt',
+    counts: [1],
+    commit: commits.private483,
+    observedDate: '2026-11-22',
+    environment:
+      'Signed RS256/API/BFF/disposable PGlite journey recovers three committed lost write replies, binds complete reviewer originals and denies privacy designation removal while ordinary admin membership remains. Not physical-device/hosted-provider acceptance.',
+  },
+
   adminModeration325: {
     path: 'docs/evidence/audit325-maintained4.txt',
     counts: [20],
@@ -1757,10 +1775,10 @@ const reviewed = [
   [
     4,
     'partial',
-    ['operations212', 'api212'],
-    'A current foreign enquiry read hides loaded private details; current membership revocation is denied at SQL/API.',
-    'Sign-out broadcast, two-tab private cache clearing, native expiry and subscription teardown are unimplemented or unverified.',
-    'Implement provider-backed logout/expiry and verify two tabs plus native storage.',
+    ['privateBrowser483', 'privateReviewer483', 'operations212', 'api212'],
+    'Published483 controlled browser workflows clear selected private views on cross-tab auth hints, current denial and bounded expiry, block late repopulation and retain encrypted originals. Separate signed SQL-backed reviewer proof recovers lost replies and denies designation removal.',
+    'Remaining private consumers, SSR/RSC/router/history cache, stable key/instance custody, legacy plaintext, hosted provider sessions, native expiry/storage and complete subscription teardown remain unverified.94 controlled browser cases do not constitute full AC-004 acceptance.',
+    'Finish remaining consumer read/write lifetimes and private server-payload removal; then verify actual cache/history, provider-backed logout/expiry, native storage and subscriptions.',
   ],
   [
     5,
@@ -2251,7 +2269,7 @@ for (const fix of fixes) {
 }
 const data = {
   schemaVersion: 1,
-  updatedAt: '2026-11-03',
+  updatedAt: '2026-11-22',
   owner: 'Boniface + Codex',
   purpose: 'Execution traceability, not product or release acceptance',
   originalReport: {
@@ -2331,7 +2349,7 @@ const evidenceLinks = (keys) =>
     .join(' · ');
 const html = `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Replacement acceptance evidence and remaining work</title><style>
 *{box-sizing:border-box}body{margin:0;background:#f5f3ee;color:#252321;font:16px/1.6 system-ui,sans-serif}main{max-width:1100px;margin:auto;padding:30px 24px}a{color:#5e0202}a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #286078;outline-offset:4px}h1{font-size:clamp(30px,5vw,50px);line-height:1.15;max-width:850px}h2{font-size:25px}header p{max-width:850px}.notice{padding:20px;background:#fff4dd;border-left:4px solid #8c5916}.metrics{display:flex;gap:16px;flex-wrap:wrap;margin:24px 0}.metrics span{background:white;padding:14px 20px;border:1px solid #dcd6cc;border-radius:12px}.metrics strong{display:block;font-size:27px}.filters{display:flex;flex-wrap:wrap;gap:18px;background:white;padding:20px;border-radius:12px}.filters label{display:grid;gap:5px;flex:1;min-width:180px}input,select{font:inherit;min-height:48px;width:100%;padding:8px;border:1px solid #8c8278;border-radius:6px}article{border:1px solid #dcd6cc;background:white;border-radius:12px;padding:22px;margin:16px 0;overflow-wrap:anywhere}article h3{font-size:20px;margin:0}article p{margin:12px 0}.state{display:inline-block;border:1px solid #8c8278;border-radius:30px;padding:2px 12px;margin:10px 0;font-size:14px}details{border-top:1px solid #ddd6cc;padding-top:12px}summary{cursor:pointer;min-height:44px;display:list-item;color:#5e0202;font-weight:600}small{display:block;color:#61594f}code{font-size:14px}footer{margin:40px 0} [hidden]{display:none!important}@media(max-width:500px){main{padding:20px 16px}.filters{display:block}.filters label+label{margin-top:16px}article{padding:18px}.metrics span{flex:1;min-width:120px}}
-</style><main><header><a href="index.html">← Delivery checklist</a><p>INDEPENDENT REBUILD / ACCEPTANCE EVIDENCE / 3 NOVEMBER 2026</p><h1>What was checked. What still needs work.</h1><p>Each original finding now leads to a replacement case, bounded execution evidence and an explicit next action. Old vendor results are historical evidence.</p><p class="notice"><strong>No release acceptance is implied.</strong> Partial checks, not-run cases and deferred modules stay explicit. Suite totals overlap. Actual devices, provider/account facts, operator UAT and cutover gates remain open.</p></header><div class="metrics"><span><strong>24</strong>original findings</span><span><strong>35</strong>replacement cases linked</span><span><strong>${fixes.length}</strong>bounded defect retests</span><span><strong>0 / 14</strong>accepted release gates</span></div><section aria-labelledby="case-title"><h2 id="case-title">Cases and next actions</h2><div class="filters"><label for="case-search">Find a case, requirement or gap<input id="case-search" type="search" placeholder="For example: upload or AC-005"></label><label for="case-state">Evidence state<select id="case-state"><option value="all">All cases</option><option value="partial">Partial evidence</option><option value="not_run">Not run</option><option value="deferred">Deferred</option><option value="reserved">Reserved correction</option></select></label></div><p id="case-count" role="status">35 cases shown</p><div id="case-list">${entries.map((entry) => `<article data-state="${entry.status}" id="${entry.id}"><h3>${entry.id} · ${escape(entry.title)}</h3><small>${escape(entry.requirement ?? 'Additional replacement gate')} · ${escape(entry.gapId ?? 'Reserved header correction')}</small><span class="state">${escape(entry.status.replaceAll('_', ' '))}</span><p><strong>Observed:</strong> ${escape(entry.observed)}</p><p><strong>Still open:</strong> ${escape(entry.remaining)}</p><p><strong>Next:</strong> ${escape(entry.nextAction)}</p><small>Owner: ${escape(entry.owner)}</small><details><summary>Expected result and evidence</summary>${entry.originalFinding ? `<p>Original finding: ${escape(entry.originalFinding.title)}</p>` : ''}<p>${escape(entry.expected)}</p><p>${entry.evidence.length ? evidenceLinks(entry.evidence) : 'No product execution pass attached.'}</p><p>No complete release-case pass recorded.</p></details></article>`).join('')}</div><p id="case-empty" hidden>No cases match. Clear the search or choose all cases.</p></section><section aria-labelledby="fix-title"><h2 id="fix-title">Fixed defects and bounded retests</h2>${fixes.map((fix) => `<article><h3>${fix.id}</h3><p>${escape(fix.problem)}</p><p>${escape(fix.cases.join(', '))} · ${evidenceLinks([fix.evidence])}</p><p>${escape(fix.remaining)}</p></article>`).join('')}</section><footer><a href="acceptance-status.json" download>Download structured case ledger</a> · <a href="acceptance-status.md" download>Download detailed notes</a><p>Source report preserved byte-for-byte. Other text evidence hashes normalize CRLF to LF for portable checks. Run <code>node scripts/acceptance-status.mjs</code> in the canonical repository to verify the index. Maintenance does not close product defects automatically.</p></footer></main><script>
+</style><main><header><a href="index.html">← Delivery checklist</a><p>INDEPENDENT REBUILD / ACCEPTANCE EVIDENCE / 22 NOVEMBER 2026</p><h1>What was checked. What still needs work.</h1><p>Each original finding now leads to a replacement case, bounded execution evidence and an explicit next action. Old vendor results are historical evidence.</p><p class="notice"><strong>No release acceptance is implied.</strong> Partial checks, not-run cases and deferred modules stay explicit. Suite totals overlap. Actual devices, provider/account facts, operator UAT and cutover gates remain open.</p></header><div class="metrics"><span><strong>24</strong>original findings</span><span><strong>35</strong>replacement cases linked</span><span><strong>${fixes.length}</strong>bounded defect retests</span><span><strong>0 / 14</strong>accepted release gates</span></div><section aria-labelledby="case-title"><h2 id="case-title">Cases and next actions</h2><div class="filters"><label for="case-search">Find a case, requirement or gap<input id="case-search" type="search" placeholder="For example: upload or AC-005"></label><label for="case-state">Evidence state<select id="case-state"><option value="all">All cases</option><option value="partial">Partial evidence</option><option value="not_run">Not run</option><option value="deferred">Deferred</option><option value="reserved">Reserved correction</option></select></label></div><p id="case-count" role="status">35 cases shown</p><div id="case-list">${entries.map((entry) => `<article data-state="${entry.status}" id="${entry.id}"><h3>${entry.id} · ${escape(entry.title)}</h3><small>${escape(entry.requirement ?? 'Additional replacement gate')} · ${escape(entry.gapId ?? 'Reserved header correction')}</small><span class="state">${escape(entry.status.replaceAll('_', ' '))}</span><p><strong>Observed:</strong> ${escape(entry.observed)}</p><p><strong>Still open:</strong> ${escape(entry.remaining)}</p><p><strong>Next:</strong> ${escape(entry.nextAction)}</p><small>Owner: ${escape(entry.owner)}</small><details><summary>Expected result and evidence</summary>${entry.originalFinding ? `<p>Original finding: ${escape(entry.originalFinding.title)}</p>` : ''}<p>${escape(entry.expected)}</p><p>${entry.evidence.length ? evidenceLinks(entry.evidence) : 'No product execution pass attached.'}</p><p>No complete release-case pass recorded.</p></details></article>`).join('')}</div><p id="case-empty" hidden>No cases match. Clear the search or choose all cases.</p></section><section aria-labelledby="fix-title"><h2 id="fix-title">Fixed defects and bounded retests</h2>${fixes.map((fix) => `<article><h3>${fix.id}</h3><p>${escape(fix.problem)}</p><p>${escape(fix.cases.join(', '))} · ${evidenceLinks([fix.evidence])}</p><p>${escape(fix.remaining)}</p></article>`).join('')}</section><footer><a href="acceptance-status.json" download>Download structured case ledger</a> · <a href="acceptance-status.md" download>Download detailed notes</a><p>Source report preserved byte-for-byte. Other text evidence hashes normalize CRLF to LF for portable checks. Run <code>node scripts/acceptance-status.mjs</code> in the canonical repository to verify the index. Maintenance does not close product defects automatically.</p></footer></main><script>
 const search=document.querySelector('#case-search'),state=document.querySelector('#case-state'),rows=[...document.querySelectorAll('#case-list article')];function filter(){const query=search.value.trim().toLocaleLowerCase();let count=0;for(const row of rows){row.hidden=(state.value!=='all'&&row.dataset.state!==state.value)||(query&&!row.textContent.toLocaleLowerCase().includes(query));if(!row.hidden)count++;}document.querySelector('#case-count').textContent=count+' cases shown';document.querySelector('#case-empty').hidden=count!==0;}search.addEventListener('input',filter);state.addEventListener('change',filter);
 </script></html>\n`;
 if (process.argv.slice(2).length > 1 || (process.argv[2] && process.argv[2] !== '--write'))

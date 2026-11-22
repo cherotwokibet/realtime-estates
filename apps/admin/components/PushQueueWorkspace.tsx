@@ -1,74 +1,31 @@
 'use client';
-
-import { useEffect, useRef, useState } from 'react';
 import { validateSyntheticPushQueueSummary } from '@realtor/domain';
-import { readReferenceJson } from '../lib/reference-draft-wire';
-
-type Summary = ReturnType<typeof validateSyntheticPushQueueSummary>;
-
-export function PushQueueWorkspace({
-  instanceId,
-  tenantId,
-}: {
-  instanceId: string;
-  tenantId: string;
-}) {
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState('Load the current queue counts.');
-  const request = useRef<AbortController | null>(null);
-  useEffect(
-    () => () => {
-      request.current?.abort();
-      request.current = null;
-    },
-    [],
+import PrivateWorkspaceBoundary from './PrivateWorkspaceBoundary.tsx';
+import type { RecoveryScope } from '../lib/private-recovery-contract.ts';
+import { usePrivateSummary } from '../lib/use-private-summary.ts';
+export function PushQueueWorkspace({ scope }: { scope: RecoveryScope }) {
+  return (
+    <PrivateWorkspaceBoundary
+      key={[scope.instanceId, scope.tenantId, scope.actorId].join(':')}
+      access={{ profile: 'staff', ...scope, role: 'admin' }}
+    >
+      <PushQueueContent scope={scope} />
+    </PrivateWorkspaceBoundary>
   );
-
-  async function refresh() {
-    if (request.current) return;
-    const controller = new AbortController();
-    request.current = controller;
-    const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(12000)]);
-    setSummary(null);
-    setLoading(true);
-    setStatus('Loading queue summary.');
-    try {
-      const response = await fetch('/api/push-queue', {
-        headers: { 'x-preview-instance': instanceId },
-        cache: 'no-store',
-        credentials: 'omit',
-        redirect: 'error',
-        signal,
-      });
-      if (!response.ok) {
-        void response.body?.cancel().catch(() => {});
-        if (request.current === controller)
-          setStatus(
-            response.status === 401 || response.status === 403
-              ? 'Queue access is unavailable.'
-              : 'Could not load the queue summary.',
-          );
-        return;
-      }
-      const result = validateSyntheticPushQueueSummary(
-        await readReferenceJson(response, 4096, signal),
-        tenantId,
-      );
-      if (request.current === controller) {
-        setSummary(result);
-        setStatus('Queue summary loaded.');
-      }
-    } catch {
-      if (request.current === controller) setStatus('Could not load the queue summary.');
-    } finally {
-      if (request.current === controller) {
-        request.current = null;
-        setLoading(false);
-      }
-    }
-  }
-
+}
+function PushQueueContent({ scope }: { scope: RecoveryScope }) {
+  const read = usePrivateSummary(scope, 'push');
+  const summary =
+    read.data === null ? null : validateSyntheticPushQueueSummary(read.data, scope.tenantId);
+  const loading = read.busy,
+    refresh = read.refresh;
+  const status =
+    read.error ||
+    (loading
+      ? 'Loading queue summary.'
+      : summary
+        ? 'Queue summary loaded.'
+        : 'Load the current queue counts.');
   return (
     <section aria-label="Synthetic notification queue">
       <button type="button" onClick={() => void refresh()} disabled={loading}>

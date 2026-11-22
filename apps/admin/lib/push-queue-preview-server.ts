@@ -1,10 +1,5 @@
 import 'server-only';
-import { ApiClientError, RealtorApiClient } from '@realtor/api-client';
-import {
-  assertPreviewRequest,
-  previewConfiguration,
-  upstreamFailureStatus,
-} from './staff-preview-policy.ts';
+import { previewConfiguration } from './staff-preview-policy.ts';
 
 export function pushQueueConfiguration(env: Readonly<Record<string, string | undefined>>) {
   const config = previewConfiguration(env);
@@ -18,42 +13,10 @@ export function pushQueueConfiguration(env: Readonly<Record<string, string | und
   return { ...config, tenantId };
 }
 
-const reply = (status: number, body: unknown) =>
-  Response.json(body, {
-    status,
-    headers: { 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' },
-  });
-
-export async function readPushQueuePreview(request: Request) {
-  let config: ReturnType<typeof pushQueueConfiguration>;
-  try {
-    config = pushQueueConfiguration(process.env);
-    assertPreviewRequest(request, config.instanceId);
-  } catch {
-    return reply(403, { error: 'QUEUE_UNAVAILABLE' });
-  }
-  if (request.method !== 'GET') return reply(405, { error: 'METHOD_UNAVAILABLE' });
-  if (request.url.includes('?') || request.url.includes('#') || request.body !== null)
-    return reply(400, { error: 'INVALID_REQUEST' });
-
-  try {
-    const api = new RealtorApiClient({
-      baseUrl: config.origin,
-      privacyNoticeVersion: 'synthetic-staff-notice-v1',
-      allowLoopbackHttp: true,
-      timeoutMs: 10000,
-    });
-    return reply(
-      200,
-      await api.getSyntheticPushQueueSummary(config.tenantId, {
-        bearerToken: config.bearerToken,
-        signal: request.signal,
-      }),
-    );
-  } catch (error) {
-    return reply(
-      error instanceof ApiClientError ? upstreamFailureStatus(error.status, error.kind) : 502,
-      { error: 'QUEUE_UNAVAILABLE' },
-    );
-  }
+/** Old clients must reload rather than read data without a captured actor fence. */
+export async function readPushQueuePreview(_request: Request) {
+  return Response.json(
+    { error: 'RELOAD_PRIVATE_WORKSPACE' },
+    { status: 410, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } },
+  );
 }

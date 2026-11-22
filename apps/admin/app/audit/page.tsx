@@ -1,10 +1,7 @@
 import { headers } from 'next/headers';
-import AdminAuditView from '../../components/AdminAuditView.tsx';
-import {
-  adminAuditHostAllowed,
-  adminAuditHref,
-  loadAdminAuditWorkspace,
-} from '../../lib/admin-audit-server.ts';
+import AdminAuditWorkspace from '../../components/AdminAuditWorkspace.tsx';
+import { readStaffAllocationScope } from '../../lib/staff-allocation-scope.ts';
+import { adminAuditHostAllowed, adminAuditSearch } from '../../lib/admin-audit-server.ts';
 import './audit.css';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -13,11 +10,17 @@ export default async function Audit({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  let data: Awaited<ReturnType<typeof loadAdminAuditWorkspace>> | null = null;
+  let data: {
+    scope: Awaited<ReturnType<typeof readStaffAllocationScope>>;
+    query: ReturnType<typeof adminAuditSearch>;
+  } | null = null;
   try {
     const incoming = await headers();
     if (adminAuditHostAllowed(incoming.get('host'), process.env))
-      data = await loadAdminAuditWorkspace(await searchParams);
+      data = {
+        query: adminAuditSearch(await searchParams),
+        scope: await readStaffAllocationScope(),
+      };
   } catch {}
   return (
     <main className="audit-page">
@@ -39,13 +42,7 @@ export default async function Audit({
         contact details and reasons are excluded.
       </p>
       {data ? (
-        <AdminAuditView
-          {...data}
-          recentHref={adminAuditHref(data.query, null)}
-          nextHref={
-            data.page.nextBefore === null ? null : adminAuditHref(data.query, data.page.nextBefore)
-          }
-        />
+        <AdminAuditWorkspace {...data} />
       ) : (
         <section className="audit-empty" role="alert">
           <h2>Activity unavailable</h2>
