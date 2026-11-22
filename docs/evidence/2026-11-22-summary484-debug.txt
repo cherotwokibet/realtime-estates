@@ -1,0 +1,34 @@
+✖ audit: pinned read rechecks admin/scope after data and never releases data after changed authority (26.5206ms)
+✔ audit: default/production/caller authority, bad scope, framing and query ambiguity fail before data (4.266ms)
+✔ audit: browser adapter binds envelope and URL, omits credentials, rejects changed actor, malformed DTO and cancellation (3.6413ms)
+✔ push: pinned read rechecks admin/scope after data and never releases data after changed authority (3.8329ms)
+✔ push: default/production/caller authority, bad scope, framing and query ambiguity fail before data (1.2562ms)
+✔ push: browser adapter binds envelope and URL, omits credentials, rejects changed actor, malformed DTO and cancellation (1.1331ms)
+✔ legacy actor-unbound push reader is retired without data (0.262ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 6
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 203.5406
+
+✖ failing tests:
+
+test at apps\admin\tests\private-summary.test.mjs:61:3
+✖ audit: pinned read rechecks admin/scope after data and never releases data after changed authority (26.5206ms)
+  AssertionError [ERR_ASSERTION]: [{"url":"http://127.0.0.1:49000/v2/staff/session-lease","cache":"no-store","auth":true},{"url":"http://127.0.0.1:49000/v2/staff/audit-events?limit=20","cache":"no-store","auth":true}]
+  
+  503 !== 200
+  
+      at TestContext.<anonymous> (file:///C:/Users/BONIFACE/Realtime%20System/RealEstate/realtor-platform/apps/admin/tests/private-summary.test.mjs:79:16)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 503,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
