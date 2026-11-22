@@ -2,6 +2,7 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createInterface } from 'node:readline';
+import { createServer } from 'node:net';
 import { mkdtemp, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -75,6 +76,12 @@ export async function startSettingsRecoveryPreview(options) {
   }
   async function launch(initialize, controls = {}) {
     await stop();
+    // Refuse occupied listeners before opening custody/SQL; never mistake another app for this child.
+    await new Promise((resolvePort, rejectPort) => {
+      const probe = createServer();
+      probe.once('error', () => rejectPort(Error('Owned settings port unavailable.')));
+      probe.listen(options.port, '127.0.0.1', () => probe.close(resolvePort));
+    });
     const custody = await syntheticRecoveryLaunchEnvironment(
       {
         ...mode,
