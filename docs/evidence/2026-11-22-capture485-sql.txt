@@ -1,0 +1,30 @@
+✔ migration forces RLS and API role has neither owner membership nor direct writes (3334.4801ms)
+✔ missing context and customer cannot create; agents cannot choose another assignee (2794.8788ms)
+✔ runtime private reads, edits, and reassignments respect company and assignment (2475.4592ms)
+✔ revoked membership and disabled tenant fail the next protected request (2155.4442ms)
+✔ composite foreign keys reject cross-company listing and revision relationships (2289.2283ms)
+✔ money, periods, canonical types, rooms and unknown privileged fields fail closed (2443.8265ms)
+✔ omitted concurrency versions cannot bypass protected updates (2414.874ms)
+✔ accepted photos cannot make an incomplete draft publishable (2198.558ms)
+✔ legacy accepted metadata remains unverified and cannot submit a complete draft (2380.6958ms)
+✔ submission requires accepted photos and complete content; agent cannot approve (2548.8907ms)
+✔ approved snapshot excludes private address and precise area coordinates (2726.0556ms)
+✔ draft editing and rejection preserve published revision; stale review conflicts (2424.688ms)
+✔ withdraw and resubmit preserve history; admin self-approval atomically replaces exact snapshot (2224.8249ms)
+✔ agent can pause/unavailable but only administrator resumes; stale stock excluded (2462.7655ms)
+✔ approval cannot resurrect a listing paused or archived while its revision was pending (4900.2331ms)
+✔ an older rejected review cannot overwrite a newer approved guarded successor snapshot (2572.4005ms)
+✔ enquiry receipt is durable/idempotent and never grants guest/customer private reads (2538.5988ms)
+✔ paused property denies fresh capture while original enquiry replay retains contacted revision (2494.0359ms)
+✔ enquiry assignment, next actions, closure and version restrictions (2269.6447ms)
+✔ transaction-local actor context is cleared on connection reuse (2259.4578ms)
+✔ admin: immutable creator-bound capture receipt replays once, recovers unassigned work, and rejects foreign facts/actor/revocation (3475.6751ms)
+✔ agent: immutable creator-bound capture receipt replays once, recovers unassigned work, and rejects foreign facts/actor/revocation (2691.0525ms)
+ℹ tests 22
+ℹ suites 0
+ℹ pass 22
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 52178.4674

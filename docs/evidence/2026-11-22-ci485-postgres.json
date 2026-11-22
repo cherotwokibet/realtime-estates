@@ -1,0 +1,25 @@
+{
+  "policy": "owned-postgresql-private-operation-resolution-proof-v1",
+  "sourceCommit": "b2905c6f3e3bc50bc36832fa79dbd4b4b605af38",
+  "ciRun": 44999622455,
+  "jobId": 137138135077,
+  "postgresVersion": "17.12 (Debian 17.12-1.pgdg12+1)",
+  "casesPassed": [
+    "settings: committed retirement holds a real lock; a delayed writer then fails permanently",
+    "settings: a held applied write wins first; waiting resolution confirms it and cannot create a cancellation",
+    "report: committed retirement holds a real lock; a delayed writer then fails permanently",
+    "report: a held applied write wins first; waiting resolution confirms it and cannot create a cancellation",
+    "guarded creation and successor writers persist canonical milliseconds on the real PostgreSQL clock"
+  ],
+  "distinctBackendAndLockWaitAssertionsPassed": true,
+  "coldMigrationsVerified": true,
+  "rollingUpgradeVerified": false,
+  "managedProviderVerified": false,
+  "sourceLog": "2026-11-22-ci485-runtime.txt",
+  "captureCasesPassed": [
+    "admin: PostgreSQL capture original replays once with a canonical creator-bound receipt",
+    "agent: PostgreSQL capture original replays once with a canonical creator-bound receipt"
+  ],
+  "captureReplayIsSequential": true,
+  "captureConcurrencyRaceVerified": false
+}
