@@ -1,0 +1,1281 @@
+2026-11-22T08:13:21.3278061Z Current runner version: '2.338.2'
+2026-11-22T08:13:21.3295664Z ##[group]Runner Image Provisioner
+2026-11-22T08:13:21.3296360Z Hosted Compute Agent
+2026-11-22T08:13:21.3296770Z Version: 20261111.635
+2026-11-22T08:13:21.3297223Z Commit: b8a594ea514ff44cadb5342986c68b1eac6e22ed
+2026-11-22T08:13:21.3298060Z Build Date: 2026-11-11T01:49:01Z
+2026-11-22T08:13:21.3298578Z Worker ID: {5c196a4c-9cff-4885-a455-04a97c13688c}
+2026-11-22T08:13:21.3299156Z Region: us-west-2
+2026-11-22T08:13:21.3299538Z Cloud: AWS
+2026-11-22T08:13:21.3299904Z ##[endgroup]
+2026-11-22T08:13:21.3300922Z ##[group]Operating System
+2026-11-22T08:13:21.3301348Z Ubuntu
+2026-11-22T08:13:21.3301740Z 24.04.5
+2026-11-22T08:13:21.3302094Z LTS
+2026-11-22T08:13:21.3302437Z ##[endgroup]
+2026-11-22T08:13:21.3302837Z ##[group]Runner Image
+2026-11-22T08:13:21.3303281Z Image: ubuntu-24.04
+2026-11-22T08:13:21.3303703Z Version: 20261116.133.1
+2026-11-22T08:13:21.3304686Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261116.133/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-22T08:13:21.3305846Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261116.133
+2026-11-22T08:13:21.3306538Z ##[endgroup]
+2026-11-22T08:13:21.3307750Z ##[group]GITHUB_TOKEN Permissions
+2026-11-22T08:13:21.3309643Z Contents: read
+2026-11-22T08:13:21.3310065Z Metadata: read
+2026-11-22T08:13:21.3310448Z ##[endgroup]
+2026-11-22T08:13:21.3312113Z Secret source: Actions
+2026-11-22T08:13:21.3312835Z Cache mode: write
+2026-11-22T08:13:21.3313287Z Prepare workflow directory
+2026-11-22T08:13:21.3541632Z Prepare all required actions
+2026-11-22T08:13:21.3577406Z Getting action download info
+2026-11-22T08:13:21.6858297Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-11-22T08:13:22.9962107Z Download action repository 'actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1' (SHA:949feb2413d6458794dcd2491c4babbbce0c15c1)
+2026-11-22T08:13:23.2403839Z Complete job name: Tests (sdk-database)
+2026-11-22T08:13:23.3086318Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+2026-11-22T08:13:23.3088021Z with:
+2026-11-22T08:13:23.3088838Z   persist-credentials: false
+2026-11-22T08:13:23.3089849Z   repository: cherotwokibet/realtime-estates
+2026-11-22T08:13:23.3096524Z   token: ***
+2026-11-22T08:13:23.3097278Z   ssh-strict: true
+2026-11-22T08:13:23.3098228Z   ssh-user: git
+2026-11-22T08:13:23.3098981Z   clean: true
+2026-11-22T08:13:23.3099811Z   sparse-checkout-cone-mode: true
+2026-11-22T08:13:23.3100687Z   fetch-depth: 1
+2026-11-22T08:13:23.3101423Z   fetch-tags: false
+2026-11-22T08:13:23.3102214Z   show-progress: true
+2026-11-22T08:13:23.3103000Z   lfs: false
+2026-11-22T08:13:23.3103713Z   submodules: false
+2026-11-22T08:13:23.3104452Z   set-safe-directory: true
+2026-11-22T08:13:23.3105332Z   allow-unsafe-pr-checkout: false
+2026-11-22T08:13:23.3106637Z ##[endgroup]
+2026-11-22T08:13:25.7381782Z Syncing repository: cherotwokibet/realtime-estates
+2026-11-22T08:13:25.7383369Z ##[group]Getting Git version info
+2026-11-22T08:13:25.7383875Z Working directory is '/home/runner/work/realtime-estates/realtime-estates'
+2026-11-22T08:13:25.7384471Z [command]/usr/bin/git version
+2026-11-22T08:13:25.7593384Z git version 2.56.1
+2026-11-22T08:13:25.7608685Z ##[endgroup]
+2026-11-22T08:13:25.7616349Z Temporarily overriding HOME='/home/runner/work/_temp/7aadf75e-4d41-4f2a-8da3-5f2357d0cd22' before making global git config changes
+2026-11-22T08:13:25.7617385Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-22T08:13:25.7621029Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/realtime-estates/realtime-estates
+2026-11-22T08:13:25.7682055Z Deleting the contents of '/home/runner/work/realtime-estates/realtime-estates'
+2026-11-22T08:13:25.7684814Z ##[group]Determining repository object format
+2026-11-22T08:13:25.7685755Z ##[endgroup]
+2026-11-22T08:13:25.7686333Z ##[group]Initializing the repository
+2026-11-22T08:13:25.7689603Z [command]/usr/bin/git init /home/runner/work/realtime-estates/realtime-estates
+2026-11-22T08:13:25.9820560Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-22T08:13:25.9821231Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-22T08:13:25.9821700Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-22T08:13:25.9822085Z hint: call:
+2026-11-22T08:13:25.9822353Z hint:
+2026-11-22T08:13:25.9822680Z hint: 	git config --global init.defaultBranch <name>
+2026-11-22T08:13:25.9823020Z hint:
+2026-11-22T08:13:25.9823524Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-22T08:13:25.9824097Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-22T08:13:25.9824487Z hint:
+2026-11-22T08:13:25.9824739Z hint: 	git branch -m <name>
+2026-11-22T08:13:25.9825028Z hint:
+2026-11-22T08:13:25.9825426Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-22T08:13:25.9836974Z Initialized empty Git repository in /home/runner/work/realtime-estates/realtime-estates/.git/
+2026-11-22T08:13:25.9844902Z [command]/usr/bin/git remote add origin https://github.com/cherotwokibet/realtime-estates
+2026-11-22T08:13:25.9918062Z ##[endgroup]
+2026-11-22T08:13:25.9918941Z ##[group]Disabling automatic garbage collection
+2026-11-22T08:13:25.9920767Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-22T08:13:25.9945791Z ##[endgroup]
+2026-11-22T08:13:25.9946499Z ##[group]Setting up auth
+2026-11-22T08:13:25.9946860Z Removing SSH command configuration
+2026-11-22T08:13:25.9952478Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-22T08:13:25.9981836Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-22T08:13:26.1197123Z Removing HTTP extra header
+2026-11-22T08:13:26.1202285Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-22T08:13:26.1226987Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-22T08:13:26.1371312Z Removing includeIf entries pointing to credentials config files
+2026-11-22T08:13:26.1374541Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-22T08:13:26.1404538Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-22T08:13:26.1549055Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-53b56a4c-9dd1-4fcb-af20-ba3649616b02.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-22T08:13:26.1576320Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path /home/runner/work/_temp/git-credentials-53b56a4c-9dd1-4fcb-af20-ba3649616b02.config
+2026-11-22T08:13:26.1598595Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-53b56a4c-9dd1-4fcb-af20-ba3649616b02.config
+2026-11-22T08:13:26.1620105Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-53b56a4c-9dd1-4fcb-af20-ba3649616b02.config
+2026-11-22T08:13:26.1641414Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-53b56a4c-9dd1-4fcb-af20-ba3649616b02.config
+2026-11-22T08:13:26.1661583Z ##[endgroup]
+2026-11-22T08:13:26.1662122Z ##[group]Fetching the repository
+2026-11-22T08:13:26.1665750Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +16a08caeaef1a71f92431440e36ff944e5f49458:refs/remotes/origin/main
+2026-11-22T08:13:28.2202405Z From https://github.com/cherotwokibet/realtime-estates
+2026-11-22T08:13:28.2203205Z  * [new ref]         16a08caeaef1a71f92431440e36ff944e5f49458 -> origin/main
+2026-11-22T08:13:28.2210643Z [command]/usr/bin/git branch --list --remote origin/main
+2026-11-22T08:13:28.2249526Z   origin/main
+2026-11-22T08:13:28.2254945Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-11-22T08:13:28.2274859Z 16a08caeaef1a71f92431440e36ff944e5f49458
+2026-11-22T08:13:28.2277666Z ##[endgroup]
+2026-11-22T08:13:28.2278251Z ##[group]Determining the checkout info
+2026-11-22T08:13:28.2278821Z ##[endgroup]
+2026-11-22T08:13:28.2281828Z [command]/usr/bin/git sparse-checkout disable
+2026-11-22T08:13:28.2342915Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-22T08:13:28.2364704Z ##[group]Checking out the ref
+2026-11-22T08:13:28.2368257Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-11-22T08:13:28.5465765Z Switched to a new branch 'main'
+2026-11-22T08:13:28.5475295Z branch 'main' set up to track 'origin/main'.
+2026-11-22T08:13:28.5486987Z ##[endgroup]
+2026-11-22T08:13:28.5530612Z [command]/usr/bin/git log -1 --format=%H
+2026-11-22T08:13:28.5551850Z 16a08caeaef1a71f92431440e36ff944e5f49458
+2026-11-22T08:13:28.5559106Z ##[group]Removing auth
+2026-11-22T08:13:28.5559765Z Removing SSH command configuration
+2026-11-22T08:13:28.5561374Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-22T08:13:28.5598819Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-22T08:13:28.5742166Z Removing HTTP extra header
+2026-11-22T08:13:28.5744425Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-22T08:13:28.5768838Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-22T08:13:28.5918596Z Removing includeIf entries pointing to credentials config files
+2026-11-22T08:13:28.5920685Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-22T08:13:28.5950734Z includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path
+2026-11-22T08:13:28.5951404Z includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path
+2026-11-22T08:13:28.5951942Z includeif.gitdir:/github/workspace/.git.path
+2026-11-22T08:13:28.5952500Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-22T08:13:28.5954540Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path
+2026-11-22T08:13:28.5971827Z /home/runner/work/_temp/git-credentials-53b56a4c-9dd1-4fcb-af20-ba3649616b02.config
+2026-11-22T08:13:28.5979720Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-53b56a4c\-9dd1\-4fcb\-af20\-ba3649616b02\.config
+2026-11-22T08:13:28.6013843Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path
+2026-11-22T08:13:28.6031336Z /home/runner/work/_temp/git-credentials-53b56a4c-9dd1-4fcb-af20-ba3649616b02.config
+2026-11-22T08:13:28.6036622Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/realtime-estates/realtime-estates/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-53b56a4c\-9dd1\-4fcb\-af20\-ba3649616b02\.config
+2026-11-22T08:13:28.6061069Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-22T08:13:28.6078335Z /github/runner_temp/git-credentials-53b56a4c-9dd1-4fcb-af20-ba3649616b02.config
+2026-11-22T08:13:28.6083550Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-53b56a4c\-9dd1\-4fcb\-af20\-ba3649616b02\.config
+2026-11-22T08:13:28.6105791Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-22T08:13:28.6122537Z /github/runner_temp/git-credentials-53b56a4c-9dd1-4fcb-af20-ba3649616b02.config
+2026-11-22T08:13:28.6127125Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-53b56a4c\-9dd1\-4fcb\-af20\-ba3649616b02\.config
+2026-11-22T08:13:28.6150160Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-22T08:13:28.6294971Z Removing credentials config '/home/runner/work/_temp/git-credentials-53b56a4c-9dd1-4fcb-af20-ba3649616b02.config'
+2026-11-22T08:13:28.6301091Z ##[endgroup]
+2026-11-22T08:13:28.6494099Z ##[group]Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+2026-11-22T08:13:28.6494424Z with:
+2026-11-22T08:13:28.6494662Z   node-version: 24.19.0
+2026-11-22T08:13:28.6494887Z   cache: npm
+2026-11-22T08:13:28.6495095Z   check-latest: false
+2026-11-22T08:13:28.6496987Z   token: ***
+2026-11-22T08:13:28.6497197Z   package-manager-cache: true
+2026-11-22T08:13:28.6497463Z ##[endgroup]
+2026-11-22T08:13:28.8043475Z Attempting to download 24.19.0...
+2026-11-22T08:13:29.5328864Z Acquiring 24.19.0 - x64 from https://github.com/actions/node-versions/releases/download/24.19.0-30872449280/node-24.19.0-linux-x64.tar.gz
+2026-11-22T08:13:30.2088001Z Extracting ...
+2026-11-22T08:13:30.2193302Z [command]/usr/bin/tar xz --strip 1 --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/66852eb4-738a-498c-b82c-86d3615af7af -f /home/runner/work/_temp/80dc03b1-4999-4d43-91e1-957cec495657
+2026-11-22T08:13:31.2541345Z Adding to the cache ...
+2026-11-22T08:13:32.1941688Z ##[group]Environment details
+2026-11-22T08:13:32.7185339Z node: v24.19.0
+2026-11-22T08:13:32.7185648Z npm: 11.17.0
+2026-11-22T08:13:32.7185968Z yarn: 1.22.22
+2026-11-22T08:13:32.7186553Z ##[endgroup]
+2026-11-22T08:13:32.7198358Z [command]/opt/hostedtoolcache/node/24.19.0/x64/bin/npm config get cache
+2026-11-22T08:13:32.7892340Z /home/runner/.npm
+2026-11-22T08:13:33.0901792Z Cache hit for: node-cache-Linux-x64-npm-82625ee3acd2a082890cdfae666be5685b62d737f367b2ef136249c683a37ac7
+2026-11-22T08:13:34.4423266Z Received 0 of 296774000 (0.0%), 0.0 MBs/sec
+2026-11-22T08:13:35.4439487Z Received 71303168 of 296774000 (24.0%), 34.0 MBs/sec
+2026-11-22T08:13:36.4459313Z Received 163577856 of 296774000 (55.1%), 52.0 MBs/sec
+2026-11-22T08:13:37.4443404Z Received 288385392 of 296774000 (97.2%), 68.7 MBs/sec
+2026-11-22T08:13:37.7601074Z Received 296774000 of 296774000 (100.0%), 65.5 MBs/sec
+2026-11-22T08:13:37.7601553Z Cache Size: ~283 MB (296774000 B)
+2026-11-22T08:13:37.7700000Z [command]/usr/bin/tar -xf /home/runner/work/_temp/20301332-47b2-4392-a1dd-9402c57c0411/cache.tzst -P -C /home/runner/work/realtime-estates/realtime-estates --use-compress-program unzstd
+2026-11-22T08:13:37.9836039Z Cache restored successfully
+2026-11-22T08:13:37.9936278Z Cache restored from key: node-cache-Linux-x64-npm-82625ee3acd2a082890cdfae666be5685b62d737f367b2ef136249c683a37ac7
+2026-11-22T08:13:38.0067050Z ##[group]Run npm ci --no-audit --no-fund
+2026-11-22T08:13:38.0067674Z [36;1mnpm ci --no-audit --no-fund[0m
+2026-11-22T08:13:38.1706031Z shell: /usr/bin/bash -e {0}
+2026-11-22T08:13:38.1706456Z ##[endgroup]
+2026-11-22T08:13:42.8106836Z npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+2026-11-22T08:13:42.9795906Z npm warn deprecated uuid@7.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-11-22T08:13:47.0502173Z 
+2026-11-22T08:13:47.0503103Z added 717 packages in 9s
+2026-11-22T08:13:47.0510737Z npm warn allow-scripts 2 packages have install scripts not yet covered by allowScripts:
+2026-11-22T08:13:47.0511771Z npm warn allow-scripts   @firebase/util@1.15.3 (postinstall: node ./postinstall.js)
+2026-11-22T08:13:47.0512668Z npm warn allow-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+2026-11-22T08:13:47.0513298Z npm warn allow-scripts
+2026-11-22T08:13:47.0514138Z npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+2026-11-22T08:13:47.1128327Z ##[group]Run node scripts/ci/test-suite-group.mjs 'sdk-database'
+2026-11-22T08:13:47.1128794Z [36;1mnode scripts/ci/test-suite-group.mjs 'sdk-database'[0m
+2026-11-22T08:13:47.1162246Z shell: /usr/bin/bash -e {0}
+2026-11-22T08:13:47.1162560Z ##[endgroup]
+2026-11-22T08:13:47.1412376Z CI suite sdk-database: npm run build:packages
+2026-11-22T08:13:47.2091991Z 
+2026-11-22T08:13:47.2092754Z > realtor-platform@0.1.0 build:packages
+2026-11-22T08:13:47.2094182Z > npm run build --workspace=@realtor/domain && npm run build --workspace=@realtor/demo && npm run build --workspace=@realtor/api-client && npm run build --workspace=@realtor/media && npm run build --workspace=@realtor/browser-auth
+2026-11-22T08:13:47.2095250Z 
+2026-11-22T08:13:47.2979405Z 
+2026-11-22T08:13:47.2980275Z > @realtor/domain@0.1.0 build
+2026-11-22T08:13:47.2980833Z > tsc -p tsconfig.json
+2026-11-22T08:13:47.2981185Z 
+2026-11-22T08:13:49.1843384Z 
+2026-11-22T08:13:49.1844350Z > @realtor/demo@0.1.0 build
+2026-11-22T08:13:49.1844888Z > tsc -p tsconfig.json
+2026-11-22T08:13:49.1845060Z 
+2026-11-22T08:13:49.9543277Z 
+2026-11-22T08:13:49.9544458Z > @realtor/api-client@0.1.0 build
+2026-11-22T08:13:49.9544995Z > tsc -p tsconfig.json
+2026-11-22T08:13:49.9545254Z 
+2026-11-22T08:13:51.3206090Z 
+2026-11-22T08:13:51.3207843Z > @realtor/media@0.1.0 build
+2026-11-22T08:13:51.3208784Z > tsc -p tsconfig.json
+2026-11-22T08:13:51.3209163Z 
+2026-11-22T08:13:52.8743640Z 
+2026-11-22T08:13:52.8744528Z > @realtor/browser-auth@0.1.0 build
+2026-11-22T08:13:52.8745029Z > tsc -p tsconfig.json
+2026-11-22T08:13:52.8745220Z 
+2026-11-22T08:13:53.7981106Z CI suite sdk-database: npm run build --workspace=@realtor/api
+2026-11-22T08:13:53.8835052Z 
+2026-11-22T08:13:53.8836090Z > @realtor/api@0.1.0 build
+2026-11-22T08:13:53.8836764Z > tsc -p tsconfig.json
+2026-11-22T08:13:53.8836996Z 
+2026-11-22T08:13:55.7023195Z CI suite sdk-database: npm run test --workspace=@realtor/api-client
+2026-11-22T08:13:55.7871017Z 
+2026-11-22T08:13:55.7872080Z > @realtor/api-client@0.1.0 test
+2026-11-22T08:13:55.7877475Z > npm run build && node --test tests/transport.test.mjs tests/http-transport.test.mjs tests/v2.test.mjs tests/staff-v2.test.mjs tests/moderation-v2.test.mjs tests/media-jobs-v2.test.mjs tests/media-attachments-v2.test.mjs tests/media-gallery-v2.test.mjs tests/gallery-workspace-v2.test.mjs tests/media-upload-v2.test.mjs tests/media-upload-v2-finalize.test.mjs tests/media-preview-v2.test.mjs tests/enquiries-v2.test.mjs tests/enquiry-intake-attempt.test.mjs tests/enquiry-proxy.test.mjs tests/staff-enquiry-capture.test.mjs tests/viewings-v2.test.mjs tests/viewing-reminders-v2.test.mjs tests/staff-listings-v2.test.mjs tests/staff-draft-normalization.test.mjs tests/listing-creation-v2.test.mjs tests/listing-successor-v2.test.mjs tests/listing-controls-v2.test.mjs tests/review-gallery.test.mjs tests/listing-import.test.mjs tests/listing-duplicates.test.mjs tests/listing-verification.test.mjs tests/listing-reference-v3.test.mjs tests/reference-moderation-v3.test.mjs tests/reference-public-v3.test.mjs tests/reference-creation-v3.test.mjs tests/reference-successor-v3.test.mjs tests/staff-session-v2.test.mjs tests/revision-protocol-v3.test.mjs tests/public-search.test.mjs tests/operations-overview.test.mjs tests/staff-viewing-calendar.test.mjs tests/listing-reports.test.mjs tests/staff-invitations.test.mjs tests/staff-directory.test.mjs tests/staff-branches.test.mjs tests/staff-memberships.test.mjs tests/staff-invitation-issuance.test.mjs tests/listing-video.test.mjs tests/listing-video-publication.test.mjs tests/customer-favourites.test.mjs tests/admin-audit.test.mjs
+2026-11-22T08:13:55.7882383Z 
+2026-11-22T08:13:55.8776994Z 
+2026-11-22T08:13:55.8777936Z > @realtor/api-client@0.1.0 build
+2026-11-22T08:13:55.8778342Z > tsc -p tsconfig.json
+2026-11-22T08:13:55.8778505Z 
+2026-11-22T08:13:57.3012040Z ✔ audit SDK pins exact filters and expected company, uses private GET once (35.402857ms)
+2026-11-22T08:13:57.3013411Z ✔ audit SDK refuses cached, duplicate-key, excessive and private-field responses without retry (2.157281ms)
+2026-11-22T08:13:57.3247117Z ✔ audit stalled stream and late reply cancellation settle once and never retry (25.846542ms)
+2026-11-22T08:13:57.3422685Z ✔ SDK sends only explicit bearer/no-store/omit/error policy and never adds caller scope (24.697103ms)
+2026-11-22T08:13:57.3424311Z ✔ SDK binds company/customer/original and treats malformed success or network loss as uncertain without retry (3.020495ms)
+2026-11-22T08:13:57.3426635Z ✔ SDK rejects unsafe origin/authority/getters and already-aborted writes before transport (1.20334ms)
+2026-11-22T08:13:57.3428049Z ✔ SDK cancellation rejects late ignored-abort replies and bounds a stalled success body (26.602978ms)
+2026-11-22T08:13:57.3429362Z ✔ SDK deadline settles an uncooperative pending transport for reads and writes, without retry (40.693462ms)
+2026-11-22T08:13:57.3449379Z ✔ SDK caller cancellation settles before a delayed transport rejects and preserves uncertainty (0.819236ms)
+2026-11-22T08:13:57.3829439Z ✔ v3 enquiry queue snapshots exact inputs and refuses malformed fields or staff options before I/O (4.797963ms)
+2026-11-22T08:13:57.3830754Z ✔ v3 enquiry queue sends one immutable authenticated no-store keyset request (30.013505ms)
+2026-11-22T08:13:57.3831823Z ✔ v3 enquiry queue validates exact page/cursor metadata and safe summary fields (1.038445ms)
+2026-11-22T08:13:57.3833063Z ✔ v3 enquiry queue checks server-time filters at exact now and Nairobi midnight without using the browser clock (0.416589ms)
+2026-11-22T08:13:57.3834196Z ✔ v3 enquiry queue does not invent UUID tie order from millisecond-only timestamps (0.226669ms)
+2026-11-22T08:13:57.3835379Z ✔ v3 enquiry queue rejects duplicate/rounded JSON and bounded stream framing without retries (32.240873ms)
+2026-11-22T08:13:57.3836547Z ✔ bounded staff pages and assignee picker use only explicit per-call identity and freeze narrow projections (2.173874ms)
+2026-11-22T08:13:57.3838040Z ✔ detail preserves legitimate multiline original contact text and canonicalizes only UUID selectors (0.876927ms)
+2026-11-22T08:13:57.3839337Z ✔ staff options and limits are strict own snapshotted data and reject authority overrides before IO (1.372328ms)
+2026-11-22T08:13:57.3840526Z ✔ invalid resource selectors and every malformed command fail before IO (2.304082ms)
+2026-11-22T08:13:57.3841632Z ✔ command POST snapshots the complete original request and sends a safe numeric version exactly once (2.18454ms)
+2026-11-22T08:13:57.3842809Z ✔ valid assignment, transition, reopening, reschedule, noop and historical failure receipts remain explicit (5.237357ms)
+2026-11-22T08:13:57.3844097Z ✔ response pages reject oversize, incomplete truncation, private fields, duplicates and wrong limits (4.672495ms)
+2026-11-22T08:13:57.3845817Z ✔ summary and detail validators enforce scope, canonical dates, bounded versions and private contacts (9.040982ms)
+2026-11-22T08:13:57.3847096Z ✔ ordinary exact data records reject inherited, hidden, accessor and symbol fields without evaluation (0.440428ms)
+2026-11-22T08:13:57.3848551Z ✔ POST rejects mismatched original identity and request facts as uncertain without retrying (1.842928ms)
+2026-11-22T08:13:57.3849702Z ✔ receipt outcomes, versions and resulting workflow facts cannot contradict their original command (3.125043ms)
+2026-11-22T08:13:57.3850872Z ✔ raw decoded duplicate keys and noncanonical integer tokens are rejected before numeric rounding (2.096448ms)
+2026-11-22T08:13:57.3852232Z ✔ safe staff errors require matching references and exact code/status while withholding upstream text (6.591008ms)
+2026-11-22T08:13:57.3853883Z ✔ lost successful POST replies reconcile through historical GET without resending or adopting current state (0.985558ms)
+2026-11-22T08:13:57.4089925Z ✔ timeout and cancellation bound ignored transports and mark only dispatched writes uncertain (21.469317ms)
+2026-11-22T08:13:57.4091463Z ✔ malformed success status, redirects, non-JSON and lost text reads never produce write success (1.337832ms)
+2026-11-22T08:13:57.4093191Z ✔ enquiry options never leak to subsequent calls or change unchanged public enquiry transport (0.968116ms)
+2026-11-22T08:13:57.4094585Z ✔ activity SDK uses explicit identity and validates minimal supported coverage (1.903012ms)
+2026-11-22T08:13:57.4112834Z ✔ contact SDK preserves raw original facts and classifies malformed committed replies as uncertain (2.457397ms)
+2026-11-22T08:13:57.4260732Z ✔ preparation validates without a request and freezes a private raw copy (1.367935ms)
+2026-11-22T08:13:57.4266327Z ✔ one request is locked synchronously and a received enquiry cannot be resubmitted (23.86801ms)
+2026-11-22T08:13:57.4268503Z ✔ lost reply requires explicit original replay with byte-identical body/key and no bearer (1.35984ms)
+2026-11-22T08:13:57.4269768Z ✔ later definite rejection does not erase an earlier uncertain commit (0.865895ms)
+2026-11-22T08:13:57.4270866Z ✔ public attempt refuses authority/key overrides and invalid timeouts before state changes (0.622541ms)
+2026-11-22T08:13:57.4272010Z ✔ already cancelled initial request is definite; invalid successful receipt stays uncertain (0.743456ms)
+2026-11-22T08:13:57.4647910Z ✔ transport freezes its destination and instance, omits cookies and refuses redirects (25.972284ms)
+2026-11-22T08:13:57.4657298Z ✔ wrong origins, paths, methods and identity headers never reach fetch (1.108403ms)
+2026-11-22T08:13:57.4658884Z ✔ destination mismatch or redirected response stays uncertain without automatic replay (6.034389ms)
+2026-11-22T08:13:57.4659863Z ✔ configuration permits HTTPS and explicit loopback only (0.46174ms)
+2026-11-22T08:13:57.4660910Z ✔ same-origin response supports explicit byte-identical retry after a lost reply (1.595613ms)
+2026-11-22T08:13:57.5165276Z ✔ workspace SDK reads one exact authorized current snapshot and freezes complete sparse metadata (23.864148ms)
+2026-11-22T08:13:57.5173334Z ✔ workspace pure parser preserves bounded legacy text and accepts empty/full galleries without inventing content (0.600685ms)
+2026-11-22T08:13:57.5175102Z ✔ workspace exact envelope, content and photo descriptors reject unknown/private fields (1.041191ms)
+2026-11-22T08:13:57.5176485Z ✔ workspace metadata refuses duplicate IDs/positions, unknown provenance and impossible sealed rows (0.943287ms)
+2026-11-22T08:13:57.5186112Z ✔ workspace transport rejects rounded revision/position tokens, duplicate decoded keys and malformed content (5.541989ms)
+2026-11-22T08:13:57.5192573Z ✔ workspace per-call authentication, path bounds and pure validator argument bounds fail before transport (1.505782ms)
+2026-11-22T08:13:57.5194033Z ✔ workspace read network/HTTP failure is definite and never invokes a write or automatic retry (0.933792ms)
+2026-11-22T08:13:57.5195242Z ✔ pure gallery receipt validator enforces exact historical identity and kind without transport state (0.760372ms)
+2026-11-22T08:13:57.5708867Z ✔ Node Fetch refuses cross-origin 302 POST redirect before contacting destination (34.351939ms)
+2026-11-22T08:13:57.5828652Z ✔ Node Fetch refuses cross-origin 303 POST redirect before contacting destination (11.178891ms)
+2026-11-22T08:13:57.5943014Z ✔ Node Fetch refuses cross-origin 307 POST redirect before contacting destination (7.196736ms)
+2026-11-22T08:13:57.6029179Z ✔ Node Fetch refuses cross-origin 308 POST redirect before contacting destination (8.018256ms)
+2026-11-22T08:13:58.3547770Z ✔ Node Fetch marks a committed POST timeout uncertain; manual same-key/body retry returns its original receipt (761.379469ms)
+2026-11-22T08:13:58.3621995Z ✔ SDK captures detached command and uses exact control route/body for both kinds (30.040443ms)
+2026-11-22T08:13:58.3623258Z ✔ uncertain controls never retry; retained receipt and route-kind snapshot recovery use GET only (2.217061ms)
+2026-11-22T08:13:58.3624299Z ✔ malformed or executable commands fail before transport; altered write receipts are uncertain (1.412608ms)
+2026-11-22T08:13:58.3625414Z ✔ SDK creation sends one detached normalized command with route-owned operation identity (32.2939ms)
+2026-11-22T08:13:58.3627068Z ✔ SDK uncertain creation never retries and exact original recovery is GET only (2.746635ms)
+2026-11-22T08:13:58.3628417Z ✔ SDK preflight rejects caller authority and executable content without dispatch (0.489968ms)
+2026-11-22T08:13:58.3629742Z ✔ SDK malformed write receipt stays uncertain while malformed GET never claims a new submission (1.119285ms)
+2026-11-22T08:13:58.3630924Z ✔ SDK validates original request instead of adopting edited content or later draft versions (1.875509ms)
+2026-11-22T08:13:58.3632042Z ✔ duplicate SDK fixes bounded GET query and credentials, captures immutable original target (23.843587ms)
+2026-11-22T08:13:58.3633275Z ✔ duplicate SDK refuses invalid original context before dispatch and altered projections after dispatch (1.51262ms)
+2026-11-22T08:13:58.3634375Z ✔ duplicate SDK bounds body/framing and cancellation with no retries or mutation uncertainty (23.441134ms)
+2026-11-22T08:13:58.3635570Z ✔ import SDK fixes read-only POST, captured CSV, bearer, no credentials/redirects/idempotency/retry (25.88256ms)
+2026-11-22T08:13:58.3636681Z ✔ invalid original CSV and predispatch cancellation never call transport (1.269966ms)
+2026-11-22T08:13:58.3637971Z ✔ altered projections and framing fail safely with no mutation uncertainty or retries (5.036589ms)
+2026-11-22T08:13:58.3639075Z ✔ read-only preview timeout cancels late ignored-abort response body without retry (31.737897ms)
+2026-11-22T08:13:58.3640083Z ✔ preview cancellation closes a stalled response stream and remains read-only (2.645381ms)
+2026-11-22T08:13:58.3641228Z ✔ reference SDK captures one original write and fixed GET with detached catalogue and exact actor binding (26.515379ms)
+2026-11-22T08:13:58.3642438Z ✔ reference SDK refuses invalid context, stale catalogue and pre-aborted writes before dispatch (1.245068ms)
+2026-11-22T08:13:58.3643678Z ✔ catalogue transport accepts valid Unicode payload above1MiB and binds requested historical version (68.72956ms)
+2026-11-22T08:13:58.3644884Z ✔ reference transport rejects duplicate fields, decimal revisions, bad encoding, length and modified originals (4.42445ms)
+2026-11-22T08:13:58.3646082Z ✔ lost write response stays uncertain and explicit original recovery sends GET only (1.04427ms)
+2026-11-22T08:13:58.3647168Z ✔ late and stalled reference responses time out without retry or waiting for cancellation (213.174613ms)
+2026-11-22T08:13:58.3648782Z ✔ empty frames and separate receipt/catalogue byte limits cancel hostile bodies promptly (23.707752ms)
+2026-11-22T08:13:58.3649863Z ✔ reference session SDK returns only current server-bound company/actor and rejects altered wire (1.219782ms)
+2026-11-22T08:13:58.3651016Z ✔ private report queue and review snapshot identity and recover originals without replay (32.467406ms)
+2026-11-22T08:13:58.3652085Z ✔ anonymous report sends one credential-free202 capture and original recovery is GET only (1.490201ms)
+2026-11-22T08:13:58.3653163Z ✔ anonymous authority/accessors and changed report commands fail before transport (0.433119ms)
+2026-11-22T08:13:58.3654363Z ✔ lost or counterfeit successful report replies remain uncertain and never retry automatically (1.837856ms)
+2026-11-22T08:13:58.3655508Z ✔ SDK successor sends one detached explicit command and keeps IDs in the fixed route (21.520325ms)
+2026-11-22T08:13:58.3656687Z ✔ uncertain successor never retries and original receipt and snapshot recovery send GET only (2.544356ms)
+2026-11-22T08:13:58.3658481Z ✔ SDK successor preflight rejects authority and executable facts without dispatch or getter invocation (0.418273ms)
+2026-11-22T08:13:58.3660437Z ✔ malformed successor write stays uncertain while malformed original GET is read-only failure (1.479453ms)
+2026-11-22T08:13:58.3661623Z ✔ successor SDK rejects a reply whose fractional revision token rounds into the expected revision (1.200615ms)
+2026-11-22T08:13:58.3662852Z ✔ verification SDK captures exact one-write original and fixed GET-only recovery without caller authority (24.337587ms)
+2026-11-22T08:13:58.3664081Z ✔ verification SDK invalid input never dispatches and bounded history uses exact fixed limit (1.272433ms)
+2026-11-22T08:13:58.3665449Z ✔ verification SDK malformed/lost write replies stay uncertain, reads never retry or become writes (3.595072ms)
+2026-11-22T08:13:58.3666784Z ✔ verification SDK cancels a stalled body and retains write versus read uncertainty (40.635587ms)
+2026-11-22T08:13:58.3668185Z ✔ verification wire revision tokens cannot round fractional or exponential aliases into the original (3.520492ms)
+2026-11-22T08:13:58.3669311Z ✔ verification history SDK fixes and validates cursor-bound older pages (1.034515ms)
+2026-11-22T08:13:58.3670354Z ✔ published video transport is anonymous GET and rejects authority before I/O (24.352797ms)
+2026-11-22T08:13:58.3671656Z ✔ published and reviewer reads fail on cacheable, mismatched or private extra facts (3.381433ms)
+2026-11-22T08:13:58.3672897Z ✔ video SDK snapshots nested command before asynchronous transport and uses no-store credential-free request (27.612123ms)
+2026-11-22T08:13:58.3673858Z ✔ invalid video input and revision targets fail before fetch (0.728671ms)
+2026-11-22T08:13:58.3674757Z ✔ malformed or changed video write replies stay uncertain without retries (1.960226ms)
+2026-11-22T08:13:58.3675752Z ✔ video original recovery is GET-only and rejects another original or cacheable successful read (1.95156ms)
+2026-11-22T08:13:58.3676690Z ✔ attach calls require per-call bearer and public requests retain no credentials (24.998975ms)
+2026-11-22T08:13:58.3677855Z ✔ attach sends the exact tuple and original command while ready remains an acknowledgement (0.684523ms)
+2026-11-22T08:13:58.3678882Z ✔ attach snapshots strict own input data before transport and explicit replay retains body (1.619299ms)
+2026-11-22T08:13:58.3689542Z ✔ attach validates original UUIDs, exact fields and the supported incrementable version before transport (1.401584ms)
+2026-11-22T08:13:58.3690867Z ✔ attach GET binds the exact path and returns a frozen immutable terminal receipt after historical expiry (0.81294ms)
+2026-11-22T08:13:58.3692004Z ✔ attach response binds original intent facts and rejects unexpected or inconsistent envelopes (3.99446ms)
+2026-11-22T08:13:58.3693179Z ✔ terminal parser requires exact outcome correlations, complete identity, media facts and resulting version (8.858225ms)
+2026-11-22T08:13:58.3694301Z ✔ attach raw JSON rejects duplicate nested keys and original revision/position token aliases (2.664279ms)
+2026-11-22T08:13:58.3695333Z ✔ attach explicit creation replay can recover terminal status without adopting a newer request version (0.573762ms)
+2026-11-22T08:13:58.3696318Z ✔ attach definite HTTP failures are safe and do not trigger automatic mutation retries (1.724208ms)
+2026-11-22T08:13:58.3697356Z ✔ attach lost writes, timeout, redirects, malformed success and server errors stay uncertain without retry (21.576706ms)
+2026-11-22T08:13:58.3698646Z ✔ attach cancellation before admission sends nothing and cancellation after transport remains uncertain (0.422515ms)
+2026-11-22T08:13:58.3699951Z ✔ gallery commands and history require per-call bearer; public requests retain no credentials (25.936785ms)
+2026-11-22T08:13:58.3700901Z ✔ gallery sends exact original command, URL tuple and no idempotency header (1.300765ms)
+2026-11-22T08:13:58.3701867Z ✔ gallery snapshots original own input and dense order before transport (2.389949ms)
+2026-11-22T08:13:58.3702770Z ✔ gallery validates exact fields, UUIDs and canonical incrementable decimal version (1.315412ms)
+2026-11-22T08:13:58.3703811Z ✔ gallery rejects malformed full order before transport and supports canonical empty reorder noop (0.739152ms)
+2026-11-22T08:13:58.3705051Z ✔ gallery GET binds exact history URL and accepts historical result without current version adoption (1.465691ms)
+2026-11-22T08:13:58.3706024Z ✔ gallery mutation receipts bind original kind, target, expected version and full requested order (1.822867ms)
+2026-11-22T08:13:58.3707465Z ✔ gallery terminal parser checks every field and correlated state, version, order and timestamp (4.495328ms)
+2026-11-22T08:13:58.3708960Z ✔ gallery raw response checks duplicate decoded keys and original integer revision literals (2.620969ms)
+2026-11-22T08:13:58.3709955Z ✔ gallery typed durable conflicts return facts without retry or adopting later version (0.984963ms)
+2026-11-22T08:13:58.3710771Z ✔ gallery safe definite HTTP failures cause no mutation retry (2.185363ms)
+2026-11-22T08:13:58.3711705Z ✔ gallery uncertain writes stay single-attempt across loss, malformed success, redirect and timeout (43.444613ms)
+2026-11-22T08:13:58.3712853Z ✔ gallery cancellation before admission sends nothing; after admission remains uncertain (0.856969ms)
+2026-11-22T08:13:58.4798265Z ✔ every media call requires its own bearer and public calls retain no staff credentials (36.782803ms)
+2026-11-22T08:13:58.4813686Z ✔ registration sends exact explicit identity/version/body and freezes a capability-free historical receipt (0.954909ms)
+2026-11-22T08:13:58.4814890Z ✔ registration snapshots request facts before transport and explicit replay sends the original body once per call (2.192486ms)
+2026-11-22T08:13:58.4815810Z ✔ registration validates UUIDs, canonical safe version and trimmed bounded Unicode alt before transport (2.647111ms)
+2026-11-22T08:13:58.4816570Z ✔ registration response requires exact fields and original tuple/operation/version/alt facts (8.917083ms)
+2026-11-22T08:13:58.4817376Z ✔ registration and job GET bind exact paths and do not equate historical receipt with current state (4.325246ms)
+2026-11-22T08:13:58.4818597Z ✔ media timestamps are canonical, exactly 24h apart and historical expiry is accepted without renewal (2.93723ms)
+2026-11-22T08:13:58.4819368Z ✔ media raw response rejects decoded duplicate keys and fractional/exponent revision aliases before rounding (3.677813ms)
+2026-11-22T08:13:58.4820132Z ✔ media definite HTTP authorization/input/state conflicts expose safe codes and never retry (2.3753ms)
+2026-11-22T08:13:58.5006373Z ✔ media write loss, timeout, redirects, invalid receipts and server failure remain uncertain without automatic retry (23.228387ms)
+2026-11-22T08:13:58.5009390Z ✔ pre-cancelled registration sends nothing; cancellation after transport starts remains uncertain (0.624929ms)
+2026-11-22T08:13:58.5015637Z ✔ media read transport failure is never labelled an uncertain write (0.321903ms)
+2026-11-22T08:13:58.5313487Z ✔ saved image GET binds the exact tuple/version without putting credentials or selectors in the URL (34.904015ms)
+2026-11-22T08:13:58.5315023Z ✔ private image resources and canonical positive safe version strings validate before IO (1.70683ms)
+2026-11-22T08:13:58.5316276Z ✔ staff options are strict snapshotted own data and cannot add transport authority (3.47383ms)
+2026-11-22T08:13:58.5317680Z ✔ incremental reads snapshot reused byte subviews without invoking caller byte descriptors (0.747335ms)
+2026-11-22T08:13:58.5319001Z ✔ bounded native readable streams accept exact chunked bodies through the 10 MiB cap (12.730283ms)
+2026-11-22T08:13:58.5320131Z ✔ unsupported declared lengths fail before reading bytes and cancel the body (2.548188ms)
+2026-11-22T08:13:58.5321130Z ✔ exact body length is enforced incrementally on truncation and oversized chunks (0.765749ms)
+2026-11-22T08:13:58.5329711Z ✔ only ordinary nonshared Uint8 chunks are accepted without coercion or fallback (1.534456ms)
+2026-11-22T08:13:58.5336415Z ✔ RIFF and WEBP bytes and little-endian length are exact, including high-bit rejection (2.602183ms)
+2026-11-22T08:13:58.5337891Z ✔ image success requires exact MIME/status and refuses encoding/range before body collection (1.338539ms)
+2026-11-22T08:13:58.5339339Z ✔ redirect status, followed flags and any changed response URL are refused without retries (0.739365ms)
+2026-11-22T08:13:58.5340465Z ✔ safe image HTTP errors validate exact status/reference and never expose server details or uncertainty (2.256511ms)
+2026-11-22T08:13:58.5341741Z ✔ error envelopes reject extra facts, mismatched references, code/status aliases and duplicate decoded keys (11.551076ms)
+2026-11-22T08:13:58.5342859Z ✔ error collection is bounded at 4 KiB and enforces an optional declared exact length (1.306186ms)
+2026-11-22T08:13:58.5344014Z ✔ pre-cancellation prevents transport and in-flight fetch cancellation sends only one request (0.392004ms)
+2026-11-22T08:13:59.0328921Z ✔ deadline includes ignored fetch and streamed body waits without awaiting uncooperative cancellation (501.54396ms)
+2026-11-22T08:13:59.0402646Z ✔ cancellation during native body read cancels stream, releases its lock and ignores late response work (1.228475ms)
+2026-11-22T08:13:59.0403672Z ✔ an endless resolved stream of empty chunks cannot starve the overall deadline (5.29239ms)
+2026-11-22T08:13:59.0406272Z ✔ transport and mid-body failures remain safe read errors with no uncertain-write flag or retry (0.486501ms)
+2026-11-22T08:13:59.0407465Z ✔ completion removes cancellation work and preserves HTTPS and explicit loopback-only HTTP policy (0.67305ms)
+2026-11-22T08:13:59.0475762Z ✔ pure registration and attachment validators retain exact frozen original facts without transport (2.701589ms)
+2026-11-22T08:13:59.0476886Z ✔ pure validators reject malformed resource and original commands before interpreting history (0.661461ms)
+2026-11-22T08:13:59.0477946Z ✔ pure validators bind original registration alt/version and attachment job/version without adoption (0.370525ms)
+2026-11-22T08:13:59.0478843Z ✔ pure validators refuse hidden, symbolic, inherited and accessor fields without invoking getters (0.371568ms)
+2026-11-22T08:13:59.0479738Z ✔ finalization is an explicit single POST with no body/content type or regenerated identity (23.089812ms)
+2026-11-22T08:13:59.0480735Z ✔ finalization supports terminal failure facts but refuses successful ready or mismatched receipts as uncertain (5.217938ms)
+2026-11-22T08:13:59.0481584Z ✔ finalization requires per-call strict authority and a valid original URL tuple (1.634791ms)
+2026-11-22T08:13:59.0482237Z ✔ finalization raw JSON guards cover the nested finalize path and terminal receipt tokens (2.571278ms)
+2026-11-22T08:13:59.0482919Z ✔ finalization lost write reply is single-attempt and original GET readback never finalizes again (21.733719ms)
+2026-11-22T08:13:59.0483691Z ✔ finalization preserves explicit post-invocation uncertainty even when current authorization is revoked (1.698566ms)
+2026-11-22T08:13:59.0484432Z ✔ finalization errors require exact safe envelopes, matching reference and valid optional uncertainty (1.273084ms)
+2026-11-22T08:13:59.0485091Z ✔ finalization cancellation before send is definite and after sending remains uncertain (0.364426ms)
+2026-11-22T08:13:59.0485846Z ✔ private binary ingress sends exact original tuple and raw bytes once with isolated per-call credentials (27.772833ms)
+2026-11-22T08:13:59.0486528Z ✔ private ingress snapshots the exact byte subview and staff options before transport yields (4.537025ms)
+2026-11-22T08:13:59.0487245Z ✔ binary input is bounded to 1 byte through 10 MiB and only ordinary Uint8 bytes are accepted (7.638287ms)
+2026-11-22T08:13:59.0488156Z ✔ private upload/status validate all URL identities and int32 revision before contacting transport (0.680407ms)
+2026-11-22T08:13:59.0488848Z ✔ private options reject hidden/accessor/inherited authority and require a fresh valid bearer (1.124088ms)
+2026-11-22T08:13:59.0489523Z ✔ all narrow upload states are accepted without granting attachment or exposing internals (1.679579ms)
+2026-11-22T08:13:59.0490149Z ✔ upload status parser rejects missing/extra fields and every mismatched original tuple fact (4.025368ms)
+2026-11-22T08:13:59.0490843Z ✔ pure upload parser validates resource arguments and strict own descriptors without executing getters (0.367458ms)
+2026-11-22T08:13:59.0491833Z ✔ upload raw JSON rejects duplicate decoded keys and pre-rounding numeric aliases (2.223545ms)
+2026-11-22T08:13:59.0492459Z ✔ private adapter definite errors use exact safe code/status/header facts with no retry (1.991143ms)
+2026-11-22T08:13:59.0493128Z ✔ unconfirmed ingress and service failure retain uncertain write identity for explicit status GET (1.377157ms)
+2026-11-22T08:13:59.0493909Z ✔ malformed/private/incorrect-status error envelopes fail closed and never expose server details (1.716737ms)
+2026-11-22T08:13:59.0494588Z ✔ upload write loss, malformed success and redirect remain uncertain and single-attempt (2.140604ms)
+2026-11-22T08:13:59.0495269Z ✔ upload cancellation before send is definite and cancellation/deadline after send remain uncertain (41.373128ms)
+2026-11-22T08:13:59.0495905Z ✔ response-body read cancellation is within the same upload deadline (20.748042ms)
+2026-11-22T08:13:59.0496534Z ✔ moderation queue validates bounded immutable pending metadata and requires a bearer on each request (32.674377ms)
+2026-11-22T08:13:59.0497311Z ✔ review details retain raw private content, exact money/quotes/nulls and distinct listing/revision versions (4.438158ms)
+2026-11-22T08:13:59.0498209Z ✔ review responses fail closed on unknown/missing fields, nonpending queue states and unsafe numeric metadata (7.098528ms)
+2026-11-22T08:13:59.0498902Z ✔ review timestamp, decision-state and requested-resource metadata must be coherent (6.816785ms)
+2026-11-22T08:13:59.0499537Z ✔ review accepted-photo references must match the count and remain bounded safe metadata (2.34973ms)
+2026-11-22T08:13:59.0500244Z ✔ moderation decisions send a safe numeric revision version and enforce exact decision/reason input before transport (1.136644ms)
+2026-11-22T08:13:59.0500987Z ✔ moderation HTTP authorization/state conflicts are definite typed outcomes with no retries (1.009722ms)
+2026-11-22T08:13:59.0501691Z ✔ moderation decision loss, timeout, redirects and invalid receipts remain uncertain without automatic retries (21.454105ms)
+2026-11-22T08:13:59.0502401Z ✔ moderation v2 parses original money tokens before rounding in summaries and full detail content (0.939628ms)
+2026-11-22T08:13:59.0503152Z ✔ operations SDK sends one fixed private GET with detached credentials and no caller-selected company or body (22.503242ms)
+2026-11-22T08:13:59.0503796Z ✔ operations SDK rejects unsupported options and accessors before network IO (0.597748ms)
+2026-11-22T08:13:59.0504451Z ✔ operations SDK does not retry or convert malformed/denied reads into write uncertainty (1.628814ms)
+2026-11-22T08:13:59.0505051Z ✔ both public searches reject an own __proto__ query key before any network request (2.080024ms)
+2026-11-22T08:13:59.0505689Z ✔ public search validates inputs and anonymous scope before transport, without invoking getters (1.475383ms)
+2026-11-22T08:13:59.0506501Z ✔ public search keeps exact facts, snapshots query and uses fixed anonymous no-store transport (23.547002ms)
+2026-11-22T08:13:59.0507166Z ✔ public search serializes only a validated bounded draw-area polygon (3.008553ms)
+2026-11-22T08:13:59.0507921Z ✔ reference search validates minimum ranges before I/O and preserves the exact decimal bound (0.961306ms)
+2026-11-22T08:13:59.0508593Z ✔ v2/v3 strict Over modes require a valid positive bound and price basis before transport (2.285316ms)
+2026-11-22T08:13:59.0509298Z ✔ v2/v3 snapshot exact Over bounds and accept empty equality while blank mode stays inclusive (3.32533ms)
+2026-11-22T08:13:59.0509889Z ✔ v2/v3 grouped bedroom filters reject malformed modes and counts before I/O (1.525819ms)
+2026-11-22T08:13:59.0510541Z ✔ v2/v3 snapshot grouped bedroom paging and preserve exact seven through ten and studio zero (3.699401ms)
+2026-11-22T08:13:59.0511205Z ✔ search rejects inconsistent count/order/page metadata, duplicate identities and private DTO fields (3.084515ms)
+2026-11-22T08:13:59.0511882Z ✔ search streaming is bounded and duplicate JSON keys do not replace authoritative totals (5.168663ms)
+2026-11-22T08:13:59.0512618Z ✔ global public choices preserve same-label distinct IDs and freeze validated anonymous results (0.710558ms)
+2026-11-22T08:13:59.0513308Z ✔ global choices refuse incomplete authority metadata, duplicate IDs, malformed labels and overflows (22.156677ms)
+2026-11-22T08:13:59.0514012Z ✔ otherwise valid v2/v3 search and options refuse duplicate and rounded metadata JSON tokens (2.479573ms)
+2026-11-22T08:13:59.0514662Z ✔ creation SDK validates before I/O and performs one exact staff POST or explicit original GET (37.27899ms)
+2026-11-22T08:13:59.0515365Z ✔ lost or malformed committed success is uncertain and causes no automatic replay or recovery (8.298104ms)
+2026-11-22T08:13:59.0516119Z ✔ original GET rejects actor, retained request or catalogue substitution without becoming an uncertain write (6.979532ms)
+2026-11-22T08:13:59.0516881Z ✔ composite response has a dedicated streamed allowance above ordinary 128 KiB with strict framing and integer tokens (37.31851ms)
+2026-11-22T08:13:59.0517944Z ✔ creation response streaming cancels oversized or stalled originals within its own allowance (34.706747ms)
+2026-11-22T08:13:59.0986539Z ✔ initial context reads one fixed GET without a catalogue hint and strictly binds both returned parts (31.018312ms)
+2026-11-22T08:13:59.0988140Z ✔ context has a separate combined byte bound while ordinary review reads retain 128 KiB (22.150998ms)
+2026-11-22T08:13:59.0990984Z ✔ context retains strict wire parsing, framing, cancellation and canonical input checks (107.235117ms)
+2026-11-22T08:13:59.0991846Z ✔ SDK captures complete originals before await and uses one fixed POST/explicit GET for every action (6.730737ms)
+2026-11-22T08:13:59.0992609Z ✔ revision and review reads use exact versioned routes and reject wrong state, target, version or historical labels (3.724947ms)
+2026-11-22T08:13:59.0993364Z ✔ local invalid original, options, canonical path and preabort validation cause no dispatch (1.342209ms)
+2026-11-22T08:13:59.0994138Z ✔ original receipt must match complete retained command, actor, exact next version and outcome (13.752809ms)
+2026-11-22T08:13:59.1720168Z ✔ all moderation paths use strict bounded UTF8/duplicate/integer/framing transport (75.269471ms)
+2026-11-22T08:13:59.3849843Z ✔ post timeout and late response cancellation remain uncertain; original GET stall remains a read failure (213.197552ms)
+2026-11-22T08:13:59.3919111Z ✔ public reference SDK uses one anonymous bounded GET and preserves explicit legacy absence (24.323451ms)
+2026-11-22T08:13:59.3920543Z ✔ public reference SDK rejects mismatched labels, private additions and malformed extension or page (10.291789ms)
+2026-11-22T08:13:59.3921570Z ✔ public reference path retains duplicate/integer/UTF8/framing checks and a streamed 3 MiB bound (3.651588ms)
+2026-11-22T08:13:59.3922773Z ✔ public reference invalid options and preabort do not dispatch; ignored transport still times out as a read (100.769102ms)
+2026-11-22T08:13:59.3923859Z ✔ successor SDK validates before I/O and performs one exact staff POST or explicit original GET (33.816172ms)
+2026-11-22T08:13:59.3924831Z ✔ lost or malformed committed success is uncertain and causes no automatic replay or recovery (4.098348ms)
+2026-11-22T08:13:59.3925950Z ✔ original GET rejects actor, retained request or catalogue substitution without becoming an uncertain write (9.958258ms)
+2026-11-22T08:13:59.3927091Z ✔ composite response has a dedicated streamed allowance above ordinary 128 KiB with strict framing and integer tokens (44.173706ms)
+2026-11-22T08:13:59.3928479Z ✔ successor response streaming cancels oversized or stalled originals within its own allowance (31.988038ms)
+2026-11-22T08:13:59.3929553Z ✔ successor error bodies retain the ordinary limit and an interrupted POST stays uncertain without recovery (32.113076ms)
+2026-11-22T08:13:59.3930698Z ✔ review gallery client fixes path version credentials and detached frozen response without retries (23.561837ms)
+2026-11-22T08:13:59.3931687Z ✔ review gallery rejects mismatched or unbounded projections and original request validation (2.76964ms)
+2026-11-22T08:13:59.3933099Z ✔ review image client fixes reviewer path and exact version using bounded image reader (2.754144ms)
+2026-11-22T08:13:59.3934137Z ✔ protocol SDK performs one authenticated body-free no-store GET and target-matches frozen result (23.945752ms)
+2026-11-22T08:13:59.3935231Z ✔ protocol SDK validates targets before network and refuses contradictory or missing results without fallback (3.081484ms)
+2026-11-22T08:13:59.3936511Z ✔ protocol SDK bounds streaming/framing/UTF8/duplicate keys and does not retry failures (2.795739ms)
+2026-11-22T08:13:59.3937806Z ✔ branch SDK snapshots original command/credentials and separates exact save from original/current GET (25.602862ms)
+2026-11-22T08:13:59.3939025Z ✔ lost/malformed/wrong original branch write stays uncertain with one dispatch and no automatic retry (2.673342ms)
+2026-11-22T08:13:59.3940357Z ✔ invalid branch authority/version never dispatches and current projection refuses private or wrong-target facts (1.722398ms)
+2026-11-22T08:13:59.4189321Z ✔ directory SDK snapshots exact query and private credentials before I/O; performs GET only (31.836091ms)
+2026-11-22T08:13:59.4210199Z ✔ invalid directory query/authority never dispatches; malformed page cannot advance requested cursor (2.980429ms)
+2026-11-22T08:13:59.4211074Z ✔ directory transport requires status200 and strict JSON framing, duplicate refusal and64KiB ceiling (4.553584ms)
+2026-11-22T08:13:59.4394884Z ✔ staff SDK shared draft normalization blocks getters and hidden authority before write dispatch (2.381599ms)
+2026-11-22T08:13:59.4837005Z ✔ staff capture fixes command route, omits origin and validates identity before transport (29.58557ms)
+2026-11-22T08:13:59.4838340Z ✔ staff attempt snapshots raw input and identity; exact explicit replay recovers a lost reply (2.003936ms)
+2026-11-22T08:13:59.4839496Z ✔ staff attempt locks concurrent writes and preserves uncertainty after subsequent denial (0.897361ms)
+2026-11-22T08:13:59.5589574Z ✔ recipient identity session uses a bounded no-store GET and rejects invented authority or cached facts (31.987326ms)
+2026-11-22T08:13:59.5591432Z ✔ explicit issue/metadata/state/redeem methods use fixed private paths and never put the secret in a URL (4.889326ms)
+2026-11-22T08:13:59.5613119Z ✔ caller authority, secret-bearing retained commands, invalid secrets and ambiguous IDs fail before I/O (1.699032ms)
+2026-11-22T08:13:59.5614503Z ✔ cached, mismatched, duplicate, oversized and wrong-status issue responses remain uncertain after one POST (3.341121ms)
+2026-11-22T08:13:59.5618839Z ✔ GET metadata cannot disclose a secret or change operation identity, and reads never replay writes (1.453828ms)
+2026-11-22T08:13:59.5695507Z ✔ network loss and timeouts retain write uncertainty without automatic retries or raw-secret errors (15.55027ms)
+2026-11-22T08:13:59.5697175Z ✔ bounded server error envelopes stay generic and preserve a known original after a write failure (1.178353ms)
+2026-11-22T08:13:59.5762518Z ✔ invitation SDK snapshots private credentials and uses explicit writes and GET-only originals/state (40.22888ms)
+2026-11-22T08:13:59.5770591Z ✔ invalid intent/authority/accessor options fail before transport and cannot create a grant (0.821225ms)
+2026-11-22T08:13:59.5774977Z ✔ lost, malformed, oversized and wrong-status successful writes stay uncertain without automatic replay (3.473586ms)
+2026-11-22T08:13:59.5776393Z ✔ foreign originals and duplicate/rounded state projections are rejected as reads without a hidden write (1.306754ms)
+2026-11-22T08:13:59.5803163Z ✔ single listing SDK reads exact target with one GET and rejects private or rounded identity replies (27.080026ms)
+2026-11-22T08:13:59.5827836Z ✔ listing SDK performs one bounded authenticated GET and detaches strict minimal projection (0.74204ms)
+2026-11-22T08:13:59.5829318Z ✔ listing SDK invalid options never dispatch and malformed/private successful projections stay read-only (0.933676ms)
+2026-11-22T08:13:59.5830221Z ✔ listing SDK denies unsafe error envelopes and never retries a failed read (0.985973ms)
+2026-11-22T08:13:59.6833451Z ✔ membership directory snapshots query/private options and binds immutable ordered current projections to the requested cursor (26.730515ms)
+2026-11-22T08:13:59.6835556Z ✔ membership directory refuses query/credential authority before I/O and rejects cursor/order/privacy violations (7.201519ms)
+2026-11-22T08:13:59.6837031Z ✔ membership directory uses strict JSON and a64KiB page ceiling while single records remain8KiB (2.860644ms)
+2026-11-22T08:13:59.6840182Z ✔ membership SDK snapshots exact command and private options before dispatch; originals/current use GET only (1.419355ms)
+2026-11-22T08:13:59.6842156Z ✔ invalid membership facts and caller authority/accessors fail without invoking transport (0.647368ms)
+2026-11-22T08:13:59.6845380Z ✔ lost, malformed, duplicate, oversized, framed and wrong-status membership writes remain uncertain without retry (4.323088ms)
+2026-11-22T08:13:59.6852746Z ✔ membership original/current binding rejects wrong identity, unsupported role and inconsistent private projection (2.855929ms)
+2026-11-22T08:13:59.6863650Z ✔ membership terminal no-op/conflict receipts and active projection preserve exact safe versions (1.232286ms)
+2026-11-22T08:13:59.6865744Z ✔ membership errors retain proven rejection versus uncertain failure and pre-aborted requests never dispatch (1.257451ms)
+2026-11-22T08:13:59.6991040Z ✔ ordinary session SDK sends one fixed body-free authenticated GET and freezes only validated identity (32.869504ms)
+2026-11-22T08:13:59.6992644Z ✔ ordinary session SDK rejects malformed/extra/duplicate/forged policy identity without retries or write uncertainty (4.441017ms)
+2026-11-22T08:13:59.6993813Z ✔ ordinary session SDK enforces 8192-byte streaming/framing bound and strict UTF-8 (2.333123ms)
+2026-11-22T08:13:59.6994878Z ✔ ordinary session SDK never retries denied/redirected reads and cancels before dispatch (0.791592ms)
+2026-11-22T08:13:59.7129278Z ✔ staff canonical content supports incomplete full replacements and preserves private/coarse coordinates without invented values (4.262049ms)
+2026-11-22T08:13:59.7138784Z ✔ every staff call requires its own bearer and never retains it for public or later requests (30.547264ms)
+2026-11-22T08:13:59.7169141Z ✔ staff GET requires an exact immutable envelope and complete canonical fields while allowing unfinished drafts (7.529731ms)
+2026-11-22T08:13:59.7182514Z ✔ staff PUT and submit POST send exact version numbers, no idempotency header, and expect HTTP 200 receipts (1.9425ms)
+2026-11-22T08:13:59.7184041Z ✔ staff validation rejects unknown grants, invalid cents/charges and contradictory fields before transport (0.980188ms)
+2026-11-22T08:13:59.7185278Z ✔ staff version strings retain PostgreSQL bigint precision but reject unsafe write conversion and malformed paths (1.623168ms)
+2026-11-22T08:13:59.7186638Z ✔ staff authorization and stale-version HTTP failures remain distinct, safe and definite without retries (1.964924ms)
+2026-11-22T08:13:59.7188188Z ✔ staff write transport failures, invalid receipts and server failures are uncertain and never auto-retried (2.490294ms)
+2026-11-22T08:13:59.7219900Z ✔ staff pre-cancellation sends nothing while a started save/submit timeout remains uncertain (10.386139ms)
+2026-11-22T08:13:59.7228946Z ✔ staff GET uses exact v2 JSON money parsing and preserves quote-required null amounts and null locations (1.02794ms)
+2026-11-22T08:13:59.8050248Z ✔ calendar SDK detaches one strict window and credential set before its single private read (30.914544ms)
+2026-11-22T08:13:59.8062552Z ✔ calendar SDK rejects caller authority, getters and invalid ranges before network access (0.961732ms)
+2026-11-22T08:13:59.8066698Z ✔ calendar SDK refuses mismatched windows and private projections without retry or write uncertainty (2.534509ms)
+2026-11-22T08:13:59.8367664Z ✔ API origin permits HTTPS or explicitly opted-in loopback HTTP only (3.117658ms)
+2026-11-22T08:13:59.8378881Z ✔ public request uses no ambient credentials, refuses redirects, preserves exact money and unknown fields remain absent (28.330916ms)
+2026-11-22T08:13:59.8380590Z ✔ bearer token is explicit per call and never persists to the next request (2.394863ms)
+2026-11-22T08:13:59.8382532Z ✔ public DTO rejects unsafe money, currency/period/count/type errors and precise area leaks (6.855963ms)
+2026-11-22T08:13:59.8383584Z ✔ public DTO rejects extra tenant/private fields at page, property and photo levels (1.660491ms)
+2026-11-22T08:13:59.8384758Z ✔ public photo keys cannot be URLs/traversal, repeated or unreviewed-size arrays (1.736307ms)
+2026-11-22T08:13:59.8392429Z ✔ malformed pages, responses and unexpected success statuses fail rather than defaulting empty data (11.596074ms)
+2026-11-22T08:13:59.8393695Z ✔ redirect statuses and followed-response indicators are rejected without another call (0.664439ms)
+2026-11-22T08:13:59.8395092Z ✔ enquiry requires caller-retained UUID key, current notice acknowledgement and a contact channel before network (0.528373ms)
+2026-11-22T08:13:59.8396560Z ✔ manual retries preserve key and normalized body; no retry, delivery promise or zero-fee inference (1.218778ms)
+2026-11-22T08:13:59.8398108Z ✔ typed HTTP errors contain safe code/reference/retry time, never the raw server message (0.473128ms)
+2026-11-22T08:13:59.8399920Z ✔ POST network failures never auto-retry and flag uncertain submission without exposing transport details (0.228544ms)
+2026-11-22T08:13:59.8468325Z ✔ pre-cancellation sends nothing; in-flight cancellation and timeouts are typed including body reads (10.649832ms)
+2026-11-22T08:13:59.8469212Z ✔ a malformed receipt is not called accepted and remains retryable only with original key/body (0.744168ms)
+2026-11-22T08:13:59.8560907Z ✔ v2 derives exact known mandatory subtotals and separates optional fees and refundable deposits (27.007286ms)
+2026-11-22T08:13:59.8562071Z ✔ unknown coverage and mandatory quotes remain unresolved while optional quotes do not contaminate mandatory totals (3.308599ms)
+2026-11-22T08:13:59.8563219Z ✔ sale disclosure has no rental recurring subtotal and nullable public components stay explicit (1.327811ms)
+2026-11-22T08:13:59.8564192Z ✔ v2 rejects unknown fields and supplied derived totals at every extension boundary (3.365941ms)
+2026-11-22T08:13:59.8565163Z ✔ v2 pricing wire validation rejects unsafe amounts, contradictory states, duplicate IDs and unbounded text/arrays (7.918617ms)
+2026-11-22T08:13:59.8566197Z ✔ v2 public location requires exactly three bounded nullable strings (3.420586ms)
+2026-11-22T08:13:59.8567005Z ✔ v1 remains exact and v2 does not silently accept an old or malformed base response (2.297294ms)
+2026-11-22T08:13:59.8568281Z ✔ v2 accepts SQL-valid astral display-text maxima while v1 retains its UTF-16 bounds for every item (2.118098ms)
+2026-11-22T08:13:59.8569649Z ✔ v2 rejects max-plus-one code points and unpaired surrogates independently for every base display field (2.708053ms)
+2026-11-22T08:13:59.8570707Z ✔ v2 validates raw money integer literals before rounding, including escaped keys, while v1 parsing stays unchanged (3.069529ms)
+2026-11-22T08:13:59.8571834Z ✔ v2 validates options before transport and uses only explicit per-call credentials (1.04451ms)
+2026-11-22T08:13:59.8572691Z ✔ v2 keeps no-retry network, redirect and whole-request timeout behavior (6.789471ms)
+2026-11-22T08:13:59.9154872Z ✔ reminder admission SDK writes exact window once and both original readers use GET without dates in URL (25.855515ms)
+2026-11-22T08:13:59.9169546Z ✔ capture SDK sends operation-only body once and original recovery is a scoped read (1.536099ms)
+2026-11-22T08:13:59.9170547Z ✔ refused admissions forged authority malformed windows and caller clocks fail before SDK dispatch (1.011598ms)
+2026-11-22T08:13:59.9171376Z ✔ unusable reminder write replies remain uncertain without retry and failed original reads stay read-only (1.809993ms)
+2026-11-22T08:13:59.9191129Z ✔ network and server failures on reminder paths preserve write uncertainty and sanitize diagnostics (1.83014ms)
+2026-11-22T08:13:59.9192774Z ✔ reminder capture detaches retained admission and operation before asynchronous transport (0.735813ms)
+2026-11-22T08:13:59.9194326Z ✔ altered admission or capture facts cannot establish successful SDK writes or original reads (1.786307ms)
+2026-11-22T08:13:59.9585033Z ✔ reschedule SDK sends fixed original facts once and recovers by private GET without slot or reason in URL (25.431461ms)
+2026-11-22T08:13:59.9586495Z ✔ lost or malformed reschedule writes stay uncertain and recovery cannot retry or become a write (1.872449ms)
+2026-11-22T08:13:59.9588038Z ✔ invalid reschedule commands never dispatch and original conflict or refusal remains terminal (1.205373ms)
+2026-11-22T08:13:59.9589319Z ✔ history client sends a bounded private read with no original command or operation identifiers (1.101097ms)
+2026-11-22T08:13:59.9590176Z ✔ history read rejects bad limits and altered projections without write uncertainty or retry (1.027217ms)
+2026-11-22T08:13:59.9591113Z ✔ terminal commands send one fixed kind route and recover original without reason in URL (2.081364ms)
+2026-11-22T08:13:59.9591960Z ✔ lost or altered terminal replies stay uncertain and original recovery remains read-only without retry (0.942022ms)
+2026-11-22T08:13:59.9592715Z ✔ invalid terminal inputs never dispatch and conflicts or refusals retain original command (0.858928ms)
+2026-11-22T08:13:59.9593509Z ✔ phone confirmation sends one fixed source-free command and recovers original privately without notes in URL (1.225874ms)
+2026-11-22T08:13:59.9594896Z ✔ invalid or lost confirmation writes stay uncertain and recoveries remain read-only with no retry (1.288034ms)
+2026-11-22T08:13:59.9595860Z ✔ invalid phone evidence refuses before network while original conflict receipt remains terminal (0.609161ms)
+2026-11-22T08:13:59.9597656Z ✔ request and original recovery send fixed routes and explicit original facts without private URL notes (1.070905ms)
+2026-11-22T08:13:59.9598730Z ✔ proposal binds original target and exposes only explicit source-free payload (0.678457ms)
+2026-11-22T08:13:59.9610129Z ✔ lost or invalid successful write replies remain uncertain with one dispatch;recovery errors are read-only (2.343245ms)
+2026-11-22T08:13:59.9611482Z ✔ invalid authority,versions,targets and overlarge feed limits never dispatch (0.477131ms)
+2026-11-22T08:13:59.9612249Z ✔ bounded feed and detail reject wrong targets and preserve immutable private projections (1.424777ms)
+2026-11-22T08:13:59.9612967Z ✔ outcome SDK private reads preserve exact saved detail and history using GET only (1.711968ms)
+2026-11-22T08:13:59.9613709Z ✔ outcome SDK malformed saved evidence fails as a read without retry or write uncertainty (0.870679ms)
+2026-11-22T08:13:59.9614463Z ✔ outcome SDK sends fixed one-write command and body-free original GET without private reason in URL (1.460734ms)
+2026-11-22T08:13:59.9615270Z ✔ outcome SDK uncertain write and invalid successful result never become hidden retries or recovery writes (0.932963ms)
+2026-11-22T08:13:59.9616027Z ✔ outcome SDK validation never dispatches and durable conflict or refusal remains a known result (0.777617ms)
+2026-11-22T08:13:59.9679279Z ℹ tests 348
+2026-11-22T08:13:59.9679574Z ℹ suites 0
+2026-11-22T08:13:59.9679793Z ℹ pass 348
+2026-11-22T08:13:59.9680034Z ℹ fail 0
+2026-11-22T08:13:59.9680280Z ℹ cancelled 0
+2026-11-22T08:13:59.9680529Z ℹ skipped 0
+2026-11-22T08:13:59.9680738Z ℹ todo 0
+2026-11-22T08:13:59.9680966Z ℹ duration_ms 2795.548828
+2026-11-22T08:13:59.9767747Z CI suite sdk-database: npm run test:integration --workspace=@realtor/api-client
+2026-11-22T08:14:00.0609570Z 
+2026-11-22T08:14:00.0610162Z > @realtor/api-client@0.1.0 test:integration
+2026-11-22T08:14:00.0614834Z > npm run build && node --test --test-concurrency=1 tests/service-integration.test.mjs tests/v2-service-integration.test.mjs tests/staff-v2-service-integration.test.mjs tests/moderation-v2-service-integration.test.mjs tests/media-jobs-v2-service-integration.test.mjs tests/media-attachments-v2-service-integration.test.mjs tests/media-gallery-v2-service-integration.test.mjs tests/gallery-workspace-v2-service-integration.test.mjs tests/enquiries-v2-service-integration.test.mjs tests/viewings-v2-service-integration.test.mjs tests/viewing-outcomes-v2-service-integration.test.mjs tests/viewing-reminders-v2-service-integration.test.mjs tests/listing-creation-v2-service-integration.test.mjs tests/listing-successor-v2-service-integration.test.mjs tests/listing-controls-v2-service-integration.test.mjs tests/listing-reference-v3-service-integration.test.mjs tests/reference-moderation-v3-service-integration.test.mjs tests/reference-creation-v3-service-integration.test.mjs tests/reference-successor-v3-service-integration.test.mjs tests/listing-reports-service-integration.test.mjs tests/staff-invitations-service-integration.test.mjs tests/staff-branches-service-integration.test.mjs tests/staff-memberships-service-integration.test.mjs tests/listing-video-service-integration.test.mjs
+2026-11-22T08:14:00.0619050Z 
+2026-11-22T08:14:00.1488216Z 
+2026-11-22T08:14:00.1489159Z > @realtor/api-client@0.1.0 build
+2026-11-22T08:14:00.1489574Z > tsc -p tsconfig.json
+2026-11-22T08:14:00.1489756Z 
+2026-11-22T08:14:03.5404131Z ▶ enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL with original-command recovery
+2026-11-22T08:14:03.5405369Z   ✔ guest capture remains durable/idempotent and bounded staff views reveal no public contacts (107.240481ms)
+2026-11-22T08:14:03.6077089Z   ✔ admin picker and exact assignment control current agent visibility (67.750483ms)
+2026-11-22T08:14:03.6608478Z   ✔ contact and separate follow-up dates use exact versions; noops and rejected writes do not advance (52.65863ms)
+2026-11-22T08:14:03.7150957Z   ✔ a lost successful HTTP reply recovers the original result after later work with one submission (54.552383ms)
+2026-11-22T08:14:03.7769530Z   ✔ reassignment and original requester checks restrict historical recovery under current authorization (61.396263ms)
+2026-11-22T08:14:03.8370280Z   ✔ staff capture persists verified attribution and exact actor-bound receipt replay (57.734276ms)
+2026-11-22T08:14:03.8742654Z   ✔ shared activity read uses current authorization, historical actors and no writes (36.749037ms)
+2026-11-22T08:14:03.9685112Z   ✔ contact SDK recovers a lost committed reply and retains original facts after later workflow changes (94.572273ms)
+2026-11-22T08:14:04.0073222Z   ✔ reads leave records/audits/operations intact; runtime has no receipt DML or unscoped directory (40.922559ms)
+2026-11-22T08:14:04.0106776Z ✔ enquiry SDK uses signed identity, actual loopback HTTP and restricted SQL with original-command recovery (2424.219732ms)
+2026-11-22T08:14:06.2403339Z ▶ workspace SDK reads one RLS-authorized current draft/gallery snapshot through a restricted login
+2026-11-22T08:14:06.2411143Z   ✔ empty/full and sparse galleries retain every association and safe private content (47.897444ms)
+2026-11-22T08:14:06.2411820Z   ✔ successful and denied GETs mutate no tokens, gallery, operations or audits (23.319055ms)
+2026-11-22T08:14:06.2412431Z   ✔ identity, customer, peer, foreign membership and tenant isolation remain distinct (29.602404ms)
+2026-11-22T08:14:06.2413121Z   ✔ explicit sparse repair/reorder and removal produce current versions and ordered readback (54.280666ms)
+2026-11-22T08:14:06.2413737Z   ✔ reassignment, current revoked membership and disabled tenant immediately deny reads (39.810048ms)
+2026-11-22T08:14:06.2414365Z   ✔ workspace needs no media DML, coordinator capability or privileged API login (1.917273ms)
+2026-11-22T08:14:06.2415066Z ✔ workspace SDK reads one RLS-authorized current draft/gallery snapshot through a restricted login (2096.912517ms)
+2026-11-22T08:14:08.3699825Z ✔ signed listing controls recover a discarded committed reply, preserve original history and deny current access loss (1980.406734ms)
+2026-11-22T08:14:10.5575499Z ✔ signed creation HTTP recovers discarded committed reply and refuses changed facts under restricted SQL authority (2049.205877ms)
+2026-11-22T08:14:12.7959661Z ▶ reference SDK through opt-in API and restricted SQL recovers committed originals without automatic rewrite
+2026-11-22T08:14:12.7960796Z   ✔ lost committed POST returns uncertainty and performs no automatic replay (42.779854ms)
+2026-11-22T08:14:12.7966878Z   ✔ explicit GET original and explicit identical replay retain one saved version (8.738562ms)
+2026-11-22T08:14:12.7968033Z   ✔ new catalogue does not remap original recovery; stale new write conflicts (16.519585ms)
+2026-11-22T08:14:12.7968917Z   ✔ current membership and assignment loss prevents original reads independently of saved ownership (10.21007ms)
+2026-11-22T08:14:12.7970200Z   ✔ current staff-checked catalogue over1MiB passes SDK6MiB transport and frozen validator (197.661848ms)
+2026-11-22T08:14:12.7971358Z ✔ reference SDK through opt-in API and restricted SQL recovers committed originals without automatic rewrite (2112.112331ms)
+2026-11-22T08:14:15.2428593Z ✔ actual signed HTTP/restricted SQL captures anonymously then admin reviews once and recovers both originals (2289.404087ms)
+2026-11-22T08:14:17.0370500Z ✔ actual signed agent cannot read/review reports; altered signature is refused and guest original remains minimal (1792.677327ms)
+2026-11-22T08:14:18.8088288Z ✔ committed capture and review with corrupt replies recover originals without duplicate rows (1778.090221ms)
+2026-11-22T08:14:21.2004840Z ✔ signed successor HTTP recovers a discarded committed reply, preserves originals and rolls back mismatched adapters (2245.891992ms)
+2026-11-22T08:14:23.5224248Z ✔ signed SDK HTTP and restricted SQL preserve video original through lost committed reply and explicit GET recovery (2152.947169ms)
+2026-11-22T08:14:26.5760721Z ✔ signed video requests cannot supply another listing, foreign signature or role authority; omitted mode stays absent (3056.933624ms)
+2026-11-22T08:14:28.9063889Z ▶ attach SDK uses actual restricted API/SQL intent, finalize readback and original-operation recovery
+2026-11-22T08:14:28.9065013Z   ✔ tuple validation and original explicit version precede intent allocation (78.657724ms)
+2026-11-22T08:14:28.9065777Z   ✔ ready acknowledgement creates no media/token change; finalize applies exactly once (73.066482ms)
+2026-11-22T08:14:28.9066756Z   ✔ same-token intents serialize to applied and durable conflict; reuse needs explicit new operation/version (86.465745ms)
+2026-11-22T08:14:28.9067850Z   ✔ lost committed creation acknowledgement is uncertain once and recoverable by authorized original readback (42.944354ms)
+2026-11-22T08:14:28.9068669Z   ✔ current principal/company/assignment authorization protects ready and historical receipt facts (59.859002ms)
+2026-11-22T08:14:28.9069490Z   ✔ API login has no direct coordinator/table authority or public finalize route; disabled tenant blocks historical recovery (6.887898ms)
+2026-11-22T08:14:28.9070307Z ✔ attach SDK uses actual restricted API/SQL intent, finalize readback and original-operation recovery (2195.481521ms)
+2026-11-22T08:14:31.5828269Z ▶ gallery SDK uses actual restricted API login, immutable SQL receipts and explicit readback recovery
+2026-11-22T08:14:31.5829649Z   ✔ complete permutation applies one token and one audit; replay is historical (36.436101ms)
+2026-11-22T08:14:31.5832325Z   ✔ explicit exact-order and empty-order noop preserve token and audit (19.134426ms)
+2026-11-22T08:14:31.5833482Z   ✔ middle removal compacts positions once, retains provenance and later historical order (39.921511ms)
+2026-11-22T08:14:31.5834556Z   ✔ stale version and absent/full-set failures remain durable facts without mutation (30.316011ms)
+2026-11-22T08:14:31.5844307Z   ✔ both lost committed removal and reorder replies recover once without automatic retry (54.540095ms)
+2026-11-22T08:14:31.5845333Z   ✔ historical order survives submission/approval while new commands cannot alter reviewed or public photos (56.41963ms)
+2026-11-22T08:14:31.5846082Z   ✔ current same-principal authorization guards receipts, writes, assignment, tenant and membership (50.383154ms)
+2026-11-22T08:14:31.5846793Z   ✔ restricted API login has no receipt table DML or coordinator authority; disabled tenant blocks history (5.912873ms)
+2026-11-22T08:14:31.5847757Z ✔ gallery SDK uses actual restricted API login, immutable SQL receipts and explicit readback recovery (2542.221977ms)
+2026-11-22T08:14:33.8764383Z ▶ media SDK executes actual restricted API/SQL registration and historical reconciliation without media mutation
+2026-11-22T08:14:33.8765552Z   ✔ current assigned requester registers one private job and reads exact capability-free projections (56.491605ms)
+2026-11-22T08:14:33.8766760Z   ✔ foreign, unassigned, customer and different-principal access cannot recover or repurpose the receipt (49.575988ms)
+2026-11-22T08:14:33.8768539Z   ✔ explicit same-body replay is stable while changed body/version and new stale registrations are definite conflicts (26.760733ms)
+2026-11-22T08:14:33.8770337Z   ✔ lost committed registration response stays uncertain once and reconciles after a later draft save (40.488278ms)
+2026-11-22T08:14:33.8773018Z   ✔ historical receipt survives submission without renewing job or allowing a fresh registration (36.163695ms)
+2026-11-22T08:14:33.8774298Z   ✔ current reassignment, membership revocation and company disablement remove historical read/replay access (55.328918ms)
+2026-11-22T08:14:33.8775620Z ✔ media SDK executes actual restricted API/SQL registration and historical reconciliation without media mutation (2157.077301ms)
+2026-11-22T08:14:36.2944240Z ▶ moderation SDK uses actual API/SQL admin gates, snapshot decisions and uncertain committed approval
+2026-11-22T08:14:36.2945489Z   ✔ only current company admins can queue/read/decide and compact queue omits private draft fields (60.729812ms)
+2026-11-22T08:14:36.2946760Z   ✔ detail preserves exact nullable inputs/photos, admin-only private fields and distinct concurrency tokens (15.204348ms)
+2026-11-22T08:14:36.2949211Z   ✔ stale decisions return a definite conflict and leave the pending review/public snapshot unchanged (18.211522ms)
+2026-11-22T08:14:36.2950283Z   ✔ rejection persists its reason and preserves publication while the next revision awaits review (79.353384ms)
+2026-11-22T08:14:36.2952434Z   ✔ approval of the exact pending revision replaces the approved public snapshot and cannot be replayed (19.962135ms)
+2026-11-22T08:14:36.2958255Z   ✔ lost response after committed approval is uncertain once and reconciles through exact review readback (27.83063ms)
+2026-11-22T08:14:36.2959346Z ✔ moderation SDK uses actual API/SQL admin gates, snapshot decisions and uncertain committed approval (2285.551328ms)
+2026-11-22T08:14:38.5129192Z ▶ creation SDK and opt-in API retain one full original through rollback, lost reply and current access changes
+2026-11-22T08:14:38.5134942Z   ✔ creation is separately default-off and invalid or orphan startup modes refuse before I/O (21.535467ms)
+2026-11-22T08:14:38.5138908Z   ✔ canonical route, method, authority headers and exact full body fail closed before a write (14.357273ms)
+2026-11-22T08:14:38.5140463Z   ✔ untrusted SQL receipt rolls allocation back and cannot create a recoverable original (35.126018ms)
+2026-11-22T08:14:38.5141569Z   ✔ a malformed reply after commit is uncertain; one explicit GET recovers the same original without allocating again (28.736231ms)
+2026-11-22T08:14:38.5142345Z   ✔ malformed original SQL projections never execute getters or return private details (8.299959ms)
+2026-11-22T08:14:38.5143000Z   ✔ current customer, requester, company, revoked membership and assignment changes deny recovery (17.026367ms)
+2026-11-22T08:14:38.5143689Z   ✔ historical originals survive pointer activation and later edits; new stale creation rolls back (37.559396ms)
+2026-11-22T08:14:38.5144365Z   ✔ large valid Unicode composite crosses the dedicated response bound and matches the retained command (79.894748ms)
+2026-11-22T08:14:38.5145090Z   ✔ cancellation after SQL execution is checked before transaction commit and leaves no original (18.218472ms)
+2026-11-22T08:14:38.5145820Z ✔ creation SDK and opt-in API retain one full original through rollback, lost reply and current access changes (2080.002303ms)
+2026-11-22T08:14:40.7569104Z ▶ moderation SDK composes with opt-in API and restricted SQL through original uncertainty and current access
+2026-11-22T08:14:40.7571367Z   ✔ lost committed submission remains uncertain with one POST and explicit GET recovers exact original (55.894419ms)
+2026-11-22T08:14:40.7572769Z   ✔ catalogue activation keeps original labels; caller retained-original mismatch cannot settle recovery (30.502075ms)
+2026-11-22T08:14:40.7573923Z   ✔ malformed committed withdrawal response stays uncertain and GET recovery does not resubmit (22.538791ms)
+2026-11-22T08:14:40.7575126Z   ✔ current editorial and operational context bind approval, with original recovery after lost success (42.737205ms)
+2026-11-22T08:14:40.7577615Z   ✔ paused approval remains private until explicit restore; approved reference sidecar retains original facts (18.056179ms)
+2026-11-22T08:14:40.7585346Z   ✔ current revocation and reassignment refuse original GET and explicit replay without another revision (12.303341ms)
+2026-11-22T08:14:40.7586168Z ✔ moderation SDK composes with opt-in API and restricted SQL through original uncertainty and current access (2113.95304ms)
+2026-11-22T08:14:43.2298981Z ▶ successor SDK and opt-in API retain one full original through rollback, lost reply and current access changes
+2026-11-22T08:14:43.2300463Z   ✔ successor is separately default-off and invalid or orphan startup modes refuse before I/O (21.587339ms)
+2026-11-22T08:14:43.2301397Z   ✔ canonical route, method, authority headers and exact full body fail closed before a write (18.217552ms)
+2026-11-22T08:14:43.2303084Z   ✔ authentication, current write authority, stale predecessors and body bounds leave no successor original (32.01517ms)
+2026-11-22T08:14:43.2304000Z   ✔ untrusted SQL receipt rolls allocation back and cannot create a recoverable original (17.623151ms)
+2026-11-22T08:14:43.2304999Z   ✔ a malformed reply after commit is uncertain; one explicit GET recovers the same original without allocating again (21.266421ms)
+2026-11-22T08:14:43.2306765Z   ✔ malformed original SQL projections never execute getters or return private details (10.932328ms)
+2026-11-22T08:14:43.2308698Z   ✔ current customer, requester, company, revoked membership and assignment changes deny recovery (27.805074ms)
+2026-11-22T08:14:43.2310058Z   ✔ historical originals survive pointer activation and later edits; new stale successor rolls back (32.321007ms)
+2026-11-22T08:14:43.2315986Z   ✔ large valid Unicode composite crosses the dedicated response bound and matches the retained command (78.536207ms)
+2026-11-22T08:14:43.2316940Z   ✔ cancellation after SQL execution is checked before transaction commit and leaves no original (17.147407ms)
+2026-11-22T08:14:43.2318189Z ✔ successor SDK and opt-in API retain one full original through rollback, lost reply and current access changes (2340.085297ms)
+2026-11-22T08:14:45.3629963Z ✔ shared client exercises actual API service, restricted runtime transactions, tenant scope and durable idempotency in PGlite (1994.627413ms)
+2026-11-22T08:14:47.5901042Z ✔ signed branch HTTP saves/replays/reads original/current with terminal conflict/no-op and directory reflection (2066.981592ms)
+2026-11-22T08:14:50.5023459Z ✔ signed branch writes/current/original reads reject agent and foreign-company actors (2910.875463ms)
+2026-11-22T08:14:51.9396551Z ✔ signed SDK branch committed corrupt reply recovers original by GET only and reflects current directory (1440.744166ms)
+2026-11-22T08:14:54.1510530Z ✔ signed HTTP invitation capture, original and revocation preserve exact historical receipts (2045.960372ms)
+2026-11-22T08:14:55.5698788Z ✔ signed agent cannot capture an invitation (1417.508384ms)
+2026-11-22T08:14:56.9574804Z ✔ signed other-company-admin cannot capture an invitation (1390.32698ms)
+2026-11-22T08:14:58.3940338Z ✔ invitation preview stays default-off and rejects unknown fixture modes (1436.152441ms)
+2026-11-22T08:14:59.9020153Z ✔ committed invitation and revocation recover by GET alone after corrupt signed HTTP replies (1508.083075ms)
+2026-11-22T08:15:01.3144616Z ✔ signed invitation HTTP rejects query and caller-selected authority without creating a request (1410.045434ms)
+2026-11-22T08:15:02.7922145Z ✔ actual signed private directory pages retain current invitation states and enforce exact query bounds (1481.217234ms)
+2026-11-22T08:15:05.6685821Z ✔ actual signed agent and foreign-company actor cannot list either private directory (2877.915074ms)
+2026-11-22T08:15:07.9293485Z ✔ signed SDK membership lifecycle preserves originals, explicit replay, terminal conflicts, no-ops and existing-member boundaries (2093.01117ms)
+2026-11-22T08:15:09.3920666Z ✔ committed corrupt signed membership reply recovers exact original by GET only without automatic write replay (1461.472662ms)
+2026-11-22T08:15:13.6405402Z ✔ signed agent/foreign identities and omitted or invalid preview modes cannot administer memberships (4255.068204ms)
+2026-11-22T08:15:16.0074397Z ▶ staff v2 client integrates with real service, SQL assignment checks and optimistic versions
+2026-11-22T08:15:16.0075409Z   ✔ bounded listing queue uses current RLS assignment, separates latest draft from public revision and leaks no private content (63.696237ms)
+2026-11-22T08:15:16.0076214Z   ✔ invalid identity, customer, peer and foreign-company calls cannot read or mutate an assigned draft (57.160815ms)
+2026-11-22T08:15:16.0078912Z   ✔ assigned staff receives exact raw cents, quotes, nullable location and private fields without public leakage (4.498686ms)
+2026-11-22T08:15:16.0080015Z   ✔ a new incomplete full replacement saves but cannot bypass submit requirements (27.215815ms)
+2026-11-22T08:15:16.0082137Z   ✔ successful full replacement preserves unedited fields and a stale version cannot overwrite it (22.414235ms)
+2026-11-22T08:15:16.0082948Z   ✔ a lost response after an actual save commits is uncertain and requires read reconciliation (19.965457ms)
+2026-11-22T08:15:16.0083604Z   ✔ a lost submit response leaves pending review, cannot replay or edit, and retains the approved snapshot (26.647499ms)
+2026-11-22T08:15:16.0084341Z ✔ staff v2 client integrates with real service, SQL assignment checks and optimistic versions (2229.561755ms)
+2026-11-22T08:15:18.2952911Z ▶ v2 client integrates with actual migrations, API service and restricted tenant transactions
+2026-11-22T08:15:18.2954915Z   ✔ v2 public projection preserves exact disclosure, omits private data and isolates two companies (33.18693ms)
+2026-11-22T08:15:18.2956004Z   ✔ v1 stays compatible and contains no v2 extension fields (4.299949ms)
+2026-11-22T08:15:18.2956914Z   ✔ pre-migration published rows expose explicitly undeclared fees and null structured location (4.525241ms)
+2026-11-22T08:15:18.2958227Z   ✔ changed draft, pending review and rejection keep the original published price and location snapshot (27.943051ms)
+2026-11-22T08:15:18.2959376Z   ✔ a subsequent new draft persists extensions without replacing the public snapshot or crossing company (31.753592ms)
+2026-11-22T08:15:18.2960407Z ✔ v2 client integrates with actual migrations, API service and restricted tenant transactions (2147.780598ms)
+2026-11-22T08:15:20.5892138Z ✔ signed attendance recovers a discarded commit through access restoration and preserves first and later cycle evidence (2141.495541ms)
+2026-11-22T08:15:23.1625625Z ✔ signed capture-only reminder HTTP recovers discarded commits and preserves current-state suppression and original histories (2420.719373ms)
+2026-11-22T08:15:25.7047464Z ✔ signed rescheduling recovers a discarded commit,requires new agreements and retains repeated-cycle history through current access loss (2373.294326ms)
+2026-11-22T08:15:27.5113580Z ✔ signed terminal workflow recovers a discarded committed reply and retains original phone evidence through access loss (1804.402237ms)
+2026-11-22T08:15:29.2475567Z ✔ signed phone confirmation recovers a lost committed result and preserves historical proposals/current access (1737.113709ms)
+2026-11-22T08:15:30.9518748Z ✔ signed viewing SDK preserves original committed receipts,replay and current assignment over real HTTP/restricted SQL (1706.233482ms)
+2026-11-22T08:15:31.0009019Z ℹ tests 124
+2026-11-22T08:15:31.0009483Z ℹ suites 0
+2026-11-22T08:15:31.0010117Z ℹ pass 124
+2026-11-22T08:15:31.0010338Z ℹ fail 0
+2026-11-22T08:15:31.0010633Z ℹ cancelled 0
+2026-11-22T08:15:31.0010886Z ℹ skipped 0
+2026-11-22T08:15:31.0011147Z ℹ todo 0
+2026-11-22T08:15:31.0011404Z ℹ duration_ms 89540.820596
+2026-11-22T08:15:31.0094607Z CI suite sdk-database: npm run test:database
+2026-11-22T08:15:31.0793798Z 
+2026-11-22T08:15:31.0795051Z > realtor-platform@0.1.0 test:database
+2026-11-22T08:15:31.0795944Z > node --test --test-concurrency=1 database/tests/*.test.mjs
+2026-11-22T08:15:31.0796437Z 
+2026-11-22T08:15:33.0497903Z ✔ audit projection preserves exact metadata and bigint facts without private payloads or foreign events (1865.937353ms)
+2026-11-22T08:15:34.4057780Z ✔ descending bounded pagination and exact UUID filters preserve rows across newer inserts (1356.509473ms)
+2026-11-22T08:15:35.7462222Z ✔ every read rechecks current admin authority and company enablement; audit stays append-only (1340.67839ms)
+2026-11-22T08:15:37.1009035Z ✔ an admin sees a real media registration without exposing staging receipt details (1357.494776ms)
+2026-11-22T08:15:39.1503638Z ✔ forward precision migration preserves guarded creation/successor behavior and the real-PG rehearsal fixture uses the maintained schema (1946.087833ms)
+2026-11-22T08:15:41.1035041Z ✔ all default application tables and callable routines retain least-privilege authorization fences (1870.705275ms)
+2026-11-22T08:15:43.0848877Z ✔ settings approval, current public projection, immutable history and bounded original recovery (1896.729653ms)
+2026-11-22T08:15:44.4955615Z ✔ settings current permission and tenant fences protect writes, reads and retained receipts (1412.510235ms)
+2026-11-22T08:15:45.8637454Z ✔ settings reject stale, changed replay, empty/noop, caller authority and unsafe public values atomically (1367.46027ms)
+2026-11-22T08:15:47.2651420Z ✔ settings history retains all records and advertises a bounded latest page (1404.549587ms)
+2026-11-22T08:15:49.3070668Z ✔ admin follow-up separates decisions and pages within the current company (1927.79673ms)
+2026-11-22T08:15:50.7314788Z ✔ customer progress reveals only a scoped status and preserves the original intake receipt (1426.0774ms)
+2026-11-22T08:15:52.1404013Z ✔ a current company admin can return a request to privacy review while preserving its original decisions (1405.102821ms)
+2026-11-22T08:15:53.4980876Z ✔ failed return audit leaves the request in follow-up and another admin cannot recover the receipt (1359.114424ms)
+2026-11-22T08:15:54.8830369Z ✔ only an independent designated company reviewer records and recovers a planning decision (1384.493465ms)
+2026-11-22T08:15:56.2470882Z ✔ a failed audit rolls back a hold and private decision tables stay unavailable to runtime (1362.486511ms)
+2026-11-22T08:15:57.6590245Z ✔ processing plan inventories scoped synthetic records without changing data or guessing identity links (1412.658802ms)
+2026-11-22T08:15:59.0429953Z ✔ processing plan requires the exact planning decision and current reviewer authority (1384.002988ms)
+2026-11-22T08:16:02.1443526Z ✔ snapshot cutoff controls whether restore preserves deletion, consent withdrawal and original decisions (3098.286614ms)
+2026-11-22T08:16:04.4259828Z ✔ signed offline restore recovers intake, withdrawn consent, review receipts and audits atomically (2286.838377ms)
+2026-11-22T08:16:06.4203664Z ✔ confirmed request tracks review and withdraws current consent, preserving original push receipts (1877.068593ms)
+2026-11-22T08:16:07.7771013Z ✔ requests need confirmation and current customer membership and stay isolated by account and company (1357.25906ms)
+2026-11-22T08:16:09.1327207Z ✔ an intake failure rolls back both the preference revision and device withdrawal (1355.918902ms)
+2026-11-22T08:16:10.4726629Z ✔ intake for default-off account keeps default preference state and blocks first opt-in (1337.959506ms)
+2026-11-22T08:16:12.7226746Z ✔ offline intake recovery restores exact withdrawal and receipt and refuses a divergent snapshot (2245.817602ms)
+2026-11-22T08:16:12.7227941Z ✔ synthetic intake export verifies the trusted key, exact snapshot, target and cutoff before replay (2.275491ms)
+2026-11-22T08:16:14.0870053Z ✔ synthetic sender captures once and suppresses stale consent, foreign registrations and pending deletion (1366.3228ms)
+2026-11-22T08:16:17.1092685Z ✔ durable synthetic push jobs recover retries and recheck current eligibility after scheduling (3019.671113ms)
+2026-11-22T08:16:18.4774294Z ✔ bounded push worker rolls back one failed capture, runs unrelated jobs and retries after cooldown (1373.092114ms)
+2026-11-22T08:16:20.4942353Z ✔ current admins see only their company’s unreviewed requests with a bounded cursor (1904.080173ms)
+2026-11-22T08:16:21.8991071Z ✔ triage is exact, immutable and actor-bound, with one minimal audit event (1405.487329ms)
+2026-11-22T08:16:23.2384916Z ✔ a failed audit rolls back the decision and keeps the request in the queue (1341.288753ms)
+2026-11-22T08:16:25.2841780Z ✔ desired-state writes retain exact original, no-op, terminal stale conflict and tombstone version (1937.516667ms)
+2026-11-22T08:16:26.7449493Z ✔ current customer role, company and raw storage fence reads and writes including original recovery (1473.030676ms)
+2026-11-22T08:16:28.1293985Z ✔ saved unavailable property reveals no private snapshot and can still be removed (1384.914868ms)
+2026-11-22T08:16:29.5809175Z ✔ bounded cursor pages and per-customer quota do not expose other customers or allow overflow (1449.884989ms)
+2026-11-22T08:16:31.8375641Z ✔ receipt is durable across actual close/reopen and rollback cannot leave a saved state without its receipt (2260.315004ms)
+2026-11-22T08:16:33.8331375Z ✔ push is off by default and opt-out deactivates devices without revival on later consent (1878.710793ms)
+2026-11-22T08:16:35.2085136Z ✔ registration ownership survives opt-out and prevents account and brand reassignment (1376.01968ms)
+2026-11-22T08:16:36.5860456Z ✔ current customer access, command shape, version and active device limit are enforced in SQL (1378.264605ms)
+2026-11-22T08:16:38.8023795Z ✔ notification receipt and state commit together and the exact original survives later changes and restore (2218.641383ms)
+2026-11-22T08:16:40.5762487Z ✔ ordered migration gives legacy rows unknown disclosure/location and keeps v1 projection and restricted grants (1668.924138ms)
+2026-11-22T08:16:41.7502966Z ✔ v2 saves exact charge/location inputs atomically with one actual optimistic increment and final-version audit (1186.029591ms)
+2026-11-22T08:16:43.0092521Z ✔ pricing storage rejects malformed containers, unknown keys, invalid labels/types/amounts and duplicate IDs (1258.756815ms)
+2026-11-22T08:16:44.1603451Z ✔ structured location rejects guessed/malformed shapes while nullable and Unicode code-point bounded inputs remain explicit (1150.455719ms)
+2026-11-22T08:16:45.3023739Z ✔ quotes stay null, deposits stay one-off and only rent permits recurring charges; a null-purpose draft permits no charges (1142.707304ms)
+2026-11-22T08:16:46.4567076Z ✔ numeric aggregate checks allow exact safe limits, reject mandatory/optional overflow and protect incompatible v1 edits (1152.406936ms)
+2026-11-22T08:16:47.5738582Z ✔ v2 commands enforce current tenant, assignment, membership and expected revision version without direct runtime writes (1117.713427ms)
+2026-11-22T08:16:48.7620707Z ✔ approval copies exact reviewed pricing/location; drafts, rejected/stale reviews and decided-revision attacks preserve public snapshot (1187.694309ms)
+2026-11-22T08:16:49.9602479Z ✔ v2 snapshot replacement preserves operational pause/archive and only explicit admin restoration exposes new pricing (1196.640287ms)
+2026-11-22T08:16:51.1057477Z ✔ v2 discovery inherits v1 enabled/fresh/available predicate and retains private/public location boundaries (1149.36474ms)
+2026-11-22T08:16:53.1353962Z ✔ candidate SQL denies direct zero allocation and private helpers without weakening positive edits (1925.496794ms)
+2026-11-22T08:16:54.5094421Z ✔ candidate guarded successor still allocates once, preserves predecessor and returns original after later edits (1372.670705ms)
+2026-11-22T08:16:55.8390613Z ✔ candidate unknown allocation failure rolls back request,result,revision and audit together (1331.924486ms)
+2026-11-22T08:16:57.7713176Z ✔ assignment has an exact narrow receipt and same assignment is a nonmutating noop (1841.931989ms)
+2026-11-22T08:16:59.1454526Z ✔ contact, dated reschedule, qualification, closing and reopening use persisted lifecycle (1375.081279ms)
+2026-11-22T08:17:00.4962762Z ✔ exact original replay and read recover history after later writes without mutation (1350.317179ms)
+2026-11-22T08:17:01.7840480Z ✔ conflict and valid business rejection are durable and never update the enquiry (1287.490768ms)
+2026-11-22T08:17:03.1020481Z ✔ current role, assignment, tenant and original requester guard both writes and recovery (1319.043828ms)
+2026-11-22T08:17:04.4056656Z ✔ assignment history is unavailable after admin downgrade and all history after revocation (1301.457273ms)
+2026-11-22T08:17:05.6939313Z ✔ malformed or ambiguous request values fail before installing history (1287.875761ms)
+2026-11-22T08:17:06.9730417Z ✔ assignment promotes legacy new rows but preserves existing workflow and dates (1280.464521ms)
+2026-11-22T08:17:08.2509743Z ✔ forbidden transitions require explicit reschedule and preserve original state (1274.133234ms)
+2026-11-22T08:17:09.5213533Z ✔ bounded admin picker is tenant-scoped active real roles without fabricated names (1272.495499ms)
+2026-11-22T08:17:10.7790312Z ✔ receipt table is forced-RLS, runtime-inaccessible and immutable even to owner (1257.776993ms)
+2026-11-22T08:17:12.0920115Z ✔ stored receipt constraints reject unknown projection, broken outcome versions, hash and tenancy (1312.623653ms)
+2026-11-22T08:17:13.3540806Z ✔ maximum supported current version produces durable conflict without overflow (1263.204545ms)
+2026-11-22T08:17:14.6260517Z ✔ original contacted revision survives later listing changes without public listing joins (1269.470977ms)
+2026-11-22T08:17:15.8989967Z ✔ activity lists only applied minimal attributed changes in bounded version order without mutating records (1272.98623ms)
+2026-11-22T08:17:17.1739760Z ✔ activity enforces current tenant, membership and assignment independently of original requester (1274.93519ms)
+2026-11-22T08:17:18.4482400Z ✔ activity declares bounded v2 coverage rather than inventing missing legacy changes (1274.468287ms)
+2026-11-22T08:17:19.7293363Z ✔ explicit contact preserves raw facts and actor without changing enquiry state; original receipt replays after later work (1280.112902ms)
+2026-11-22T08:17:20.9950444Z ✔ stale contact has durable conflict without an entry or audit and does not become applied on replay (1266.15969ms)
+2026-11-22T08:17:22.2575970Z ✔ contact reads/writes enforce current assignment, tenant, membership and immutable runtime boundaries (1261.324254ms)
+2026-11-22T08:17:23.5316822Z ✔ contact validation rejects invalid/future facts and bounded private feed does not include conflict attempts (1276.785812ms)
+2026-11-22T08:17:25.5958661Z ✔ sealed floor-plan attachment advances a draft once, retains original output and has no photo-count effect (1931.714487ms)
+2026-11-22T08:17:27.0530524Z ✔ replacement and removal preserve prior history and exact replay never restores removed content (1455.765956ms)
+2026-11-22T08:17:28.4700624Z ✔ fresh attachment requires exact current version and a sealed output for the same company/listing/revision (1416.575744ms)
+2026-11-22T08:17:29.8650544Z ✔ current company, membership and assignment govern writes, gallery reads and original recovery (1393.119356ms)
+2026-11-22T08:17:31.2488858Z ✔ malformed commands and changed operation originals cannot change a draft or existing gallery (1384.429166ms)
+2026-11-22T08:17:32.6132640Z ✔ audit failure rolls back attachment and version, while original rows remain immutable and inaccessible to raw runtime reads (1362.718206ms)
+2026-11-22T08:17:33.9646970Z ✔ pending and archived revisions refuse new attachment changes while retaining authorized historical reads (1355.441353ms)
+2026-11-22T08:17:36.0293875Z ✔ floor-plan seal binds actual lossless manifest and original output lease with one audit and exact historical read (1934.746082ms)
+2026-11-22T08:17:37.4600420Z ✔ floor-plan seal rejects photo, lossy, malformed and wrong-source declarations without a partial output (1431.650353ms)
+2026-11-22T08:17:38.8285879Z ✔ current actor, company, assignment, draft and exact claim/output remain required for a fresh seal (1366.510883ms)
+2026-11-22T08:17:40.1778708Z ✔ a committed floor-plan output remains exact history after a later edit and refuses a changed replay (1351.053176ms)
+2026-11-22T08:17:41.5149658Z ✔ expired processing lease and audit failure cannot leave an accepted partial output (1336.06238ms)
+2026-11-22T08:17:42.8353953Z ✔ floor-plan output rows are immutable and forced-RLS, with coordinator-only commands and no raw runtime reads (1318.911593ms)
+2026-11-22T08:17:44.1669918Z ✔ a failed seal audit rolls back completely and an explicit exact retry commits only once (1335.873916ms)
+2026-11-22T08:17:44.1671097Z ﹣ actual Windows floor-plan readback binds directly to the isolated SQL output seal (0.310081ms) # SKIP
+2026-11-22T08:17:46.1434331Z ✔ floor-plan processing has one immutable bounded lease with exact original facts and one audit (1864.194116ms)
+2026-11-22T08:17:47.5770014Z ✔ floor-plan claims and launch checks deny foreign scope, changed assignment, role loss and wrong nonces (1433.451496ms)
+2026-11-22T08:17:48.9181481Z ✔ expired leases cannot admit work or be replaced, and historical recovery preserves their deadline (1340.091071ms)
+2026-11-22T08:17:50.2290596Z ✔ claim collisions and audit failures leave no partial floor-plan lease (1312.221907ms)
+2026-11-22T08:17:51.5527932Z ✔ runtime roles cannot edit floor-plan leases and only the coordinator can execute processing functions (1325.314308ms)
+2026-11-22T08:17:53.7190092Z ✔ floor approval captures sealed attachment atomically; public projection excludes private provenance (2034.934366ms)
+2026-11-22T08:17:55.2160133Z ✔ explicit removal before submission is captured as null and never resurrects a historical attachment (1496.897148ms)
+2026-11-22T08:17:56.6634968Z ✔ current company and publication controls deny fresh delivery while retaining immutable approval (1445.21374ms)
+2026-11-22T08:17:58.0520332Z ✔ installing extension after approval never infers a floor plan or exposes private identifiers (1389.699278ms)
+2026-11-22T08:17:59.4869564Z ✔ floor plan is optional at approval and cannot substitute for the required property photos (1427.546615ms)
+2026-11-22T08:18:00.9007114Z ✔ rejected moderation cannot capture a public floor plan (1423.369295ms)
+2026-11-22T08:18:02.8885128Z ✔ floor-plan registration binds current staff and source facts once without changing photo or draft state (1874.681016ms)
+2026-11-22T08:18:04.2930215Z ✔ malformed floor-plan declarations and stale versions reserve no registration or audit (1403.057216ms)
+2026-11-22T08:18:05.6883574Z ✔ current company, assignment and original actor fence registration and recovery (1395.348648ms)
+2026-11-22T08:18:07.0180944Z ✔ historical originals survive draft edits and archive while fresh registration requires a current draft (1330.544045ms)
+2026-11-22T08:18:08.3516896Z ✔ floor-plan originals are immutable and audit failure rolls back registration without leaking runtime table access (1330.745654ms)
+2026-11-22T08:18:09.6937308Z ✔ floor-plan fresh-work preflight fences current scope, registered assignment and draft version without refreshing an original (1343.382381ms)
+2026-11-22T08:18:11.0196006Z ✔ expired and future-dated floor-plan registrations remain historical and cannot admit fresh bytes (1327.591388ms)
+2026-11-22T08:18:13.1396913Z ✔ successor freezes original source without copying upload, and exact replay/conflict cannot add mappings (1991.068451ms)
+2026-11-22T08:18:14.6629006Z ✔ explicit null overrides inherited plan and remains null in the next successor without historical resurrection (1523.082483ms)
+2026-11-22T08:18:16.0803696Z ✔ failed inheritance capture rolls back successor allocation and identical retry captures exactly once (1419.41629ms)
+2026-11-22T08:18:17.5493639Z ✔ adopted reference successor commits inheritance and explicit reference selection in the same transaction (1466.389277ms)
+2026-11-22T08:18:19.0870101Z ✔ approved inherited source is frozen across another successor and removal approval captures null (1537.984521ms)
+2026-11-22T08:18:20.5027432Z ✔ selection rechecks current assignment and company without impersonating the original source creator (1418.712117ms)
+2026-11-22T08:18:22.4366487Z ✔ migration forces RLS and API role has neither owner membership nor direct writes (1817.73617ms)
+2026-11-22T08:18:23.7964539Z ✔ missing context and customer cannot create; agents cannot choose another assignee (1364.124237ms)
+2026-11-22T08:18:25.1463437Z ✔ runtime private reads, edits, and reassignments respect company and assignment (1350.056209ms)
+2026-11-22T08:18:26.4370133Z ✔ revoked membership and disabled tenant fail the next protected request (1290.583362ms)
+2026-11-22T08:18:27.7200348Z ✔ composite foreign keys reject cross-company listing and revision relationships (1282.800817ms)
+2026-11-22T08:18:29.0497843Z ✔ money, periods, canonical types, rooms and unknown privileged fields fail closed (1330.021856ms)
+2026-11-22T08:18:30.3644881Z ✔ omitted concurrency versions cannot bypass protected updates (1312.356411ms)
+2026-11-22T08:18:31.7090429Z ✔ accepted photos cannot make an incomplete draft publishable (1345.368959ms)
+2026-11-22T08:18:33.0000173Z ✔ legacy accepted metadata remains unverified and cannot submit a complete draft (1292.048486ms)
+2026-11-22T08:18:34.3560924Z ✔ submission requires accepted photos and complete content; agent cannot approve (1354.729961ms)
+2026-11-22T08:18:35.7161852Z ✔ approved snapshot excludes private address and precise area coordinates (1356.9097ms)
+2026-11-22T08:18:37.1464009Z ✔ draft editing and rejection preserve published revision; stale review conflicts (1430.712826ms)
+2026-11-22T08:18:38.5618543Z ✔ withdraw and resubmit preserve history; admin self-approval atomically replaces exact snapshot (1415.329359ms)
+2026-11-22T08:18:39.9170706Z ✔ agent can pause/unavailable but only administrator resumes; stale stock excluded (1356.437156ms)
+2026-11-22T08:18:42.7340420Z ✔ approval cannot resurrect a listing paused or archived while its revision was pending (2817.770292ms)
+2026-11-22T08:18:44.1730901Z ✔ an older rejected review cannot overwrite a newer approved guarded successor snapshot (1437.811616ms)
+2026-11-22T08:18:45.5503388Z ✔ enquiry receipt is durable/idempotent and never grants guest/customer private reads (1375.555621ms)
+2026-11-22T08:18:46.9243166Z ✔ paused property denies fresh capture while original enquiry replay retains contacted revision (1364.385088ms)
+2026-11-22T08:18:48.2101396Z ✔ enquiry assignment, next actions, closure and version restrictions (1294.26137ms)
+2026-11-22T08:18:49.5095426Z ✔ transaction-local actor context is cleared on connection reuse (1303.374541ms)
+2026-11-22T08:18:51.4425050Z ✔ normal migration order supports authorized guarded preview creation (1821.625122ms)
+2026-11-22T08:18:53.3773452Z ✔ original confirmation is immutable and exactly replayed after later publication changes (1837.670751ms)
+2026-11-22T08:18:54.7345371Z ✔ pause recovery survives later archive but fresh agent work and demoted admin history are denied (1355.53468ms)
+2026-11-22T08:18:56.0884970Z ✔ stale conflicts precede future clocks, confirmation refuses future clocks, safety archive remains possible (1354.043978ms)
+2026-11-22T08:18:57.3923292Z ✔ publish requires an independently stored approved snapshot; nonavailable confirmation pauses without republishing (1302.466808ms)
+2026-11-22T08:18:58.7002979Z ✔ unknown completion failure rolls back listing, audit and reservation; ledger tables deny runtime DML (1307.386577ms)
+2026-11-22T08:19:00.0291263Z ✔ safe version exhaustion is durable without mutation and unauthorized malformed work never reserves (1328.803046ms)
+2026-11-22T08:19:01.3559580Z ✔ admin publication selects existing approved snapshot without renewing confirmation; archive/reopen preserves it (1327.733528ms)
+2026-11-22T08:19:02.6607880Z ✔ incomplete reservations and incompatible results cannot commit; disabled tenants cannot read history (1304.190235ms)
+2026-11-22T08:19:03.9498301Z ✔ original receipt preserves six-digit UTC completion precision (1291.746608ms)
+2026-11-22T08:19:06.0162003Z ▶ durable listing creation allocates atomically and recovers only exact current-authorized originals
+2026-11-22T08:19:06.0162747Z   ✔ created request and original agree with domain, initial versions and minimized audits (33.065477ms)
+2026-11-22T08:19:06.0163435Z   ✔ exact replay returns historical original without allocations or audits after a later edit (18.708547ms)
+2026-11-22T08:19:06.0164103Z   ✔ wrong route, requester, peer, admin and foreign tenant cannot read another original (12.219833ms)
+2026-11-22T08:19:06.0168070Z   ✔ assignment and membership loss hide successful originals until current access is restored (14.215886ms)
+2026-11-22T08:19:06.0169201Z   ✔ identity and slug collisions retain indistinguishable generic refusals without private inventory facts (9.35109ms)
+2026-11-22T08:19:06.0170092Z   ✔ invalid facts cannot become durable collision refusals or partial allocations (19.599124ms)
+2026-11-22T08:19:06.0170842Z   ✔ outer rollback removes successful allocation, original and audits (6.935964ms)
+2026-11-22T08:19:06.0171511Z   ✔ deferred completion linkage forbids committed orphan reservations (2.365948ms)
+2026-11-22T08:19:06.0172237Z   ✔ private ledgers force RLS, deny runtime access and are immutable even for owner (6.499957ms)
+2026-11-22T08:19:06.0173076Z   ✔ bounded canonical snapshots preserve Unicode, exact money and original private text (10.267674ms)
+2026-11-22T08:19:06.0173916Z   ✔ admin creation self-assigns and tenant-scoped identities do not expose another company (13.747873ms)
+2026-11-22T08:19:06.0174679Z ✔ durable listing creation allocates atomically and recovers only exact current-authorized originals (1972.273912ms)
+2026-11-22T08:19:08.1125969Z ▶ duplicate hints bind current admin, company and latest versions without mutation
+2026-11-22T08:19:08.1130274Z   ✔ returns only conservative same-company current-work hints with bounded lookahead and no private facts (13.256617ms)
+2026-11-22T08:19:08.1131214Z   ✔ missing comparison facts are explicit, not a claim that no duplicate exists (6.322348ms)
+2026-11-22T08:19:08.1132319Z   ✔ nonadmins/foreign target/revoked membership/disabled company denied before stale currency (16.673195ms)
+2026-11-22T08:19:08.1133064Z   ✔ exact target currency and input bounds are required (14.666338ms)
+2026-11-22T08:19:08.1133859Z   ✔ latest guarded successor supersedes old matching content without erasing history (71.090508ms)
+2026-11-22T08:19:08.1134737Z   ✔ PUBLIC/media coordinator/runtime private helper privileges remain isolated (1.960137ms)
+2026-11-22T08:19:08.1135661Z ✔ duplicate hints bind current admin, company and latest versions without mutation (1993.681429ms)
+2026-11-22T08:19:10.1547746Z ▶ import stock intersection is bounded, current-admin, company-isolated and read-only
+2026-11-22T08:19:10.1550001Z   ✔ returns only requested current-company matches in deterministic order with no writes (10.006619ms)
+2026-11-22T08:19:10.1560643Z   ✔ agent/customer/missing member cannot compare even malformed candidates (5.40368ms)
+2026-11-22T08:19:10.1561485Z   ✔ revocation, disabled company and demotion apply to each new read (7.901423ms)
+2026-11-22T08:19:10.1562214Z   ✔ rejects empty, duplicate, malformed, multidimensional and oversized candidate arrays (16.55806ms)
+2026-11-22T08:19:10.1563348Z   ✔ PUBLIC and media coordinator have no execute grant; api runtime does (2.267839ms)
+2026-11-22T08:19:10.1564368Z ✔ import stock intersection is bounded, current-admin, company-isolated and read-only (1942.125356ms)
+2026-11-22T08:19:10.2642466Z ✔ candidate source plan freezes six explicit hashed files without changing default migration order (5.616968ms)
+2026-11-22T08:19:12.1928068Z ▶ every simulated install failure rolls back candidate DDL/columns/ACLs and keeps existing ordinary history intact
+2026-11-22T08:19:12.1928917Z   ✔ failure before listing-reference-draft.sql (11.219367ms)
+2026-11-22T08:19:12.2161800Z   ✔ failure before listing-reference-catalogue-install.sql (23.21138ms)
+2026-11-22T08:19:12.2390950Z   ✔ failure before listing-reference-read.sql (22.702148ms)
+2026-11-22T08:19:12.2695379Z   ✔ failure before listing-reference-moderation.sql (29.36271ms)
+2026-11-22T08:19:12.2998518Z   ✔ failure before listing-reference-creation.sql (30.690184ms)
+2026-11-22T08:19:12.3342327Z   ✔ failure before listing-reference-successor.sql (34.78713ms)
+2026-11-22T08:19:12.3852030Z ✔ every simulated install failure rolls back candidate DDL/columns/ACLs and keeps existing ordinary history intact (2119.866237ms)
+2026-11-22T08:19:13.8724971Z ✔ populated ordinary and bare-record callers preserve receipts, permissions, positive versions and approved pointer after atomic candidate install (1488.226766ms)
+2026-11-22T08:19:15.3410097Z ✔ explicit reference adoption never infers IDs from ordinary labels and cannot fall back to ordinary v2 writes (1468.974035ms)
+2026-11-22T08:19:16.8059804Z ▶ authoritative mixed-row protocol read follows current assignment and persisted adoption without writing
+2026-11-22T08:19:16.8060662Z   ✔ ordinary draft and terminal approved row are distinct; reads preserve all history (8.85372ms)
+2026-11-22T08:19:16.8061633Z   ✔ unassigned, customer, foreign tenant, absent, bare and malformed targets are denied (12.749538ms)
+2026-11-22T08:19:16.8062332Z   ✔ explicit adoption changes protocol and version, while another ordinary row stays ordinary (16.389109ms)
+2026-11-22T08:19:16.8064344Z   ✔ reassignment and membership revocation invalidate earlier authorized reads (7.905401ms)
+2026-11-22T08:19:16.8065178Z ✔ authoritative mixed-row protocol read follows current assignment and persisted adoption without writing (1468.349568ms)
+2026-11-22T08:19:18.8328842Z ▶ isolated catalogue installation validates facts and atomically activates explicit versions
+2026-11-22T08:19:18.8330386Z   ✔ empty catalogue can activate; unordered valid hierarchy is accepted by both domain and SQL (17.538261ms)
+2026-11-22T08:19:18.8332160Z   ✔ same payload replay never reactivates an older installation; conflicts and stale CAS do not write (4.279639ms)
+2026-11-22T08:19:18.8333326Z   ✔ domain and SQL reject malformed labels, IDs, sets, edges and metadata before activation (33.301295ms)
+2026-11-22T08:19:18.8334403Z   ✔ catalogue and amenity cardinality bounds reject without retaining partial rows (14.807779ms)
+2026-11-22T08:19:18.8335511Z   ✔ runtime cannot ingest or change activation; owner transaction rollback restores old version (8.031194ms)
+2026-11-22T08:19:18.8336438Z ✔ isolated catalogue installation validates facts and atomically activates explicit versions (1928.044128ms)
+2026-11-22T08:19:20.9698782Z ▶ isolated reference creation composes allocation and selection without partial stock or synthetic publication
+2026-11-22T08:19:20.9700645Z   ✔ new stock starts as one assigned draft with an immutable composed receipt and exact saved references (43.095298ms)
+2026-11-22T08:19:20.9702664Z   ✔ unknown references, mismatched disclosure and incompatible amenities roll back allocation and every receipt (42.585253ms)
+2026-11-22T08:19:20.9704697Z   ✔ duplicate target ID or slug cannot leave a v2-only refusal or alter existing stock (13.251635ms)
+2026-11-22T08:19:20.9705534Z   ✔ runtime cannot forge, rewrite or delete private composed receipts (3.973243ms)
+2026-11-22T08:19:20.9708107Z   ✔ current requester role, assignment and company gate original reads and matching replay (21.668385ms)
+2026-11-22T08:19:20.9708855Z   ✔ legacy two-step originals cannot fabricate a composed recovery receipt (11.039877ms)
+2026-11-22T08:19:20.9709745Z   ✔ historical replay survives catalogue activation and later draft edits without re-saving or replacing the original (14.328479ms)
+2026-11-22T08:19:20.9710780Z   ✔ creation alone supplies no photos, availability confirmation or publication (4.434238ms)
+2026-11-22T08:19:20.9711781Z ✔ isolated reference creation composes allocation and selection without partial stock or synthetic publication (2039.222326ms)
+2026-11-22T08:19:23.1693502Z ▶ isolated reference candidate binds content, labels and receipt to one editorial version
+2026-11-22T08:19:23.1697302Z   ✔ owner catalogue rejects wrong-level and incomplete parent edges (4.676462ms)
+2026-11-22T08:19:23.1698686Z   ✔ unadopted v2 lifecycle remains available; pending drafts cannot adopt or bypass stale review (56.887385ms)
+2026-11-22T08:19:23.1699653Z   ✔ one update, exact original replay and authorized GET recovery (13.981863ms)
+2026-11-22T08:19:23.1700562Z   ✔ legacy edit and invisible submission fail closed after explicit adoption (4.94042ms)
+2026-11-22T08:19:23.1701284Z   ✔ stale core version, cross-parent selection, stale catalogue and incompatible amenities reject atomically (21.56721ms)
+2026-11-22T08:19:23.1702000Z   ✔ assignment, current role and tenant bind both write and receipt reads (9.209193ms)
+2026-11-22T08:19:23.1702689Z   ✔ runtime cannot edit catalogue, attributes or receipts directly; rollback retains no write (16.890119ms)
+2026-11-22T08:19:23.1703628Z   ✔ historical receipts retain labels after future owner catalogue installation (11.152354ms)
+2026-11-22T08:19:23.1704683Z ✔ isolated reference candidate binds content, labels and receipt to one editorial version (2094.191709ms)
+2026-11-22T08:19:25.3702905Z ▶ isolated reference moderation binds reviewed facts and immutable approved public attributes
+2026-11-22T08:19:25.3703911Z   ✔ proposal is separate and original adopted-submit guard stays closed before installation (6.358846ms)
+2026-11-22T08:19:25.6330051Z   ✔ read projection contains exact private content, original attributes and immutable media facts (7.556445ms)
+2026-11-22T08:19:25.6331211Z   ✔ current assignment/company/customer/admin-review guards refuse before exposing facts (7.146623ms)
+2026-11-22T08:19:25.6332055Z   ✔ tampered reviewed content, attributes, gallery, context and extra fields never create permits (13.148925ms)
+2026-11-22T08:19:25.6338834Z   ✔ submission retains sealed-media validation and rolls receipt/state back on failure (8.740364ms)
+2026-11-22T08:19:25.6339840Z   ✔ explicit submit and identical replay use one editorial version with original actor recovery (16.493914ms)
+2026-11-22T08:19:25.6341029Z   ✔ legacy review decision and withdraw cannot reuse a permit from another version (6.722095ms)
+2026-11-22T08:19:25.6342087Z   ✔ catalogue activation does not rewrite original reviewed labels or permit stale snapshot approval (7.344266ms)
+2026-11-22T08:19:25.6343074Z   ✔ operational pause invalidates prior listing currency and approval preserves the pause (20.145409ms)
+2026-11-22T08:19:25.6343867Z   ✔ explicit restore publishes only approved snapshot facts, original labels and no private address/area coordinates (12.534337ms)
+2026-11-22T08:19:25.6344805Z   ✔ approval still requires current availability and failed approval leaves no receipt/snapshot (15.886384ms)
+2026-11-22T08:19:25.6345793Z   ✔ late approved-attribute failure rolls back revision, base snapshot, publication, receipt and audit together (17.630806ms)
+2026-11-22T08:19:25.6347374Z   ✔ withdraw/resubmit changes editorial currency; rejection requires exact reason and remains private (34.437861ms)
+2026-11-22T08:19:25.6348514Z   ✔ runtime cannot forge receipts/approved facts/settings and immutable owner receipts refuse edits (10.65963ms)
+2026-11-22T08:19:25.6349395Z   ✔ unadopted legacy revisions retain submission/approval and public visibility with explicit absent references (59.030446ms)
+2026-11-22T08:19:25.6350348Z   ✔ revocation and reassignment prevent original recovery and historical receipt replay (6.258209ms)
+2026-11-22T08:19:25.6351826Z ✔ isolated reference moderation binds reviewed facts and immutable approved public attributes (2358.9557ms)
+2026-11-22T08:19:28.0644042Z ▶ isolated reference successor atomically adopts explicit references and preserves originals
+2026-11-22T08:19:28.0645021Z   ✔ version-limit refusal and a failure after reference adoption leave no partial completion (81.027707ms)
+2026-11-22T08:19:28.0646118Z   ✔ invalid references, disclosure and stale predecessor roll back revision, listing version, audits and all originals (56.058256ms)
+2026-11-22T08:19:28.0647075Z   ✔ rejected predecessor allocates exactly one reference-aware revision with an empty gallery (37.432961ms)
+2026-11-22T08:19:28.0649594Z   ✔ approved public pointer and predecessor remain unchanged by successor allocation (9.996899ms)
+2026-11-22T08:19:28.0651235Z   ✔ current role, original actor, tenant and assignment gate reads and exact replay (18.781895ms)
+2026-11-22T08:19:28.0653372Z   ✔ independent two-step originals cannot fabricate recovery; explicit matching composition may mark completion (17.012757ms)
+2026-11-22T08:19:28.0654517Z   ✔ private marker is FORCE RLS, immutable and inaccessible for runtime DML (5.369275ms)
+2026-11-22T08:19:28.0655662Z   ✔ historical original survives activation and later edits without saving or copying current state (14.765356ms)
+2026-11-22T08:19:28.0656671Z ✔ isolated reference successor atomically adopts explicit references and preserves originals (2326.001525ms)
+2026-11-22T08:19:30.1603358Z ✔ anonymous report is durable/idempotent, minimal and does not change publication or classify an accusation as true (1989.187487ms)
+2026-11-22T08:19:31.6236816Z ✔ new capture requires enabled/current public stock; saved minimal original survives pause but not foreign company or disabled tenant (1465.549142ms)
+2026-11-22T08:19:33.0520803Z ✔ anonymous capture rejects any signed actor; report queue is current admin/company only and excludes operation secrets (1427.085657ms)
+2026-11-22T08:19:34.4866496Z ✔ reasoned triage is exact-version, once-only, original-actor/current-role bound and independent of publication (1432.002529ms)
+2026-11-22T08:19:35.9154666Z ✔ bounded keyset queue traverses all reports exactly once, preserves filter semantics and rejects foreign/missing cursors (1428.777455ms)
+2026-11-22T08:19:37.3530221Z ✔ raw tables/private helpers are unavailable to API/media roles; preserved facts and decisions reject owner mutation (1438.22767ms)
+2026-11-22T08:19:38.7902560Z ✔ malformed/forged reports and triage cannot write; stale availability refuses new capture (1439.632321ms)
+2026-11-22T08:19:40.8184120Z ✔ successor SQL allocates once with empty gallery and preserves terminal predecessor and original receipt (1920.379662ms)
+2026-11-22T08:19:42.3103785Z ✔ successor SQL retains stale conflict and rejects changed originals and unauthorized recovery (1491.946224ms)
+2026-11-22T08:19:43.7359980Z ✔ successor failure after allocation rolls back revision, listing version, request and audit (1426.624725ms)
+2026-11-22T08:19:45.1290102Z ✔ successor private ledgers are forced-RLS, immutable and require a completed reservation (1392.231329ms)
+2026-11-22T08:19:49.1960665Z ✔ approved public snapshot and operational pause or archive survive successor allocation (4067.462459ms)
+2026-11-22T08:19:50.5527182Z ✔ candidate zero-version allocation is denied without changing the predecessor or blocking guarded succession (1354.010381ms)
+2026-11-22T08:19:51.9061306Z ✔ malformed successor facts and denied initial authority leave no private reservation (1357.250468ms)
+2026-11-22T08:19:54.0296103Z ▶ private synthetic verification ledger is current-admin scoped, atomic and append-only
+2026-11-22T08:19:54.0297125Z   ✔ normal record matches shared planner and changes no listing/revision/public data (19.030644ms)
+2026-11-22T08:19:54.0304831Z   ✔ exact original replay/recovery survives later history without duplicate audit, changed facts/actor refuse (18.230594ms)
+2026-11-22T08:19:54.0306674Z   ✔ current admin/tenant/enabled company is required for writes, recovery and history (18.609773ms)
+2026-11-22T08:19:54.0308187Z   ✔ target/history conflicts and future observation store stable refusal receipts without history mutation (14.562101ms)
+2026-11-22T08:19:54.0309352Z   ✔ history is newest-first, bounded with honest lookahead and immutable record payloads (8.025584ms)
+2026-11-22T08:19:54.0310349Z   ✔ invalid facts fail before any ledger rows, and private tables/helpers are unavailable to runtime (18.422632ms)
+2026-11-22T08:19:54.0311354Z   ✔ forced audit insertion failure rolls back record, state and operation atomically (7.748309ms)
+2026-11-22T08:19:54.0312159Z   ✔ fixed owner functions grant runtime only and retain fixed search paths (3.297386ms)
+2026-11-22T08:19:54.0313146Z   ✔ defensive maximum history and regressing-clock boundaries refuse without a record (11.026949ms)
+2026-11-22T08:19:54.0314059Z   ✔ original recovery and replay remain historical after a normal later listing change (13.386794ms)
+2026-11-22T08:19:54.0315115Z   ✔ keyset older-history pages remain stable after new records and expose every retained version (20.323379ms)
+2026-11-22T08:19:54.0316195Z ✔ private synthetic verification ledger is current-admin scoped, atomic and append-only (2012.273205ms)
+2026-11-22T08:19:56.0617705Z ✔ private video originals replay once, removal is explicit and stale/changed commands never overwrite (1916.004825ms)
+2026-11-22T08:19:57.4478233Z ✔ private video SQL rechecks assignment, role, tenant and revocation before originals or replay (1397.501004ms)
+2026-11-22T08:19:58.8727699Z ✔ video transaction rollback and decided revision protection preserve published listing and defaults (1426.965064ms)
+2026-11-22T08:20:01.0337382Z ✔ approved video captures reviewed metadata atomically and anonymous reads follow current public eligibility (2049.867175ms)
+2026-11-22T08:20:02.4576427Z ✔ pre-extension approved stock returns no inferred video and no private identifiers (1426.349206ms)
+2026-11-22T08:20:04.6262991Z ▶ single-photo attachment requires an authenticated exact intent and immutable sealed provenance
+2026-11-22T08:20:04.6264230Z   ✔ intent acknowledgement changes no draft/listing token, media, seal or success audit (80.05208ms)
+2026-11-22T08:20:04.6265086Z   ✔ changed payload/principal/tuple/kind and cross-company operation reuse disclose no original intent (89.319138ms)
+2026-11-22T08:20:04.6265929Z   ✔ new creation requires a sealed same-requester draft, exact token and bounded version (68.103027ms)
+2026-11-22T08:20:05.2379249Z   ✔ coordinator atomically attaches exact sealed facts, one revision token and one derived audit (58.82853ms)
+2026-11-22T08:20:05.2380095Z   ✔ stale terminal conflict is durable and only a fresh authenticated UUID/version reuses verified bytes (48.702444ms)
+2026-11-22T08:20:05.2380706Z   ✔ two explicit intents at token N cannot both attach or adopt N+1 (36.898899ms)
+2026-11-22T08:20:05.2381419Z   ✔ failed state/expiry/registered assignment outcomes persist without media/version/audit changes (54.284411ms)
+2026-11-22T08:20:05.2382078Z   ✔ duplicate checksums/keys, all-row capacity and sparse positions return bounded failures (79.189065ms)
+2026-11-22T08:20:05.2390075Z   ✔ current original principal authorization applies before ready and terminal disclosure, independent of coordinator GUC (80.92197ms)
+2026-11-22T08:20:05.2391048Z   ✔ submission and approval exclude legacy metadata, mixed rows and preexisting pending legacy drafts (72.549228ms)
+2026-11-22T08:20:05.2392491Z   ✔ four distinct provenanced outputs submit and approve exact immutable snapshots; historical receipts survive later state and association loss (95.317404ms)
+2026-11-22T08:20:05.2393597Z   ✔ exact provenance and immutable receipts reject metadata substitution; full transaction rollback leaves a ready intent (62.259295ms)
+2026-11-22T08:20:05.2394608Z   ✔ only exact narrow owner functions are granted; new private tables are forced RLS without runtime DML/read (17.721564ms)
+2026-11-22T08:20:05.2395725Z ✔ single-photo attachment requires an authenticated exact intent and immutable sealed provenance (2681.311783ms)
+2026-11-22T08:20:07.8785185Z ▶ draft gallery commands preserve exact consent, contiguous positions and immutable operation history
+2026-11-22T08:20:07.8786268Z   ✔ middle/first/last removal compacts all associations and increments only one revision token per change (81.937968ms)
+2026-11-22T08:20:07.8790301Z   ✔ range-safe swaps/arbitrary permutations include legacy unaccepted rows and explicit noop does not audit or touch tokens (51.607827ms)
+2026-11-22T08:20:07.8791252Z   ✔ valid full-set reordering repairs sparse positions while removal refuses an ambiguous sparse gallery (16.739074ms)
+2026-11-22T08:20:07.8792146Z   ✔ null, multidimensional, non-one-based, duplicate, NULL-element and oversized arrays fail before operation reservation (40.669705ms)
+2026-11-22T08:20:07.8792977Z   ✔ partial, extra, foreign and empty requested sets persist immutable typed rejection with requested order (46.323098ms)
+2026-11-22T08:20:07.8793738Z   ✔ same UUID changed version/target/order/principal/tuple/kind conflicts before historical disclosure (70.471455ms)
+2026-11-22T08:20:07.8794503Z   ✔ tenant namespace and current original principal authorization prevent guessed receipt leakage (67.877999ms)
+2026-11-22T08:20:07.8795373Z   ✔ typed stale/state failures preserve media/token and state takes precedence; exact replay survives later saves and association changes (38.376612ms)
+2026-11-22T08:20:07.8796500Z   ✔ provenance/job/seal histories survive removal; approved snapshot remains exact during later draft gallery edits (113.360858ms)
+2026-11-22T08:20:07.8798544Z   ✔ shared upload/attach namespace and known pipeline identities cannot be repurposed as gallery operations (48.17357ms)
+2026-11-22T08:20:07.8799650Z   ✔ safe upper boundary stays exact while unsupported current versions abort without reservation or adoption (31.07014ms)
+2026-11-22T08:20:07.8800737Z   ✔ audit failure and terminal receipt failure roll back associations, positions, token and audit atomically (68.812075ms)
+2026-11-22T08:20:07.8801628Z   ✔ position constraint is narrowly deferrable and exact operation records/functions remain private and immutable (19.389618ms)
+2026-11-22T08:20:07.8802465Z ✔ draft gallery commands preserve exact consent, contiguous positions and immutable operation history (2529.000403ms)
+2026-11-22T08:20:10.3073108Z ▶ registered media jobs preserve private identity and authorized historical recovery
+2026-11-22T08:20:10.3074074Z   ✔ registration allocates one private job and receipt without changing content or accepting media (50.886516ms)
+2026-11-22T08:20:10.3075113Z   ✔ lost-response retry recovers the same receipt after save, submit and approval (97.73714ms)
+2026-11-22T08:20:10.3081181Z   ✔ changed version, alt text, principal, tuple or command kind cannot repurpose an operation (92.082353ms)
+2026-11-22T08:20:10.3082166Z   ✔ current tenant, membership and assignment guard receipt and job readback (45.828066ms)
+2026-11-22T08:20:10.3100513Z   ✔ new registrations require exact current draft and supported fields without partial writes (27.681497ms)
+2026-11-22T08:20:10.3101361Z   ✔ alt text uses Unicode code points, canonical ECMAScript trim and control-free text (83.35091ms)
+2026-11-22T08:20:10.3102109Z   ✔ expired historical jobs reconcile without renewal or a fresh job identity (14.79621ms)
+2026-11-22T08:20:10.3102912Z   ✔ composite provenance and immutable job/receipt protections reject forged relationships and mutation (12.68215ms)
+2026-11-22T08:20:10.3104001Z   ✔ API role has named functions only, no private job reads/DML or owner/coordinator membership (15.626817ms)
+2026-11-22T08:20:10.3104657Z ✔ registered media jobs preserve private identity and authorized historical recovery (2322.393005ms)
+2026-11-22T08:20:14.4740755Z ▶ private saved-photo SQL reads bind current staff to immutable applied provenance without mutation
+2026-11-22T08:20:14.4742280Z   ✔ restricted API returns exact internal envelope and authoritative SQL hash without paths or writes (326.51037ms)
+2026-11-22T08:20:14.4743578Z   ✔ admin and reassigned agent retain viewing after uploader revocation while processing guard remains intact (457.932133ms)
+2026-11-22T08:20:14.4744528Z   ✔ current role fingerprint changes even when the same viewer remains eligible (50.362098ms)
+2026-11-22T08:20:14.4745422Z   ✔ foreign, mixed tuples, customer, guest, unknown and unassigned viewers have identical unavailable errors (110.083101ms)
+2026-11-22T08:20:14.4746535Z   ✔ current membership revocation and company disablement deny every read without changing history (66.144581ms)
+2026-11-22T08:20:14.4747418Z   ✔ accepted and unaccepted legacy metadata cannot become preview provenance (44.781575ms)
+2026-11-22T08:20:14.4748479Z   ✔ only eligible saved associations disclose stale versions and malformed arguments do not reserve anything (56.320373ms)
+2026-11-22T08:20:14.4749204Z   ✔ submitted photos remain unavailable through this draft-only boundary, including stale requests (41.784458ms)
+2026-11-22T08:20:14.4749894Z   ✔ removed association is denied while its applied history remains retained (53.216477ms)
+2026-11-22T08:20:14.4791920Z   ✔ missing or mismatched applied, capture, association and exact lease facts fail closed (873.980671ms)
+2026-11-22T08:20:14.4793179Z   ✔ read versions preserve the exact safe-integer boundary as a decimal string (151.281304ms)
+2026-11-22T08:20:14.4794427Z   ✔ only isolated API execution is granted, with fixed search path and no new private-table or worker authority (13.505623ms)
+2026-11-22T08:20:14.4795688Z ✔ private saved-photo SQL reads bind current staff to immutable applied provenance without mutation (4070.861656ms)
+2026-11-22T08:20:16.8382795Z ▶ synthetic coordinator processing preserves captured input and fenced immutable attestations
+2026-11-22T08:20:16.8385081Z   ✔ capture, stable claim and seal derive the stored company, requester and generated output (84.819402ms)
+2026-11-22T08:20:16.8386132Z   ✔ changed capture facts, malformed bounds and a claim reused for another job conflict (39.30516ms)
+2026-11-22T08:20:16.8387418Z   ✔ full fixed manifest validation rejects extra fields, altered encoder/policy and input mismatch (50.721768ms)
+2026-11-22T08:20:16.8388853Z   ✔ expired lease acknowledgement never renews and a replaced lease fences late output (44.673877ms)
+2026-11-22T08:20:16.8389932Z   ✔ current stored authorization ignores forged GUCs but denies revocation, disabled tenant and reassigned agent (26.986907ms)
+2026-11-22T08:20:16.8390787Z   ✔ processing does not adopt an edited draft token and exact committed seal replays after submit (85.036997ms)
+2026-11-22T08:20:16.8391518Z   ✔ fixed lease is bounded by job expiry and historical verified output remains recoverable after expiry (31.438464ms)
+2026-11-22T08:20:16.8395356Z   ✔ original admin historical recovery survives reassignment, while new work requires original assignment snapshot (24.716742ms)
+2026-11-22T08:20:16.8396553Z   ✔ append-only records, composite context and global resource IDs fail closed (20.79547ms)
+2026-11-22T08:20:16.8397854Z   ✔ seven processing and two maintenance commands have separate exact roles with no API or public execution (27.66625ms)
+2026-11-22T08:20:16.8398971Z ✔ synthetic coordinator processing preserves captured input and fenced immutable attestations (2248.001965ms)
+2026-11-22T08:20:19.0466659Z ▶ coordinator upload context resolves generated identities under current new-work authorization
+2026-11-22T08:20:19.0468717Z   ✔ before capture the restricted coordinator resolves server identities without a private-table lookup (62.05459ms)
+2026-11-22T08:20:19.0470566Z   ✔ stored company and original requester determine authorization rather than forged GUC selectors (44.927087ms)
+2026-11-22T08:20:19.0471769Z   ✔ current agent assignment and the original registered assignment snapshot both apply (35.67591ms)
+2026-11-22T08:20:19.0472887Z   ✔ expired, non-draft, missing and null jobs expose no upload context and mutate nothing (35.977204ms)
+2026-11-22T08:20:19.0474084Z   ✔ context lookup adopts no new draft token and creates no capture, lease, seal or audit receipt (27.471923ms)
+2026-11-22T08:20:19.0475253Z   ✔ one fixed owner function is executable only by the coordinator and adds no private-table privilege (17.373739ms)
+2026-11-22T08:20:19.0476401Z ✔ coordinator upload context resolves generated identities under current new-work authorization (2104.335088ms)
+2026-11-22T08:20:21.4509932Z ▶ fresh upload preflight requires current authenticated exact original-job authorization without mutation
+2026-11-22T08:20:21.4511414Z   ✔ exact agent and original admin jobs return only the fixed resource tuple (88.963199ms)
+2026-11-22T08:20:21.4512313Z   ✔ wrong listing, revision and job cannot select another permitted resource (41.60551ms)
+2026-11-22T08:20:21.4513253Z   ✔ tenant and original actor binding reject peers and another authorized admin (36.083219ms)
+2026-11-22T08:20:21.4514040Z   ✔ visitors and missing verified identity/context fail before disclosing a tuple (32.054359ms)
+2026-11-22T08:20:21.4514748Z   ✔ revocation, role downgrade and disabled company are rechecked on every call (58.827143ms)
+2026-11-22T08:20:21.4515483Z   ✔ current agent access and original registered assignment apply independently (53.121352ms)
+2026-11-22T08:20:21.4516446Z   ✔ non-draft and expired jobs remain historically readable but cannot admit fresh bytes (41.278949ms)
+2026-11-22T08:20:21.4517713Z   ✔ malformed tuple arguments fail without reserving or changing any facts (24.902877ms)
+2026-11-22T08:20:21.4518807Z   ✔ later draft edits are not a refreshed version or new processing authority (30.997579ms)
+2026-11-22T08:20:21.4520288Z   ✔ one owner function grants only API execution without table or coordinator privileges (10.795287ms)
+2026-11-22T08:20:21.4521276Z ✔ fresh upload preflight requires current authenticated exact original-job authorization without mutation (2309.43515ms)
+2026-11-22T08:20:23.4883959Z ✔ settings: retiring an unapplied original is immutable, exact, actor/tenant-bound, replayable and permanently blocks delayed writes (1940.311275ms)
+2026-11-22T08:20:24.8680207Z ✔ settings: resolving a committed original returns its exact receipt without cancelling, replaying or changing public state (1378.167213ms)
+2026-11-22T08:20:26.2350898Z ✔ report: retiring an unapplied original is immutable, exact, actor/tenant-bound, replayable and permanently blocks delayed writes (1367.459151ms)
+2026-11-22T08:20:27.6314428Z ✔ report: resolving a committed original returns its exact receipt without cancelling, replaying or changing public state (1393.792728ms)
+2026-11-22T08:20:28.9217930Z ✔ resolution rejects malformed/oversized/unknown kind originals before writing any cancellation (1294.025398ms)
+2026-11-22T08:20:31.5834492Z ✔ current anonymous public image metadata binds approved snapshot and full sealed association without disclosure or mutation (2552.429501ms)
+2026-11-22T08:20:33.6700689Z ✔ paused,archived,unavailable,stale,disabled or changed publication cannot authorize even valid sealed image metadata (2086.756047ms)
+2026-11-22T08:20:35.2034681Z ✔ unknown public key is refused and public SQL function keeps exact owner/search path/role restrictions (1535.694441ms)
+2026-11-22T08:20:37.3669909Z ▶ owner admission refuses capability rollback after real synthetic adoption and preserves every original
+2026-11-22T08:20:37.3670811Z   ✔ each required reader/editor/original capability is mandatory and denial never activates (52.288339ms)
+2026-11-22T08:20:37.3680667Z   ✔ compatible artifact callback runs inside held fence and yields no private rows (14.360837ms)
+2026-11-22T08:20:37.3682047Z   ✔ activation failure rolls back/releases transaction without changing saved facts or receipt (14.463109ms)
+2026-11-22T08:20:37.3682710Z   ✔ runtime role cannot use owner admission even with all capabilities (2.303766ms)
+2026-11-22T08:20:37.3683393Z   ✔ capabilities snapshot rejects getters, unknown protocols and sparse/extra fields before SQL (0.43698ms)
+2026-11-22T08:20:37.3684258Z   ✔ missing schema or recovery execute grant refuses activation and preserves originals (22.849824ms)
+2026-11-22T08:20:37.3685114Z ✔ owner admission refuses capability rollback after real synthetic adoption and preserves every original (2064.980733ms)
+2026-11-22T08:20:37.3686198Z ✔ historical transition/approved/successor policy requires their recovery capabilities and snapshots config before awaits (0.768454ms)
+2026-11-22T08:20:40.0773838Z ✔ review gallery projects only ordered current pending sealed media identities without mutation (2607.395683ms)
+2026-11-22T08:20:42.1351023Z ✔ one unsealed historical association denies the entire gallery before stale currency (2057.558705ms)
+2026-11-22T08:20:44.1870034Z ✔ review gallery checks present authority and isolated privilege on every read (2050.495303ms)
+2026-11-22T08:20:46.3588732Z ✔ review image policy requires current admin and exact pending version without mutation or draft-authority reuse (2171.016891ms)
+2026-11-22T08:20:48.2663152Z ✔ reviewer access loss denies bytes context while uploader revocation does not erase current-admin inspection (1908.275498ms)
+2026-11-22T08:20:49.6804325Z ✔ review provenance function has isolated execute privilege and rejects malformed context before reads (1413.047522ms)
+2026-11-22T08:20:51.2415189Z ✔ pending accepted legacy references cannot authorize reviewer image context (1564.284065ms)
+2026-11-22T08:20:53.2622124Z ✔ isolated branch writes retain original, terminal conflict and no-op without changing memberships (1915.710349ms)
+2026-11-22T08:20:54.6551179Z ✔ current role, company and requester fence branch operations and immutable storage denies direct writes (1394.317915ms)
+2026-11-22T08:20:55.9968585Z ✔ malformed branch facts reserve no operation and current projection contains no review reason or actor (1344.229689ms)
+2026-11-22T08:20:57.9827340Z ✔ admin: immutable creator-bound capture receipt replays once, recovers unassigned work, and rejects foreign facts/actor/revocation (1872.933497ms)
+2026-11-22T08:20:59.3700056Z ✔ agent: immutable creator-bound capture receipt replays once, recovers unassigned work, and rejects foreign facts/actor/revocation (1390.905176ms)
+2026-11-22T08:21:01.3640787Z ✔ bounded private invitation pages use stable IDs, omit actor, and retain current revoked/expired states (1895.19078ms)
+2026-11-22T08:21:02.7394869Z ✔ branch pages expose latest applied metadata once, including inactive branches, without private operation facts (1374.309078ms)
+2026-11-22T08:21:04.0954732Z ✔ directory pages recheck current role/company and reject unbounded reads without raw table grants (1358.182237ms)
+2026-11-22T08:21:06.0990945Z ✔ legacy current reads and bounded directory reflect issued and used states without altering historical capture facts (1906.530417ms)
+2026-11-22T08:21:07.4899903Z ✔ atomic redemption grants once, preserves capture history and never reactivates on original replay (1390.918713ms)
+2026-11-22T08:21:08.8890003Z ✔ issuance originals expose no digest and lost secrets require cancellation and a fresh capture (1398.635359ms)
+2026-11-22T08:21:10.2440141Z ✔ wrong recipient, issuer, digest, company and existing memberships cannot receive a grant (1354.51739ms)
+2026-11-22T08:21:11.6124558Z ✔ current company and creator authority fence both issue and consume decisions (1366.928549ms)
+2026-11-22T08:21:12.9650464Z ✔ a renamed or disabled branch requires a new snapshot before issue or redemption (1353.032569ms)
+2026-11-22T08:21:14.5191562Z ✔ decision wall time refuses expiry crossed inside a delayed redemption statement (1553.385ms)
+2026-11-22T08:21:15.8573902Z ✔ audit failure rolls back consume, membership and receipt and leaves the same secret usable (1339.445883ms)
+2026-11-22T08:21:17.2036076Z ✔ private rows are immutable and raw storage/helper grants remain absent (1343.69792ms)
+2026-11-22T08:21:18.5498735Z ✔ expired or revoked captures and malformed issuance reserve no secret or membership (1349.983591ms)
+2026-11-22T08:21:20.5790644Z ✔ capture binds an active branch snapshot and preserves exact original after rename, disable and revocation without delivery or grants (1918.730535ms)
+2026-11-22T08:21:21.9720960Z ✔ revocation conflicts and exact actor-bound originals never upgrade after later work (1395.344623ms)
+2026-11-22T08:21:23.3344513Z ✔ historically expired fixture stays expired and original retrieval never extends its immutable deadline (1360.372586ms)
+2026-11-22T08:21:24.8082095Z ✔ invitation capture starts its full lifetime at decision time after a delayed statement (1473.630365ms)
+2026-11-22T08:21:26.3111246Z ✔ expiry crossed inside one statement prevents late revocation and preserves the original deadline (1502.196789ms)
+2026-11-22T08:21:27.5915219Z ✔ authority lost after admission prevents branch, capture and revocation writes atomically (1280.720693ms)
+2026-11-22T08:21:28.8990280Z ✔ current role, tenant, original requester and raw storage restrictions protect private invitation facts (1307.914824ms)
+2026-11-22T08:21:30.1550534Z ✔ SQL recipient validation agrees with shared intent and unsupported role/branch/expiry reserves nothing (1256.596081ms)
+2026-11-22T08:21:31.4148189Z ✔ actual SQL request, state and revocation JSON satisfies exact shared wire contracts (1258.176918ms)
+2026-11-22T08:21:32.7077290Z ✔ C1 control characters cannot be saved into branch snapshots or private revocation reasons (1295.799446ms)
+2026-11-22T08:21:34.6400784Z ✔ active legacy membership projections omit historical revocation without mutating it (1824.942876ms)
+2026-11-22T08:21:36.0130940Z ✔ existing staff changes retain exact originals, terminal version conflicts and no-ops with applied-only audits (1371.619451ms)
+2026-11-22T08:21:37.3483115Z ✔ self changes are refused and serialized peer demotion/revocation always retains an active admin (1335.345094ms)
+2026-11-22T08:21:38.6880255Z ✔ current admin/company and original actor fence reads/writes; no new/customer/foreign membership is modified (1340.950544ms)
+2026-11-22T08:21:40.0340540Z ✔ malformed commands reserve nothing and restricted roles cannot read, mutate or execute private storage functions (1345.470071ms)
+2026-11-22T08:21:41.3760625Z ✔ private membership pages traverse bounded stable IDs including inactive staff without customer/foreign/private-operation data or mutations (1340.488532ms)
+2026-11-22T08:21:42.6688864Z ✔ membership page bounds, current admin/company and restricted function grants are enforced on every read (1296.150788ms)
+2026-11-22T08:21:44.7676390Z ✔ admitted viewing queues a customer notification and cancellation suppresses the later job (1987.926836ms)
+2026-11-22T08:21:46.9135423Z ▶ capture-only reminder admission saves immutable originals under current authority without delivery or workflow mutation
+2026-11-22T08:21:46.9136364Z   ✔ one exact candidate and original replay preserve enquiry/viewing versions (16.922384ms)
+2026-11-22T08:21:46.9140084Z   ✔ same facts under a new operation cannot admit twice and originals bind requester/window (13.429972ms)
+2026-11-22T08:21:46.9140765Z   ✔ stale and policy-window refusals are durable and do not create candidates (19.168357ms)
+2026-11-22T08:21:46.9141406Z   ✔ stored receipts are forced-RLS and immutable even to owner (8.776444ms)
+2026-11-22T08:21:46.9141950Z   ✔ rolled-back admission leaves no receipt candidate or audit event (5.476514ms)
+2026-11-22T08:21:46.9142751Z   ✔ a different valid same-company listing cannot be substituted into admission evidence (5.468821ms)
+2026-11-22T08:21:46.9143844Z   ✔ unavailable listings,foreign companies and inactive current roles cannot admit work or expose originals (12.860831ms)
+2026-11-22T08:21:46.9144737Z   ✔ current assignment loss hides originals and restored access recovers unchanged admission (12.720817ms)
+2026-11-22T08:21:46.9160489Z   ✔ replacement cycle needs a new agreement and keeps the first admission historical (17.375235ms)
+2026-11-22T08:21:46.9161297Z   ✔ explicit ending and closed/unavailable cleanup never rewrite the original candidate (23.332087ms)
+2026-11-22T08:21:46.9162175Z ✔ capture-only reminder admission saves immutable originals under current authority without delivery or workflow mutation (2054.425021ms)
+2026-11-22T08:21:49.0024517Z ▶ synthetic reminder captures recheck current facts and recover immutable atomic attempts without provider delivery
+2026-11-22T08:21:49.0025930Z   ✔ one atomic capture returns exact historical evidence without workflow version changes (29.975676ms)
+2026-11-22T08:21:49.0026996Z   ✔ new operations deduplicate capture while exact operation IDs bind their admission (23.713064ms)
+2026-11-22T08:21:50.2073808Z   ✔ not-due decisions remain historical and a new operation can capture after real elapsed time (1038.602107ms)
+2026-11-22T08:21:50.2074907Z   ✔ a rolled-back capture leaves no attempt or audit and the same operation remains available (13.919995ms)
+2026-11-22T08:21:50.2075841Z   ✔ attempt evidence is forced-RLS immutable and cannot be backdated or invoked through private helpers (9.192195ms)
+2026-11-22T08:21:50.2076669Z   ✔ original capture recovery and new attempts require current company assignment and requester (24.936808ms)
+2026-11-22T08:21:50.2078649Z   ✔ stock withdrawal suppresses a fresh attempt and its original cannot upgrade after restoration (16.958473ms)
+2026-11-22T08:21:50.2085510Z   ✔ rescheduling suppresses the old candidate before and after a separate new phone agreement (37.938671ms)
+2026-11-22T08:21:50.2086283Z   ✔ closure and explicit cancellation suppress fresh captures without rewriting old results (27.681538ms)
+2026-11-22T08:21:50.2086959Z   ✔ normally seeded historical admissions cannot capture after recorded completion or no-show (39.164321ms)
+2026-11-22T08:21:50.2088040Z ✔ synthetic reminder captures recheck current facts and recover immutable atomic attempts without provider delivery (3194.614353ms)
+2026-11-22T08:21:52.2486364Z ▶ private SQL reminder suppression matches pure domain and grants no runtime dispatch surface
+2026-11-22T08:21:52.2487323Z   ✔ exact due expiry slot and saved-clock boundaries match (15.088498ms)
+2026-11-22T08:21:52.2488696Z   ✔ different targets versions cycles slots agreements and fresh eligibility suppress identically (10.827539ms)
+2026-11-22T08:21:52.2489633Z   ✔ later confirmed cycle needs its own exact candidate (3.627872ms)
+2026-11-22T08:21:52.2490423Z   ✔ malformed and null candidate facts fail closed (15.36814ms)
+2026-11-22T08:21:52.2500748Z   ✔ UUID and version facts with trailing line breaks remain invalid (9.243331ms)
+2026-11-22T08:21:52.2502045Z   ✔ persisted first and later outcomes suppress earlier candidates identically (22.163252ms)
+2026-11-22T08:21:52.2503158Z   ✔ runtime cannot invoke planning primitives or gain owner privileges (2.412167ms)
+2026-11-22T08:21:52.2504238Z ✔ private SQL reminder suppression matches pure domain and grants no runtime dispatch surface (1931.483009ms)
+2026-11-22T08:21:54.3558704Z ✔ stored completion preserves historical agreement and current detail clocks with exact immutable recovery (2005.718146ms)
+2026-11-22T08:21:55.9083215Z ✔ stored no-show retains superseded and current cycle agreements and rejects later mutations (1549.659997ms)
+2026-11-22T08:21:57.3892733Z ✔ attendance stale-first and unconfirmed or future-slot refusals are durable and do not infer attendance (1480.075978ms)
+2026-11-22T08:22:00.2625188Z ✔ attendance occurrence bounds and record clock refusals remain saved decisions without state changes (2874.940142ms)
+2026-11-22T08:22:01.7000672Z ✔ attendance current role company assignment and requester-private receipt guards survive access restoration (1436.537335ms)
+2026-11-22T08:22:03.1321463Z ✔ attendance exact operation identity binds kind target original version occurrence and raw reason (1432.692751ms)
+2026-11-22T08:22:04.5436629Z ✔ attendance cleanup remains possible after closure and withdrawn stock and audit excludes private reason (1409.786036ms)
+2026-11-22T08:22:05.9680891Z ✔ attendance evidence cannot be edited erased rewritten or directly read and changed by runtime (1424.884825ms)
+2026-11-22T08:22:07.3733772Z ✔ malformed attendance commands reserve no operation and maximum raw Unicode evidence survives (1389.852818ms)
+2026-11-22T08:22:08.7736842Z ✔ attendance audit and receipt insertion failures roll back evidence state and operation identity together (1413.38453ms)
+2026-11-22T08:22:10.2080016Z ✔ current staff history reads immutable applied snapshots through cancellation without original command IDs or writes (1434.002191ms)
+2026-11-22T08:22:11.6400466Z ✔ saved viewing history has canonical bounded newest versions and excludes refused or conflicted commands (1434.131411ms)
+2026-11-22T08:22:13.0762181Z ✔ viewing history enforces current company role assignment and revocation independently of original requester (1436.210112ms)
+2026-11-22T08:22:14.5130111Z ✔ viewing history remains readable for closed or unavailable stock and never grants direct ledger privileges (1436.433924ms)
+2026-11-22T08:22:15.9516728Z ✔ reasoned cancellation preserves confirmed phone evidence and all original receipts without enquiry mutation (1435.876218ms)
+2026-11-22T08:22:17.3830161Z ✔ cancellation remains possible for closed enquiry and paused unavailable listing and exact terminal replay stays original (1432.246686ms)
+2026-11-22T08:22:18.8158234Z ✔ decline is allowed before confirmation and cannot erase a recorded phone agreement (1430.928746ms)
+2026-11-22T08:22:20.2090025Z ✔ stale terminal attempts and repeated new termination decisions are durable without another mutation (1393.86716ms)
+2026-11-22T08:22:21.6540438Z ✔ terminal receipts and reads enforce current assignment,company,active role and original requester (1446.00253ms)
+2026-11-22T08:22:23.0570401Z ✔ terminal reason,state,ending metadata and original evidence cannot be edited,reverted or deleted (1401.021664ms)
+2026-11-22T08:22:24.5060042Z ✔ invalid terminal commands reserve no ledger entry and existing operation kind cannot be replaced (1449.112566ms)
+2026-11-22T08:22:25.9077259Z ✔ historical proposed slot can be explicitly cancelled after its start without changing its saved time (1401.667162ms)
+2026-11-22T08:22:27.3353549Z ✔ requested cancellation and proposed decline retain distinct prior stages and exact original times (1426.60216ms)
+2026-11-22T08:22:28.7210229Z ✔ future saved-record clock refuses terminal mutation and retains its original refusal receipt (1386.101262ms)
+2026-11-22T08:22:30.1279980Z ✔ phone agreement confirms only exact proposal and retains private attributable evidence and historical originals (1407.073015ms)
+2026-11-22T08:22:31.5320624Z ✔ phone confirmation original replay survives later closure and listing pause but changed facts/requester conflict (1403.06147ms)
+2026-11-22T08:22:32.9540240Z ✔ stale and invalid-state confirmation decisions are durable and never create an agreement (1422.976565ms)
+2026-11-22T08:22:34.3150110Z ✔ changed slot,agreement before proposal and future agreement are durable refusals with no viewing mutation (1360.750655ms)
+2026-11-22T08:22:35.7050043Z ✔ phone confirmation enforces current staff assignment and requester-private recovery without consuming denied operations (1388.009178ms)
+2026-11-22T08:22:37.0986468Z ✔ confirmation evidence and confirmed slot remain immutable and runtime cannot write tables (1392.565242ms)
+2026-11-22T08:22:38.4769939Z ✔ malformed phone agreement arguments fail before ledger reservation and existing operation IDs cannot change kind (1379.138474ms)
+2026-11-22T08:22:39.8444140Z ✔ new confirmations refuse unavailable listing and closed enquiry while retaining durable no-mutation decisions (1366.735298ms)
+2026-11-22T08:22:41.2294904Z ✔ historical proposed slot cannot be newly confirmed after its start time (1383.649078ms)
+2026-11-22T08:22:42.6026185Z ✔ request and first proposal are private,attributable and independent of enquiry version (1373.105292ms)
+2026-11-22T08:22:43.9905525Z ✔ original request and proposal replay recover historical results after later closure and listing pause (1387.894712ms)
+2026-11-22T08:22:45.3549868Z ✔ stale request and proposal conflicts are durable and cannot be upgraded by replay (1364.66549ms)
+2026-11-22T08:22:46.7444077Z ✔ new commands require current open enquiry,own bound listing and fresh available publication (1388.370629ms)
+2026-11-22T08:22:48.1171656Z ✔ requester-private receipts,current assignment,revocation and company guards apply to reads and replay (1372.877343ms)
+2026-11-22T08:22:49.4968512Z ✔ slot structure,bounds,original notes and future execution are independently enforced in SQL (1379.417887ms)
+2026-11-22T08:22:50.8690428Z ✔ forced RLS,runtime privilege denial and immutable original records prevent direct bypass (1371.954139ms)
+2026-11-22T08:22:52.2500765Z ✔ bounded viewing feed includes current assignment and only saved schedules,with truthful truncation (1381.929377ms)
+2026-11-22T08:22:53.6499665Z ✔ stored repeated reschedules retain every old agreement and exact receipt while each new cycle starts unagreed (1398.190023ms)
+2026-11-22T08:22:55.0400378Z ✔ proposed reschedules can repeat without fabricated agreement and the current cycle can be declined (1390.542507ms)
+2026-11-22T08:22:56.4310555Z ✔ reschedule stale,unchanged,requested and already ended decisions remain durable without new states (1392.219869ms)
+2026-11-22T08:22:57.8355721Z ✔ reschedule requires current eligible stock and open enquiry but original replay survives closure and pause (1402.099346ms)
+2026-11-22T08:22:59.2243010Z ✔ reschedule checks current company role assignment and original requester without consuming denied IDs (1388.475963ms)
+2026-11-22T08:23:00.6250081Z ✔ reschedule operation IDs bind exact kind,target,version,slot and raw reason across later cycles (1400.627106ms)
+2026-11-22T08:23:02.0070027Z ✔ stored cycle and original first-cycle evidence cannot be edited,erased,rewritten or accessed by runtime tables (1381.870328ms)
+2026-11-22T08:23:03.3954591Z ✔ malformed reschedule commands reserve no operation and maximum bounded raw Unicode reason survives (1387.485045ms)
+2026-11-22T08:23:04.7839685Z ✔ reschedule audit or receipt failures roll back current cycle and operation atomically (1388.119815ms)
+2026-11-22T08:23:06.2106071Z ✔ new cycle requires its own exact phone agreement and confirmed cleanup remains possible after closure (1427.591967ms)
+2026-11-22T08:23:07.6076576Z ✔ reschedule refuses past new starts and a clock before the saved proposal without consuming later decisions (1399.123434ms)
+2026-11-22T08:23:07.6570319Z ℹ tests 486
+2026-11-22T08:23:07.6570684Z ℹ suites 0
+2026-11-22T08:23:07.6570956Z ℹ pass 485
+2026-11-22T08:23:07.6571294Z ℹ fail 0
+2026-11-22T08:23:07.6571537Z ℹ cancelled 0
+2026-11-22T08:23:07.6571804Z ℹ skipped 1
+2026-11-22T08:23:07.6572051Z ℹ todo 0
+2026-11-22T08:23:07.6572319Z ℹ duration_ms 456551.203363
+2026-11-22T08:23:07.6754214Z Post job cleanup.
+2026-11-22T08:23:07.7693716Z Cache hit occurred on the primary key node-cache-Linux-x64-npm-82625ee3acd2a082890cdfae666be5685b62d737f367b2ef136249c683a37ac7, not saving cache.
+2026-11-22T08:23:07.7801307Z Post job cleanup.
+2026-11-22T08:23:07.8408116Z [command]/usr/bin/git version
+2026-11-22T08:23:07.8445460Z git version 2.56.1
+2026-11-22T08:23:07.8468839Z Temporarily overriding HOME='/home/runner/work/_temp/65671136-9c43-49d4-907a-1bec749b400c' before making global git config changes
+2026-11-22T08:23:07.8469803Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-22T08:23:07.8472760Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/realtime-estates/realtime-estates
+2026-11-22T08:23:07.8495541Z Removing SSH command configuration
+2026-11-22T08:23:07.8500127Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-22T08:23:07.8524373Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-22T08:23:07.8693434Z Removing HTTP extra header
+2026-11-22T08:23:07.8697905Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-22T08:23:07.8721641Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-22T08:23:07.8879271Z Removing includeIf entries pointing to credentials config files
+2026-11-22T08:23:07.8889063Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-22T08:23:07.8908683Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-22T08:23:07.9201891Z Cleaning up orphan processes
