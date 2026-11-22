@@ -1,6 +1,14 @@
 import { randomBytes } from 'node:crypto';
 /** Disposable local preview only. No persisted key, managed resource or identity data. Never log this object. */
 export function syntheticRecoveryEnvironment(env = process.env) {
+  if (
+    [
+      'PRIVATE_RECOVERY_CUSTODY_MODE',
+      'PRIVATE_RECOVERY_CUSTODY_FILE',
+      'PRIVATE_RECOVERY_CUSTODY_ID',
+    ].some((k) => env[k] !== undefined)
+  )
+    throw Error('Use an explicit recovery custody launcher.');
   if (env.NODE_ENV === 'production') throw Error('Recovery preview refuses production.');
   const mode = env.PRIVATE_RECOVERY_MODE,
     key = env.PRIVATE_RECOVERY_STORAGE_KEY;

@@ -13,6 +13,9 @@ test('disposable preview keys are random RAM-only values; explicit configuration
   assert.deepEqual(syntheticRecoveryEnvironment(a), a);
   for (const env of [
     { NODE_ENV: 'production' },
+    { PRIVATE_RECOVERY_CUSTODY_MODE: 'synthetic-windows-owner-v1' },
+    { PRIVATE_RECOVERY_CUSTODY_FILE: 'configured' },
+    { PRIVATE_RECOVERY_CUSTODY_ID: 'configured' },
     { PRIVATE_RECOVERY_MODE: a.PRIVATE_RECOVERY_MODE },
     { PRIVATE_RECOVERY_STORAGE_KEY: a.PRIVATE_RECOVERY_STORAGE_KEY },
     {

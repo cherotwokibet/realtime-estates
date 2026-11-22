@@ -1,4 +1,7 @@
-import { syntheticRecoveryEnvironment } from './synthetic-recovery-env.mjs';
+import {
+  syntheticRecoveryLaunchEnvironment,
+  publicPreviewRecoveryEnvironment,
+} from './synthetic-recovery-launch.mjs';
 /** Disposable synthetic enquiry UI. Tokens are server-only and never logged. */
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -14,7 +17,8 @@ import {
 
 const launch = enquiryLaunchConfiguration(process.env, process.argv.slice(2));
 const pilot = launch.journeyFixture === 'web-admin-pilot-v1';
-const recoveryEnvironment = syntheticRecoveryEnvironment();
+const recoveryLaunch = await syntheticRecoveryLaunchEnvironment();
+const recoveryEnvironment = recoveryLaunch.environment;
 if (pilot && process.platform !== 'win32')
   throw Error('The current pilot photo processor requires Windows.');
 if (
@@ -146,7 +150,7 @@ try {
         STAFF_PREVIEW_MODE: pilot ? 'synthetic' : '',
         ...recoveryEnvironment,
         STAFF_PREVIEW_TOKEN: pilot ? admin.bearerToken : '',
-        STAFF_PREVIEW_INSTANCE: pilot ? randomUUID() : '',
+        STAFF_PREVIEW_INSTANCE: pilot ? recoveryLaunch.instances.staff : '',
         STAFF_PREVIEW_MEDIA: pilot ? 'synthetic' : '',
         STAFF_ENQUIRY_PREVIEW_MODE: 'synthetic-v1',
         STAFF_REMINDER_CAPTURE_MODE: process.argv.includes('--reminder-capture')
@@ -155,10 +159,10 @@ try {
         STAFF_PREVIEW_API_ORIGIN: preview.origin,
         STAFF_ENQUIRY_ADMIN_TOKEN: admin.bearerToken,
         STAFF_ENQUIRY_ADMIN_ID: admin.actorId,
-        STAFF_ENQUIRY_ADMIN_INSTANCE: randomUUID(),
+        STAFF_ENQUIRY_ADMIN_INSTANCE: recoveryLaunch.instances.admin,
         STAFF_ENQUIRY_AGENT_TOKEN: agent.bearerToken,
         STAFF_ENQUIRY_AGENT_ID: agent.actorId,
-        STAFF_ENQUIRY_AGENT_INSTANCE: randomUUID(),
+        STAFF_ENQUIRY_AGENT_INSTANCE: recoveryLaunch.instances.agent,
       },
     },
   );
@@ -173,8 +177,8 @@ try {
   });
   if (launch.webPort) {
     // No staff credentials are inherited by the public web process.
-    const publicEnv = Object.fromEntries(
-      Object.entries(inherited).filter(([key]) => !/^STAFF_/i.test(key)),
+    const publicEnv = publicPreviewRecoveryEnvironment(
+      Object.fromEntries(Object.entries(inherited).filter(([key]) => !/^STAFF_/i.test(key))),
     );
     webChild = spawn(
       process.execPath,
