@@ -1,3 +1,9 @@
+## Published persistent local outcome recovery, checkpoint 490, 22 November 2026 EAT
+
+Private dashboard deployment appgdep_6b03257de2ec81918141f220b9f295aa succeeded from dashboard ddc3cd6c0a823e36aca07cbfed5056a9297f9614. Three dashboard tests passed. The last saved browser export replayed locally with all 1012 notes and manual fields preserved. Deployed browser verification is pending. The tracker shows 55 of 97 verified deliverables.
+
+Source 8c1b27599053608f3cecad7a238a75540c8cbf88 passed all seven CI45038259035 jobs. Local9 focused/admin684/UI53/types/format passed; Windows actual DPAPI and Linux labelled fixture wrapping are distinguished. Graceful file-backed PGlite/API process restart recovers the exact original receipt under fresh signed authority and replays with one ledger row. Linux140 browser workflows/3 HTTP smokes and7 existing PostgreSQL cases passed. Optional final web build and Android JS export skipped by planner; runtime builds recorded separately. Existing ephemeral launcher unchanged; no hosted/browser/crash/production or plaintext migration acceptance. Billing disabled.
+
 ## Verified persistent local outcome recovery490 - 22 November2026 EAT
 
 Source8c1b27599053608f3cecad7a238a75540c8cbf88 passed all seven CI45038259035 jobs. Local9 focused/admin684/UI53/types/format passed; Windows used actual DPAPI. Linux new restart journey passed with labelled test wrapping; admin680/4skip, API488/3skip explicit.140 browser workflows/3 HTTP smokes and7 existing PostgreSQL17.12/TLS/detached/container cases passed. Runtime API/web/admin builds passed; final optional web build and Android JS export skipped by planner, not claimed passed. Existing private dashboard publication next.
